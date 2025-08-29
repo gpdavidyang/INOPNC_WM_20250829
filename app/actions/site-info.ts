@@ -3,8 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 
 const log = (...args: any[]) => {
-  // Only log in development environment to avoid performance issues in production
-  if (process.env.NODE_ENV === 'development') {
+  // Completely disable logging in production to prevent disk overflow
+  // Only enable for specific debugging needs in development
+  if (process.env.NODE_ENV === 'development' && process.env.DEBUG_SITE_INFO === 'true') {
     console.log('[SITE-INFO DEBUG]', ...args)
   }
 }

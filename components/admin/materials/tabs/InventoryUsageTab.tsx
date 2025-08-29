@@ -5,7 +5,8 @@ import { Profile } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { 
   Calendar, Building2, Search, Download, TrendingUp, 
-  TrendingDown, Package, AlertTriangle, FileText
+  TrendingDown, Package, AlertTriangle, FileText,
+  ChevronUp, ChevronDown, ChevronsUpDown
 } from 'lucide-react'
 
 interface InventoryUsageTabProps {
@@ -35,6 +36,8 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
   )
   const [sites, setSites] = useState<Array<{id: string, name: string}>>([])
   const [searchTerm, setSearchTerm] = useState('')
+  const [sortField, setSortField] = useState<'work_date' | 'site_name' | 'incoming' | 'used' | 'remaining' | 'efficiency_rate' | 'status'>('work_date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   
   const supabase = createClient()
 
@@ -152,7 +155,40 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
   const totals = calculateTotals()
   totals.avgEfficiency = totals.totalIncoming > 0 ? (totals.totalUsed / totals.totalIncoming) * 100 : 0
 
-  const filteredData = inventoryData.filter(item => 
+  const handleSort = (field: typeof sortField) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (field: typeof sortField) => {
+    if (field !== sortField) {
+      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-500" />
+      : <ChevronDown className="h-4 w-4 text-blue-500" />
+  }
+
+  const sortedData = [...inventoryData].sort((a, b) => {
+    let aValue: any = a[sortField]
+    let bValue: any = b[sortField]
+    
+    if (sortField === 'status') {
+      const statusOrder = { critical: 0, low: 1, normal: 2 }
+      aValue = statusOrder[aValue as keyof typeof statusOrder]
+      bValue = statusOrder[bValue as keyof typeof statusOrder]
+    }
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const filteredData = sortedData.filter(item => 
     searchTerm === '' || 
     item.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.work_date.includes(searchTerm)
@@ -297,26 +333,68 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                날짜
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('work_date')}
+              >
+                <div className="flex items-center gap-1">
+                  날짜
+                  {getSortIcon('work_date')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                현장명
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('site_name')}
+              >
+                <div className="flex items-center gap-1">
+                  현장명
+                  {getSortIcon('site_name')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                입고량
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('incoming')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  입고량
+                  {getSortIcon('incoming')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                사용량
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('used')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  사용량
+                  {getSortIcon('used')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                재고량
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('remaining')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  재고량
+                  {getSortIcon('remaining')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                효율(%)
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('efficiency_rate')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  효율(%)
+                  {getSortIcon('efficiency_rate')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                상태
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('status')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  상태
+                  {getSortIcon('status')}
+                </div>
               </th>
             </tr>
           </thead>

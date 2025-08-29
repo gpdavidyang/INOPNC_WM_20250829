@@ -5,7 +5,8 @@ import { Profile } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { 
   Calendar, BarChart3, TrendingUp, TrendingDown,
-  PlusCircle, Edit, Save, X, AlertCircle
+  PlusCircle, Edit, Save, X, AlertCircle,
+  ChevronUp, ChevronDown, ChevronsUpDown
 } from 'lucide-react'
 
 interface ProductionManagementTabProps {
@@ -32,6 +33,8 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
   )
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
+  const [sortField, setSortField] = useState<'production_date' | 'production_amount' | 'shipment_amount' | 'balance_amount'>('production_date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   
   // Form state
   const [formData, setFormData] = useState({
@@ -164,6 +167,33 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
   }
 
   const totals = calculateTotals()
+
+  const handleSort = (field: typeof sortField) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (field: typeof sortField) => {
+    if (field !== sortField) {
+      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-500" />
+      : <ChevronDown className="h-4 w-4 text-blue-500" />
+  }
+
+  const sortedData = [...productionData].sort((a, b) => {
+    const aValue = a[sortField]
+    const bValue = b[sortField]
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
 
   return (
     <div className="p-6">
@@ -314,17 +344,41 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                생산일자
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('production_date')}
+              >
+                <div className="flex items-center gap-1">
+                  생산일자
+                  {getSortIcon('production_date')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                생산량
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('production_amount')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  생산량
+                  {getSortIcon('production_amount')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                출고량
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('shipment_amount')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  출고량
+                  {getSortIcon('shipment_amount')}
+                </div>
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                잔고량
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('balance_amount')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  잔고량
+                  {getSortIcon('balance_amount')}
+                </div>
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                 비고
@@ -359,7 +413,7 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
                 </td>
               </tr>
             ) : (
-              productionData.map((item) => (
+              sortedData.map((item) => (
                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   {editingId === item.id ? (
                     <>

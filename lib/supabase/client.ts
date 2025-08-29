@@ -2,6 +2,9 @@ import { createBrowserClient } from '@supabase/ssr'
 import { Database } from '@/types/database'
 import * as Sentry from '@sentry/nextjs'
 import { performanceTracker } from '@/lib/monitoring/performance-metrics'
+import { createLogger } from '@/lib/utils/logger'
+
+const logger = createLogger('SUPABASE-CLIENT')
 
 // Direct access to environment variables for client-side with trim to remove any whitespace/newlines
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
@@ -16,7 +19,7 @@ declare global {
 
 // Client-side validation
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('❌ Missing Supabase environment variables on client-side:', {
+  logger.error('Missing Supabase environment variables on client-side:', {
     SUPABASE_URL: !!SUPABASE_URL,
     SUPABASE_ANON_KEY: !!SUPABASE_ANON_KEY
   })
@@ -61,9 +64,17 @@ class EnhancedSupabaseClient {
           reconnectAfterMs: (attempt) => Math.min(attempt * 1000, 30000), // Exponential backoff
           timeout: 10000,                  // 10 seconds timeout
           logger: (level, message, ...args) => {
-            // Only log errors in production, errors and warnings in development
-            if (level === 'error' || (process.env.NODE_ENV === 'development' && level === 'warn')) {
-              console.log(`[SUPABASE-REALTIME-${level.toUpperCase()}]`, message, ...args)
+            // Use centralized logger - only log errors to reduce noise
+            if (level === 'error') {
+              logger.error(`REALTIME-${level.toUpperCase()}`, message, ...args)
+            }
+            // Suppress all other realtime logs unless explicitly debugging
+            else if (process.env.DEBUG_REALTIME === 'true') {
+              if (level === 'warn') {
+                logger.warn(`REALTIME-${level.toUpperCase()}`, message, ...args)
+              } else {
+                logger.debug(`REALTIME-${level.toUpperCase()}`, message, ...args)
+              }
             }
           }
         },
@@ -86,9 +97,9 @@ class EnhancedSupabaseClient {
                 })
               }
             }
-            // Debug cookie reading only in development
-            if (process.env.NODE_ENV === 'development') {
-              console.log('[SUPABASE-CLIENT] Reading cookies:', cookies.filter(c => c.name.startsWith('sb-')).map(c => c.name))
+            // Debug cookie reading - only when explicitly enabled
+            if (process.env.DEBUG_DATABASE === 'true') {
+              logger.debug('Reading cookies:', cookies.filter(c => c.name.startsWith('sb-')).map(c => c.name))
             }
             return cookies
           },
@@ -120,7 +131,7 @@ class EnhancedSupabaseClient {
                 document.cookie = cookieString
                 // Debug cookie setting only in development
                 if (process.env.NODE_ENV === 'development') {
-                  console.log('[SUPABASE-CLIENT] Setting cookie:', name)
+                  logger.debug('[SUPABASE-CLIENT] Setting cookie:', name)
                 }
               })
             }
@@ -452,9 +463,17 @@ export function createClient(config?: ClientConfig) {
           reconnectAfterMs: (attempt) => Math.min(attempt * 1000, 30000), // Exponential backoff
           timeout: 10000,                  // 10 seconds timeout
           logger: (level, message, ...args) => {
-            // Only log errors in production, errors and warnings in development
-            if (level === 'error' || (process.env.NODE_ENV === 'development' && level === 'warn')) {
-              console.log(`[SUPABASE-REALTIME-${level.toUpperCase()}]`, message, ...args)
+            // Use centralized logger - only log errors to reduce noise
+            if (level === 'error') {
+              logger.error(`REALTIME-${level.toUpperCase()}`, message, ...args)
+            }
+            // Suppress all other realtime logs unless explicitly debugging
+            else if (process.env.DEBUG_REALTIME === 'true') {
+              if (level === 'warn') {
+                logger.warn(`REALTIME-${level.toUpperCase()}`, message, ...args)
+              } else {
+                logger.debug(`REALTIME-${level.toUpperCase()}`, message, ...args)
+              }
             }
           }
         },
@@ -472,7 +491,7 @@ export function createClient(config?: ClientConfig) {
               const cookieString = document.cookie
               // Debug cookie reading only in development
               if (process.env.NODE_ENV === 'development') {
-                console.log('[SUPABASE-CLIENT] Reading cookies, raw string:', cookieString)
+                logger.debug('[SUPABASE-CLIENT] Reading cookies, raw string:', cookieString)
               }
               if (cookieString) {
                 cookieString.split(';').forEach(cookie => {
@@ -493,8 +512,8 @@ export function createClient(config?: ClientConfig) {
               const sbCookies = cookies.filter(c => c.name.startsWith('sb-'))
               // Debug cookie info only in development
               if (process.env.NODE_ENV === 'development') {
-                console.log('[SUPABASE-CLIENT] Found Supabase cookies:', sbCookies.map(c => c.name))
-                console.log('[SUPABASE-CLIENT] Local cache cookies:', Object.keys(localCookies))
+                logger.debug('[SUPABASE-CLIENT] Found Supabase cookies:', sbCookies.map(c => c.name))
+                logger.debug('[SUPABASE-CLIENT] Local cache cookies:', Object.keys(localCookies))
               }
             }
             return cookies
@@ -503,7 +522,7 @@ export function createClient(config?: ClientConfig) {
             if (typeof document !== 'undefined') {
               // Debug cookie setting only in development
               if (process.env.NODE_ENV === 'development') {
-                console.log('[SUPABASE-CLIENT] Setting cookies:', cookiesToSet.map(c => c.name))
+                logger.debug('[SUPABASE-CLIENT] Setting cookies:', cookiesToSet.map(c => c.name))
               }
               cookiesToSet.forEach(({ name, value, options }) => {
                 let cookieString = `${name}=${encodeURIComponent(value || '')}`
@@ -523,7 +542,7 @@ export function createClient(config?: ClientConfig) {
                 cookieString += `; samesite=${options?.sameSite || 'lax'}`
                 
                 if (process.env.NODE_ENV === 'development') {
-                  console.log('[SUPABASE-CLIENT] Setting cookie string:', cookieString)
+                  logger.debug('[SUPABASE-CLIENT] Setting cookie string:', cookieString)
                 }
                 document.cookie = cookieString
                 
@@ -534,7 +553,7 @@ export function createClient(config?: ClientConfig) {
                 }
                 window.__supabase_cookies[name] = value || ''
                 if (process.env.NODE_ENV === 'development') {
-                  console.log('[SUPABASE-CLIENT] ✅ Cookie cached locally:', name)
+                  logger.debug('[SUPABASE-CLIENT] ✅ Cookie cached locally:', name)
                 }
               })
             }
@@ -545,7 +564,7 @@ export function createClient(config?: ClientConfig) {
     
     // Only log client creation in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('[SUPABASE-CLIENT] Created new browser client instance')
+      logger.debug('[SUPABASE-CLIENT] Created new browser client instance')
     }
   }
   
@@ -563,7 +582,7 @@ export function resetClient() {
   browserClient = undefined
   queryCache.clear()
   if (process.env.NODE_ENV === 'development') {
-    console.log('🔄 [SUPABASE-CLIENT] Browser client and query cache cleared')
+    logger.debug('🔄 [SUPABASE-CLIENT] Browser client and query cache cleared')
   }
 }
 
@@ -572,7 +591,7 @@ export async function forceSessionRefresh() {
   if (browserClient) {
     try {
       if (process.env.NODE_ENV === 'development') {
-        console.log('🔄 [SUPABASE-CLIENT] Forcing session refresh from cookies...')
+        logger.debug('🔄 [SUPABASE-CLIENT] Forcing session refresh from cookies...')
       }
       
       // Clear the cached client first
@@ -586,18 +605,18 @@ export async function forceSessionRefresh() {
       
       if (session) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [SUPABASE-CLIENT] Session refreshed successfully:', session.user?.email)
+          logger.debug('✅ [SUPABASE-CLIENT] Session refreshed successfully:', session.user?.email)
         }
         return { success: true, session }
       } else {
         if (process.env.NODE_ENV === 'development') {
-          console.log('❌ [SUPABASE-CLIENT] No session found after refresh')
+          logger.debug('❌ [SUPABASE-CLIENT] No session found after refresh')
         }
         return { success: false, error: error?.message || 'No session found' }
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('❌ [SUPABASE-CLIENT] Session refresh failed:', error)
+        logger.error('❌ [SUPABASE-CLIENT] Session refresh failed:', error)
       }
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }
     }

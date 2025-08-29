@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { 
   Truck, Package, CheckCircle, XCircle, Clock,
   FileText, CreditCard, DollarSign, Search, Filter,
-  Calendar, Building2, Eye, Edit, Save, X
+  Calendar, Building2, Eye, Edit, Save, X,
+  ChevronUp, ChevronDown, ChevronsUpDown
 } from 'lucide-react'
 
 interface ShipmentManagementTabProps {
@@ -42,6 +43,8 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [sortField, setSortField] = useState<'shipment_date' | 'site_name' | 'amount' | 'delivery_status' | 'shipping_cost'>('shipment_date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   
   const [editForm, setEditForm] = useState({
     delivery_status: 'pending' as 'pending' | 'shipped' | 'delivered',
@@ -237,6 +240,39 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
 
   const totals = calculateTotals()
 
+  const handleSort = (field: typeof sortField) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (field: typeof sortField) => {
+    if (field !== sortField) {
+      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-500" />
+      : <ChevronDown className="h-4 w-4 text-blue-500" />
+  }
+
+  const sortedShipments = [...shipments].sort((a, b) => {
+    let aValue: any = a[sortField]
+    let bValue: any = b[sortField]
+    
+    if (sortField === 'delivery_status') {
+      const statusOrder = { pending: 0, shipped: 1, delivered: 2 }
+      aValue = statusOrder[aValue as keyof typeof statusOrder]
+      bValue = statusOrder[bValue as keyof typeof statusOrder]
+    }
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
   return (
     <div className="p-6">
       {/* Filters */}
@@ -319,15 +355,55 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">날짜</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">현장</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">수량</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">배송상태</th>
+              <th 
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('shipment_date')}
+              >
+                <div className="flex items-center gap-1">
+                  날짜
+                  {getSortIcon('shipment_date')}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('site_name')}
+              >
+                <div className="flex items-center gap-1">
+                  현장
+                  {getSortIcon('site_name')}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('amount')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  수량
+                  {getSortIcon('amount')}
+                </div>
+              </th>
+              <th 
+                className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('delivery_status')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  배송상태
+                  {getSortIcon('delivery_status')}
+                </div>
+              </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">배송방식</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">거래명세</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">세금계산서</th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">입금확인</th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">운임비용</th>
+              <th 
+                className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('shipping_cost')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  운임비용
+                  {getSortIcon('shipping_cost')}
+                </div>
+              </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">작업</th>
             </tr>
           </thead>
@@ -356,7 +432,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                 </td>
               </tr>
             ) : (
-              shipments.map((shipment) => (
+              sortedShipments.map((shipment) => (
                 <tr key={shipment.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   {editingId === shipment.id ? (
                     <>

@@ -50,29 +50,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session with session bridging
     const initializeAuth = async () => {
       try {
-        console.log('🔄 [AUTH-PROVIDER] Initializing authentication...')
+        // Silent initialization in production
         
         // First attempt to get session normally
         const { data: { session: initialSession } } = await supabase.auth.getSession()
         
         if (initialSession) {
-          console.log('✅ [AUTH-PROVIDER] Found existing session for:', initialSession.user?.email)
+          // Session found
           setSession(initialSession)
           setUser(initialSession.user)
           
           // Verify the session is still valid
           const { data: { user: verifiedUser } } = await supabase.auth.getUser()
           if (!verifiedUser) {
-            console.log('⚠️ [AUTH-PROVIDER] Session invalid, attempting refresh...')
+            // Session invalid, attempting refresh
             await refreshSession()
           }
         } else {
           // If no session, try to bridge from server cookies
-          console.log('🌉 [AUTH-PROVIDER] No client session, attempting bridge...')
+          // No client session, attempting bridge
           const bridgeResult = await ensureClientSession()
           
           if (bridgeResult.success && bridgeResult.session) {
-            console.log('✅ [AUTH-PROVIDER] Session bridged successfully:', bridgeResult.session.user?.email)
+            // Session bridged successfully
             setSession(bridgeResult.session)
             setUser(bridgeResult.session.user)
             
@@ -82,16 +82,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const { data: { session: verifiedSession } } = await freshClient.auth.getSession()
             
             if (verifiedSession) {
-              console.log('✅ [AUTH-PROVIDER] Session verified with fresh client:', verifiedSession.user?.email)
+              // Session verified with fresh client
             } else {
-              console.warn('⚠️ [AUTH-PROVIDER] Session not yet accessible with fresh client, may need page reload')
+              // Session not yet accessible with fresh client
             }
           } else {
-            console.log('❌ [AUTH-PROVIDER] No session available:', bridgeResult.error)
+            // No session available
           }
         }
       } catch (error) {
-        console.error('❌ [AUTH-PROVIDER] Error initializing auth:', error)
+        // Error initializing auth
       } finally {
         setLoading(false)
       }
@@ -103,10 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      // Only log meaningful auth state changes, not empty initial sessions
-      if (event !== 'INITIAL_SESSION' || (event === 'INITIAL_SESSION' && newSession)) {
-        console.log('Auth state change:', event, newSession?.user?.email)
-      }
+      // Silent auth state changes
       
       switch (event) {
         case 'SIGNED_IN':
@@ -115,7 +112,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(newSession.user)
             // CRITICAL FIX: Don't auto-refresh during login to prevent infinite loops
             // router.refresh() causes remount of components which triggers auto-login again
-            console.log('✅ [AUTH-PROVIDER] SIGNED_IN event handled, skipping router refresh')
+            // SIGNED_IN event handled, skipping router refresh
           }
           break
           

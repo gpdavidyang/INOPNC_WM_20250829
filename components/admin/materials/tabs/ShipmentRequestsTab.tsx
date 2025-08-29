@@ -6,7 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { 
   FileText, Clock, CheckCircle, XCircle, AlertCircle,
   User, Building2, Calendar, Package, Eye, MessageSquare,
-  TrendingUp, Filter, Search
+  TrendingUp, Filter, Search,
+  ChevronUp, ChevronDown, ChevronsUpDown
 } from 'lucide-react'
 
 interface ShipmentRequestsTabProps {
@@ -45,6 +46,8 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
   const [sites, setSites] = useState<Array<{id: string, name: string}>>([])
   const [selectedRequest, setSelectedRequest] = useState<ShipmentRequest | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [sortField, setSortField] = useState<'request_date' | 'site_name' | 'requester_name' | 'requested_amount' | 'urgency' | 'status'>('request_date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   
   // Response form
   const [responseForm, setResponseForm] = useState({
@@ -247,7 +250,46 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
     return roleLabels[role] || role
   }
 
-  const filteredRequests = requests.filter(request =>
+  const handleSort = (field: typeof sortField) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (field: typeof sortField) => {
+    if (field !== sortField) {
+      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-500" />
+      : <ChevronDown className="h-4 w-4 text-blue-500" />
+  }
+
+  const sortedRequests = [...requests].sort((a, b) => {
+    let aValue: any = a[sortField]
+    let bValue: any = b[sortField]
+    
+    if (sortField === 'urgency') {
+      const urgencyOrder = { normal: 0, urgent: 1, critical: 2 }
+      aValue = urgencyOrder[aValue as keyof typeof urgencyOrder]
+      bValue = urgencyOrder[bValue as keyof typeof urgencyOrder]
+    }
+    
+    if (sortField === 'status') {
+      const statusOrder = { pending: 0, approved: 1, rejected: 2, fulfilled: 3 }
+      aValue = statusOrder[aValue as keyof typeof statusOrder]
+      bValue = statusOrder[bValue as keyof typeof statusOrder]
+    }
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const filteredRequests = sortedRequests.filter(request =>
     searchTerm === '' ||
     request.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     request.requester_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -362,13 +404,61 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">요청일</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">현장</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">요청자</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">요청량</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">긴급도</th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('request_date')}
+              >
+                <div className="flex items-center gap-1">
+                  요청일
+                  {getSortIcon('request_date')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('site_name')}
+              >
+                <div className="flex items-center gap-1">
+                  현장
+                  {getSortIcon('site_name')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('requester_name')}
+              >
+                <div className="flex items-center gap-1">
+                  요청자
+                  {getSortIcon('requester_name')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('requested_amount')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  요청량
+                  {getSortIcon('requested_amount')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('urgency')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  긴급도
+                  {getSortIcon('urgency')}
+                </div>
+              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">사유</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">상태</th>
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('status')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  상태
+                  {getSortIcon('status')}
+                </div>
+              </th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">작업</th>
             </tr>
           </thead>

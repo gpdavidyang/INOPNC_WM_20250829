@@ -11,7 +11,7 @@ export function ProductionQualityOptimizer() {
     const viewportMeta = document.querySelector('meta[name="viewport"]')
     if (viewportMeta) {
       viewportMeta.setAttribute('content', 
-        'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover, target-densityDpi=device-dpi'
+        'width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover'
       )
     }
     

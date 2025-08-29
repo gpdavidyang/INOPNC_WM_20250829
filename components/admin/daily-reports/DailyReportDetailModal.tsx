@@ -25,6 +25,9 @@ interface DailyReport {
   work_date: string
   member_name: string
   process_type: string
+  component_name?: string
+  work_process?: string
+  work_section?: string
   total_workers: number
   npc1000_incoming: number
   npc1000_used: number
@@ -84,6 +87,9 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
     work_date: report.work_date,
     member_name: report.member_name,
     process_type: report.process_type,
+    component_name: report.component_name || '',
+    work_process: report.work_process || '',
+    work_section: report.work_section || '',
     total_workers: report.total_workers,
     npc1000_incoming: report.npc1000_incoming,
     npc1000_used: report.npc1000_used,
@@ -210,6 +216,9 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
           work_date: editData.work_date,
           member_name: editData.member_name,
           process_type: editData.process_type,
+          component_name: editData.component_name || null,
+          work_process: editData.work_process || null,
+          work_section: editData.work_section || null,
           total_workers: editData.total_workers,
           npc1000_incoming: editData.npc1000_incoming,
           npc1000_used: editData.npc1000_used,
@@ -413,6 +422,51 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
                       />
                     ) : (
                       <span>{report.process_type}</span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">부재명</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.component_name}
+                        onChange={(e) => setEditData(prev => ({ ...prev, component_name: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="부재명 입력"
+                      />
+                    ) : (
+                      <span>{report.component_name || '-'}</span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">작업공정</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.work_process}
+                        onChange={(e) => setEditData(prev => ({ ...prev, work_process: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="작업공정 입력"
+                      />
+                    ) : (
+                      <span>{report.work_process || '-'}</span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">작업구간</label>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editData.work_section}
+                        onChange={(e) => setEditData(prev => ({ ...prev, work_section: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="작업구간 입력"
+                      />
+                    ) : (
+                      <span>{report.work_section || '-'}</span>
                     )}
                   </div>
 

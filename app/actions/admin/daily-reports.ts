@@ -11,6 +11,8 @@ interface DailyReportsFilter {
   search?: string
   page?: number
   itemsPerPage?: number
+  sortField?: string
+  sortDirection?: 'asc' | 'desc'
 }
 
 export async function getDailyReports(filters: DailyReportsFilter = {}) {
@@ -22,14 +24,24 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       dateTo, 
       search, 
       page = 1, 
-      itemsPerPage = 20 
+      itemsPerPage = 20,
+      sortField = 'work_date',
+      sortDirection = 'desc'
     } = filters
 
     let query = supabase
       .from('daily_reports')
       .select(`
         *,
-        sites!inner(name, address)
+        sites!inner(
+          name, 
+          address,
+          work_process,
+          work_section,
+          component_name,
+          manager_name,
+          safety_manager_name
+        )
       `, { count: 'exact' })
 
     // Apply filters
@@ -46,7 +58,37 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       query = query.lte('work_date', dateTo)
     }
     if (search) {
-      query = query.or(`member_name.ilike.%${search}%,process_type.ilike.%${search}%`)
+      query = query.or(`member_name.ilike.%${search}%,process_type.ilike.%${search}%,issues.ilike.%${search}%`)
+    }
+
+    // Apply sorting
+    const ascending = sortDirection === 'asc'
+    switch (sortField) {
+      case 'site_name':
+        query = query.order('sites(name)', { ascending })
+        break
+      case 'work_date':
+        query = query.order('work_date', { ascending })
+        break
+      case 'member_name':
+        query = query.order('member_name', { ascending })
+        break
+      case 'total_workers':
+        query = query.order('total_workers', { ascending })
+        break
+      case 'status':
+        query = query.order('status', { ascending })
+        break
+      case 'created_at':
+        query = query.order('created_at', { ascending })
+        break
+      default:
+        query = query.order('work_date', { ascending: false })
+    }
+    
+    // Add secondary sort for stability
+    if (sortField !== 'created_at') {
+      query = query.order('created_at', { ascending: false })
     }
 
     // Pagination
@@ -54,31 +96,48 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
     const to = from + itemsPerPage - 1
 
     const { data, error, count } = await query
-      .order('work_date', { ascending: false })
-      .order('created_at', { ascending: false })
       .range(from, to)
 
     if (error) throw error
 
-    // Enrich with profile data separately to avoid FK issues
+    // Enrich with additional data
     const enrichedReports = await Promise.all(
       (data || []).map(async (report) => {
         try {
+          // Get profile data
           const { data: profile } = await supabase
             .from('profiles')
-            .select('full_name, email')
+            .select('full_name, email, phone, role, last_login_at')
             .eq('id', report.created_by)
             .single()
           
+          // Get worker details count
+          const { count: workerCount } = await supabase
+            .from('daily_report_workers')
+            .select('id', { count: 'exact', head: true })
+            .eq('daily_report_id', report.id)
+          
+          // Get documents count for that day
+          const { count: documentCount } = await supabase
+            .from('documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('site_id', report.site_id)
+            .gte('created_at', `${report.work_date}T00:00:00`)
+            .lt('created_at', `${report.work_date}T23:59:59`)
+          
           return {
             ...report,
-            profiles: profile
+            profiles: profile,
+            worker_details_count: workerCount || 0,
+            daily_documents_count: documentCount || 0
           }
         } catch (err) {
           // If profile not found, continue without it
           return {
             ...report,
-            profiles: null
+            profiles: null,
+            worker_details_count: 0,
+            daily_documents_count: 0
           }
         }
       })

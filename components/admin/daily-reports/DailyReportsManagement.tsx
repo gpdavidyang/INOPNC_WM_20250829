@@ -16,7 +16,10 @@ import {
   FileImage,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -28,6 +31,9 @@ interface DailyReport {
   work_date: string
   member_name: string
   process_type: string
+  component_name?: string  // 부재명
+  work_process?: string     // 작업공정
+  work_section?: string     // 작업구간
   total_workers: number
   npc1000_incoming: number
   npc1000_used: number
@@ -41,11 +47,21 @@ interface DailyReport {
   sites?: {
     name: string
     address: string
+    work_process?: string
+    work_section?: string
+    component_name?: string
+    manager_name?: string
+    safety_manager_name?: string
   }
   profiles?: {
     full_name: string
     email: string
+    phone?: string
+    role?: string
+    last_login_at?: string
   }
+  worker_details_count?: number
+  daily_documents_count?: number
 }
 
 interface Site {
@@ -59,6 +75,17 @@ interface FilterState {
   dateFrom: string
   dateTo: string
   search: string
+  component_name: string  // 부재명 필터
+  work_process: string    // 작업공정 필터
+  work_section: string    // 작업구간 필터
+}
+
+type SortField = 'work_date' | 'site_name' | 'member_name' | 'total_workers' | 'status' | 'created_at'
+type SortDirection = 'asc' | 'desc'
+
+interface SortState {
+  field: SortField
+  direction: SortDirection
 }
 
 const statusLabels = {
@@ -87,13 +114,21 @@ export default function DailyReportsManagement() {
     status: '',
     dateFrom: '',
     dateTo: '',
-    search: ''
+    search: '',
+    component_name: '',
+    work_process: '',
+    work_section: ''
+  })
+
+  const [sortState, setSortState] = useState<SortState>({
+    field: 'work_date',
+    direction: 'desc'
   })
 
   useEffect(() => {
     fetchSites()
     fetchReports()
-  }, [currentPage, filters])
+  }, [currentPage, filters, sortState])
 
   const fetchSites = async () => {
     try {
@@ -118,7 +153,9 @@ export default function DailyReportsManagement() {
         dateTo: filters.dateTo,
         search: filters.search,
         page: currentPage,
-        itemsPerPage
+        itemsPerPage,
+        sortField: sortState.field,
+        sortDirection: sortState.direction
       })
 
       if (result.success) {
@@ -148,7 +185,10 @@ export default function DailyReportsManagement() {
       status: '',
       dateFrom: '',
       dateTo: '',
-      search: ''
+      search: '',
+      component_name: '',
+      work_process: '',
+      work_section: ''
     })
     setCurrentPage(1)
   }
@@ -184,6 +224,23 @@ export default function DailyReportsManagement() {
     }
   }
 
+  const handleSort = (field: SortField) => {
+    setSortState(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }))
+    setCurrentPage(1) // Reset to first page when sorting
+  }
+
+  const getSortIcon = (field: SortField) => {
+    if (sortState.field !== field) {
+      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
+    }
+    return sortState.direction === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-600" />
+      : <ChevronDown className="h-4 w-4 text-blue-600" />
+  }
+
   const totalPages = Math.ceil(totalCount / itemsPerPage)
 
   return (
@@ -196,7 +253,7 @@ export default function DailyReportsManagement() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder="작업자명, 공정, 특이사항으로 검색..."
+                placeholder="작업자명, 부재명, 공정, 구간, 특이사항으로 검색..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
@@ -265,6 +322,36 @@ export default function DailyReportsManagement() {
                   onChange={(e) => handleFilterChange('dateTo', e.target.value)}
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">부재명</label>
+                <input
+                  type="text"
+                  placeholder="부재명 입력"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={filters.component_name}
+                  onChange={(e) => handleFilterChange('component_name', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">작업공정</label>
+                <input
+                  type="text"
+                  placeholder="작업공정 입력"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={filters.work_process}
+                  onChange={(e) => handleFilterChange('work_process', e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">작업구간</label>
+                <input
+                  type="text"
+                  placeholder="작업구간 입력"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={filters.work_section}
+                  onChange={(e) => handleFilterChange('work_section', e.target.value)}
+                />
+              </div>
             </div>
             <div className="flex justify-end mt-4">
               <button
@@ -303,98 +390,216 @@ export default function DailyReportsManagement() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1200px]">
+            <table className="w-full min-w-[1600px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업일
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('work_date')}
+                  >
+                    <div className="flex items-center gap-1">
+                      작업일
+                      {getSortIcon('work_date')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    현장
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('site_name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      현장정보
+                      {getSortIcon('site_name')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업자/공정
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작업공정/구간
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    인원
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('member_name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      작업자/담당
+                      {getSortIcon('member_name')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th 
+                    className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('total_workers')}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      인원
+                      {getSortIcon('total_workers')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     자재현황
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    상태
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    특이사항
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작성자
+                  <th 
+                    className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      상태
+                      {getSortIcon('status')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    문서/상세
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      작성정보
+                      {getSortIcon('created_at')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
                     작업
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {reports.map((report) => (
+                {reports.map((report: any) => (
                   <tr key={report.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3">
                       <div className="flex items-center">
-                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {format(new Date(report.work_date), 'yyyy.MM.dd (E)', { locale: ko })}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Building2 className="h-4 w-4 text-gray-400 mr-2" />
+                        <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {report.sites?.name || '알 수 없는 현장'}
+                            {format(new Date(report.work_date), 'yyyy.MM.dd', { locale: ko })}
                           </div>
-                          <div className="text-sm text-gray-500 truncate max-w-xs">
-                            {report.sites?.address}
+                          <div className="text-xs text-gray-500">
+                            {format(new Date(report.work_date), 'EEEE', { locale: ko })}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {report.sites?.name || '알 수 없는 현장'}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate max-w-xs">
+                          {report.sites?.address}
+                        </div>
+                        {(report.sites?.manager_name || report.sites?.safety_manager_name) && (
+                          <div className="text-xs text-gray-400 mt-1">
+                            {report.sites?.manager_name && `공사: ${report.sites.manager_name}`}
+                            {report.sites?.manager_name && report.sites?.safety_manager_name && ' / '}
+                            {report.sites?.safety_manager_name && `안전: ${report.sites.safety_manager_name}`}
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        {report.work_process && (
+                          <div className="text-sm font-medium text-gray-900">
+                            공정: {report.work_process}
+                          </div>
+                        )}
+                        {report.work_section && (
+                          <div className="text-xs text-gray-600">
+                            구간: {report.work_section}
+                          </div>
+                        )}
+                        {report.component_name && (
+                          <div className="text-xs text-gray-500">
+                            부재: {report.component_name}
+                          </div>
+                        )}
+                        {!report.work_process && !report.work_section && !report.component_name && (
+                          <div className="text-xs text-gray-400">-</div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{report.member_name}</div>
-                        <div className="text-sm text-gray-500">{report.process_type}</div>
+                        <div className="text-xs text-gray-600">{report.process_type}</div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">{report.total_workers}명</span>
+                    <td className="px-4 py-3 text-center">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {report.total_workers}명
+                        </div>
+                        {report.worker_details_count > 0 && (
+                          <div className="text-xs text-blue-600">
+                            상세: {report.worker_details_count}명
+                          </div>
+                        )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        <div>입고: {report.npc1000_incoming}</div>
-                        <div>사용: {report.npc1000_used}</div>
-                        <div>잔여: {report.npc1000_remaining}</div>
+                    <td className="px-4 py-3">
+                      <div className="text-xs">
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-medium mr-1">입고:</span>
+                          <span className="text-blue-600">{report.npc1000_incoming}</span>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-medium mr-1">사용:</span>
+                          <span className="text-orange-600">{report.npc1000_used}</span>
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                          <span className="font-medium mr-1">잔여:</span>
+                          <span className="text-green-600">{report.npc1000_remaining}</span>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 max-w-xs">
+                      {report.issues ? (
+                        <div className="text-xs text-gray-700 truncate" title={report.issues}>
+                          {report.issues}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400">-</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[report.status]}`}>
                         {statusLabels[report.status]}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="h-4 w-4 text-gray-400 mr-2" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {report.profiles?.full_name || '알 수 없음'}
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        {report.daily_documents_count > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                            📄 {report.daily_documents_count}
+                          </span>
+                        )}
+                        {report.worker_details_count > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            👷 {report.worker_details_count}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <div className="text-xs font-medium text-gray-900">
+                          {report.profiles?.full_name || '알 수 없음'}
+                        </div>
+                        {report.profiles?.role && (
+                          <div className="text-xs text-gray-500">
+                            {report.profiles.role === 'admin' ? '관리자' : 
+                             report.profiles.role === 'site_manager' ? '현장담당' :
+                             report.profiles.role === 'worker' ? '작업자' : report.profiles.role}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            {report.profiles?.email}
-                          </div>
+                        )}
+                        <div className="text-xs text-gray-400">
+                          {format(new Date(report.created_at), 'HH:mm', { locale: ko })}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex justify-center gap-2">
+                    <td className="px-4 py-3 text-sm font-medium">
+                      <div className="flex justify-center gap-1">
                         <button
                           onClick={() => openDetailModal(report)}
                           className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"

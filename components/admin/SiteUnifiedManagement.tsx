@@ -349,7 +349,7 @@ function SiteEditTab({
     component_name: site.component_name || ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [hasChanges, setHasChanges] = useState(false)
+  const [hasChanges, setHasChanges] = useState(true) // Allow initial save
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -358,6 +358,17 @@ function SiteEditTab({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate required fields
+    if (!formData.name || !formData.address || !formData.start_date) {
+      toast({
+        title: '입력 오류',
+        description: '필수 항목을 모두 입력해주세요.',
+        variant: 'destructive'
+      })
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -628,7 +639,7 @@ function SiteEditTab({
               type="button" 
               variant="outline" 
               onClick={handleReset}
-              disabled={isSubmitting || !hasChanges}
+              disabled={isSubmitting}
             >
               초기화
             </Button>
@@ -642,8 +653,17 @@ function SiteEditTab({
             </Button>
             <Button 
               type="submit" 
-              disabled={isSubmitting || !hasChanges}
+              disabled={isSubmitting}
               className="min-w-24"
+              onClick={(e) => {
+                // Log for debugging
+                console.log('Save button clicked', {
+                  hasChanges,
+                  isSubmitting,
+                  formData
+                })
+                // Allow default form submission
+              }}
             >
               {isSubmitting ? '저장 중...' : '저장'}
             </Button>
