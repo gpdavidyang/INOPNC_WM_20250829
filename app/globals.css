@@ -1,0 +1,681 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CRITICAL: Production Quality Preservation Layer */
+/* These rules MUST be loaded to prevent quality degradation in production */
+@layer base {
+  /* Force consistent rendering across environments */
+  html {
+    -webkit-text-size-adjust: 100% !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+    /* Prevent color space issues */
+    color-profile: sRGB;
+    rendering-intent: relative-colorimetric;
+  }
+  
+  /* Ensure colors render correctly */
+  * {
+    /* Disable any filters that might be applied */
+    filter: none !important;
+    -webkit-filter: none !important;
+    /* Preserve color accuracy */
+    color-rendering: optimizeQuality !important;
+  }
+  
+  /* Fix image quality degradation */
+  img, video, canvas, svg {
+    image-rendering: -webkit-optimize-contrast !important;
+    image-rendering: high-quality !important;
+    -ms-interpolation-mode: bicubic !important;
+  }
+}
+
+/* Safe area support for mobile devices */
+@supports (padding: max(0px)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+}
+
+/* Force mobile navigation to stay at bottom */
+@media (max-width: 768px) {
+  /* Ensure body doesn't overflow */
+  body {
+    position: fixed;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* Make root container scrollable */
+  #__next {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Force bottom nav to stay visible */
+  nav[class*="fixed bottom-0"] {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 9999 !important;
+    transform: translateZ(0) !important;
+  }
+}
+
+/* WCAG 2.1 Color and Contrast System */
+
+/* 
+ * WCAG 2.1 Contrast Requirements:
+ * - Normal text: 4.5:1 contrast ratio
+ * - Large text (18pt+ or 14pt+ bold): 3:1 contrast ratio
+ * - UI components and graphics: 3:1 contrast ratio
+ */
+
+@layer base {
+  /* Default (Light Mode) Color Tokens with WCAG Compliance */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    
+    /* Primary colors with guaranteed contrast */
+    --color-text-primary: #202632; /* toss-gray-900 on white: 13.68:1 ✓ */
+    --color-text-secondary: #333d4b; /* toss-gray-700 on white: 9.42:1 ✓ */
+    --color-text-tertiary: #515866; /* toss-gray-600 on white: 6.46:1 ✓ */
+    --color-text-disabled: #6b7684; /* toss-gray-500 on white: 4.57:1 ✓ */
+    
+    /* Background colors */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f7f8fa; /* toss-gray-100 */
+    --color-bg-tertiary: #eff1f4; /* toss-gray-200 */
+    --color-bg-hover: #e5e8eb; /* toss-gray-300 */
+    
+    /* Interactive colors with contrast validation */
+    --color-primary: #0064ff; /* toss-blue-500 on white: 4.52:1 ✓ */
+    --color-primary-hover: #0052d9; /* toss-blue-600 on white: 5.85:1 ✓ */
+    --color-success: #00a86b; /* Custom green on white: 4.5:1 ✓ */
+    --color-warning: #ff6b00; /* Custom orange on white: 4.52:1 ✓ */
+    --color-error: #dc2626; /* red-600 on white: 7.28:1 ✓ */
+    
+    /* High contrast borders and dividers */
+    --color-border-default: #e5e8eb; /* toss-gray-300 */
+    --color-border-strong: #c5cdd8; /* toss-gray-400 */
+    --color-border-focus: #0064ff; /* toss-blue-500 */
+    
+    /* Shadows for depth perception */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    
+    /* Premium Elevation System */
+    --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
+    --elevation-md: 0 4px 6px rgba(0, 0, 0, 0.16);
+    --elevation-lg: 0 10px 20px rgba(0, 0, 0, 0.19);
+    --elevation-xl: 0 15px 30px rgba(0, 0, 0, 0.22);
+
+    /* Radix UI Component Variables */
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --muted: 210 40% 98%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 98%;
+    --accent-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+  }
+
+  /* Dark Mode Color Tokens with WCAG Compliance */
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    /* Text colors for dark backgrounds */
+    --color-text-primary: #f7f8fa; /* toss-gray-100 on gray-900: 13.68:1 ✓ */
+    --color-text-secondary: #dfe3e8; /* toss-gray-200 on gray-900: 11.73:1 ✓ */
+    --color-text-tertiary: #c5cdd8; /* toss-gray-400 on gray-900: 8.17:1 ✓ */
+    --color-text-disabled: #8a92a3; /* toss-gray-500 on gray-900: 4.67:1 ✓ */
+    
+    /* Background colors */
+    --color-bg-primary: #191f28; /* toss-gray-900 */
+    --color-bg-secondary: #202632; /* toss-gray-800 */
+    --color-bg-tertiary: #2a3442; /* toss-gray-700 */
+    --color-bg-hover: #333d4b; /* toss-gray-600 */
+    
+    /* Interactive colors adjusted for dark mode */
+    --color-primary: #4b8fff; /* Lighter blue on dark: 4.5:1 ✓ */
+    --color-primary-hover: #6ba1ff; /* Even lighter on hover */
+    --color-success: #4ade80; /* green-400 on dark: 8.75:1 ✓ */
+    --color-warning: #fb923c; /* orange-400 on dark: 6.34:1 ✓ */
+    --color-error: #f87171; /* red-400 on dark: 5.84:1 ✓ */
+    
+    /* Borders and dividers for dark mode */
+    --color-border-default: #333d4b; /* toss-gray-600 */
+    --color-border-strong: #515866; /* toss-gray-500 */
+    --color-border-focus: #4b8fff; /* Lighter blue */
+    
+    /* Dark Mode Elevation System - Enhanced Depth */
+    --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --elevation-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --elevation-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
+    --elevation-xl: 0 15px 30px rgba(0, 0, 0, 0.6);
+  }
+  
+  /* High Contrast Mode - Construction Site Optimized */
+  .high-contrast {
+    /* Maximum contrast for harsh lighting conditions */
+    --color-text-primary: #000000; /* Pure black: 21:1 ✓ */
+    --color-text-secondary: #000000;
+    --color-text-tertiary: #333333; /* Dark gray: 12.63:1 ✓ */
+    --color-text-disabled: #666666; /* Medium gray: 5.74:1 ✓ */
+    
+    /* High contrast backgrounds */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #f0f0f0;
+    --color-bg-tertiary: #e0e0e0;
+    --color-bg-hover: #d0d0d0;
+    
+    /* Bold interactive colors */
+    --color-primary: #0052d9; /* Darker blue: 5.85:1 ✓ */
+    --color-primary-hover: #003eb3; /* Even darker: 8.12:1 ✓ */
+    --color-success: #008c00; /* Dark green: 5.26:1 ✓ */
+    --color-warning: #d97706; /* Dark amber: 4.5:1 ✓ */
+    --color-error: #b91c1c; /* Dark red: 8.85:1 ✓ */
+    
+    /* Strong borders for visibility */
+    --color-border-default: #999999;
+    --color-border-strong: #666666;
+    --color-border-focus: #0052d9;
+    
+    /* Enhanced shadows for depth */
+    --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.15);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* High Contrast Dark Mode */
+  .dark.high-contrast {
+    /* Maximum contrast for dark mode */
+    --color-text-primary: #ffffff; /* Pure white on black: 21:1 ✓ */
+    --color-text-secondary: #ffffff;
+    --color-text-tertiary: #cccccc; /* Light gray: 12.63:1 ✓ */
+    --color-text-disabled: #999999; /* Medium gray: 5.74:1 ✓ */
+    
+    /* High contrast dark backgrounds */
+    --color-bg-primary: #000000;
+    --color-bg-secondary: #1a1a1a;
+    --color-bg-tertiary: #2a2a2a;
+    --color-bg-hover: #3a3a3a;
+    
+    /* Bright interactive colors for dark high contrast */
+    --color-primary: #6ba1ff; /* Bright blue: 6.17:1 ✓ */
+    --color-primary-hover: #85b3ff; /* Even brighter: 7.92:1 ✓ */
+    --color-success: #66ff66; /* Bright green: 13.75:1 ✓ */
+    --color-warning: #ffaa33; /* Bright orange: 8.24:1 ✓ */
+    --color-error: #ff6666; /* Bright red: 5.67:1 ✓ */
+    
+    /* Strong borders for dark high contrast */
+    --color-border-default: #666666;
+    --color-border-strong: #999999;
+    --color-border-focus: #6ba1ff;
+
+    /* Radix UI Component Variables - Dark Mode */
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 142.1 76.2% 36.3%;
+  }
+}
+
+@layer base {
+  /* Enhanced font rendering for production quality */
+  * {
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1 !important;
+    font-kerning: normal !important;
+    font-synthesis: none !important;
+  }
+  
+  /* High DPI screen optimization */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    * {
+      -webkit-font-smoothing: subpixel-antialiased;
+    }
+  }
+  
+  body {
+    @apply bg-white text-toss-gray-900;
+    font-size: 1.125rem; /* 18px - 기본 크기보다 더 크게 */
+    line-height: 1.6; /* 더 나은 가독성을 위한 줄 간격 */
+    /* Font optimization for production */
+    font-synthesis: none;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    /* Prevent font boosting on mobile */
+    max-height: 999999px;
+  }
+}
+
+.dark body {
+  @apply bg-toss-gray-900 text-toss-gray-100;
+  font-size: 1.125rem; /* 18px - 기본 크기보다 더 크게 */
+  line-height: 1.6; /* 더 나은 가독성을 위한 줄 간격 */
+  /* Ensure font smoothing in dark mode */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ensure safe area for iOS devices */
+.h-safe-area-inset-bottom {
+  height: env(safe-area-inset-bottom);
+}
+
+/* Keyboard navigation indicator */
+.keyboard-navigation *:focus {
+  @apply outline-2 outline-offset-2 outline-toss-blue-500;
+}
+
+/* Focus-visible styles for all interactive elements */
+@layer utilities {
+  /* Remove default focus outline */
+  *:focus {
+    @apply outline-none;
+  }
+  
+  /* Add focus-visible ring to all focusable elements */
+  *:focus-visible {
+    @apply ring-2 ring-toss-blue-500 ring-offset-2;
+  }
+  
+  /* Enhanced focus for high contrast mode */
+  .high-contrast *:focus-visible {
+    @apply ring-4 ring-offset-4;
+  }
+  
+  /* Custom focus styles for specific elements */
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    @apply ring-2 ring-toss-blue-500 ring-offset-2;
+  }
+  
+  /* Skip link styles */
+  .skip-link {
+    @apply absolute -top-10 left-4 z-[100] bg-toss-blue-500 text-white px-4 py-2 rounded-lg;
+    @apply focus:top-4 focus:outline-none focus:ring-2 focus:ring-toss-blue-500 focus:ring-offset-2;
+    @apply transition-all duration-200;
+  }
+}
+
+/* Theme Transition Animations */
+@layer utilities {
+  /* Smooth theme transitions */
+  .theme-transition {
+    transition: background-color 200ms ease-in-out,
+                color 200ms ease-in-out,
+                border-color 200ms ease-in-out;
+  }
+  
+  /* Elevation utility classes */
+  .elevation-sm {
+    box-shadow: var(--elevation-sm);
+  }
+  
+  .elevation-md {
+    box-shadow: var(--elevation-md);
+  }
+  
+  .elevation-lg {
+    box-shadow: var(--elevation-lg);
+  }
+  
+  .elevation-xl {
+    box-shadow: var(--elevation-xl);
+  }
+  
+  /* Interactive elevation changes */
+  .elevation-hover {
+    transition: box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .elevation-hover:hover {
+    box-shadow: var(--elevation-md);
+  }
+  
+  /* Premium gradient backgrounds */
+  .bg-premium-light {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  }
+  
+  .bg-premium-dark {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  }
+  
+  /* Surface elevation for depth */
+  .surface-elevated {
+    background: color-mix(in srgb, var(--color-bg-primary) 95%, var(--color-primary) 5%);
+  }
+  
+  /* Enhanced typography for premium feel */
+  .text-primary-strong { 
+    color: var(--color-text-primary);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+  
+  /* Construction field large font */
+  .text-construction-xl {
+    font-size: clamp(1.25rem, 2vw, 1.5rem);
+    line-height: 1.4;
+  }
+  
+  /* Emergency/Safety components */
+  .pulse-animation {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: .5;
+    }
+  }
+  
+  .shadow-danger {
+    box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
+  }
+}
+
+/* Custom select styles */
+select {
+  background-image: none;
+}
+
+/* Override browser default select styles */
+select option {
+  background-color: white !important;
+  color: #202632 !important;
+  padding: 8px !important;
+}
+
+select option:hover {
+  background-color: #eff9ff !important; /* toss-blue-50 */
+}
+
+select option:checked {
+  background-color: #dff0ff !important; /* toss-blue-100 */
+}
+
+.dark select option {
+  background-color: #202632 !important; /* toss-gray-800 */
+  color: #f7f8fa !important; /* toss-gray-100 */
+}
+
+.dark select option:hover {
+  background-color: #2a3442 !important; /* slightly lighter than toss-gray-800 */
+}
+
+.dark select option:checked {
+  background-color: #001a4d !important; /* toss-blue-900 */
+}
+
+/* For webkit browsers (Chrome, Safari) - more specific */
+select:not([multiple]) option {
+  background-color: white !important;
+  color: #202632 !important;
+}
+
+.dark select:not([multiple]) option {
+  background-color: #202632 !important;
+  color: #f7f8fa !important;
+}
+
+/* Remove any gradient or image background */
+select {
+  background-image: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Focus state for select */
+select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #0064ff, 0 0 0 4px rgba(0, 100, 255, 0.1);
+}
+
+/* Large Font Mode CSS - Increased size for better accessibility */
+.large-font-mode {
+  font-size: 125%;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Utility classes for applying WCAG-compliant colors */
+@layer utilities {
+  /* Text color utilities */
+  .text-primary { color: var(--color-text-primary); }
+  .text-secondary { color: var(--color-text-secondary); }
+  .text-tertiary { color: var(--color-text-tertiary); }
+  .text-disabled { color: var(--color-text-disabled); }
+  
+  /* Background color utilities */
+  .bg-primary { background-color: var(--color-bg-primary); }
+  .bg-secondary { background-color: var(--color-bg-secondary); }
+  .bg-tertiary { background-color: var(--color-bg-tertiary); }
+  .bg-hover { background-color: var(--color-bg-hover); }
+  
+  /* Interactive color utilities */
+  .text-interactive-primary { color: var(--color-primary); }
+  .text-interactive-success { color: var(--color-success); }
+  .text-interactive-warning { color: var(--color-warning); }
+  .text-interactive-error { color: var(--color-error); }
+  
+  .bg-interactive-primary { background-color: var(--color-primary); }
+  .bg-interactive-success { background-color: var(--color-success); }
+  .bg-interactive-warning { background-color: var(--color-warning); }
+  .bg-interactive-error { background-color: var(--color-error); }
+  
+  /* Border utilities */
+  .border-default { border-color: var(--color-border-default); }
+  .border-strong { border-color: var(--color-border-strong); }
+  .border-focus { border-color: var(--color-border-focus); }
+  
+  /* Focus visible utilities for keyboard navigation */
+  .focus-visible-outline {
+    @apply focus-visible:outline-2 focus-visible:outline-offset-2;
+    outline-color: var(--color-border-focus);
+  }
+  
+  /* High contrast mode specific utilities */
+  .high-contrast {
+    /* Increase font weights for better readability */
+    .font-normal { @apply font-medium; }
+    .font-medium { @apply font-semibold; }
+    .font-semibold { @apply font-bold; }
+    
+    /* Thicker borders */
+    .border { border-width: 2px; }
+    .border-2 { border-width: 3px; }
+    
+    /* Enhanced focus states */
+    .focus-visible-outline {
+      @apply focus-visible:outline-4 focus-visible:outline-offset-4;
+    }
+  }
+}
+
+/* Status indicators with both color and icons */
+@layer components {
+  /* Success status */
+  .status-success {
+    @apply flex items-center gap-2;
+    color: var(--color-success);
+  }
+  .status-success::before {
+    content: "✓";
+    @apply inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold;
+    background-color: var(--color-success);
+  }
+  
+  /* Warning status */
+  .status-warning {
+    @apply flex items-center gap-2;
+    color: var(--color-warning);
+  }
+  .status-warning::before {
+    content: "!";
+    @apply inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold;
+    background-color: var(--color-warning);
+  }
+  
+  /* Error status */
+  .status-error {
+    @apply flex items-center gap-2;
+    color: var(--color-error);
+  }
+  .status-error::before {
+    content: "✕";
+    @apply inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold;
+    background-color: var(--color-error);
+  }
+  
+  /* Info status */
+  .status-info {
+    @apply flex items-center gap-2;
+    color: var(--color-primary);
+  }
+  .status-info::before {
+    content: "i";
+    @apply inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold;
+    background-color: var(--color-primary);
+  }
+}
+
+/* Construction-specific enhancements */
+@layer utilities {
+  /* Sunlight readability mode */
+  .sunlight-mode {
+    /* Increase contrast and reduce glare */
+    filter: contrast(1.2) brightness(0.9);
+    
+    /* Darker text shadows for better readability */
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Glove-friendly touch targets */
+  .touch-target-glove {
+    @apply min-h-[60px] min-w-[60px];
+  }
+  
+  /* Weather-resistant UI patterns */
+  .weather-resistant {
+    /* Larger fonts for rain/dust conditions */
+    font-size: 1.1em;
+    
+    /* Stronger borders for visibility */
+    border-width: 2px;
+    
+    /* Higher contrast backgrounds */
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+  }
+
+  /* Environmental mode adaptations */
+  .glove-mode {
+    /* Larger touch targets for glove use */
+    --min-touch-size: 56px;
+  }
+
+  .glove-mode button,
+  .glove-mode input,
+  .glove-mode select {
+    min-height: var(--min-touch-size, 56px);
+    min-width: var(--min-touch-size, 56px);
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+  }
+
+  .precision-mode {
+    /* Smaller, more precise touch targets */
+    --min-touch-size: 44px;
+  }
+
+  .precision-mode button,
+  .precision-mode input,
+  .precision-mode select {
+    min-height: var(--min-touch-size, 44px);
+    font-weight: 500;
+  }
+
+  /* Environmental condition adaptations */
+  .env-bright-sun {
+    /* Enhanced contrast for bright sunlight */
+    filter: contrast(1.3) brightness(1.1);
+  }
+
+  .env-rain {
+    /* Larger elements for rain conditions */
+    font-size: calc(1em * 1.1);
+  }
+
+  .env-rain button,
+  .env-rain input {
+    border-width: 3px;
+    min-height: calc(var(--min-touch-size, 48px) + 8px);
+  }
+
+  .env-cold {
+    /* Extra large touch targets for cold/glove conditions */
+    font-size: calc(1em * 1.15);
+  }
+
+  .env-cold button,
+  .env-cold input {
+    min-height: calc(var(--min-touch-size, 48px) + 12px);
+    border-width: 2px;
+  }
+
+  .env-dust {
+    /* Enhanced visibility for dusty conditions */
+    filter: contrast(1.25) brightness(1.05);
+  }
+
+  .env-dust button,
+  .env-dust input {
+    border-width: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+}
+

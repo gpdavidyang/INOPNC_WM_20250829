@@ -1,0 +1,68 @@
+/* Font Loading Optimization for Production Quality */
+
+/* Pretendard Font - Optimized for high DPI displays */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
+
+/* Font optimization for production */
+@supports (font-variation-settings: normal) {
+  html {
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  }
+}
+
+/* Fallback for browsers without variable font support */
+@supports not (font-variation-settings: normal) {
+  @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.css');
+  
+  html {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+  }
+}
+
+/* Font rendering optimization */
+html {
+  /* Prevent font boosting on mobile */
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  
+  /* Optimize font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  
+  /* Enable font features */
+  font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+  font-kerning: normal;
+  
+  /* Prevent FOUT/FOIT */
+  font-display: swap;
+}
+
+/* High DPI specific optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  html {
+    -webkit-font-smoothing: subpixel-antialiased;
+  }
+}
+
+/* Ensure consistent font weights across devices */
+body {
+  font-weight: 400;
+  font-variation-settings: 'wght' 400;
+}
+
+strong, b {
+  font-weight: 700;
+  font-variation-settings: 'wght' 700;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  font-variation-settings: 'wght' 600;
+}
+
+/* Prevent font synthesis */
+* {
+  font-synthesis: none;
+}
