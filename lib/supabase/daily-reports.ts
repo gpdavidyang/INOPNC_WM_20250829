@@ -13,7 +13,7 @@ export async function getDailyReports(siteId?: string) {
         name,
         organization_id
       ),
-      created_by_profile:profiles!daily_reports_created_by_fkey (
+      created_by_profile:profiles!created_by (
         id,
         full_name,
         email
@@ -47,7 +47,7 @@ export async function getDailyReport(id: string) {
         name,
         organization_id
       ),
-      created_by_profile:profiles!daily_reports_created_by_fkey (
+      created_by_profile:profiles!created_by (
         id,
         full_name,
         email
@@ -244,7 +244,7 @@ export async function getPartnerDailyReports(
         name,
         organization_id
       ),
-      created_by_profile:profiles!daily_reports_created_by_fkey (
+      created_by_profile:profiles!created_by (
         id,
         full_name,
         email

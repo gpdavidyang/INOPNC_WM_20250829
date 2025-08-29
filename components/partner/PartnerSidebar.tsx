@@ -60,19 +60,25 @@ export default function PartnerSidebar({
   
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay - simplified to match working sidebar */}
       {isOpen && (
         <div
           className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={onClose}
+          onClick={() => {
+            console.log('[PartnerSidebar] Overlay clicked')
+            onClose()
+          }}
         />
       )}
 
-      {/* Mobile sidebar */}
+      {/* Mobile sidebar - aligned with working sidebar z-index */}
       <nav 
         className={`fixed inset-y-0 left-0 z-50 w-72 sm:w-64 bg-white dark:bg-gray-800 shadow-xl border-r border-gray-200 dark:border-gray-700 theme-transition transform transition-transform duration-300 ease-in-out lg:hidden ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
+        style={{
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)'
+        }}
         aria-label="사이드바 네비게이션"
         {...(!isOpen && { inert: "true" })}
       >
@@ -85,9 +91,18 @@ export default function PartnerSidebar({
               <h1 className="ml-3 text-lg font-semibold text-gray-900 dark:text-gray-100">INOPNC</h1>
             </div>
             <button 
-              onClick={onClose} 
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                console.log('[PartnerSidebar] X button clicked, calling onClose')
+                // Simply call the onClose function - let React handle the state
+                if (typeof onClose === 'function') {
+                  onClose()
+                }
+              }} 
               className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 theme-transition focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               aria-label="사이드바 닫기"
+              type="button"
             >
               <X className="h-6 w-6" aria-hidden="true" />
             </button>
@@ -142,7 +157,10 @@ function SidebarContent({
 
   const handleMenuClick = React.useCallback((item: MenuItem) => {
     onTabChange(item.id)
-    onClose()
+    // 모바일에서만 사이드바 닫기
+    if (window.innerWidth < 1024) {
+      onClose()
+    }
   }, [onTabChange, onClose])
 
   return (
@@ -172,9 +190,7 @@ function SidebarContent({
               return (
                 <li key={item.id} role="none">
                   <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
+                    onClick={() => {
                       handleMenuClick(item)
                     }}
                     {...getRovingProps(index)}

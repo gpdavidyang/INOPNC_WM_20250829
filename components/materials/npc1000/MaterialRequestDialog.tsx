@@ -13,7 +13,7 @@ import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { Package } from 'lucide-react'
 import { toast } from 'sonner'
-import { createMaterialRequest } from '@/app/actions/materials'
+import { createMaterialRequest } from '@/app/actions/npc-materials'
 
 
 interface Props {
@@ -102,14 +102,11 @@ export default function MaterialRequestDialog({
 
       // Create single NPC-1000 request
       const result = await createMaterialRequest({
-        site_id: siteId,
-        priority: urgency === 'emergency' ? 'urgent' : urgency === 'urgent' ? 'high' : 'normal',
-        notes: requestNotes || undefined,
-        items: [{
-          material_id: npcMaterial.id,
-          requested_quantity: quantityNum,
-          notes: undefined
-        }]
+        siteId: siteId,
+        materialCode: 'NPC-1000',
+        requestedQuantity: quantityNum,
+        requestDate: new Date().toISOString(),
+        notes: `${urgency === 'emergency' ? '[긴급] ' : urgency === 'urgent' ? '[급함] ' : ''}${requestNotes || ''}`
       })
 
       if (result.success) {

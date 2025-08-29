@@ -14,7 +14,7 @@ import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { Package, ArrowDown, ArrowUp, FileText, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { createMaterialTransaction } from '@/app/actions/materials'
+import { recordInventoryTransaction } from '@/app/actions/npc-materials'
 
 
 interface Props {
@@ -153,11 +153,12 @@ export default function InventoryRecordDialog({
       const actionText = activeTab === 'incoming' ? '입고' : '사용량'
       
       // Create material transaction using server action
-      const transactionResult = await createMaterialTransaction({
-        transaction_type: activeTab === 'incoming' ? 'in' : 'out',
-        site_id: siteId,
-        material_id: npcMaterial.id,
+      const transactionResult = await recordInventoryTransaction({
+        siteId: siteId,
+        materialCode: 'NPC-1000',
+        transactionType: activeTab === 'incoming' ? 'in' : 'out',
         quantity: quantityNum,
+        transactionDate: new Date().toISOString(),
         notes: `${actionText} 기록 - NPC-1000 | 계산 후 재고: ${projectedStock}kg${notes ? ' | ' + notes : ''}`
       })
 

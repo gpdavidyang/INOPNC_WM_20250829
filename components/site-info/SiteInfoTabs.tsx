@@ -58,6 +58,7 @@ export default function SiteInfoTabs({
   const [categories, setCategories] = useState<any[]>([])
   const [inventory, setInventory] = useState<any[]>([])
   const [materialsLoading, setMaterialsLoading] = useState(false)
+  const [materialsLoaded, setMaterialsLoaded] = useState(false)
 
   // Get current user ID and auto-select first site on mount
   useEffect(() => {

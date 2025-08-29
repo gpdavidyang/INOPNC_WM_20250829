@@ -3,8 +3,10 @@
 import { createClient } from '@/lib/supabase/server'
 
 const log = (...args: any[]) => {
-  // Always log for debugging in both dev and production (for deployment troubleshooting)
-  console.log('[SITE-INFO DEBUG]', ...args)
+  // Only log in development environment to avoid performance issues in production
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[SITE-INFO DEBUG]', ...args)
+  }
 }
 
 // 현재 사용자가 배정된 현장 정보 조회

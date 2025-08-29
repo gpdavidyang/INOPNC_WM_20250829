@@ -204,18 +204,18 @@ export default function AssignWorkerModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-6">
+        <DialogHeader className="px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
             현장 작업자 배정
           </DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mt-2">
             <span className="font-medium">{siteName}</span>에 배정할 사용자를 선택하세요.
           </p>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-hidden flex flex-col px-6">
           {/* Search and Filters */}
           <div className="space-y-4 pb-4 border-b">
             <div className="flex gap-4">
@@ -348,7 +348,7 @@ export default function AssignWorkerModal({
           </div>
         </div>
 
-        <DialogFooter className="border-t pt-4">
+        <DialogFooter className="border-t px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <p className="text-sm text-muted-foreground">
               {selectedUsers.size}명 선택됨

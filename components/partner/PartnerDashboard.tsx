@@ -28,6 +28,16 @@ export default function PartnerDashboard({
 }: PartnerDashboardProps) {
   const [activeTab, setActiveTab] = useState('home')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  
+  const handleCloseSidebar = () => {
+    console.log('[PartnerDashboard] handleCloseSidebar called, current state:', isSidebarOpen)
+    setIsSidebarOpen(false)
+  }
+  
+  const handleOpenSidebar = () => {
+    console.log('[PartnerDashboard] handleOpenSidebar called')
+    setIsSidebarOpen(true)
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -56,7 +66,7 @@ export default function PartnerDashboard({
         activeTab={activeTab}
         onTabChange={setActiveTab}
         isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
+        onClose={handleCloseSidebar}
       />
 
       {/* Main Content */}
@@ -64,7 +74,7 @@ export default function PartnerDashboard({
         {/* Header */}
         <PartnerHeader
           profile={profile}
-          onMenuClick={() => setIsSidebarOpen(true)}
+          onMenuClick={handleOpenSidebar}
           isSidebarOpen={isSidebarOpen}
         />
 

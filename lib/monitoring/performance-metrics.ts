@@ -337,45 +337,8 @@ export async function measureAsync<T>(
   }
 }
 
-// Schedule periodic metric reporting
-if (typeof window !== 'undefined') {
-  let metricsEnabled = true
-  let failureCount = 0
-  
-  // Send metrics every 5 minutes
-  const metricsInterval = setInterval(async () => {
-    // Skip if metrics are disabled due to repeated failures
-    if (!metricsEnabled) return
-    
-    try {
-      await performanceTracker.sendMetrics()
-      failureCount = 0 // Reset on success
-    } catch (error) {
-      failureCount++
-      // Disable metrics after 3 consecutive failures
-      if (failureCount >= 3) {
-        metricsEnabled = false
-        console.debug('Performance metrics disabled due to repeated failures')
-        clearInterval(metricsInterval)
-      }
-    }
-  }, 5 * 60 * 1000)
-  
-  // Send metrics on page unload (best effort, don't wait)
-  window.addEventListener('beforeunload', () => {
-    if (metricsEnabled) {
-      // Use sendBeacon if available for better reliability
-      const summary = performanceTracker.getPerformanceSummary()
-      if (navigator.sendBeacon) {
-        const data = JSON.stringify({
-          type: 'performance_summary',
-          data: summary,
-          timestamp: new Date().toISOString(),
-        })
-        navigator.sendBeacon('/api/analytics/metrics', data)
-      } else {
-        performanceTracker.sendMetrics()
-      }
-    }
-  })
+// Schedule periodic metric reporting - DISABLED to prevent 503 errors
+if (typeof window !== 'undefined' && false) {
+  // Metrics are disabled until analytics_metrics table is created
+  console.debug('Performance metrics reporting is disabled')
 }

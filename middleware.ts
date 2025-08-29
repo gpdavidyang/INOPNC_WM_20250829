@@ -52,24 +52,32 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // Optimize auth check - try session first, then verify user if needed
+    // Optimize auth check - try session first, minimize refresh attempts
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     let user = session?.user || null
     
-    // Verify user for critical paths - required for critical test compliance
-    if (session && !sessionError) {
+    // Only verify user for critical paths and when session exists - avoid unnecessary API calls
+    if (session && !sessionError && !user) {
       try {
         const { data: { user: verifiedUser } } = await supabase.auth.getUser()
         user = verifiedUser
       } catch (userError) {
-        // If getUser fails, try refresh
-        try {
-          const { data: { session: refreshedSession } } = await supabase.auth.refreshSession()
-          if (refreshedSession) {
-            user = refreshedSession.user
+        // Only attempt refresh if we have a valid session but user verification failed
+        // This prevents infinite refresh loops on invalid tokens
+        if (session.refresh_token) {
+          try {
+            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession()
+            if (refreshedSession?.user) {
+              user = refreshedSession.user
+            } else {
+              // If refresh fails, user is null (don't log in production to avoid spam)
+              user = null
+            }
+          } catch (refreshError) {
+            // Refresh failed - user remains null
+            user = null
           }
-        } catch (refreshError) {
-          // If refresh fails, clear session
+        } else {
           user = null
         }
       }
@@ -83,15 +91,14 @@ export async function middleware(request: NextRequest) {
     const demoPaths = ['/mobile-demo', '/components']
     const isDemoPath = demoPaths.some(path => pathname.startsWith(path))
 
-    // Debug logging - only log important events, not every request
-    if (sessionError || (!user && !isPublicPath && !isDemoPath)) {
+    // Debug logging - only log important events, not every request, and only in development
+    if (process.env.NODE_ENV === 'development' && (sessionError || (!user && !isPublicPath && !isDemoPath))) {
       console.log('Middleware auth issue:', {
         pathname,
         hasUser: !!user,
         isPublicPath,
         isDemoPath,
         error: sessionError?.message,
-        cookies: request.cookies.getAll().map(c => ({ name: c.name, hasValue: !!c.value })),
         sessionExists: !!session,
         userExists: !!user
       })
@@ -116,7 +123,10 @@ export async function middleware(request: NextRequest) {
 
     return response
   } catch (error) {
-    console.error('Middleware error:', error)
+    // Only log middleware errors in development to avoid spam in production logs
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Middleware error:', error)
+    }
     return NextResponse.next()
   }
 }

@@ -21,7 +21,7 @@ export default function PartnerHeader({ profile, onMenuClick, isSidebarOpen = fa
   }
   
   return (
-    <header className="sticky top-0 z-30 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 theme-transition" role="banner">
+    <header className="sticky top-0 z-20 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 theme-transition" role="banner">
       <div className="px-3 sm:px-4 lg:px-6">
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-x-3">

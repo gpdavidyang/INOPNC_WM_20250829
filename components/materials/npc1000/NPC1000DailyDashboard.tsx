@@ -59,7 +59,7 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
   
   // State
   const [loading, setLoading] = useState(false)
-  const [selectedSiteId, setSelectedSiteId] = useState<string>(currentSiteId || '')
+  const [selectedSiteId, setSelectedSiteId] = useState<string>('')
   const [availableSites, setAvailableSites] = useState<Site[]>([])
   const [dailyStatus, setDailyStatus] = useState<DailyStatus>({ incoming: 0, used: 0, inventory: 0 })
   const [cumulativeStatus, setCumulativeStatus] = useState<CumulativeStatus>({ totalIncoming: 0, totalUsed: 0, totalInventory: 0 })
@@ -87,37 +87,49 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
   // Load available sites
   useEffect(() => {
     const loadSites = async () => {
+      // If currentSiteId is provided, use it directly
+      if (currentSiteId && currentSiteName) {
+        console.log('[NPC Dashboard] Using provided site:', currentSiteId, currentSiteName)
+        setAvailableSites([{ id: currentSiteId, name: currentSiteName }])
+        setSelectedSiteId(currentSiteId)
+        return
+      }
+      
+      // Otherwise, load sites from server
       const result = await getSitesForMaterials()
       
-      console.log('Sites result:', result)
+      console.log('[NPC Dashboard] Sites result:', result)
       
       if (result.success && result.data.length > 0) {
+        console.log('[NPC Dashboard] Setting sites:', result.data)
         setAvailableSites(result.data)
         if (!selectedSiteId && result.data.length > 0) {
+          console.log('[NPC Dashboard] Setting selected site:', result.data[0].id)
           setSelectedSiteId(result.data[0].id)
         }
       } else {
-        console.log('No sites available, using hardcoded site ID')
-        // Use the user's current site directly
-        setSelectedSiteId('fb777dd6-fde2-4fe7-a83b-72605372d0c5')
-        setAvailableSites([{ id: 'fb777dd6-fde2-4fe7-a83b-72605372d0c5', name: '송파 C현장' }])
+        console.log('[NPC Dashboard] No sites available for user')
+        setAvailableSites([])
       }
     }
     loadSites()
-  }, [])
+  }, [currentSiteId, currentSiteName])
 
   // Load NPC-1000 data for selected site
   const loadNPCData = useCallback(async () => {
-    if (!selectedSiteId) return
+    if (!selectedSiteId) {
+      console.log('[NPC Dashboard] No site selected, skipping data load')
+      return
+    }
     
     setLoading(true)
     
     try {
-      console.log('Loading NPC data for site:', selectedSiteId)
+      console.log('[NPC Dashboard] Loading NPC data for site:', selectedSiteId)
       
       const result = await getNPCMaterialsData(selectedSiteId)
       
-      console.log('NPC data result:', result)
+      console.log('[NPC Dashboard] NPC data result:', result)
       
       if (result.success && result.data) {
         const { inventory, transactions } = result.data
