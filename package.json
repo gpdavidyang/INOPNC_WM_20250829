@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:turbo": "next dev --turbo",
     "dev:fast": "NEXT_TELEMETRY_DISABLED=1 next dev --port 3000",
-    "build": "next build",
+    "build": "next build && node copy-public.js",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
