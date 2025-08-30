@@ -39,7 +39,9 @@ export async function GET(request: NextRequest) {
       { id: 'all', name: '전체 현장' },
       ...(sites || []).map(site => ({
         id: site.id,
-        name: site.name
+        name: site.name,
+        address: site.address,
+        status: site.status
       }))
     ]
 

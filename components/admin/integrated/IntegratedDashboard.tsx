@@ -44,17 +44,30 @@ export default function IntegratedDashboard() {
       const usersData = await usersRes.json()
       const docsData = await docsRes.json()
 
-      setSites(sitesData.sites || [])
+      // Handle API response structures
+      const sites = sitesData.success ? sitesData.data || [] : []
+      const reports = reportsData.success ? reportsData.data || [] : []
+      const users = usersData.success ? usersData.data || [] : []
+      
+      setSites(sites.filter(site => site.id !== 'all')) // Remove 'all' option for display
       
       setStats({
-        total_sites: sitesData.sites?.length || 0,
-        total_daily_reports: reportsData.reports?.length || 0,
-        total_users: usersData.users?.length || 0,
+        total_sites: sites.length || 0,
+        total_daily_reports: reports.length || 0,
+        total_users: users.length || 0,
         total_documents: docsData.statistics?.total_documents || 0,
         shared_documents: docsData.statistics?.shared_documents || 0,
         markup_documents: docsData.statistics?.markup_documents || 0,
         required_documents: docsData.statistics?.required_documents || 0,
         invoice_documents: docsData.statistics?.invoice_documents || 0,
+      })
+      
+      // Debug logging
+      console.log('Dashboard Data Loaded:', {
+        sites: sites.length,
+        reports: reports.length,
+        users: users.length,
+        docs: docsData
       })
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
