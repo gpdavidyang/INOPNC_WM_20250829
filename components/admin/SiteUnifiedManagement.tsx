@@ -4,10 +4,17 @@ import { useState, useEffect } from 'react'
 import { Site, Profile, SiteAssignment } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Building2, Edit, Users } from 'lucide-react'
+import { ArrowLeft, Building2, Edit, Users, MapPin, Calendar, Phone, User, Home, Wrench, Save, X } from 'lucide-react'
 import { toast } from '@/hooks/use-toast'
-import { getSiteAssignments } from '@/app/actions/admin/sites'
+import { getSiteAssignments, updateSite } from '@/app/actions/admin/sites'
 import AssignWorkerModal from './modals/AssignWorkerModal'
+import { 
+  CustomSelect, 
+  CustomSelectContent, 
+  CustomSelectItem, 
+  CustomSelectTrigger, 
+  CustomSelectValue 
+} from '@/components/ui/custom-select'
 
 interface SiteUnifiedManagementProps {
   site: Site
@@ -167,159 +174,152 @@ export default function SiteUnifiedManagement({
   )
 }
 
-// Placeholder components to be implemented in subsequent phases
+// Site Info Tab - Read-only table layout
 function SiteInfoTab({ site, onRefresh }: { site: Site; onRefresh: () => void }) {
   return (
-    <div className="p-6 space-y-8">
-      <div className="max-w-4xl">
-        {/* Basic Site Information */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            기본 정보
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-card p-6 rounded-lg border">
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">현장명</label>
-                <p className="text-sm mt-1 font-medium">{site.name}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">주소</label>
-                <p className="text-sm mt-1">{site.address}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">상태</label>
-                <div className="flex items-center gap-2 mt-1">
+    <div className="p-6 overflow-auto">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* All Information in Single Comprehensive Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <table className="w-full">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {/* Section: 기본 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    기본 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 w-1/6">현장명</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white w-1/3">{site.name}</td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 w-1/6">상태</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white w-1/3">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                     site.status === 'active' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                      ? 'bg-green-100 text-green-800'
                       : site.status === 'inactive'
-                      ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                      : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      ? 'bg-gray-100 text-gray-800'
+                      : 'bg-blue-100 text-blue-800'
                   }`}>
                     {site.status === 'active' ? '활성' : site.status === 'inactive' ? '비활성' : '완료'}
                   </span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">시작일</label>
-                <p className="text-sm mt-1">
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">주소</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white" colSpan={3}>{site.address}</td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">설명</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white" colSpan={3}>{site.description || '-'}</td>
+              </tr>
+
+              {/* Section: 일정 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    일정 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">시작일</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                   {site.start_date ? new Date(site.start_date).toLocaleDateString('ko-KR') : '-'}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">종료일</label>
-                <p className="text-sm mt-1">
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">종료일</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                   {site.end_date ? new Date(site.end_date).toLocaleDateString('ko-KR') : '-'}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">생성일</label>
-                <p className="text-sm mt-1">
+                </td>
+              </tr>
+
+              {/* Section: 담당자 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    담당자 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">현장관리자</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{site.manager_name || '-'}</td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">연락처</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{site.construction_manager_phone || '-'}</td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">안전관리자</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{site.safety_manager_name || '-'}</td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">연락처</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{site.safety_manager_phone || '-'}</td>
+              </tr>
+
+              {/* Section: 숙소 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <Home className="h-4 w-4" />
+                    숙소 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">숙소명</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{site.accommodation_name || '-'}</td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">숙소 주소</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{site.accommodation_address || '-'}</td>
+              </tr>
+
+              {/* Section: 작업 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="h-4 w-4" />
+                    작업 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">부재명</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{site.component_name || '-'}</td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">작업공정</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">{site.work_process || '-'}</td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">작업구간</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white" colSpan={3}>{site.work_section || '-'}</td>
+              </tr>
+
+              {/* Section: 시스템 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  시스템 정보
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">생성일</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                   {site.created_at ? new Date(site.created_at).toLocaleDateString('ko-KR') : '-'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Management Information */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            관리자 정보
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-card p-6 rounded-lg border">
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">현장관리자</label>
-                <p className="text-sm mt-1 font-medium">{site.manager_name || '-'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">건설관리자 연락처</label>
-                <p className="text-sm mt-1">{site.construction_manager_phone || '-'}</p>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">안전관리자</label>
-                <p className="text-sm mt-1 font-medium">{site.safety_manager_name || '-'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">안전관리자 연락처</label>
-                <p className="text-sm mt-1">{site.safety_manager_phone || '-'}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Accommodation Information */}
-        <div className="mb-8">
-          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            숙소 정보
-          </h2>
-          <div className="bg-card p-6 rounded-lg border space-y-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">숙소명</label>
-              <p className="text-sm mt-1 font-medium">{site.accommodation_name || '-'}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">숙소 주소</label>
-              <p className="text-sm mt-1">{site.accommodation_address || '-'}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Work Information */}
-        {(site.work_process || site.work_section || site.component_name) && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Edit className="h-5 w-5 text-primary" />
-              작업 정보
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-card p-6 rounded-lg border">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">부재명</label>
-                <p className="text-sm mt-1">{site.component_name || '-'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">작업공정</label>
-                <p className="text-sm mt-1">{site.work_process || '-'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">작업구간</label>
-                <p className="text-sm mt-1">{site.work_section || '-'}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Description */}
-        {site.description && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-4">설명</h2>
-            <div className="bg-card p-6 rounded-lg border">
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{site.description}</p>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex items-center justify-end gap-3 pt-6 border-t">
-          <Button variant="outline" onClick={onRefresh} size="sm">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            새로고침
-          </Button>
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">수정일</td>
+                <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
+                  {site.updated_at ? new Date(site.updated_at).toLocaleDateString('ko-KR') : '-'}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   )
 }
 
+// Site Edit Tab - Editable table layout
 function SiteEditTab({ 
   site, 
   onSiteUpdate, 
@@ -347,9 +347,9 @@ function SiteEditTab({
     component_name: site.component_name || ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [hasChanges, setHasChanges] = useState(false) // Start with no changes
+  const [hasChanges, setHasChanges] = useState(false)
 
-  // Update form data when site prop changes (important for after successful update)
+  // Update form data when site prop changes
   useEffect(() => {
     setFormData({
       name: site.name || '',
@@ -368,7 +368,7 @@ function SiteEditTab({
       work_section: site.work_section || '',
       component_name: site.component_name || ''
     })
-    setHasChanges(false) // Reset changes flag when site data is updated
+    setHasChanges(false)
   }, [site])
 
   const handleInputChange = (field: string, value: string) => {
@@ -379,7 +379,6 @@ function SiteEditTab({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate required fields
     if (!formData.name || !formData.address || !formData.start_date) {
       toast({
         title: '입력 오류',
@@ -390,17 +389,13 @@ function SiteEditTab({
     }
 
     setIsSubmitting(true)
-
     try {
-      const { updateSite } = await import('@/app/actions/admin/sites')
-      
-      // Prepare update data - ensure empty strings are converted to null for optional fields
       const updateData = {
         id: site.id,
         name: formData.name,
         address: formData.address,
         description: formData.description || null,
-        status: formData.status,
+        status: formData.status as any,
         start_date: formData.start_date,
         end_date: formData.end_date || null,
         manager_name: formData.manager_name || null,
@@ -414,49 +409,17 @@ function SiteEditTab({
         component_name: formData.component_name || null
       }
       
-      console.log('[SITE-UPDATE] Updating site with data:', updateData)
-      
       const result = await updateSite(updateData)
-
-      console.log('[SITE-UPDATE] Update result:', result)
-
+      
       if (result.success && result.data) {
-        console.log('[SITE-UPDATE] Update successful, refreshing data')
-        
-        // Update local state with the returned data
-        onSiteUpdate(result.data)
-        
-        // Reset the form with new data
-        setFormData({
-          name: result.data.name || '',
-          address: result.data.address || '',
-          description: result.data.description || '',
-          status: result.data.status || 'active',
-          start_date: result.data.start_date ? new Date(result.data.start_date).toISOString().split('T')[0] : '',
-          end_date: result.data.end_date ? new Date(result.data.end_date).toISOString().split('T')[0] : '',
-          manager_name: result.data.manager_name || '',
-          construction_manager_phone: result.data.construction_manager_phone || '',
-          safety_manager_name: result.data.safety_manager_name || '',
-          safety_manager_phone: result.data.safety_manager_phone || '',
-          accommodation_name: result.data.accommodation_name || '',
-          accommodation_address: result.data.accommodation_address || '',
-          work_process: result.data.work_process || '',
-          work_section: result.data.work_section || '',
-          component_name: result.data.component_name || ''
-        })
-        
-        setHasChanges(false)
-        
-        // Trigger parent refresh to update the list
-        onRefresh()
-        
         toast({
           title: '성공',
-          description: result.message || '현장 정보가 성공적으로 업데이트되었습니다.',
-          variant: 'default'
+          description: '현장 정보가 성공적으로 업데이트되었습니다.'
         })
+        onSiteUpdate(result.data)
+        setHasChanges(false)
+        onRefresh()
       } else {
-        console.error('[SITE-UPDATE] Update failed:', result.error)
         toast({
           title: '오류',
           description: result.error || '현장 정보 업데이트에 실패했습니다.',
@@ -464,7 +427,7 @@ function SiteEditTab({
         })
       }
     } catch (error) {
-      console.error('[SITE-UPDATE] Site update error:', error)
+      console.error('Update error:', error)
       toast({
         title: '오류',
         description: '현장 정보 업데이트 중 오류가 발생했습니다.',
@@ -497,569 +460,416 @@ function SiteEditTab({
   }
 
   return (
-    <div className="p-6 space-y-8">
-      <div className="max-w-4xl">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Edit className="h-5 w-5 text-primary" />
-            현장 정보 수정
-          </h2>
-          {hasChanges && (
-            <span className="px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">
-              변경사항 있음
-            </span>
-          )}
+    <div className="p-6 overflow-auto">
+      <form onSubmit={handleSubmit} className="max-w-6xl mx-auto space-y-6">
+        {/* All Information in Single Comprehensive Table */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <table className="w-full">
+            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              {/* Section: 기본 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    기본 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 w-1/6">
+                  현장명 <span className="text-red-500">*</span>
+                </td>
+                <td className="px-6 py-4 w-1/3">
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    required
+                  />
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 w-1/6">상태</td>
+                <td className="px-6 py-4 w-1/3">
+                  <select
+                    value={formData.status}
+                    onChange={(e) => handleInputChange('status', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  >
+                    <option value="active">활성</option>
+                    <option value="inactive">비활성</option>
+                    <option value="completed">완료</option>
+                  </select>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">
+                  주소 <span className="text-red-500">*</span>
+                </td>
+                <td className="px-6 py-4" colSpan={3}>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    required
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">설명</td>
+                <td className="px-6 py-4" colSpan={3}>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  />
+                </td>
+              </tr>
+
+              {/* Section: 일정 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    일정 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">
+                  시작일 <span className="text-red-500">*</span>
+                </td>
+                <td className="px-6 py-4">
+                  <input
+                    type="date"
+                    value={formData.start_date}
+                    onChange={(e) => handleInputChange('start_date', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    required
+                  />
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">종료일</td>
+                <td className="px-6 py-4">
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={(e) => handleInputChange('end_date', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  />
+                </td>
+              </tr>
+
+              {/* Section: 담당자 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    담당자 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">현장관리자</td>
+                <td className="px-6 py-4">
+                  <input
+                    type="text"
+                    value={formData.manager_name}
+                    onChange={(e) => handleInputChange('manager_name', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    placeholder="이름"
+                  />
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">연락처</td>
+                <td className="px-6 py-4">
+                  <input
+                    type="tel"
+                    value={formData.construction_manager_phone}
+                    onChange={(e) => handleInputChange('construction_manager_phone', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    placeholder="010-0000-0000"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">안전관리자</td>
+                <td className="px-6 py-4">
+                  <input
+                    type="text"
+                    value={formData.safety_manager_name}
+                    onChange={(e) => handleInputChange('safety_manager_name', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    placeholder="이름"
+                  />
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">연락처</td>
+                <td className="px-6 py-4">
+                  <input
+                    type="tel"
+                    value={formData.safety_manager_phone}
+                    onChange={(e) => handleInputChange('safety_manager_phone', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    placeholder="010-0000-0000"
+                  />
+                </td>
+              </tr>
+
+              {/* Section: 숙소 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <Home className="h-4 w-4" />
+                    숙소 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">숙소명</td>
+                <td className="px-6 py-4">
+                  <input
+                    type="text"
+                    value={formData.accommodation_name}
+                    onChange={(e) => handleInputChange('accommodation_name', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    placeholder="숙소명"
+                  />
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">숙소 주소</td>
+                <td className="px-6 py-4">
+                  <input
+                    type="text"
+                    value={formData.accommodation_address}
+                    onChange={(e) => handleInputChange('accommodation_address', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    placeholder="숙소 주소"
+                  />
+                </td>
+              </tr>
+
+              {/* Section: 작업 정보 */}
+              <tr className="bg-gray-50 dark:bg-gray-900">
+                <td colSpan={4} className="px-6 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  <div className="flex items-center gap-2">
+                    <Wrench className="h-4 w-4" />
+                    작업 정보
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">부재명</td>
+                <td className="px-6 py-4">
+                  <div>
+                    <CustomSelect
+                      value={formData.component_name?.startsWith('기타:') ? '기타' : formData.component_name || ''}
+                      onValueChange={(value) => {
+                        if (value === '기타') {
+                          handleInputChange('component_name', '기타:')
+                        } else {
+                          handleInputChange('component_name', value)
+                        }
+                      }}
+                    >
+                      <CustomSelectTrigger className="w-full bg-white border border-gray-300 text-gray-900">
+                        <CustomSelectValue placeholder="선택하세요" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent className="bg-white border border-gray-300">
+                        <CustomSelectItem value="">없음</CustomSelectItem>
+                        <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
+                        <CustomSelectItem value="거더">거더</CustomSelectItem>
+                        <CustomSelectItem value="기둥">기둥</CustomSelectItem>
+                        <CustomSelectItem value="기타">기타</CustomSelectItem>
+                      </CustomSelectContent>
+                    </CustomSelect>
+                    {formData.component_name?.startsWith('기타') && (
+                      <input
+                        type="text"
+                        value={formData.component_name.replace('기타:', '')}
+                        onChange={(e) => handleInputChange('component_name', '기타:' + e.target.value)}
+                        className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                        placeholder="기타 부재명 입력"
+                      />
+                    )}
+                  </div>
+                </td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">작업공정</td>
+                <td className="px-6 py-4">
+                  <div>
+                    <CustomSelect
+                      value={formData.work_process?.startsWith('기타:') ? '기타' : formData.work_process || ''}
+                      onValueChange={(value) => {
+                        if (value === '기타') {
+                          handleInputChange('work_process', '기타:')
+                        } else {
+                          handleInputChange('work_process', value)
+                        }
+                      }}
+                    >
+                      <CustomSelectTrigger className="w-full bg-white border border-gray-300 text-gray-900">
+                        <CustomSelectValue placeholder="선택하세요" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent className="bg-white border border-gray-300">
+                        <CustomSelectItem value="">없음</CustomSelectItem>
+                        <CustomSelectItem value="균일">균일</CustomSelectItem>
+                        <CustomSelectItem value="면">면</CustomSelectItem>
+                        <CustomSelectItem value="마감">마감</CustomSelectItem>
+                        <CustomSelectItem value="기타">기타</CustomSelectItem>
+                      </CustomSelectContent>
+                    </CustomSelect>
+                    {formData.work_process?.startsWith('기타') && (
+                      <input
+                        type="text"
+                        value={formData.work_process.replace('기타:', '')}
+                        onChange={(e) => handleInputChange('work_process', '기타:' + e.target.value)}
+                        className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                        placeholder="기타 작업공정 입력"
+                      />
+                    )}
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td className="px-6 py-4 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50">작업구간</td>
+                <td className="px-6 py-4" colSpan={3}>
+                  <input
+                    type="text"
+                    value={formData.work_section}
+                    onChange={(e) => handleInputChange('work_section', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                    placeholder="예: A동"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Basic Information */}
-          <div className="bg-card p-6 rounded-lg border space-y-6">
-            <h3 className="text-md font-semibold flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary" />
-              기본 정보
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">현장명 *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">상태</label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="active">활성</option>
-                  <option value="inactive">비활성</option>
-                  <option value="completed">완료</option>
-                </select>
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-sm font-medium text-foreground">주소 *</label>
-                <input
-                  type="text"
-                  value={formData.address}
-                  onChange={(e) => handleInputChange('address', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">시작일 *</label>
-                <input
-                  type="date"
-                  value={formData.start_date}
-                  onChange={(e) => handleInputChange('start_date', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">종료일</label>
-                <input
-                  type="date"
-                  value={formData.end_date}
-                  onChange={(e) => handleInputChange('end_date', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div className="md:col-span-2 space-y-2">
-                <label className="text-sm font-medium text-foreground">설명</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-                  placeholder="현장에 대한 추가 설명을 입력하세요..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Management Information */}
-          <div className="bg-card p-6 rounded-lg border space-y-6">
-            <h3 className="text-md font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              관리자 정보
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">현장관리자</label>
-                <input
-                  type="text"
-                  value={formData.manager_name}
-                  onChange={(e) => handleInputChange('manager_name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="현장관리자 이름"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">건설관리자 연락처</label>
-                <input
-                  type="tel"
-                  value={formData.construction_manager_phone}
-                  onChange={(e) => handleInputChange('construction_manager_phone', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="010-0000-0000"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">안전관리자</label>
-                <input
-                  type="text"
-                  value={formData.safety_manager_name}
-                  onChange={(e) => handleInputChange('safety_manager_name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="안전관리자 이름"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">안전관리자 연락처</label>
-                <input
-                  type="tel"
-                  value={formData.safety_manager_phone}
-                  onChange={(e) => handleInputChange('safety_manager_phone', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="010-0000-0000"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Accommodation Information */}
-          <div className="bg-card p-6 rounded-lg border space-y-6">
-            <h3 className="text-md font-semibold flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-primary" />
-              숙소 정보
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">숙소명</label>
-                <input
-                  type="text"
-                  value={formData.accommodation_name}
-                  onChange={(e) => handleInputChange('accommodation_name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="숙소 이름"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">숙소 주소</label>
-                <input
-                  type="text"
-                  value={formData.accommodation_address}
-                  onChange={(e) => handleInputChange('accommodation_address', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="숙소 주소"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Work Information */}
-          <div className="bg-card p-6 rounded-lg border space-y-6">
-            <h3 className="text-md font-semibold flex items-center gap-2">
-              <Edit className="h-4 w-4 text-primary" />
-              작업 정보
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">부재명</label>
-                <input
-                  type="text"
-                  value={formData.component_name}
-                  onChange={(e) => handleInputChange('component_name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="부재명"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">작업공정</label>
-                <input
-                  type="text"
-                  value={formData.work_process}
-                  onChange={(e) => handleInputChange('work_process', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="작업 공정"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">작업구간</label>
-                <input
-                  type="text"
-                  value={formData.work_section}
-                  onChange={(e) => handleInputChange('work_section', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="작업 구간"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-6 border-t">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={handleReset}
-              disabled={isSubmitting}
-            >
-              초기화
-            </Button>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onRefresh}
-              disabled={isSubmitting}
-            >
-              새로고침
-            </Button>
-            <Button 
-              type="submit" 
-              disabled={isSubmitting}
-              className="min-w-24"
-              onClick={(e) => {
-                // Log for debugging
-                console.log('Save button clicked', {
-                  hasChanges,
-                  isSubmitting,
-                  formData
-                })
-                // Allow default form submission
-              }}
-            >
-              {isSubmitting ? '저장 중...' : '저장'}
-            </Button>
-          </div>
-        </form>
-      </div>
+        {/* Action Buttons */}
+        <div className="flex justify-end gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleReset}
+            disabled={!hasChanges || isSubmitting}
+            className="flex items-center gap-2"
+          >
+            <X className="h-4 w-4" />
+            초기화
+          </Button>
+          <Button
+            type="submit"
+            disabled={!hasChanges || isSubmitting}
+            className="flex items-center gap-2"
+          >
+            <Save className="h-4 w-4" />
+            {isSubmitting ? '저장 중...' : '변경사항 저장'}
+          </Button>
+        </div>
+      </form>
     </div>
   )
 }
 
+// Worker Assignment Tab
 function WorkerAssignmentTab({ 
   site, 
   assignments, 
-  availableUsers, 
-  isLoading, 
+  availableUsers,
+  isLoading,
   onRefresh 
 }: { 
-  site: Site; 
-  assignments: SiteAssignment[]; 
-  availableUsers: Profile[]; 
-  isLoading: boolean; 
-  onRefresh: () => void 
+  site: Site;
+  assignments: SiteAssignment[];
+  availableUsers: Profile[];
+  isLoading: boolean;
+  onRefresh: () => void;
 }) {
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
-  const [isRemoveModalOpen, setIsRemoveModalOpen] = useState(false)
-  const [selectedAssignment, setSelectedAssignment] = useState<SiteAssignment | null>(null)
-  const [isRoleChangeModalOpen, setIsRoleChangeModalOpen] = useState(false)
-  
-  const handleRemoveUser = async (assignment: SiteAssignment) => {
-    if (!assignment.user_id) return
-    
+  const [showAssignModal, setShowAssignModal] = useState(false)
+
+  const handleAssignmentSuccess = () => {
+    setShowAssignModal(false)
+    onRefresh()
+  }
+
+  const handleRemoveAssignment = async (userId: string) => {
+    if (!confirm('정말로 이 작업자를 현장에서 해제하시겠습니까?')) {
+      return
+    }
+
     try {
       const { removeUserFromSite } = await import('@/app/actions/admin/sites')
-      const result = await removeUserFromSite(site.id, assignment.user_id)
+      const result = await removeUserFromSite(site.id, userId)
       
       if (result.success) {
         toast({
           title: '성공',
-          description: result.message || '사용자가 현장에서 해제되었습니다.',
-          variant: 'default'
+          description: '작업자가 현장에서 해제되었습니다.'
         })
         onRefresh()
       } else {
         toast({
           title: '오류',
-          description: result.error || '사용자 해제에 실패했습니다.',
+          description: result.error || '작업자 해제에 실패했습니다.',
           variant: 'destructive'
         })
       }
     } catch (error) {
-      console.error('Remove user error:', error)
+      console.error('Error removing assignment:', error)
       toast({
         title: '오류',
-        description: '사용자 해제 중 오류가 발생했습니다.',
+        description: '작업자 해제 중 오류가 발생했습니다.',
         variant: 'destructive'
       })
-    }
-  }
-
-  const handleRoleChange = async (assignment: SiteAssignment, newRole: string) => {
-    if (!assignment.user_id) return
-    
-    try {
-      const { updateSiteAssignmentRole } = await import('@/app/actions/admin/sites')
-      const result = await updateSiteAssignmentRole(site.id, assignment.user_id, newRole)
-      
-      if (result.success) {
-        toast({
-          title: '성공',
-          description: result.message || '사용자 역할이 변경되었습니다.',
-          variant: 'default'
-        })
-        onRefresh()
-        setIsRoleChangeModalOpen(false)
-        setSelectedAssignment(null)
-      } else {
-        toast({
-          title: '오류',
-          description: result.error || '역할 변경에 실패했습니다.',
-          variant: 'destructive'
-        })
-      }
-    } catch (error) {
-      console.error('Role change error:', error)
-      toast({
-        title: '오류',
-        description: '역할 변경 중 오류가 발생했습니다.',
-        variant: 'destructive'
-      })
-    }
-  }
-
-  const getRoleLabel = (role?: string | null) => {
-    switch (role) {
-      case 'worker': return '작업자'
-      case 'site_manager': return '현장관리자'
-      case 'supervisor': return '관리자'
-      case 'customer_manager': return '파트너사 담당자'
-      default: return role || '미정'
-    }
-  }
-
-  const getRoleBadgeColor = (role?: string | null) => {
-    switch (role) {
-      case 'worker': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
-      case 'site_manager': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
-      case 'supervisor': return 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400'
-      case 'customer_manager': return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
     }
   }
 
   return (
     <div className="p-6">
-      <div className="max-w-6xl">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <Users className="h-5 w-5 text-primary" />
-              작업자 배정 관리
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              현장에 배정된 작업자를 관리하고 새로운 작업자를 배정할 수 있습니다.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button onClick={onRefresh} disabled={isLoading} size="sm" variant="outline">
-              {isLoading ? (
-                <>
-                  <ArrowLeft className="h-4 w-4 animate-spin mr-2" />
-                  로딩 중...
-                </>
-              ) : (
-                <>
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  새로고침
-                </>
-              )}
-            </Button>
-            <Button onClick={() => setIsAssignModalOpen(true)} size="sm">
-              <Building2 className="h-4 w-4 mr-2" />
-              작업자 배정
-            </Button>
-          </div>
-        </div>
-
-        {/* Statistics */}
-        {!isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-card p-4 rounded-lg border">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">전체 배정자</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">{assignments.length}명</p>
-            </div>
-            <div className="bg-card p-4 rounded-lg border">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-blue-600" />
-                <span className="text-sm font-medium">작업자</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">
-                {assignments.filter(a => a.role === 'worker').length}명
-              </p>
-            </div>
-            <div className="bg-card p-4 rounded-lg border">
-              <div className="flex items-center gap-2">
-                <Edit className="h-4 w-4 text-green-600" />
-                <span className="text-sm font-medium">현장관리자</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">
-                {assignments.filter(a => a.role === 'site_manager').length}명
-              </p>
-            </div>
-            <div className="bg-card p-4 rounded-lg border">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-purple-600" />
-                <span className="text-sm font-medium">관리자</span>
-              </div>
-              <p className="text-2xl font-bold mt-1">
-                {assignments.filter(a => a.role === 'supervisor').length}명
-              </p>
-            </div>
-          </div>
-        )}
-        
-        {/* Content */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <ArrowLeft className="h-8 w-8 animate-spin text-muted-foreground mr-3" />
-            <span className="text-muted-foreground">배정 정보를 불러오는 중...</span>
-          </div>
-        ) : assignments.length === 0 ? (
-          <div className="text-center py-12">
-            <Users className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold mb-2">배정된 작업자가 없습니다</h3>
-            <p className="text-muted-foreground mb-6">
-              새로운 작업자를 배정하여 현장 관리를 시작하세요.
-            </p>
-            <Button onClick={() => setIsAssignModalOpen(true)}>
-              <Building2 className="h-4 w-4 mr-2" />
-              첫 번째 작업자 배정
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {assignments.map((assignment) => (
-              <div 
-                key={assignment.id} 
-                className="flex items-center justify-between p-6 bg-card rounded-lg border hover:shadow-sm transition-shadow"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="font-semibold text-primary">
-                      {assignment.profile?.full_name?.charAt(0) || 'U'}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-lg">
-                        {assignment.profile?.full_name || '이름 없음'}
-                      </h4>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${getRoleBadgeColor(assignment.role)}`}>
-                        {getRoleLabel(assignment.role)}
-                      </span>
-                    </div>
-                    <div className="text-sm text-muted-foreground space-y-1">
-                      <p>{assignment.profile?.email}</p>
-                      {assignment.profile?.phone && (
-                        <p>{assignment.profile.phone}</p>
-                      )}
-                      <div className="flex items-center gap-4">
-                        {assignment.assigned_date && (
-                          <span>배정일: {new Date(assignment.assigned_date).toLocaleDateString('ko-KR')}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedAssignment(assignment)
-                      setIsRoleChangeModalOpen(true)
-                    }}
-                  >
-                    <Edit className="h-4 w-4 mr-1" />
-                    역할 변경
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (window.confirm(`${assignment.profile?.full_name || '사용자'}를 현장에서 해제하시겠습니까?`)) {
-                        handleRemoveUser(assignment)
-                      }
-                    }}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    해제
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Assign Worker Modal */}
-        {isAssignModalOpen && (
-          <AssignWorkerModal
-            isOpen={isAssignModalOpen}
-            onClose={() => setIsAssignModalOpen(false)}
-            siteId={site.id}
-            siteName={site.name}
-            onSuccess={onRefresh}
-          />
-        )}
-
-        {/* Role Change Modal */}
-        {isRoleChangeModalOpen && selectedAssignment && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-background p-6 rounded-lg border max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4">역할 변경</h3>
-              <p className="text-muted-foreground mb-4">
-                <span className="font-medium">{selectedAssignment.profile?.full_name}</span>의 역할을 변경하세요.
-              </p>
-              <div className="space-y-2">
-                {[
-                  { value: 'worker', label: '작업자' },
-                  { value: 'site_manager', label: '현장관리자' },
-                  { value: 'supervisor', label: '관리자' }
-                ].map((role) => (
-                  <button
-                    key={role.value}
-                    onClick={() => handleRoleChange(selectedAssignment, role.value)}
-                    className={`w-full text-left p-3 rounded-md border hover:bg-muted transition-colors ${
-                      selectedAssignment.role === role.value ? 'border-primary bg-primary/5' : 'border-border'
-                    }`}
-                  >
-                    {role.label}
-                    {selectedAssignment.role === role.value && (
-                      <span className="text-xs text-muted-foreground ml-2">(현재)</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-              <div className="flex gap-2 mt-6">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsRoleChangeModalOpen(false)
-                    setSelectedAssignment(null)
-                  }}
-                  className="flex-1"
-                >
-                  취소
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-semibold">배정된 작업자</h2>
+        <Button onClick={() => setShowAssignModal(true)}>
+          <Users className="h-4 w-4 mr-2" />
+          작업자 배정
+        </Button>
       </div>
+
+      {isLoading ? (
+        <div className="text-center py-8 text-muted-foreground">
+          작업자 정보를 불러오는 중...
+        </div>
+      ) : assignments.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          배정된 작업자가 없습니다.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {assignments.map((assignment) => (
+            <div key={assignment.id} className="flex items-center justify-between p-4 bg-card rounded-lg border">
+              <div>
+                <p className="font-medium">{assignment.profile?.name || 'Unknown'}</p>
+                <p className="text-sm text-muted-foreground">
+                  {assignment.role === 'worker' ? '작업자' : 
+                   assignment.role === 'site_manager' ? '현장관리자' : '감독관'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleRemoveAssignment(assignment.user_id)}
+              >
+                해제
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAssignModal && (
+        <AssignWorkerModal
+          siteId={site.id}
+          onClose={() => setShowAssignModal(false)}
+          onSuccess={handleAssignmentSuccess}
+        />
+      )}
     </div>
   )
 }

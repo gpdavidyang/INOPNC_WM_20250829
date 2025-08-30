@@ -13,7 +13,7 @@ import {
   getAvailableSitesForDocuments,
   DocumentWithApproval
 } from '@/app/actions/admin/documents'
-import { Search, Filter, FileText, Download, Eye, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
+import { Search, Filter, FileText, Download, Eye, Clock, CheckCircle, XCircle, AlertCircle, Shield, Package, Image, FolderOpen } from 'lucide-react'
 
 interface DocumentManagementProps {
   profile: Profile
@@ -21,8 +21,10 @@ interface DocumentManagementProps {
 
 export default function DocumentManagement({ profile }: DocumentManagementProps) {
   const [documents, setDocuments] = useState<DocumentWithApproval[]>([])
+  const [integratedDocuments, setIntegratedDocuments] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'legacy' | 'integrated'>('integrated')
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -35,6 +37,7 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
   const [typeFilter, setTypeFilter] = useState<DocumentType | ''>('')
   const [approvalFilter, setApprovalFilter] = useState<ApprovalStatus | ''>('')
   const [siteFilter, setSiteFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState<string>('')
   
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -49,6 +52,26 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
   
   // Available sites
   const [availableSites, setAvailableSites] = useState<Array<{ id: string; name: string }>>([])
+
+  // Load integrated documents data
+  const loadIntegratedDocuments = async () => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/admin/documents/integrated')
+      if (response.ok) {
+        const data = await response.json()
+        setIntegratedDocuments(data)
+      } else {
+        setError('통합 문서 데이터를 불러오는데 실패했습니다.')
+      }
+    } catch (err) {
+      setError('통합 문서 데이터를 불러오는데 실패했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Load documents data
   const loadDocuments = async () => {
@@ -105,8 +128,12 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
 
   // Load data on mount and when filters change
   useEffect(() => {
-    loadDocuments()
-  }, [currentPage, searchTerm, typeFilter, approvalFilter, siteFilter])
+    if (viewMode === 'integrated') {
+      loadIntegratedDocuments()
+    } else {
+      loadDocuments()
+    }
+  }, [viewMode, currentPage, searchTerm, typeFilter, approvalFilter, siteFilter, categoryFilter])
 
   useEffect(() => {
     loadStats()
@@ -323,7 +350,192 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
 
   return (
     <div className="space-y-4">
-      {/* Statistics Cards */}
+      {/* View Mode Toggle */}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">문서 관리</h2>
+        <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          <button
+            onClick={() => setViewMode('integrated')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              viewMode === 'integrated'
+                ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <FolderOpen className="h-4 w-4 mr-2 inline" />
+            통합 문서함 관리
+          </button>
+          <button
+            onClick={() => setViewMode('legacy')}
+            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+              viewMode === 'legacy'
+                ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+            }`}
+          >
+            <FileText className="h-4 w-4 mr-2 inline" />
+            기존 승인 관리
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'integrated' && integratedDocuments ? (
+        // Integrated Documents View
+        <div className="space-y-6">
+          {/* Document Category Statistics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-700">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <FileText className="h-8 w-8 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-blue-700 dark:text-blue-300">공유문서함</div>
+                  <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                    {integratedDocuments.statistics?.shared_documents || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 border border-purple-200 dark:border-purple-700">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Image className="h-8 w-8 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-purple-700 dark:text-purple-300">도면마킹문서함</div>
+                  <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                    {integratedDocuments.statistics?.markup_documents || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-6 border border-green-200 dark:border-green-700">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Shield className="h-8 w-8 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-green-700 dark:text-green-300">필수제출서류함</div>
+                  <div className="text-2xl font-bold text-green-900 dark:text-green-100">
+                    {integratedDocuments.statistics?.required_documents || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-6 border border-orange-200 dark:border-orange-700">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Package className="h-8 w-8 text-orange-600" />
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-orange-700 dark:text-orange-300">기성청구문서함</div>
+                  <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+                    {integratedDocuments.statistics?.invoice_documents || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Document Categories Display */}
+          {integratedDocuments.documents_by_category && Object.entries(integratedDocuments.documents_by_category).map(([category, docs]: [string, any[]]) => {
+            const categoryConfig = {
+              shared: { name: '공유문서함', color: 'blue', icon: FileText, description: '현장별 접근 권한 관리' },
+              markup: { name: '도면마킹문서함', color: 'purple', icon: Image, description: '현장별 도면 및 마킹 자료' },
+              required: { name: '필수제출서류함', color: 'green', icon: Shield, description: '작업자-현장관리자-본사관리자 공유' },
+              invoice: { name: '기성청구문서함', color: 'orange', icon: Package, description: '파트너사-본사관리자 공유' }
+            }
+            const config = categoryConfig[category as keyof typeof categoryConfig] || { name: category, color: 'gray', icon: FileText, description: '' }
+            const IconComponent = config.icon
+            
+            return (
+              <div key={category} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                <div className={`bg-${config.color}-50 dark:bg-${config.color}-900/20 p-6 border-b border-${config.color}-200 dark:border-${config.color}-700`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <IconComponent className={`h-6 w-6 text-${config.color}-600 mr-3`} />
+                      <div>
+                        <h3 className={`text-lg font-semibold text-${config.color}-900 dark:text-${config.color}-100`}>
+                          {config.name}
+                        </h3>
+                        <p className={`text-sm text-${config.color}-700 dark:text-${config.color}-300`}>
+                          {config.description}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`bg-${config.color}-100 dark:bg-${config.color}-800 px-3 py-1 rounded-full`}>
+                      <span className={`text-sm font-medium text-${config.color}-800 dark:text-${config.color}-200`}>
+                        {docs.length}개 문서
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  {docs.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {docs.slice(0, 6).map((doc) => (
+                        <div key={doc.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex items-start space-x-3">
+                            <div className={`p-2 bg-${config.color}-100 dark:bg-${config.color}-800 rounded-lg`}>
+                              <FileText className={`h-5 w-5 text-${config.color}-600`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {doc.title || doc.file_name}
+                              </h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                {doc.file_name}
+                              </p>
+                              {doc.sites?.name && (
+                                <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                                  현장: {doc.sites.name}
+                                </p>
+                              )}
+                              {doc.profiles?.full_name && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  업로더: {doc.profiles.full_name}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <div className={`p-4 bg-${config.color}-100 dark:bg-${config.color}-800 rounded-full inline-block mb-4`}>
+                        <IconComponent className={`h-8 w-8 text-${config.color}-600`} />
+                      </div>
+                      <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                        등록된 문서가 없습니다
+                      </h4>
+                      <p className="text-gray-500 dark:text-gray-400">
+                        {config.name}에 업로드된 문서가 없습니다.
+                      </p>
+                    </div>
+                  )}
+                  
+                  {docs.length > 6 && (
+                    <div className="mt-4 text-center">
+                      <button className={`text-${config.color}-600 hover:text-${config.color}-800 dark:text-${config.color}-400 dark:hover:text-${config.color}-300 text-sm font-medium`}>
+                        {docs.length - 6}개 더 보기 →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        // Legacy Document Management View
+        <div className="space-y-4">
+          {/* Statistics Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-3">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
@@ -456,6 +668,8 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
         actions={bulkActions}
         onClearSelection={() => setSelectedIds([])}
       />
+        </div>
+      )}
     </div>
   )
 }

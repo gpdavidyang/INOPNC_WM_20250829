@@ -13,9 +13,10 @@ import {
   CreateSiteData,
   UpdateSiteData 
 } from '@/app/actions/admin/sites'
-import { Plus, Search, Filter, Eye, Edit, MapPin, Calendar, Phone, Users, FileText, Grid, List, MoreVertical } from 'lucide-react'
+import { Plus, Search, Filter, Eye, Edit, MapPin, Calendar, Phone, Users, FileText, Grid, List, MoreVertical, Activity } from 'lucide-react'
 import SiteDetail from './sites/SiteDetail'
 import SiteWorkersModal from './SiteWorkersModal'
+import UnifiedSiteView from './integrated/UnifiedSiteView'
 
 interface SiteManagementProps {
   profile?: Profile
@@ -50,6 +51,8 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
   const [viewingSite, setViewingSite] = useState<Site | null>(null)
   const [isWorkersModalOpen, setIsWorkersModalOpen] = useState(false)
   const [selectedSiteForWorkers, setSelectedSiteForWorkers] = useState<Site | null>(null)
+  const [showIntegratedView, setShowIntegratedView] = useState(false)
+  const [integratedViewSiteId, setIntegratedViewSiteId] = useState<string | null>(null)
 
   // Load sites data
   const loadSites = async () => {
@@ -146,6 +149,11 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
   const handleViewSite = (site: Site) => {
     setViewingSite(site)
     setShowDetailModal(true)
+  }
+
+  const handleViewIntegrated = (siteId: string) => {
+    setIntegratedViewSiteId(siteId)
+    setShowIntegratedView(true)
   }
 
   // Handle delete single site
@@ -449,6 +457,13 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   >
                     <FileText className="h-3 w-3" />
                   </button>
+                  <button
+                    onClick={() => handleViewIntegrated(site.id)}
+                    className="inline-flex items-center px-2 py-1.5 text-xs font-medium text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
+                    title="통합 보기"
+                  >
+                    <Activity className="h-3 w-3" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -552,6 +567,12 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   icon: FileText,
                   label: '문서 관리',
                   onClick: handleDocumentManagement,
+                  variant: 'default' as const
+                },
+                {
+                  icon: Activity,
+                  label: '통합 보기',
+                  onClick: (site: Site) => handleViewIntegrated(site.id),
                   variant: 'default' as const
                 }
               ]}
@@ -710,6 +731,18 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                 setSelectedSiteForWorkers(null)
               }}
               site={selectedSiteForWorkers}
+            />
+          )}
+
+          {/* Integrated Site View Modal */}
+          {showIntegratedView && integratedViewSiteId && (
+            <UnifiedSiteView
+              siteId={integratedViewSiteId}
+              isOpen={showIntegratedView}
+              onClose={() => {
+                setShowIntegratedView(false)
+                setIntegratedViewSiteId(null)
+              }}
             />
           )}
         </div>

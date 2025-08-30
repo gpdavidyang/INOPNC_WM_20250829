@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   CustomSelect as Select,
   CustomSelectContent as SelectContent,
@@ -26,12 +27,13 @@ import {
   X,
   ChevronUp,
   ChevronDown,
-  ChevronsUpDown
+  ChevronsUpDown,
+  Activity
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import DailyReportDetailModal from './DailyReportDetailModal'
-import DailyReportCreateModal from './DailyReportCreateModal'
+import UnifiedDailyReportView from '../integrated/UnifiedDailyReportView'
 import { getDailyReports, getSites, deleteDailyReport } from '@/app/actions/admin/daily-reports'
 
 interface DailyReport {
@@ -107,13 +109,15 @@ const statusColors = {
 }
 
 export default function DailyReportsManagement() {
+  const router = useRouter()
   const [reports, setReports] = useState<DailyReport[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
-  const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [showIntegratedView, setShowIntegratedView] = useState(false)
+  const [integratedViewReportId, setIntegratedViewReportId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const itemsPerPage = 20
@@ -207,6 +211,11 @@ export default function DailyReportsManagement() {
     setShowDetailModal(true)
   }
 
+  const handleViewIntegrated = (reportId: string) => {
+    setIntegratedViewReportId(reportId)
+    setShowIntegratedView(true)
+  }
+
   const closeDetailModal = () => {
     setSelectedReport(null)
     setShowDetailModal(false)
@@ -278,7 +287,7 @@ export default function DailyReportsManagement() {
               필터
             </button>
             <button 
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => router.push('/dashboard/admin/daily-reports/new')}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               <Plus className="h-4 w-4" />
@@ -630,7 +639,14 @@ export default function DailyReportsManagement() {
                           <Eye className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => openDetailModal(report)}
+                          onClick={() => handleViewIntegrated(report.id)}
+                          className="p-1 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded transition-colors"
+                          title="통합 보기"
+                        >
+                          <Activity className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => router.push(`/dashboard/admin/daily-reports/${report.id}/edit`)}
                           className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
                           title="편집"
                         >
@@ -710,14 +726,14 @@ export default function DailyReportsManagement() {
         />
       )}
 
-      {/* Create Modal */}
-      {showCreateModal && (
-        <DailyReportCreateModal
-          sites={sites}
-          onClose={() => setShowCreateModal(false)}
-          onCreated={() => {
-            setShowCreateModal(false)
-            fetchReports()
+      {/* Integrated View Modal */}
+      {showIntegratedView && integratedViewReportId && (
+        <UnifiedDailyReportView
+          reportId={integratedViewReportId}
+          isOpen={showIntegratedView}
+          onClose={() => {
+            setShowIntegratedView(false)
+            setIntegratedViewReportId(null)
           }}
         />
       )}
