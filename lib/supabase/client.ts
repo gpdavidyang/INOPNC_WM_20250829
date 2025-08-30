@@ -17,12 +17,60 @@ declare global {
   }
 }
 
+// Enhanced client-side validation with detailed error information
+function validateClientEnvironmentVars() {
+  const errors = []
+  
+  if (!SUPABASE_URL) {
+    errors.push('NEXT_PUBLIC_SUPABASE_URL is missing or empty')
+  } else {
+    try {
+      new URL(SUPABASE_URL)
+      if (!SUPABASE_URL.includes('supabase.co')) {
+        errors.push(`NEXT_PUBLIC_SUPABASE_URL does not appear to be a Supabase URL: ${SUPABASE_URL}`)
+      }
+    } catch {
+      errors.push(`NEXT_PUBLIC_SUPABASE_URL is not a valid URL: ${SUPABASE_URL}`)
+    }
+  }
+  
+  if (!SUPABASE_ANON_KEY) {
+    errors.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is missing or empty')
+  } else if (SUPABASE_ANON_KEY.length < 30) {
+    errors.push(`NEXT_PUBLIC_SUPABASE_ANON_KEY appears invalid (too short: ${SUPABASE_ANON_KEY.length} chars)`)
+  }
+  
+  if (errors.length > 0) {
+    const errorMessage = `Supabase client environment validation failed: ${errors.join(', ')}`
+    logger.error('Client environment validation failed:', {
+      errors,
+      environment: typeof window !== 'undefined' ? 'browser' : 'ssr',
+      nodeEnv: process.env.NODE_ENV,
+      hasUrl: !!SUPABASE_URL,
+      hasKey: !!SUPABASE_ANON_KEY,
+      urlLength: SUPABASE_URL?.length || 0,
+      keyLength: SUPABASE_ANON_KEY?.length || 0,
+      urlPreview: SUPABASE_URL?.substring(0, 30) + '...',
+      keyPreview: SUPABASE_ANON_KEY?.substring(0, 20) + '...'
+    })
+    throw new Error(errorMessage)
+  }
+  
+  return { SUPABASE_URL, SUPABASE_ANON_KEY }
+}
+
 // Client-side validation
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  logger.error('Missing Supabase environment variables on client-side:', {
-    SUPABASE_URL: !!SUPABASE_URL,
-    SUPABASE_ANON_KEY: !!SUPABASE_ANON_KEY
-  })
+try {
+  validateClientEnvironmentVars()
+  if (process.env.NODE_ENV === 'development') {
+    logger.debug('✅ Client environment variables validated successfully')
+  }
+} catch (error) {
+  logger.error('❌ Client environment validation failed:', error)
+  if (typeof window !== 'undefined') {
+    // Show user-friendly error in browser
+    console.error('Supabase configuration error. Please check environment variables.')
+  }
 }
 
 // Query cache for optimizing repeated queries
@@ -453,9 +501,12 @@ export function createClient(config?: ClientConfig) {
   // CRITICAL FIX: Always create fresh cookie handlers to avoid caching issues
   // Supabase caches the handlers, so we need to bypass the singleton for cookies
   if (!browserClient) {
-    browserClient = createBrowserClient<Database>(
-      SUPABASE_URL!,
-      SUPABASE_ANON_KEY!,
+    try {
+      const { SUPABASE_URL: validatedUrl, SUPABASE_ANON_KEY: validatedKey } = validateClientEnvironmentVars()
+      
+      browserClient = createBrowserClient<Database>(
+        validatedUrl,
+        validatedKey,
       {
         realtime: {
           // Enhanced WebSocket connection settings for better reliability
@@ -566,6 +617,10 @@ export function createClient(config?: ClientConfig) {
     if (process.env.NODE_ENV === 'development') {
       logger.debug('[SUPABASE-CLIENT] Created new browser client instance')
     }
+    } catch (error) {
+      logger.error('[SUPABASE-CLIENT] Failed to create browser client:', error)
+      throw error
+    }
   }
   
   return browserClient
@@ -626,10 +681,13 @@ export async function forceSessionRefresh() {
 
 // Export for direct access to raw client if needed
 export function createRawClient() {
-  // Also use proper cookie configuration for raw client
-  return createBrowserClient<Database>(
-    SUPABASE_URL!,
-    SUPABASE_ANON_KEY!,
+  try {
+    const { SUPABASE_URL: validatedUrl, SUPABASE_ANON_KEY: validatedKey } = validateClientEnvironmentVars()
+    
+    // Also use proper cookie configuration for raw client
+    return createBrowserClient<Database>(
+      validatedUrl,
+      validatedKey,
     {
       cookies: {
         getAll() {
@@ -676,4 +734,8 @@ export function createRawClient() {
       }
     }
   )
+  } catch (error) {
+    logger.error('[SUPABASE-CLIENT] Failed to create raw client:', error)
+    throw error
+  }
 }

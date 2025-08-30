@@ -31,16 +31,47 @@ export default function LoginPage() {
       try {
         const result = await signIn(email, password)
         if (result?.error) {
-          setError(result.error === 'Invalid login credentials' 
-            ? '이메일 또는 비밀번호가 올바르지 않습니다.' 
-            : result.error)
+          // Enhanced error handling for production environment
+          let userFriendlyMessage = '로그인 중 오류가 발생했습니다.'
+          
+          if (result.error.includes('Invalid login credentials')) {
+            userFriendlyMessage = '이메일 또는 비밀번호가 올바르지 않습니다.'
+          } else if (result.error.includes('environment variables') || result.error.includes('API key')) {
+            // Environment/API key issues - show generic error to user, log specifics
+            userFriendlyMessage = '일시적인 서버 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
+            console.error('[LOGIN] Environment/API configuration error:', result.error)
+          } else if (result.error.includes('fetch')) {
+            userFriendlyMessage = '네트워크 연결을 확인하고 다시 시도해주세요.'
+          } else if (result.error.includes('timeout')) {
+            userFriendlyMessage = '요청 시간이 초과되었습니다. 다시 시도해주세요.'
+          } else {
+            // For other specific errors, show them directly in development
+            if (process.env.NODE_ENV === 'development') {
+              userFriendlyMessage = result.error
+            }
+          }
+          
+          setError(userFriendlyMessage)
         } else if (result?.success) {
           // Use window.location for a full page refresh to ensure auth state is updated
           window.location.href = redirectTo
         }
       } catch (error) {
         console.error('Login error:', error)
-        setError('로그인 중 오류가 발생했습니다. 다시 시도해주세요.')
+        
+        // Enhanced client-side error handling
+        let errorMessage = '로그인 중 오류가 발생했습니다. 다시 시도해주세요.'
+        
+        if (error instanceof Error) {
+          if (error.message.includes('environment variables') || error.message.includes('API key')) {
+            errorMessage = '일시적인 서버 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
+            console.error('[LOGIN] Client environment error:', error)
+          } else if (process.env.NODE_ENV === 'development') {
+            errorMessage = error.message
+          }
+        }
+        
+        setError(errorMessage)
       }
     })
   }
