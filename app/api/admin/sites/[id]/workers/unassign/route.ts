@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function POST(
@@ -32,8 +33,14 @@ export async function POST(
       return NextResponse.json({ error: 'Worker ID is required' }, { status: 400 })
     }
 
+    // Create service client for admin operations (bypasses RLS)
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     // Soft delete the assignment by setting is_active to false
-    const { data: updatedAssignment, error: updateError } = await supabase
+    const { data: updatedAssignment, error: updateError } = await serviceClient
       .from('site_workers')
       .update({ 
         is_active: false,
@@ -56,7 +63,7 @@ export async function POST(
     }
 
     // Log the unassignment activity
-    await supabase
+    await serviceClient
       .from('activity_logs')
       .insert({
         user_id: user.id,

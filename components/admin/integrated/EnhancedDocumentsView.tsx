@@ -4,9 +4,16 @@ import { useState, useEffect } from 'react'
 import { 
   FileText, Package, Shield, Image, Briefcase, 
   Search, Filter, Download, Eye, Calendar, User,
-  Building2, ChevronRight, File, FileImage, FilePdf,
+  Building2, ChevronRight, File, FileImage, FileType,
   FileSpreadsheet, FileArchive, Folder
 } from 'lucide-react'
+import { 
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -149,7 +156,7 @@ export default function EnhancedDocumentsView() {
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase()
     const iconMap: Record<string, any> = {
-      pdf: FilePdf,
+      pdf: FileType,
       jpg: FileImage,
       jpeg: FileImage,
       png: FileImage,
@@ -241,32 +248,36 @@ export default function EnhancedDocumentsView() {
           </div>
 
           {/* Site Filter */}
-          <select
-            value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
-          >
-            <option value="all">전체 현장</option>
-            {sites.map((site) => (
-              <option key={site.id} value={site.id}>{site.name}</option>
-            ))}
-          </select>
+          <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
+            <CustomSelectTrigger className="w-48">
+              <CustomSelectValue placeholder="전체 현장" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체 현장</CustomSelectItem>
+              {sites.map((site) => (
+                <CustomSelectItem key={site.id} value={site.id}>
+                  {site.name}
+                </CustomSelectItem>
+              ))}
+            </CustomSelectContent>
+          </CustomSelect>
 
           {/* Document Type Filter */}
-          <select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
-          >
-            <option value="all">전체 문서 유형</option>
-            <option value="contract">계약서</option>
-            <option value="plan">도면</option>
-            <option value="report">보고서</option>
-            <option value="safety">안전서류</option>
-            <option value="quality">품질서류</option>
-            <option value="invoice">청구서</option>
-            <option value="other">기타</option>
-          </select>
+          <CustomSelect value={selectedType} onValueChange={setSelectedType}>
+            <CustomSelectTrigger className="w-48">
+              <CustomSelectValue placeholder="전체 문서 유형" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체 문서 유형</CustomSelectItem>
+              <CustomSelectItem value="contract">계약서</CustomSelectItem>
+              <CustomSelectItem value="plan">도면</CustomSelectItem>
+              <CustomSelectItem value="report">보고서</CustomSelectItem>
+              <CustomSelectItem value="safety">안전서류</CustomSelectItem>
+              <CustomSelectItem value="quality">품질서류</CustomSelectItem>
+              <CustomSelectItem value="invoice">청구서</CustomSelectItem>
+              <CustomSelectItem value="other">기타</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
 
           {/* View Mode Toggle */}
           <div className="flex rounded-md shadow-sm">

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function POST(
@@ -32,6 +33,12 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid worker IDs' }, { status: 400 })
     }
 
+    // Create service client for admin operations (bypasses RLS)
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     // Create assignments for each worker
     const assignments = worker_ids.map(workerId => ({
       site_id: siteId,
@@ -44,7 +51,7 @@ export async function POST(
     }))
 
     // Insert assignments
-    const { data: insertedAssignments, error: insertError } = await supabase
+    const { data: insertedAssignments, error: insertError } = await serviceClient
       .from('site_workers')
       .insert(assignments)
       .select()
@@ -55,7 +62,7 @@ export async function POST(
     }
 
     // Log the assignment activity
-    await supabase
+    await serviceClient
       .from('activity_logs')
       .insert({
         user_id: user.id,

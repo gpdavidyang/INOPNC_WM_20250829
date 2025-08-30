@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Building2, FileText, Users, BarChart3, Calendar, Package, Shield, Image } from 'lucide-react'
-import EnhancedSiteView from './EnhancedSiteView'
+import SiteManagementList from '@/components/admin/SiteManagementList'
 import EnhancedDailyReportsView from './EnhancedDailyReportsView'
 import EnhancedDocumentsView from './EnhancedDocumentsView'
 import UnifiedUserListView from './UnifiedUserListView'
@@ -273,7 +273,13 @@ export default function IntegratedDashboard() {
 
       {/* Sites View */}
       {activeView === 'sites' && (
-        <EnhancedSiteView />
+        <div>
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">현장 통합뷰</h2>
+            <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">현장 생성, 편집, 관리 및 담당자 배정</p>
+          </div>
+          <SiteManagementList />
+        </div>
       )}
 
       {/* Reports View */}
