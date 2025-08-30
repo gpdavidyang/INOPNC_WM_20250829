@@ -66,6 +66,8 @@ export default function SiteDetailPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'info' | 'dailyReports' | 'documents' | 'partners' | 'workers'>('info')
   const [referrer, setReferrer] = useState<string>('sites')
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -99,8 +101,27 @@ export default function SiteDetailPage() {
         return
       }
       
-      // Create integrated data structure with just the site info for now
-      // Other tabs will fetch their own data when needed
+      // Fetch statistics in parallel - only for tables that exist
+      const [reportsCount, workersCount] = await Promise.all([
+        // Get daily reports count
+        supabase
+          .from('daily_reports')
+          .select('id', { count: 'exact', head: true })
+          .eq('site_id', siteId),
+        // Get assigned workers count
+        supabase
+          .from('site_assignments')
+          .select('id', { count: 'exact', head: true })
+          .eq('site_id', siteId)
+          .eq('is_active', true)
+        // Note: site_documents and site_customers tables don't exist in current schema
+      ])
+      
+      // Check for any errors in the queries
+      if (reportsCount.error) console.error('Reports count error:', reportsCount.error)
+      if (workersCount.error) console.error('Workers count error:', workersCount.error)
+      
+      // Create integrated data structure with real statistics
       const integratedData: IntegratedSiteData = {
         site: siteData,
         customers: [],
@@ -108,10 +129,10 @@ export default function SiteDetailPage() {
         daily_reports: [],
         documents_by_category: {},
         statistics: {
-          total_reports: 0,
-          total_documents: 0,
-          assigned_workers: 0,
-          total_partners: 0
+          total_reports: reportsCount.count || 0,
+          total_documents: 0, // Table doesn't exist yet
+          assigned_workers: workersCount.count || 0,
+          total_partners: 0   // Table doesn't exist yet
         },
         recent_activities: [],
         assigned_workers: [],
@@ -123,6 +144,56 @@ export default function SiteDetailPage() {
       console.error('Error fetching site data:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleUpdateSite = async (formData: {
+    name: string
+    address: string
+    description?: string
+    status: string
+    start_date: string
+    end_date?: string
+    construction_manager_name?: string
+    construction_manager_phone?: string
+    safety_manager_name?: string
+    safety_manager_phone?: string
+  }) => {
+    try {
+      setEditLoading(true)
+      
+      const updateData = {
+        name: formData.name,
+        address: formData.address,
+        description: formData.description || null,
+        status: formData.status,
+        start_date: formData.start_date,
+        end_date: formData.end_date || null,
+        construction_manager_name: formData.construction_manager_name || null,
+        construction_manager_phone: formData.construction_manager_phone || null,
+        safety_manager_name: formData.safety_manager_name || null,
+        safety_manager_phone: formData.safety_manager_phone || null,
+        updated_at: new Date().toISOString()
+      }
+
+      const { error } = await supabase
+        .from('sites')
+        .update(updateData)
+        .eq('id', siteId)
+
+      if (error) {
+        throw error
+      }
+
+      // 업데이트 성공 시 데이터 다시 불러오기
+      await fetchSiteData()
+      setShowEditModal(false)
+      
+    } catch (error) {
+      console.error('Error updating site:', error)
+      alert('현장 정보 업데이트에 실패했습니다.')
+    } finally {
+      setEditLoading(false)
     }
   }
 
@@ -243,13 +314,13 @@ export default function SiteDetailPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Link
-                href={`/dashboard/admin/sites/${site.id}/edit`}
+              <button
+                onClick={() => setShowEditModal(true)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 편집
-              </Link>
+              </button>
             </div>
           </div>
         </div>
@@ -258,11 +329,11 @@ export default function SiteDetailPage() {
         <div className="border-t border-gray-200 dark:border-gray-700">
           <nav className="flex space-x-8 px-4 sm:px-6 lg:px-8">
             {[
-              { key: 'info', label: '현장정보', icon: Building2 },
-              { key: 'dailyReports', label: '작업일지', icon: FileText, count: data.daily_reports?.length },
-              { key: 'documents', label: '공유문서함', icon: Package, count: data.document_category_counts?.shared },
-              { key: 'partners', label: '파트너사', icon: Briefcase, count: data.customers?.length },
-              { key: 'workers', label: '작업자 배정', icon: Users, count: data.assigned_workers?.length }
+              { key: 'info', label: '현장 정보', icon: Building2 },
+              { key: 'dailyReports', label: '작업일지', icon: FileText, count: data.statistics?.total_reports },
+              { key: 'workers', label: '작업자', icon: Users, count: data.statistics?.assigned_workers },
+              { key: 'partners', label: '파트너사', icon: Briefcase, count: data.statistics?.total_partners },
+              { key: 'documents', label: '문서함', icon: Package, count: data.statistics?.total_documents }
             ].map((tab) => {
               const Icon = tab.icon
               return (
@@ -407,7 +478,7 @@ export default function SiteDetailPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">배정 작업자</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {data.statistics?.total_workers || 0}
+                      {data.statistics?.assigned_workers || 0}
                     </p>
                   </div>
                 </div>
@@ -421,7 +492,7 @@ export default function SiteDetailPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">공유문서</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {data.statistics?.shared_documents || 0}
+                      {data.statistics?.total_documents || 0}
                     </p>
                   </div>
                 </div>
@@ -435,7 +506,7 @@ export default function SiteDetailPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-400">파트너사</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                      {data.customers?.length || 0}
+                      {data.statistics?.total_partners || 0}
                     </p>
                   </div>
                 </div>
@@ -463,6 +534,312 @@ export default function SiteDetailPage() {
         {activeTab === 'workers' && (
           <SiteWorkersTab siteId={siteId} siteName={site.name} />
         )}
+      </div>
+
+      {/* Edit Site Modal */}
+      {showEditModal && data && (
+        <EditSiteModal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onSubmit={handleUpdateSite}
+          loading={editLoading}
+          siteData={data.site}
+        />
+      )}
+    </div>
+  )
+}
+
+// Edit Site Modal Component
+function EditSiteModal({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  loading,
+  siteData
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (formData: any) => void
+  loading: boolean
+  siteData: Site
+}) {
+  const [formData, setFormData] = useState({
+    name: siteData.name || '',
+    address: siteData.address || '',
+    description: siteData.description || '',
+    status: siteData.status || 'active',
+    start_date: siteData.start_date ? siteData.start_date.split('T')[0] : '',
+    end_date: siteData.end_date ? siteData.end_date.split('T')[0] : '',
+    construction_manager_name: siteData.construction_manager_name || '',
+    construction_manager_phone: siteData.construction_manager_phone || '',
+    safety_manager_name: siteData.safety_manager_name || '',
+    safety_manager_phone: siteData.safety_manager_phone || ''
+  })
+
+  // Reset form data when siteData changes
+  useEffect(() => {
+    setFormData({
+      name: siteData.name || '',
+      address: siteData.address || '',
+      description: siteData.description || '',
+      status: siteData.status || 'active',
+      start_date: siteData.start_date ? siteData.start_date.split('T')[0] : '',
+      end_date: siteData.end_date ? siteData.end_date.split('T')[0] : '',
+      construction_manager_name: siteData.construction_manager_name || '',
+      construction_manager_phone: siteData.construction_manager_phone || '',
+      safety_manager_name: siteData.safety_manager_name || '',
+      safety_manager_phone: siteData.safety_manager_phone || ''
+    })
+  }, [siteData])
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name || !formData.address || !formData.start_date) {
+      alert('필수 항목을 모두 입력해주세요.')
+      return
+    }
+    onSubmit(formData)
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }))
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">현장 정보 편집</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <span className="sr-only">닫기</span>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 기본 정보 섹션 */}
+            <div className="md:col-span-2">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-600 pb-2">
+                기본 정보
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 현장명 */}
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    현장명 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    required
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+
+                {/* 상태 */}
+                <div>
+                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    상태 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    id="status"
+                    name="status"
+                    required
+                    value={formData.status}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  >
+                    <option value="active">진행중</option>
+                    <option value="planning">계획중</option>
+                    <option value="completed">완료</option>
+                    <option value="suspended">중단</option>
+                  </select>
+                </div>
+
+                {/* 주소 */}
+                <div className="md:col-span-2">
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    주소 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="address"
+                    name="address"
+                    required
+                    value={formData.address}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+
+                {/* 시작일 */}
+                <div>
+                  <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    시작일 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    id="start_date"
+                    name="start_date"
+                    required
+                    value={formData.start_date}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+
+                {/* 종료일 */}
+                <div>
+                  <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    종료일
+                  </label>
+                  <input
+                    type="date"
+                    id="end_date"
+                    name="end_date"
+                    value={formData.end_date}
+                    onChange={handleChange}
+                    min={formData.start_date}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                  />
+                </div>
+
+                {/* 설명 */}
+                <div className="md:col-span-2">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    현장 설명
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    rows={3}
+                    value={formData.description}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    placeholder="현장에 대한 설명을 입력하세요"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* 관리자 정보 섹션 */}
+            <div className="md:col-span-2">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-600 pb-2">
+                관리자 정보
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* 건설관리자 */}
+                <div className="space-y-4">
+                  <h4 className="flex items-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <User className="h-4 w-4 text-blue-600 dark:text-blue-400 mr-2" />
+                    건설관리자
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="construction_manager_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        이름
+                      </label>
+                      <input
+                        type="text"
+                        id="construction_manager_name"
+                        name="construction_manager_name"
+                        value={formData.construction_manager_name}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                        placeholder="건설관리자 이름"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="construction_manager_phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        연락처
+                      </label>
+                      <input
+                        type="tel"
+                        id="construction_manager_phone"
+                        name="construction_manager_phone"
+                        value={formData.construction_manager_phone}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                        placeholder="010-0000-0000"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 안전관리자 */}
+                <div className="space-y-4">
+                  <h4 className="flex items-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <Shield className="h-4 w-4 text-green-600 dark:text-green-400 mr-2" />
+                    안전관리자
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="safety_manager_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        이름
+                      </label>
+                      <input
+                        type="text"
+                        id="safety_manager_name"
+                        name="safety_manager_name"
+                        value={formData.safety_manager_name}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                        placeholder="안전관리자 이름"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="safety_manager_phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        연락처
+                      </label>
+                      <input
+                        type="tel"
+                        id="safety_manager_phone"
+                        name="safety_manager_phone"
+                        value={formData.safety_manager_phone}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                        placeholder="010-0000-0000"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-600">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? '저장 중...' : '저장'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   )

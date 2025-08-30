@@ -31,7 +31,7 @@ export async function GET(
     const date = searchParams.get('date') // YYYY-MM format
     const limit = parseInt(searchParams.get('limit') || '50')
 
-    // Build query
+    // Build query - simplified to avoid foreign key issues
     let query = supabase
       .from('daily_reports')
       .select(`
@@ -44,14 +44,7 @@ export async function GET(
         issues,
         created_at,
         updated_at,
-        profiles!daily_reports_created_by_fkey(
-          full_name,
-          role
-        ),
-        sites!inner(
-          id,
-          name
-        )
+        created_by
       `)
       .eq('site_id', siteId)
       .order('work_date', { ascending: false })
