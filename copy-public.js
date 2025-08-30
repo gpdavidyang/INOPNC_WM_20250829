@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
-// Copy public folder contents to .next/static for Vercel deployment
+// Copy public folder contents to .next/static AND root for Vercel deployment
 function copyPublicToStatic() {
   const publicDir = path.join(process.cwd(), 'public');
   const staticDir = path.join(process.cwd(), '.next/static');
+  const rootDir = path.join(process.cwd(), '.next/server/app');
   
   if (!fs.existsSync(publicDir)) {
     console.log('Public directory does not exist');
@@ -14,6 +15,11 @@ function copyPublicToStatic() {
   // Create .next/static if it doesn't exist
   if (!fs.existsSync(staticDir)) {
     fs.mkdirSync(staticDir, { recursive: true });
+  }
+  
+  // Create .next/server/app if it doesn't exist
+  if (!fs.existsSync(rootDir)) {
+    fs.mkdirSync(rootDir, { recursive: true });
   }
   
   // Copy files recursively
@@ -47,18 +53,28 @@ function copyPublicToStatic() {
     copyRecursive(iconsDir, iconsDest);
   }
   
-  // Copy critical files
+  // Copy critical files to both locations
   criticalFiles.forEach(file => {
     const src = path.join(publicDir, file);
-    const dest = path.join(staticDir, file);
+    const staticDest = path.join(staticDir, file);
+    const rootDest = path.join(process.cwd(), '.next/server/app', file);
     
     if (fs.existsSync(src)) {
-      fs.copyFileSync(src, dest);
-      console.log(`Copied critical file: ${file}`);
+      // Copy to static directory
+      fs.copyFileSync(src, staticDest);
+      console.log(`Copied critical file to static: ${file}`);
+      
+      // Also copy to root level for direct access
+      try {
+        fs.copyFileSync(src, rootDest);
+        console.log(`Copied critical file to root: ${file}`);
+      } catch (err) {
+        console.log(`Could not copy to root: ${file} (${err.message})`);
+      }
     }
   });
   
-  console.log('Public files copied to .next/static');
+  console.log('Public files copied to .next/static and root');
 }
 
 copyPublicToStatic();
