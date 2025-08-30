@@ -351,22 +351,31 @@ export async function requestSignupApproval(formData: {
 
 export async function approveSignupRequest(requestId: string, adminUserId: string) {
   const supabase = createClient()
+  const { supabaseAdmin } = await import('@/lib/supabase/admin')
 
   try {
+    console.log('Starting approval process for request:', requestId)
+    
     // Get signup request details
     const { data: request, error: fetchError } = await supabase
       .from('signup_requests')
       .select('*')
       .eq('id', requestId)
-      .eq('status', 'pending')
       .single()
 
     if (fetchError || !request) {
+      console.error('Failed to fetch request:', fetchError)
       return { error: '승인 요청을 찾을 수 없습니다.' }
     }
 
+    // Check if already processed
+    if (request.status !== 'pending' && request.status !== 'rejected') {
+      return { error: '이미 처리된 요청입니다.' }
+    }
+
     // Generate temporary password
-    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8)
+    const tempPassword = 'Temp' + Math.random().toString(36).slice(-6).toUpperCase() + '!2024'
+    console.log('Generated temporary password for', request.email)
 
     // Determine role based on job type
     let role: UserRole = 'worker'
@@ -374,8 +383,9 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
       role = 'customer_manager'
     }
 
-    // Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    // Create user in Supabase Auth using admin client
+    console.log('Creating auth user for:', request.email)
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: request.email,
       password: tempPassword,
       email_confirm: true,
@@ -390,21 +400,29 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
 
     if (authError || !authData.user) {
       console.error('Auth user creation error:', authError)
-      return { error: '사용자 계정 생성에 실패했습니다.' }
+      return { error: `사용자 계정 생성 실패: ${authError?.message || '알 수 없는 오류'}` }
     }
+    console.log('Auth user created successfully:', authData.user.id)
 
     // Determine organization and site assignment
     let organizationId = null
     let siteId = null
+    let organizationName = ''
+    let siteName = ''
     
     if (request.job_type === 'construction') {
       organizationId = '11111111-1111-1111-1111-111111111111' // INOPNC
       siteId = '33333333-3333-3333-3333-333333333333' // Default site
+      organizationName = 'INOPNC'
+      siteName = '본사'
     } else {
       organizationId = '22222222-2222-2222-2222-222222222222' // Customer
+      organizationName = 'Customer Organization'
     }
+    console.log(`조직 할당: ${organizationName}${siteName ? `, 현장: ${siteName}` : ''}`)
 
     // Create profile
+    console.log('Creating user profile...')
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
@@ -424,11 +442,15 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
 
     if (profileError) {
       console.error('Profile creation error:', profileError)
+      // Try to delete the auth user if profile creation fails
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
       return { error: '사용자 프로필 생성에 실패했습니다.' }
     }
+    console.log('Profile created successfully')
 
     // Create user_organizations entry
     if (organizationId) {
+      console.log('Assigning to organization...')
       await supabase
         .from('user_organizations')
         .insert({
@@ -440,6 +462,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
 
     // Create site_assignments entry
     if (siteId) {
+      console.log('Assigning to site...')
       await supabase
         .from('site_assignments')
         .insert({
@@ -451,6 +474,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
     }
 
     // Update signup request status
+    console.log('Updating request status to approved...')
     const { error: updateError } = await supabase
       .from('signup_requests')
       .update({
@@ -466,10 +490,12 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
       return { error: '승인 처리 업데이트에 실패했습니다.' }
     }
 
+    console.log('Approval completed successfully')
     return { 
       success: true, 
       temporaryPassword: tempPassword,
-      userEmail: request.email 
+      userEmail: request.email,
+      message: `승인 완료: ${request.full_name} (${request.email})\n조직: ${organizationName}${siteName ? `\n현장: ${siteName}` : ''}\n임시 비밀번호: ${tempPassword}`
     }
   } catch (error) {
     console.error('Approve signup request error:', error)
@@ -481,6 +507,22 @@ export async function rejectSignupRequest(requestId: string, adminUserId: string
   const supabase = createClient()
 
   try {
+    // Get current request to check status
+    const { data: request, error: fetchError } = await supabase
+      .from('signup_requests')
+      .select('status')
+      .eq('id', requestId)
+      .single()
+
+    if (fetchError || !request) {
+      return { error: '요청을 찾을 수 없습니다.' }
+    }
+
+    // Only allow rejection of pending requests
+    if (request.status !== 'pending') {
+      return { error: '대기중인 요청만 거절할 수 있습니다.' }
+    }
+
     const { error } = await supabase
       .from('signup_requests')
       .update({
@@ -490,7 +532,6 @@ export async function rejectSignupRequest(requestId: string, adminUserId: string
         rejection_reason: reason
       })
       .eq('id', requestId)
-      .eq('status', 'pending')
 
     if (error) {
       console.error('Reject signup request error:', error)

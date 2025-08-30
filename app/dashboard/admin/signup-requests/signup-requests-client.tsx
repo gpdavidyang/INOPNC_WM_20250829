@@ -74,7 +74,15 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
     try {
       const result = await approveSignupRequest(requestId, currentUser.id)
       if (result.success) {
-        toast.success('승인이 완료되었습니다.')
+        // Show detailed success message with organization, site, and temporary password info
+        if (result.message) {
+          toast.success(result.message, {
+            duration: 10000, // Show for 10 seconds
+            description: '임시 비밀번호를 사용자에게 전달해주세요.'
+          })
+        } else {
+          toast.success('승인이 완료되었습니다.')
+        }
         router.refresh()
       } else {
         toast.error(result.error || '승인 처리에 실패했습니다.')
@@ -239,6 +247,9 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                   상태
                 </th>
                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  거절사유
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   작업
                 </th>
                 <th className="px-2 py-2"></th>
@@ -247,7 +258,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredRequests.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <td colSpan={10} className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                     {filter === 'all' ? '승인 요청이 없습니다.' : `${filter === 'pending' ? '대기중인' : filter === 'approved' ? '승인된' : '거절된'} 요청이 없습니다.`}
                   </td>
                 </tr>
@@ -283,6 +294,17 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                           {getStatusBadge(request.status)}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
+                          {request.status === 'rejected' && request.rejection_reason ? (
+                            <span className="text-xs text-gray-600 dark:text-gray-400 max-w-xs truncate block" title={request.rejection_reason}>
+                              {request.rejection_reason.length > 30 
+                                ? request.rejection_reason.substring(0, 30) + '...' 
+                                : request.rejection_reason}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
                           {request.status === 'pending' ? (
                             <div className="flex space-x-1">
                               <Button
@@ -303,6 +325,15 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                                 거절
                               </Button>
                             </div>
+                          ) : request.status === 'rejected' ? (
+                            <Button
+                              onClick={() => handleApprove(request.id)}
+                              disabled={loading === request.id}
+                              size="sm"
+                              className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              {loading === request.id ? '처리중...' : '재승인'}
+                            </Button>
                           ) : (
                             <span className="text-xs text-gray-400">-</span>
                           )}
@@ -322,7 +353,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                       </tr>
                       {isExpanded && (
                         <tr key={`${request.id}-expanded`}>
-                          <td colSpan={9} className="px-3 py-3 bg-gray-50 dark:bg-gray-900/50">
+                          <td colSpan={10} className="px-3 py-3 bg-gray-50 dark:bg-gray-900/50">
                             <div className="space-y-2">
                               {/* Status Details */}
                               {request.status === 'approved' && request.approved_by_profile && (

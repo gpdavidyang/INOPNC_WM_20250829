@@ -27,6 +27,7 @@ import Link from 'next/link'
 import SiteDailyReportsTab from '@/components/admin/sites/SiteDailyReportsTab'
 import SiteDocumentsTab from '@/components/admin/sites/SiteDocumentsTab'
 import SitePartnersTab from '@/components/admin/sites/SitePartnersTab'
+import SiteWorkersTab from '@/components/admin/sites/SiteWorkersTab'
 
 interface Site {
   id: string
@@ -435,13 +436,7 @@ export default function SiteDetailPage() {
 
         {/* 작업자 배정 탭 */}
         {activeTab === 'workers' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <div className="text-gray-500 dark:text-gray-400">
-              <Users className="h-12 w-12 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">작업자 배정 관리</h3>
-              <p>이 기능은 현재 개발 중입니다.</p>
-            </div>
-          </div>
+          <SiteWorkersTab siteId={siteId} siteName={site.name} />
         )}
       </div>
     </div>
