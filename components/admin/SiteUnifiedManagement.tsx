@@ -660,10 +660,12 @@ function SiteEditTab({
                 <td className="px-6 py-4">
                   <div>
                     <CustomSelect
-                      value={formData.component_name?.startsWith('기타:') ? '기타' : formData.component_name || ''}
+                      value={formData.component_name?.startsWith('기타:') ? '기타' : formData.component_name || 'none'}
                       onValueChange={(value) => {
                         if (value === '기타') {
                           handleInputChange('component_name', '기타:')
+                        } else if (value === 'none') {
+                          handleInputChange('component_name', '')
                         } else {
                           handleInputChange('component_name', value)
                         }
@@ -673,7 +675,7 @@ function SiteEditTab({
                         <CustomSelectValue placeholder="선택하세요" />
                       </CustomSelectTrigger>
                       <CustomSelectContent className="bg-white border border-gray-300">
-                        <CustomSelectItem value="">없음</CustomSelectItem>
+                        <CustomSelectItem value="none">없음</CustomSelectItem>
                         <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
                         <CustomSelectItem value="거더">거더</CustomSelectItem>
                         <CustomSelectItem value="기둥">기둥</CustomSelectItem>
@@ -695,10 +697,12 @@ function SiteEditTab({
                 <td className="px-6 py-4">
                   <div>
                     <CustomSelect
-                      value={formData.work_process?.startsWith('기타:') ? '기타' : formData.work_process || ''}
+                      value={formData.work_process?.startsWith('기타:') ? '기타' : formData.work_process || 'none'}
                       onValueChange={(value) => {
                         if (value === '기타') {
                           handleInputChange('work_process', '기타:')
+                        } else if (value === 'none') {
+                          handleInputChange('work_process', '')
                         } else {
                           handleInputChange('work_process', value)
                         }
@@ -708,7 +712,7 @@ function SiteEditTab({
                         <CustomSelectValue placeholder="선택하세요" />
                       </CustomSelectTrigger>
                       <CustomSelectContent className="bg-white border border-gray-300">
-                        <CustomSelectItem value="">없음</CustomSelectItem>
+                        <CustomSelectItem value="none">없음</CustomSelectItem>
                         <CustomSelectItem value="균일">균일</CustomSelectItem>
                         <CustomSelectItem value="면">면</CustomSelectItem>
                         <CustomSelectItem value="마감">마감</CustomSelectItem>
