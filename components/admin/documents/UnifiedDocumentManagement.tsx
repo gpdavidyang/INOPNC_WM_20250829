@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Share2, Edit3, FileCheck, FileText } from 'lucide-react'
+import { Share2, Edit3, FileCheck, FileText, Image } from 'lucide-react'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 
@@ -10,6 +10,7 @@ import SharedDocumentsManagement from './SharedDocumentsManagement'
 import MarkupDocumentsManagement from './MarkupDocumentsManagement' 
 import RequiredDocumentsManagement from './RequiredDocumentsManagement'
 import InvoiceDocumentsManagement from './InvoiceDocumentsManagement'
+import PhotoGridDocumentsManagement from './PhotoGridDocumentsManagement'
 
 interface Tab {
   id: string
@@ -43,6 +44,12 @@ const tabs: Tab[] = [
     label: '기성청구문서함',
     icon: FileText,
     component: InvoiceDocumentsManagement
+  },
+  {
+    id: 'photo-grid',
+    label: '사진대지함',
+    icon: Image,
+    component: PhotoGridDocumentsManagement
   }
 ]
 

@@ -1,0 +1,364 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Search, 
+  Filter, 
+  Eye, 
+  Download, 
+  Upload, 
+  Image,
+  Calendar,
+  User,
+  Building2,
+  Grid3x3,
+  List,
+  MoreVertical
+} from 'lucide-react'
+import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
+import { useTouchMode } from '@/contexts/TouchModeContext'
+
+// Helper function to get typography class
+function getTypographyClass(type: string, size: string = 'base', isLargeFont: boolean = false): string {
+  return getFullTypographyClass(type, size, isLargeFont)
+}
+
+interface PhotoGridDocument {
+  id: string
+  title: string
+  fileName: string
+  fileSize: number
+  uploadDate: string
+  uploadedBy: string
+  siteId: string
+  siteName: string
+  thumbnailUrl?: string
+  status: 'active' | 'archived'
+  tags: string[]
+}
+
+export default function PhotoGridDocumentsManagement() {
+  const { isLargeFont } = useFontSize()
+  const { touchMode } = useTouchMode()
+  
+  const [documents, setDocuments] = useState<PhotoGridDocument[]>([])
+  const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSite, setSelectedSite] = useState('all')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
+
+  // Mock data for demonstration
+  useEffect(() => {
+    setDocuments([
+      {
+        id: '1',
+        title: '현장 전경 사진',
+        fileName: 'site_overview_20231201.jpg',
+        fileSize: 2048000,
+        uploadDate: '2023-12-01',
+        uploadedBy: '김현장',
+        siteId: 'site1',
+        siteName: '서울 아파트 건설현장',
+        status: 'active',
+        tags: ['전경', '진행상황']
+      },
+      {
+        id: '2',
+        title: '안전시설 점검 사진',
+        fileName: 'safety_check_20231202.jpg',
+        fileSize: 1536000,
+        uploadDate: '2023-12-02',
+        uploadedBy: '이안전',
+        siteId: 'site1',
+        siteName: '서울 아파트 건설현장',
+        status: 'active',
+        tags: ['안전', '점검']
+      }
+    ])
+  }, [])
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B'
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  const filteredDocuments = documents.filter(doc =>
+    doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  return (
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className={`${getTypographyClass('heading', 'lg', isLargeFont)} font-bold text-gray-900`}>
+            사진대지함 관리
+          </h2>
+          <p className={`${getTypographyClass('body', 'sm', isLargeFont)} text-gray-500 mt-1`}>
+            현장 사진 및 이미지 자료를 관리합니다.
+          </p>
+        </div>
+        
+        <Button className="flex items-center gap-2">
+          <Upload className="h-4 w-4" />
+          사진 업로드
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Image className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-gray-500">전체 사진</p>
+              <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Building2 className="h-6 w-6 text-green-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-gray-500">현장 수</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {new Set(documents.map(d => d.siteId)).size}
+              </p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Calendar className="h-6 w-6 text-purple-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-gray-500">이번 달 업로드</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {documents.filter(d => new Date(d.uploadDate).getMonth() === new Date().getMonth()).length}
+              </p>
+            </div>
+          </div>
+        </Card>
+        
+        <Card className="p-4">
+          <div className="flex items-center">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <User className="h-6 w-6 text-orange-600" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-gray-500">업로더 수</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {new Set(documents.map(d => d.uploadedBy)).size}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              type="text"
+              placeholder="파일명, 제목으로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <select
+              value={selectedSite}
+              onChange={(e) => setSelectedSite(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
+            >
+              <option value="all">모든 현장</option>
+              <option value="site1">서울 아파트 건설현장</option>
+            </select>
+            
+            <Button variant="outline" size="sm">
+              <Filter className="h-4 w-4 mr-2" />
+              필터
+            </Button>
+            
+            <div className="flex border border-gray-200 rounded-md">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 ${viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}
+              >
+                <Grid3x3 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 ${viewMode === 'list' ? 'bg-blue-50 text-blue-600' : 'text-gray-400'}`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Documents */}
+      {loading ? (
+        <div className="text-center py-12">
+          <div className="text-gray-500">사진을 불러오는 중...</div>
+        </div>
+      ) : filteredDocuments.length === 0 ? (
+        <Card className="p-12 text-center">
+          <Image className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">사진이 없습니다</h3>
+          <p className="text-gray-500">
+            {searchTerm ? '검색 결과가 없습니다.' : '업로드된 사진이 없습니다.'}
+          </p>
+        </Card>
+      ) : viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredDocuments.map((doc) => (
+            <Card key={doc.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <div className="aspect-video bg-gray-100 flex items-center justify-center">
+                {doc.thumbnailUrl ? (
+                  <img 
+                    src={doc.thumbnailUrl} 
+                    alt={doc.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Image className="h-12 w-12 text-gray-400" />
+                )}
+              </div>
+              
+              <div className="p-4">
+                <h3 className="font-medium text-gray-900 truncate mb-1">
+                  {doc.title}
+                </h3>
+                <p className="text-sm text-gray-500 truncate mb-2">
+                  {doc.fileName}
+                </p>
+                
+                <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
+                  <span>{formatFileSize(doc.fileSize)}</span>
+                  <span>{new Date(doc.uploadDate).toLocaleDateString('ko-KR')}</span>
+                </div>
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap gap-1">
+                    {doc.tags.slice(0, 2).map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                  
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <Card>
+          <div className="overflow-hidden">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    사진
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    현장
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    업로더
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    업로드일
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    크기
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작업
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredDocuments.map((doc) => (
+                  <tr key={doc.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 bg-gray-100 rounded flex items-center justify-center mr-4">
+                          <Image className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {doc.title}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {doc.fileName}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {doc.siteName}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {doc.uploadedBy}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {new Date(doc.uploadDate).toLocaleDateString('ko-KR')}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {formatFileSize(doc.fileSize)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
+    </div>
+  )
+}

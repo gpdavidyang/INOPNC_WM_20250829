@@ -165,6 +165,9 @@ export default function DailyReportsManagement() {
         dateFrom: filters.dateFrom,
         dateTo: filters.dateTo,
         search: filters.search,
+        component_name: filters.component_name,
+        work_process: filters.work_process,
+        work_section: filters.work_section,
         page: currentPage,
         itemsPerPage,
         sortField: sortState.field,
@@ -271,7 +274,7 @@ export default function DailyReportsManagement() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder="작업자명, 부재명, 공정, 구간, 특이사항으로 검색..."
+                placeholder="작업자명, 부재명, 공정, 구간, 현장명, 주소, 담당자명, 특이사항으로 검색..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}

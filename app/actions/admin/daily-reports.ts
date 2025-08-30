@@ -9,6 +9,9 @@ interface DailyReportsFilter {
   dateFrom?: string
   dateTo?: string
   search?: string
+  component_name?: string
+  work_process?: string
+  work_section?: string
   page?: number
   itemsPerPage?: number
   sortField?: string
@@ -22,7 +25,10 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       status, 
       dateFrom, 
       dateTo, 
-      search, 
+      search,
+      component_name,
+      work_process,
+      work_section,
       page = 1, 
       itemsPerPage = 20,
       sortField = 'work_date',
@@ -58,7 +64,28 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       query = query.lte('work_date', dateTo)
     }
     if (search) {
-      query = query.or(`member_name.ilike.%${search}%,process_type.ilike.%${search}%,issues.ilike.%${search}%,component_name.ilike.%${search}%,work_process.ilike.%${search}%,work_section.ilike.%${search}%`)
+      // Search in daily_reports fields and joined sites fields
+      query = query.or(`
+        member_name.ilike.%${search}%,
+        process_type.ilike.%${search}%,
+        issues.ilike.%${search}%,
+        component_name.ilike.%${search}%,
+        work_process.ilike.%${search}%,
+        work_section.ilike.%${search}%,
+        sites.name.ilike.%${search}%,
+        sites.address.ilike.%${search}%,
+        sites.manager_name.ilike.%${search}%,
+        sites.safety_manager_name.ilike.%${search}%
+      `.replace(/\s+/g, ''))
+    }
+    if (component_name) {
+      query = query.ilike('component_name', `%${component_name}%`)
+    }
+    if (work_process) {
+      query = query.ilike('work_process', `%${work_process}%`)
+    }
+    if (work_section) {
+      query = query.ilike('work_section', `%${work_section}%`)
     }
 
     // Apply sorting

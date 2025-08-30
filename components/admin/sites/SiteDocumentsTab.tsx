@@ -114,14 +114,35 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
       key: 'shared', 
       label: '공유문서함', 
       description: '현장 관련 모든 사용자가 접근 가능',
-      color: 'blue',
+      color: 'red',
       icon: FolderOpen 
     },
     { 
       key: 'markup', 
       label: '도면마킹문서함', 
       description: '현장별 도면 및 마킹 자료',
-      color: 'purple',
+      color: 'gray',
+      icon: Image 
+    },
+    { 
+      key: 'required', 
+      label: '필수제출문서함', 
+      description: '현장에서 필수로 제출해야 하는 문서',
+      color: 'blue',
+      icon: FileText 
+    },
+    { 
+      key: 'invoice', 
+      label: '기성청구문서함', 
+      description: '공사 기성 및 청구 관련 문서',
+      color: 'green',
+      icon: Package 
+    },
+    { 
+      key: 'photo', 
+      label: '사진대지함', 
+      description: '현장 사진 및 이미지 파일',
+      color: 'yellow',
       icon: Image 
     }
   ]
@@ -133,7 +154,11 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
     total: documents.length,
     photos: documents.filter(d => d.document_type === 'photo').length,
     documents: documents.filter(d => d.document_type === 'document').length,
-    receipts: documents.filter(d => d.document_type === 'receipt').length
+    receipts: documents.filter(d => d.document_type === 'receipt').length,
+    shared: documents.filter(d => d.category_type === 'shared').length,
+    markup: documents.filter(d => d.category_type === 'markup').length,
+    required: documents.filter(d => d.category_type === 'required').length,
+    invoice: documents.filter(d => d.category_type === 'invoice').length
   }
 
   if (loading) {
@@ -166,42 +191,50 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
       </div>
 
       {/* 카테고리 선택 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {categories.map((category) => {
           const CategoryIcon = category.icon
           const isActive = selectedCategory === category.key
+          
+          const getColorClasses = (color: string, isActive: boolean) => {
+            const colorMap = {
+              red: isActive ? 'border-red-500 bg-red-50 text-red-700' : 'border-gray-200 hover:border-red-300',
+              gray: isActive ? 'border-gray-500 bg-gray-50 text-gray-700' : 'border-gray-200 hover:border-gray-300',
+              blue: isActive ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 hover:border-blue-300',
+              green: isActive ? 'border-green-500 bg-green-50 text-green-700' : 'border-gray-200 hover:border-green-300',
+              yellow: isActive ? 'border-yellow-500 bg-yellow-50 text-yellow-700' : 'border-gray-200 hover:border-yellow-300',
+            }
+            return colorMap[color as keyof typeof colorMap] || 'border-gray-200'
+          }
+
+          const getIconColorClasses = (color: string, isActive: boolean) => {
+            const colorMap = {
+              red: isActive ? 'text-red-600 bg-red-100' : 'text-gray-500 bg-gray-100',
+              gray: isActive ? 'text-gray-600 bg-gray-100' : 'text-gray-500 bg-gray-100',
+              blue: isActive ? 'text-blue-600 bg-blue-100' : 'text-gray-500 bg-gray-100',
+              green: isActive ? 'text-green-600 bg-green-100' : 'text-gray-500 bg-gray-100',
+              yellow: isActive ? 'text-yellow-600 bg-yellow-100' : 'text-gray-500 bg-gray-100',
+            }
+            return colorMap[color as keyof typeof colorMap] || 'text-gray-500 bg-gray-100'
+          }
           
           return (
             <button
               key={category.key}
               onClick={() => setSelectedCategory(category.key)}
-              className={`text-left p-4 rounded-lg border transition-all ${
-                isActive
-                  ? `border-${category.color}-500 bg-${category.color}-50 dark:bg-${category.color}-900/20`
-                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 bg-white dark:bg-gray-800'
-              }`}
+              className={`text-center p-4 rounded-lg border transition-all ${
+                getColorClasses(category.color, isActive)
+              } ${!isActive ? 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700' : ''}`}
             >
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${
-                  isActive 
-                    ? `bg-${category.color}-100 dark:bg-${category.color}-800/30` 
-                    : 'bg-gray-100 dark:bg-gray-700'
-                }`}>
-                  <CategoryIcon className={`h-5 w-5 ${
-                    isActive 
-                      ? `text-${category.color}-600 dark:text-${category.color}-400` 
-                      : 'text-gray-500'
-                  }`} />
+              <div className="flex flex-col items-center gap-2">
+                <div className={`p-2 rounded-lg ${getIconColorClasses(category.color, isActive)}`}>
+                  <CategoryIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h4 className={`font-medium ${
-                    isActive 
-                      ? `text-${category.color}-900 dark:text-${category.color}-100` 
-                      : 'text-gray-900 dark:text-gray-100'
-                  }`}>
+                  <h4 className={`font-medium text-sm ${isActive ? '' : 'text-gray-900 dark:text-gray-100'}`}>
                     {category.label}
                   </h4>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                     {category.description}
                   </p>
                 </div>
@@ -215,8 +248,22 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center">
-            <div className={`p-2 bg-${currentCategory.color}-50 dark:bg-${currentCategory.color}-900/20 rounded-lg`}>
-              <CurrentCategoryIcon className={`h-5 w-5 text-${currentCategory.color}-600 dark:text-${currentCategory.color}-400`} />
+            <div className={`p-2 rounded-lg ${
+              currentCategory.color === 'red' ? 'bg-red-50 dark:bg-red-900/20' :
+              currentCategory.color === 'gray' ? 'bg-gray-50 dark:bg-gray-900/20' :
+              currentCategory.color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/20' :
+              currentCategory.color === 'green' ? 'bg-green-50 dark:bg-green-900/20' :
+              currentCategory.color === 'yellow' ? 'bg-yellow-50 dark:bg-yellow-900/20' :
+              'bg-gray-50 dark:bg-gray-900/20'
+            }`}>
+              <CurrentCategoryIcon className={`h-5 w-5 ${
+                currentCategory.color === 'red' ? 'text-red-600 dark:text-red-400' :
+                currentCategory.color === 'gray' ? 'text-gray-600 dark:text-gray-400' :
+                currentCategory.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
+                currentCategory.color === 'green' ? 'text-green-600 dark:text-green-400' :
+                currentCategory.color === 'yellow' ? 'text-yellow-600 dark:text-yellow-400' :
+                'text-gray-600 dark:text-gray-400'
+              }`} />
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">전체 문서</p>

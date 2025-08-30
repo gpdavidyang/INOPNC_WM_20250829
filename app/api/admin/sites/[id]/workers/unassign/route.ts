@@ -41,11 +41,10 @@ export async function POST(
 
     // Soft delete the assignment by setting is_active to false
     const { data: updatedAssignment, error: updateError } = await serviceClient
-      .from('site_workers')
+      .from('site_assignments')
       .update({ 
         is_active: false,
-        unassigned_at: new Date().toISOString(),
-        unassigned_by: user.id
+        unassigned_date: new Date().toISOString().split('T')[0]
       })
       .eq('site_id', siteId)
       .eq('user_id', worker_id)

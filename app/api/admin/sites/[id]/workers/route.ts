@@ -36,20 +36,19 @@ export async function GET(
 
     // Get workers assigned to this site
     const { data: assignments, error: assignmentsError } = await serviceClient
-      .from('site_workers')
+      .from('site_assignments')
       .select(`
         id,
         user_id,
         site_id,
-        assigned_at,
-        assigned_by,
-        trade,
-        position,
-        is_active
+        assigned_date,
+        role,
+        is_active,
+        created_at
       `)
       .eq('site_id', siteId)
       .eq('is_active', true)
-      .order('assigned_at', { ascending: false })
+      .order('created_at', { ascending: false })
 
     if (assignmentsError) {
       console.error('Error fetching site workers:', assignmentsError)
@@ -73,11 +72,11 @@ export async function GET(
           full_name: user?.full_name || 'Unknown',
           email: user?.email || '',
           phone: user?.phone || '',
-          role: user?.role || 'worker',
+          role: assignment.role || user?.role || 'worker',
           company: user?.company || '',
-          trade: assignment.trade,
-          position: assignment.position,
-          assigned_at: assignment.assigned_at,
+          trade: '', // site_assignments doesn't have trade info
+          position: '', // site_assignments doesn't have position info
+          assigned_at: assignment.assigned_date,
           assignment_id: assignment.id
         }
       }) || []

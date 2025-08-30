@@ -39,7 +39,7 @@ export async function GET(
     // Get all workers not assigned to this site
     // First, get IDs of workers already assigned to this site
     const { data: assignedWorkers } = await serviceClient
-      .from('site_workers')
+      .from('site_assignments')
       .select('user_id')
       .eq('site_id', siteId)
       .eq('is_active', true)

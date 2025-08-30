@@ -16,24 +16,52 @@ import {
   Upload,
   TrendingUp,
   Users,
-  Star
+  Star,
+  Plus,
+  UserMinus,
+  Search,
+  Filter,
+  XCircle,
+  CheckCircle
 } from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
-interface Customer {
+interface AssignedPartner {
   id: string
-  name: string
-  contact_person: string
+  company_name: string
+  business_number?: string
+  company_type: 'general_contractor' | 'subcontractor' | 'supplier' | 'consultant'
+  trade_type?: string[]
+  representative_name?: string
+  contact_person?: string
   phone?: string
   email?: string
-  company_type: string
-  relationship_type: string
-  contract_start_date?: string
-  contract_end_date?: string
-  contract_amount?: number
-  is_primary_customer: boolean
+  address?: string
+  status: 'active' | 'suspended' | 'terminated'
+  site_partners: {
+    site_id: string
+    partner_company_id: string
+    assigned_date: string
+    contract_status: string
+    contract_value?: number
+  }[]
+}
+
+interface Partner {
+  id: string
+  company_name: string
+  business_number?: string
+  company_type: 'general_contractor' | 'subcontractor' | 'supplier' | 'consultant'
+  trade_type?: string[]
+  representative_name?: string
+  contact_person?: string
+  phone?: string
+  email?: string
+  address?: string
+  status: 'active' | 'suspended' | 'terminated'
+  is_assigned?: boolean
 }
 
 interface InvoiceDocument {
@@ -56,14 +84,25 @@ interface SitePartnersTabProps {
 }
 
 export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabProps) {
-  const [customers, setCustomers] = useState<Customer[]>([])
+  const [assignedPartners, setAssignedPartners] = useState<AssignedPartner[]>([])
+  const [availablePartners, setAvailablePartners] = useState<Partner[]>([])
   const [invoiceDocuments, setInvoiceDocuments] = useState<InvoiceDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCustomer, setSelectedCustomer] = useState<string>('all')
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [assignLoading, setAssignLoading] = useState(false)
 
   useEffect(() => {
     fetchPartnersData()
   }, [siteId])
+
+  useEffect(() => {
+    if (showAssignModal) {
+      fetchAvailablePartners()
+    }
+  }, [showAssignModal, searchTerm, typeFilter])
 
   useEffect(() => {
     fetchInvoiceDocuments()
@@ -74,10 +113,26 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
       const response = await fetch(`/api/admin/sites/${siteId}/partners`)
       if (response.ok) {
         const data = await response.json()
-        setCustomers(data.success ? data.data || [] : [])
+        setAssignedPartners(data.success ? data.data.partners || [] : [])
       }
     } catch (error) {
       console.error('Error fetching partners data:', error)
+    }
+  }
+
+  const fetchAvailablePartners = async () => {
+    try {
+      const params = new URLSearchParams()
+      if (searchTerm) params.append('search', searchTerm)
+      if (typeFilter !== 'all') params.append('company_type', typeFilter)
+      
+      const response = await fetch(`/api/admin/sites/${siteId}/partners/available?${params}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAvailablePartners(data.success ? data.data || [] : [])
+      }
+    } catch (error) {
+      console.error('Error fetching available partners:', error)
     }
   }
 
@@ -104,10 +159,10 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
 
   const getCompanyTypeBadge = (type: string) => {
     const config = {
-      construction: { label: '건설업', color: 'blue' },
-      engineering: { label: '엔지니어링', color: 'green' },
-      supplier: { label: '공급업체', color: 'purple' },
-      consultant: { label: '컨설턴트', color: 'yellow' },
+      general_contractor: { label: '종합건설업', color: 'blue' },
+      subcontractor: { label: '전문건설업', color: 'green' },
+      supplier: { label: '자재공급업체', color: 'purple' },
+      consultant: { label: '설계/감리', color: 'yellow' },
       other: { label: '기타', color: 'gray' }
     }
     
@@ -137,20 +192,72 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
     )
   }
 
-  const formatCurrency = (amount: number) => {
-    if (amount >= 100000000) {
-      return `${(amount / 100000000).toLocaleString()}억원`
-    } else if (amount >= 10000) {
-      return `${(amount / 10000).toLocaleString()}만원`
+  const assignPartner = async (partnerId: string) => {
+    try {
+      setAssignLoading(true)
+      const response = await fetch(`/api/admin/sites/${siteId}/partners/assign`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          partner_id: partnerId,
+          contract_status: 'active'
+        })
+      })
+      
+      if (response.ok) {
+        await fetchPartnersData()
+        setShowAssignModal(false)
+        setSearchTerm('')
+        setTypeFilter('all')
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || '파트너사 배정에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Error assigning partner:', error)
+      alert('파트너사 배정에 실패했습니다.')
+    } finally {
+      setAssignLoading(false)
     }
-    return `${amount.toLocaleString()}원`
   }
 
-  const primaryCustomer = customers.find(c => c.is_primary_customer)
-  const totalContractAmount = customers.reduce((sum, c) => sum + (c.contract_amount || 0), 0)
-  const activeContracts = customers.filter(c => 
-    c.contract_end_date ? new Date(c.contract_end_date) > new Date() : true
-  ).length
+  const unassignPartner = async (partnerId: string, partnerName: string) => {
+    if (!confirm(`정말로 '${partnerName}' 파트너사를 현장에서 해제하시겠습니까?`)) {
+      return
+    }
+    
+    try {
+      const response = await fetch(`/api/admin/sites/${siteId}/partners/assign`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          partner_id: partnerId
+        })
+      })
+      
+      if (response.ok) {
+        await fetchPartnersData()
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || '파트너사 해제에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Error unassigning partner:', error)
+      alert('파트너사 해제에 실패했습니다.')
+    }
+  }
+
+  const unassignedPartners = availablePartners.filter(p => !p.is_assigned)
+  const totalPartners = assignedPartners.length
+  const partnersByType = assignedPartners.reduce((acc, partner) => {
+    const type = partner.company_type
+    acc[type] = (acc[type] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
 
   return (
     <div className="space-y-6">
@@ -164,13 +271,22 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
             {siteName} 현장의 파트너사 정보와 기성청구 관련 문서를 관리합니다
           </p>
         </div>
-        <Link
-          href={`/dashboard/admin/documents/invoice?site_id=${siteId}`}
-          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          기성청구서 업로드
-        </Link>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowAssignModal(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            파트너사 배정
+          </button>
+          <Link
+            href={`/dashboard/admin/documents/invoice?site_id=${siteId}`}
+            className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+          >
+            <Upload className="h-4 w-4 mr-2" />
+            기성청구서 업로드
+          </Link>
+        </div>
       </div>
 
       {/* 통계 카드 */}
@@ -182,7 +298,7 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">총 파트너사</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{customers.length}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{totalPartners}</p>
             </div>
           </div>
         </div>
@@ -193,8 +309,8 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
               <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">활성 계약</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{activeContracts}</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">전문건설업</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{partnersByType.subcontractor || 0}</p>
             </div>
           </div>
         </div>
@@ -205,10 +321,8 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
               <DollarSign className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">총 계약금액</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-                {totalContractAmount > 0 ? formatCurrency(totalContractAmount) : '-'}
-              </p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">자재공급업</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{partnersByType.supplier || 0}</p>
             </div>
           </div>
         </div>
@@ -232,87 +346,99 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
           <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">파트너사 정보</h4>
         </div>
         
-        {customers.length === 0 ? (
+        {assignedPartners.length === 0 ? (
           <div className="text-center py-12">
             <Briefcase className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">등록된 파트너사가 없습니다</h3>
-            <p className="text-gray-500 dark:text-gray-400">현장에 연결된 파트너사가 아직 없습니다.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">배정된 파트너사가 없습니다</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-4">현장에 배정된 파트너사가 아직 없습니다.</p>
+            <button
+              onClick={() => setShowAssignModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              파트너사 배정하기
+            </button>
           </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {customers.map((customer) => (
-              <div key={customer.id} className="p-6">
+            {assignedPartners.map((partner) => (
+              <div key={partner.id} className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start space-x-4">
-                    <div className={`p-3 rounded-lg ${
-                      customer.is_primary_customer 
-                        ? 'bg-yellow-50 dark:bg-yellow-900/20' 
-                        : 'bg-gray-100 dark:bg-gray-700'
-                    }`}>
-                      <Building2 className={`h-6 w-6 ${
-                        customer.is_primary_customer 
-                          ? 'text-yellow-600 dark:text-yellow-400' 
-                          : 'text-gray-600 dark:text-gray-400'
-                      }`} />
+                    <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                      <Building2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                          {customer.name}
+                          {partner.company_name}
                         </h4>
-                        {customer.is_primary_customer && (
-                          <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                        )}
-                        {getCompanyTypeBadge(customer.company_type)}
-                        {getRelationshipBadge(customer.relationship_type)}
-                        {customer.is_primary_customer && (
-                          <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                            주 발주사
-                          </span>
-                        )}
+                        {getCompanyTypeBadge(partner.company_type)}
+                        <span className="bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                          {partner.site_partners[0]?.contract_status === 'active' ? '활성' : partner.site_partners[0]?.contract_status}
+                        </span>
                       </div>
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600 dark:text-gray-400">
-                        {customer.contact_person && (
+                        {partner.representative_name && (
                           <div className="flex items-center gap-2">
                             <User className="h-4 w-4" />
-                            담당자: {customer.contact_person}
+                            대표자: {partner.representative_name}
                           </div>
                         )}
-                        {customer.phone && (
+                        {partner.contact_person && (
+                          <div className="flex items-center gap-2">
+                            <User className="h-4 w-4" />
+                            담당자: {partner.contact_person}
+                          </div>
+                        )}
+                        {partner.phone && (
                           <div className="flex items-center gap-2">
                             <Phone className="h-4 w-4" />
-                            {customer.phone}
+                            {partner.phone}
                           </div>
                         )}
-                        {customer.email && (
+                        {partner.email && (
                           <div className="flex items-center gap-2">
                             <Mail className="h-4 w-4" />
-                            {customer.email}
+                            {partner.email}
                           </div>
                         )}
-                        {customer.contract_start_date && customer.contract_end_date && (
+                        {partner.business_number && (
+                          <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4" />
+                            사업자번호: {partner.business_number}
+                          </div>
+                        )}
+                        {partner.site_partners[0]?.assigned_date && (
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4" />
-                            {format(new Date(customer.contract_start_date), 'yyyy.MM.dd')} ~ 
-                            {format(new Date(customer.contract_end_date), 'yyyy.MM.dd')}
+                            배정일: {format(new Date(partner.site_partners[0].assigned_date), 'yyyy.MM.dd')}
                           </div>
                         )}
                       </div>
 
-                      {customer.contract_amount && (
-                        <div className="mt-2">
-                          <div className="flex items-center gap-2 text-sm">
-                            <DollarSign className="h-4 w-4 text-green-600" />
-                            <span className="text-gray-600 dark:text-gray-400">계약금액:</span>
-                            <span className="font-medium text-green-600 dark:text-green-400">
-                              {formatCurrency(customer.contract_amount)}
+                      {partner.trade_type && partner.trade_type.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-1">
+                          {partner.trade_type.map((trade, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                            >
+                              {trade}
                             </span>
-                          </div>
+                          ))}
                         </div>
                       )}
                     </div>
                   </div>
+                  <button
+                    onClick={() => unassignPartner(partner.id, partner.company_name)}
+                    className="flex items-center gap-1 px-3 py-1 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 border border-red-200 hover:border-red-300 dark:border-red-600 rounded-md transition-colors"
+                  >
+                    <UserMinus className="h-4 w-4" />
+                    해제
+                  </button>
                 </div>
               </div>
             ))}
@@ -333,9 +459,9 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
                 className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="all">모든 파트너사</option>
-                {customers.map(customer => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.name}
+                {assignedPartners.map(partner => (
+                  <option key={partner.id} value={partner.id}>
+                    {partner.company_name}
                   </option>
                 ))}
               </select>
@@ -421,7 +547,7 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
       {/* 추가 액션 */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          파트너사 {customers.length}곳, 기성청구서 {invoiceDocuments.length}건
+          파트너사 {totalPartners}곳, 기성청구서 {invoiceDocuments.length}건
         </div>
         
         <div className="flex gap-2">
@@ -439,6 +565,150 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
           </Link>
         </div>
       </div>
+
+      {/* Partner Assignment Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onClick={() => setShowAssignModal(false)}>
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white dark:bg-gray-800" onClick={e => e.stopPropagation()}>
+            <div className="mt-3">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-gray-200 dark:border-gray-600">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  파트너사 배정
+                </h3>
+                <button
+                  onClick={() => setShowAssignModal(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <XCircle className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Search and Filters */}
+              <div className="py-4 space-y-4">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1 relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <input
+                      type="text"
+                      placeholder="회사명, 대표자명, 담당자명으로 검색..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                  </div>
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  >
+                    <option value="all">전체 업종</option>
+                    <option value="general_contractor">종합건설업</option>
+                    <option value="subcontractor">전문건설업</option>
+                    <option value="supplier">자재공급업체</option>
+                    <option value="consultant">설계/감리</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Available Partners List */}
+              <div className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-md">
+                {unassignedPartners.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      배정 가능한 파트너사가 없습니다
+                    </h4>
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {searchTerm || typeFilter !== 'all' 
+                        ? '다른 검색 조건을 시도해보세요' 
+                        : '모든 파트너사가 이미 배정되어 있거나 등록된 파트너사가 없습니다'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {unassignedPartners.map((partner) => (
+                      <div key={partner.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0">
+                              <Building2 className="h-6 w-6 text-blue-600" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                  {partner.company_name}
+                                </p>
+                                {getCompanyTypeBadge(partner.company_type)}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
+                                {partner.representative_name && (
+                                  <p>대표자: {partner.representative_name}</p>
+                                )}
+                                {partner.contact_person && (
+                                  <p>담당자: {partner.contact_person}</p>
+                                )}
+                                {partner.phone && (
+                                  <p>{partner.phone}</p>
+                                )}
+                              </div>
+                              {partner.trade_type && partner.trade_type.length > 0 && (
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {partner.trade_type.slice(0, 3).map((trade, index) => (
+                                    <span
+                                      key={index}
+                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                                    >
+                                      {trade}
+                                    </span>
+                                  ))}
+                                  {partner.trade_type.length > 3 && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                                      +{partner.trade_type.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => assignPartner(partner.id)}
+                            disabled={assignLoading}
+                            className="ml-4 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {assignLoading ? (
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                            ) : (
+                              <Plus className="h-4 w-4 mr-1" />
+                            )}
+                            배정
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      setShowAssignModal(false)
+                      setSearchTerm('')
+                      setTypeFilter('all')
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-500 dark:hover:text-gray-400"
+                  >
+                    닫기
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

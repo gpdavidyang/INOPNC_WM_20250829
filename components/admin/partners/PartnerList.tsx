@@ -5,7 +5,7 @@ import { Profile } from '@/types'
 import { 
   Plus, Search, Filter, MoreHorizontal, Building2, 
   Calendar, DollarSign, MapPin, Phone, Mail, FileText,
-  Edit, Trash2, Users, Settings
+  Edit, Trash2, Users, Settings, Grid3x3, List
 } from 'lucide-react'
 import PartnerForm from './PartnerForm'
 import PartnerDetail from './PartnerDetail'
@@ -48,16 +48,18 @@ export default function PartnerList({ profile }: PartnerListProps) {
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [showDropdownId, setShowDropdownId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const supabase = createClient()
 
   const loadPartners = async () => {
     setLoading(true)
     try {
+      // Get all partners with site counts using a single query
       let query = supabase
         .from('partner_companies')
         .select(`
           *,
-          site_partners!inner(site_id)
+          site_partners(count)
         `)
 
       if (searchTerm) {
@@ -76,24 +78,46 @@ export default function PartnerList({ profile }: PartnerListProps) {
 
       if (error) throw error
 
-      // Count sites for each partner
-      const partnersWithCounts = await Promise.all(
-        data.map(async (partner) => {
-          const { count } = await supabase
-            .from('site_partners')
-            .select('*', { count: 'exact', head: true })
-            .eq('partner_company_id', partner.id)
-
-          return {
-            ...partner,
-            site_count: count || 0
-          }
-        })
-      )
+      // Transform data to include site count
+      const partnersWithCounts = data?.map((partner) => ({
+        ...partner,
+        site_count: partner.site_partners?.length || 0
+      })) || []
 
       setPartners(partnersWithCounts)
     } catch (error) {
       console.error('Failed to load partners:', error)
+      // Fallback: try simple query without site_partners
+      try {
+        let fallbackQuery = supabase
+          .from('partner_companies')
+          .select('*')
+
+        if (searchTerm) {
+          fallbackQuery = fallbackQuery.or(`company_name.ilike.%${searchTerm}%,representative_name.ilike.%${searchTerm}%,contact_person.ilike.%${searchTerm}%`)
+        }
+
+        if (statusFilter !== 'all') {
+          fallbackQuery = fallbackQuery.eq('status', statusFilter)
+        }
+
+        if (typeFilter !== 'all') {
+          fallbackQuery = fallbackQuery.eq('company_type', typeFilter)
+        }
+
+        const { data: fallbackData, error: fallbackError } = await fallbackQuery.order('created_at', { ascending: false })
+
+        if (fallbackError) throw fallbackError
+
+        const fallbackPartnersWithCounts = fallbackData?.map((partner) => ({
+          ...partner,
+          site_count: 0
+        })) || []
+
+        setPartners(fallbackPartnersWithCounts)
+      } catch (fallbackError) {
+        console.error('Fallback query also failed:', fallbackError)
+      }
     } finally {
       setLoading(false)
     }
@@ -268,21 +292,60 @@ export default function PartnerList({ profile }: PartnerListProps) {
             <option value="supplier">자재공급업체</option>
             <option value="consultant">설계/감리</option>
           </select>
+
+          {/* View Toggle */}
+          <div className="flex border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-2 rounded-l-md transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+              title="카드뷰"
+            >
+              <Grid3x3 className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-2 rounded-r-md transition-colors ${
+                viewMode === 'list'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              }`}
+              title="리스트뷰"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Partners Grid */}
+      {/* Partners Display */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className={viewMode === 'grid' 
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          : "space-y-3"
+        }>
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+            viewMode === 'grid' ? (
+              <div key={i} className="animate-pulse bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div key={i} className="animate-pulse bg-white dark:bg-gray-800 p-4 rounded-lg shadow flex items-center">
+                <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded mr-4"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+                </div>
+              </div>
+            )
           ))}
         </div>
       ) : partners.length === 0 ? (
@@ -301,7 +364,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
             }
           </p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {partners.map((partner) => (
             <div
@@ -409,6 +472,174 @@ export default function PartnerList({ profile }: PartnerListProps) {
               )}
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    회사정보
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    업종
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    연락처
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    현장수
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    상태
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    전문분야
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    작업
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {partners.map((partner) => (
+                  <tr 
+                    key={partner.id} 
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+                    onClick={() => handleView(partner)}
+                  >
+                    {/* 회사정보 */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8">
+                          <Building2 className="h-8 w-8 text-blue-600" />
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {partner.company_name}
+                          </div>
+                          {partner.representative_name && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              대표: {partner.representative_name}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    
+                    {/* 업종 */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {getCompanyTypeLabel(partner.company_type)}
+                      </div>
+                    </td>
+                    
+                    {/* 연락처 */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 dark:text-white">
+                        {partner.contact_person && (
+                          <div className="flex items-center gap-1 mb-1">
+                            <Users className="h-3 w-3" />
+                            {partner.contact_person}
+                          </div>
+                        )}
+                        {partner.phone && (
+                          <div className="flex items-center gap-1 mb-1">
+                            <Phone className="h-3 w-3" />
+                            {partner.phone}
+                          </div>
+                        )}
+                        {partner.email && (
+                          <div className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            <span className="truncate max-w-[120px]">{partner.email}</span>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    
+                    {/* 현장수 */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-1 text-sm text-gray-900 dark:text-white">
+                        <MapPin className="h-4 w-4" />
+                        {partner.site_count}개
+                      </div>
+                    </td>
+                    
+                    {/* 상태 */}
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {getStatusBadge(partner.status)}
+                    </td>
+                    
+                    {/* 전문분야 */}
+                    <td className="px-6 py-4">
+                      {partner.trade_type && partner.trade_type.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {partner.trade_type.slice(0, 2).map((trade, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                            >
+                              {trade}
+                            </span>
+                          ))}
+                          {partner.trade_type.length > 2 && (
+                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                              +{partner.trade_type.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-400">-</span>
+                      )}
+                    </td>
+                    
+                    {/* 작업 */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="relative">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setShowDropdownId(showDropdownId === partner.id ? null : partner.id)
+                          }}
+                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                        >
+                          <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                        </button>
+                        {showDropdownId === partner.id && (
+                          <div className="absolute right-0 top-8 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg z-10 py-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEdit(partner)
+                                setShowDropdownId(null)
+                              }}
+                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              수정
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(partner.id)
+                                setShowDropdownId(null)
+                              }}
+                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              삭제
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

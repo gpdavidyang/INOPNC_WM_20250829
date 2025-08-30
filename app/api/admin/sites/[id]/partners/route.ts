@@ -29,30 +29,32 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const limit = parseInt(searchParams.get('limit') || '20')
 
-    // Get site partners (customers associated with this site)
+    // Get site partners (partner companies assigned to this site)
     const { data: partners, error: partnersError } = await supabase
-      .from('customers')
+      .from('partner_companies')
       .select(`
         id,
-        name,
-        business_registration_number,
-        primary_customer,
-        address,
+        company_name,
+        business_number,
+        company_type,
+        trade_type,
+        representative_name,
         contact_person,
-        contact_email,
-        contact_phone,
+        phone,
+        email,
+        address,
+        status,
         created_at,
-        site_customers!inner(
+        site_partners!inner(
           site_id,
-          relationship_type,
-          contract_amount,
-          contract_start_date,
-          contract_end_date,
-          is_active
+          partner_company_id,
+          assigned_date,
+          contract_status,
+          contract_value
         )
       `)
-      .eq('site_customers.site_id', siteId)
-      .eq('site_customers.is_active', true)
+      .eq('site_partners.site_id', siteId)
+      .eq('status', 'active')
       .order('created_at', { ascending: false })
       .limit(limit)
 
@@ -97,7 +99,6 @@ export async function GET(
 
     // Calculate statistics
     const totalPartners = partners?.length || 0
-    const totalContracts = partners?.reduce((sum, partner) => sum + (partner.site_customers?.[0]?.contract_amount || 0), 0) || 0
     const totalInvoiceDocuments = invoiceDocuments?.length || 0
     
     const documentsByPartner = invoiceDocuments?.reduce((acc, doc) => {
@@ -119,14 +120,9 @@ export async function GET(
 
     const statistics = {
       total_partners: totalPartners,
-      total_contract_amount: totalContracts,
       total_invoice_documents: totalInvoiceDocuments,
       documents_by_partner: Object.values(documentsByPartner),
-      active_contracts: partners?.filter(p => 
-        p.site_customers?.[0]?.contract_end_date ? 
-        new Date(p.site_customers[0].contract_end_date) > new Date() : 
-        true
-      ).length || 0
+      active_partners: partners?.length || 0
     }
 
     // Get site information for context

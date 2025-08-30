@@ -43,16 +43,14 @@ export async function POST(
     const assignments = worker_ids.map(workerId => ({
       site_id: siteId,
       user_id: workerId,
-      assigned_by: user.id,
-      assigned_at: new Date().toISOString(),
-      trade: trade || null,
-      position: position || null,
+      assigned_date: new Date().toISOString().split('T')[0], // Date only format
+      role: 'worker', // Default role
       is_active: true
     }))
 
     // Insert assignments
     const { data: insertedAssignments, error: insertError } = await serviceClient
-      .from('site_workers')
+      .from('site_assignments')
       .insert(assignments)
       .select()
 
