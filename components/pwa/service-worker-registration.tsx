@@ -28,6 +28,14 @@ export function ServiceWorkerRegistration() {
     try {
       setState(prev => ({ ...prev, isInstalling: true, error: null }))
       
+      // Check if sw.js is available first
+      const swResponse = await fetch('/sw.js')
+      if (!swResponse.ok) {
+        console.warn('Service Worker file not available, skipping registration')
+        setState(prev => ({ ...prev, isInstalling: false }))
+        return
+      }
+      
       const registration = await navigator.serviceWorker.register('/sw.js', {
         scope: '/'
       })
