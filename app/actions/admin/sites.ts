@@ -176,25 +176,83 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
   return withAdminAuth(async (supabase) => {
     try {
       const { id, ...updateData } = data
+      
+      console.log('[SERVER-UPDATE] Received update request for site:', id)
+      console.log('[SERVER-UPDATE] Update data:', updateData)
 
-      const { data: site, error } = await supabase
+      // First, verify the site exists
+      const { data: existingSite, error: fetchError } = await supabase
+        .from('sites')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (fetchError) {
+        console.error('[SERVER-UPDATE] Failed to fetch existing site:', fetchError)
+        return { success: false, error: AdminErrors.NOT_FOUND }
+      }
+      
+      console.log('[SERVER-UPDATE] Existing site found:', existingSite.name)
+
+      // Clean the update data - remove undefined values
+      const cleanUpdateData = Object.entries(updateData).reduce((acc, [key, value]) => {
+        if (value !== undefined) {
+          acc[key] = value
+        }
+        return acc
+      }, {} as any)
+
+      console.log('[SERVER-UPDATE] Clean update data:', cleanUpdateData)
+
+      // Perform the update without select first
+      const { error: updateError } = await supabase
         .from('sites')
         .update({
-          ...updateData,
+          ...cleanUpdateData,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .select()
-        .single()
 
-      if (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error('Error updating site:', error)
-        }
-        if (error.code === 'PGRST116') {
-          return { success: false, error: AdminErrors.NOT_FOUND }
-        }
+      if (updateError) {
+        console.error('[SERVER-UPDATE] Database update error:', updateError)
         return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+      
+      // Now fetch the updated site separately
+      const { data: site, error: fetchUpdatedError } = await supabase
+        .from('sites')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (fetchUpdatedError) {
+        console.error('[SERVER-UPDATE] Failed to fetch updated site:', fetchUpdatedError)
+        // Update succeeded but couldn't fetch - still return success
+        return {
+          success: true,
+          data: { ...existingSite, ...cleanUpdateData, updated_at: new Date().toISOString() } as Site,
+          message: '현장 정보가 성공적으로 업데이트되었습니다.'
+        }
+      }
+
+      console.log('[SERVER-UPDATE] Update successful, returned site:', site)
+
+      // Verify the update was actually saved
+      const { data: verifiedSite, error: verifyError } = await supabase
+        .from('sites')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (verifyError) {
+        console.error('[SERVER-UPDATE] Failed to verify update:', verifyError)
+      } else {
+        console.log('[SERVER-UPDATE] Verified updated site data:', {
+          name: verifiedSite.name,
+          address: verifiedSite.address,
+          manager_name: verifiedSite.manager_name,
+          updated_at: verifiedSite.updated_at
+        })
       }
 
       return {
@@ -203,9 +261,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         message: '현장 정보가 성공적으로 업데이트되었습니다.'
       }
     } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Site update error:', error)
-      }
+      console.error('[SERVER-UPDATE] Unexpected error:', error)
       return {
         success: false,
         error: AdminErrors.UNKNOWN_ERROR

@@ -58,7 +58,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       query = query.lte('work_date', dateTo)
     }
     if (search) {
-      query = query.or(`member_name.ilike.%${search}%,process_type.ilike.%${search}%,issues.ilike.%${search}%`)
+      query = query.or(`member_name.ilike.%${search}%,process_type.ilike.%${search}%,issues.ilike.%${search}%,component_name.ilike.%${search}%,work_process.ilike.%${search}%,work_section.ilike.%${search}%`)
     }
 
     // Apply sorting
@@ -189,6 +189,47 @@ export async function getDailyReportById(id: string) {
         ...data,
         profiles: profile
       }
+    }
+  })
+}
+
+export async function createDailyReport(reportData: any) {
+  return withAdminAuth(async (supabase) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { worker_ids, ...reportFields } = reportData
+
+    // Create the daily report
+    const { data, error } = await supabase
+      .from('daily_reports')
+      .insert({
+        ...reportFields,
+        created_by: user.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+
+    // If worker IDs provided, add worker details
+    if (worker_ids && worker_ids.length > 0 && data) {
+      const workerDetails = worker_ids.map((worker_id: string) => ({
+        daily_report_id: data.id,
+        worker_id,
+        created_at: new Date().toISOString()
+      }))
+
+      await supabase
+        .from('worker_details')
+        .insert(workerDetails)
+    }
+
+    return {
+      success: true,
+      data
     }
   })
 }

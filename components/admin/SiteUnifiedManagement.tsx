@@ -257,24 +257,22 @@ function SiteInfoTab({ site, onRefresh }: { site: Site; onRefresh: () => void })
         </div>
 
         {/* Accommodation Information */}
-        {(site.accommodation_name || site.accommodation_address) && (
-          <div className="mb-8">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-primary" />
-              숙소 정보
-            </h2>
-            <div className="bg-card p-6 rounded-lg border space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">숙소명</label>
-                <p className="text-sm mt-1 font-medium">{site.accommodation_name || '-'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">숙소 주소</label>
-                <p className="text-sm mt-1">{site.accommodation_address || '-'}</p>
-              </div>
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Building2 className="h-5 w-5 text-primary" />
+            숙소 정보
+          </h2>
+          <div className="bg-card p-6 rounded-lg border space-y-4">
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">숙소명</label>
+              <p className="text-sm mt-1 font-medium">{site.accommodation_name || '-'}</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground">숙소 주소</label>
+              <p className="text-sm mt-1">{site.accommodation_address || '-'}</p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Work Information */}
         {(site.work_process || site.work_section || site.component_name) && (
@@ -285,16 +283,16 @@ function SiteInfoTab({ site, onRefresh }: { site: Site; onRefresh: () => void })
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-card p-6 rounded-lg border">
               <div>
+                <label className="text-sm font-medium text-muted-foreground">부재명</label>
+                <p className="text-sm mt-1">{site.component_name || '-'}</p>
+              </div>
+              <div>
                 <label className="text-sm font-medium text-muted-foreground">작업공정</label>
                 <p className="text-sm mt-1">{site.work_process || '-'}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">작업구간</label>
                 <p className="text-sm mt-1">{site.work_section || '-'}</p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">부품명</label>
-                <p className="text-sm mt-1">{site.component_name || '-'}</p>
               </div>
             </div>
           </div>
@@ -349,7 +347,29 @@ function SiteEditTab({
     component_name: site.component_name || ''
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [hasChanges, setHasChanges] = useState(true) // Allow initial save
+  const [hasChanges, setHasChanges] = useState(false) // Start with no changes
+
+  // Update form data when site prop changes (important for after successful update)
+  useEffect(() => {
+    setFormData({
+      name: site.name || '',
+      address: site.address || '',
+      description: site.description || '',
+      status: site.status || 'active',
+      start_date: site.start_date ? new Date(site.start_date).toISOString().split('T')[0] : '',
+      end_date: site.end_date ? new Date(site.end_date).toISOString().split('T')[0] : '',
+      manager_name: site.manager_name || '',
+      construction_manager_phone: site.construction_manager_phone || '',
+      safety_manager_name: site.safety_manager_name || '',
+      safety_manager_phone: site.safety_manager_phone || '',
+      accommodation_name: site.accommodation_name || '',
+      accommodation_address: site.accommodation_address || '',
+      work_process: site.work_process || '',
+      work_section: site.work_section || '',
+      component_name: site.component_name || ''
+    })
+    setHasChanges(false) // Reset changes flag when site data is updated
+  }, [site])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -373,20 +393,70 @@ function SiteEditTab({
 
     try {
       const { updateSite } = await import('@/app/actions/admin/sites')
-      const result = await updateSite({
+      
+      // Prepare update data - ensure empty strings are converted to null for optional fields
+      const updateData = {
         id: site.id,
-        ...formData
-      })
+        name: formData.name,
+        address: formData.address,
+        description: formData.description || null,
+        status: formData.status,
+        start_date: formData.start_date,
+        end_date: formData.end_date || null,
+        manager_name: formData.manager_name || null,
+        construction_manager_phone: formData.construction_manager_phone || null,
+        safety_manager_name: formData.safety_manager_name || null,
+        safety_manager_phone: formData.safety_manager_phone || null,
+        accommodation_name: formData.accommodation_name || null,
+        accommodation_address: formData.accommodation_address || null,
+        work_process: formData.work_process || null,
+        work_section: formData.work_section || null,
+        component_name: formData.component_name || null
+      }
+      
+      console.log('[SITE-UPDATE] Updating site with data:', updateData)
+      
+      const result = await updateSite(updateData)
+
+      console.log('[SITE-UPDATE] Update result:', result)
 
       if (result.success && result.data) {
+        console.log('[SITE-UPDATE] Update successful, refreshing data')
+        
+        // Update local state with the returned data
         onSiteUpdate(result.data)
+        
+        // Reset the form with new data
+        setFormData({
+          name: result.data.name || '',
+          address: result.data.address || '',
+          description: result.data.description || '',
+          status: result.data.status || 'active',
+          start_date: result.data.start_date ? new Date(result.data.start_date).toISOString().split('T')[0] : '',
+          end_date: result.data.end_date ? new Date(result.data.end_date).toISOString().split('T')[0] : '',
+          manager_name: result.data.manager_name || '',
+          construction_manager_phone: result.data.construction_manager_phone || '',
+          safety_manager_name: result.data.safety_manager_name || '',
+          safety_manager_phone: result.data.safety_manager_phone || '',
+          accommodation_name: result.data.accommodation_name || '',
+          accommodation_address: result.data.accommodation_address || '',
+          work_process: result.data.work_process || '',
+          work_section: result.data.work_section || '',
+          component_name: result.data.component_name || ''
+        })
+        
         setHasChanges(false)
+        
+        // Trigger parent refresh to update the list
+        onRefresh()
+        
         toast({
           title: '성공',
           description: result.message || '현장 정보가 성공적으로 업데이트되었습니다.',
           variant: 'default'
         })
       } else {
+        console.error('[SITE-UPDATE] Update failed:', result.error)
         toast({
           title: '오류',
           description: result.error || '현장 정보 업데이트에 실패했습니다.',
@@ -394,7 +464,7 @@ function SiteEditTab({
         })
       }
     } catch (error) {
-      console.error('Site update error:', error)
+      console.error('[SITE-UPDATE] Site update error:', error)
       toast({
         title: '오류',
         description: '현장 정보 업데이트 중 오류가 발생했습니다.',
@@ -455,7 +525,7 @@ function SiteEditTab({
                   type="text"
                   value={formData.name}
                   onChange={(e) => handleInputChange('name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   required
                 />
               </div>
@@ -464,7 +534,7 @@ function SiteEditTab({
                 <select
                   value={formData.status}
                   onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="active">활성</option>
                   <option value="inactive">비활성</option>
@@ -477,7 +547,7 @@ function SiteEditTab({
                   type="text"
                   value={formData.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   required
                 />
               </div>
@@ -487,7 +557,7 @@ function SiteEditTab({
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => handleInputChange('start_date', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   required
                 />
               </div>
@@ -497,7 +567,7 @@ function SiteEditTab({
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => handleInputChange('end_date', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div className="md:col-span-2 space-y-2">
@@ -506,7 +576,7 @@ function SiteEditTab({
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring resize-none"
                   placeholder="현장에 대한 추가 설명을 입력하세요..."
                 />
               </div>
@@ -526,7 +596,7 @@ function SiteEditTab({
                   type="text"
                   value={formData.manager_name}
                   onChange={(e) => handleInputChange('manager_name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="현장관리자 이름"
                 />
               </div>
@@ -536,7 +606,7 @@ function SiteEditTab({
                   type="tel"
                   value={formData.construction_manager_phone}
                   onChange={(e) => handleInputChange('construction_manager_phone', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="010-0000-0000"
                 />
               </div>
@@ -546,7 +616,7 @@ function SiteEditTab({
                   type="text"
                   value={formData.safety_manager_name}
                   onChange={(e) => handleInputChange('safety_manager_name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="안전관리자 이름"
                 />
               </div>
@@ -556,7 +626,7 @@ function SiteEditTab({
                   type="tel"
                   value={formData.safety_manager_phone}
                   onChange={(e) => handleInputChange('safety_manager_phone', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="010-0000-0000"
                 />
               </div>
@@ -576,7 +646,7 @@ function SiteEditTab({
                   type="text"
                   value={formData.accommodation_name}
                   onChange={(e) => handleInputChange('accommodation_name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="숙소 이름"
                 />
               </div>
@@ -586,7 +656,7 @@ function SiteEditTab({
                   type="text"
                   value={formData.accommodation_address}
                   onChange={(e) => handleInputChange('accommodation_address', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="숙소 주소"
                 />
               </div>
@@ -601,12 +671,22 @@ function SiteEditTab({
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">부재명</label>
+                <input
+                  type="text"
+                  value={formData.component_name}
+                  onChange={(e) => handleInputChange('component_name', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="부재명"
+                />
+              </div>
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">작업공정</label>
                 <input
                   type="text"
                   value={formData.work_process}
                   onChange={(e) => handleInputChange('work_process', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="작업 공정"
                 />
               </div>
@@ -616,18 +696,8 @@ function SiteEditTab({
                   type="text"
                   value={formData.work_section}
                   onChange={(e) => handleInputChange('work_section', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="작업 구간"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">부품명</label>
-                <input
-                  type="text"
-                  value={formData.component_name}
-                  onChange={(e) => handleInputChange('component_name', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="부품명"
                 />
               </div>
             </div>

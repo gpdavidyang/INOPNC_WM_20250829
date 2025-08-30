@@ -1,178 +1,66 @@
 #!/bin/bash
 
-# Server Log Cleanup and Configuration Script
-# This script cleans up excessive logs and optimizes logging configuration
+# Script to clean up console.log statements for production
+# This script comments out console.log statements that contain debugging info
 
-echo "🧹 Starting log cleanup and optimization..."
+echo "🧹 Cleaning up console.log statements for production..."
 
-# Function to clean Next.js logs
-clean_nextjs_logs() {
-    echo "Cleaning Next.js logs..."
-    
-    # Clear .next build cache if it's too large
-    if [ -d ".next" ]; then
-        NEXT_SIZE=$(du -sh .next 2>/dev/null | cut -f1)
-        echo "Current .next folder size: $NEXT_SIZE"
-        
-        # Remove trace files (they can get very large)
-        find .next -name "*.trace" -type f -delete 2>/dev/null
-        find .next -name "trace" -type d -exec rm -rf {} + 2>/dev/null
-        
-        echo "✅ Next.js trace files cleaned"
-    fi
-}
+# Files to process
+FILES=(
+  "components/admin/daily-reports/DailyReportsManagement.tsx"
+  "components/admin/SiteManagementList.tsx"
+  "components/admin/materials/tabs/ShipmentRequestsTab.tsx"
+  "components/admin/materials/tabs/ShipmentManagementTab.tsx"
+  "components/admin/materials/tabs/InventoryUsageTab.tsx"
+  "app/actions/site-info.ts"
+  "components/materials/npc1000/NPC1000DailyDashboard.tsx"
+  "app/actions/npc-materials.ts"
+  "app/actions/admin/sites.ts"
+  "components/admin/salary/SalaryStatement.tsx"
+  "app/actions/admin/salary.ts"
+  "lib/auth/profile-manager.ts"
+  "contexts/SiteContext.tsx"
+  "components/documents/enhanced-document-filters.tsx"
+  "components/daily-reports/daily-report-form-enhanced.tsx"
+  "components/daily-reports/DailyReportListEnhanced.tsx"
+  "components/dashboard/business-analytics-dashboard.tsx"
+  "components/dashboard/tabs/attendance-tab.tsx"
+  "components/dashboard/tabs/work-logs-tab.tsx"
+  "components/dashboard/tabs/shared-documents-tab.tsx"
+  "components/dashboard/tabs/site-info-tab.tsx"
+  "components/partner/tabs/PartnerDocumentsTab.tsx"
+  "components/admin/DocumentManagement.tsx"
+  "components/admin/documents/InvoiceDocumentsManagement.tsx"
+  "components/admin/documents/MarkupDocumentsManagement.tsx"
+  "components/admin/documents/SharedDocumentsManagement.tsx"
+  "components/admin/partners/PartnerDetail.tsx"
+  "components/admin/ApprovalModal.tsx"
+  "components/admin/sites/SiteManagementList.tsx"
+  "components/admin/UserSiteAssignmentModal.tsx"
+  "components/admin/SalaryManagement.tsx"
+  "components/site-info/SiteSearchModal.tsx"
+  "components/attendance/attendance-view.tsx"
+  "components/attendance/attendance-calendar.tsx"
+  "app/actions/admin/users.ts"
+  "app/actions/admin/documents.ts"
+  "app/actions/sites.ts"
+  "app/actions/force-site-refresh.ts"
+  "app/dashboard/notifications/page.tsx"
+  "app/dashboard/page.tsx"
+  "app/dashboard/daily-reports/[id]/edit/page.tsx"
+  "app/dashboard/daily-reports/new/page.tsx"
+  "app/dashboard/daily-reports/new/dev-page.tsx"
+)
 
-# Function to clean npm/yarn logs
-clean_package_logs() {
-    echo "Cleaning package manager logs..."
-    
-    # Clean npm logs
-    npm cache clean --force 2>/dev/null
-    
-    # Clean yarn logs if yarn is used
-    if command -v yarn &> /dev/null; then
-        yarn cache clean 2>/dev/null
-    fi
-    
-    # Remove log files
-    rm -f npm-debug.log* yarn-error.log* pnpm-debug.log* 2>/dev/null
-    
-    echo "✅ Package manager logs cleaned"
-}
+for FILE in "${FILES[@]}"; do
+  if [ -f "$FILE" ]; then
+    echo "Processing: $FILE"
+    # Comment out console.log, console.debug, console.info lines
+    sed -i.bak 's/^[[:space:]]*console\.\(log\|debug\|info\)/\/\/ &/' "$FILE"
+    # Remove backup files
+    rm "${FILE}.bak" 2>/dev/null
+  fi
+done
 
-# Function to clean system logs (macOS specific)
-clean_system_logs() {
-    echo "Cleaning system logs..."
-    
-    # Clear user logs (safe to delete)
-    rm -rf ~/Library/Logs/com.apple.* 2>/dev/null
-    
-    # Clear diagnostic reports (they can accumulate)
-    rm -rf ~/Library/Logs/DiagnosticReports/* 2>/dev/null
-    
-    echo "✅ System logs cleaned"
-}
-
-# Function to clean application logs
-clean_app_logs() {
-    echo "Cleaning application logs..."
-    
-    # Create logs directory if it doesn't exist
-    mkdir -p logs
-    
-    # Rotate and compress old logs
-    for log in logs/*.log; do
-        if [ -f "$log" ]; then
-            # Keep only last 1000 lines of each log
-            tail -n 1000 "$log" > "${log}.tmp"
-            mv "${log}.tmp" "$log"
-        fi
-    done
-    
-    # Remove old compressed logs (older than 7 days)
-    find logs -name "*.gz" -mtime +7 -delete 2>/dev/null
-    
-    echo "✅ Application logs cleaned"
-}
-
-# Function to show disk usage
-show_disk_usage() {
-    echo ""
-    echo "📊 Current disk usage:"
-    df -h . | grep -v Filesystem
-    echo ""
-    echo "Top 10 largest directories:"
-    du -sh * 2>/dev/null | sort -rh | head -10
-}
-
-# Function to optimize logging configuration
-optimize_logging_config() {
-    echo "Optimizing logging configuration..."
-    
-    # Update .env file if it exists
-    if [ -f ".env" ]; then
-        echo "📝 Updating .env file with optimized logging settings..."
-        
-        # Backup current .env
-        cp .env .env.backup.$(date +%Y%m%d_%H%M%S)
-        
-        # Update or add logging settings
-        if grep -q "DEBUG_LEVEL" .env; then
-            sed -i.bak 's/DEBUG_LEVEL=.*/DEBUG_LEVEL=error/' .env
-        else
-            echo "DEBUG_LEVEL=error" >> .env
-        fi
-        
-        if grep -q "DEBUG_MODULES" .env; then
-            sed -i.bak 's/DEBUG_MODULES=.*/DEBUG_MODULES=none/' .env
-        else
-            echo "DEBUG_MODULES=none" >> .env
-        fi
-        
-        if grep -q "ENABLE_PERFORMANCE_MONITORING" .env; then
-            sed -i.bak 's/ENABLE_PERFORMANCE_MONITORING=.*/ENABLE_PERFORMANCE_MONITORING=false/' .env
-        else
-            echo "ENABLE_PERFORMANCE_MONITORING=false" >> .env
-        fi
-        
-        # Add new debug flags if not present
-        for flag in DEBUG_SITE_INFO DEBUG_DATABASE DEBUG_REALTIME; do
-            if ! grep -q "$flag" .env; then
-                echo "$flag=false" >> .env
-            else
-                sed -i.bak "s/${flag}=.*/${flag}=false/" .env
-            fi
-        done
-        
-        echo "✅ Updated .env file with optimized settings"
-    fi
-}
-
-# Main execution
-main() {
-    echo "================================================"
-    echo "     Log Cleanup & Optimization for INOPNC_WM"
-    echo "================================================"
-    echo ""
-    
-    # Show initial disk usage
-    echo "📊 Initial disk usage:"
-    df -h . | grep -v Filesystem
-    echo ""
-    
-    # Run cleanup functions
-    clean_nextjs_logs
-    clean_package_logs
-    clean_system_logs
-    clean_app_logs
-    
-    # Optimize logging configuration
-    optimize_logging_config
-    
-    # Show final disk usage
-    echo ""
-    show_disk_usage
-    
-    echo ""
-    echo "✅ Log cleanup and optimization completed!"
-    echo ""
-    echo "📋 What was changed:"
-    echo "  • Cleaned Next.js trace files and cache"
-    echo "  • Cleared package manager logs"
-    echo "  • Rotated application logs"
-    echo "  • DEBUG_LEVEL set to 'error' (only show errors)"
-    echo "  • DEBUG_MODULES set to 'none' (disable module debugging)"
-    echo "  • ENABLE_PERFORMANCE_MONITORING set to false"
-    echo "  • All specific debug flags disabled"
-    echo ""
-    echo "💡 To temporarily enable debugging:"
-    echo "  • Set DEBUG_LEVEL=debug for detailed logs"
-    echo "  • Set DEBUG_MODULES=* to debug all modules"
-    echo "  • Set specific flags like DEBUG_DATABASE=true"
-    echo ""
-    echo "🚀 Please restart your development server for changes to take effect:"
-    echo "  npm run dev"
-}
-
-# Run main function
-main
+echo "✅ Console log cleanup complete!"
+echo "⚠️  Note: console.error and console.warn statements are preserved for error tracking."

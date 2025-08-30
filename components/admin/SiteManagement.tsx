@@ -37,7 +37,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
   const [statusFilter, setStatusFilter] = useState<SiteStatus | ''>('')
   
   // View state
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('card')
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('list')
   
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -53,6 +53,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
 
   // Load sites data
   const loadSites = async () => {
+    console.log('Loading sites...')
     setLoading(true)
     setError(null)
     
@@ -65,13 +66,16 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
       )
       
       if (result.success && result.data) {
+        console.log('Sites loaded successfully:', result.data.sites)
         setSites(result.data.sites)
         setTotalCount(result.data.total)
         setTotalPages(result.data.pages)
       } else {
+        console.error('Failed to load sites:', result.error)
         setError(result.error || '현장 데이터를 불러오는데 실패했습니다.')
       }
     } catch (err) {
+      console.error('Error loading sites:', err)
       setError('현장 데이터를 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
@@ -468,7 +472,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   placeholder="현장명 또는 주소로 검색..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -749,6 +753,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
   // Initialize form data when editing
   useEffect(() => {
     if (site) {
+      console.log('Initializing form with site data:', site)
       setFormData({
         name: site.name,
         address: site.address,
@@ -766,6 +771,25 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
         safety_manager_name: site.safety_manager_name || '',
         status: site.status || 'active'
       })
+    } else {
+      // Reset form when creating new site
+      setFormData({
+        name: '',
+        address: '',
+        description: '',
+        start_date: '',
+        end_date: '',
+        construction_manager_phone: '',
+        safety_manager_phone: '',
+        accommodation_name: '',
+        accommodation_address: '',
+        work_process: '',
+        work_section: '',
+        component_name: '',
+        manager_name: '',
+        safety_manager_name: '',
+        status: 'active'
+      })
     }
   }, [site])
 
@@ -777,20 +801,44 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
     try {
       let result
       if (isEditing) {
-        result = await updateSite({ id: site.id, ...formData } as UpdateSiteData)
+        // Ensure we're passing all the current form data for update
+        const updateData: UpdateSiteData = {
+          id: site.id,
+          name: formData.name,
+          address: formData.address,
+          description: formData.description,
+          start_date: formData.start_date,
+          end_date: formData.end_date,
+          construction_manager_phone: formData.construction_manager_phone,
+          safety_manager_phone: formData.safety_manager_phone,
+          accommodation_name: formData.accommodation_name,
+          accommodation_address: formData.accommodation_address,
+          work_process: formData.work_process,
+          work_section: formData.work_section,
+          component_name: formData.component_name,
+          manager_name: formData.manager_name,
+          safety_manager_name: formData.safety_manager_name,
+          status: formData.status
+        }
+        result = await updateSite(updateData)
+        
+        if (result.success) {
+          console.log('Site updated successfully:', result.data)
+        }
       } else {
         result = await createSite(formData)
       }
 
       if (result.success) {
         alert(result.message)
-        onSuccess()
+        onSuccess() // This will trigger loadSites() in parent
       } else {
         if (result.error) {
           alert(result.error)
         }
       }
     } catch (error) {
+      console.error('Error saving site:', error)
       alert('저장 중 오류가 발생했습니다.')
     } finally {
       setLoading(false)
@@ -824,7 +872,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                   required
                 />
               </div>
@@ -836,7 +884,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as SiteStatus }))}
-                  className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-white text-gray-900 dark:text-gray-900 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
                   <option value="active">활성</option>
                   <option value="inactive">비활성</option>
@@ -852,7 +900,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                   required
                 />
               </div>
@@ -865,7 +913,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                   required
                 />
               </div>
@@ -878,7 +926,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                 />
               </div>
 
@@ -897,7 +945,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="text"
                   value={formData.manager_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, manager_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                 />
               </div>
 
@@ -909,7 +957,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="tel"
                   value={formData.construction_manager_phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, construction_manager_phone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                 />
               </div>
 
@@ -921,7 +969,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="text"
                   value={formData.safety_manager_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, safety_manager_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                 />
               </div>
 
@@ -933,7 +981,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="tel"
                   value={formData.safety_manager_phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, safety_manager_phone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                 />
               </div>
 
@@ -945,7 +993,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
                 />
               </div>
             </div>

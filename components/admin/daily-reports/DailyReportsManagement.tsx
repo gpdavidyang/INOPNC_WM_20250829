@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { 
+  CustomSelect as Select,
+  CustomSelectContent as SelectContent,
+  CustomSelectItem as SelectItem,
+  CustomSelectTrigger as SelectTrigger,
+  CustomSelectValue as SelectValue
+} from '@/components/ui/custom-select'
+import { 
   Search, 
   Filter, 
   Download, 
@@ -24,6 +31,7 @@ import {
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import DailyReportDetailModal from './DailyReportDetailModal'
+import DailyReportCreateModal from './DailyReportCreateModal'
 import { getDailyReports, getSites, deleteDailyReport } from '@/app/actions/admin/daily-reports'
 
 interface DailyReport {
@@ -104,6 +112,7 @@ export default function DailyReportsManagement() {
   const [loading, setLoading] = useState(true)
   const [selectedReport, setSelectedReport] = useState<DailyReport | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
@@ -254,7 +263,7 @@ export default function DailyReportsManagement() {
               <input
                 type="text"
                 placeholder="작업자명, 부재명, 공정, 구간, 특이사항으로 검색..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={filters.search}
                 onChange={(e) => handleFilterChange('search', e.target.value)}
               />
@@ -268,7 +277,10 @@ export default function DailyReportsManagement() {
               <Filter className="h-4 w-4" />
               필터
             </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
               <Plus className="h-4 w-4" />
               새 작업일지
             </button>
@@ -281,34 +293,42 @@ export default function DailyReportsManagement() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">현장</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <Select
                   value={filters.site}
-                  onChange={(e) => handleFilterChange('site', e.target.value)}
+                  onValueChange={(value) => handleFilterChange('site', value)}
                 >
-                  <option value="">모든 현장</option>
-                  {sites.map(site => (
-                    <option key={site.id} value={site.id}>{site.name}</option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="현장 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">모든 현장</SelectItem>
+                    {sites.map(site => (
+                      <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">상태</label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <Select
                   value={filters.status}
-                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                  onValueChange={(value) => handleFilterChange('status', value)}
                 >
-                  <option value="">모든 상태</option>
-                  <option value="draft">임시저장</option>
-                  <option value="submitted">제출됨</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="상태 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">모든 상태</SelectItem>
+                    <SelectItem value="draft">임시저장</SelectItem>
+                    <SelectItem value="submitted">제출됨</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">시작일</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.dateFrom}
                   onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
                 />
@@ -317,7 +337,7 @@ export default function DailyReportsManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">종료일</label>
                 <input
                   type="date"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.dateTo}
                   onChange={(e) => handleFilterChange('dateTo', e.target.value)}
                 />
@@ -327,7 +347,7 @@ export default function DailyReportsManagement() {
                 <input
                   type="text"
                   placeholder="부재명 입력"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.component_name}
                   onChange={(e) => handleFilterChange('component_name', e.target.value)}
                 />
@@ -337,7 +357,7 @@ export default function DailyReportsManagement() {
                 <input
                   type="text"
                   placeholder="작업공정 입력"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.work_process}
                   onChange={(e) => handleFilterChange('work_process', e.target.value)}
                 />
@@ -347,7 +367,7 @@ export default function DailyReportsManagement() {
                 <input
                   type="text"
                   placeholder="작업구간 입력"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.work_section}
                   onChange={(e) => handleFilterChange('work_section', e.target.value)}
                 />
@@ -390,7 +410,7 @@ export default function DailyReportsManagement() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1600px]">
+            <table className="w-full min-w-[1800px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
                   <th 
@@ -398,7 +418,7 @@ export default function DailyReportsManagement() {
                     onClick={() => handleSort('work_date')}
                   >
                     <div className="flex items-center gap-1">
-                      작업일
+                      작업일 <span className="text-blue-600 text-xs normal-case">(클릭시 상세)</span>
                       {getSortIcon('work_date')}
                     </div>
                   </th>
@@ -412,14 +432,20 @@ export default function DailyReportsManagement() {
                     </div>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업공정/구간
+                    부재명
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작업공정
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작업구간
                   </th>
                   <th 
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('member_name')}
                   >
                     <div className="flex items-center gap-1">
-                      작업자/담당
+                      작업책임자
                       {getSortIcon('member_name')}
                     </div>
                   </th>
@@ -468,10 +494,13 @@ export default function DailyReportsManagement() {
                 {reports.map((report: any) => (
                   <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <div className="flex items-center">
+                      <div 
+                        className="flex items-center cursor-pointer hover:text-blue-600 transition-colors"
+                        onClick={() => openDetailModal(report)}
+                      >
                         <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 hover:text-blue-600">
                             {format(new Date(report.work_date), 'yyyy.MM.dd', { locale: ko })}
                           </div>
                           <div className="text-xs text-gray-500">
@@ -498,25 +527,18 @@ export default function DailyReportsManagement() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div>
-                        {report.work_process && (
-                          <div className="text-sm font-medium text-gray-900">
-                            공정: {report.work_process}
-                          </div>
-                        )}
-                        {report.work_section && (
-                          <div className="text-xs text-gray-600">
-                            구간: {report.work_section}
-                          </div>
-                        )}
-                        {report.component_name && (
-                          <div className="text-xs text-gray-500">
-                            부재: {report.component_name}
-                          </div>
-                        )}
-                        {!report.work_process && !report.work_section && !report.component_name && (
-                          <div className="text-xs text-gray-400">-</div>
-                        )}
+                      <div className="text-sm text-gray-900">
+                        {report.component_name || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-900">
+                        {report.work_process || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-900">
+                        {report.work_section || '-'}
                       </div>
                     </td>
                     <td className="px-4 py-3">
@@ -685,6 +707,18 @@ export default function DailyReportsManagement() {
           report={selectedReport}
           onClose={closeDetailModal}
           onUpdated={handleReportUpdated}
+        />
+      )}
+
+      {/* Create Modal */}
+      {showCreateModal && (
+        <DailyReportCreateModal
+          sites={sites}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={() => {
+            setShowCreateModal(false)
+            fetchReports()
+          }}
         />
       )}
     </div>

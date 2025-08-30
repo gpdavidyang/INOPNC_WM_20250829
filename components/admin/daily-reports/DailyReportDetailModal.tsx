@@ -19,6 +19,13 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { 
+  CustomSelect, 
+  CustomSelectContent, 
+  CustomSelectItem, 
+  CustomSelectTrigger, 
+  CustomSelectValue 
+} from '@/components/ui/custom-select'
 
 interface DailyReport {
   id: string
@@ -98,118 +105,117 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
     status: report.status
   })
 
-  const supabase = createClient()
-
   useEffect(() => {
-    fetchPhotos()
-  }, [])
+    if (activeTab === 'photos') {
+      fetchPhotos()
+    }
+  }, [activeTab])
 
   const fetchPhotos = async () => {
     setLoadingPhotos(true)
     try {
-      // Generate realistic sample data based on the actual daily report
-      const mockPhotos: PhotoFile[] = generateSamplePhotos(report.id, report.work_date, report.member_name, report.process_type)
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      setPhotos(mockPhotos)
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('daily_documents')
+        .select('*')
+        .eq('daily_report_id', report.id)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setPhotos(data || [])
     } catch (error) {
       console.error('Error fetching photos:', error)
+    } finally {
+      setLoadingPhotos(false)
     }
-    setLoadingPhotos(false)
   }
 
-  // Generate sample photo data based on report details
-  const generateSamplePhotos = (reportId: string, workDate: string, memberName: string, processType: string): PhotoFile[] => {
-    const basePhotos = []
-    const dateStr = workDate.replace(/-/g, '')
-    
-    // Always include before/after photos
-    basePhotos.push({
-      id: `${reportId}_before`,
-      filename: `${processType}_작업전_${dateStr}_${memberName}.jpg`,
-      file_path: `/uploads/daily_reports/${reportId}/before_${dateStr}.jpg`,
-      file_type: 'photo_before' as const,
-      file_size: Math.floor(Math.random() * 2000000) + 1000000, // 1-3MB
-      mime_type: 'image/jpeg',
-      description: `${processType} 작업 시작 전 현장 상태`,
-      created_at: new Date(workDate + 'T08:00:00').toISOString()
-    })
-    
-    basePhotos.push({
-      id: `${reportId}_after`,
-      filename: `${processType}_작업후_${dateStr}_${memberName}.jpg`,
-      file_path: `/uploads/daily_reports/${reportId}/after_${dateStr}.jpg`,
-      file_type: 'photo_after' as const,
-      file_size: Math.floor(Math.random() * 2000000) + 1000000,
-      mime_type: 'image/jpeg',
-      description: `${processType} 작업 완료 후 현장 상태`,
-      created_at: new Date(workDate + 'T17:00:00').toISOString()
-    })
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
 
-    // Add receipts for some reports
-    if (Math.random() > 0.4) {
-      basePhotos.push({
-        id: `${reportId}_receipt_1`,
-        filename: `자재구매_영수증_${dateStr}.jpg`,
-        file_path: `/uploads/daily_reports/${reportId}/receipt_${dateStr}.jpg`,
-        file_type: 'receipt' as const,
-        file_size: Math.floor(Math.random() * 1000000) + 500000,
-        mime_type: 'image/jpeg',
-        description: `${processType} 관련 자재 구매 영수증`,
-        created_at: new Date(workDate + 'T12:30:00').toISOString()
-      })
+    const file = files[0]
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${report.id}/${Date.now()}.${fileExt}`
+
+    try {
+      const supabase = createClient()
+      
+      // Upload file to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('daily-reports')
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
+
+      // Get file type based on extension
+      let fileType: PhotoFile['file_type'] = 'other'
+      if (['jpg', 'jpeg', 'png', 'gif'].includes(fileExt?.toLowerCase() || '')) {
+        fileType = 'photo_after'
+      } else if (['pdf', 'doc', 'docx'].includes(fileExt?.toLowerCase() || '')) {
+        fileType = 'document'
+      }
+
+      // Save file metadata to database
+      const { data: fileData, error: dbError } = await supabase
+        .from('daily_documents')
+        .insert({
+          daily_report_id: report.id,
+          filename: file.name,
+          file_path: fileName,
+          file_type: fileType,
+          file_size: file.size,
+          mime_type: file.type,
+          created_by: report.created_by
+        })
+        .select()
+        .single()
+
+      if (dbError) throw dbError
+
+      // Refresh photos list
+      fetchPhotos()
+      alert('파일이 업로드되었습니다.')
+    } catch (error) {
+      console.error('Error uploading file:', error)
+      alert('파일 업로드 중 오류가 발생했습니다.')
     }
+  }
 
-    // Add progress photos for longer processes
-    if (['기초', '골조', '마감'].includes(processType)) {
-      basePhotos.push({
-        id: `${reportId}_progress_1`,
-        filename: `${processType}_진행과정_${dateStr}.jpg`,
-        file_path: `/uploads/daily_reports/${reportId}/progress_${dateStr}.jpg`,
-        file_type: 'other' as const,
-        file_size: Math.floor(Math.random() * 1500000) + 800000,
-        mime_type: 'image/jpeg',
-        description: `${processType} 작업 진행 과정 사진`,
-        created_at: new Date(workDate + 'T14:00:00').toISOString()
-      })
+  const handleDeletePhoto = async (photoId: string, filePath: string) => {
+    if (!confirm('이 파일을 삭제하시겠습니까?')) return
+
+    try {
+      const supabase = createClient()
+      
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('daily-reports')
+        .remove([filePath])
+
+      if (storageError) console.error('Storage delete error:', storageError)
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('daily_documents')
+        .delete()
+        .eq('id', photoId)
+
+      if (dbError) throw dbError
+
+      // Refresh photos list
+      fetchPhotos()
+      alert('파일이 삭제되었습니다.')
+    } catch (error) {
+      console.error('Error deleting photo:', error)
+      alert('파일 삭제 중 오류가 발생했습니다.')
     }
-
-    // Add equipment photos
-    if (Math.random() > 0.6) {
-      basePhotos.push({
-        id: `${reportId}_equipment`,
-        filename: `장비현황_${dateStr}.jpg`,
-        file_path: `/uploads/daily_reports/${reportId}/equipment_${dateStr}.jpg`,
-        file_type: 'other' as const,
-        file_size: Math.floor(Math.random() * 1200000) + 600000,
-        mime_type: 'image/jpeg',
-        description: '현장 장비 사용 현황',
-        created_at: new Date(workDate + 'T10:00:00').toISOString()
-      })
-    }
-
-    // Add safety document
-    if (Math.random() > 0.7) {
-      basePhotos.push({
-        id: `${reportId}_safety`,
-        filename: `안전점검표_${dateStr}.pdf`,
-        file_path: `/uploads/daily_reports/${reportId}/safety_${dateStr}.pdf`,
-        file_type: 'document' as const,
-        file_size: Math.floor(Math.random() * 500000) + 100000,
-        mime_type: 'application/pdf',
-        description: '일일 안전점검표',
-        created_at: new Date(workDate + 'T18:00:00').toISOString()
-      })
-    }
-
-    return basePhotos.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
   }
 
   const handleSave = async () => {
     setSaving(true)
     try {
+      const supabase = createClient()
       const { error } = await supabase
         .from('daily_reports')
         .update({
@@ -232,55 +238,43 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
       if (error) throw error
 
       setIsEditing(false)
-      onUpdated() // Refresh parent list
+      onUpdated()
       alert('작업일지가 수정되었습니다.')
     } catch (error) {
       console.error('Error updating report:', error)
       alert('작업일지 수정 중 오류가 발생했습니다.')
-    }
-    setSaving(false)
-  }
-
-  const handleStatusChange = async (newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('daily_reports')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', report.id)
-
-      if (error) throw error
-
-      setEditData(prev => ({ ...prev, status: newStatus as any }))
-      onUpdated()
-      alert(`작업일지 상태가 "${statusLabels[newStatus as keyof typeof statusLabels]}"로 변경되었습니다.`)
-    } catch (error) {
-      console.error('Error updating status:', error)
-      alert('상태 변경 중 오류가 발생했습니다.')
+    } finally {
+      setSaving(false)
     }
   }
 
-  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files
-    if (!files || files.length === 0) return
-
-    // In a real implementation, you would upload to Supabase storage
-    console.log('Uploading photos:', files)
-    alert('사진 업로드 기능은 개발 중입니다.')
+  const getFileTypeLabel = (type: PhotoFile['file_type']) => {
+    switch (type) {
+      case 'photo_before':
+        return '작업 전'
+      case 'photo_after':
+        return '작업 후'
+      case 'receipt':
+        return '영수증'
+      case 'document':
+        return '문서'
+      default:
+        return '기타'
+    }
   }
 
-  const handlePhotoDelete = async (photoId: string) => {
-    if (!confirm('사진을 삭제하시겠습니까?')) return
-
-    try {
-      // Remove from state for demo
-      setPhotos(prev => prev.filter(p => p.id !== photoId))
-      alert('사진이 삭제되었습니다.')
-    } catch (error) {
-      console.error('Error deleting photo:', error)
-      alert('사진 삭제 중 오류가 발생했습니다.')
+  const getFileTypeColor = (type: PhotoFile['file_type']) => {
+    switch (type) {
+      case 'photo_before':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'photo_after':
+        return 'bg-green-100 text-green-800'
+      case 'receipt':
+        return 'bg-purple-100 text-purple-800'
+      case 'document':
+        return 'bg-blue-100 text-blue-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -294,14 +288,14 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+      <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center gap-3">
             <h2 className="text-xl font-semibold text-gray-900">
               작업일지 상세보기
             </h2>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[editData.status]}`}>
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${statusColors[editData.status]}`}>
               {statusLabels[editData.status]}
             </span>
           </div>
@@ -309,7 +303,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
                 <Edit className="h-4 w-4" />
                 편집
@@ -317,7 +311,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
             )}
             <button
               onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
             >
               <X className="h-5 w-5" />
             </button>
@@ -325,7 +319,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200">
+        <div className="border-b border-gray-200 bg-white">
           <nav className="flex">
             <button
               onClick={() => setActiveTab('info')}
@@ -345,251 +339,313 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              첨부파일 관리 ({photos.length})
+              첨부파일 ({photos.length})
             </button>
           </nav>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
+        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 180px)' }}>
           {activeTab === 'info' && (
             <div className="space-y-6">
-              {/* Site Info */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  현장 정보
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">현장명:</span>
-                    <span className="ml-2 font-medium">{report.sites?.name}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">주소:</span>
-                    <span className="ml-2">{report.sites?.address}</span>
-                  </div>
-                </div>
-              </div>
+              {/* Main Information Table */}
+              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <tbody className="divide-y divide-gray-200">
+                    {/* Site Information */}
+                    <tr className="bg-gray-50">
+                      <td colSpan={4} className="px-4 py-2 font-semibold text-gray-900">
+                        현장 정보
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 w-1/6">현장명</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 w-1/3">{report.sites?.name}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50 w-1/6">주소</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 w-1/3">{report.sites?.address}</td>
+                    </tr>
 
-              {/* Work Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">작업 정보</h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">작업일</label>
-                    {isEditing ? (
-                      <input
-                        type="date"
-                        value={editData.work_date}
-                        onChange={(e) => setEditData(prev => ({ ...prev, work_date: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-400" />
-                        <span>{format(new Date(report.work_date), 'yyyy.MM.dd (E)', { locale: ko })}</span>
-                      </div>
-                    )}
-                  </div>
+                    {/* Work Information */}
+                    <tr className="bg-gray-50">
+                      <td colSpan={4} className="px-4 py-2 font-semibold text-gray-900">
+                        작업 정보
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업일</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="date"
+                            value={editData.work_date}
+                            onChange={(e) => setEditData(prev => ({ ...prev, work_date: e.target.value }))}
+                            className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                          />
+                        ) : (
+                          format(new Date(report.work_date), 'yyyy년 MM월 dd일 (EEEE)', { locale: ko })
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업책임자</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.member_name}
+                            onChange={(e) => setEditData(prev => ({ ...prev, member_name: e.target.value }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                          />
+                        ) : (
+                          report.member_name
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">공정 유형</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.process_type}
+                            onChange={(e) => setEditData(prev => ({ ...prev, process_type: e.target.value }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                          />
+                        ) : (
+                          report.process_type
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업인원</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editData.total_workers}
+                            onChange={(e) => setEditData(prev => ({ ...prev, total_workers: parseInt(e.target.value) || 0 }))}
+                            className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            min="0"
+                          />
+                        ) : (
+                          `${report.total_workers}명`
+                        )}
+                      </td>
+                    </tr>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">작업자명</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.member_name}
-                        onChange={(e) => setEditData(prev => ({ ...prev, member_name: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span>{report.member_name}</span>
-                      </div>
-                    )}
-                  </div>
+                    {/* Work Details */}
+                    <tr className="bg-gray-50">
+                      <td colSpan={4} className="px-4 py-2 font-semibold text-gray-900">
+                        작업 내역
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">부재명</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <div>
+                            <CustomSelect
+                              value={editData.component_name?.startsWith('기타:') ? '기타' : editData.component_name || ''}
+                              onValueChange={(value) => {
+                                if (value === '기타') {
+                                  setEditData(prev => ({ ...prev, component_name: '기타:' }))
+                                } else {
+                                  setEditData(prev => ({ ...prev, component_name: value }))
+                                }
+                              }}
+                            >
+                              <CustomSelectTrigger className="w-full h-8 bg-white border border-gray-300 text-gray-900">
+                                <CustomSelectValue placeholder="선택하세요" />
+                              </CustomSelectTrigger>
+                              <CustomSelectContent className="bg-white border border-gray-300">
+                                <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
+                                <CustomSelectItem value="거더">거더</CustomSelectItem>
+                                <CustomSelectItem value="기둥">기둥</CustomSelectItem>
+                                <CustomSelectItem value="기타">기타</CustomSelectItem>
+                              </CustomSelectContent>
+                            </CustomSelect>
+                            {editData.component_name?.startsWith('기타') && (
+                              <input
+                                type="text"
+                                value={editData.component_name.replace('기타:', '')}
+                                onChange={(e) => setEditData(prev => ({ ...prev, component_name: '기타:' + e.target.value }))}
+                                className="w-full mt-2 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="기타 부재명 입력"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          report.component_name || '-'
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업공정</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <div>
+                            <CustomSelect
+                              value={editData.work_process?.startsWith('기타:') ? '기타' : editData.work_process || ''}
+                              onValueChange={(value) => {
+                                if (value === '기타') {
+                                  setEditData(prev => ({ ...prev, work_process: '기타:' }))
+                                } else {
+                                  setEditData(prev => ({ ...prev, work_process: value }))
+                                }
+                              }}
+                            >
+                              <CustomSelectTrigger className="w-full h-8 bg-white border border-gray-300 text-gray-900">
+                                <CustomSelectValue placeholder="선택하세요" />
+                              </CustomSelectTrigger>
+                              <CustomSelectContent className="bg-white border border-gray-300">
+                                <CustomSelectItem value="균일">균일</CustomSelectItem>
+                                <CustomSelectItem value="면">면</CustomSelectItem>
+                                <CustomSelectItem value="마감">마감</CustomSelectItem>
+                                <CustomSelectItem value="기타">기타</CustomSelectItem>
+                              </CustomSelectContent>
+                            </CustomSelect>
+                            {editData.work_process?.startsWith('기타') && (
+                              <input
+                                type="text"
+                                value={editData.work_process.replace('기타:', '')}
+                                onChange={(e) => setEditData(prev => ({ ...prev, work_process: '기타:' + e.target.value }))}
+                                className="w-full mt-2 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="기타 작업공정 입력"
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          report.work_process || '-'
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업구간</td>
+                      <td colSpan={3} className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editData.work_section}
+                            onChange={(e) => setEditData(prev => ({ ...prev, work_section: e.target.value }))}
+                            className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="작업구간 입력"
+                          />
+                        ) : (
+                          report.work_section || '-'
+                        )}
+                      </td>
+                    </tr>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">공정</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.process_type}
-                        onChange={(e) => setEditData(prev => ({ ...prev, process_type: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    ) : (
-                      <span>{report.process_type}</span>
-                    )}
-                  </div>
+                    {/* Material Status */}
+                    <tr className="bg-gray-50">
+                      <td colSpan={4} className="px-4 py-2 font-semibold text-gray-900">
+                        자재 현황 (NPC-1000)
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">입고량</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editData.npc1000_incoming}
+                            onChange={(e) => setEditData(prev => ({ ...prev, npc1000_incoming: parseInt(e.target.value) || 0 }))}
+                            className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            min="0"
+                          />
+                        ) : (
+                          report.npc1000_incoming.toLocaleString()
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">사용량</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editData.npc1000_used}
+                            onChange={(e) => setEditData(prev => ({ ...prev, npc1000_used: parseInt(e.target.value) || 0 }))}
+                            className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            min="0"
+                          />
+                        ) : (
+                          report.npc1000_used.toLocaleString()
+                        )}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">잔여량</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {isEditing ? (
+                          <input
+                            type="number"
+                            value={editData.npc1000_remaining}
+                            onChange={(e) => setEditData(prev => ({ ...prev, npc1000_remaining: parseInt(e.target.value) || 0 }))}
+                            className="w-32 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            min="0"
+                          />
+                        ) : (
+                          report.npc1000_remaining.toLocaleString()
+                        )}
+                      </td>
+                      {isEditing && (
+                        <>
+                          <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">상태</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">
+                            <select
+                              value={editData.status}
+                              onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value as any }))}
+                              className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            >
+                              <option value="draft">임시저장</option>
+                              <option value="submitted">제출됨</option>
+                            </select>
+                          </td>
+                        </>
+                      )}
+                    </tr>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">부재명</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.component_name}
-                        onChange={(e) => setEditData(prev => ({ ...prev, component_name: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="부재명 입력"
-                      />
-                    ) : (
-                      <span>{report.component_name || '-'}</span>
-                    )}
-                  </div>
+                    {/* Issues */}
+                    <tr className="bg-gray-50">
+                      <td colSpan={4} className="px-4 py-2 font-semibold text-gray-900">
+                        특이사항
+                      </td>
+                    </tr>
+                    <tr>
+                      <td colSpan={4} className="px-4 py-3">
+                        {isEditing ? (
+                          <textarea
+                            value={editData.issues}
+                            onChange={(e) => setEditData(prev => ({ ...prev, issues: e.target.value }))}
+                            rows={4}
+                            className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="특이사항을 입력하세요..."
+                          />
+                        ) : (
+                          <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                            {report.issues || '특이사항 없음'}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">작업공정</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.work_process}
-                        onChange={(e) => setEditData(prev => ({ ...prev, work_process: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="작업공정 입력"
-                      />
-                    ) : (
-                      <span>{report.work_process || '-'}</span>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">작업구간</label>
-                    {isEditing ? (
-                      <input
-                        type="text"
-                        value={editData.work_section}
-                        onChange={(e) => setEditData(prev => ({ ...prev, work_section: e.target.value }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="작업구간 입력"
-                      />
-                    ) : (
-                      <span>{report.work_section || '-'}</span>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">작업인원</label>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        value={editData.total_workers}
-                        onChange={(e) => setEditData(prev => ({ ...prev, total_workers: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="0"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-400" />
-                        <span>{report.total_workers}명</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {isEditing && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">상태</label>
-                      <select
-                        value={editData.status}
-                        onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value as any }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="draft">임시저장</option>
-                        <option value="submitted">제출됨</option>
-                        <option value="approved">승인됨</option>
-                        <option value="rejected">반려됨</option>
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="font-medium text-gray-900">자재 현황 (NPC-1000)</h3>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">입고량</label>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        value={editData.npc1000_incoming}
-                        onChange={(e) => setEditData(prev => ({ ...prev, npc1000_incoming: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="0"
-                      />
-                    ) : (
-                      <span>{report.npc1000_incoming}</span>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">사용량</label>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        value={editData.npc1000_used}
-                        onChange={(e) => setEditData(prev => ({ ...prev, npc1000_used: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="0"
-                      />
-                    ) : (
-                      <span>{report.npc1000_used}</span>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">잔여량</label>
-                    {isEditing ? (
-                      <input
-                        type="number"
-                        value={editData.npc1000_remaining}
-                        onChange={(e) => setEditData(prev => ({ ...prev, npc1000_remaining: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        min="0"
-                      />
-                    ) : (
-                      <span>{report.npc1000_remaining}</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Issues */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">특이사항</label>
-                {isEditing ? (
-                  <textarea
-                    value={editData.issues}
-                    onChange={(e) => setEditData(prev => ({ ...prev, issues: e.target.value }))}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="특이사항을 입력하세요..."
-                  />
-                ) : (
-                  <div className="p-3 bg-gray-50 rounded-lg min-h-[100px]">
-                    {report.issues || '특이사항 없음'}
-                  </div>
-                )}
-              </div>
-
-              {/* Metadata */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-medium text-gray-900 mb-3">작성 정보</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">작성자:</span>
-                    <span className="ml-2">{report.profiles?.full_name} ({report.profiles?.email})</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">작성일:</span>
-                    <span className="ml-2">{format(new Date(report.created_at), 'yyyy.MM.dd HH:mm', { locale: ko })}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">수정일:</span>
-                    <span className="ml-2">{format(new Date(report.updated_at), 'yyyy.MM.dd HH:mm', { locale: ko })}</span>
-                  </div>
-                </div>
+                    {/* Metadata */}
+                    <tr className="bg-gray-50">
+                      <td colSpan={4} className="px-4 py-2 font-semibold text-gray-900">
+                        작성 정보
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작성자</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {report.profiles?.full_name} ({report.profiles?.email})
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작성일시</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">
+                        {format(new Date(report.created_at), 'yyyy-MM-dd HH:mm:ss', { locale: ko })}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">최종 수정일시</td>
+                      <td colSpan={3} className="px-4 py-3 text-sm text-gray-900">
+                        {format(new Date(report.updated_at), 'yyyy-MM-dd HH:mm:ss', { locale: ko })}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -600,134 +656,81 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <input
                   type="file"
-                  multiple
-                  accept="image/*,.pdf,.doc,.docx"
-                  onChange={handlePhotoUpload}
+                  id="file-upload"
                   className="hidden"
-                  id="photo-upload"
+                  onChange={handleFileUpload}
+                  accept="image/*,.pdf,.doc,.docx"
                 />
                 <label
-                  htmlFor="photo-upload"
-                  className="cursor-pointer flex flex-col items-center"
+                  htmlFor="file-upload"
+                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
-                  <Upload className="h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-lg font-medium text-gray-900 mb-2">파일 업로드</p>
-                  <p className="text-gray-600">클릭하거나 파일을 드래그하여 업로드하세요</p>
-                  <p className="text-sm text-gray-500 mt-2">사진 파일(JPG, PNG), 문서 파일(PDF), 영수증 등을 업로드할 수 있습니다.</p>
+                  <Upload className="h-5 w-5" />
+                  파일 업로드
                 </label>
+                <p className="mt-2 text-sm text-gray-600">
+                  이미지, PDF, Word 문서를 업로드할 수 있습니다.
+                </p>
               </div>
 
-              {/* Photos Grid */}
+              {/* Photos List */}
               {loadingPhotos ? (
-                <div className="text-center py-12">
+                <div className="text-center py-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-4 text-gray-600">파일을 불러오는 중...</p>
+                  <p className="mt-2 text-gray-600">파일을 불러오는 중...</p>
                 </div>
               ) : photos.length === 0 ? (
-                <div className="text-center py-12">
-                  <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">업로드된 파일이 없습니다.</p>
+                <div className="text-center py-8">
+                  <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600">첨부된 파일이 없습니다.</p>
                 </div>
               ) : (
-                <div className="space-y-6">
-                  {/* Group files by type */}
-                  {['photo_before', 'photo_after', 'receipt', 'document', 'other'].map(fileType => {
-                    const typeFiles = photos.filter(p => p.file_type === fileType)
-                    if (typeFiles.length === 0) return null
-                    
-                    const typeLabels = {
-                      photo_before: '작업 전 사진',
-                      photo_after: '작업 후 사진', 
-                      receipt: '영수증',
-                      document: '문서',
-                      other: '기타 파일'
-                    }
-                    
-                    const typeIcons = {
-                      photo_before: '📷',
-                      photo_after: '📸',
-                      receipt: '🧾', 
-                      document: '📄',
-                      other: '📁'
-                    }
-                    
-                    return (
-                      <div key={fileType}>
-                        <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                          <span>{typeIcons[fileType as keyof typeof typeIcons]}</span>
-                          {typeLabels[fileType as keyof typeof typeLabels]} ({typeFiles.length})
-                        </h4>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                          {typeFiles.map((photo) => (
-                            <div key={photo.id} className="relative group">
-                              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
-                                {photo.mime_type.startsWith('image/') ? (
-                                  <img
-                                    src="data:image/svg+xml,%3Csvg width='200' height='200' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='100%25' height='100%25' fill='%23f3f4f6'/%3E%3Ctext x='50%25' y='50%25' font-size='16' text-anchor='middle' dy='.3em' fill='%236b7280'%3E사진 미리보기%3C/text%3E%3C/svg%3E"
-                                    alt={photo.filename}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                                    <div className="text-center">
-                                      <FileImage className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                                      <p className="text-xs text-gray-600">{photo.mime_type.split('/')[1]?.toUpperCase()}</p>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* File info overlay */}
-                              <div className="absolute inset-x-0 bottom-0 bg-black bg-opacity-75 text-white p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                                <p className="text-xs font-medium truncate">{photo.filename}</p>
-                                <div className="flex justify-between items-center mt-1">
-                                  <p className="text-xs text-gray-300">{formatFileSize(photo.file_size)}</p>
-                                  <p className="text-xs text-gray-300">{format(new Date(photo.created_at), 'HH:mm')}</p>
-                                </div>
-                                {photo.description && (
-                                  <p className="text-xs text-gray-400 truncate mt-1">{photo.description}</p>
-                                )}
-                              </div>
-                              
-                              {/* Action buttons */}
-                              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => window.open(photo.file_path, '_blank')}
-                                    className="p-1 bg-black bg-opacity-50 text-white rounded hover:bg-opacity-75 transition-colors"
-                                    title="크게보기"
-                                  >
-                                    <Eye className="h-3 w-3" />
-                                  </button>
-                                  <button
-                                    onClick={() => handlePhotoDelete(photo.id)}
-                                    className="p-1 bg-red-600 bg-opacity-75 text-white rounded hover:bg-opacity-90 transition-colors"
-                                    title="삭제"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              </div>
-                              
-                              {/* File type badge */}
-                              <div className="absolute top-2 left-2">
-                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                  fileType === 'photo_before' ? 'bg-green-100 text-green-800' :
-                                  fileType === 'photo_after' ? 'bg-blue-100 text-blue-800' :
-                                  fileType === 'receipt' ? 'bg-yellow-100 text-yellow-800' :
-                                  fileType === 'document' ? 'bg-purple-100 text-purple-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }`}>
-                                  {typeLabels[fileType as keyof typeof typeLabels]}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {photos.map((photo) => (
+                    <div
+                      key={photo.id}
+                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {photo.filename}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatFileSize(photo.file_size)}
+                          </p>
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getFileTypeColor(photo.file_type)}`}>
+                          {getFileTypeLabel(photo.file_type)}
+                        </span>
+                      </div>
+                      
+                      {photo.description && (
+                        <p className="text-xs text-gray-600 mb-2">{photo.description}</p>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-gray-400">
+                          {format(new Date(photo.created_at), 'yyyy.MM.dd HH:mm')}
+                        </p>
+                        <div className="flex gap-1">
+                          <button
+                            className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
+                            title="다운로드"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeletePhoto(photo.id, photo.file_path)}
+                            className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
-                    )
-                  })}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -735,40 +738,34 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-6">
-          <div className="flex justify-between items-center">
-            <div className="flex gap-2">
-              {/* 상태 변경 버튼 제거 - 임시저장과 제출됨 상태만 사용 */}
-            </div>
-            
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    disabled={saving}
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                  >
-                    <Save className="h-4 w-4" />
-                    {saving ? '저장 중...' : '저장'}
-                  </button>
-                </>
-              ) : (
+        <div className="border-t border-gray-200 px-6 py-4">
+          <div className="flex justify-end gap-3">
+            {isEditing ? (
+              <>
                 <button
-                  onClick={onClose}
-                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  disabled={saving}
                 >
-                  닫기
+                  취소
                 </button>
-              )}
-            </div>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? '저장 중...' : '저장'}
+                </button>
+              </>
+            ) : (
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                닫기
+              </button>
+            )}
           </div>
         </div>
       </div>

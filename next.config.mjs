@@ -50,8 +50,10 @@ const nextConfig = {
   
   // 컴파일 성능 향상
   compiler: {
-    // KEEP console for debugging
-    removeConsole: false,
+    // Remove console in production for performance
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn']
+    } : false,
     // KEEP React properties for debugging
     reactRemoveProperties: false,
   },

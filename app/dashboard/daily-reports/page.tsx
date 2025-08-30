@@ -37,7 +37,7 @@ export default async function DailyReportsPage() {
     .eq('status', 'active')
     .order('name')
 
-  console.log('DailyReportsPage - sites query result:', { sites, sitesError })
+  // Logging disabled for production performance
 
   // Check if user can create reports
   const canCreateReport = profile?.role && ['worker', 'site_manager', 'admin'].includes(profile.role)

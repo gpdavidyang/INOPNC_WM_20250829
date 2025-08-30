@@ -13,7 +13,7 @@ export default function SiteManagementList() {
   const [selectedSite, setSelectedSite] = useState<Site | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [viewMode, setViewMode] = useState<ViewMode>('card')
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [sortField, setSortField] = useState<'name' | 'address' | 'status' | 'start_date' | 'manager_name' | 'assigned_users' | 'total_reports'>('name')
@@ -49,9 +49,9 @@ export default function SiteManagementList() {
       setSites(sitesData || [])
       setLoading(false)
       
-      // Then fetch counts in background (optional - can be removed if not needed)
-      if (viewMode === 'card' && sitesData && sitesData.length > 0) {
-        // Only fetch counts for card view where they're visible
+      // Then fetch counts in background
+      if (sitesData && sitesData.length > 0) {
+        // Fetch counts for both card and list views
         const sitesWithCounts = await Promise.all(
           sitesData.map(async (site) => {
             try {
@@ -102,11 +102,26 @@ export default function SiteManagementList() {
     fetchSites() // Refresh list when returning
   }
 
-  const handleSiteUpdate = (updatedSite: Site) => {
-    setSites(prevSites => 
-      prevSites.map(site => site.id === updatedSite.id ? updatedSite : site)
-    )
+  const handleSiteUpdate = async (updatedSite: Site) => {
+    console.log('[SITE-LIST] handleSiteUpdate called with:', updatedSite)
+    
+    // Update local state immediately for responsiveness
+    setSites(prevSites => {
+      const updated = prevSites.map(site => 
+        site.id === updatedSite.id 
+          ? { ...updatedSite, assigned_users: site.assigned_users, total_reports: site.total_reports }
+          : site
+      )
+      console.log('[SITE-LIST] Updated sites list:', updated)
+      return updated
+    })
+    
+    // Update selected site
     setSelectedSite(updatedSite)
+    
+    // Also refresh from server to ensure consistency
+    console.log('[SITE-LIST] Refreshing sites from server...')
+    await fetchSites()
   }
 
   const handleRefresh = () => {
@@ -293,7 +308,7 @@ export default function SiteManagementList() {
                     ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
                     : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                 }`}>
-                  {site.status === 'active' ? '진행중' : site.status === 'completed' ? '완료' : '준비중'}
+                  {site.status === 'active' ? '진행중' : site.status === 'completed' ? '완료' : '비활성'}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
@@ -448,7 +463,7 @@ export default function SiteManagementList() {
             <option value="">모든 상태</option>
             <option value="active">진행중</option>
             <option value="completed">완료</option>
-            <option value="pending">준비중</option>
+            <option value="inactive">비활성</option>
           </select>
         </div>
         
@@ -527,9 +542,9 @@ export default function SiteManagementList() {
                         ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                         : site.status === 'completed'
                         ? 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
                     }`}>
-                      {site.status === 'active' ? '진행중' : site.status === 'completed' ? '완료' : '준비중'}
+                      {site.status === 'active' ? '진행중' : site.status === 'completed' ? '완료' : '비활성'}
                     </span>
                   </div>
 

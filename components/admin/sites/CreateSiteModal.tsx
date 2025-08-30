@@ -3,6 +3,13 @@
 import { useState } from 'react'
 import { X } from 'lucide-react'
 import { createSite, CreateSiteData } from '@/app/actions/admin/sites'
+import { 
+  CustomSelect, 
+  CustomSelectContent, 
+  CustomSelectItem, 
+  CustomSelectTrigger, 
+  CustomSelectValue 
+} from '@/components/ui/custom-select'
 
 interface CreateSiteModalProps {
   onClose: () => void
@@ -273,20 +280,81 @@ export default function CreateSiteModal({ onClose, onSuccess }: CreateSiteModalP
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    작업 공정
+                    부재명
                   </label>
-                  <input
-                    type="text"
-                    value={formData.work_process}
-                    onChange={(e) => setFormData({ ...formData, work_process: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="예: 기초공사"
-                  />
+                  <div>
+                    <CustomSelect
+                      value={formData.component_name?.startsWith('기타:') ? '기타' : formData.component_name || ''}
+                      onValueChange={(value) => {
+                        if (value === '기타') {
+                          setFormData({ ...formData, component_name: '기타:' })
+                        } else {
+                          setFormData({ ...formData, component_name: value })
+                        }
+                      }}
+                    >
+                      <CustomSelectTrigger className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                        <CustomSelectValue placeholder="선택하세요" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600">
+                        <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
+                        <CustomSelectItem value="거더">거더</CustomSelectItem>
+                        <CustomSelectItem value="기둥">기둥</CustomSelectItem>
+                        <CustomSelectItem value="기타">기타</CustomSelectItem>
+                      </CustomSelectContent>
+                    </CustomSelect>
+                    {formData.component_name?.startsWith('기타') && (
+                      <input
+                        type="text"
+                        value={formData.component_name.replace('기타:', '')}
+                        onChange={(e) => setFormData({ ...formData, component_name: '기타:' + e.target.value })}
+                        className="w-full mt-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="기타 부재명 입력"
+                      />
+                    )}
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    작업 구간
+                    작업공정
+                  </label>
+                  <div>
+                    <CustomSelect
+                      value={formData.work_process?.startsWith('기타:') ? '기타' : formData.work_process || ''}
+                      onValueChange={(value) => {
+                        if (value === '기타') {
+                          setFormData({ ...formData, work_process: '기타:' })
+                        } else {
+                          setFormData({ ...formData, work_process: value })
+                        }
+                      }}
+                    >
+                      <CustomSelectTrigger className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white">
+                        <CustomSelectValue placeholder="선택하세요" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600">
+                        <CustomSelectItem value="균일">균일</CustomSelectItem>
+                        <CustomSelectItem value="면">면</CustomSelectItem>
+                        <CustomSelectItem value="마감">마감</CustomSelectItem>
+                        <CustomSelectItem value="기타">기타</CustomSelectItem>
+                      </CustomSelectContent>
+                    </CustomSelect>
+                    {formData.work_process?.startsWith('기타') && (
+                      <input
+                        type="text"
+                        value={formData.work_process.replace('기타:', '')}
+                        onChange={(e) => setFormData({ ...formData, work_process: '기타:' + e.target.value })}
+                        className="w-full mt-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                        placeholder="기타 작업공정 입력"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    작업구간
                   </label>
                   <input
                     type="text"
@@ -294,19 +362,6 @@ export default function CreateSiteModal({ onClose, onSuccess }: CreateSiteModalP
                     onChange={(e) => setFormData({ ...formData, work_section: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder="예: A동"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    부재명
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.component_name}
-                    onChange={(e) => setFormData({ ...formData, component_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                    placeholder="예: 기둥"
                   />
                 </div>
               </div>

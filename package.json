@@ -18,7 +18,10 @@
     "test:e2e:debug": "playwright test --debug",
     "test:all": "npm run type-check && npm run lint && npm test && npm run test:e2e",
     "type-check": "tsc --noEmit",
-    "analyze": "ANALYZE=true next build"
+    "analyze": "ANALYZE=true next build",
+    "clean:logs": "chmod +x ./scripts/clean-logs.sh && ./scripts/clean-logs.sh",
+    "build:prod": "npm run clean:logs && NODE_ENV=production next build",
+    "start:prod": "NODE_ENV=production next start"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

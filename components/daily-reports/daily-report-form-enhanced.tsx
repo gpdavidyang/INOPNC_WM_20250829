@@ -1008,7 +1008,7 @@ export default function DailyReportFormEnhanced({
                             <CustomSelectValue placeholder="선택" />
                           </CustomSelectTrigger>
                           <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
-                            <CustomSelectItem value="균열">균열</CustomSelectItem>
+                            <CustomSelectItem value="균일">균일</CustomSelectItem>
                             <CustomSelectItem value="면">면</CustomSelectItem>
                             <CustomSelectItem value="마감">마감</CustomSelectItem>
                             <CustomSelectItem value="기타">기타</CustomSelectItem>
@@ -1197,7 +1197,7 @@ export default function DailyReportFormEnhanced({
                           content.memberName === '기둥' ? 'column' : 'other'
                         ) as ComponentType,
                         process_type: (
-                          content.processType === '균열' ? 'crack' :
+                          content.processType === '균일' ? 'uniform' :
                           content.processType === '면' ? 'surface' :
                           content.processType === '마감' ? 'finishing' : 'other'
                         ) as ConstructionProcessType,

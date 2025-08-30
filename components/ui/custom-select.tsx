@@ -202,3 +202,6 @@ export {
   CustomSelectItem as SelectItem,
   CustomSelectSeparator as SelectSeparator,
 }
+
+// Default export for backwards compatibility
+export default CustomSelect
