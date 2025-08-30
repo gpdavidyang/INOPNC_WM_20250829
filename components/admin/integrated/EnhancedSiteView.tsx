@@ -298,7 +298,7 @@ export default function EnhancedSiteView() {
                   </div>
                   <div className="flex gap-2">
                     <Link
-                      href={`/dashboard/admin/sites/${site.id}`}
+                      href={`/dashboard/admin/sites/${site.id}?from=integrated`}
                       onClick={(e) => e.stopPropagation()}
                       className="inline-flex items-center px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     >
@@ -338,13 +338,13 @@ export default function EnhancedSiteView() {
                     )}
                     <div className="pt-3 flex gap-2">
                       <Link
-                        href={`/dashboard/admin/sites/${site.id}`}
+                        href={`/dashboard/admin/sites/${site.id}?from=integrated`}
                         className="flex-1 text-center px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
                       >
                         현장 상세 관리
                       </Link>
                       <Link
-                        href={`/dashboard/admin/sites/${site.id}/edit`}
+                        href={`/dashboard/admin/sites/${site.id}/edit?from=integrated`}
                         className="flex-1 text-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium"
                       >
                         정보 수정
@@ -405,14 +405,14 @@ export default function EnhancedSiteView() {
                     
                     <div className="flex items-center space-x-2">
                       <Link
-                        href={`/dashboard/admin/sites/${site.id}`}
+                        href={`/dashboard/admin/sites/${site.id}?from=integrated`}
                         className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         상세
                       </Link>
                       <Link
-                        href={`/dashboard/admin/sites/${site.id}/edit`}
+                        href={`/dashboard/admin/sites/${site.id}/edit?from=integrated`}
                         className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                       >
                         <Edit className="h-4 w-4 mr-1" />

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Building2, FileText, Users, BarChart3, Calendar, Package, Shield, Image } from 'lucide-react'
 import EnhancedSiteView from './EnhancedSiteView'
 import EnhancedDailyReportsView from './EnhancedDailyReportsView'
@@ -19,10 +20,21 @@ interface DashboardStats {
 }
 
 export default function IntegratedDashboard() {
-  const [activeView, setActiveView] = useState<'overview' | 'sites' | 'reports' | 'users' | 'documents'>('overview')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const viewParam = searchParams.get('view') as 'overview' | 'sites' | 'reports' | 'users' | 'documents' | null
+  
+  const [activeView, setActiveView] = useState<'overview' | 'sites' | 'reports' | 'users' | 'documents'>(viewParam || 'overview')
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [sites, setSites] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Update active view when URL param changes
+    if (viewParam) {
+      setActiveView(viewParam)
+    }
+  }, [viewParam])
 
   useEffect(() => {
     loadDashboardData()
@@ -118,7 +130,14 @@ export default function IntegratedDashboard() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveView(tab.id as any)}
+                onClick={() => {
+                  setActiveView(tab.id as any)
+                  // Update URL without page reload
+                  const url = tab.id === 'overview' 
+                    ? '/dashboard/admin/integrated' 
+                    : `/dashboard/admin/integrated?view=${tab.id}`
+                  router.push(url)
+                }}
                 className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm ${
                   activeView === tab.id
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'

@@ -64,9 +64,19 @@ export default function SiteDetailPage() {
   const [data, setData] = useState<IntegratedSiteData | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'info' | 'dailyReports' | 'documents' | 'partners' | 'workers'>('info')
+  const [referrer, setReferrer] = useState<string>('sites')
   const supabase = createClient()
 
   useEffect(() => {
+    // Check if coming from integrated dashboard
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      const from = urlParams.get('from')
+      if (from === 'integrated') {
+        setReferrer('integrated')
+      }
+    }
+    
     if (siteId) {
       fetchSiteData()
     }
@@ -145,12 +155,30 @@ export default function SiteDetailPage() {
         <div className="px-4 sm:px-6 lg:px-8 py-6">
           {/* Breadcrumb */}
           <nav className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
-            <Link 
-              href="/dashboard/admin/sites"
-              className="hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              현장 관리
-            </Link>
+            {referrer === 'integrated' ? (
+              <>
+                <Link 
+                  href="/dashboard/admin/integrated"
+                  className="hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  통합관리
+                </Link>
+                <span>/</span>
+                <Link 
+                  href="/dashboard/admin/integrated?view=sites"
+                  className="hover:text-gray-700 dark:hover:text-gray-300"
+                >
+                  현장 통합뷰
+                </Link>
+              </>
+            ) : (
+              <Link 
+                href="/dashboard/admin/sites"
+                className="hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                현장 관리
+              </Link>
+            )}
             <span>/</span>
             <span className="text-gray-900 dark:text-gray-100 font-medium">{site.name}</span>
           </nav>
@@ -158,7 +186,13 @@ export default function SiteDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
-                onClick={() => router.back()}
+                onClick={() => {
+                  if (referrer === 'integrated') {
+                    router.push('/dashboard/admin/integrated?view=sites')
+                  } else {
+                    router.back()
+                  }
+                }}
                 className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 rounded-md transition-colors"
               >
                 <ArrowLeft className="h-5 w-5" />
