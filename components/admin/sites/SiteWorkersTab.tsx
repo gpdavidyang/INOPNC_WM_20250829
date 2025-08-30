@@ -72,9 +72,13 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
       if (availableRes.ok) {
         const availableData = await availableRes.json()
         console.log('Available workers data:', availableData)
+        console.log('Available workers count:', availableData.data?.length || 0)
+        console.log('First available worker:', availableData.data?.[0])
         setAvailableWorkers(availableData.data || [])
       } else {
         console.error('Failed to fetch available workers:', availableRes.status, availableRes.statusText)
+        const errorText = await availableRes.text()
+        console.error('Error response:', errorText)
       }
     } catch (error) {
       console.error('Error fetching workers:', error)
@@ -176,13 +180,24 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
 
   const filteredAvailableWorkers = availableWorkers.filter(worker => {
     const matchesSearch = searchTerm === '' || 
-      worker.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      worker.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      worker.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      worker.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       worker.company?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = filterRole === 'all' || worker.role === filterRole
-    const matchesTrade = filterTrade === 'all' || worker.trade === filterTrade
+    
+    // More lenient role matching - include if no filter or if role contains the filter term
+    const matchesRole = filterRole === 'all' || 
+      !filterRole || 
+      worker.role === filterRole ||
+      worker.role?.toLowerCase().includes('worker') ||
+      worker.role?.toLowerCase().includes('작업') ||
+      worker.role?.toLowerCase().includes('현장')
+    
+    const matchesTrade = filterTrade === 'all' || !filterTrade || worker.trade === filterTrade
+    
     return matchesSearch && matchesRole && matchesTrade
   })
+  
+  console.log('Filtered available workers:', filteredAvailableWorkers.length, 'out of', availableWorkers.length)
 
   // Get unique trades for filter
   const allTrades = [...new Set([

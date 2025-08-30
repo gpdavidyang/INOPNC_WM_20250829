@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -24,12 +25,20 @@ export async function GET(
     if (!profile || profile.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
+    
+    console.log('Fetching available workers for site:', params.id)
 
     const siteId = params.id
 
+    // Create service client for admin operations (bypasses RLS)
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     // Get all workers not assigned to this site
     // First, get IDs of workers already assigned to this site
-    const { data: assignedWorkers } = await supabase
+    const { data: assignedWorkers } = await serviceClient
       .from('site_workers')
       .select('user_id')
       .eq('site_id', siteId)
@@ -37,34 +46,39 @@ export async function GET(
 
     const assignedUserIds = assignedWorkers?.map(w => w.user_id) || []
 
-    // First try to get from users table (which seems to have more data)
-    let query = supabase
-      .from('users')
-      .select('id, name, email, phone, role, department')
-      .in('role', ['worker', 'supervisor', 'safety_officer', '작업자', '감독자', '안전관리자', '현장관리자'])
-      .order('name')
+    // Get ALL profiles that are not admins (we'll include everyone who could potentially work on a site)
+    let profilesQuery = serviceClient
+      .from('profiles')
+      .select('id, full_name, email, phone, role, company')
+      .neq('role', 'admin') // Exclude only admins
+      .order('full_name')
 
-    // Exclude already assigned workers
+    // Exclude already assigned workers from profiles
     if (assignedUserIds.length > 0) {
-      query = query.not('id', 'in', `(${assignedUserIds.join(',')})`)
+      profilesQuery = profilesQuery.not('id', 'in', `(${assignedUserIds.join(',')})`)
     }
 
-    const { data: availableWorkers, error: workersError } = await query
+    const { data: profileWorkers, error: profilesError } = await profilesQuery
+    
+    if (profilesError) {
+      console.error('Error fetching from profiles:', profilesError)
+    }
+    
+    console.log('Profiles found:', profileWorkers?.length || 0)
+    console.log('Sample profile:', profileWorkers?.[0])
 
-    // Map the data to expected format
-    const formattedWorkers = availableWorkers?.map(worker => ({
+    // Format profiles data
+    const formattedWorkers = profileWorkers?.map(worker => ({
       id: worker.id,
-      full_name: worker.name,
-      email: worker.email,
-      phone: worker.phone,
-      role: worker.role,
-      company: worker.department
+      full_name: worker.full_name || 'Unknown',
+      email: worker.email || '',
+      phone: worker.phone || '',
+      role: worker.role || 'worker',
+      company: worker.company || ''
     })) || []
-
-    if (workersError) {
-      console.error('Error fetching available workers:', workersError)
-      return NextResponse.json({ error: 'Failed to fetch available workers' }, { status: 500 })
-    }
+    
+    console.log('Available workers formatted:', formattedWorkers.length)
+    console.log('First few workers:', formattedWorkers.slice(0, 3))
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,5 @@
-import OrganizationPartnerList from '@/components/admin/partners/OrganizationPartnerList'
+import PartnerListWrapper from '@/components/admin/partners/PartnerListWrapper'
 
 export default function PartnersPage() {
-  return <OrganizationPartnerList />
+  return <PartnerListWrapper />
 }

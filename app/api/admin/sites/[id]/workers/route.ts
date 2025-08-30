@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -27,8 +28,14 @@ export async function GET(
 
     const siteId = params.id
 
+    // Create service client for admin operations (bypasses RLS)
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     // Get workers assigned to this site
-    const { data: assignments, error: assignmentsError } = await supabase
+    const { data: assignments, error: assignmentsError } = await serviceClient
       .from('site_workers')
       .select(`
         id,
@@ -49,25 +56,25 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch site workers' }, { status: 500 })
     }
 
-    // Get worker details from users table
+    // Get worker details from profiles table
     const workerIds = assignments?.map(a => a.user_id) || []
     let workers = []
     
     if (workerIds.length > 0) {
-      const { data: userDetails } = await supabase
-        .from('users')
-        .select('id, name, email, phone, role, department')
+      const { data: userDetails } = await serviceClient
+        .from('profiles')
+        .select('id, full_name, email, phone, role, company')
         .in('id', workerIds)
       
       workers = assignments?.map(assignment => {
         const user = userDetails?.find(u => u.id === assignment.user_id)
         return {
           id: assignment.user_id,
-          full_name: user?.name || 'Unknown',
+          full_name: user?.full_name || 'Unknown',
           email: user?.email || '',
           phone: user?.phone || '',
           role: user?.role || 'worker',
-          company: user?.department || '',
+          company: user?.company || '',
           trade: assignment.trade,
           position: assignment.position,
           assigned_at: assignment.assigned_at,
