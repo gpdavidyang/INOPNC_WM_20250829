@@ -15,8 +15,8 @@ const nextConfig = {
   // Enable SWC for build
   swcMinify: true,
   
-  // Enable compression for deployment
-  compress: true,
+  // Disable compression to maintain quality
+  compress: false,
   poweredByHeader: false,
   generateEtags: true,
   
@@ -56,7 +56,7 @@ const nextConfig = {
     reactRemoveProperties: false,
   },
   
-  // Image configuration
+  // Image configuration - preserve original quality
   images: {
     formats: ['image/webp'],
     domains: ['localhost', 'inopnc-wm-20250829.vercel.app'],
@@ -65,7 +65,7 @@ const nextConfig = {
     minimumCacheTTL: 86400,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    unoptimized: false,
+    unoptimized: true,
   },
   
   // DISABLE font optimization
@@ -82,6 +82,29 @@ const nextConfig = {
             value: 'no-transform',
           },
         ],
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+          {
+            key: 'Service-Worker-Allowed',
+            value: '/',
+          },
+        ],
+      },
+    ];
+  },
+  
+  // Ensure static files are copied to build output
+  async rewrites() {
+    return [
+      {
+        source: '/sw.js',
+        destination: '/sw.js',
       },
     ];
   },
