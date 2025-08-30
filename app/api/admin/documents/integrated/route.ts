@@ -110,7 +110,8 @@ export async function GET(request: Request) {
         shared_documents: documentsByCategory.shared?.length || 0,
         markup_documents: documentsByCategory.markup?.length || 0,
         required_documents: documentsByCategory.required?.length || 0,
-        invoice_documents: documentsByCategory.invoice?.length || 0
+        invoice_documents: documentsByCategory.invoice?.length || 0,
+        photo_grid_documents: documentsByCategory.photo_grid?.length || 0
       },
       admin_access_rules: accessRules || [],
       permissions: {

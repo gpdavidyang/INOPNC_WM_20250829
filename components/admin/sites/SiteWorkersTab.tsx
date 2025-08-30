@@ -8,13 +8,6 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import {
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
 
 interface Worker {
   id: string
@@ -214,7 +207,7 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
@@ -264,67 +257,63 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Search */}
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+      {/* Header with search and filters - matching UserManagement layout */}
+      <div className="flex flex-col lg:flex-row gap-3">
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
               placeholder="이름, 이메일, 소속 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+        </div>
+        
+        <div className="flex flex-row gap-2 flex-shrink-0">
+          <select
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="min-w-[120px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+          >
+            <option value="all">모든 역할</option>
+            <option value="worker">작업자</option>
+            <option value="supervisor">감독관</option>
+            <option value="safety_officer">안전관리자</option>
+            <option value="admin">관리자</option>
+          </select>
 
-          {/* Role Filter */}
-          <CustomSelect value={filterRole} onValueChange={setFilterRole}>
-            <CustomSelectTrigger className="w-[180px]">
-              <CustomSelectValue placeholder="역할 선택" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="all">전체 역할</CustomSelectItem>
-              <CustomSelectItem value="worker">작업자</CustomSelectItem>
-              <CustomSelectItem value="supervisor">감독관</CustomSelectItem>
-              <CustomSelectItem value="safety_officer">안전관리자</CustomSelectItem>
-              <CustomSelectItem value="admin">관리자</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
-
-          {/* Trade Filter */}
           {allTrades.length > 0 && (
-            <CustomSelect value={filterTrade} onValueChange={setFilterTrade}>
-              <CustomSelectTrigger className="w-[180px]">
-                <CustomSelectValue placeholder="공종 선택" />
-              </CustomSelectTrigger>
-              <CustomSelectContent>
-                <CustomSelectItem value="all">전체 공종</CustomSelectItem>
-                {allTrades.map(trade => (
-                  <CustomSelectItem key={trade} value={trade}>{trade}</CustomSelectItem>
-                ))}
-              </CustomSelectContent>
-            </CustomSelect>
+            <select
+              value={filterTrade}
+              onChange={(e) => setFilterTrade(e.target.value)}
+              className="min-w-[100px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            >
+              <option value="all">모든 공종</option>
+              {allTrades.map(trade => (
+                <option key={trade} value={trade}>{trade}</option>
+              ))}
+            </select>
           )}
-
-          {/* Add Worker Button */}
+          
           <button
             onClick={() => setShowAvailable(!showAvailable)}
-            className={`px-4 py-2 rounded-md text-sm font-medium ${
+            className={`inline-flex items-center whitespace-nowrap px-4 py-2 text-sm font-medium rounded-md transition-colors ${
               showAvailable
-                ? 'bg-gray-500 text-white hover:bg-gray-600'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-gray-500 hover:bg-gray-600 text-white'
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
             }`}
           >
             {showAvailable ? (
               <>
-                <XCircle className="h-4 w-4 inline mr-2" />
+                <XCircle className="h-4 w-4 mr-2" />
                 취소
               </>
             ) : (
               <>
-                <UserPlus className="h-4 w-4 inline mr-2" />
+                <UserPlus className="h-4 w-4 mr-2" />
                 작업자 배정
               </>
             )}
@@ -414,30 +403,29 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
         </div>
       )}
 
-      {/* Assigned Workers List */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            현장 배정 작업자 ({filteredAssignedWorkers.length}명)
-          </h3>
-        </div>
-        
+      {/* Assigned Workers Table - matching UserManagement layout */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
         {filteredAssignedWorkers.length === 0 ? (
           <div className="text-center py-12">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               {searchTerm || filterRole !== 'all' || filterTrade !== 'all'
                 ? '검색 결과가 없습니다'
                 : '배정된 작업자가 없습니다'}
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              {searchTerm || filterRole !== 'all' || filterTrade !== 'all'
+                ? '다른 조건으로 검색해 보세요'
+                : '작업자 배정 버튼을 눌러 작업자를 현장에 배정하세요'}
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    작업자
+                    사용자 정보
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     역할
@@ -459,21 +447,26 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredAssignedWorkers.map((worker) => (
-                  <tr key={worker.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <tr key={worker.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                          <User className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <User className="h-8 w-8 text-gray-400 mr-3" />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {worker.full_name}
-                          </p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                            <Mail className="h-3 w-3 mr-1" />
                             {worker.email}
-                          </p>
+                          </div>
+                          {worker.phone && (
+                            <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                              <Phone className="h-3 w-3 mr-1" />
+                              {worker.phone}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -489,31 +482,27 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-900 dark:text-gray-100">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
                         {worker.company || '-'}
-                      </p>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {worker.phone ? (
-                        <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
-                          <Phone className="h-4 w-4 mr-1 text-gray-400" />
-                          {worker.phone}
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-400">-</span>
-                      )}
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
+                        {worker.phone || '-'}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
                         {worker.assigned_at 
                           ? format(new Date(worker.assigned_at), 'yyyy.MM.dd', { locale: ko })
                           : '-'}
-                      </p>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <button
                         onClick={() => handleUnassignWorker(worker.id)}
-                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                        className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                        title="현장에서 제외"
                       >
                         <UserMinus className="h-5 w-5" />
                       </button>

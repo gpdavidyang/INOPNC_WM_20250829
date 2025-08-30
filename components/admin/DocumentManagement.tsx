@@ -383,7 +383,7 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
         // Integrated Documents View
         <div className="space-y-6">
           {/* Document Category Statistics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-700">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
@@ -439,6 +439,20 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
                 </div>
               </div>
             </div>
+
+            <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-6 border border-teal-200 dark:border-teal-700">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <Image className="h-8 w-8 text-teal-600" />
+                </div>
+                <div className="ml-4">
+                  <div className="text-sm font-medium text-teal-700 dark:text-teal-300">사진대지함</div>
+                  <div className="text-2xl font-bold text-teal-900 dark:text-teal-100">
+                    {integratedDocuments.statistics?.photo_grid_documents || 0}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Document Categories Display */}
@@ -447,7 +461,8 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
               shared: { name: '공유문서함', color: 'blue', icon: FileText, description: '현장별 접근 권한 관리' },
               markup: { name: '도면마킹문서함', color: 'purple', icon: Image, description: '현장별 도면 및 마킹 자료' },
               required: { name: '필수제출서류함', color: 'green', icon: Shield, description: '작업자-현장관리자-본사관리자 공유' },
-              invoice: { name: '기성청구문서함', color: 'orange', icon: Package, description: '파트너사-본사관리자 공유' }
+              invoice: { name: '기성청구문서함', color: 'orange', icon: Package, description: '파트너사-본사관리자 공유' },
+              photo_grid: { name: '사진대지함', color: 'teal', icon: Image, description: '현장 사진 및 이미지 자료 관리' }
             }
             const config = categoryConfig[category as keyof typeof categoryConfig] || { name: category, color: 'gray', icon: FileText, description: '' }
             const IconComponent = config.icon

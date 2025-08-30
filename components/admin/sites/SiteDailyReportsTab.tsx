@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileText, Calendar, Users, MapPin, Eye, Edit, Plus, Filter, Search, TrendingUp } from 'lucide-react'
+import { 
+  FileText, Calendar, Users, MapPin, Eye, Edit, Plus, Filter, Search, TrendingUp,
+  Building2, User, Trash2, Activity, Download, ChevronsUpDown, ChevronUp, ChevronDown, FileImage
+} from 'lucide-react'
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -11,22 +14,50 @@ interface DailyReport {
   work_date: string
   member_name: string
   process_type: string
+  component_name?: string
+  work_process?: string
+  work_section?: string
   total_workers: number
-  status: string
-  site_name?: string
+  npc1000_incoming: number
+  npc1000_used: number
+  npc1000_remaining: number
+  issues: string
+  status: 'draft' | 'submitted'
+  created_at: string
+  updated_at: string
+  created_by: string
+  site_id: string
   profiles?: {
     full_name: string
+    email: string
+    phone?: string
+    role?: string
   }
-  sites?: {
-    name: string
-  }
-  created_at: string
-  issues?: string
+  worker_details_count?: number
+  daily_documents_count?: number
 }
 
 interface SiteDailyReportsTabProps {
   siteId: string
   siteName: string
+}
+
+type SortField = 'work_date' | 'member_name' | 'total_workers' | 'status' | 'created_at'
+type SortDirection = 'asc' | 'desc'
+
+interface SortState {
+  field: SortField
+  direction: SortDirection
+}
+
+const statusLabels = {
+  draft: '임시저장',
+  submitted: '제출됨'
+}
+
+const statusColors = {
+  draft: 'bg-gray-100 text-gray-800',
+  submitted: 'bg-blue-100 text-blue-800'
 }
 
 export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyReportsTabProps) {
@@ -35,10 +66,15 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
   const [filter, setFilter] = useState<'all' | 'submitted' | 'draft'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('')
+  
+  const [sortState, setSortState] = useState<SortState>({
+    field: 'work_date',
+    direction: 'desc'
+  })
 
   useEffect(() => {
     fetchReports()
-  }, [siteId, filter, dateFilter])
+  }, [siteId, filter, dateFilter, sortState])
 
   const fetchReports = async () => {
     try {
@@ -51,6 +87,10 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
       }
       if (dateFilter) {
         params.append('date', dateFilter)
+      }
+      if (sortState.field) {
+        params.append('sortField', sortState.field)
+        params.append('sortDirection', sortState.direction)
       }
       
       if (params.toString()) {
@@ -69,22 +109,30 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    return (
-      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-        status === 'submitted' 
-          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
-      }`}>
-        {status === 'submitted' ? '제출됨' : '임시저장'}
-      </span>
-    )
+  const handleSort = (field: SortField) => {
+    setSortState(prev => ({
+      field,
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
+
+  const getSortIcon = (field: SortField) => {
+    if (sortState.field !== field) {
+      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
+    }
+    return sortState.direction === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-600" />
+      : <ChevronDown className="h-4 w-4 text-blue-600" />
   }
 
   const filteredReports = reports.filter(report => {
     const matchesSearch = searchTerm === '' || 
       report.member_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.process_type.toLowerCase().includes(searchTerm.toLowerCase())
+      report.process_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.component_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.work_process?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.work_section?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      report.issues?.toLowerCase().includes(searchTerm.toLowerCase())
     
     return matchesSearch
   })
@@ -92,6 +140,26 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
   const submittedCount = reports.filter(r => r.status === 'submitted').length
   const draftCount = reports.filter(r => r.status === 'draft').length
   const totalWorkers = reports.reduce((sum, r) => sum + (r.total_workers || 0), 0)
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (!confirm('작업일지를 삭제하시겠습니까?')) return
+    
+    try {
+      const response = await fetch(`/api/admin/daily-reports/${reportId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        fetchReports()
+        alert('작업일지가 삭제되었습니다.')
+      } else {
+        alert('작업일지 삭제에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Error deleting report:', error)
+      alert('작업일지 삭제 중 오류가 발생했습니다.')
+    }
+  }
 
   if (loading) {
     return (
@@ -113,13 +181,6 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
             {siteName} 현장의 모든 작업일지를 관리합니다
           </p>
         </div>
-        <Link
-          href={`/dashboard/admin/daily-reports/new?site_id=${siteId}`}
-          className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          새 작업일지
-        </Link>
       </div>
 
       {/* 통계 카드 */}
@@ -163,7 +224,7 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center">
             <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-              <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">총 작업인원</p>
@@ -173,117 +234,282 @@ export default function SiteDailyReportsTab({ siteId, siteName }: SiteDailyRepor
         </div>
       </div>
 
-      {/* 필터 및 검색 */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-500" />
+      {/* Search and Filters */}
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <input
+                type="text"
+                placeholder="작업자명, 부재명, 공정, 구간, 특이사항으로 검색..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
             <select 
               value={filter} 
               onChange={(e) => setFilter(e.target.value as any)}
-              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">모든 상태</option>
               <option value="submitted">제출됨</option>
               <option value="draft">임시저장</option>
             </select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-gray-500" />
+            
             <input
               type="month"
               value={dateFilter}
               onChange={(e) => setDateFilter(e.target.value)}
-              className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
-          </div>
-
-          <div className="flex-1 flex items-center gap-2">
-            <Search className="h-4 w-4 text-gray-500" />
-            <input
-              type="text"
-              placeholder="작업자명 또는 공정 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="flex-1 border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
-            />
+            
+            <Link
+              href={`/dashboard/admin/daily-reports/new?site_id=${siteId}`}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              새 작업일지
+            </Link>
           </div>
         </div>
       </div>
 
-      {/* 작업일지 목록 */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+      {/* Results Summary */}
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          총 <span className="font-semibold text-gray-900 dark:text-gray-100">{filteredReports.length}</span>개의 작업일지
+        </p>
+        <button className="flex items-center gap-2 px-4 py-2 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          <Download className="h-4 w-4" />
+          Excel 다운로드
+        </button>
+      </div>
+
+      {/* Reports Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         {filteredReports.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">작업일지가 없습니다</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {filter !== 'all' || searchTerm || dateFilter ? '필터 조건에 맞는 작업일지가 없습니다.' : '아직 작성된 작업일지가 없습니다.'}
+          <div className="p-12 text-center">
+            <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 dark:text-gray-400">
+              {searchTerm || filter !== 'all' || dateFilter ? '조건에 맞는 작업일지가 없습니다.' : '작성된 작업일지가 없습니다.'}
             </p>
-            <Link
-              href={`/dashboard/admin/daily-reports/new?site_id=${siteId}`}
-              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              첫 번째 작업일지 작성
-            </Link>
           </div>
         ) : (
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredReports.map((report) => (
-              <div key={report.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {format(new Date(report.work_date), 'yyyy년 MM월 dd일 (E)', { locale: ko })}
-                      </div>
-                      {getStatusBadge(report.status)}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1400px]">
+              <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                <tr>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('work_date')}
+                  >
+                    <div className="flex items-center gap-1">
+                      작업일 <span className="text-blue-600 dark:text-blue-400 text-xs normal-case">(클릭시 상세)</span>
+                      {getSortIcon('work_date')}
                     </div>
-                    
-                    <h4 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">
-                      {report.member_name} - {report.process_type}
-                    </h4>
-                    
-                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Users className="h-4 w-4" />
-                        작업인원 {report.total_workers}명
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <TrendingUp className="h-4 w-4" />
-                        작성일: {format(new Date(report.created_at), 'MM.dd', { locale: ko })}
-                      </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    부재명
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    작업공정
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    작업구간
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('member_name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      작업책임자
+                      {getSortIcon('member_name')}
                     </div>
-
-                    {report.issues && (
-                      <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                        특이사항: {report.issues}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <Link
-                      href={`/dashboard/admin/daily-reports/${report.id}`}
-                      className="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      상세보기
-                    </Link>
-                    <Link
-                      href={`/dashboard/admin/daily-reports/${report.id}/edit`}
-                      className="inline-flex items-center px-3 py-1 border border-gray-300 dark:border-gray-600 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      편집
-                    </Link>
-                  </div>
-                </div>
-              </div>
-            ))}
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('total_workers')}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      인원
+                      {getSortIcon('total_workers')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    자재현황
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    특이사항
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center justify-center gap-1">
+                      상태
+                      {getSortIcon('status')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    문서/상세
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      작성정보
+                      {getSortIcon('created_at')}
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider min-w-[100px]">
+                    작업
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
+                {filteredReports.map((report) => (
+                  <tr key={report.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                        <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400">
+                            {format(new Date(report.work_date), 'yyyy.MM.dd', { locale: ko })}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {format(new Date(report.work_date), 'EEEE', { locale: ko })}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
+                        {report.component_name || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
+                        {report.work_process || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm text-gray-900 dark:text-gray-100">
+                        {report.work_section || '-'}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{report.member_name}</div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">{report.process_type}</div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {report.total_workers}명
+                        </div>
+                        {report.worker_details_count && report.worker_details_count > 0 && (
+                          <div className="text-xs text-blue-600 dark:text-blue-400">
+                            상세: {report.worker_details_count}명
+                          </div>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="text-xs">
+                        <div className="flex items-center text-gray-700 dark:text-gray-300">
+                          <span className="font-medium mr-1">입고:</span>
+                          <span className="text-blue-600 dark:text-blue-400">{report.npc1000_incoming}</span>
+                        </div>
+                        <div className="flex items-center text-gray-700 dark:text-gray-300">
+                          <span className="font-medium mr-1">사용:</span>
+                          <span className="text-orange-600 dark:text-orange-400">{report.npc1000_used}</span>
+                        </div>
+                        <div className="flex items-center text-gray-700 dark:text-gray-300">
+                          <span className="font-medium mr-1">잔여:</span>
+                          <span className="text-green-600 dark:text-green-400">{report.npc1000_remaining}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 max-w-xs">
+                      {report.issues ? (
+                        <div className="text-xs text-gray-700 dark:text-gray-300 truncate" title={report.issues}>
+                          {report.issues}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-gray-400">-</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[report.status]}`}>
+                        {statusLabels[report.status]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex flex-col items-center gap-1">
+                        {report.daily_documents_count && report.daily_documents_count > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300">
+                            📄 {report.daily_documents_count}
+                          </span>
+                        )}
+                        {report.worker_details_count && report.worker_details_count > 0 && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300">
+                            👷 {report.worker_details_count}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div>
+                        <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                          {report.profiles?.full_name || '알 수 없음'}
+                        </div>
+                        {report.profiles?.role && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {report.profiles.role === 'admin' ? '관리자' : 
+                             report.profiles.role === 'site_manager' ? '현장담당' :
+                             report.profiles.role === 'worker' ? '작업자' : report.profiles.role}
+                          </div>
+                        )}
+                        <div className="text-xs text-gray-400">
+                          {format(new Date(report.created_at), 'HH:mm', { locale: ko })}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      <div className="flex justify-center gap-1">
+                        <Link
+                          href={`/dashboard/admin/daily-reports/${report.id}`}
+                          className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
+                          title="상세보기"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Link>
+                        <Link
+                          href={`/dashboard/admin/daily-reports/${report.id}/edit`}
+                          className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                          title="편집"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteReport(report.id)}
+                          className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 rounded transition-colors"
+                          title="삭제"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
