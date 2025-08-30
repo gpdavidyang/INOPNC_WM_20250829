@@ -28,7 +28,10 @@ export async function POST(
     const siteId = params.id
     const { partner_id, contract_status = 'active' } = await request.json()
 
+    console.log('Assigning partner:', { siteId, partner_id, contract_status })
+
     if (!partner_id) {
+      console.error('Missing partner_id')
       return NextResponse.json({ error: 'Partner ID is required' }, { status: 400 })
     }
 
@@ -41,23 +44,32 @@ export async function POST(
       .single()
 
     if (existing) {
+      console.error('Partner already assigned:', existing)
       return NextResponse.json({ error: 'Partner is already assigned to this site' }, { status: 400 })
     }
 
     // Assign partner to site
+    const assignmentData = {
+      site_id: siteId,
+      partner_company_id: partner_id,
+      contract_status,
+      assigned_date: new Date().toISOString().split('T')[0] // Date only
+    }
+    console.log('Inserting assignment data:', assignmentData)
+
     const { error: assignError } = await supabase
       .from('site_partners')
-      .insert({
-        site_id: siteId,
-        partner_company_id: partner_id,
-        contract_status,
-        assigned_date: new Date().toISOString().split('T')[0] // Date only
-      })
+      .insert(assignmentData)
 
     if (assignError) {
       console.error('Partner assignment error:', assignError)
-      return NextResponse.json({ error: 'Failed to assign partner' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Failed to assign partner', 
+        details: assignError.message 
+      }, { status: 500 })
     }
+
+    console.log('Partner assigned successfully')
 
     return NextResponse.json({
       success: true,

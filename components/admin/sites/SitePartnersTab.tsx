@@ -194,6 +194,7 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
 
   const assignPartner = async (partnerId: string) => {
     try {
+      console.log('Assigning partner:', partnerId, 'to site:', siteId)
       setAssignLoading(true)
       const response = await fetch(`/api/admin/sites/${siteId}/partners/assign`, {
         method: 'POST',
@@ -206,18 +207,24 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
         })
       })
       
+      console.log('Response status:', response.status)
+      
       if (response.ok) {
+        const result = await response.json()
+        console.log('Assignment result:', result)
         await fetchPartnersData()
         setShowAssignModal(false)
         setSearchTerm('')
         setTypeFilter('all')
+        alert('파트너사가 성공적으로 배정되었습니다.')
       } else {
         const errorData = await response.json()
+        console.error('Assignment error response:', errorData)
         alert(errorData.error || '파트너사 배정에 실패했습니다.')
       }
     } catch (error) {
       console.error('Error assigning partner:', error)
-      alert('파트너사 배정에 실패했습니다.')
+      alert('파트너사 배정 중 오류가 발생했습니다.')
     } finally {
       setAssignLoading(false)
     }
@@ -611,8 +618,8 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
                 </div>
               </div>
 
-              {/* Available Partners List */}
-              <div className="max-h-96 overflow-y-auto border border-gray-200 dark:border-gray-600 rounded-md">
+              {/* Available Partners Table */}
+              <div className="max-h-96 overflow-auto border border-gray-200 dark:border-gray-600 rounded-md">
                 {unassignedPartners.length === 0 ? (
                   <div className="text-center py-8">
                     <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -626,67 +633,96 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
                     </p>
                   </div>
                 ) : (
-                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {unassignedPartners.map((partner) => (
-                      <div key={partner.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-start space-x-3">
-                            <div className="flex-shrink-0">
-                              <Building2 className="h-6 w-6 text-blue-600" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">회사명</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">업종</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">대표자</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">연락처</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">전문분야</th>
+                        <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">작업</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {unassignedPartners.map((partner) => (
+                        <tr key={partner.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                          {/* 회사명 */}
+                          <td className="px-4 py-3">
+                            <div className="flex items-center">
+                              <Building2 className="h-4 w-4 text-blue-600 mr-2 flex-shrink-0" />
+                              <div>
+                                <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                   {partner.company_name}
-                                </p>
-                                {getCompanyTypeBadge(partner.company_type)}
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400 space-y-1">
-                                {partner.representative_name && (
-                                  <p>대표자: {partner.representative_name}</p>
-                                )}
-                                {partner.contact_person && (
-                                  <p>담당자: {partner.contact_person}</p>
-                                )}
-                                {partner.phone && (
-                                  <p>{partner.phone}</p>
-                                )}
-                              </div>
-                              {partner.trade_type && partner.trade_type.length > 0 && (
-                                <div className="mt-2 flex flex-wrap gap-1">
-                                  {partner.trade_type.slice(0, 3).map((trade, index) => (
-                                    <span
-                                      key={index}
-                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                                    >
-                                      {trade}
-                                    </span>
-                                  ))}
-                                  {partner.trade_type.length > 3 && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-                                      +{partner.trade_type.length - 3}
-                                    </span>
-                                  )}
                                 </div>
+                                {partner.business_number && (
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    {partner.business_number}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          {/* 업종 */}
+                          <td className="px-4 py-3">
+                            {getCompanyTypeBadge(partner.company_type)}
+                          </td>
+                          {/* 대표자 */}
+                          <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
+                            {partner.representative_name || '-'}
+                          </td>
+                          {/* 연락처 */}
+                          <td className="px-4 py-3">
+                            <div className="text-sm text-gray-900 dark:text-gray-100">
+                              {partner.contact_person && (
+                                <div>{partner.contact_person}</div>
+                              )}
+                              {partner.phone && (
+                                <div className="text-xs text-gray-500 dark:text-gray-400">{partner.phone}</div>
                               )}
                             </div>
-                          </div>
-                          <button
-                            onClick={() => assignPartner(partner.id)}
-                            disabled={assignLoading}
-                            className="ml-4 inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {assignLoading ? (
-                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                          </td>
+                          {/* 전문분야 */}
+                          <td className="px-4 py-3">
+                            {partner.trade_type && partner.trade_type.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {partner.trade_type.slice(0, 2).map((trade, index) => (
+                                  <span
+                                    key={index}
+                                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+                                  >
+                                    {trade}
+                                  </span>
+                                ))}
+                                {partner.trade_type.length > 2 && (
+                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                                    +{partner.trade_type.length - 2}
+                                  </span>
+                                )}
+                              </div>
                             ) : (
-                              <Plus className="h-4 w-4 mr-1" />
+                              <span className="text-sm text-gray-400">-</span>
                             )}
-                            배정
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                          </td>
+                          {/* 작업 */}
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => assignPartner(partner.id)}
+                              disabled={assignLoading}
+                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {assignLoading ? (
+                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin mr-1"></div>
+                              ) : (
+                                <Plus className="h-3 w-3 mr-1" />
+                              )}
+                              배정
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
 
