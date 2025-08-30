@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Building2, FileText, Users, BarChart3, Calendar, Package, Shield, Image } from 'lucide-react'
-import UnifiedSiteView from './UnifiedSiteView'
-import UnifiedDailyReportView from './UnifiedDailyReportView'
-import UnifiedUserView from './UnifiedUserView'
+import UnifiedSiteListView from './UnifiedSiteListView'
+import UnifiedDailyReportListView from './UnifiedDailyReportListView'
+import UnifiedUserListView from './UnifiedUserListView'
+import UnifiedDocumentListView from './UnifiedDocumentListView'
 
 interface DashboardStats {
   total_sites: number
@@ -253,33 +254,22 @@ export default function IntegratedDashboard() {
 
       {/* Sites View */}
       {activeView === 'sites' && (
-        <UnifiedSiteView />
+        <UnifiedSiteListView />
       )}
 
       {/* Reports View */}
       {activeView === 'reports' && (
-        <UnifiedDailyReportView />
+        <UnifiedDailyReportListView />
       )}
 
       {/* Users View */}
       {activeView === 'users' && (
-        <UnifiedUserView />
+        <UnifiedUserListView />
       )}
 
       {/* Documents View */}
       {activeView === 'documents' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">문서 통합뷰</h3>
-          <p className="text-gray-600 dark:text-gray-400">
-            문서 통합뷰는 개별 현장 보기에서 확인할 수 있습니다. 
-            <button 
-              onClick={() => setActiveView('sites')} 
-              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 ml-2"
-            >
-              현장 통합뷰로 이동 →
-            </button>
-          </p>
-        </div>
+        <UnifiedDocumentListView />
       )}
     </div>
   )
