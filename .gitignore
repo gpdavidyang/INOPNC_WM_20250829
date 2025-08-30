@@ -249,3 +249,4 @@ images_worklog/
 *.jpg
 *.jpeg
 *.gif
+.vercel
