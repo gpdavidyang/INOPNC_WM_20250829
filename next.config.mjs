@@ -12,8 +12,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Enable SWC for build
-  swcMinify: true,
+  // Disable SWC minify to preserve quality
+  swcMinify: false,
   
   // Disable compression to maintain quality
   compress: false,

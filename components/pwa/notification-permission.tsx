@@ -64,15 +64,20 @@ export function NotificationPermission() {
   })
 
   useEffect(() => {
-    // Initialize push notification service and permission state
+    // Delay PWA initialization to allow authentication to settle
     const initializePushService = async () => {
-      await pushNotificationService.initialize()
+      // Wait for potential authentication to complete
+      await new Promise(resolve => setTimeout(resolve, 2000))
       
-      if ('Notification' in window) {
+      const initialized = await pushNotificationService.initialize()
+      
+      if (initialized && 'Notification' in window) {
         setState(prev => ({
           ...prev,
           permission: Notification.permission
         }))
+      } else {
+        console.log('[NotificationPermission] Push service initialization skipped - no authentication or unsupported')
       }
     }
 

@@ -21,6 +21,7 @@ import { DeepLinkProvider } from "@/components/providers/deep-link-provider";
 import { PerformanceMonitoringProvider } from "@/components/providers/performance-monitoring-provider";
 import { ThemeProvider } from "next-themes";
 import { ProductionQualityOptimizer } from "@/components/production-quality-optimizer";
+import { EnvironmentStatus } from "@/components/debug/environment-status";
 
 export const metadata: Metadata = {
   title: "INOPNC Work Management",
@@ -80,6 +81,27 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            // Suppress Chrome extension console errors in development
+            if (typeof console !== 'undefined') {
+              const originalError = console.error;
+              console.error = function(...args) {
+                const message = args[0];
+                if (typeof message === 'string' && 
+                    (message.includes('chrome-extension://pejdijmoenmkgeppbflobdenhhabjlaj') ||
+                     message.includes('Failed to load resource') && 
+                     (message.includes('utils.js') || message.includes('extensionState.js') || message.includes('heuristicsRedefinitions.js')))) {
+                  // Suppress Chrome extension errors
+                  return;
+                }
+                originalError.apply(console, args);
+              };
+            }
+          `
+        }} />
+      </head>
       <body className="antialiased">
         <ErrorBoundary>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -101,6 +123,7 @@ export default function RootLayout({
                           <NotificationPermission />
                         </PerformanceMonitoringProvider>
                       </AuthProvider>
+                      <EnvironmentStatus />
                       <Toaster 
                         position="top-right"
                         richColors

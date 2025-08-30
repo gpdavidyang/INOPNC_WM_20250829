@@ -135,10 +135,32 @@ export function ServiceWorkerRegistration() {
             applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
           })
           
+          // Check if user has authentication cookies before making API call
+          const hasAuthCookies = document.cookie.includes('supabase-auth-token') || 
+                                 document.cookie.includes('sb-') ||
+                                 document.cookie.includes('supabase.auth.token')
+          
+          if (!hasAuthCookies) {
+            console.log('No authentication cookies found, skipping push subscription')
+            return
+          }
+          
+          // Check if user is authenticated
+          const authResponse = await fetch('/api/auth/bridge-session', {
+            method: 'POST',
+            credentials: 'include'
+          })
+          
+          if (!authResponse.ok) {
+            console.log('User not authenticated, skipping push subscription')
+            return
+          }
+          
           // Send subscription to server
-          await fetch('/api/push/subscribe', {
+          const subscribeResponse = await fetch('/api/push/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
               subscription: subscription.toJSON(),
               deviceInfo: {
@@ -148,7 +170,11 @@ export function ServiceWorkerRegistration() {
             })
           })
           
-          console.log('Push subscription registered')
+          if (subscribeResponse.ok) {
+            console.log('Push subscription registered')
+          } else {
+            console.warn('Push subscription failed:', subscribeResponse.status)
+          }
         }
       } else {
         console.log('Push notifications not supported or VAPID key missing')

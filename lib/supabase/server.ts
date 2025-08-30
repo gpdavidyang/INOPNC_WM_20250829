@@ -72,7 +72,7 @@ export function createClient() {
                   ...options,
                   sameSite: 'lax' as const,
                   secure: process.env.NODE_ENV === 'production',
-                  httpOnly: true,
+                  httpOnly: false, // CRITICAL FIX: Allow client-side access to auth cookies
                   path: '/'
                 }
                 cookieStore.set(name, value, cookieOptions)

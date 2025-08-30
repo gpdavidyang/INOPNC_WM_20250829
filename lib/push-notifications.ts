@@ -44,6 +44,19 @@ class PushNotificationService {
       return false
     }
 
+    // Check for authentication cookies before making API calls
+    if (typeof document !== 'undefined') {
+      const hasAuthCookies = document.cookie.includes('supabase-auth-token') || 
+                            document.cookie.includes('sb-') ||
+                            document.cookie.includes('supabase.auth.token') ||
+                            document.cookie.includes('auth-token')
+      
+      if (!hasAuthCookies) {
+        console.log('[PushNotification] No authentication cookies found, skipping VAPID initialization')
+        return false
+      }
+    }
+
     try {
       // Get VAPID public key from server
       const response = await fetch('/api/notifications/vapid', {
@@ -52,7 +65,8 @@ class PushNotificationService {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
-        timeout: 5000 // 5 second timeout
+        timeout: 5000, // 5 second timeout
+        credentials: 'include' // Include cookies for authentication
       })
       
       if (!response.ok) {

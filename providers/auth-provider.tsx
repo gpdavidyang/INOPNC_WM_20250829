@@ -67,12 +67,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await refreshSession()
           }
         } else {
-          // If no session, try to bridge from server cookies
-          // No client session, attempting bridge
+          // If no session, try to bridge from server cookies only if there's evidence of authentication
+          console.log('🔄 [AUTH-PROVIDER] No client session found, checking for server session...')
           const bridgeResult = await ensureClientSession()
           
           if (bridgeResult.success && bridgeResult.session) {
-            // Session bridged successfully
+            console.log('✅ [AUTH-PROVIDER] Session bridged successfully for:', bridgeResult.session.user?.email)
             setSession(bridgeResult.session)
             setUser(bridgeResult.session.user)
             

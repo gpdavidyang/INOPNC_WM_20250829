@@ -25,12 +25,25 @@ export default function SiteManagementList() {
       setLoading(true)
       setError(null)
       
+      // Debug: Check auth state first
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      console.log('[SITE-MANAGEMENT] Current session:', session?.user?.email || 'No session')
+      console.log('[SITE-MANAGEMENT] Session error:', sessionError?.message || 'None')
+      
       const { data: sitesData, error: sitesError } = await supabase
         .from('sites')
         .select('*')
         .order('created_at', { ascending: false })
       
-      if (sitesError) throw sitesError
+      console.log('[SITE-MANAGEMENT] Sites query result:', {
+        dataCount: sitesData?.length || 0,
+        error: sitesError?.message || 'None'
+      })
+      
+      if (sitesError) {
+        console.error('[SITE-MANAGEMENT] Sites query error:', sitesError)
+        throw sitesError
+      }
       
       // Set sites immediately without counts for faster initial load
       setSites(sitesData || [])

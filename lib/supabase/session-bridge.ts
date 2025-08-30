@@ -93,6 +93,27 @@ export async function bridgeSession(): Promise<SessionBridgeResult> {
   }
 }
 
+function hasSupabaseCookies(): boolean {
+  if (typeof document === 'undefined') {
+    console.log('🔄 [SESSION-BRIDGE] Server-side context detected, skipping cookie check')
+    return false
+  }
+  
+  const cookies = document.cookie
+  console.log('🔄 [SESSION-BRIDGE] Checking cookies:', cookies ? 'found' : 'none')
+  
+  // More comprehensive cookie detection for Supabase auth
+  const hasAuth = cookies.includes('supabase-auth-token') || 
+                  cookies.includes('sb-') ||
+                  cookies.includes('supabase.auth.token') ||
+                  cookies.includes('auth-token') ||
+                  cookies.includes('access_token') ||
+                  cookies.includes('refresh_token')
+  
+  console.log('🔄 [SESSION-BRIDGE] Authentication cookies present:', hasAuth)
+  return hasAuth
+}
+
 export async function ensureClientSession(): Promise<SessionBridgeResult> {
   const supabase = createClient()
   
@@ -105,8 +126,14 @@ export async function ensureClientSession(): Promise<SessionBridgeResult> {
       return { success: true, session: existingSession }
     }
     
-    // If no session, try to bridge from server
-    console.log('🔄 [SESSION-BRIDGE] No client session, attempting bridge...')
+    // Check if there are any Supabase authentication cookies before attempting bridge
+    if (!hasSupabaseCookies()) {
+      console.log('🔄 [SESSION-BRIDGE] No authentication cookies found, skipping bridge')
+      return { success: false, error: 'No authentication cookies' }
+    }
+    
+    // If no session but cookies exist, try to bridge from server
+    console.log('🔄 [SESSION-BRIDGE] No client session but cookies found, attempting bridge...')
     return await bridgeSession()
     
   } catch (error) {
