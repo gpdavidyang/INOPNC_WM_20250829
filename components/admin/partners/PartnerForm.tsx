@@ -98,7 +98,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
       const { data, error } = await supabase
         .from('organizations')
         .select('id, name')
-        .eq('status', 'active')
+        .eq('is_active', true)
         .order('name')
 
       if (error) throw error
@@ -164,6 +164,11 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
       return
     }
 
+    if (!profile || !profile.id) {
+      alert('사용자 정보를 불러올 수 없습니다. 다시 로그인해주세요.')
+      return
+    }
+
     setLoading(true)
     try {
       const submitData = {
@@ -171,7 +176,11 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
         organization_id: selectedOrgId,
         trade_type: formData.trade_type.length > 0 ? formData.trade_type : null,
         updated_by: profile.id,
-        ...(partner ? { updated_at: new Date().toISOString() } : { created_by: profile.id })
+        updated_at: new Date().toISOString(),
+        ...(partner ? {} : { 
+          created_by: profile.id,
+          created_at: new Date().toISOString()
+        })
       }
 
       if (partner) {
@@ -181,18 +190,27 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
           .eq('id', partner.id)
 
         if (error) throw error
+        alert('파트너사 정보가 수정되었습니다.')
       } else {
         const { error } = await supabase
           .from('partner_companies')
           .insert([submitData])
 
         if (error) throw error
+        alert('새 파트너사가 등록되었습니다.')
       }
 
       onSave()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to save partner:', error)
-      alert('파트너사 저장에 실패했습니다.')
+      
+      if (error.code === '23505') {
+        alert('이미 등록된 사업자번호입니다.')
+      } else if (error.code === '23503') {
+        alert('선택한 소속 조직이 유효하지 않습니다.')
+      } else {
+        alert(error.message || '파트너사 저장에 실패했습니다.')
+      }
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { approveSignupRequest, rejectSignupRequest } from '@/app/auth/actions'
@@ -65,8 +65,8 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
     }
   })
 
-  const handleApprove = async (requestId: string) => {
-    await performApproval(requestId)
+  const handleApprove = (requestId: string) => {
+    performApproval(requestId)
   }
 
   const performApproval = async (requestId: string) => {
@@ -267,8 +267,8 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                   const isExpanded = expandedRows.has(request.id)
                   
                   return (
-                    <>
-                      <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <React.Fragment key={request.id}>
+                      <tr className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100">
                           {new Date(request.requested_at).toLocaleDateString('ko-KR')}
                         </td>
@@ -308,9 +308,13 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                           {request.status === 'pending' ? (
                             <div className="flex space-x-1">
                               <Button
-                                onClick={() => handleApprove(request.id)}
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  handleApprove(request.id)
+                                }}
                                 disabled={loading === request.id}
-                                size="sm"
+                                size="compact"
                                 className="h-7 px-2 text-xs bg-green-600 hover:bg-green-700 text-white"
                               >
                                 {loading === request.id ? '처리중...' : '승인'}
@@ -319,21 +323,12 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                                 variant="outline"
                                 onClick={() => setShowRejectModal(request.id)}
                                 disabled={loading === request.id}
-                                size="sm"
+                                size="compact"
                                 className="h-7 px-2 text-xs border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20"
                               >
                                 거절
                               </Button>
                             </div>
-                          ) : request.status === 'rejected' ? (
-                            <Button
-                              onClick={() => handleApprove(request.id)}
-                              disabled={loading === request.id}
-                              size="sm"
-                              className="h-7 px-2 text-xs bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              {loading === request.id ? '처리중...' : '재승인'}
-                            </Button>
                           ) : (
                             <span className="text-xs text-gray-400">-</span>
                           )}
@@ -369,7 +364,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                                       </code>
                                       <Button
                                         variant="ghost"
-                                        size="sm"
+                                        size="compact"
                                         onClick={() => copyToClipboard(request.temporary_password!)}
                                         className="h-5 w-5 p-0"
                                       >
@@ -396,7 +391,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                           </td>
                         </tr>
                       )}
-                    </>
+                    </React.Fragment>
                   )
                 })
               )}

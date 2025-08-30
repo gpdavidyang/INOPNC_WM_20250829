@@ -4,13 +4,12 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Site } from '@/types'
 import { PlusIcon, BuildingOfficeIcon, MapPinIcon, CalendarIcon, Squares2X2Icon, ListBulletIcon, EyeIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon, FunnelIcon, ChevronUpIcon, ChevronDownIcon, ChevronUpDownIcon } from '@heroicons/react/24/outline'
-import SiteUnifiedManagement from './SiteUnifiedManagement'
+import { useRouter } from 'next/navigation'
 
 type ViewMode = 'card' | 'list'
 
 export default function SiteManagementList() {
   const [sites, setSites] = useState<Site[]>([])
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
@@ -18,6 +17,7 @@ export default function SiteManagementList() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [sortField, setSortField] = useState<'name' | 'address' | 'status' | 'start_date' | 'manager_name' | 'assigned_users' | 'total_reports'>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const router = useRouter()
   const supabase = createClient()
 
   const fetchSites = async () => {
@@ -94,38 +94,8 @@ export default function SiteManagementList() {
   }, [])
 
   const handleSiteSelect = (site: Site) => {
-    setSelectedSite(site)
-  }
-
-  const handleBack = () => {
-    setSelectedSite(null)
-    fetchSites() // Refresh list when returning
-  }
-
-  const handleSiteUpdate = async (updatedSite: Site) => {
-    console.log('[SITE-LIST] handleSiteUpdate called with:', updatedSite)
-    
-    // Update local state immediately for responsiveness
-    setSites(prevSites => {
-      const updated = prevSites.map(site => 
-        site.id === updatedSite.id 
-          ? { ...updatedSite, assigned_users: site.assigned_users, total_reports: site.total_reports }
-          : site
-      )
-      console.log('[SITE-LIST] Updated sites list:', updated)
-      return updated
-    })
-    
-    // Update selected site
-    setSelectedSite(updatedSite)
-    
-    // Also refresh from server to ensure consistency
-    console.log('[SITE-LIST] Refreshing sites from server...')
-    await fetchSites()
-  }
-
-  const handleRefresh = () => {
-    fetchSites()
+    // Navigate to the new site detail page
+    router.push(`/dashboard/admin/sites/${site.id}`)
   }
 
   const handleSort = (field: typeof sortField) => {
@@ -378,19 +348,7 @@ export default function SiteManagementList() {
     </div>
   )
 
-  // If a site is selected, show the unified management component
-  if (selectedSite) {
-    return (
-      <SiteUnifiedManagement
-        site={selectedSite}
-        onBack={handleBack}
-        onSiteUpdate={handleSiteUpdate}
-        onRefresh={handleRefresh}
-      />
-    )
-  }
-
-  // Otherwise, show the site list
+  // Show the site list (removed old selectedSite logic)
   return (
     <div>
       {/* Header with create button */}

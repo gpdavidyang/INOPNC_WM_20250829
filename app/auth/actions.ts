@@ -369,7 +369,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
     }
 
     // Check if already processed
-    if (request.status !== 'pending' && request.status !== 'rejected') {
+    if (request.status !== 'pending') {
       return { error: '이미 처리된 요청입니다.' }
     }
 

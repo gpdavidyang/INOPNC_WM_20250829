@@ -37,12 +37,12 @@ export async function GET(
 
     const assignedUserIds = assignedWorkers?.map(w => w.user_id) || []
 
-    // Get all workers that are not assigned to this site
+    // First try to get from users table (which seems to have more data)
     let query = supabase
-      .from('profiles')
-      .select('id, full_name, email, phone, role, company')
-      .in('role', ['worker', 'supervisor', 'safety_officer'])
-      .order('full_name')
+      .from('users')
+      .select('id, name, email, phone, role, department')
+      .in('role', ['worker', 'supervisor', 'safety_officer', '작업자', '감독자', '안전관리자', '현장관리자'])
+      .order('name')
 
     // Exclude already assigned workers
     if (assignedUserIds.length > 0) {
@@ -51,6 +51,16 @@ export async function GET(
 
     const { data: availableWorkers, error: workersError } = await query
 
+    // Map the data to expected format
+    const formattedWorkers = availableWorkers?.map(worker => ({
+      id: worker.id,
+      full_name: worker.name,
+      email: worker.email,
+      phone: worker.phone,
+      role: worker.role,
+      company: worker.department
+    })) || []
+
     if (workersError) {
       console.error('Error fetching available workers:', workersError)
       return NextResponse.json({ error: 'Failed to fetch available workers' }, { status: 500 })
@@ -58,8 +68,8 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: availableWorkers || [],
-      total: availableWorkers?.length || 0,
+      data: formattedWorkers,
+      total: formattedWorkers.length,
       site_id: siteId
     })
 

@@ -86,14 +86,39 @@ export default function SiteDetailPage() {
   const fetchSiteData = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/admin/sites/${siteId}/integrated`)
       
-      if (response.ok) {
-        const integratedData = await response.json()
-        setData(integratedData)
-      } else {
-        console.error('Failed to fetch site data:', response.statusText)
+      // Fetch site details
+      const { data: siteData, error: siteError } = await supabase
+        .from('sites')
+        .select('*')
+        .eq('id', siteId)
+        .single()
+      
+      if (siteError) {
+        console.error('Error fetching site:', siteError)
+        return
       }
+      
+      // Create integrated data structure with just the site info for now
+      // Other tabs will fetch their own data when needed
+      const integratedData: IntegratedSiteData = {
+        site: siteData,
+        customers: [],
+        primary_customer: null,
+        daily_reports: [],
+        documents_by_category: {},
+        statistics: {
+          total_reports: 0,
+          total_documents: 0,
+          assigned_workers: 0,
+          total_partners: 0
+        },
+        recent_activities: [],
+        assigned_workers: [],
+        document_category_counts: {}
+      }
+      
+      setData(integratedData)
     } catch (error) {
       console.error('Error fetching site data:', error)
     } finally {

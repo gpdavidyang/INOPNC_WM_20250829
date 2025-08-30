@@ -38,15 +38,7 @@ export async function GET(
         assigned_by,
         trade,
         position,
-        is_active,
-        profiles!site_workers_user_id_fkey(
-          id,
-          full_name,
-          email,
-          phone,
-          role,
-          company
-        )
+        is_active
       `)
       .eq('site_id', siteId)
       .eq('is_active', true)
@@ -57,19 +49,32 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to fetch site workers' }, { status: 500 })
     }
 
-    // Transform the data to flatten the structure
-    const workers = assignments?.map(assignment => ({
-      id: assignment.profiles?.id,
-      full_name: assignment.profiles?.full_name,
-      email: assignment.profiles?.email,
-      phone: assignment.profiles?.phone,
-      role: assignment.profiles?.role,
-      company: assignment.profiles?.company,
-      trade: assignment.trade,
-      position: assignment.position,
-      assigned_at: assignment.assigned_at,
-      assignment_id: assignment.id
-    })) || []
+    // Get worker details from users table
+    const workerIds = assignments?.map(a => a.user_id) || []
+    let workers = []
+    
+    if (workerIds.length > 0) {
+      const { data: userDetails } = await supabase
+        .from('users')
+        .select('id, name, email, phone, role, department')
+        .in('id', workerIds)
+      
+      workers = assignments?.map(assignment => {
+        const user = userDetails?.find(u => u.id === assignment.user_id)
+        return {
+          id: assignment.user_id,
+          full_name: user?.name || 'Unknown',
+          email: user?.email || '',
+          phone: user?.phone || '',
+          role: user?.role || 'worker',
+          company: user?.department || '',
+          trade: assignment.trade,
+          position: assignment.position,
+          assigned_at: assignment.assigned_at,
+          assignment_id: assignment.id
+        }
+      }) || []
+    }
 
     // Get statistics
     const statistics = {

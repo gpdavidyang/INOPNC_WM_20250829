@@ -8,6 +8,13 @@ import {
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 
 interface Worker {
   id: string
@@ -37,26 +44,37 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
   const [selectedWorkers, setSelectedWorkers] = useState<Set<string>>(new Set())
   const [showAvailable, setShowAvailable] = useState(false)
 
+  console.log('SiteWorkersTab rendered with siteId:', siteId, 'siteName:', siteName)
+
   useEffect(() => {
     fetchWorkers()
   }, [siteId])
 
   const fetchWorkers = async () => {
+    console.log('Fetching workers for site:', siteId)
     try {
       setLoading(true)
       
       // Fetch assigned workers
       const assignedRes = await fetch(`/api/admin/sites/${siteId}/workers`)
+      console.log('Assigned workers response status:', assignedRes.status)
       if (assignedRes.ok) {
         const assignedData = await assignedRes.json()
+        console.log('Assigned workers data:', assignedData)
         setAssignedWorkers(assignedData.data || [])
+      } else {
+        console.error('Failed to fetch assigned workers:', assignedRes.status, assignedRes.statusText)
       }
 
       // Fetch all available workers
       const availableRes = await fetch(`/api/admin/sites/${siteId}/workers/available`)
+      console.log('Available workers response status:', availableRes.status)
       if (availableRes.ok) {
         const availableData = await availableRes.json()
+        console.log('Available workers data:', availableData)
         setAvailableWorkers(availableData.data || [])
+      } else {
+        console.error('Failed to fetch available workers:', availableRes.status, availableRes.statusText)
       }
     } catch (error) {
       console.error('Error fetching workers:', error)
@@ -128,7 +146,11 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
       admin: { text: '관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: Shield },
       supervisor: { text: '감독관', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: User },
       worker: { text: '작업자', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: HardHat },
-      safety_officer: { text: '안전관리자', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: Shield }
+      safety_officer: { text: '안전관리자', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: Shield },
+      '작업자': { text: '작업자', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: HardHat },
+      '감독자': { text: '감독자', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: User },
+      '안전관리자': { text: '안전관리자', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: Shield },
+      '현장관리자': { text: '현장관리자', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300', icon: Building2 }
     }
     
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.worker
@@ -238,35 +260,37 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
               placeholder="이름, 이메일, 소속 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
             />
           </div>
 
           {/* Role Filter */}
-          <select
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
-          >
-            <option value="all">전체 역할</option>
-            <option value="worker">작업자</option>
-            <option value="supervisor">감독관</option>
-            <option value="safety_officer">안전관리자</option>
-            <option value="admin">관리자</option>
-          </select>
+          <CustomSelect value={filterRole} onValueChange={setFilterRole}>
+            <CustomSelectTrigger className="w-[180px]">
+              <CustomSelectValue placeholder="역할 선택" />
+            </CustomSelectTrigger>
+            <CustomSelectContent>
+              <CustomSelectItem value="all">전체 역할</CustomSelectItem>
+              <CustomSelectItem value="worker">작업자</CustomSelectItem>
+              <CustomSelectItem value="supervisor">감독관</CustomSelectItem>
+              <CustomSelectItem value="safety_officer">안전관리자</CustomSelectItem>
+              <CustomSelectItem value="admin">관리자</CustomSelectItem>
+            </CustomSelectContent>
+          </CustomSelect>
 
           {/* Trade Filter */}
           {allTrades.length > 0 && (
-            <select
-              value={filterTrade}
-              onChange={(e) => setFilterTrade(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
-            >
-              <option value="all">전체 공종</option>
-              {allTrades.map(trade => (
-                <option key={trade} value={trade}>{trade}</option>
-              ))}
-            </select>
+            <CustomSelect value={filterTrade} onValueChange={setFilterTrade}>
+              <CustomSelectTrigger className="w-[180px]">
+                <CustomSelectValue placeholder="공종 선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="all">전체 공종</CustomSelectItem>
+                {allTrades.map(trade => (
+                  <CustomSelectItem key={trade} value={trade}>{trade}</CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
           )}
 
           {/* Add Worker Button */}

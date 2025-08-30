@@ -47,6 +47,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
   const [showForm, setShowForm] = useState(false)
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
   const [showDetail, setShowDetail] = useState(false)
+  const [showDropdownId, setShowDropdownId] = useState<string | null>(null)
   const supabase = createClient()
 
   const loadPartners = async () => {
@@ -102,13 +103,26 @@ export default function PartnerList({ profile }: PartnerListProps) {
     loadPartners()
   }, [searchTerm, statusFilter, typeFilter])
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showDropdownId) {
+        setShowDropdownId(null)
+      }
+    }
+
+    document.addEventListener('click', handleClickOutside)
+    return () => {
+      document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showDropdownId])
+
   const handleEdit = (partner: Partner) => {
     setSelectedPartner(partner)
     setShowForm(true)
   }
 
   const handleDelete = async (partnerId: string) => {
-    if (!confirm('정말로 이 파트너사를 삭제하시겠습니까?')) return
+    if (!confirm('정말로 이 파트너사를 삭제하시겠습니까?\n\n관련된 모든 데이터가 함께 삭제됩니다.')) return
 
     try {
       const { error } = await supabase
@@ -118,10 +132,16 @@ export default function PartnerList({ profile }: PartnerListProps) {
 
       if (error) throw error
 
+      alert('파트너사가 삭제되었습니다.')
       await loadPartners()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to delete partner:', error)
-      alert('파트너사 삭제에 실패했습니다.')
+      
+      if (error.code === '23503') {
+        alert('이 파트너사는 삭제할 수 없습니다.\n\n해당 파트너사가 현장에 배정되어 있거나 관련 데이터가 있습니다.\n먼저 관련 데이터를 삭제하거나 다른 파트너사로 변경한 후 다시 시도해주세요.')
+      } else {
+        alert('파트너사 삭제에 실패했습니다.')
+      }
     }
   }
 
@@ -198,7 +218,10 @@ export default function PartnerList({ profile }: PartnerListProps) {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setSelectedPartner(null)
+            setShowForm(true)
+          }}
           className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
         >
           <Plus className="h-4 w-4 mr-2" />
@@ -304,12 +327,38 @@ export default function PartnerList({ profile }: PartnerListProps) {
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
-                        // TODO: Show dropdown menu
+                        setShowDropdownId(showDropdownId === partner.id ? null : partner.id)
                       }}
                       className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                     >
                       <MoreHorizontal className="h-4 w-4 text-gray-400" />
                     </button>
+                    {showDropdownId === partner.id && (
+                      <div className="absolute right-0 top-8 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg z-10 py-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleEdit(partner)
+                            setShowDropdownId(null)
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          수정
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(partner.id)
+                            setShowDropdownId(null)
+                          }}
+                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          삭제
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
