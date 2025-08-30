@@ -76,12 +76,8 @@ export async function GET(
         title,
         description,
         created_at,
-        updated_by,
-        customer_company_id,
-        profiles!unified_documents_uploaded_by_fkey(
-          full_name,
-          role
-        )
+        uploaded_by,
+        customer_company_id
       `)
       .eq('site_id', siteId)
       .eq('category_type', 'invoice')
