@@ -110,7 +110,7 @@ export default function IntegratedDashboard() {
           {[
             { id: 'overview', name: '전체 개요', icon: BarChart3 },
             { id: 'sites', name: '현장 통합뷰', icon: Building2 },
-            { id: 'reports', name: '보고서 통합뷰', icon: Calendar },
+            { id: 'reports', name: '작업일지 통합뷰', icon: Calendar },
             { id: 'users', name: '사용자 통합뷰', icon: Users },
             { id: 'documents', name: '문서 통합뷰', icon: FileText },
           ].map((tab) => {
