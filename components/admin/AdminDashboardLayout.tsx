@@ -5,7 +5,7 @@ import {
   Shield, Menu, X, Home, Users, Building2, FolderCheck, 
   DollarSign, Package, Layers, Settings, LogOut, BarChart3, Bell,
   ChevronDown, ChevronRight, User, Key, UserPlus, FileText, MessageSquare,
-  FolderOpen, FileImage, FileCheck, Camera, Edit3, Share2
+  FolderOpen, FileImage, FileCheck, Camera, Edit3, Share2, Layout
 } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
@@ -32,6 +32,12 @@ const menuCategories = [
         label: '홈',
         icon: Home,
         href: '/dashboard/admin'
+      },
+      {
+        id: 'integrated',
+        label: '통합 관리 대시보드',
+        icon: Layout,
+        href: '/dashboard/admin/integrated'
       }
     ]
   },
