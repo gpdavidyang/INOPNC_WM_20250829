@@ -59,13 +59,13 @@ const nextConfig = {
   // Image configuration
   images: {
     formats: ['image/webp'],
-    domains: ['localhost'],
+    domains: ['localhost', 'inopnc-wm-20250829.vercel.app'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 86400,
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    unoptimized: true,
+    unoptimized: false,
   },
   
   // DISABLE font optimization
