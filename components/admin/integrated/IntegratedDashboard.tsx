@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Building2, FileText, Users, BarChart3, Calendar, Package, Shield, Image } from 'lucide-react'
-import UnifiedSiteListView from './UnifiedSiteListView'
-import UnifiedDailyReportListView from './UnifiedDailyReportListView'
+import EnhancedSiteView from './EnhancedSiteView'
+import EnhancedDailyReportsView from './EnhancedDailyReportsView'
+import EnhancedDocumentsView from './EnhancedDocumentsView'
 import UnifiedUserListView from './UnifiedUserListView'
-import UnifiedDocumentListView from './UnifiedDocumentListView'
 
 interface DashboardStats {
   total_sites: number
@@ -254,12 +254,12 @@ export default function IntegratedDashboard() {
 
       {/* Sites View */}
       {activeView === 'sites' && (
-        <UnifiedSiteListView />
+        <EnhancedSiteView />
       )}
 
       {/* Reports View */}
       {activeView === 'reports' && (
-        <UnifiedDailyReportListView />
+        <EnhancedDailyReportsView />
       )}
 
       {/* Users View */}
@@ -269,7 +269,7 @@ export default function IntegratedDashboard() {
 
       {/* Documents View */}
       {activeView === 'documents' && (
-        <UnifiedDocumentListView />
+        <EnhancedDocumentsView />
       )}
     </div>
   )

@@ -75,7 +75,7 @@ const menuCategories = [
   },
   {
     id: 'accounts',
-    label: '사용자 관리',
+    label: '사용자 및 업체 관리',
     collapsible: true,
     items: [
       {
@@ -89,12 +89,6 @@ const menuCategories = [
         label: '가입 요청 관리',
         icon: UserPlus,
         href: '/dashboard/admin/signup-requests'
-      },
-      {
-        id: 'salary',
-        label: '급여 관리',
-        icon: DollarSign,
-        href: '/dashboard/admin/salary'
       },
       {
         id: 'organizations',
@@ -120,6 +114,12 @@ const menuCategories = [
         label: '문서함 관리',
         icon: FolderOpen,
         href: '/dashboard/admin/documents'
+      },
+      {
+        id: 'salary',
+        label: '급여관리 도구',
+        icon: DollarSign,
+        href: '/dashboard/admin/salary'
       },
       {
         id: 'photo-grid-tool',

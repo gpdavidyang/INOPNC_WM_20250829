@@ -98,7 +98,7 @@ export default async function SignupRequestsPage() {
     <div className="space-y-6">
     <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          회원가입 승인 관리
+          가입 요청 관리
         </h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
           새로운 회원가입 요청을 검토하고 승인/거절할 수 있습니다.
