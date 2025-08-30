@@ -17,10 +17,9 @@ import {
   UpdateUserData,
   UserWithSites 
 } from '@/app/actions/admin/users'
-import { Plus, Search, User, Phone, Mail, Shield, MapPin, Key, UserCheck, UserX, FileText, ClipboardCheck, Calendar, Building } from 'lucide-react'
+import { Plus, Search, User, Phone, Mail, Shield, Key, UserCheck, UserX, FileText, ClipboardCheck, Calendar, Building } from 'lucide-react'
 import { toast } from 'sonner'
 import UserDetailModal from './UserDetailModal'
-import UserSiteAssignmentModal from './UserSiteAssignmentModal'
 
 interface UserManagementProps {
   profile: Profile
@@ -51,8 +50,6 @@ export default function UserManagement({ profile }: UserManagementProps) {
   const [editingUser, setEditingUser] = useState<UserWithSites | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
   const [detailUser, setDetailUser] = useState<UserWithSites | null>(null)
-  const [showSiteAssignmentModal, setShowSiteAssignmentModal] = useState(false)
-  const [siteAssignmentUser, setSiteAssignmentUser] = useState<UserWithSites | null>(null)
 
   // Load users data
   const loadUsers = async () => {
@@ -314,8 +311,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
         return (
           <div className="space-y-1">
             {activeAssignments.slice(0, 2).map((assignment, index) => (
-              <div key={index} className="text-sm flex items-center">
-                <MapPin className="h-3 w-3 text-gray-400 mr-1" />
+              <div key={index} className="text-sm">
                 <span className="text-gray-900 dark:text-gray-100">
                   {assignment.site_name}
                 </span>
@@ -435,11 +431,6 @@ export default function UserManagement({ profile }: UserManagementProps) {
     }
   ]
 
-  // Handle site assignment
-  const handleSiteAssignment = (user: UserWithSites) => {
-    setSiteAssignmentUser(user)
-    setShowSiteAssignmentModal(true)
-  }
 
   // Custom actions for individual users
   const customActions = [
@@ -447,12 +438,6 @@ export default function UserManagement({ profile }: UserManagementProps) {
       icon: Key,
       label: '비밀번호 재설정',
       onClick: handlePasswordReset,
-      show: (user: UserWithSites) => user.role !== 'system_admin' || profile.role === 'system_admin'
-    },
-    {
-      icon: MapPin,
-      label: '현장 할당',
-      onClick: handleSiteAssignment,
       show: (user: UserWithSites) => user.role !== 'system_admin' || profile.role === 'system_admin'
     }
   ]
@@ -598,18 +583,6 @@ export default function UserManagement({ profile }: UserManagementProps) {
             loadUsers()
           }}
           user={editingUser}
-        />
-      )}
-
-      {showSiteAssignmentModal && siteAssignmentUser && (
-        <UserSiteAssignmentModal
-          user={siteAssignmentUser}
-          isOpen={showSiteAssignmentModal}
-          onClose={() => {
-            setShowSiteAssignmentModal(false)
-            setSiteAssignmentUser(null)
-            loadUsers() // Refresh the user list
-          }}
         />
       )}
     </div>

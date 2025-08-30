@@ -69,6 +69,8 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
   const [site, setSite] = useState<Site | null>(null)
   const [assignments, setAssignments] = useState<SiteAssignment[]>([])
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([])
+  const [workerCount, setWorkerCount] = useState(0)
+  const [reportCount, setReportCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'info' | 'workers' | 'reports'>('info')
   const supabase = createClient()
@@ -90,7 +92,7 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
       if (siteError) throw siteError
       setSite(siteData)
 
-      // Fetch site assignments
+      // Fetch site assignments with counts
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('site_assignments')
         .select('*')
@@ -100,7 +102,11 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
       if (assignmentsError) {
         console.error('Error fetching assignments:', assignmentsError)
         setAssignments([])
+        setWorkerCount(0)
       } else {
+        // Set worker count
+        setWorkerCount(assignmentsData?.length || 0)
+        
         // Fetch profile data separately to avoid FK issues
         const enrichedAssignments = await Promise.all(
           (assignmentsData || []).map(async (assignment) => {
@@ -134,28 +140,45 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
         setAssignments(enrichedAssignments)
       }
 
-      // Fetch recent daily reports
-      const { data: reportsData, error: reportsError } = await supabase
-        .from('daily_reports')
-        .select(`
-          id,
-          member_name,
-          process_type,
-          work_date,
-          status,
-          total_workers,
-          issues,
-          created_at
-        `)
-        .eq('site_id', siteId)
-        .order('work_date', { ascending: false })
-        .limit(10)
+      // Fetch daily reports count and recent reports
+      const [reportsCountResult, reportsDataResult] = await Promise.all([
+        // Get total count
+        supabase
+          .from('daily_reports')
+          .select('id', { count: 'exact', head: true })
+          .eq('site_id', siteId),
+        // Get recent reports for display
+        supabase
+          .from('daily_reports')
+          .select(`
+            id,
+            member_name,
+            process_type,
+            work_date,
+            status,
+            total_workers,
+            issues,
+            created_at
+          `)
+          .eq('site_id', siteId)
+          .order('work_date', { ascending: false })
+          .limit(10)
+      ])
 
-      if (reportsError) {
-        console.error('Error fetching reports:', reportsError)
+      // Set report count
+      if (reportsCountResult.error) {
+        console.error('Error fetching reports count:', reportsCountResult.error)
+        setReportCount(0)
+      } else {
+        setReportCount(reportsCountResult.count || 0)
+      }
+
+      // Set recent reports
+      if (reportsDataResult.error) {
+        console.error('Error fetching reports:', reportsDataResult.error)
         setDailyReports([])
       } else {
-        setDailyReports(reportsData || [])
+        setDailyReports(reportsDataResult.data || [])
       }
 
     } catch (error) {
@@ -176,7 +199,7 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
         created_at: new Date().toISOString()
       })
       
-      setAssignments([
+      const mockAssignments = [
         {
           id: '1',
           user_id: '1',
@@ -196,21 +219,35 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
             email: 'worker@site.com',
             phone: '010-3333-4444'
           }
-        }
-      ])
-      
-      setDailyReports([
+        },
         {
-          id: '1',
-          title: '콘크리트 타설 작업',
-          work_date: '2024-08-22',
-          status: 'completed',
-          created_at: new Date().toISOString(),
+          id: '3',
+          user_id: '3',
+          role: 'worker',
           profile: {
-            full_name: '김현장'
+            full_name: '최작업',
+            email: 'worker2@site.com',
+            phone: '010-5555-6666'
           }
         }
-      ])
+      ]
+      setAssignments(mockAssignments)
+      setWorkerCount(mockAssignments.length)
+      
+      const mockReports = [
+        {
+          id: '1',
+          member_name: '김현장',
+          process_type: '콘크리트 타설 작업',
+          work_date: '2024-08-22',
+          status: 'completed',
+          total_workers: 5,
+          issues: '특이사항 없음',
+          created_at: new Date().toISOString()
+        }
+      ]
+      setDailyReports(mockReports)
+      setReportCount(44) // Mock count to match the list view
     } finally {
       setLoading(false)
     }
@@ -335,6 +372,40 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {activeTab === 'info' && (
             <div className="space-y-6">
+              {/* 요약 통계 */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">현장 현황</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">배정 작업자</p>
+                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{workerCount}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-green-600 dark:text-green-400 font-medium">작업일지</p>
+                        <p className="text-2xl font-bold text-green-900 dark:text-green-100">{reportCount}</p>
+                      </div>
+                      <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">현장 상태</p>
+                        <p className="text-sm font-bold text-purple-900 dark:text-purple-100 mt-1">{getStatusBadge(site.status)}</p>
+                      </div>
+                      <Building2 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* 기본 정보 */}
               <div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">기본 정보</h3>
@@ -428,7 +499,7 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
           {activeTab === 'workers' && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                배정된 작업자 ({assignments.length}명)
+                배정된 작업자 ({workerCount}명)
               </h3>
               {assignments.length === 0 ? (
                 <p className="text-center text-gray-500 dark:text-gray-400 py-8">
@@ -468,7 +539,7 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
           {activeTab === 'reports' && (
             <div className="space-y-4">
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                최근 작업일지 ({dailyReports.length}건)
+                작업일지 ({reportCount}건)
               </h3>
               {dailyReports.length === 0 ? (
                 <p className="text-center text-gray-500 dark:text-gray-400 py-8">

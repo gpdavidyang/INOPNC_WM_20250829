@@ -17,6 +17,8 @@ export default function SiteManagementList() {
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [sortField, setSortField] = useState<'name' | 'address' | 'status' | 'start_date' | 'manager_name' | 'assigned_users' | 'total_reports'>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [createLoading, setCreateLoading] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -56,25 +58,21 @@ export default function SiteManagementList() {
           sitesData.map(async (site) => {
             try {
               const [userCount, reportCount] = await Promise.all([
-                supabase.from('user_sites').select('id', { count: 'exact', head: true }).eq('site_id', site.id),
+                supabase.from('site_assignments').select('id', { count: 'exact', head: true }).eq('site_id', site.id).eq('is_active', true),
                 supabase.from('daily_reports').select('id', { count: 'exact', head: true }).eq('site_id', site.id)
               ])
               
               return {
                 ...site,
                 assigned_users: userCount.count || 0,
-                total_reports: reportCount.count || 0,
-                partner_count: 0,
-                document_count: 0
+                total_reports: reportCount.count || 0
               }
             } catch (error) {
               console.warn(`Failed to fetch counts for site ${site.id}:`, error)
               return {
                 ...site,
                 assigned_users: 0,
-                total_reports: 0,
-                partner_count: 0,
-                document_count: 0
+                total_reports: 0
               }
             }
           })
@@ -96,6 +94,60 @@ export default function SiteManagementList() {
   const handleSiteSelect = (site: Site) => {
     // Navigate to the new site detail page
     router.push(`/dashboard/admin/sites/${site.id}`)
+  }
+
+  const handleCreateSite = async (formData: {
+    name: string
+    address: string
+    description?: string
+    manager_name?: string
+    safety_manager_name?: string
+    start_date: string
+    end_date?: string
+  }) => {
+    try {
+      setCreateLoading(true)
+      
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw new Error('로그인이 필요합니다.')
+      }
+
+      const siteData = {
+        name: formData.name,
+        address: formData.address,
+        description: formData.description || null,
+        manager_name: formData.manager_name || null,
+        safety_manager_name: formData.safety_manager_name || null,
+        start_date: formData.start_date,
+        end_date: formData.end_date || null,
+        status: 'active' as const,
+        created_by: user.id
+      }
+
+      const { data: newSite, error: createError } = await supabase
+        .from('sites')
+        .insert([siteData])
+        .select()
+        .single()
+
+      if (createError) {
+        throw createError
+      }
+
+      // 성공 시 목록 새로고침
+      await fetchSites()
+      setShowCreateModal(false)
+      
+      // 생성된 현장으로 이동
+      router.push(`/dashboard/admin/sites/${newSite.id}`)
+      
+    } catch (error) {
+      console.error('Error creating site:', error)
+      alert('현장 생성에 실패했습니다.')
+    } finally {
+      setCreateLoading(false)
+    }
   }
 
   const handleSort = (field: typeof sortField) => {
@@ -123,10 +175,7 @@ export default function SiteManagementList() {
         site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (site.address && site.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (site.manager_name && site.manager_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (site.safety_manager_name && site.safety_manager_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (site.work_process && site.work_process.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (site.work_section && site.work_section.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (site.component_name && site.component_name.toLowerCase().includes(searchTerm.toLowerCase()))
+        (site.safety_manager_name && site.safety_manager_name.toLowerCase().includes(searchTerm.toLowerCase()))
       
       const matchesStatus = statusFilter === '' || site.status === statusFilter
       
@@ -209,22 +258,13 @@ export default function SiteManagementList() {
             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               안전담당
             </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              작업공정
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              작업구간
-            </th>
-            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              부재명
-            </th>
             <th 
               scope="col" 
               className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
               onClick={() => handleSort('assigned_users')}
             >
               <div className="flex items-center justify-center gap-1">
-                인원
+                작업자수
                 {getSortIcon('assigned_users')}
               </div>
             </th>
@@ -234,12 +274,9 @@ export default function SiteManagementList() {
               onClick={() => handleSort('total_reports')}
             >
               <div className="flex items-center justify-center gap-1">
-                보고서
+                작업일지수
                 {getSortIcon('total_reports')}
               </div>
-            </th>
-            <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              문서
             </th>
           </tr>
         </thead>
@@ -311,21 +348,6 @@ export default function SiteManagementList() {
                   </div>
                 )}
               </td>
-              <td className="px-6 py-4">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {site.work_process || '-'}
-                </div>
-              </td>
-              <td className="px-6 py-4">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {site.work_section || '-'}
-                </div>
-              </td>
-              <td className="px-6 py-4">
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  {site.component_name || '-'}
-                </div>
-              </td>
               <td className="px-6 py-4 whitespace-nowrap text-center">
                 <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">
                   {site.assigned_users || 0}
@@ -334,11 +356,6 @@ export default function SiteManagementList() {
               <td className="px-6 py-4 whitespace-nowrap text-center">
                 <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-full">
                   {site.total_reports || 0}
-                </span>
-              </td>
-              <td className="px-6 py-4 whitespace-nowrap text-center">
-                <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded-full">
-                  {site.document_count || 0}
                 </span>
               </td>
             </tr>
@@ -386,6 +403,7 @@ export default function SiteManagementList() {
 
           <button
             type="button"
+            onClick={() => setShowCreateModal(true)}
             className="inline-flex items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
           >
             <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
@@ -405,7 +423,7 @@ export default function SiteManagementList() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full rounded-md border-0 py-2 pl-10 pr-3 text-gray-900 dark:text-gray-100 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-blue-600 dark:focus:ring-blue-500 sm:text-sm sm:leading-6 bg-white dark:bg-gray-800"
-            placeholder="현장명, 주소, 담당자, 작업공정, 작업구간, 부재명 검색..."
+            placeholder="현장명, 주소, 담당자 검색..."
           />
         </div>
         
@@ -526,24 +544,6 @@ export default function SiteManagementList() {
                         <span className="truncate">{site.safety_manager_name}</span>
                       </div>
                     )}
-                    {site.work_process && (
-                      <div className="flex items-center text-gray-600 dark:text-gray-400">
-                        <span className="font-medium mr-1">공정:</span>
-                        <span className="truncate">{site.work_process}</span>
-                      </div>
-                    )}
-                    {site.work_section && (
-                      <div className="flex items-center text-gray-600 dark:text-gray-400">
-                        <span className="font-medium mr-1">구간:</span>
-                        <span className="truncate">{site.work_section}</span>
-                      </div>
-                    )}
-                    {site.component_name && (
-                      <div className="flex items-center text-gray-600 dark:text-gray-400">
-                        <span className="font-medium mr-1">부재:</span>
-                        <span className="truncate">{site.component_name}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Statistics Bar */}
@@ -560,12 +560,6 @@ export default function SiteManagementList() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{site.total_reports || 0}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <svg className="h-4 w-4 text-gray-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{site.document_count || 0}</span>
                       </div>
                     </div>
                     {site.end_date && (
@@ -592,6 +586,7 @@ export default function SiteManagementList() {
           <div className="mt-6">
             <button
               type="button"
+              onClick={() => setShowCreateModal(true)}
               className="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
             >
               <PlusIcon className="-ml-0.5 mr-1.5 h-5 w-5" aria-hidden="true" />
@@ -600,6 +595,212 @@ export default function SiteManagementList() {
           </div>
         </div>
       )}
+
+      {/* Create Site Modal */}
+      {showCreateModal && (
+        <CreateSiteModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSubmit={handleCreateSite}
+          loading={createLoading}
+        />
+      )}
+    </div>
+  )
+}
+
+// Create Site Modal Component
+function CreateSiteModal({ 
+  isOpen, 
+  onClose, 
+  onSubmit, 
+  loading 
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onSubmit: (formData: any) => void
+  loading: boolean
+}) {
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    description: '',
+    manager_name: '',
+    safety_manager_name: '',
+    start_date: '',
+    end_date: ''
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name || !formData.address || !formData.start_date) {
+      alert('필수 항목을 모두 입력해주세요.')
+      return
+    }
+    onSubmit(formData)
+  }
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }))
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">새 현장 등록</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <span className="sr-only">닫기</span>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 현장명 (필수) */}
+            <div className="md:col-span-2">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                현장명 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                required
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="현장명을 입력하세요"
+              />
+            </div>
+
+            {/* 주소 (필수) */}
+            <div className="md:col-span-2">
+              <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                주소 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="address"
+                name="address"
+                required
+                value={formData.address}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="현장 주소를 입력하세요"
+              />
+            </div>
+
+            {/* 건설담당자 */}
+            <div>
+              <label htmlFor="manager_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                건설담당자
+              </label>
+              <input
+                type="text"
+                id="manager_name"
+                name="manager_name"
+                value={formData.manager_name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="담당자명"
+              />
+            </div>
+
+            {/* 안전담당자 */}
+            <div>
+              <label htmlFor="safety_manager_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                안전담당자
+              </label>
+              <input
+                type="text"
+                id="safety_manager_name"
+                name="safety_manager_name"
+                value={formData.safety_manager_name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="안전담당자명"
+              />
+            </div>
+
+            {/* 시작일 (필수) */}
+            <div>
+              <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                시작일 <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                id="start_date"
+                name="start_date"
+                required
+                value={formData.start_date}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+
+            {/* 종료일 */}
+            <div>
+              <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                종료일
+              </label>
+              <input
+                type="date"
+                id="end_date"
+                name="end_date"
+                value={formData.end_date}
+                onChange={handleChange}
+                min={formData.start_date}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              />
+            </div>
+
+            {/* 설명 */}
+            <div className="md:col-span-2">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                설명
+              </label>
+              <textarea
+                id="description"
+                name="description"
+                rows={3}
+                value={formData.description}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                placeholder="현장에 대한 설명을 입력하세요 (선택사항)"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? '생성 중...' : '현장 생성'}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }

@@ -92,6 +92,11 @@ export default function SiteInfoTab({ profile }: SiteInfoTabProps) {
             name: currentSite.manager_name || '현장 소장',
             phone: currentSite.construction_manager_phone
           }] : []),
+          ...(currentSite.assistant_manager_phone ? [{
+            role: 'assistant_manager' as const,
+            name: currentSite.assistant_manager_name || '부담당자',
+            phone: currentSite.assistant_manager_phone
+          }] : []),
           ...(currentSite.safety_manager_phone ? [{
             role: 'safety_manager' as const,
             name: currentSite.safety_manager_name || '안전 관리자',

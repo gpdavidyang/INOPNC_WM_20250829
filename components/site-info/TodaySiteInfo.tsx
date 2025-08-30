@@ -293,7 +293,34 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                   </div>
                 </div>
               ))}
-              {/* Safety Manager second */}
+              {/* Assistant Manager second */}
+              {siteInfo.managers.filter((manager: any) => manager.role === 'assistant_manager').map((manager: any, index: number) => (
+                <div key={index} className="space-y-1 text-sm">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">부담당자</span>
+                    <div className="flex-1"></div>
+                    <button
+                      onClick={() => copyToClipboard(manager.phone, '전화번호')}
+                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                      title="전화번호 복사"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-gray-400" />
+                    </button>
+                    <button
+                      onClick={() => makePhoneCall(manager.phone)}
+                      className="p-1 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                      title="전화"
+                    >
+                      <Phone className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                    </button>
+                  </div>
+                  <div className="pl-6 text-sm text-gray-600 dark:text-gray-400">
+                    {manager.name} • {manager.phone}
+                  </div>
+                </div>
+              ))}
+              {/* Safety Manager third */}
               {siteInfo.managers.filter((manager: any) => manager.role === 'safety_manager').map((manager: any, index: number) => (
                 <div key={index} className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
@@ -323,13 +350,46 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
             </>
           )}
 
+          {/* Construction Period */}
+          {(siteInfo.construction_period?.start_date || siteInfo.construction_period?.end_date) && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">공사기간</span>
+              </div>
+              <div className="pl-6 text-sm text-gray-600 dark:text-gray-400">
+                {siteInfo.construction_period.start_date ? 
+                  new Date(siteInfo.construction_period.start_date).toLocaleDateString('ko-KR') : '시작일 미정'
+                } ~ {siteInfo.construction_period.end_date ? 
+                  new Date(siteInfo.construction_period.end_date).toLocaleDateString('ko-KR') : '종료일 미정'
+                }
+              </div>
+            </div>
+          )}
+
+          {/* Component Name */}
+          {siteInfo.process.member_name && siteInfo.process.member_name !== '미정' && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100">부재명</span>
+              </div>
+              <div className="pl-6 text-sm text-gray-600 dark:text-gray-400">
+                {siteInfo.process.member_name}
+              </div>
+            </div>
+          )}
+
           {/* Work Details */}
-          <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">작업내용</span>
-            <span className="text-sm text-gray-600 dark:text-gray-400 flex-1 ml-2">
-              {siteInfo.process.work_process} • {siteInfo.process.work_section}
-            </span>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Wrench className="h-4 w-4 text-gray-400 flex-shrink-0" />
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">작업내용</span>
+            </div>
+            <div className="pl-6 text-sm text-gray-600 dark:text-gray-400 space-y-0.5">
+              <div>작업공정: {siteInfo.process.work_process || '미정'}</div>
+              <div>작업구간: {siteInfo.process.work_section || '미정'}</div>
+            </div>
           </div>
 
           {/* Blueprint Document */}
