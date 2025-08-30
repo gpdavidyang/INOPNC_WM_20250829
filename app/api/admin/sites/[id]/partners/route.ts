@@ -77,14 +77,10 @@ export async function GET(
         description,
         created_at,
         updated_by,
-        customer_id,
+        customer_company_id,
         profiles!unified_documents_uploaded_by_fkey(
           full_name,
           role
-        ),
-        customers(
-          id,
-          name
         )
       `)
       .eq('site_id', siteId)
@@ -102,8 +98,8 @@ export async function GET(
     const totalInvoiceDocuments = invoiceDocuments?.length || 0
     
     const documentsByPartner = invoiceDocuments?.reduce((acc, doc) => {
-      const partnerId = doc.customer_id || 'unassigned'
-      const partnerName = doc.customers?.name || '미배정'
+      const partnerId = doc.customer_company_id || 'unassigned'
+      const partnerName = partnerId === 'unassigned' ? '미배정' : `Partner ${partnerId.slice(0, 8)}`
       
       if (!acc[partnerId]) {
         acc[partnerId] = {
