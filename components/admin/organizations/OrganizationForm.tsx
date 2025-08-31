@@ -87,7 +87,7 @@ export default function OrganizationForm({ organization, onClose, onSave }: Orga
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            {organization ? '거래처 수정' : '거래처 등록'}
+            {organization ? '소속업체 수정' : '소속업체 등록'}
           </h2>
           <button
             onClick={onClose}

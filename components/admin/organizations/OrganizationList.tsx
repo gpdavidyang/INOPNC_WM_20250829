@@ -180,7 +180,7 @@ export default function OrganizationList() {
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               <Plus className="h-4 w-4" />
-              거래처 추가
+              소속업체 등록
             </button>
           </div>
         </div>

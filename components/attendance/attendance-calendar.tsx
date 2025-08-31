@@ -99,12 +99,12 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
   }
 
   // console.log('AttendanceCalendar: Received profile:', {
-    hasProfile: !!profile,
-    profileId: profile?.id,
-    profileRole: profile?.role,
-    profileSiteId: profile?.site_id,
-    isPartnerView
-  })
+  //   hasProfile: !!profile,
+  //   profileId: profile?.id,
+  //   profileRole: profile?.role,
+  //   profileSiteId: profile?.site_id,
+  //   isPartnerView
+  // })
 
   const loadSites = async () => {
     // console.log('🏢 Loading sites...')
