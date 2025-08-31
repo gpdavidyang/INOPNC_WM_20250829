@@ -70,7 +70,6 @@ export default function UserDetailModal({
   const fetchOrganizations = async () => {
     setLoadingOrgs(true)
     try {
-      // Fetch organizations from API
       const response = await fetch('/api/admin/organizations')
       if (response.ok) {
         const data = await response.json()
@@ -114,7 +113,6 @@ export default function UserDetailModal({
     try {
       const result = await resetUserPassword(user.id)
       if (result.success && result.data) {
-        // Show the temporary password to the admin
         alert(`비밀번호가 재설정되었습니다.\n\n임시 비밀번호: ${result.data}\n\n이 비밀번호를 사용자에게 안전하게 전달해주세요.`)
       } else {
         alert(result.error || '비밀번호 재설정에 실패했습니다.')
@@ -219,7 +217,6 @@ export default function UserDetailModal({
   const handleUserDelete = async () => {
     if (!user) return
 
-    // Prevent deleting admin or system admin users
     if (user.role === 'admin' || user.role === 'system_admin') {
       alert('관리자 계정은 삭제할 수 없습니다.')
       return
