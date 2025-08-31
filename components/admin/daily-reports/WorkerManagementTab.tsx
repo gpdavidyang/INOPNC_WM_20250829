@@ -81,8 +81,6 @@ export default function WorkerManagementTab({
       setError(null)
       const supabase = createClient()
       
-      console.log('Fetching workers for report:', reportId)
-      
       const { data, error } = await supabase
         .from('daily_report_workers')
         .select('*')
@@ -91,7 +89,6 @@ export default function WorkerManagementTab({
 
       if (error) throw error
 
-      console.log('Workers fetched:', data)
       setWorkers(data || [])
     } catch (error) {
       console.error('Error fetching workers:', error)
@@ -196,8 +193,6 @@ export default function WorkerManagementTab({
       setSaving(true)
       const supabase = createClient()
 
-      console.log('Adding worker:', newWorker)
-
       const { data: insertedData, error } = await supabase
         .from('daily_report_workers')
         .insert({
@@ -209,16 +204,14 @@ export default function WorkerManagementTab({
 
       if (error) throw error
 
-      console.log('Worker added:', insertedData)
-
       // 먼저 새 작업자 행을 숨김
       setNewWorker(null)
       
-      // 작업자 목록 새로고침
-      await fetchWorkers()
-      
-      // 총 작업자 수 업데이트
-      await updateTotalWorkers()
+      // 작업자 목록 새로고침 - 딜레이 추가
+      setTimeout(async () => {
+        await fetchWorkers()
+        await updateTotalWorkers()
+      }, 100)
 
       alert('작업자가 추가되었습니다.')
     } catch (error) {
