@@ -166,9 +166,58 @@ export async function GET(request: Request) {
     return NextResponse.json(response)
 
   } catch (error) {
-    console.error('Error fetching integrated documents:', error)
+    console.error('Error fetching unified documents:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch integrated documents' },
+      { error: 'Failed to fetch unified documents' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const supabase = createClient()
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    
+    // Validate required fields
+    const { title, file_name, file_url, category_type } = body
+    if (!title || !file_name || !file_url || !category_type) {
+      return NextResponse.json({ 
+        error: 'Missing required fields: title, file_name, file_url, category_type' 
+      }, { status: 400 })
+    }
+
+    // Insert new document
+    const { data: document, error: insertError } = await supabase
+      .from('unified_document_system')
+      .insert({
+        ...body,
+        uploaded_by: user.id,
+        status: 'uploaded',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select('*')
+      .single()
+
+    if (insertError) {
+      console.error('Insert error:', insertError)
+      return NextResponse.json({ error: 'Failed to create document' }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, document })
+
+  } catch (error) {
+    console.error('Error creating document:', error)
+    return NextResponse.json(
+      { error: 'Failed to create document' },
       { status: 500 }
     )
   }

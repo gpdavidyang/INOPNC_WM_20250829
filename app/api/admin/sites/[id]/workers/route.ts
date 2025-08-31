@@ -9,14 +9,31 @@ export async function GET(
   try {
     const supabase = createClient()
     
-    // Check authentication and admin role
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Check authentication and admin role with timeout
+    let user = null
+    let authError = null
+    
+    try {
+      // Add timeout for auth check to prevent hanging
+      const authPromise = supabase.auth.getUser()
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Auth timeout')), 10000) // 10 second timeout
+      })
+      
+      const authResult = await Promise.race([authPromise, timeoutPromise]) as any
+      user = authResult.data?.user
+      authError = authResult.error
+    } catch (error) {
+      console.error('Auth check failed or timed out:', error)
+      authError = error
+    }
+    
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Verify user role - allow admin, site_manager, and worker
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
@@ -28,7 +45,7 @@ export async function GET(
 
     // For non-admin users, verify they have access to this site
     if (profile.role !== 'admin') {
-      const { data: siteAccess } = await supabase
+      const { data: siteAccess, error: siteAccessError } = await supabase
         .from('site_assignments')
         .select('id')
         .eq('site_id', params.id)
@@ -42,7 +59,6 @@ export async function GET(
     }
 
     const siteId = params.id
-    console.log(`DEBUG: Fetching workers for site ID: ${siteId}`)
 
     // Create service client for admin operations (bypasses RLS)
     const serviceClient = createServiceClient(
@@ -66,11 +82,10 @@ export async function GET(
       .eq('is_active', true)
       .order('created_at', { ascending: false })
 
-    console.log(`DEBUG: Site assignments query result:`, { 
-      assignmentsCount: assignments?.length || 0, 
-      assignments: assignments,
-      error: assignmentsError 
-    })
+    // Log for debugging if needed
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`Fetched ${assignments?.length || 0} assignments for site ${siteId}`)
+    }
 
     if (assignmentsError) {
       console.error('Error fetching site workers:', assignmentsError)
@@ -81,7 +96,6 @@ export async function GET(
     const workerIds = assignments?.map(a => a.user_id) || []
     let workers = []
     
-    console.log(`DEBUG: Worker IDs to fetch: ${JSON.stringify(workerIds)}`)
     
     if (workerIds.length > 0) {
       const { data: userDetails, error: profilesError } = await serviceClient
@@ -89,11 +103,9 @@ export async function GET(
         .select('id, full_name, email, phone, role, company')
         .in('id', workerIds)
       
-      console.log(`DEBUG: Profiles query result:`, { 
-        profilesCount: userDetails?.length || 0, 
-        profiles: userDetails,
-        error: profilesError 
-      })
+      if (process.env.NODE_ENV === 'development' && profilesError) {
+        console.error('Error fetching user profiles:', profilesError)
+      }
       
       // Remove duplicates and prioritize higher-level roles
       const workerMap = new Map()
@@ -102,12 +114,6 @@ export async function GET(
         const user = userDetails?.find(u => u.id === assignment.user_id)
         const finalRole = user?.role || assignment.role || 'worker'
         
-        console.log(`DEBUG: Processing assignment for user ${assignment.user_id}:`, {
-          assignmentRole: assignment.role,
-          profileRole: user?.role,
-          finalRole,
-          userName: user?.full_name
-        })
         
         const existingWorker = workerMap.get(assignment.user_id)
         
@@ -143,10 +149,6 @@ export async function GET(
       workers = Array.from(workerMap.values())
     }
 
-    console.log(`DEBUG: Final workers array:`, { 
-      workersCount: workers.length, 
-      workers: workers.map(w => ({ id: w.id, name: w.full_name, role: w.role }))
-    })
 
     // Get statistics
     const statistics = {

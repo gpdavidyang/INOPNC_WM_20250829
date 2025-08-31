@@ -40,18 +40,31 @@ export default function RealRequiredDocumentsManagement() {
   const [typeFilter, setTypeFilter] = useState<string>('all')
 
   useEffect(() => {
+    console.log('RealRequiredDocumentsManagement - Component mounted')
     fetchDocuments()
   }, [])
 
   const fetchDocuments = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/documents/required')
+      console.log('RealRequiredDocumentsManagement - Fetching documents...')
+      
+      const response = await fetch('/api/admin/documents/required', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      console.log('RealRequiredDocumentsManagement - Response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('RealRequiredDocumentsManagement - API response:', data)
+        console.log('RealRequiredDocumentsManagement - Documents count:', data.documents?.length || 0)
         setDocuments(data.documents || [])
       } else {
-        console.error('Failed to fetch required documents:', response.status)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Failed to fetch required documents:', response.status, errorData)
       }
     } catch (error) {
       console.error('Error fetching required documents:', error)

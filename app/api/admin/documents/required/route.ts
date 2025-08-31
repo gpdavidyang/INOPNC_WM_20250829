@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
@@ -7,7 +8,10 @@ export async function GET(request: NextRequest) {
     
     // Check authentication and admin role
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('Required documents API - Auth check:', { user: user?.id, authError })
+    
     if (authError || !user) {
+      console.log('Required documents API - Auth failed:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -19,11 +23,20 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (!profile || profile.role !== 'admin') {
+      console.log('Required documents API - Admin check failed:', { profile })
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
+    console.log('Required documents API - Admin check passed:', { userId: user.id, role: profile.role })
+
+    // Use service client to bypass RLS for admin operations
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     // Get required documents from unified_documents
-    const { data: documents, error } = await supabase
+    const { data: documents, error } = await serviceClient
       .from('unified_documents')
       .select(`
         id,
@@ -35,26 +48,45 @@ export async function GET(request: NextRequest) {
         tags,
         status,
         created_at,
-        profile_id,
-        profiles!unified_documents_profile_id_fkey(
+        profile_id
+      `)
+      .eq('category_type', 'required_user_docs')
+      .order('created_at', { ascending: false })
+
+    // Get profile data separately to avoid join issues
+    let documentsWithProfiles = []
+    if (documents && documents.length > 0) {
+      const profileIds = [...new Set(documents.map(doc => doc.profile_id))]
+      const { data: profiles } = await serviceClient
+        .from('profiles')
+        .select(`
           id,
           full_name,
           email,
           role,
           organization_id,
           organizations(name)
-        )
-      `)
-      .eq('category_type', 'required_user_docs')
-      .order('created_at', { ascending: false })
+        `)
+        .in('id', profileIds)
+
+      documentsWithProfiles = documents.map(doc => ({
+        ...doc,
+        profiles: profiles?.find(p => p.id === doc.profile_id)
+      }))
+    } else {
+      documentsWithProfiles = documents || []
+    }
 
     if (error) {
       console.error('Error fetching required documents:', error)
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
     }
 
+    console.log('Required documents API - Documents found:', documentsWithProfiles?.length || 0)
+    console.log('Required documents API - Sample document:', documentsWithProfiles?.[0])
+
     // Transform data to match the expected format
-    const transformedDocuments = documents?.map(doc => ({
+    const transformedDocuments = documentsWithProfiles?.map(doc => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,

@@ -20,22 +20,31 @@ import { ko } from 'date-fns/locale'
 
 interface Document {
   id: string
-  document_type: string
-  sub_type?: string
   category_type: string
+  title: string
   file_name: string
+  original_filename?: string
   file_url: string
-  title?: string
   description?: string
   site_id?: string
-  site_name?: string
-  customer_id?: string
-  customer_name?: string
-  uploaded_by?: string
-  uploader_name?: string
+  site?: {
+    id: string
+    name: string
+    address?: string
+  }
+  uploaded_by: string
+  uploader?: {
+    id: string
+    full_name: string
+    role: string
+  }
   created_at: string
   updated_at?: string
   file_size?: number
+  mime_type?: string
+  status?: string
+  is_public?: boolean
+  tags?: string[]
 }
 
 interface Site {
@@ -94,11 +103,11 @@ export default function EnhancedDocumentsView() {
     try {
       const params = new URLSearchParams()
       
-      // Always fetch all documents, filtering will be done on client side
+      // Use unified API with proper parameters
       if (selectedSite !== 'all') params.append('site_id', selectedSite)
-      if (selectedType !== 'all') params.append('type', selectedType)
+      if (selectedType !== 'all') params.append('status', selectedType)
       
-      const url = '/api/admin/documents/integrated?' + params.toString()
+      const url = '/api/unified-documents?' + params.toString()
       console.log('Fetching documents with URL:', url)
       
       const response = await fetch(url)
@@ -128,7 +137,7 @@ export default function EnhancedDocumentsView() {
           setStatistics({
             total: data.statistics.total_documents || 0,
             by_category: data.statistics.by_category || {},
-            by_type: {},
+            by_type: data.statistics.by_status || {},
             by_site: {}
           })
         } else {
@@ -145,14 +154,14 @@ export default function EnhancedDocumentsView() {
             const categoryType = doc.category_type || 'shared'
             stats.by_category[categoryType] = (stats.by_category[categoryType] || 0) + 1
             
-            // By type
-            if (doc.document_type) {
-              stats.by_type[doc.document_type] = (stats.by_type[doc.document_type] || 0) + 1
+            // By status
+            if (doc.status) {
+              stats.by_type[doc.status] = (stats.by_type[doc.status] || 0) + 1
             }
             
             // By site
-            if (doc.site_name) {
-              stats.by_site[doc.site_name] = (stats.by_site[doc.site_name] || 0) + 1
+            if (doc.site?.name) {
+              stats.by_site[doc.site.name] = (stats.by_site[doc.site.name] || 0) + 1
             }
           })
           
@@ -218,7 +227,7 @@ export default function EnhancedDocumentsView() {
     // Filter by search term
     const matchesSearch = searchTerm === '' || 
       doc.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
     
     return matchesCategory && matchesSearch
@@ -233,7 +242,9 @@ export default function EnhancedDocumentsView() {
       id: doc.id,
       fileName: doc.file_name,
       categoryType: doc.category_type,
-      title: doc.title
+      title: doc.title,
+      siteId: doc.site_id,
+      siteName: doc.site?.name
     }))
   })
 
@@ -440,7 +451,7 @@ export default function EnhancedDocumentsView() {
                   </div>
                   
                   <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1 truncate">
-                    {doc.title || doc.file_name}
+                    {doc.title}
                   </h4>
                   
                   {doc.description && (
@@ -450,20 +461,20 @@ export default function EnhancedDocumentsView() {
                   )}
                   
                   <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
-                    {doc.site_name && (
+                    {doc.site?.name && (
                       <div className="flex items-center">
                         <Building2 className="h-3 w-3 mr-1" />
-                        {doc.site_name}
+                        {doc.site.name}
                       </div>
                     )}
                     <div className="flex items-center">
                       <Calendar className="h-3 w-3 mr-1" />
                       {format(new Date(doc.created_at), 'yyyy.MM.dd', { locale: ko })}
                     </div>
-                    {doc.uploader_name && (
+                    {doc.uploader?.full_name && (
                       <div className="flex items-center">
                         <User className="h-3 w-3 mr-1" />
-                        {doc.uploader_name}
+                        {doc.uploader.full_name}
                       </div>
                     )}
                   </div>
@@ -516,27 +527,27 @@ export default function EnhancedDocumentsView() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-3">
                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                              {doc.title || doc.file_name}
+                              {doc.title}
                             </p>
                             <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-${categoryConfig.color}-100 text-${categoryConfig.color}-800 dark:bg-${categoryConfig.color}-900/20 dark:text-${categoryConfig.color}-300`}>
                               {categoryConfig.name}
                             </span>
                           </div>
                           <div className="flex items-center space-x-4 mt-1">
-                            {doc.site_name && (
+                            {doc.site?.name && (
                               <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                                 <Building2 className="h-4 w-4 mr-1" />
-                                {doc.site_name}
+                                {doc.site.name}
                               </div>
                             )}
                             <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                               <Calendar className="h-4 w-4 mr-1" />
                               {format(new Date(doc.created_at), 'yyyy.MM.dd', { locale: ko })}
                             </div>
-                            {doc.uploader_name && (
+                            {doc.uploader?.full_name && (
                               <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                                 <User className="h-4 w-4 mr-1" />
-                                {doc.uploader_name}
+                                {doc.uploader.full_name}
                               </div>
                             )}
                             <span className="text-sm text-gray-500 dark:text-gray-400">

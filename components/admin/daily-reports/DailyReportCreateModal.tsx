@@ -93,24 +93,23 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
   useEffect(() => {
     const loadWorkers = async () => {
       if (!formData.site_id) {
-        console.log('DEBUG: No site selected, clearing workers')
         setAvailableWorkers([])
         return
       }
       
-      console.log(`DEBUG: Loading workers for site: ${formData.site_id}`)
-      
       try {
         // Fetch workers assigned to this site
-        const response = await fetch(`/api/admin/sites/${formData.site_id}/workers`)
-        console.log(`DEBUG: API response status: ${response.status}`)
+        const response = await fetch(`/api/admin/sites/${formData.site_id}/workers`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        })
         
         if (response.ok) {
           const data = await response.json()
-          console.log(`DEBUG: API response data:`, data)
-          
           const allWorkers = data.data || []
-          console.log(`DEBUG: All workers before filtering:`, allWorkers.map((w: any) => ({ id: w.id, name: w.full_name, role: w.role })))
           
           // Filter to show workers, site managers, and admins (exclude customer_managers and system_admins)
           const filteredWorkers = allWorkers.filter((worker: any) => 
@@ -118,17 +117,14 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
             worker.role === 'site_manager' || 
             worker.role === 'admin'
           )
-          console.log(`DEBUG: Filtered workers:`, filteredWorkers.map((w: any) => ({ id: w.id, name: w.full_name, role: w.role })))
           
           setAvailableWorkers(filteredWorkers)
         } else {
-          console.error(`DEBUG: API request failed with status ${response.status}`)
-          const errorData = await response.text()
-          console.error('DEBUG: Error response:', errorData)
+          console.error(`Failed to load workers: ${response.status} ${response.statusText}`)
           setAvailableWorkers([])
         }
       } catch (error) {
-        console.error('DEBUG: Failed to load workers:', error)
+        console.error('Failed to load workers:', error)
         setAvailableWorkers([])
       }
     }
