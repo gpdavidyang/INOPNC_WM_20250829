@@ -249,11 +249,11 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         console.error('[SERVER-UPDATE] Failed to verify update:', verifyError)
       } else {
         // console.log('[SERVER-UPDATE] Verified updated site data:', {
-          name: verifiedSite.name,
-          address: verifiedSite.address,
-          manager_name: verifiedSite.manager_name,
-          updated_at: verifiedSite.updated_at
-        })
+        //   name: verifiedSite.name,
+        //   address: verifiedSite.address,
+        //   manager_name: verifiedSite.manager_name,
+        //   updated_at: verifiedSite.updated_at
+        // })
       }
 
       return {

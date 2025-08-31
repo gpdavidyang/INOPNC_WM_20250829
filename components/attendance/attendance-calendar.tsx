@@ -71,11 +71,11 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
 
   useEffect(() => {
     // console.log('🔄 useEffect triggered for attendance data', {
-      selectedSite,
-      isPartnerView,
-      profileSiteId: profile?.site_id,
-      shouldLoad: selectedSite || (!isPartnerView && profile?.site_id)
-    })
+    //   selectedSite,
+    //   isPartnerView,
+    //   profileSiteId: profile?.site_id,
+    //   shouldLoad: selectedSite || (!isPartnerView && profile?.site_id)
+    // })
     
     if (profile?.id && (selectedSite || (!isPartnerView && profile.site_id))) {
       // console.log('✅ Calling loadAttendanceData')
