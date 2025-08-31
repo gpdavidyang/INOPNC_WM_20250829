@@ -37,6 +37,7 @@ interface Site {
   status: string
   start_date?: string
   end_date?: string
+  manager_name?: string
   construction_manager_name?: string
   construction_manager_phone?: string
   safety_manager_name?: string
@@ -154,6 +155,7 @@ export default function SiteDetailPage() {
     status: string
     start_date: string
     end_date?: string
+    manager_name?: string
     construction_manager_name?: string
     construction_manager_phone?: string
     safety_manager_name?: string
@@ -169,6 +171,7 @@ export default function SiteDetailPage() {
         status: formData.status,
         start_date: formData.start_date,
         end_date: formData.end_date || null,
+        manager_name: formData.manager_name || null,
         construction_manager_name: formData.construction_manager_name || null,
         construction_manager_phone: formData.construction_manager_phone || null,
         safety_manager_name: formData.safety_manager_name || null,
@@ -404,7 +407,24 @@ export default function SiteDetailPage() {
               {/* 관리자 정보 */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">관리자 정보</h3>
-                <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* 현장 책임자 */}
+                  <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">현장 책임자</span>
+                    </div>
+                    {site.manager_name ? (
+                      <div className="space-y-2">
+                        <p className="font-medium text-gray-900 dark:text-gray-100">
+                          {site.manager_name}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">미등록</p>
+                    )}
+                  </div>
+
                   {/* 건설관리자 */}
                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
@@ -571,6 +591,7 @@ function EditSiteModal({
     status: siteData.status || 'active',
     start_date: siteData.start_date ? siteData.start_date.split('T')[0] : '',
     end_date: siteData.end_date ? siteData.end_date.split('T')[0] : '',
+    manager_name: siteData.manager_name || '',
     construction_manager_name: siteData.construction_manager_name || '',
     construction_manager_phone: siteData.construction_manager_phone || '',
     safety_manager_name: siteData.safety_manager_name || '',
@@ -586,6 +607,7 @@ function EditSiteModal({
       status: siteData.status || 'active',
       start_date: siteData.start_date ? siteData.start_date.split('T')[0] : '',
       end_date: siteData.end_date ? siteData.end_date.split('T')[0] : '',
+      manager_name: siteData.manager_name || '',
       construction_manager_name: siteData.construction_manager_name || '',
       construction_manager_phone: siteData.construction_manager_phone || '',
       safety_manager_name: siteData.safety_manager_name || '',
@@ -742,7 +764,31 @@ function EditSiteModal({
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-600 pb-2">
                 관리자 정보
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* 현장 책임자 */}
+                <div className="space-y-4">
+                  <h4 className="flex items-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <User className="h-4 w-4 text-purple-600 dark:text-purple-400 mr-2" />
+                    현장 책임자
+                  </h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label htmlFor="manager_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        이름
+                      </label>
+                      <input
+                        type="text"
+                        id="manager_name"
+                        name="manager_name"
+                        value={formData.manager_name}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                        placeholder="현장 책임자 이름"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* 건설관리자 */}
                 <div className="space-y-4">
                   <h4 className="flex items-center text-sm font-medium text-gray-900 dark:text-gray-100">

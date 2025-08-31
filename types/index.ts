@@ -129,7 +129,9 @@ export interface Site {
   name: string
   address: string
   description?: string | null
-  construction_manager_phone?: string | null
+  construction_manager_name?: string | null // 건설관리자 이름
+  construction_manager_phone?: string | null // 건설관리자 연락처
+  construction_manager_email?: string | null // 건설관리자 이메일
   safety_manager_phone?: string | null
   accommodation_name?: string | null
   accommodation_address?: string | null
@@ -137,8 +139,8 @@ export interface Site {
   work_process?: string | null // 작업공정 (예: 슬라브 타설, 철근 배근 등)
   work_section?: string | null // 작업구간 (예: 지하 1층, B동 3층 등)
   component_name?: string | null // 부재명 (예: 기둥 C1-C5 구간)
-  manager_name?: string | null // 건축 담당자 이름
-  safety_manager_name?: string | null // 안전 담당자 이름
+  manager_name?: string | null // 현장 책임자 이름
+  safety_manager_name?: string | null // 안전관리자 이름
   status?: SiteStatus | null
   start_date: string
   end_date?: string | null
