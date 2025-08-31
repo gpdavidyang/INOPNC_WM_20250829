@@ -193,6 +193,12 @@ export default function WorkerManagementTab({
       setSaving(true)
       const supabase = createClient()
 
+      console.log('Adding worker:', {
+        daily_report_id: reportId,
+        worker_name: newWorker.name.trim(),
+        work_hours: newWorker.hours
+      })
+
       const { data: insertedData, error } = await supabase
         .from('daily_report_workers')
         .insert({
@@ -203,21 +209,28 @@ export default function WorkerManagementTab({
         .select()
         .single()
 
-      if (error) throw error
-
-      // Immediately add the new worker to the list
-      if (insertedData) {
-        setWorkers(prev => [...prev, insertedData])
-        
-        // Update total workers count
-        const newTotal = workers.length + 1
-        if (onWorkersUpdate) {
-          onWorkersUpdate(newTotal)
-        }
+      if (error) {
+        console.error('Insert error:', error)
+        throw error
       }
 
-      // Clear the new worker form
+      console.log('Worker inserted successfully:', insertedData)
+
+      // Clear the new worker form first
       setNewWorker(null)
+
+      // Then fetch all workers again to ensure consistency
+      await fetchWorkers()
+      
+      // Update total workers count
+      if (onWorkersUpdate) {
+        const { data: workersList } = await supabase
+          .from('daily_report_workers')
+          .select('*')
+          .eq('daily_report_id', reportId)
+        
+        onWorkersUpdate(workersList?.length || 0)
+      }
 
       alert('작업자가 추가되었습니다.')
     } catch (error) {
@@ -242,13 +255,17 @@ export default function WorkerManagementTab({
 
       if (error) throw error
 
-      // Immediately remove the worker from the list
-      setWorkers(prev => prev.filter(w => w.id !== workerId))
+      // Fetch all workers again to ensure consistency
+      await fetchWorkers()
       
       // Update total workers count
-      const newTotal = Math.max(0, workers.length - 1)
       if (onWorkersUpdate) {
-        onWorkersUpdate(newTotal)
+        const { data: workersList } = await supabase
+          .from('daily_report_workers')
+          .select('*')
+          .eq('daily_report_id', reportId)
+        
+        onWorkersUpdate(workersList?.length || 0)
       }
 
       alert('작업자가 삭제되었습니다.')
@@ -264,9 +281,9 @@ export default function WorkerManagementTab({
     try {
       const supabase = createClient()
       
-      const { count, error } = await supabase
+      const { data: workersList, error } = await supabase
         .from('daily_report_workers')
-        .select('*', { count: 'exact', head: true })
+        .select('*')
         .eq('daily_report_id', reportId)
 
       if (error) {
@@ -274,14 +291,16 @@ export default function WorkerManagementTab({
         return
       }
 
+      const count = workersList?.length || 0
+
       // daily_reports 테이블의 total_workers 업데이트
       await supabase
         .from('daily_reports')
-        .update({ total_workers: count || 0 })
+        .update({ total_workers: count })
         .eq('id', reportId)
 
       if (onWorkersUpdate) {
-        onWorkersUpdate(count || 0)
+        onWorkersUpdate(count)
       }
     } catch (error) {
       console.error('Error updating total workers:', error)
