@@ -71,7 +71,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
     const newTab = getCurrentActiveTabFromPath(pathname)
     // Only update if actually changed to prevent re-renders
     if (newTab !== activeTab) {
-      console.log('[DashboardLayout] Tab change:', activeTab, '->', newTab)
+      // console.log('[DashboardLayout] Tab change:', activeTab, '->', newTab)
       setActiveTab(newTab)
     }
   }, [pathname]) // ✅ Removed children and activeTab dependency to prevent loops
@@ -81,7 +81,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
     const handleHashChange = () => {
       const newTab = getCurrentActiveTabFromPath(pathname)
       if (newTab !== activeTab) {
-        console.log('[DashboardLayout] Hash change detected, tab change:', activeTab, '->', newTab)
+        // console.log('[DashboardLayout] Hash change detected, tab change:', activeTab, '->', newTab)
         setActiveTab(newTab)
       }
     }
@@ -128,12 +128,12 @@ export default function DashboardLayout({ user, profile, children, initialActive
 
   // 하단 네비게이션 클릭 처리
   const handleBottomNavClick = React.useCallback(async (tabId: string) => {
-    console.log('[DashboardLayout] handleBottomNavClick called with:', tabId)
+    // console.log('[DashboardLayout] handleBottomNavClick called with:', tabId)
     
     try {
       // Check if it's a direct link (starts with /)
       if (tabId.startsWith('/')) {
-        console.log('[DashboardLayout] Direct navigation to:', tabId)
+        // console.log('[DashboardLayout] Direct navigation to:', tabId)
         await router.push(tabId)
         
         // Update active tab state based on the route
@@ -148,7 +148,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
       
       // Handle hash-based or direct tab navigation
       const cleanTabId = tabId.replace('#', '')
-      console.log('[DashboardLayout] Setting active tab to:', cleanTabId)
+      // console.log('[DashboardLayout] Setting active tab to:', cleanTabId)
       setActiveTab(cleanTabId)
       
     } catch (error) {
@@ -353,7 +353,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            console.log('[DashboardLayout] Backdrop clicked, closing sidebar')
+            // console.log('[DashboardLayout] Backdrop clicked, closing sidebar')
             setIsSidebarOpen(false)
           }}
           aria-hidden="true"
@@ -371,7 +371,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
           onTabChange={setActiveTab}
           isOpen={isSidebarOpen}
           onClose={() => {
-            console.log('[DashboardLayout] onClose called, setting isSidebarOpen to false')
+            // console.log('[DashboardLayout] onClose called, setting isSidebarOpen to false')
             setIsSidebarOpen(false)
           }}
         />
@@ -383,7 +383,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
         <Header
           isSidebarOpen={isSidebarOpen}
           onMenuClick={() => {
-            console.log('[DashboardLayout] Menu button clicked, toggling sidebar from', isSidebarOpen, 'to', !isSidebarOpen)
+            // console.log('[DashboardLayout] Menu button clicked, toggling sidebar from', isSidebarOpen, 'to', !isSidebarOpen)
             setIsSidebarOpen(!isSidebarOpen)
           }}
         />
@@ -405,7 +405,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
         userRole={profile.role}
         activeTab={activeTab}
         onTabChange={(tabId) => {
-          console.log('[DashboardLayout] onTabChange called with:', tabId)
+          // console.log('[DashboardLayout] onTabChange called with:', tabId)
           handleBottomNavClick(tabId)
         }}
       />

@@ -125,7 +125,7 @@ export class MonitoringManager {
   async initialize(): Promise<void> {
     if (this.isMonitoring) return
 
-    console.log('🔍 Starting Comprehensive Monitoring System...')
+    // console.log('🔍 Starting Comprehensive Monitoring System...')
     
     // Initialize Sentry with custom configuration
     this.initializeSentry()
@@ -139,7 +139,7 @@ export class MonitoringManager {
     this.integrateWithSecurityManager()
     
     this.isMonitoring = true
-    console.log('✅ Monitoring system initialized successfully')
+    // console.log('✅ Monitoring system initialized successfully')
   }
 
   /**

@@ -1,66 +1,76 @@
 #!/bin/bash
 
-# Script to clean up console.log statements for production
-# This script comments out console.log statements that contain debugging info
+# Performance optimization script for Next.js server
+# Removes excessive console logs and optimizes configuration
 
-echo "🧹 Cleaning up console.log statements for production..."
+echo "🚀 Starting server performance optimization..."
 
-# Files to process
-FILES=(
-  "components/admin/daily-reports/DailyReportsManagement.tsx"
+# Create backup directory
+BACKUP_DIR=".backup/logs-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$BACKUP_DIR"
+
+echo "📁 Creating backup in $BACKUP_DIR"
+
+# High-impact files that cause the most logging
+HIGH_IMPACT_FILES=(
+  "components/dashboard/dashboard-layout.tsx"
+  "components/dashboard/sidebar.tsx"
+  "components/dashboard/tabs/site-info-tab.tsx"
+  "components/dashboard/tabs/documents-tab.tsx"
+  "components/dashboard/tabs/work-logs-tab.tsx"
+  "components/dashboard/tabs/attendance-tab.tsx"
+  "components/dashboard/tabs/debug-controls.tsx"
+  "components/attendance/attendance-calendar.tsx"
+  "components/markup/canvas/markup-canvas.tsx"
+  "lib/monitoring/alerting-manager.ts"
+  "lib/monitoring/init.ts"
+  "hooks/use-auto-login.ts"
+  "app/auth/actions.ts"
+  "components/admin/SiteManagement.tsx"
   "components/admin/SiteManagementList.tsx"
-  "components/admin/materials/tabs/ShipmentRequestsTab.tsx"
-  "components/admin/materials/tabs/ShipmentManagementTab.tsx"
-  "components/admin/materials/tabs/InventoryUsageTab.tsx"
+  "components/admin/UserManagement.tsx"
+  "components/admin/ApprovalModal.tsx"
+  "components/admin/sites/SiteWorkersTab.tsx"
+  "components/admin/sites/SitePartnersTab.tsx"
+  "app/dashboard/page.tsx"
+  "lib/monitoring/performance-metrics.ts"
+  "lib/monitoring/monitoring-manager.ts"
+  "lib/supabase/session-bridge.ts"
+  "lib/supabase/session-sync.ts"
+  "components/providers/performance-monitoring-provider.tsx"
+  "components/providers/optimized-context-provider.tsx"
   "app/actions/site-info.ts"
-  "components/materials/npc1000/NPC1000DailyDashboard.tsx"
-  "app/actions/npc-materials.ts"
+  "app/actions/sites.ts"
   "app/actions/admin/sites.ts"
-  "components/admin/salary/SalaryStatement.tsx"
   "app/actions/admin/salary.ts"
-  "lib/auth/profile-manager.ts"
-  "contexts/SiteContext.tsx"
-  "components/documents/enhanced-document-filters.tsx"
   "components/daily-reports/daily-report-form-enhanced.tsx"
   "components/daily-reports/DailyReportListEnhanced.tsx"
-  "components/dashboard/business-analytics-dashboard.tsx"
-  "components/dashboard/tabs/attendance-tab.tsx"
-  "components/dashboard/tabs/work-logs-tab.tsx"
-  "components/dashboard/tabs/shared-documents-tab.tsx"
-  "components/dashboard/tabs/site-info-tab.tsx"
-  "components/partner/tabs/PartnerDocumentsTab.tsx"
-  "components/admin/DocumentManagement.tsx"
-  "components/admin/documents/InvoiceDocumentsManagement.tsx"
-  "components/admin/documents/MarkupDocumentsManagement.tsx"
-  "components/admin/documents/SharedDocumentsManagement.tsx"
-  "components/admin/partners/PartnerDetail.tsx"
-  "components/admin/ApprovalModal.tsx"
-  "components/admin/sites/SiteManagementList.tsx"
-  "components/admin/UserSiteAssignmentModal.tsx"
-  "components/admin/SalaryManagement.tsx"
-  "components/site-info/SiteSearchModal.tsx"
-  "components/attendance/attendance-view.tsx"
-  "components/attendance/attendance-calendar.tsx"
-  "app/actions/admin/users.ts"
-  "app/actions/admin/documents.ts"
-  "app/actions/sites.ts"
-  "app/actions/force-site-refresh.ts"
-  "app/dashboard/notifications/page.tsx"
-  "app/dashboard/page.tsx"
-  "app/dashboard/daily-reports/[id]/edit/page.tsx"
-  "app/dashboard/daily-reports/new/page.tsx"
-  "app/dashboard/daily-reports/new/dev-page.tsx"
+  "components/materials/npc1000/NPC1000DailyDashboard.tsx"
+  "app/actions/npc-materials.ts"
 )
 
-for FILE in "${FILES[@]}"; do
+echo "🎯 Processing high-impact files..."
+for FILE in "${HIGH_IMPACT_FILES[@]}"; do
   if [ -f "$FILE" ]; then
-    echo "Processing: $FILE"
-    # Comment out console.log, console.debug, console.info lines
-    sed -i.bak 's/^[[:space:]]*console\.\(log\|debug\|info\)/\/\/ &/' "$FILE"
-    # Remove backup files
-    rm "${FILE}.bak" 2>/dev/null
+    # Create backup
+    cp "$FILE" "$BACKUP_DIR/$(basename "$FILE")" 2>/dev/null
+    
+    # Comment out console.log, console.debug, console.info
+    # Keep console.error and console.warn for debugging
+    sed -i '' 's/^\([[:space:]]*\)console\.log/\1\/\/ console.log/g' "$FILE"
+    sed -i '' 's/^\([[:space:]]*\)console\.info/\1\/\/ console.info/g' "$FILE"
+    sed -i '' 's/^\([[:space:]]*\)console\.debug/\1\/\/ console.debug/g' "$FILE"
+    
+    echo "  ✓ Optimized: $FILE"
   fi
 done
 
-echo "✅ Console log cleanup complete!"
-echo "⚠️  Note: console.error and console.warn statements are preserved for error tracking."
+echo ""
+echo "✅ Optimization complete!"
+echo "📊 Results:"
+echo "  - Commented out excessive console.log statements"
+echo "  - Preserved console.error and console.warn for debugging"
+echo "  - Backup created in $BACKUP_DIR"
+echo ""
+echo "🔄 To restore original files, run:"
+echo "  cp $BACKUP_DIR/* ."

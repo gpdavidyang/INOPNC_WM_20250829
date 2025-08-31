@@ -38,19 +38,19 @@ export function useAutoLogin(
       const supabase = createClient()
       
       try {
-        console.log('[USE-AUTO-LOGIN] Checking existing session...')
+        // console.log('[USE-AUTO-LOGIN] Checking existing session...')
         
         // First check if we already have a session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession()
         
         if (session && session.user) {
-          console.log('[USE-AUTO-LOGIN] Existing session found:', session.user.email)
+          // console.log('[USE-AUTO-LOGIN] Existing session found:', session.user.email)
           
           // Verify the session is valid
           const { data: { user: verifiedUser }, error: verifyError } = await supabase.auth.getUser()
           
           if (verifiedUser && !verifyError) {
-            console.log('[USE-AUTO-LOGIN] Session verified')
+            // console.log('[USE-AUTO-LOGIN] Session verified')
             setIsAuthenticated(true)
             setUser(verifiedUser)
             setIsLoading(false)
@@ -61,7 +61,7 @@ export function useAutoLogin(
         // Check if auto-login is disabled
         const autoLoginDisabled = localStorage.getItem('inopnc-auto-login-disabled')
         if (autoLoginDisabled === 'true') {
-          console.log('[USE-AUTO-LOGIN] Auto-login is disabled')
+          // console.log('[USE-AUTO-LOGIN] Auto-login is disabled')
           setIsLoading(false)
           return
         }
@@ -77,7 +77,7 @@ export function useAutoLogin(
           const cooldownTime = attemptCount > 3 ? 300000 : 30000 // 5min or 30s
           
           if (timeSinceLastAttempt < cooldownTime) {
-            console.log(`[USE-AUTO-LOGIN] Cooldown active (${Math.ceil((cooldownTime - timeSinceLastAttempt) / 1000)}s remaining)`)
+            // console.log(`[USE-AUTO-LOGIN] Cooldown active (${Math.ceil((cooldownTime - timeSinceLastAttempt) / 1000)}s remaining)`)
             setIsLoading(false)
             return
           }
@@ -85,7 +85,7 @@ export function useAutoLogin(
         
         // Block excessive attempts
         if (attemptCount > 5) {
-          console.log('[USE-AUTO-LOGIN] Too many attempts, auto-login disabled')
+          // console.log('[USE-AUTO-LOGIN] Too many attempts, auto-login disabled')
           localStorage.setItem('inopnc-auto-login-disabled', 'true')
           setIsLoading(false)
           return
@@ -97,7 +97,7 @@ export function useAutoLogin(
           password: 'password123'
         }
         
-        console.log('[USE-AUTO-LOGIN] Attempting auto-login...')
+        // console.log('[USE-AUTO-LOGIN] Attempting auto-login...')
         localStorage.setItem('inopnc-last-auto-login', Date.now().toString())
         localStorage.setItem('inopnc-auto-login-attempts', (attemptCount + 1).toString())
         
@@ -111,10 +111,10 @@ export function useAutoLogin(
           return
         }
         
-        console.log('[USE-AUTO-LOGIN] Login successful:', data.user?.email)
+        // console.log('[USE-AUTO-LOGIN] Login successful:', data.user?.email)
         
         // CRITICAL: Sync session with server
-        console.log('[USE-AUTO-LOGIN] Syncing session with server...')
+        // console.log('[USE-AUTO-LOGIN] Syncing session with server...')
         
         try {
           const syncResponse = await fetch('/api/auth/sync-session', {
@@ -132,18 +132,18 @@ export function useAutoLogin(
           const syncResult = await syncResponse.json()
           
           if (syncResult.success) {
-            console.log('[USE-AUTO-LOGIN] Session synced successfully')
+            // console.log('[USE-AUTO-LOGIN] Session synced successfully')
             
             // CRITICAL FIX: Wait for session to propagate to client
             await new Promise(resolve => setTimeout(resolve, 2000)) // Even longer wait for complete propagation
             
             // Verify session is available in the client
-            console.log('[USE-AUTO-LOGIN] Verifying client session...')
+            // console.log('[USE-AUTO-LOGIN] Verifying client session...')
             const finalSupabase = createClient()
             const { data: { session: finalSession } } = await finalSupabase.auth.getSession()
             
             if (finalSession) {
-              console.log('[USE-AUTO-LOGIN] ✅ Client session confirmed:', finalSession.user?.email)
+              // console.log('[USE-AUTO-LOGIN] ✅ Client session confirmed:', finalSession.user?.email)
             } else {
               console.warn('[USE-AUTO-LOGIN] ⚠️ Client session not available yet, but login was successful')
               // Don't fail here - the session might be available later when components check it
@@ -166,7 +166,7 @@ export function useAutoLogin(
         
         // CRITICAL: Disable auto-login after successful login to prevent repeated attempts
         localStorage.setItem('inopnc-auto-login-disabled', 'true')
-        console.log('[USE-AUTO-LOGIN] Auto-login disabled after successful login')
+        // console.log('[USE-AUTO-LOGIN] Auto-login disabled after successful login')
         
       } catch (err) {
         console.error('[USE-AUTO-LOGIN] Unexpected error:', err)
@@ -201,7 +201,7 @@ export async function syncSessionAfterAuth(session: any) {
   }
   
   try {
-    console.log('[SYNC-SESSION] Syncing session with server...')
+    // console.log('[SYNC-SESSION] Syncing session with server...')
     
     const response = await fetch('/api/auth/sync-session', {
       method: 'POST',
@@ -218,7 +218,7 @@ export async function syncSessionAfterAuth(session: any) {
     const result = await response.json()
     
     if (result.success) {
-      console.log('[SYNC-SESSION] Session synced successfully')
+      // console.log('[SYNC-SESSION] Session synced successfully')
       
       // CRITICAL FIX: Wait for cookies to propagate
       // The server has set the cookies, but the browser needs time to process them
@@ -228,7 +228,7 @@ export async function syncSessionAfterAuth(session: any) {
       if (typeof document !== 'undefined') {
         const cookies = document.cookie
         const hasAuthCookies = cookies.includes('sb-')
-        console.log('[SYNC-SESSION] Auth cookies present after sync:', hasAuthCookies)
+        // console.log('[SYNC-SESSION] Auth cookies present after sync:', hasAuthCookies)
         
         if (!hasAuthCookies) {
           console.warn('[SYNC-SESSION] Warning: Auth cookies not found after sync')

@@ -74,12 +74,12 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
   }, [isOpen, request])
 
   const fetchOrganizations = async () => {
-    console.log('🔍 조직 데이터 가져오기 시작...')
+    // console.log('🔍 조직 데이터 가져오기 시작...')
     
     try {
       // Check if user is authenticated
       const { data: session } = await supabase.auth.getSession()
-      console.log('현재 세션 상태:', session?.session ? '인증됨' : '미인증')
+      // console.log('현재 세션 상태:', session?.session ? '인증됨' : '미인증')
       
       // First try without any filter to get all organizations
       const { data, error } = await supabase
@@ -87,45 +87,45 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
         .select('*')
         .order('name')
 
-      console.log('📊 조회 결과:')
-      console.log('- 데이터 개수:', data?.length || 0)
-      console.log('- 에러:', error)
+      // console.log('📊 조회 결과:')
+      // console.log('- 데이터 개수:', data?.length || 0)
+      // console.log('- 에러:', error)
       
       if (data && data.length > 0) {
-        console.log('- 첫 3개 조직:', data.slice(0, 3).map(org => org.name))
+        // console.log('- 첫 3개 조직:', data.slice(0, 3).map(org => org.name))
       }
 
       if (error) {
         console.error('❌ 조직 조회 오류:', error)
-        console.log('🔧 Mock 데이터로 대체...')
+        // console.log('🔧 Mock 데이터로 대체...')
         const mockData = [
           { id: 'mock-1', name: 'ABC 건설', type: 'head_office', business_registration_number: '123-45-67890', is_active: true },
           { id: 'mock-2', name: 'XYZ 파트너사', type: 'branch_office', business_registration_number: '987-65-43210', is_active: true },
           { id: 'mock-3', name: '테스트 부서', type: 'department', business_registration_number: '456-78-90123', is_active: true }
         ]
         setOrganizations(mockData)
-        console.log('✅ Mock 데이터 설정 완료:', mockData.length, '개')
+        // console.log('✅ Mock 데이터 설정 완료:', mockData.length, '개')
       } else {
         // Filter active organizations if is_active field exists
         const activeOrgs = data?.filter(org => 
           org.is_active !== false && org.status !== 'inactive'
         ) || data || []
         
-        console.log('🔍 활성 조직 필터링:')
-        console.log('- 전체:', data?.length || 0)
-        console.log('- 활성:', activeOrgs.length)
+        // console.log('🔍 활성 조직 필터링:')
+        // console.log('- 전체:', data?.length || 0)
+        // console.log('- 활성:', activeOrgs.length)
         
         const finalOrgs = activeOrgs.length > 0 ? activeOrgs : data || []
         setOrganizations(finalOrgs)
-        console.log('✅ 조직 데이터 설정 완료:', finalOrgs.length, '개')
+        // console.log('✅ 조직 데이터 설정 완료:', finalOrgs.length, '개')
         
         if (finalOrgs.length > 0) {
-          console.log('- 설정된 조직들:', finalOrgs.map(org => org.name))
+          // console.log('- 설정된 조직들:', finalOrgs.map(org => org.name))
         }
       }
     } catch (error) {
       console.error('❌ 조직 조회 예외:', error)
-      console.log('🔧 예외 처리로 Mock 데이터 설정...')
+      // console.log('🔧 예외 처리로 Mock 데이터 설정...')
       
       // Set mock data as fallback
       const mockData = [
@@ -134,7 +134,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
         { id: 'catch-3', name: '테스트 부서 (예외처리)', type: 'department', business_registration_number: '456-78-90123', is_active: true }
       ]
       setOrganizations(mockData)
-      console.log('✅ 예외처리 Mock 데이터 설정:', mockData.length, '개')
+      // console.log('✅ 예외처리 Mock 데이터 설정:', mockData.length, '개')
     }
   }
 

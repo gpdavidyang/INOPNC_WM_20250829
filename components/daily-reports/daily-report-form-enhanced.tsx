@@ -166,7 +166,7 @@ export default function DailyReportFormEnhanced({
   const [error, setError] = useState<string | null>(null)
   
   // Debug logging
-  console.log('DailyReportFormEnhanced props:', { sites, sitesCount: sites?.length })
+  // console.log('DailyReportFormEnhanced props:', { sites, sitesCount: sites?.length })
   
   // Section expansion states (sections 2-10 are collapsible)
   const [expandedSections, setExpandedSections] = useState({
@@ -389,7 +389,7 @@ export default function DailyReportFormEnhanced({
   // 작업 내용별 사진 업로드 함수 - 모바일 PWA 지원 개선
   const handleWorkContentPhotoUpload = async (workId: string, type: 'before' | 'after', files: File[]) => {
     if (!files || files.length === 0) {
-      console.log('No files selected')
+      // console.log('No files selected')
       return
     }
     
@@ -414,7 +414,7 @@ export default function DailyReportFormEnhanced({
       }
       
       const filesToAdd = files.slice(0, remaining)
-      console.log(`Adding ${filesToAdd.length} files to ${type} photos`)
+      // console.log(`Adding ${filesToAdd.length} files to ${type} photos`)
       
       // 먼저 파일 배열 업데이트
       const newPhotos = [...currentPhotos, ...filesToAdd]
@@ -646,7 +646,7 @@ export default function DailyReportFormEnhanced({
           const existingPhotos = photos.filter(p => p.type === currentPhotoType)
           const remaining = 30 - existingPhotos.length
           const filesToAdd = Array.from(files).slice(0, remaining)
-          console.log(`카메라로 촬영된 파일 수: ${files.length}, 추가할 파일 수: ${filesToAdd.length}`)
+          // console.log(`카메라로 촬영된 파일 수: ${files.length}, 추가할 파일 수: ${filesToAdd.length}`)
           addMultiplePhotos(currentPhotoType, filesToAdd)
         }
       }
@@ -670,7 +670,7 @@ export default function DailyReportFormEnhanced({
           const existingPhotos = photos.filter(p => p.type === currentPhotoType)
           const remaining = 30 - existingPhotos.length
           const filesToAdd = Array.from(files).slice(0, remaining)
-          console.log(`갤러리에서 선택된 파일 수: ${files.length}, 추가할 파일 수: ${filesToAdd.length}`)
+          // console.log(`갤러리에서 선택된 파일 수: ${files.length}, 추가할 파일 수: ${filesToAdd.length}`)
           addMultiplePhotos(currentPhotoType, filesToAdd)
         }
       }
@@ -687,7 +687,7 @@ export default function DailyReportFormEnhanced({
           const existingPhotos = photos.filter(p => p.type === currentPhotoType)
           const remaining = 30 - existingPhotos.length
           const filesToAdd = Array.from(files).slice(0, remaining)
-          console.log(`파일에서 선택된 파일 수: ${files.length}, 추가할 파일 수: ${filesToAdd.length}`)
+          // console.log(`파일에서 선택된 파일 수: ${files.length}, 추가할 파일 수: ${filesToAdd.length}`)
           addMultiplePhotos(currentPhotoType, filesToAdd)
         }
       }
@@ -804,7 +804,7 @@ export default function DailyReportFormEnhanced({
           formData.append('file_type', `photo_${photo.type}`)
           
           const uploadResult = await uploadPhotoToStorage(formData)
-          console.log(`Photo upload result:`, uploadResult)
+          // console.log(`Photo upload result:`, uploadResult)
         }
       }
 
@@ -818,7 +818,7 @@ export default function DailyReportFormEnhanced({
           formData.append('file_type', 'receipt')
           
           const uploadResult = await uploadPhotoToStorage(formData)
-          console.log(`Receipt upload result:`, uploadResult)
+          // console.log(`Receipt upload result:`, uploadResult)
         }
       }
 
@@ -1057,7 +1057,7 @@ export default function DailyReportFormEnhanced({
                                 try {
                                   const files = e.target.files ? Array.from(e.target.files) : []
                                   if (files.length > 0) {
-                                    console.log(`Uploading ${files.length} files for work content ${content.id}`)
+                                    // console.log(`Uploading ${files.length} files for work content ${content.id}`)
                                     await handleWorkContentPhotoUpload(content.id, 'before', files)
                                   }
                                 } catch (error) {
@@ -1123,7 +1123,7 @@ export default function DailyReportFormEnhanced({
                                 try {
                                   const files = e.target.files ? Array.from(e.target.files) : []
                                   if (files.length > 0) {
-                                    console.log(`Uploading ${files.length} files for work content ${content.id}`)
+                                    // console.log(`Uploading ${files.length} files for work content ${content.id}`)
                                     await handleWorkContentPhotoUpload(content.id, 'after', files)
                                   }
                                 } catch (error) {
@@ -1921,9 +1921,11 @@ export default function DailyReportFormEnhanced({
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <PDFReportGenerator
                   photoGroups={pdfPhotoGroups}
+                  siteId={formData.site_id}
                   siteName={sites.find(s => s.id === formData.site_id)?.name}
                   reportDate={formData.work_date}
                   reporterName={currentUser.full_name}
+                  saveToDocumentFolder={true}
                 />
               </div>
             </div>

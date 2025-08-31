@@ -15,10 +15,12 @@ import { createPhotoGridReport } from '@/lib/supabase/photo-grid-reports'
 
 interface PDFReportGeneratorProps {
   photoGroups: PhotoGroup[]
-  dailyReportId: string // 필수: DB 저장을 위해 필요
+  dailyReportId?: string // 선택적: 작업일지 ID가 아직 없을 수 있음
+  siteId?: string // 현장 ID
   siteName?: string
   reportDate?: string
   reporterName?: string
+  saveToDocumentFolder?: boolean // 사진대지 문서함에 저장 옵션
   onGenerationStart?: () => void
   onGenerationComplete?: (pdfUrl: string, reportId?: string) => void
   onGenerationError?: (error: string) => void
@@ -27,9 +29,11 @@ interface PDFReportGeneratorProps {
 export default function PDFReportGenerator({
   photoGroups,
   dailyReportId,
+  siteId,
   siteName = '강남 A현장',
   reportDate,
   reporterName = '작업자',
+  saveToDocumentFolder = true,
   onGenerationStart,
   onGenerationComplete,
   onGenerationError
@@ -47,12 +51,8 @@ export default function PDFReportGenerator({
       return
     }
 
-    if (!dailyReportId) {
-      setErrorMessage('작업일지 ID가 없습니다.')
-      setGenerationStatus('error')
-      onGenerationError?.('작업일지 정보가 없습니다.')
-      return
-    }
+    // dailyReportId가 없어도 진행 가능 (임시 ID 사용)
+    const reportId = dailyReportId || `temp_${Date.now()}`
 
     setIsGenerating(true)
     setGenerationStatus('idle')
@@ -92,11 +92,36 @@ export default function PDFReportGenerator({
       
       // 데이터베이스에 저장
       const saveResult = await createPhotoGridReport(
-        dailyReportId,
+        reportId,
         pdfBlob,
         pdfOptions,
         metadata
       )
+      
+      // 사진대지 문서함에 저장 (옵션이 켜져있고 siteId가 있는 경우)
+      if (saveToDocumentFolder && siteId) {
+        try {
+          const formData = new FormData()
+          formData.append('file', pdfBlob, `사진대지_${siteName}_${reportDate || new Date().toISOString().split('T')[0]}.pdf`)
+          formData.append('siteId', siteId)
+          formData.append('documentType', 'markup') // 사진대지 문서함
+          formData.append('title', `사진대지 - ${reportDate || new Date().toLocaleDateString('ko-KR')}`)
+          formData.append('description', `${siteName} 현장 사진대지`)
+          
+          const uploadResponse = await fetch('/api/admin/documents/upload', {
+            method: 'POST',
+            body: formData
+          })
+          
+          if (uploadResponse.ok) {
+            console.log('사진대지 문서함에 저장 완료')
+          } else {
+            console.warn('사진대지 문서함 저장 실패:', await uploadResponse.text())
+          }
+        } catch (docError) {
+          console.error('문서함 저장 중 오류:', docError)
+        }
+      }
       
       if (!saveResult.success) {
         // DB 저장 실패 시도 다운로드 제공
@@ -450,7 +475,7 @@ export default function PDFReportGenerator({
         ) : (
           <>
             <Download className="h-4 w-4 mr-2" />
-            PDF 보고서 생성
+            사진대지 PDF 생성
           </>
         )}
       </Button>

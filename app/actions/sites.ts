@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 
 export async function getSites() {
-  console.log('🔍 getSites called - starting execution')
+  // console.log('🔍 getSites called - starting execution')
   
   try {
     const supabase = createClient()
@@ -15,22 +15,22 @@ export async function getSites() {
       return { success: false, error: 'User not authenticated' }
     }
     
-    console.log('✅ User authenticated:', user.id)
+    // console.log('✅ User authenticated:', user.id)
 
     // Step 2: Try to get sites with detailed logging
-    console.log('📍 Querying sites table...')
+    // console.log('📍 Querying sites table...')
     const { data: sites, error: sitesError } = await supabase
       .from('sites')
       .select('*')
       .order('name', { ascending: true })
 
     // Step 3: Log query results 
-    console.log('📊 Sites query result:', {
-      success: !sitesError,
-      sitesCount: sites?.length || 0,
-      error: sitesError?.message,
-      sites: sites?.map(s => ({ id: s.id, name: s.name })) || []
-    })
+    // console.log('📊 Sites query result:', {
+    //   success: !sitesError,
+    //   sitesCount: sites?.length || 0,
+    //   error: sitesError?.message,
+    //   sites: sites?.map(s => ({ id: s.id, name: s.name })) || []
+    // })
 
     if (sitesError) {
       console.error('❌ Database error in getSites:', sitesError)
@@ -43,7 +43,7 @@ export async function getSites() {
       return { success: true, data: [] }
     }
 
-    console.log('✅ Successfully fetched', sites.length, 'sites')
+    // console.log('✅ Successfully fetched', sites.length, 'sites')
     return { success: true, data: sites }
   } catch (error) {
     console.error('💥 Unexpected error in getSites:', error)

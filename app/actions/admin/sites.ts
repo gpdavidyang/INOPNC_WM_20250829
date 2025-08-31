@@ -11,6 +11,7 @@ export interface CreateSiteData {
   safety_manager_phone?: string
   accommodation_name?: string
   accommodation_address?: string
+  accommodation_phone?: string
   work_process?: string
   work_section?: string
   component_name?: string
@@ -177,8 +178,8 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
     try {
       const { id, ...updateData } = data
       
-      console.log('[SERVER-UPDATE] Received update request for site:', id)
-      console.log('[SERVER-UPDATE] Update data:', updateData)
+      // console.log('[SERVER-UPDATE] Received update request for site:', id)
+      // console.log('[SERVER-UPDATE] Update data:', updateData)
 
       // First, verify the site exists
       const { data: existingSite, error: fetchError } = await supabase
@@ -192,7 +193,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         return { success: false, error: AdminErrors.NOT_FOUND }
       }
       
-      console.log('[SERVER-UPDATE] Existing site found:', existingSite.name)
+      // console.log('[SERVER-UPDATE] Existing site found:', existingSite.name)
 
       // Clean the update data - remove undefined values
       const cleanUpdateData = Object.entries(updateData).reduce((acc, [key, value]) => {
@@ -202,7 +203,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         return acc
       }, {} as any)
 
-      console.log('[SERVER-UPDATE] Clean update data:', cleanUpdateData)
+      // console.log('[SERVER-UPDATE] Clean update data:', cleanUpdateData)
 
       // Perform the update without select first
       const { error: updateError } = await supabase
@@ -235,7 +236,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         }
       }
 
-      console.log('[SERVER-UPDATE] Update successful, returned site:', site)
+      // console.log('[SERVER-UPDATE] Update successful, returned site:', site)
 
       // Verify the update was actually saved
       const { data: verifiedSite, error: verifyError } = await supabase
@@ -247,7 +248,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
       if (verifyError) {
         console.error('[SERVER-UPDATE] Failed to verify update:', verifyError)
       } else {
-        console.log('[SERVER-UPDATE] Verified updated site data:', {
+        // console.log('[SERVER-UPDATE] Verified updated site data:', {
           name: verifiedSite.name,
           address: verifiedSite.address,
           manager_name: verifiedSite.manager_name,

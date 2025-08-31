@@ -194,7 +194,7 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
 
   const assignPartner = async (partnerId: string) => {
     try {
-      console.log('Assigning partner:', partnerId, 'to site:', siteId)
+      // console.log('Assigning partner:', partnerId, 'to site:', siteId)
       setAssignLoading(true)
       const response = await fetch(`/api/admin/sites/${siteId}/partners/assign`, {
         method: 'POST',
@@ -207,11 +207,11 @@ export default function SitePartnersTab({ siteId, siteName }: SitePartnersTabPro
         })
       })
       
-      console.log('Response status:', response.status)
+      // console.log('Response status:', response.status)
       
       if (response.ok) {
         const result = await response.json()
-        console.log('Assignment result:', result)
+        // console.log('Assignment result:', result)
         await fetchPartnersData()
         setShowAssignModal(false)
         setSearchTerm('')

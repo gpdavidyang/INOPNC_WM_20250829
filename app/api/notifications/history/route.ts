@@ -40,6 +40,18 @@ export async function GET(request: NextRequest) {
     const { data: notifications, error, count } = await query
 
     if (error) {
+      // If table doesn't exist, return empty array instead of throwing error
+      if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
+        return NextResponse.json({
+          notifications: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0
+          }
+        })
+      }
       throw error
     }
 

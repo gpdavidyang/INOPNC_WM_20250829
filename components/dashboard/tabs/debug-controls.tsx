@@ -11,25 +11,25 @@ export function DebugControls() {
     localStorage.removeItem('inopnc-current-site')
     localStorage.removeItem('inopnc-temp-session')
     localStorage.removeItem('inopnc-last-auto-login')
-    console.log('✅ Cleared auto-login state from localStorage')
+    // console.log('✅ Cleared auto-login state from localStorage')
   }
   
   const disableAutoLogin = () => {
     localStorage.setItem('inopnc-auto-login-disabled', 'true')
-    console.log('🚫 Auto-login disabled')
+    // console.log('🚫 Auto-login disabled')
   }
   
   const enableAutoLogin = () => {
     localStorage.removeItem('inopnc-auto-login-disabled')
-    console.log('✅ Auto-login enabled')
+    // console.log('✅ Auto-login enabled')
   }
   
   const checkSessionState = async () => {
-    console.log('🔍 Checking session state...')
+    // console.log('🔍 Checking session state...')
     
     // Check session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    console.log('Session:', {
+    // console.log('Session:', {
       exists: !!session,
       user: session?.user?.email,
       accessToken: session?.access_token ? 'Present' : 'Missing',
@@ -38,7 +38,7 @@ export function DebugControls() {
     
     // Check user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
-    console.log('User:', {
+    // console.log('User:', {
       exists: !!user,
       email: user?.email,
       id: user?.id,
@@ -46,7 +46,7 @@ export function DebugControls() {
     })
     
     // Check localStorage
-    console.log('LocalStorage:', {
+    // console.log('LocalStorage:', {
       loginSuccess: localStorage.getItem('inopnc-login-success'),
       currentSite: localStorage.getItem('inopnc-current-site') ? 'Present' : 'Missing',
       autoLoginDisabled: localStorage.getItem('inopnc-auto-login-disabled'),
@@ -55,19 +55,19 @@ export function DebugControls() {
   }
   
   const forceSignOut = async () => {
-    console.log('🔄 Force signing out...')
+    // console.log('🔄 Force signing out...')
     await supabase.auth.signOut()
     clearAutoLoginState()
     window.location.reload()
   }
   
   const refreshSession = async () => {
-    console.log('🔄 Refreshing session...')
+    // console.log('🔄 Refreshing session...')
     const { data, error } = await supabase.auth.refreshSession()
     if (error) {
       console.error('❌ Session refresh failed:', error)
     } else {
-      console.log('✅ Session refreshed:', data?.session?.user?.email)
+      // console.log('✅ Session refreshed:', data?.session?.user?.email)
     }
   }
   

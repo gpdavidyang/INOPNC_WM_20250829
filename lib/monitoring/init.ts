@@ -16,42 +16,42 @@ let isInitialized = false
  */
 export async function initializeMonitoring(): Promise<void> {
   if (isInitialized) {
-    console.log('🔍 Monitoring system already initialized')
+    // console.log('🔍 Monitoring system already initialized')
     return
   }
 
-  console.log('🚀 Initializing INOPNC Monitoring System...')
+  // console.log('🚀 Initializing INOPNC Monitoring System...')
 
   try {
     // Initialize Sentry for error tracking
     initSentry()
-    console.log('✅ Sentry initialized')
+    // console.log('✅ Sentry initialized')
 
     // Initialize Web Vitals tracking (client-side only)
     if (typeof window !== 'undefined') {
       initWebVitals()
       observePerformance()
-      console.log('✅ Web Vitals tracking initialized')
+      // console.log('✅ Web Vitals tracking initialized')
     }
 
     // Initialize monitoring manager
     await monitoringManager.initialize()
-    console.log('✅ Monitoring manager initialized')
+    // console.log('✅ Monitoring manager initialized')
 
     // Initialize alerting system
     await alertingManager.initialize()
-    console.log('✅ Alerting system initialized')
+    // console.log('✅ Alerting system initialized')
 
     // Initialize security monitoring
     await securityManager.startMonitoring()
-    console.log('✅ Security monitoring started')
+    // console.log('✅ Security monitoring started')
 
     // Set up integration between systems
     setupMonitoringIntegration()
-    console.log('✅ Monitoring integration configured')
+    // console.log('✅ Monitoring integration configured')
 
     isInitialized = true
-    console.log('🎉 INOPNC Monitoring System fully initialized!')
+    // console.log('🎉 INOPNC Monitoring System fully initialized!')
 
     // Send initialization success metric
     if (typeof window !== 'undefined') {
@@ -141,7 +141,7 @@ function setupMonitoringIntegration(): void {
     })
   }
 
-  console.log('📡 Monitoring system integration configured')
+  // console.log('📡 Monitoring system integration configured')
 }
 
 /**
@@ -159,12 +159,12 @@ export function shutdownMonitoring(): void {
     return
   }
 
-  console.log('🛑 Shutting down monitoring system...')
+  // console.log('🛑 Shutting down monitoring system...')
   
   // Add any cleanup logic here
   isInitialized = false
   
-  console.log('✅ Monitoring system shutdown complete')
+  // console.log('✅ Monitoring system shutdown complete')
 }
 
 /**

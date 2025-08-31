@@ -91,18 +91,19 @@ export async function middleware(request: NextRequest) {
     const demoPaths = ['/mobile-demo', '/components']
     const isDemoPath = demoPaths.some(path => pathname.startsWith(path))
 
-    // Debug logging - only log important events, not every request, and only in development
-    if (process.env.NODE_ENV === 'development' && (sessionError || (!user && !isPublicPath && !isDemoPath))) {
-      console.log('Middleware auth issue:', {
-        pathname,
-        hasUser: !!user,
-        isPublicPath,
-        isDemoPath,
-        error: sessionError?.message,
-        sessionExists: !!session,
-        userExists: !!user
-      })
-    }
+    // Debug logging - disabled for performance
+    // Uncomment only when debugging auth issues
+    // if (process.env.NODE_ENV === 'development' && (sessionError || (!user && !isPublicPath && !isDemoPath))) {
+    //   console.log('Middleware auth issue:', {
+    //     pathname,
+    //     hasUser: !!user,
+    //     isPublicPath,
+    //     isDemoPath,
+    //     error: sessionError?.message,
+    //     sessionExists: !!session,
+    //     userExists: !!user
+    //   })
+    // }
     
     // Skip auth check for demo pages
     if (isDemoPath) {
@@ -123,10 +124,10 @@ export async function middleware(request: NextRequest) {
 
     return response
   } catch (error) {
-    // Only log middleware errors in development to avoid spam in production logs
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Middleware error:', error)
-    }
+    // Middleware errors - only log critical errors
+    // if (process.env.NODE_ENV === 'development') {
+    //   console.error('Middleware error:', error)
+    // }
     return NextResponse.next()
   }
 }

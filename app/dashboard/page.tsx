@@ -166,12 +166,12 @@ export default async function DashboardPage() {
     console.error('❌ [DASHBOARD-SERVER] Error pre-fetching site data:', error)
   }
   
-  console.log('🔍 [DASHBOARD-SERVER] Final data summary:', {
-    hasCurrentSite: !!currentSite,
-    hasSiteHistory: siteHistory.length > 0,
-    userEmail: user.email,
-    profileRole: profile?.role
-  })
+  // console.log('🔍 [DASHBOARD-SERVER] Final data summary:', {
+  //   hasCurrentSite: !!currentSite,
+  //   hasSiteHistory: siteHistory.length > 0,
+  //   userEmail: user.email,
+  //   profileRole: profile?.role
+  // })
 
   return <DashboardWithNotifications 
     user={user} 

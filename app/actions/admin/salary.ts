@@ -94,7 +94,7 @@ export async function getSalaryRules(
         
         // If table doesn't exist, return mock data for development
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          console.log('🧪 Using mock data for salary rules (table not found)')
+          // console.log('🧪 Using mock data for salary rules (table not found)')
           const mockRules = [
             {
               id: '1',
@@ -232,7 +232,7 @@ export async function upsertSalaryRule(
         
         // If table doesn't exist, return a mock success for development
         if (result.error.code === '42P01' || result.error.message?.includes('does not exist')) {
-          console.log('🧪 Mock success for salary rule upsert (table not found)')
+          // console.log('🧪 Mock success for salary rule upsert (table not found)')
           return {
             success: true,
             data: {
@@ -278,7 +278,7 @@ export async function deleteSalaryRules(ruleIds: string[]): Promise<AdminActionR
         
         // If table doesn't exist, return mock success for development
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          console.log('🧪 Mock success for salary rules deletion (table not found)')
+          // console.log('🧪 Mock success for salary rules deletion (table not found)')
           return {
             success: true,
             message: `${ruleIds.length}개 급여 규칙이 삭제되었습니다.`
@@ -359,7 +359,7 @@ export async function getSalaryRecords(
         
         // If table doesn't exist, return mock data for development
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          console.log('🧪 Using mock data for salary records (table not found)')
+          // console.log('🧪 Using mock data for salary records (table not found)')
           const mockRecords = [
             {
               id: '1',
@@ -586,7 +586,7 @@ export async function approveSalaryRecords(recordIds: string[]): Promise<AdminAc
         
         // If table doesn't exist, return mock success for development
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          console.log('🧪 Mock success for salary approval (table not found)')
+          // console.log('🧪 Mock success for salary approval (table not found)')
           return {
             success: true,
             message: `${recordIds.length}개 급여 기록이 승인되었습니다.`
@@ -643,7 +643,7 @@ export async function getSalaryStats(
         
         // If table doesn't exist, return mock data for development
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          console.log('🧪 Using mock data for salary stats (table not found)')
+          // console.log('🧪 Using mock data for salary stats (table not found)')
           const mockStats: SalaryStats = {
             total_workers: 15,
             pending_calculations: 5,
@@ -711,7 +711,7 @@ export async function getAvailableSitesForSalary(): Promise<AdminActionResult<Ar
         
         // If table doesn't exist, return mock data for development
         if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          console.log('🧪 Using mock data for sites (table not found)')
+          // console.log('🧪 Using mock data for sites (table not found)')
           const mockSites = [
             { id: '1', name: 'A 현장' },
             { id: '2', name: 'B 현장' },

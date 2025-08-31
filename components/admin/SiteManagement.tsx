@@ -56,7 +56,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
 
   // Load sites data
   const loadSites = async () => {
-    console.log('Loading sites...')
+    // console.log('Loading sites...')
     setLoading(true)
     setError(null)
     
@@ -69,7 +69,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
       )
       
       if (result.success && result.data) {
-        console.log('Sites loaded successfully:', result.data.sites)
+        // console.log('Sites loaded successfully:', result.data.sites)
         setSites(result.data.sites)
         setTotalCount(result.data.total)
         setTotalPages(result.data.pages)
@@ -786,7 +786,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
   // Initialize form data when editing
   useEffect(() => {
     if (site) {
-      console.log('Initializing form with site data:', site)
+      // console.log('Initializing form with site data:', site)
       setFormData({
         name: site.name,
         address: site.address,
@@ -797,6 +797,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
         safety_manager_phone: site.safety_manager_phone || '',
         accommodation_name: site.accommodation_name || '',
         accommodation_address: site.accommodation_address || '',
+        accommodation_phone: site.accommodation_phone || '',
         work_process: site.work_process || '',
         work_section: site.work_section || '',
         component_name: site.component_name || '',
@@ -816,6 +817,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
         safety_manager_phone: '',
         accommodation_name: '',
         accommodation_address: '',
+        accommodation_phone: '',
         work_process: '',
         work_section: '',
         component_name: '',
@@ -846,6 +848,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
           safety_manager_phone: formData.safety_manager_phone,
           accommodation_name: formData.accommodation_name,
           accommodation_address: formData.accommodation_address,
+          accommodation_phone: formData.accommodation_phone,
           work_process: formData.work_process,
           work_section: formData.work_section,
           component_name: formData.component_name,
@@ -856,7 +859,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
         result = await updateSite(updateData)
         
         if (result.success) {
-          console.log('Site updated successfully:', result.data)
+          // console.log('Site updated successfully:', result.data)
         }
       } else {
         result = await createSite(formData)
@@ -905,7 +908,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -917,7 +920,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as SiteStatus }))}
-                  className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-white text-gray-900 dark:text-gray-900 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
                   <option value="active">활성</option>
                   <option value="inactive">비활성</option>
@@ -933,7 +936,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -946,7 +949,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="date"
                   value={formData.start_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
               </div>
@@ -959,7 +962,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="date"
                   value={formData.end_date}
                   onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
 
@@ -978,7 +981,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="text"
                   value={formData.manager_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, manager_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
 
@@ -990,7 +993,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="tel"
                   value={formData.construction_manager_phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, construction_manager_phone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
 
@@ -1002,7 +1005,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="text"
                   value={formData.safety_manager_name}
                   onChange={(e) => setFormData(prev => ({ ...prev, safety_manager_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
 
@@ -1014,7 +1017,53 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   type="tel"
                   value={formData.safety_manager_phone}
                   onChange={(e) => setFormData(prev => ({ ...prev, safety_manager_phone: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+
+              {/* Accommodation Information */}
+              <div className="md:col-span-2 mt-6">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  숙소 정보 (선택사항)
+                </h3>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  숙소명
+                </label>
+                <input
+                  type="text"
+                  value={formData.accommodation_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, accommodation_name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="숙소 이름"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  숙소 전화번호
+                </label>
+                <input
+                  type="tel"
+                  value={formData.accommodation_phone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, accommodation_phone: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="숙소 전화번호"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  숙소 주소
+                </label>
+                <input
+                  type="text"
+                  value={formData.accommodation_address}
+                  onChange={(e) => setFormData(prev => ({ ...prev, accommodation_address: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="숙소 주소"
                 />
               </div>
 
@@ -1026,7 +1075,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
             </div>

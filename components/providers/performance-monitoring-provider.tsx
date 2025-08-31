@@ -27,7 +27,7 @@ export function PerformanceMonitoringProvider({
       try {
         // Check if monitoring is enabled
         if (!isFeatureEnabled('ENABLE_MONITORING')) {
-          console.log('📊 Monitoring is disabled by feature flag')
+          // console.log('📊 Monitoring is disabled by feature flag')
           setMonitoringStatus('ready')
           return
         }
@@ -38,14 +38,14 @@ export function PerformanceMonitoringProvider({
           return
         }
 
-        console.log('🚀 Starting comprehensive monitoring initialization...')
+        // console.log('🚀 Starting comprehensive monitoring initialization...')
         
         // Initialize the complete monitoring system
         await initializeMonitoring()
         
         // Verify monitoring health
         const health = await checkMonitoringHealth()
-        console.log('📊 Monitoring health check:', health)
+        // console.log('📊 Monitoring health check:', health)
         
         setMonitoringStatus('ready')
         
@@ -90,7 +90,7 @@ export function PerformanceMonitoringProvider({
             })
           }
           
-          console.log('⚠️ Fallback to basic monitoring only')
+          // console.log('⚠️ Fallback to basic monitoring only')
         } catch (fallbackError) {
           console.error('❌ Even basic monitoring failed:', fallbackError)
         }

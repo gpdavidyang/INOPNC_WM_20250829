@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: process.env.NODE_ENV === 'production',
   
   // TypeScript 빌드 최적화
   typescript: {
@@ -12,11 +12,11 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Disable SWC minify to preserve quality
-  swcMinify: false,
+  // Enable SWC for better performance
+  swcMinify: true,
   
-  // Disable compression to maintain quality
-  compress: false,
+  // Enable compression for better performance
+  compress: true,
   poweredByHeader: false,
   generateEtags: true,
   
@@ -39,23 +39,29 @@ const nextConfig = {
       'class-variance-authority',
     ],
     
-    // Font optimization disabled for quality
+    // Font optimization disabled for stability
     adjustFontFallbacks: false,
+    
+    // CSS optimization disabled for stability
+    // optimizeCss: false,
   },
   
   // 개발 서버 최적화
   devIndicators: {
     buildActivity: false,
+    buildActivityPosition: 'bottom-right',
   },
   
   // 컴파일 성능 향상
   compiler: {
-    // Remove console in production for performance
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn']
-    } : false,
-    // KEEP React properties for debugging
-    reactRemoveProperties: false,
+    // Remove console in production AND development (controlled by env)
+    removeConsole: process.env.NEXT_PUBLIC_DISABLE_CONSOLE_LOGS === 'true' 
+      ? { exclude: ['error', 'warn'] }
+      : process.env.NODE_ENV === 'production' 
+      ? { exclude: ['error', 'warn'] }
+      : false,
+    // KEEP React properties for debugging in dev
+    reactRemoveProperties: process.env.NODE_ENV === 'production',
   },
   
   // Image configuration - preserve original quality

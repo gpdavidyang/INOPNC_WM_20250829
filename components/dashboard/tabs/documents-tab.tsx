@@ -341,38 +341,38 @@ export default function DocumentsTab({
   }
 
   const validateFile = (file: File): string | null => {
-    console.log('🔍 Validating file:', file.name, 'type:', file.type, 'size:', file.size)
+    // console.log('🔍 Validating file:', file.name, 'type:', file.type, 'size:', file.size)
     
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      console.log('❌ File type not allowed:', file.type)
+      // console.log('❌ File type not allowed:', file.type)
       return `지원하지 않는 파일 형식입니다. (${file.type})`
     }
     
     const maxSize = MAX_FILE_SIZE_MB * 1024 * 1024
     if (file.size > maxSize) {
-      console.log('❌ File too large:', file.size, 'max:', maxSize)
+      // console.log('❌ File too large:', file.size, 'max:', maxSize)
       return `파일 크기가 ${MAX_FILE_SIZE_MB}MB를 초과합니다. (${Math.round(file.size / 1024 / 1024 * 100) / 100}MB)`
     }
     
-    console.log('✅ File validation passed')
+    // console.log('✅ File validation passed')
     return null
   }
 
   const uploadFile = async (file: File, category: string = 'misc', documentType?: string) => {
-    console.log('🔥🚀 uploadFile called with parameters:', {
-      fileName: file.name,
-      fileSize: file.size,
-      fileType: file.type,
-      category,
-      documentType,
-      profileName: profile.full_name
-    })
+    // console.log('🔥🚀 uploadFile called with parameters:', {
+    //   fileName: file.name,
+    //   fileSize: file.size,
+    //   fileType: file.type,
+    //   category,
+    //   documentType,
+    //   profileName: profile.full_name
+    // })
     
     // Step 1: File Validation
-    console.log('1️⃣ Starting file validation...')
+    // console.log('1️⃣ Starting file validation...')
     const validation = validateFile(file)
     if (validation) {
-      console.log('❌ File validation failed:', validation)
+      // console.log('❌ File validation failed:', validation)
       setUploadProgress(prev => [...prev, {
         fileName: file.name,
         progress: 0,
@@ -381,10 +381,10 @@ export default function DocumentsTab({
       }])
       return Promise.reject(new Error(validation))
     }
-    console.log('✅ File validation passed')
+    // console.log('✅ File validation passed')
 
     // Step 2: Initialize Progress Tracking
-    console.log('2️⃣ Initializing progress tracking...')
+    // console.log('2️⃣ Initializing progress tracking...')
     const progressItem: UploadProgress = {
       fileName: file.name,
       progress: 0,
@@ -392,61 +392,61 @@ export default function DocumentsTab({
     }
     
     setUploadProgress(prev => {
-      console.log('📊 Adding progress item:', progressItem)
-      console.log('📊 Previous progress:', prev)
+      // console.log('📊 Adding progress item:', progressItem)
+      // console.log('📊 Previous progress:', prev)
       const newProgress = [...prev, progressItem]
-      console.log('📊 New progress:', newProgress)
+      // console.log('📊 New progress:', newProgress)
       return newProgress
     })
 
     try {
       // Step 3: Create FormData
-      console.log('3️⃣ Creating FormData...')
+      // console.log('3️⃣ Creating FormData...')
       const formData = new FormData()
       formData.append('file', file)
       formData.append('category', category)
       formData.append('uploadedBy', profile.full_name)
       
       if (documentType) {
-        console.log('📋 Adding document type to FormData:', documentType)
+        // console.log('📋 Adding document type to FormData:', documentType)
         formData.append('documentType', documentType)
         const reqDoc = requiredDocuments.find(doc => doc.id === documentType)
         if (reqDoc) {
-          console.log('📋 Found required document config:', reqDoc)
+          // console.log('📋 Found required document config:', reqDoc)
           formData.append('isRequired', reqDoc.isRequired.toString())
         }
       }
 
       // Log FormData contents
-      console.log('📋 FormData contents:')
+      // console.log('📋 FormData contents:')
       for (const [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value instanceof File ? `File(${value.name}, ${value.size}b)` : value)
+        // console.log(`  ${key}:`, value instanceof File ? `File(${value.name}, ${value.size}b)` : value)
       }
 
       // Step 4: API Upload
-      console.log('4️⃣ Starting API upload to /api/documents')
+      // console.log('4️⃣ Starting API upload to /api/documents')
       setUploadProgress(prev => {
         const updated = prev.map(item => 
           item.fileName === file.name 
             ? { ...item, progress: 20 }
             : item
         )
-        console.log('📊 Updated progress to 20%:', updated)
+        // console.log('📊 Updated progress to 20%:', updated)
         return updated
       })
 
-      console.log('📡 Making fetch request...')
+      // console.log('📡 Making fetch request...')
       const response = await fetch('/api/documents', {
         method: 'POST',
         body: formData
       })
 
-      console.log('📡 API response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      })
+      // console.log('📡 API response received:', {
+      //   status: response.status,
+      //   statusText: response.statusText,
+      //   ok: response.ok,
+      //   headers: Object.fromEntries(response.headers.entries())
+      // })
 
       setUploadProgress(prev => {
         const updated = prev.map(item => 
@@ -454,21 +454,21 @@ export default function DocumentsTab({
             ? { ...item, progress: 80 }
             : item
         )
-        console.log('📊 Updated progress to 80%:', updated)
+        // console.log('📊 Updated progress to 80%:', updated)
         return updated
       })
 
       // Step 5: Handle Response
-      console.log('5️⃣ Processing response...')
+      // console.log('5️⃣ Processing response...')
       if (!response.ok) {
-        console.log('❌ Response not OK, getting error details...')
+        // console.log('❌ Response not OK, getting error details...')
         let errorMessage = '업로드 실패'
         try {
           const errorData = await response.json()
-          console.log('❌ Error response data:', errorData)
+          // console.log('❌ Error response data:', errorData)
           errorMessage = errorData.error || errorData.message || '업로드 실패'
         } catch (parseError) {
-          console.log('❌ Could not parse error response:', parseError)
+          // console.log('❌ Could not parse error response:', parseError)
         }
         
         if (response.status === 401) {
@@ -478,12 +478,12 @@ export default function DocumentsTab({
         throw new Error(errorMessage)
       }
 
-      console.log('📋 Parsing successful response...')
+      // console.log('📋 Parsing successful response...')
       const result = await response.json()
-      console.log('📋 Parsed response result:', result)
+      // console.log('📋 Parsed response result:', result)
       
       if (result.success) {
-        console.log('6️⃣ Creating new document object...')
+        // console.log('6️⃣ Creating new document object...')
         // Add the new document to the list
         const newDocument: Document = {
           id: result.data.id,
@@ -497,37 +497,37 @@ export default function DocumentsTab({
           documentType: result.data.documentType,
           isRequired: result.data.isRequired || false
         }
-        console.log('📋 New document object:', newDocument)
+        // console.log('📋 New document object:', newDocument)
 
-        console.log('7️⃣ Adding document to documents list...')
+        // console.log('7️⃣ Adding document to documents list...')
         setDocuments(prev => {
-          console.log('📊 Previous documents count:', prev.length)
+          // console.log('📊 Previous documents count:', prev.length)
           const newDocs = [newDocument, ...prev]
-          console.log('📊 New documents count:', newDocs.length)
+          // console.log('📊 New documents count:', newDocs.length)
           return newDocs
         })
 
-        console.log('8️⃣ Finalizing progress...')
+        // console.log('8️⃣ Finalizing progress...')
         setUploadProgress(prev => {
           const updated = prev.map(item => 
             item.fileName === file.name 
               ? { ...item, progress: 100, status: 'completed' }
               : item
           )
-          console.log('📊 Final progress update:', updated)
+          // console.log('📊 Final progress update:', updated)
           return updated
         })
 
         // Remove completed upload after 3 seconds
         setTimeout(() => {
-          console.log('🧹 Removing completed upload from progress')
+          // console.log('🧹 Removing completed upload from progress')
           setUploadProgress(prev => prev.filter(item => item.fileName !== file.name))
         }, 3000)
 
-        console.log('✅ Upload completed successfully!')
+        // console.log('✅ Upload completed successfully!')
 
       } else {
-        console.log('❌ API returned success=false:', result)
+        // console.log('❌ API returned success=false:', result)
         throw new Error(result.error || '업로드 처리 실패')
       }
 
@@ -547,7 +547,7 @@ export default function DocumentsTab({
             ? { ...item, status: 'error', error: error instanceof Error ? error.message : '업로드 실패' }
             : item
         )
-        console.log('📊 Error progress update:', updated)
+        // console.log('📊 Error progress update:', updated)
         return updated
       })
       
@@ -557,60 +557,60 @@ export default function DocumentsTab({
   }
 
   const handleFileSelect = async (files: FileList | null) => {
-    console.log('🔥🔄 handleFileSelect called')
-    console.log('📄 Files parameter:', files)
-    console.log('📄 Files length:', files?.length || 0)
-    console.log('📋 FileInput ref current:', fileInputRef.current)
+    // console.log('🔥🔄 handleFileSelect called')
+    // console.log('📄 Files parameter:', files)
+    // console.log('📄 Files length:', files?.length || 0)
+    // console.log('📋 FileInput ref current:', fileInputRef.current)
     
     if (!files || files.length === 0) {
-      console.log('❌ No files selected or files is null/empty')
+      // console.log('❌ No files selected or files is null/empty')
       // Reset any pending upload states
       const documentType = fileInputRef.current?.getAttribute('data-document-type')
-      console.log('📋 Document type from input:', documentType)
+      // console.log('📋 Document type from input:', documentType)
       if (documentType) {
-        console.log('🧹 Cleaning up upload state for:', documentType)
+        // console.log('🧹 Cleaning up upload state for:', documentType)
         setUploadingDocuments(prev => {
           const newSet = new Set(prev)
           newSet.delete(documentType)
-          console.log('📊 After cleanup, uploading documents:', Array.from(newSet))
+          // console.log('📊 After cleanup, uploading documents:', Array.from(newSet))
           return newSet
         })
         fileInputRef.current?.removeAttribute('data-document-type')
-        console.log('🧹 Removed data-document-type attribute')
+        // console.log('🧹 Removed data-document-type attribute')
       }
       return
     }
     
     const documentType = fileInputRef.current?.getAttribute('data-document-type')
-    console.log('📋 Processing file selection for document type:', documentType)
-    console.log('📄 Files to process:', Array.from(files).map(f => ({ name: f.name, size: f.size, type: f.type })))
+    // console.log('📋 Processing file selection for document type:', documentType)
+    // console.log('📄 Files to process:', Array.from(files).map(f => ({ name: f.name, size: f.size, type: f.type })))
     
     if (documentType) {
       // 개별 문서 업로드
-      console.log('🚀 Starting upload for document type:', documentType)
-      console.log('📊 Current uploadingDocuments before add:', Array.from(uploadingDocuments))
+      // console.log('🚀 Starting upload for document type:', documentType)
+      // console.log('📊 Current uploadingDocuments before add:', Array.from(uploadingDocuments))
       
       setUploadingDocuments(prev => {
         const newSet = new Set(prev)
         newSet.add(documentType)
-        console.log('📊 After adding, uploading documents:', Array.from(newSet))
+        // console.log('📊 After adding, uploading documents:', Array.from(newSet))
         return newSet
       })
       
       try {
         for (const file of Array.from(files)) {
-          console.log('📄 About to upload file for required document:', {
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: file.type,
-            documentType: documentType,
-            selectedCategory: selectedCategory
-          })
+          // console.log('📄 About to upload file for required document:', {
+          //   fileName: file.name,
+          //   fileSize: file.size,
+          //   fileType: file.type,
+          //   documentType: documentType,
+          //   selectedCategory: selectedCategory
+          // })
           
           await uploadFile(file, selectedCategory === 'all' ? 'misc' : selectedCategory, documentType)
-          console.log('✅ Successfully uploaded file:', file.name)
+          // console.log('✅ Successfully uploaded file:', file.name)
         }
-        console.log('✅ All files uploaded successfully for document type:', documentType)
+        // console.log('✅ All files uploaded successfully for document type:', documentType)
       } catch (error) {
         console.error('❌ Required document upload error:', error)
         console.error('❌ Error details:', {
@@ -619,34 +619,34 @@ export default function DocumentsTab({
         })
         alert('업로드 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : '알 수 없는 오류'))
       } finally {
-        console.log('🧹 Finally block: Cleaning up upload state for:', documentType)
+        // console.log('🧹 Finally block: Cleaning up upload state for:', documentType)
         setUploadingDocuments(prev => {
           const newSet = new Set(prev)
           newSet.delete(documentType)
-          console.log('📊 After final cleanup, uploading documents:', Array.from(newSet))
+          // console.log('📊 After final cleanup, uploading documents:', Array.from(newSet))
           return newSet
         })
         
         if (fileInputRef.current) {
           fileInputRef.current.removeAttribute('data-document-type')
-          console.log('🧹 Removed data-document-type attribute in finally block')
+          // console.log('🧹 Removed data-document-type attribute in finally block')
         }
       }
     } else {
       // 일반 파일 업로드
-      console.log('🚀 Starting general file upload (no document type)')
+      // console.log('🚀 Starting general file upload (no document type)')
       setUploading(true)
       try {
         for (const file of Array.from(files)) {
-          console.log('📄 Uploading general file:', file.name)
+          // console.log('📄 Uploading general file:', file.name)
           await uploadFile(file, selectedCategory === 'all' ? 'misc' : selectedCategory, undefined)
         }
-        console.log('✅ All general files uploaded successfully')
+        // console.log('✅ All general files uploaded successfully')
       } catch (error) {
         console.error('❌ General upload error:', error)
         alert('업로드 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : '알 수 없는 오류'))
       } finally {
-        console.log('🧹 Cleaning up general upload state')
+        // console.log('🧹 Cleaning up general upload state')
         setUploading(false)
       }
     }
@@ -1058,53 +1058,53 @@ export default function DocumentsTab({
                       ) : (
                         <button
                           onClick={() => {
-                            console.log('🖱️ Upload button clicked for document:', reqDoc.id)
-                            console.log('📋 Button element:', event?.target)
+                            // console.log('🖱️ Upload button clicked for document:', reqDoc.id)
+                            // console.log('📋 Button element:', event?.target)
                             
                             if (!fileInputRef.current) {
                               console.error('❌ File input ref is not available')
-                              console.log('🔍 fileInputRef:', fileInputRef)
+                              // console.log('🔍 fileInputRef:', fileInputRef)
                               alert('파일 입력 요소에 접근할 수 없습니다. 페이지를 새로고침해주세요.')
                               return
                             }
                             
-                            console.log('✅ File input ref found:', fileInputRef.current)
-                            console.log('🔍 File input properties:', {
-                              type: fileInputRef.current.type,
-                              accept: fileInputRef.current.accept,
-                              multiple: fileInputRef.current.multiple,
-                              value: fileInputRef.current.value,
-                              disabled: fileInputRef.current.disabled
-                            })
+                            // console.log('✅ File input ref found:', fileInputRef.current)
+                            // console.log('🔍 File input properties:', {
+                            //   type: fileInputRef.current.type,
+                            //   accept: fileInputRef.current.accept,
+                            //   multiple: fileInputRef.current.multiple,
+                            //   value: fileInputRef.current.value,
+                            //   disabled: fileInputRef.current.disabled
+                            // })
                             
                             if (uploadingDocuments.has(reqDoc.id)) {
-                              console.log('⏳ Already uploading for document:', reqDoc.id)
+                              // console.log('⏳ Already uploading for document:', reqDoc.id)
                               return // Prevent multiple uploads for this specific document
                             }
                             
-                            console.log('📤 Starting upload process for document:', reqDoc.id)
-                            console.log('📊 Current uploadingDocuments:', Array.from(uploadingDocuments))
+                            // console.log('📤 Starting upload process for document:', reqDoc.id)
+                            // console.log('📊 Current uploadingDocuments:', Array.from(uploadingDocuments))
                             
                             // Set the document type before triggering file selection
                             fileInputRef.current.setAttribute('data-document-type', reqDoc.id)
-                            console.log('🏷️ Set data-document-type to:', reqDoc.id)
-                            console.log('🔍 Verify attribute was set:', fileInputRef.current.getAttribute('data-document-type'))
+                            // console.log('🏷️ Set data-document-type to:', reqDoc.id)
+                            // console.log('🔍 Verify attribute was set:', fileInputRef.current.getAttribute('data-document-type'))
                             
                             // Reset the file input to ensure change event fires
                             const oldValue = fileInputRef.current.value
                             fileInputRef.current.value = ''
-                            console.log('🔄 Reset file input value from', oldValue, 'to', fileInputRef.current.value)
+                            // console.log('🔄 Reset file input value from', oldValue, 'to', fileInputRef.current.value)
                             
                             // Trigger file selection
                             try {
-                              console.log('🎯 About to click file input...')
+                              // console.log('🎯 About to click file input...')
                               fileInputRef.current.click()
-                              console.log('✅ File input clicked successfully')
+                              // console.log('✅ File input clicked successfully')
                               
                               // Add a small delay to check if the dialog opened
                               setTimeout(() => {
-                                console.log('⏰ 500ms after click - checking if dialog opened')
-                                console.log('🔍 File input value after click:', fileInputRef.current?.value)
+                                // console.log('⏰ 500ms after click - checking if dialog opened')
+                                // console.log('🔍 File input value after click:', fileInputRef.current?.value)
                               }, 500)
                             } catch (error) {
                               console.error('❌ Error clicking file input:', error)
@@ -1420,24 +1420,24 @@ export default function DocumentsTab({
         multiple
         accept={ALLOWED_FILE_TYPES.join(',')}
         onChange={(e) => {
-          console.log('🔥 File input onChange event triggered')
-          console.log('📄 Selected files count:', e.target.files?.length || 0)
-          console.log('📋 Current data-document-type:', e.target.getAttribute('data-document-type'))
-          console.log('🎯 File input element:', e.target)
+          // console.log('🔥 File input onChange event triggered')
+          // console.log('📄 Selected files count:', e.target.files?.length || 0)
+          // console.log('📋 Current data-document-type:', e.target.getAttribute('data-document-type'))
+          // console.log('🎯 File input element:', e.target)
           
           if (e.target.files?.length) {
-            console.log('📄 Files details:')
+            // console.log('📄 Files details:')
             for (let i = 0; i < e.target.files.length; i++) {
               const file = e.target.files[i]
-              console.log(`  📄 File ${i + 1}: ${file.name} (${file.size} bytes, ${file.type})`)
+              // console.log(`  📄 File ${i + 1}: ${file.name} (${file.size} bytes, ${file.type})`)
             }
           } else {
-            console.log('❌ No files selected or files is null/undefined')
+            // console.log('❌ No files selected or files is null/undefined')
           }
           
           // Add timeout to ensure state updates properly
           setTimeout(() => {
-            console.log('⏰ Timeout: Calling handleFileSelect')
+            // console.log('⏰ Timeout: Calling handleFileSelect')
             handleFileSelect(e.target.files)
           }, 100)
         }}

@@ -220,22 +220,22 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
       // Check and refresh session if needed (like WorkLogsTab)
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      console.log('[AttendanceTab] Session check:', {
-        hasSession: !!session,
-        sessionError: sessionError?.message,
-        userId: session?.user?.id,
-        profileId: profile.id
-      })
+      // console.log('[AttendanceTab] Session check:', {
+      //   hasSession: !!session,
+      //   sessionError: sessionError?.message,
+      //   userId: session?.user?.id,
+      //   profileId: profile.id
+      // })
 
       if (!session) {
         console.warn('[AttendanceTab] No session found, trying to refresh session...')
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
         
-        console.log('[AttendanceTab] Session refresh result:', {
-          success: !refreshError,
-          hasSession: !!refreshData.session,
-          error: refreshError?.message
-        })
+        // console.log('[AttendanceTab] Session refresh result:', {
+        //   success: !refreshError,
+        //   hasSession: !!refreshData.session,
+        //   error: refreshError?.message
+        // })
         
         if (refreshError || !refreshData.session) {
           console.error('[AttendanceTab] Could not establish session, queries may fail')
@@ -284,11 +284,11 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
       const startDate = new Date(selectedYear, selectedMonth - 1, 1).toISOString().split('T')[0]
       const endDate = new Date(selectedYear, selectedMonth, 0).toISOString().split('T')[0]
       
-      console.log('[AttendanceTab] Loading attendance data:', {
-        userId: profile.id,
-        dateRange: `${startDate} ~ ${endDate}`,
-        selectedSite
-      })
+      // console.log('[AttendanceTab] Loading attendance data:', {
+      //   userId: profile.id,
+      //   dateRange: `${startDate} ~ ${endDate}`,
+      //   selectedSite
+      // })
       
       let query = supabase
         .from('attendance_records')
@@ -322,7 +322,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
         throw error
       }
 
-      console.log('[AttendanceTab] Query success, records:', data?.length || 0)
+      // console.log('[AttendanceTab] Query success, records:', data?.length || 0)
 
       // Transform data to match AttendanceRecord interface
       // Now using labor_hours directly from database

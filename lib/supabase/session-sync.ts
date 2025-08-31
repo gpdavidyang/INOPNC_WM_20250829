@@ -81,7 +81,7 @@ export async function syncSession() {
   const client = createSessionClient()
   
   try {
-    console.log('[SESSION-SYNC] Starting session synchronization...')
+    // console.log('[SESSION-SYNC] Starting session synchronization...')
     
     // First, get the current session
     const { data: { session }, error: sessionError } = await client.auth.getSession()
@@ -92,11 +92,11 @@ export async function syncSession() {
     }
     
     if (!session) {
-      console.log('[SESSION-SYNC] No session to sync')
+      // console.log('[SESSION-SYNC] No session to sync')
       return { success: false, error: 'No active session' }
     }
     
-    console.log('[SESSION-SYNC] Session found:', session.user?.email)
+    // console.log('[SESSION-SYNC] Session found:', session.user?.email)
     
     // Force a session refresh to ensure cookies are properly set
     const { data: { session: refreshedSession }, error: refreshError } = 
@@ -108,11 +108,11 @@ export async function syncSession() {
     }
     
     if (!refreshedSession) {
-      console.log('[SESSION-SYNC] Refresh failed to return session')
+      // console.log('[SESSION-SYNC] Refresh failed to return session')
       return { success: false, error: 'Session refresh failed' }
     }
     
-    console.log('[SESSION-SYNC] Session refreshed successfully')
+    // console.log('[SESSION-SYNC] Session refreshed successfully')
     
     // Verify the session is accessible
     const { data: { user }, error: userError } = await client.auth.getUser()
@@ -122,13 +122,13 @@ export async function syncSession() {
       return { success: false, error: 'Session verification failed' }
     }
     
-    console.log('[SESSION-SYNC] Session verified for user:', user.email)
+    // console.log('[SESSION-SYNC] Session verified for user:', user.email)
     
     // Check if cookies are actually set
     if (typeof document !== 'undefined') {
       const cookies = document.cookie
       const hasAuthCookies = cookies.includes('sb-') // Supabase cookies start with sb-
-      console.log('[SESSION-SYNC] Auth cookies present:', hasAuthCookies)
+      // console.log('[SESSION-SYNC] Auth cookies present:', hasAuthCookies)
       
       if (!hasAuthCookies) {
         console.warn('[SESSION-SYNC] Warning: Auth cookies not found in document.cookie')
@@ -178,7 +178,7 @@ export async function signInWithSync(
   const client = createSessionClient()
   
   try {
-    console.log('[SESSION-SYNC] Signing in with sync...')
+    // console.log('[SESSION-SYNC] Signing in with sync...')
     
     // Perform sign in
     const { data, error } = await client.auth.signInWithPassword({
@@ -196,7 +196,7 @@ export async function signInWithSync(
       return { success: false, error: 'Authentication failed' }
     }
     
-    console.log('[SESSION-SYNC] Sign in successful:', data.user?.email)
+    // console.log('[SESSION-SYNC] Sign in successful:', data.user?.email)
     
     // Wait for cookies to be set
     await new Promise(resolve => setTimeout(resolve, 500))

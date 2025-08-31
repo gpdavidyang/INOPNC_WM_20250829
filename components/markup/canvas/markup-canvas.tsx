@@ -159,13 +159,13 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
           const width = rect.width || 800
           const height = rect.height || 400
           
-          console.log('Resizing canvas:', { // 디버깅용
-            originalWidth: rect.width,
-            originalHeight: rect.height,
-            usedWidth: width,
-            usedHeight: height,
-            canvasExists: !!canvas
-          })
+          // console.log('Resizing canvas:', { // 디버깅용
+          //   originalWidth: rect.width,
+          //   originalHeight: rect.height,
+          //   usedWidth: width,
+          //   usedHeight: height,
+          //   canvasExists: !!canvas
+          // })
           
           canvas.width = width
           canvas.height = height
@@ -232,12 +232,12 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       const x = (e.clientX - rect.left - panX) / zoom
       const y = (e.clientY - rect.top - panY) / zoom
       
-      console.log('🔥 Coordinate transform:', {
-        mouse: { clientX: e.clientX, clientY: e.clientY },
-        rect: { left: rect.left, top: rect.top },
-        viewer: { zoom, panX, panY },
-        result: { x, y }
-      }) // 디버깅용
+      // console.log('🔥 Coordinate transform:', {
+      //   mouse: { clientX: e.clientX, clientY: e.clientY },
+      //   rect: { left: rect.left, top: rect.top },
+      //   viewer: { zoom, panX, panY },
+      //   result: { x, y }
+      // }) // 디버깅용
       
       return { x, y }
     }, [canvas, editorState.viewerState])
@@ -245,24 +245,24 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
     // 캔버스 다시 그리기
     const redrawCanvas = useCallback(() => {
       if (!canvas) {
-        console.log('Canvas not available') // 디버깅용
+        // console.log('Canvas not available') // 디버깅용
         return
       }
       
       const ctx = canvas.getContext('2d')
       if (!ctx) {
-        console.log('Canvas context not available') // 디버깅용
+        // console.log('Canvas context not available') // 디버깅용
         return
       }
 
       const { zoom, panX, panY } = editorState.viewerState
       
-      console.log('Redrawing canvas:', { // 디버깅용
-        zoom, panX, panY,
-        markupObjects: editorState.markupObjects.length,
-        currentDrawing: !!currentDrawing,
-        canvasSize: { width: canvas.width, height: canvas.height }
-      })
+      // console.log('Redrawing canvas:', { // 디버깅용
+      //   zoom, panX, panY,
+      //   markupObjects: editorState.markupObjects.length,
+      //   currentDrawing: !!currentDrawing,
+      //   canvasSize: { width: canvas.width, height: canvas.height }
+      // })
 
       // 캔버스 초기화
       ctx.clearRect(0, 0, canvas.width, canvas.height)
@@ -275,18 +275,18 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       // 도면 이미지 그리기
       if (blueprintImageRef.current) {
         ctx.drawImage(blueprintImageRef.current, 0, 0)
-        console.log('Blueprint drawn') // 디버깅용
+        // console.log('Blueprint drawn') // 디버깅용
       }
 
       // 마킹 객체들 그리기
       editorState.markupObjects.forEach((obj, index) => {
-        console.log(`Drawing markup object ${index}:`, obj) // 디버깅용
+        // console.log(`Drawing markup object ${index}:`, obj) // 디버깅용
         drawMarkupObject(ctx, obj, editorState.selectedObjects.includes(obj.id))
       })
 
       // 현재 그리고 있는 객체 그리기
       if (currentDrawing) {
-        console.log('Drawing current object:', currentDrawing) // 디버깅용
+        // console.log('Drawing current object:', currentDrawing) // 디버깅용
         drawMarkupObject(ctx, currentDrawing as MarkupObject, false)
       }
 
@@ -296,7 +296,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
     // 도면 이미지가 로드되었을 때 redraw
     useEffect(() => {
       if (blueprintImageRef.current) {
-        console.log('Blueprint image loaded, redrawing canvas')
+        // console.log('Blueprint image loaded, redrawing canvas')
         redrawCanvas()
       }
     }, [blueprintUrl, redrawCanvas])
@@ -389,21 +389,21 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
 
     // 마우스 이벤트 핸들러
     const handleMouseDown = (e: React.MouseEvent) => {
-      console.log('🔥 handleMouseDown called!', { 
-        clientX: e.clientX, 
-        clientY: e.clientY,
-        target: e.target,
-        currentTarget: e.currentTarget
-      })
+      // console.log('🔥 handleMouseDown called!', { 
+      //   clientX: e.clientX, 
+      //   clientY: e.clientY,
+      //   target: e.target,
+      //   currentTarget: e.currentTarget
+      // })
       
       const { activeTool } = editorState.toolState
       const coords = getCanvasCoordinates(e)
       
-      console.log('Mouse down:', { activeTool, coords }) // 디버깅용
+      // console.log('Mouse down:', { activeTool, coords }) // 디버깅용
       
       // Text tool - open dialog on single click
       if (activeTool === 'text') {
-        console.log('🔥 Text tool click - opening dialog')
+        // console.log('🔥 Text tool click - opening dialog')
         setTextInputPosition(coords)
         setTextInputOpen(true)
         return
@@ -411,7 +411,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       
       // Pan tool - start panning
       if (activeTool === 'pan') {
-        console.log('🔥 Pan tool - starting pan')
+        // console.log('🔥 Pan tool - starting pan')
         setIsPanning(true)
         setPanStart({ x: e.clientX, y: e.clientY })
         setLastPanPosition({ 
@@ -444,7 +444,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         const label = color === 'gray' ? '자재구간' : 
                      color === 'red' ? '작업진행' : '작업완료'
         
-        console.log('🔥 Starting box drawing:', { activeTool, color, label }) // 디버깅용
+        // console.log('🔥 Starting box drawing:', { activeTool, color, label }) // 디버깅용
         
         setCurrentDrawing({
           id: `temp-${Date.now()}`,
@@ -460,7 +460,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         } as BoxMarkup)
       } else if (activeTool === 'pen') {
         // 펜 도구 시작
-        console.log('🔥 Starting pen drawing:', { activeTool }) // 디버깅용
+        // console.log('🔥 Starting pen drawing:', { activeTool }) // 디버깅용
         
         setCurrentDrawing({
           id: `temp-${Date.now()}`,
@@ -499,13 +499,13 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       
       const coords = getCanvasCoordinates(e)
 
-      console.log('🔥 Mouse move:', { activeTool, coords, currentDrawing: !!currentDrawing }) // 디버깅용
+      // console.log('🔥 Mouse move:', { activeTool, coords, currentDrawing: !!currentDrawing }) // 디버깅용
 
       if (currentDrawing) {
         if (currentDrawing.type === 'box') {
           const newWidth = coords.x - startPoint.x
           const newHeight = coords.y - startPoint.y
-          console.log('🔥 Updating box:', { startPoint, coords, newWidth, newHeight }) // 디버깅용
+          // console.log('🔥 Updating box:', { startPoint, coords, newWidth, newHeight }) // 디버깅용
           
           setCurrentDrawing(prev => ({
             ...prev,
@@ -513,7 +513,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
             height: newHeight
           }))
         } else if (currentDrawing.type === 'drawing') {
-          console.log('🔥 Adding path point:', coords) // 디버깅용
+          // console.log('🔥 Adding path point:', coords) // 디버깅용
           setCurrentDrawing(prev => ({
             ...prev,
             path: [...(prev as DrawingMarkup).path, coords]
@@ -523,7 +523,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
     }
 
     const handleMouseUp = () => {
-      console.log('🔥 Mouse up, currentDrawing:', currentDrawing) // 디버깅용
+      // console.log('🔥 Mouse up, currentDrawing:', currentDrawing) // 디버깅용
       
       // Pan tool cleanup
       if (isPanning) {
@@ -538,7 +538,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
           id: `markup-${Date.now()}`
         } as MarkupObject
 
-        console.log('🔥 Saving new markup object:', newObject) // 디버깅용
+        // console.log('🔥 Saving new markup object:', newObject) // 디버깅용
 
         onStateChange(prev => ({
           ...prev,
@@ -555,15 +555,15 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
 
     // 더블클릭으로 텍스트 추가
     const handleDoubleClick = (e: React.MouseEvent) => {
-      console.log('🔥 Double click detected!', { 
-        activeTool: editorState.toolState.activeTool,
-        clientX: e.clientX,
-        clientY: e.clientY
-      })
+      // console.log('🔥 Double click detected!', { 
+      //   activeTool: editorState.toolState.activeTool,
+      //   clientX: e.clientX,
+      //   clientY: e.clientY
+      // })
       
       if (editorState.toolState.activeTool === 'text') {
         const coords = getCanvasCoordinates(e)
-        console.log('🔥 Opening text input dialog at:', coords)
+        // console.log('🔥 Opening text input dialog at:', coords)
         setTextInputPosition(coords)
         setTextInputOpen(true)
       }
@@ -571,8 +571,8 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
 
     // 텍스트 입력 확인 핸들러
     const handleTextConfirm = (text: string) => {
-      console.log('🔥 handleTextConfirm called with text:', text)
-      console.log('🔥 Text position:', textInputPosition)
+      // console.log('🔥 handleTextConfirm called with text:', text)
+      // console.log('🔥 Text position:', textInputPosition)
       
       const newText: TextMarkup = {
         id: `text-${Date.now()}`,
@@ -586,7 +586,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         modifiedAt: new Date().toISOString()
       }
 
-      console.log('🔥 Creating new text object:', newText)
+      // console.log('🔥 Creating new text object:', newText)
 
       onStateChange(prev => ({
         ...prev,
@@ -595,7 +595,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         redoStack: []
       }))
       
-      console.log('🔥 Text added to canvas')
+      // console.log('🔥 Text added to canvas')
     }
 
     // 마우스 휠 줌 기능
@@ -676,7 +676,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         setGestureStartZoom(editorState.viewerState.zoom)
         setGestureStartPan({ x: editorState.viewerState.panX, y: editorState.viewerState.panY })
         
-        console.log('🔥 두 손가락 제스처 시작:', { distance, center })
+        // console.log('🔥 두 손가락 제스처 시작:', { distance, center })
       } else if (newTouches.length === 1 && !isGesturing) {
         // 단일 터치 - 도구에 따라 다르게 처리
         const { activeTool } = editorState.toolState
@@ -689,10 +689,10 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
             x: editorState.viewerState.panX, 
             y: editorState.viewerState.panY 
           })
-          console.log('🔥 단일 터치 패닝 시작 (도구:', activeTool, ')')
+          // console.log('🔥 단일 터치 패닝 시작 (도구:', activeTool, ')')
         } else {
           // Drawing tools (box, pen, text)는 마우스 이벤트로 처리
-          console.log('🔥 터치 시작 - Drawing tool:', activeTool)
+          // console.log('🔥 터치 시작 - Drawing tool:', activeTool)
           const mouseEvent = {
             clientX: e.touches[0].clientX,
             clientY: e.touches[0].clientY,
@@ -752,7 +752,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         setLastDistance(distance)
         setLastTouchCenter(center)
         
-        console.log('🔥 두 손가락 제스처 이동:', { distance, center })
+        // console.log('🔥 두 손가락 제스처 이동:', { distance, center })
       } else if (newTouches.length === 1 && !isGesturing) {
         const { activeTool } = editorState.toolState
         
@@ -769,10 +769,10 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
               panY: lastPanPosition.y + deltaY
             }
           }))
-          console.log('🔥 단일 터치 패닝:', { activeTool, deltaX, deltaY })
+          // console.log('🔥 단일 터치 패닝:', { activeTool, deltaX, deltaY })
         } else if (isMouseDown) {
           // Drawing tools의 drawing 동작
-          console.log('🔥 터치 이동 - Drawing tool:', activeTool, 'currentDrawing:', !!currentDrawing)
+          // console.log('🔥 터치 이동 - Drawing tool:', activeTool, 'currentDrawing:', !!currentDrawing)
           const mouseEvent = {
             clientX: e.touches[0].clientX,
             clientY: e.touches[0].clientY,
@@ -800,7 +800,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       if (remainingTouches.length === 0) {
         // 모든 터치 종료
         const { activeTool } = editorState.toolState
-        console.log('🔥 모든 터치 종료 - activeTool:', activeTool, 'isMouseDown:', isMouseDown, 'currentDrawing:', !!currentDrawing)
+        // console.log('🔥 모든 터치 종료 - activeTool:', activeTool, 'isMouseDown:', isMouseDown, 'currentDrawing:', !!currentDrawing)
         
         setIsGesturing(false)
         setIsPanning(false)
@@ -809,42 +809,42 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         
         // Drawing tools의 경우 반드시 마우스 업 이벤트 처리
         if (isMouseDown || currentDrawing) {
-          console.log('🔥 Drawing tool 터치 종료 - handleMouseUp 호출')
+          // console.log('🔥 Drawing tool 터치 종료 - handleMouseUp 호출')
           handleMouseUp()
         }
         
-        console.log('🔥 모든 터치 종료 완료')
+        // console.log('🔥 모든 터치 종료 완료')
       } else if (remainingTouches.length === 1 && isGesturing) {
         // 두 손가락에서 한 손가락으로 변경 - 제스처 종료
         setIsGesturing(false)
         setLastDistance(0)
-        console.log('🔥 제스처 종료, 단일 터치로 변경')
+        // console.log('🔥 제스처 종료, 단일 터치로 변경')
       }
     }, [isGesturing, editorState.toolState, isMouseDown, currentDrawing, handleMouseUp])
 
     // 마크업 객체 또는 뷰어 상태가 변경될 때마다 다시 그리기
     useEffect(() => {
-      console.log('State changed, triggering redraw') // 디버깅용
+      // console.log('State changed, triggering redraw') // 디버깅용
       redrawCanvas()
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editorState.markupObjects, editorState.viewerState, editorState.selectedObjects, currentDrawing])
 
     // currentDrawing 상태 변경 감지
     useEffect(() => {
-      console.log('Current drawing changed:', currentDrawing) // 디버깅용
+      // console.log('Current drawing changed:', currentDrawing) // 디버깅용
     }, [currentDrawing])
 
     // 캔버스 요소 상태 디버깅
     useEffect(() => {
-      console.log('Canvas element debug:', {
-        canvas: !!canvas,
-        canvasWidth: canvas?.width,
-        canvasHeight: canvas?.height,
-        canvasStyle: canvas?.style.cssText,
-        containerExists: !!containerRef.current,
-        containerRect: containerRef.current?.getBoundingClientRect(),
-        activeTool: editorState.toolState.activeTool
-      })
+      // console.log('Canvas element debug:', {
+      //   canvas: !!canvas,
+      //   canvasWidth: canvas?.width,
+      //   canvasHeight: canvas?.height,
+      //   canvasStyle: canvas?.style.cssText,
+      //   containerExists: !!containerRef.current,
+      //   containerRect: containerRef.current?.getBoundingClientRect(),
+      //   activeTool: editorState.toolState.activeTool
+      // })
     }, [canvas, containerRef, editorState.toolState.activeTool])
 
     return (
@@ -867,7 +867,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           onClick={(e) => {
-            console.log('🔥 Canvas clicked:', e.clientX, e.clientY)
+            // console.log('🔥 Canvas clicked:', e.clientX, e.clientY)
           }}
           style={{
             display: 'block',

@@ -177,7 +177,7 @@ export default function Sidebar({ profile, activeTab, onTabChange, isOpen, onClo
 
   // Debug logging
   React.useEffect(() => {
-    console.log('[Sidebar] Component mounted/updated, isOpen:', isOpen)
+    // console.log('[Sidebar] Component mounted/updated, isOpen:', isOpen)
   }, [isOpen])
 
   const handleLogout = async () => {
@@ -252,7 +252,7 @@ export default function Sidebar({ profile, activeTab, onTabChange, isOpen, onClo
               onClick={(e) => {
                 e.preventDefault()
                 e.stopPropagation()
-                console.log('[Sidebar] X button clicked, calling onClose')
+                // console.log('[Sidebar] X button clicked, calling onClose')
                 // Simply call the onClose function - let React handle the state
                 if (typeof onClose === 'function') {
                   onClose()
@@ -362,25 +362,25 @@ function SidebarContent({
 
   // 메뉴 클릭 시 탭 변경과 모바일에서 사이드바 닫기를 동시에 처리
   const handleMenuClick = React.useCallback((item: MenuItem) => {
-    console.log('[Sidebar] handleMenuClick called with:', {
-      id: item.id,
-      href: item.href,
-      isNavigating,
-      pathname,
-      isMobile: window.innerWidth < 1024,
-      onCloseType: typeof onClose,
-      onCloseExists: !!onClose
-    })
+    // console.log('[Sidebar] handleMenuClick called with:', {
+    //   id: item.id,
+    //   href: item.href,
+    //   isNavigating,
+    //   pathname,
+    //   isMobile: window.innerWidth < 1024,
+    //   onCloseType: typeof onClose,
+    //   onCloseExists: !!onClose
+    // })
     
     // 모바일에서는 무조건 사이드바 닫기 (React state를 통해)
     if (window.innerWidth < 1024 && typeof onClose === 'function') {
-      console.log('[Sidebar] Mobile detected, closing sidebar via React state')
+      // console.log('[Sidebar] Mobile detected, closing sidebar via React state')
       onClose()
     }
     
     // 이미 네비게이션 중이면 무시
     if (isNavigating) {
-      console.log('[Sidebar] Navigation in progress, skipping')
+      // console.log('[Sidebar] Navigation in progress, skipping')
       return
     }
     
@@ -388,7 +388,7 @@ function SidebarContent({
     if (item.href) {
       // Special handling for documents tab - always navigate to /dashboard#documents-unified
       if (item.id === 'documents' || item.href.includes('#documents-unified')) {
-        console.log('[Sidebar] Navigating to documents tab')
+        // console.log('[Sidebar] Navigating to documents tab')
         // Always navigate to the documents tab, even if we're already on /dashboard
         const targetUrl = '/dashboard#documents-unified'
         
@@ -411,22 +411,22 @@ function SidebarContent({
       // Check if current path matches (accounting for hash)
       const currentFullPath = pathname + (window.location.hash || '')
       if (currentFullPath === item.href) {
-        console.log('[Sidebar] Same path, navigation skipped')
+        // console.log('[Sidebar] Same path, navigation skipped')
         return
       }
       
-      console.log('[Sidebar] Navigating to:', item.href)
+      // console.log('[Sidebar] Navigating to:', item.href)
       
       // Use navigation controller if available, otherwise fallback to router
       if (navigate) {
         navigate(item.href)
       } else {
         // Fallback to router.push when NavigationController is not available
-        console.log('[Sidebar] NavigationController not available, using router.push')
+        // console.log('[Sidebar] NavigationController not available, using router.push')
         router.push(item.href)
       }
     } else {
-      console.log('[Sidebar] Tab-based navigation to:', item.id)
+      // console.log('[Sidebar] Tab-based navigation to:', item.id)
       // For tab-based items, only call onTabChange
       onTabChange(item.id)
     }
@@ -471,7 +471,7 @@ function SidebarContent({
                       e.preventDefault()
                       e.stopPropagation()
                       
-                      console.log('[Sidebar] Menu item clicked:', item.id, 'href:', item.href)
+                      // console.log('[Sidebar] Menu item clicked:', item.id, 'href:', item.href)
                       
                       // 통합된 처리
                       handleMenuClick(item)
@@ -513,7 +513,7 @@ function SidebarContent({
                         onClick={(e) => {
                           e.preventDefault()
                           e.stopPropagation()
-                          console.log('[Sidebar] System menu item clicked:', item.id)
+                          // console.log('[Sidebar] System menu item clicked:', item.id)
                           handleMenuClick(item)
                         }}
                         {...getRovingProps(itemIndex)}
@@ -544,7 +544,7 @@ function SidebarContent({
           onClick={(e) => {
             e.preventDefault()
             e.stopPropagation()
-            console.log('[Sidebar] Logout clicked')
+            // console.log('[Sidebar] Logout clicked')
             // 모바일에서는 먼저 사이드바 닫기 (React state를 통해)
             if (window.innerWidth < 1024 && typeof onClose === 'function') {
               onClose()

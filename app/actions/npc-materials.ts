@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function getNPCMaterialsData(siteId: string) {
   try {
-    console.log('[getNPCMaterialsData] Called with siteId:', siteId)
+    // console.log('[getNPCMaterialsData] Called with siteId:', siteId)
     
     const supabase = await createClient()
     
@@ -31,7 +31,7 @@ export async function getNPCMaterialsData(siteId: string) {
       return { success: false, error: inventoryError.message, data: null }
     }
     
-    console.log('[getNPCMaterialsData] Inventory data:', inventoryData)
+    // console.log('[getNPCMaterialsData] Inventory data:', inventoryData)
     
     // Get material transactions for this site and NPC materials
     const { data: transactions, error: transactionsError } = await supabase
@@ -54,7 +54,7 @@ export async function getNPCMaterialsData(siteId: string) {
       console.error('[getNPCMaterialsData] Transactions query error:', transactionsError)
     }
     
-    console.log('[getNPCMaterialsData] Transactions data:', transactions)
+    // console.log('[getNPCMaterialsData] Transactions data:', transactions)
     
     return { 
       success: true, 
@@ -72,7 +72,7 @@ export async function getNPCMaterialsData(siteId: string) {
 
 export async function getSitesForMaterials() {
   try {
-    console.log('[getSitesForMaterials] Called')
+    // console.log('[getSitesForMaterials] Called')
     
     const supabase = await createClient()
     
@@ -83,7 +83,7 @@ export async function getSitesForMaterials() {
       return { success: false, error: 'Authentication required', data: [] }
     }
     
-    console.log('[getSitesForMaterials] User ID:', user.id)
+    // console.log('[getSitesForMaterials] User ID:', user.id)
     
     // Get sites assigned to the user
     const { data: userSites, error } = await supabase
@@ -104,7 +104,7 @@ export async function getSitesForMaterials() {
       return { success: false, error: error.message, data: [] }
     }
     
-    console.log('[getSitesForMaterials] User sites data:', userSites)
+    // console.log('[getSitesForMaterials] User sites data:', userSites)
     
     // Transform data to expected format
     const sites = userSites?.map((us: any) => ({
@@ -112,7 +112,7 @@ export async function getSitesForMaterials() {
       name: us.sites?.name || 'Unknown Site'
     })) || []
     
-    console.log('[getSitesForMaterials] Transformed sites:', sites)
+    // console.log('[getSitesForMaterials] Transformed sites:', sites)
     
     return { success: true, data: sites }
     

@@ -64,17 +64,17 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
 
   const loadWorkLogs = useCallback(async () => {
     try {
-      console.log('[WorkLogsTab] Loading work logs for user:', profile?.role)
+      // console.log('[WorkLogsTab] Loading work logs for user:', profile?.role)
       
       // Check if the browser client has a valid session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      console.log('[WorkLogsTab] Session check:', {
-        hasSession: !!session,
-        sessionError: sessionError?.message,
-        userId: session?.user?.id,
-        profileId: profile.id
-      })
+      // console.log('[WorkLogsTab] Session check:', {
+      //   hasSession: !!session,
+      //   sessionError: sessionError?.message,
+      //   userId: session?.user?.id,
+      //   profileId: profile.id
+      // })
 
       // If no session, the component might be used before proper authentication
       if (!session) {
@@ -83,11 +83,11 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
         // Try to refresh session
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
         
-        console.log('[WorkLogsTab] Session refresh result:', {
-          success: !refreshError,
-          hasSession: !!refreshData.session,
-          error: refreshError?.message
-        })
+        // console.log('[WorkLogsTab] Session refresh result:', {
+        //   success: !refreshError,
+        //   hasSession: !!refreshData.session,
+        //   error: refreshError?.message
+        // })
         
         if (refreshError || !refreshData.session) {
           console.error('[WorkLogsTab] Could not establish session, queries may fail')
@@ -96,17 +96,17 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
       }
 
       // Try simple query first to check basic connectivity
-      console.log('[WorkLogsTab] Testing basic connectivity...')
+      // console.log('[WorkLogsTab] Testing basic connectivity...')
       const { data: testData, error: testError } = await supabase
         .from('daily_reports')
         .select('id, work_date, status')
         .limit(1)
       
-      console.log('[WorkLogsTab] Basic connectivity test:', {
-        success: !testError,
-        count: testData?.length || 0,
-        error: testError?.message
-      })
+      // console.log('[WorkLogsTab] Basic connectivity test:', {
+      //   success: !testError,
+      //   count: testData?.length || 0,
+      //   error: testError?.message
+      // })
 
       if (testError) {
         console.error('[WorkLogsTab] Basic connectivity failed:', testError)
@@ -114,7 +114,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
       }
       
       // Load real data from Supabase - try without inner join first
-      console.log('[WorkLogsTab] Attempting query without inner join...')
+      // console.log('[WorkLogsTab] Attempting query without inner join...')
       const simpleQuery = supabase
         .from('daily_reports')
         .select(`
@@ -138,22 +138,22 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
 
       // Apply role-based filtering
       if (profile?.role === 'worker') {
-        console.log('[WorkLogsTab] Applying worker filter for user:', profile.id)
+        // console.log('[WorkLogsTab] Applying worker filter for user:', profile.id)
         simpleQuery.eq('created_by', profile.id)
       } else {
-        console.log('[WorkLogsTab] No role filter applied - user role:', profile?.role)
+        // console.log('[WorkLogsTab] No role filter applied - user role:', profile?.role)
       }
 
       const { data, error } = await simpleQuery
       
-      console.log('[WorkLogsTab] Main query completed:', { 
-        success: !error, 
-        count: data?.length || 0,
-        error: error?.message,
-        errorCode: error?.code,
-        errorDetails: error?.details,
-        errorHint: error?.hint
-      })
+      // console.log('[WorkLogsTab] Main query completed:', { 
+      //   success: !error, 
+      //   count: data?.length || 0,
+      //   error: error?.message,
+      //   errorCode: error?.code,
+      //   errorDetails: error?.details,
+      //   errorHint: error?.hint
+      // })
 
       if (error) {
         console.error('[WorkLogsTab] Main query failed:', {
@@ -164,7 +164,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
         })
         
         // Fall back to even simpler query without foreign key join
-        console.log('[WorkLogsTab] Falling back to simplest query without site join...')
+        // console.log('[WorkLogsTab] Falling back to simplest query without site join...')
         const { data: fallbackData, error: fallbackError } = await supabase
           .from('daily_reports')
           .select('id, work_date, member_name, process_type, issues, status, site_id, created_at, updated_at, created_by')
@@ -173,12 +173,12 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
         
         // Apply same role filtering to fallback
         if (profile?.role === 'worker') {
-          console.log('[WorkLogsTab] Fallback: Applying worker filter for user:', profile.id)
+          // console.log('[WorkLogsTab] Fallback: Applying worker filter for user:', profile.id)
           // Note: This might not work if RLS is blocking access, but we try anyway
         }
         
         if (!fallbackError && fallbackData && fallbackData.length > 0) {
-          console.log('[WorkLogsTab] Fallback query successful:', fallbackData.length, 'results')
+          // console.log('[WorkLogsTab] Fallback query successful:', fallbackData.length, 'results')
           // Convert fallback data to expected format
           const fallbackLogs: WorkLog[] = fallbackData.map(report => ({
             id: report.id,
@@ -192,18 +192,18 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
             site_id: report.site_id || ''
           }))
           setWorkLogs(fallbackLogs)
-          console.log('[WorkLogsTab] Successfully loaded from fallback:', fallbackLogs.length, 'work logs')
+          // console.log('[WorkLogsTab] Successfully loaded from fallback:', fallbackLogs.length, 'work logs')
           return
         } else {
           console.error('[WorkLogsTab] Even fallback query failed:', fallbackError)
-          console.log('[WorkLogsTab] Setting empty work logs array')
+          // console.log('[WorkLogsTab] Setting empty work logs array')
           setWorkLogs([])
           return
         }
       }
 
       if (!data || data.length === 0) {
-        console.log('[WorkLogsTab] No work logs found')
+        // console.log('[WorkLogsTab] No work logs found')
         setWorkLogs([])
         return
       }
@@ -222,7 +222,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
       }))
       
       setWorkLogs(transformedLogs)
-      console.log('[WorkLogsTab] Successfully loaded', transformedLogs.length, 'work logs')
+      // console.log('[WorkLogsTab] Successfully loaded', transformedLogs.length, 'work logs')
       
     } catch (error) {
       console.error('[WorkLogsTab] Unexpected error loading work logs:', error)
@@ -255,7 +255,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
     let isMounted = true
     
     const initializeData = async () => {
-      console.log('[WorkLogsTab] Initializing data...')
+      // console.log('[WorkLogsTab] Initializing data...')
       
       if (!isMounted) return
       
@@ -772,7 +772,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
                           <button
                             onClick={() => {
                               if (confirm('정말 삭제하시겠습니까?')) {
-                                console.log('Delete log:', log.id)
+                                // console.log('Delete log:', log.id)
                                 // TODO: Implement delete
                               }
                             }}

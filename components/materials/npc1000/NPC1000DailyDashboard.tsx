@@ -89,7 +89,7 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
     const loadSites = async () => {
       // If currentSiteId is provided, use it directly
       if (currentSiteId && currentSiteName) {
-        console.log('[NPC Dashboard] Using provided site:', currentSiteId, currentSiteName)
+        // console.log('[NPC Dashboard] Using provided site:', currentSiteId, currentSiteName)
         setAvailableSites([{ id: currentSiteId, name: currentSiteName }])
         setSelectedSiteId(currentSiteId)
         return
@@ -98,17 +98,17 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
       // Otherwise, load sites from server
       const result = await getSitesForMaterials()
       
-      console.log('[NPC Dashboard] Sites result:', result)
+      // console.log('[NPC Dashboard] Sites result:', result)
       
       if (result.success && result.data.length > 0) {
-        console.log('[NPC Dashboard] Setting sites:', result.data)
+        // console.log('[NPC Dashboard] Setting sites:', result.data)
         setAvailableSites(result.data)
         if (!selectedSiteId && result.data.length > 0) {
-          console.log('[NPC Dashboard] Setting selected site:', result.data[0].id)
+          // console.log('[NPC Dashboard] Setting selected site:', result.data[0].id)
           setSelectedSiteId(result.data[0].id)
         }
       } else {
-        console.log('[NPC Dashboard] No sites available for user')
+        // console.log('[NPC Dashboard] No sites available for user')
         setAvailableSites([])
       }
     }
@@ -118,18 +118,18 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
   // Load NPC-1000 data for selected site
   const loadNPCData = useCallback(async () => {
     if (!selectedSiteId) {
-      console.log('[NPC Dashboard] No site selected, skipping data load')
+      // console.log('[NPC Dashboard] No site selected, skipping data load')
       return
     }
     
     setLoading(true)
     
     try {
-      console.log('[NPC Dashboard] Loading NPC data for site:', selectedSiteId)
+      // console.log('[NPC Dashboard] Loading NPC data for site:', selectedSiteId)
       
       const result = await getNPCMaterialsData(selectedSiteId)
       
-      console.log('[NPC Dashboard] NPC data result:', result)
+      // console.log('[NPC Dashboard] NPC data result:', result)
       
       if (result.success && result.data) {
         const { inventory, transactions } = result.data
@@ -206,11 +206,11 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
         
         setMovements(movementsData)
         
-        console.log('Processed data:', {
-          totalInventory,
-          dailyStatus: { incoming: todayIncoming, used: todayUsed },
-          movementsCount: movementsData.length
-        })
+        // console.log('Processed data:', {
+        //   totalInventory,
+        //   dailyStatus: { incoming: todayIncoming, used: todayUsed },
+        //   movementsCount: movementsData.length
+        // })
       } else {
         console.error('Failed to load NPC data:', result.error)
       }

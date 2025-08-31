@@ -37,12 +37,12 @@ export default function SiteInfoTab({ profile }: SiteInfoTabProps) {
       setLoading(true)
       setError(null)
 
-      console.log('SiteInfoTab: Fetching current site info...')
+      // console.log('SiteInfoTab: Fetching current site info...')
       
       // Use the new server action instead of direct database queries
       const result = await getCurrentUserSite()
       
-      console.log('SiteInfoTab: Server action result:', result)
+      // console.log('SiteInfoTab: Server action result:', result)
 
       if (!result.success) {
         console.error('SiteInfoTab: Failed to fetch site info:', result.error)
@@ -52,10 +52,10 @@ export default function SiteInfoTab({ profile }: SiteInfoTabProps) {
       }
 
       const currentSite = result.data
-      console.log('SiteInfoTab: Received site data:', currentSite)
+      // console.log('SiteInfoTab: Received site data:', currentSite)
 
       if (!currentSite) {
-        console.log('SiteInfoTab: No current site assignment found - showing empty state')
+        // console.log('SiteInfoTab: No current site assignment found - showing empty state')
         setSiteInfo(null)
         return
       }
@@ -110,7 +110,7 @@ export default function SiteInfoTab({ profile }: SiteInfoTabProps) {
         is_active: currentSite.site_status === 'active'
       }
 
-      console.log('SiteInfoTab: Converted site data:', siteData)
+      // console.log('SiteInfoTab: Converted site data:', siteData)
       setSiteInfo(siteData)
     } catch (err) {
       console.error('SiteInfoTab: Error fetching site info:', err)
@@ -132,7 +132,7 @@ export default function SiteInfoTab({ profile }: SiteInfoTabProps) {
       setLoading(true)
       setError(null)
       
-      console.log('SiteInfoTab: Assigning user to site:', { userId: profile.id, siteId })
+      // console.log('SiteInfoTab: Assigning user to site:', { userId: profile.id, siteId })
       
       // Use server action to assign user to site
       const result = await assignUserToSite(profile.id, siteId, 'worker')
@@ -143,7 +143,7 @@ export default function SiteInfoTab({ profile }: SiteInfoTabProps) {
         return
       }
 
-      console.log('SiteInfoTab: Site assignment successful, refreshing data...')
+      // console.log('SiteInfoTab: Site assignment successful, refreshing data...')
       
       // Refresh site info
       await fetchCurrentSiteInfo()

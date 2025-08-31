@@ -110,7 +110,7 @@ export class AlertingManager {
   async initialize(): Promise<void> {
     if (this.isInitialized) return
 
-    console.log('🚨 Initializing Alerting Manager...')
+    // console.log('🚨 Initializing Alerting Manager...')
 
     await this.loadAlertRules()
     await this.loadNotificationTemplates()
@@ -123,7 +123,7 @@ export class AlertingManager {
     this.startEscalationChecker()
 
     this.isInitialized = true
-    console.log('✅ Alerting Manager initialized successfully')
+    // console.log('✅ Alerting Manager initialized successfully')
   }
 
   /**
@@ -145,7 +145,7 @@ export class AlertingManager {
     // Check cooldown period
     const existingAlert = this.findExistingAlert(alertData.ruleId, alertData.context)
     if (existingAlert && this.isInCooldown(existingAlert, rule.cooldownPeriod)) {
-      console.log(`Alert ${alertData.ruleId} is in cooldown period, skipping`)
+      // console.log(`Alert ${alertData.ruleId} is in cooldown period, skipping`)
       return existingAlert
     }
 
@@ -186,7 +186,7 @@ export class AlertingManager {
       }
     })
 
-    console.log(`🚨 Alert created: ${alert.title} [${alert.severity}]`)
+    // console.log(`🚨 Alert created: ${alert.title} [${alert.severity}]`)
     return alert
   }
 
@@ -232,7 +232,7 @@ export class AlertingManager {
       }
     })
 
-    console.log(`✅ Alert resolved: ${alert.title}`)
+    // console.log(`✅ Alert resolved: ${alert.title}`)
   }
 
   /**
@@ -258,7 +258,7 @@ export class AlertingManager {
 
     await this.persistAlert(alert)
 
-    console.log(`👤 Alert acknowledged by ${userId}: ${alert.title}`)
+    // console.log(`👤 Alert acknowledged by ${userId}: ${alert.title}`)
   }
 
   /**
@@ -399,7 +399,7 @@ export class AlertingManager {
       this.alertRules.set(rule.id, rule)
     })
 
-    console.log(`Loaded ${defaultRules.length} alert rules`)
+    // console.log(`Loaded ${defaultRules.length} alert rules`)
   }
 
   /**
@@ -475,7 +475,7 @@ _INOPNC Construction Management System_`,
         })
       }
 
-      console.log(`Loaded ${this.activeAlerts.size} active alerts`)
+      // console.log(`Loaded ${this.activeAlerts.size} active alerts`)
     } catch (error) {
       console.error('Failed to load active alerts:', error)
     }
@@ -509,7 +509,7 @@ _INOPNC Construction Management System_`,
     // For now, just log active alerts count
     const activeCount = Array.from(this.activeAlerts.values()).filter(a => !a.resolved).length
     if (activeCount > 0) {
-      console.log(`📊 Active alerts: ${activeCount}`)
+      // console.log(`📊 Active alerts: ${activeCount}`)
     }
   }
 
@@ -553,7 +553,7 @@ _INOPNC Construction Management System_`,
       }
     })
 
-    console.log(`📈 Alert escalated: ${alert.title}`)
+    // console.log(`📈 Alert escalated: ${alert.title}`)
   }
 
   /**
@@ -701,13 +701,13 @@ _INOPNC Construction Management System_`,
    */
   private async sendEmailNotification(subject: string, body: string): Promise<boolean> {
     // Implementation would depend on email service (SendGrid, AWS SES, etc.)
-    console.log(`📧 Email notification: ${subject}`)
+    // console.log(`📧 Email notification: ${subject}`)
     return true
   }
 
   private async sendSMSNotification(message: string): Promise<boolean> {
     // Implementation would depend on SMS service (Twilio, AWS SNS, etc.)
-    console.log(`📱 SMS notification: ${message}`)
+    // console.log(`📱 SMS notification: ${message}`)
     return true
   }
 
@@ -753,7 +753,7 @@ _INOPNC Construction Management System_`,
 
   private async sendPushNotification(title: string, message: string): Promise<boolean> {
     // Implementation would depend on push service (Firebase, OneSignal, etc.)
-    console.log(`🔔 Push notification: ${title}`)
+    // console.log(`🔔 Push notification: ${title}`)
     return true
   }
 
@@ -816,7 +816,7 @@ _INOPNC Construction Management System_`,
     const updatedRule = { ...rule, ...updates }
     this.alertRules.set(ruleId, updatedRule)
     
-    console.log(`Updated alert rule: ${ruleId}`)
+    // console.log(`Updated alert rule: ${ruleId}`)
   }
 
   async enableAlertRule(ruleId: string): Promise<void> {

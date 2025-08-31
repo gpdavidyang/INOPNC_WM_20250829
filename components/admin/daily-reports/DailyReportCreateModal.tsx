@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Calendar, Building2, User, Users, Package, AlertCircle, Save, FileText } from 'lucide-react'
+import { X, Calendar, Building2, User, Users, Package, AlertCircle, Save, FileText, Plus, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { createDailyReport } from '@/app/actions/admin/daily-reports'
+import { getUsers } from '@/app/actions/admin/users'
 import { 
   Select,
   SelectContent,
@@ -28,6 +29,13 @@ interface Worker {
   id: string
   name: string
   role: string
+  phone?: string
+}
+
+interface WorkerDetail {
+  user_id: string | null
+  name: string
+  role?: string
   phone?: string
 }
 
@@ -56,8 +64,12 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
   })
   
   const [selectedSite, setSelectedSite] = useState<Site | null>(null)
-  const [workers, setWorkers] = useState<Worker[]>([])
-  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([])
+  const [availableWorkers, setAvailableWorkers] = useState<any[]>([])
+  const [workerDetails, setWorkerDetails] = useState<WorkerDetail[]>([])
+  const [workerInputMode, setWorkerInputMode] = useState<'select' | 'manual'>('select')
+  const [manualWorkerName, setManualWorkerName] = useState('')
+  const [manualWorkerRole, setManualWorkerRole] = useState('')
+  const [manualWorkerPhone, setManualWorkerPhone] = useState('')
 
   useEffect(() => {
     if (formData.site_id) {
@@ -76,6 +88,58 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
     }
   }, [formData.site_id, sites])
 
+  // Load available workers
+  useEffect(() => {
+    const loadWorkers = async () => {
+      try {
+        const result = await getUsers(1, 100, '', undefined, 'active')
+        if (result.success && result.data) {
+          setAvailableWorkers(result.data.users.filter(u => 
+            u.role === 'worker' || u.role === 'site_manager'
+          ))
+        }
+      } catch (error) {
+        console.error('Failed to load workers:', error)
+      }
+    }
+    loadWorkers()
+  }, [])
+
+  const addWorkerFromSelect = (userId: string) => {
+    const worker = availableWorkers.find(w => w.id === userId)
+    if (worker && !workerDetails.find(w => w.user_id === userId)) {
+      setWorkerDetails([...workerDetails, {
+        user_id: userId,
+        name: worker.full_name,
+        role: worker.role,
+        phone: worker.phone
+      }])
+    }
+  }
+
+  const addManualWorker = () => {
+    if (!manualWorkerName.trim()) {
+      alert('작업자 이름을 입력해주세요.')
+      return
+    }
+    
+    setWorkerDetails([...workerDetails, {
+      user_id: null,
+      name: manualWorkerName,
+      role: manualWorkerRole,
+      phone: manualWorkerPhone
+    }])
+    
+    // Clear manual input fields
+    setManualWorkerName('')
+    setManualWorkerRole('')
+    setManualWorkerPhone('')
+  }
+
+  const removeWorker = (index: number) => {
+    setWorkerDetails(workerDetails.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (status: 'draft' | 'submitted') => {
     if (!formData.site_id || !formData.member_name || !formData.work_date) {
       alert('필수 정보를 입력해주세요.')
@@ -87,7 +151,7 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
       const result = await createDailyReport({
         ...formData,
         status,
-        worker_ids: selectedWorkers
+        worker_details: workerDetails
       })
 
       if (result.success) {
@@ -224,6 +288,125 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Worker Selection */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">작업자 입력</h3>
+              
+              {/* Input Mode Selection */}
+              <div className="mb-4">
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="select"
+                      checked={workerInputMode === 'select'}
+                      onChange={(e) => setWorkerInputMode('select')}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">작업자 선택</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      value="manual"
+                      checked={workerInputMode === 'manual'}
+                      onChange={(e) => setWorkerInputMode('manual')}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">직접 입력</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Worker Selection or Manual Input */}
+              {workerInputMode === 'select' ? (
+                <div className="flex gap-2 mb-4">
+                  <Select
+                    onValueChange={addWorkerFromSelect}
+                  >
+                    <SelectTrigger className="flex-1">
+                      <SelectValue placeholder="작업자를 선택하세요" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableWorkers.map(worker => (
+                        <SelectItem 
+                          key={worker.id} 
+                          value={worker.id}
+                          disabled={workerDetails.some(w => w.user_id === worker.id)}
+                        >
+                          {worker.full_name} ({worker.role === 'worker' ? '작업자' : '현장관리자'})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">
+                  <input
+                    type="text"
+                    value={manualWorkerName}
+                    onChange={(e) => setManualWorkerName(e.target.value)}
+                    placeholder="작업자 이름 *"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={manualWorkerRole}
+                    onChange={(e) => setManualWorkerRole(e.target.value)}
+                    placeholder="역할 (예: 작업자)"
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="tel"
+                      value={manualWorkerPhone}
+                      onChange={(e) => setManualWorkerPhone(e.target.value)}
+                      placeholder="전화번호"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <button
+                      type="button"
+                      onClick={addManualWorker}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      추가
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Worker List */}
+              {workerDetails.length > 0 && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">등록된 작업자 ({workerDetails.length}명)</h4>
+                  <div className="space-y-2">
+                    {workerDetails.map((worker, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-4">
+                          <User className="h-4 w-4 text-gray-400" />
+                          <span className="text-sm font-medium text-gray-900">{worker.name}</span>
+                          {worker.role && (
+                            <span className="text-xs text-gray-500">({worker.role})</span>
+                          )}
+                          {worker.phone && (
+                            <span className="text-xs text-gray-500">{worker.phone}</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeWorker(index)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Workers and Materials */}

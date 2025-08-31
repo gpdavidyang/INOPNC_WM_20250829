@@ -69,7 +69,7 @@ interface ReportStats {
 }
 
 export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReportListEnhancedProps) {
-  console.log('DailyReportListEnhanced - sites received:', sites, 'length:', sites?.length)
+  // console.log('DailyReportListEnhanced - sites received:', sites, 'length:', sites?.length)
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
   const [reports, setReports] = useState<DailyReport[]>([])
@@ -205,14 +205,14 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       }
 
       const result = await getDailyReports(filters)
-      console.log('getDailyReports filters:', filters)
-      console.log('getDailyReports result:', result)
+      // console.log('getDailyReports filters:', filters)
+      // console.log('getDailyReports result:', result)
       
       if (result.success && result.data) {
         const reportData = result.data as DailyReport[]
-        console.log('Setting reports:', reportData.length, 'items')
-        console.log('First report data:', reportData[0])
-        console.log('Sites available:', sites)
+        // console.log('Setting reports:', reportData.length, 'items')
+        // console.log('First report data:', reportData[0])
+        // console.log('Sites available:', sites)
         setReports(reportData)
 
         // Calculate stats

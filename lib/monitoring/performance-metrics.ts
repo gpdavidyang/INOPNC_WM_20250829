@@ -251,14 +251,14 @@ class PerformanceTracker {
       
       // If we get a 503, don't retry immediately
       if (response.status === 503) {
-        console.debug('Analytics service unavailable, metrics will be sent later')
+        // console.debug('Analytics service unavailable, metrics will be sent later')
         return
       }
     } catch (error) {
       // Silently ignore errors - this is best effort
       // Don't log to console to avoid cluttering
       if (error instanceof Error && error.name === 'AbortError') {
-        console.debug('Metrics request timed out')
+        // console.debug('Metrics request timed out')
       }
     }
   }
@@ -340,5 +340,5 @@ export async function measureAsync<T>(
 // Schedule periodic metric reporting - DISABLED to prevent 503 errors
 if (typeof window !== 'undefined' && false) {
   // Metrics are disabled until analytics_metrics table is created
-  console.debug('Performance metrics reporting is disabled')
+  // console.debug('Performance metrics reporting is disabled')
 }

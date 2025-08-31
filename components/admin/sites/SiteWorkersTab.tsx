@@ -37,23 +37,23 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
   const [selectedWorkers, setSelectedWorkers] = useState<Set<string>>(new Set())
   const [showAvailable, setShowAvailable] = useState(false)
 
-  console.log('SiteWorkersTab rendered with siteId:', siteId, 'siteName:', siteName)
+  // console.log('SiteWorkersTab rendered with siteId:', siteId, 'siteName:', siteName)
 
   useEffect(() => {
     fetchWorkers()
   }, [siteId])
 
   const fetchWorkers = async () => {
-    console.log('Fetching workers for site:', siteId)
+    // console.log('Fetching workers for site:', siteId)
     try {
       setLoading(true)
       
       // Fetch assigned workers
       const assignedRes = await fetch(`/api/admin/sites/${siteId}/workers`)
-      console.log('Assigned workers response status:', assignedRes.status)
+      // console.log('Assigned workers response status:', assignedRes.status)
       if (assignedRes.ok) {
         const assignedData = await assignedRes.json()
-        console.log('Assigned workers data:', assignedData)
+        // console.log('Assigned workers data:', assignedData)
         setAssignedWorkers(assignedData.data || [])
       } else {
         console.error('Failed to fetch assigned workers:', assignedRes.status, assignedRes.statusText)
@@ -61,12 +61,12 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
 
       // Fetch all available workers
       const availableRes = await fetch(`/api/admin/sites/${siteId}/workers/available`)
-      console.log('Available workers response status:', availableRes.status)
+      // console.log('Available workers response status:', availableRes.status)
       if (availableRes.ok) {
         const availableData = await availableRes.json()
-        console.log('Available workers data:', availableData)
-        console.log('Available workers count:', availableData.data?.length || 0)
-        console.log('First available worker:', availableData.data?.[0])
+        // console.log('Available workers data:', availableData)
+        // console.log('Available workers count:', availableData.data?.length || 0)
+        // console.log('First available worker:', availableData.data?.[0])
         setAvailableWorkers(availableData.data || [])
       } else {
         console.error('Failed to fetch available workers:', availableRes.status, availableRes.statusText)
@@ -190,7 +190,7 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
     return matchesSearch && matchesRole && matchesTrade
   })
   
-  console.log('Filtered available workers:', filteredAvailableWorkers.length, 'out of', availableWorkers.length)
+  // console.log('Filtered available workers:', filteredAvailableWorkers.length, 'out of', availableWorkers.length)
 
   // Get unique trades for filter
   const allTrades = [...new Set([

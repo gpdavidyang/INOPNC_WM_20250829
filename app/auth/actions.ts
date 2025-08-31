@@ -354,7 +354,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
   const { supabaseAdmin } = await import('@/lib/supabase/admin')
 
   try {
-    console.log('Starting approval process for request:', requestId)
+    // console.log('Starting approval process for request:', requestId)
     
     // Get signup request details
     const { data: request, error: fetchError } = await supabase
@@ -375,7 +375,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
 
     // Generate temporary password
     const tempPassword = 'Temp' + Math.random().toString(36).slice(-6).toUpperCase() + '!2024'
-    console.log('Generated temporary password for', request.email)
+    // console.log('Generated temporary password for', request.email)
 
     // Determine role based on job type
     let role: UserRole = 'worker'
@@ -384,7 +384,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
     }
 
     // Create user in Supabase Auth using admin client
-    console.log('Creating auth user for:', request.email)
+    // console.log('Creating auth user for:', request.email)
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: request.email,
       password: tempPassword,
@@ -402,7 +402,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
       console.error('Auth user creation error:', authError)
       return { error: `사용자 계정 생성 실패: ${authError?.message || '알 수 없는 오류'}` }
     }
-    console.log('Auth user created successfully:', authData.user.id)
+    // console.log('Auth user created successfully:', authData.user.id)
 
     // Determine organization and site assignment
     let organizationId = null
@@ -419,10 +419,10 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
       organizationId = '22222222-2222-2222-2222-222222222222' // Customer
       organizationName = 'Customer Organization'
     }
-    console.log(`조직 할당: ${organizationName}${siteName ? `, 현장: ${siteName}` : ''}`)
+    // console.log(`조직 할당: ${organizationName}${siteName ? `, 현장: ${siteName}` : ''}`)
 
     // Create profile
-    console.log('Creating user profile...')
+    // console.log('Creating user profile...')
     const { error: profileError } = await supabase
       .from('profiles')
       .insert({
@@ -446,11 +446,11 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
       await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
       return { error: '사용자 프로필 생성에 실패했습니다.' }
     }
-    console.log('Profile created successfully')
+    // console.log('Profile created successfully')
 
     // Create user_organizations entry
     if (organizationId) {
-      console.log('Assigning to organization...')
+      // console.log('Assigning to organization...')
       await supabase
         .from('user_organizations')
         .insert({
@@ -462,7 +462,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
 
     // Create site_assignments entry
     if (siteId) {
-      console.log('Assigning to site...')
+      // console.log('Assigning to site...')
       await supabase
         .from('site_assignments')
         .insert({
@@ -474,7 +474,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
     }
 
     // Update signup request status
-    console.log('Updating request status to approved...')
+    // console.log('Updating request status to approved...')
     const { error: updateError } = await supabase
       .from('signup_requests')
       .update({
@@ -490,7 +490,7 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
       return { error: '승인 처리 업데이트에 실패했습니다.' }
     }
 
-    console.log('Approval completed successfully')
+    // console.log('Approval completed successfully')
     return { 
       success: true, 
       temporaryPassword: tempPassword,

@@ -59,13 +59,13 @@ export default function UserManagement({ profile }: UserManagementProps) {
     setError(null)
     
     try {
-      console.log('[UserManagement] Loading users with params:', {
-        currentPage,
-        pageSize,
-        searchTerm,
-        roleFilter,
-        statusFilter
-      })
+      // console.log('[UserManagement] Loading users with params:', {
+      //   currentPage,
+      //   pageSize,
+      //   searchTerm,
+      //   roleFilter,
+      //   statusFilter
+      // })
       
       const result = await getUsers(
         currentPage,
@@ -75,10 +75,10 @@ export default function UserManagement({ profile }: UserManagementProps) {
         statusFilter || undefined
       )
       
-      console.log('[UserManagement] GetUsers result:', result)
+      // console.log('[UserManagement] GetUsers result:', result)
       
       if (result.success && result.data) {
-        console.log('[UserManagement] Users loaded:', result.data.users.length, 'total:', result.data.total)
+        // console.log('[UserManagement] Users loaded:', result.data.users.length, 'total:', result.data.total)
         setUsers(result.data.users)
         setTotalCount(result.data.total)
         setTotalPages(result.data.pages)

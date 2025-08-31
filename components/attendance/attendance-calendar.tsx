@@ -51,26 +51,26 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
   
   // Debug state changes - all useEffect hooks must be before early return
   useEffect(() => {
-    console.log('📦 State updated - attendanceData:', attendanceData.length, 'records')
+    // console.log('📦 State updated - attendanceData:', attendanceData.length, 'records')
     if (attendanceData.length > 0) {
-      console.log('📦 First record:', attendanceData[0])
-      console.log('📦 All dates:', attendanceData.map(r => r.date))
+      // console.log('📦 First record:', attendanceData[0])
+      // console.log('📦 All dates:', attendanceData.map(r => r.date))
     }
   }, [attendanceData])
   
   useEffect(() => {
-    console.log('📊 State updated - summary:', summary)
+    // console.log('📊 State updated - summary:', summary)
   }, [summary])
 
   useEffect(() => {
-    console.log('🌐 Initial load - loading sites')
+    // console.log('🌐 Initial load - loading sites')
     if (profile?.id) {
       loadSites()
     }
   }, [profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered for attendance data', {
+    // console.log('🔄 useEffect triggered for attendance data', {
       selectedSite,
       isPartnerView,
       profileSiteId: profile?.site_id,
@@ -78,10 +78,10 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
     })
     
     if (profile?.id && (selectedSite || (!isPartnerView && profile.site_id))) {
-      console.log('✅ Calling loadAttendanceData')
+      // console.log('✅ Calling loadAttendanceData')
       loadAttendanceData()
     } else {
-      console.log('⚠️ Skipping loadAttendanceData - no site selected or no profile')
+      // console.log('⚠️ Skipping loadAttendanceData - no site selected or no profile')
     }
   }, [currentDate, selectedSite, isPartnerView, profile?.site_id, profile?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   
@@ -98,7 +98,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
     )
   }
 
-  console.log('AttendanceCalendar: Received profile:', {
+  // console.log('AttendanceCalendar: Received profile:', {
     hasProfile: !!profile,
     profileId: profile?.id,
     profileRole: profile?.role,
@@ -107,9 +107,9 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
   })
 
   const loadSites = async () => {
-    console.log('🏢 Loading sites...')
+    // console.log('🏢 Loading sites...')
     const result = await getSites()
-    console.log('🏢 Sites result:', {
+    // console.log('🏢 Sites result:', {
       success: result.success,
       count: result.data?.length,
       error: result.error,
@@ -120,21 +120,21 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
       setSites(result.data as any)
       // Auto-select first site for partner view or user's assigned site
       if (isPartnerView && result.data.length > 0) {
-        console.log('🏢 Partner view - selecting first site:', result.data[0].id)
+        // console.log('🏢 Partner view - selecting first site:', result.data[0].id)
         setSelectedSite(result.data[0].id)
       } else if (profile.site_id) {
-        console.log('🏢 User has site_id - selecting:', profile.site_id)
+        // console.log('🏢 User has site_id - selecting:', profile.site_id)
         setSelectedSite(profile.site_id)
       } else {
-        console.log('⚠️ No site to select')
+        // console.log('⚠️ No site to select')
       }
     } else {
-      console.log('❌ Failed to load sites')
+      // console.log('❌ Failed to load sites')
     }
   }
 
   const loadAttendanceData = async () => {
-    console.log('🔍 loadAttendanceData called', {
+    // console.log('🔍 loadAttendanceData called', {
       currentDate: currentDate.toISOString(),
       selectedSite,
       profileSiteId: profile.site_id,
@@ -147,7 +147,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
       const startDate = startOfMonth(currentDate)
       const endDate = endOfMonth(currentDate)
       
-      console.log('📅 Date range:', {
+      // console.log('📅 Date range:', {
         startDate: format(startDate, 'yyyy-MM-dd'),
         endDate: format(endDate, 'yyyy-MM-dd')
       })
@@ -178,9 +178,9 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
           date_to: format(endDate, 'yyyy-MM-dd')
         }
         
-        console.log('📤 Calling getAttendanceRecords with params:', params)
+        // console.log('📤 Calling getAttendanceRecords with params:', params)
         const result = await getAttendanceRecords(params)
-        console.log('📥 getAttendanceRecords result:', {
+        // console.log('📥 getAttendanceRecords result:', {
           success: result.success,
           dataLength: result.data?.length,
           error: result.error,
@@ -188,7 +188,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
         })
         
         if (result.success && result.data) {
-          console.log('🔄 Transforming records:', result.data.length, 'records')
+          // console.log('🔄 Transforming records:', result.data.length, 'records')
           const records = result.data.map((record: any) => {
             const transformed = {
               id: record.id,
@@ -202,10 +202,10 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
               labor_hours: record.labor_hours || (record.work_hours ? record.work_hours / 8.0 : null),  // Use DB's labor_hours or calculate from work_hours
               status: record.status || 'present'
             }
-            console.log('  Transformed record:', transformed)
+            // console.log('  Transformed record:', transformed)
             return transformed
           })
-          console.log('✅ Setting attendance data:', records.length, 'records')
+          // console.log('✅ Setting attendance data:', records.length, 'records')
           setAttendanceData(records)
           
           // Calculate summary for individual
@@ -216,17 +216,17 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
             totalHours,
             totalWorkers: 1
           }
-          console.log('📊 Setting summary:', summaryData)
+          // console.log('📊 Setting summary:', summaryData)
           setSummary(summaryData)
         } else {
-          console.log('❌ No data returned or error:', result.error)
+          // console.log('❌ No data returned or error:', result.error)
         }
       }
     } catch (error) {
       console.error('❌ Error in loadAttendanceData:', error)
     } finally {
       setLoading(false)
-      console.log('🏁 loadAttendanceData completed, attendanceData length:', attendanceData.length)
+      // console.log('🏁 loadAttendanceData completed, attendanceData length:', attendanceData.length)
     }
   }
 
@@ -247,7 +247,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
       const recordDateStr = typeof record.date === 'string' ? record.date : format(new Date(record.date), 'yyyy-MM-dd')
       const isMatch = recordDateStr === dateStr
       if (isMatch) {
-        console.log('📍 Found match for', dateStr, ':', record)
+        // console.log('📍 Found match for', dateStr, ':', record)
       }
       return isMatch
     })
@@ -264,7 +264,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
 
   const getDayContent = (day: Date) => {
     const attendance = getAttendanceForDate(day)
-    console.log('🎨 getDayContent for', format(day, 'yyyy-MM-dd'), ':', attendance)
+    // console.log('🎨 getDayContent for', format(day, 'yyyy-MM-dd'), ':', attendance)
     if (!attendance) return null
 
     if (isPartnerView) {
@@ -424,7 +424,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
               const dayOfWeek = day ? getDay(day) : -1
               
               if (day && attendance) {
-                console.log('📅 Rendering day', format(day, 'yyyy-MM-dd'), 'with attendance:', attendance)
+                // console.log('📅 Rendering day', format(day, 'yyyy-MM-dd'), 'with attendance:', attendance)
               }
 
               // Quantum energy level based on labor hours
@@ -503,7 +503,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
                         (() => {
                           const content = getDayContent(day)
                           if (content && attendance) {
-                            console.log('🎯 Rendering quantum content for', format(day, 'yyyy-MM-dd'))
+                            // console.log('🎯 Rendering quantum content for', format(day, 'yyyy-MM-dd'))
                             
                             // Enhanced quantum visualization
                             return (
