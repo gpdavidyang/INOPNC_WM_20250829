@@ -39,14 +39,23 @@ export async function POST(
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Create assignments for each worker
-    const assignments = worker_ids.map(workerId => ({
-      site_id: siteId,
-      user_id: workerId,
-      assigned_date: new Date().toISOString().split('T')[0], // Date only format
-      role: 'worker', // Default role
-      is_active: true
-    }))
+    // Get the actual roles of the workers from profiles
+    const { data: workerProfiles } = await serviceClient
+      .from('profiles')
+      .select('id, role')
+      .in('id', worker_ids)
+
+    // Create assignments for each worker with their actual role
+    const assignments = worker_ids.map(workerId => {
+      const workerProfile = workerProfiles?.find(p => p.id === workerId)
+      return {
+        site_id: siteId,
+        user_id: workerId,
+        assigned_date: new Date().toISOString().split('T')[0], // Date only format
+        role: workerProfile?.role || 'worker', // Use actual role from profile
+        is_active: true
+      }
+    })
 
     // Insert assignments
     const { data: insertedAssignments, error: insertError } = await serviceClient

@@ -140,7 +140,7 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
 
   const getRoleBadge = (role: string) => {
     const roleConfig = {
-      admin: { text: '관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: Shield },
+      admin: { text: '시스템관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: Shield },
       site_manager: { text: '현장관리자', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300', icon: Building2 },
       customer_manager: { text: '고객담당자', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: User },
       worker: { text: '작업자', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: HardHat },
@@ -150,7 +150,8 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
       '작업자': { text: '작업자', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: HardHat },
       '현장관리자': { text: '현장관리자', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300', icon: Building2 },
       '고객담당자': { text: '고객담당자', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: User },
-      '관리자': { text: '관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: Shield }
+      '관리자': { text: '시스템관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: Shield },
+      '시스템관리자': { text: '시스템관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: Shield }
     }
     
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.worker

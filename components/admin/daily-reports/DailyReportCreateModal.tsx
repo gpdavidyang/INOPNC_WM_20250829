@@ -27,9 +27,10 @@ interface Site {
 
 interface Worker {
   id: string
-  name: string
+  full_name: string
   role: string
   phone?: string
+  email?: string
 }
 
 interface WorkerDetail {
@@ -64,7 +65,7 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
   })
   
   const [selectedSite, setSelectedSite] = useState<Site | null>(null)
-  const [availableWorkers, setAvailableWorkers] = useState<any[]>([])
+  const [availableWorkers, setAvailableWorkers] = useState<Worker[]>([])
   const [workerDetails, setWorkerDetails] = useState<WorkerDetail[]>([])
   const [workerInputMode, setWorkerInputMode] = useState<'select' | 'manual'>('select')
   const [manualWorkerName, setManualWorkerName] = useState('')
@@ -88,22 +89,35 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
     }
   }, [formData.site_id, sites])
 
-  // Load available workers
+  // Load available workers for selected site
   useEffect(() => {
     const loadWorkers = async () => {
+      if (!formData.site_id) {
+        setAvailableWorkers([])
+        return
+      }
+      
       try {
-        const result = await getUsers(1, 100, '', undefined, 'active')
-        if (result.success && result.data) {
-          setAvailableWorkers(result.data.users.filter(u => 
-            u.role === 'worker' || u.role === 'site_manager'
-          ))
+        // Fetch workers assigned to this site
+        const response = await fetch(`/api/admin/sites/${formData.site_id}/workers`)
+        if (response.ok) {
+          const data = await response.json()
+          // Filter to only show workers and site managers
+          const filteredWorkers = (data.data || []).filter((worker: any) => 
+            worker.role === 'worker' || worker.role === 'site_manager'
+          )
+          setAvailableWorkers(filteredWorkers)
+        } else {
+          console.error('Failed to fetch site workers')
+          setAvailableWorkers([])
         }
       } catch (error) {
         console.error('Failed to load workers:', error)
+        setAvailableWorkers([])
       }
     }
     loadWorkers()
-  }, [])
+  }, [formData.site_id])
 
   const addWorkerFromSelect = (userId: string) => {
     const worker = availableWorkers.find(w => w.id === userId)
@@ -330,15 +344,21 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
                       <SelectValue placeholder="작업자를 선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableWorkers.map(worker => (
-                        <SelectItem 
-                          key={worker.id} 
-                          value={worker.id}
-                          disabled={workerDetails.some(w => w.user_id === worker.id)}
-                        >
-                          {worker.full_name} ({worker.role === 'worker' ? '작업자' : '현장관리자'})
-                        </SelectItem>
-                      ))}
+                      {availableWorkers.length === 0 ? (
+                        <div className="px-3 py-2 text-sm text-gray-500">
+                          {!formData.site_id ? '먼저 현장을 선택해주세요' : '배정된 작업자가 없습니다'}
+                        </div>
+                      ) : (
+                        availableWorkers.map(worker => (
+                          <SelectItem 
+                            key={worker.id} 
+                            value={worker.id}
+                            disabled={workerDetails.some(w => w.user_id === worker.id)}
+                          >
+                            {worker.full_name} ({worker.role === 'worker' ? '작업자' : worker.role === 'site_manager' ? '현장관리자' : worker.role})
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

@@ -46,11 +46,10 @@ export async function GET(
 
     const assignedUserIds = assignedWorkers?.map(w => w.user_id) || []
 
-    // Get ALL profiles that are not admins (we'll include everyone who could potentially work on a site)
+    // Get ALL profiles (including admins who might work on sites)
     let profilesQuery = serviceClient
       .from('profiles')
       .select('id, full_name, email, phone, role, company')
-      .neq('role', 'admin') // Exclude only admins
       .order('full_name')
 
     // Exclude already assigned workers from profiles

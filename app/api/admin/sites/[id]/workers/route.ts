@@ -72,7 +72,7 @@ export async function GET(
           full_name: user?.full_name || 'Unknown',
           email: user?.email || '',
           phone: user?.phone || '',
-          role: assignment.role || user?.role || 'worker',
+          role: user?.role || assignment.role || 'worker', // Prioritize user's actual role from profile
           company: user?.company || '',
           trade: '', // site_assignments doesn't have trade info
           position: '', // site_assignments doesn't have position info
