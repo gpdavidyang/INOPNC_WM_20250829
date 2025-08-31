@@ -113,18 +113,36 @@ export async function getUsers(
             .eq('user_id', user.id)
             .eq('is_active', true)
 
-          // Get required documents status (if table exists)
+          // Get required documents status from user_documents table
           let requiredDocuments = []
           try {
-            const { data: docStatus } = await supabase
-              .from('user_required_documents')
-              .select('document_type, status, submitted_at, expires_at')
+            const REQUIRED_DOCUMENT_TYPES = [
+              'medical_checkup',
+              'safety_education', 
+              'vehicle_insurance',
+              'vehicle_registration',
+              'payroll_stub',
+              'id_card',
+              'senior_documents'
+            ]
+
+            const { data: userDocs } = await supabase
+              .from('user_documents')
+              .select('document_type, upload_date, file_path')
               .eq('user_id', user.id)
-              .eq('is_required', true)
-            
-            requiredDocuments = docStatus || []
+
+            // Create status for each required document type
+            requiredDocuments = REQUIRED_DOCUMENT_TYPES.map(docType => {
+              const doc = userDocs?.find(d => d.document_type === docType)
+              return {
+                document_type: docType,
+                status: doc ? 'submitted' : 'pending',
+                submitted_at: doc?.upload_date || null,
+                expires_at: null
+              }
+            })
           } catch (error) {
-            // Table might not exist yet, continue without error
+            // Continue without error if query fails
           }
 
           // Get work log statistics
@@ -250,17 +268,32 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
         .order('assigned_at', { ascending: false })
 
       // Fetch required documents
-      const { data: documents } = await supabase
-        .from('user_required_documents')
-        .select(`
-          document_name,
-          document_type,
-          status,
-          submitted_at,
-          expires_at
-        `)
+      const REQUIRED_DOCUMENT_TYPES = [
+        'medical_checkup',
+        'safety_education', 
+        'vehicle_insurance',
+        'vehicle_registration',
+        'payroll_stub',
+        'id_card',
+        'senior_documents'
+      ]
+
+      const { data: userDocs } = await supabase
+        .from('user_documents')
+        .select('document_type, upload_date, original_filename')
         .eq('user_id', user.id)
-        .order('submitted_at', { ascending: false })
+
+      // Create status for each required document type
+      const documents = REQUIRED_DOCUMENT_TYPES.map(docType => {
+        const doc = userDocs?.find(d => d.document_type === docType)
+        return {
+          document_type: docType,
+          document_name: doc?.original_filename || null,
+          status: doc ? 'submitted' : 'pending',
+          submitted_at: doc?.upload_date || null,
+          expires_at: null
+        }
+      })
 
       // Fetch work log stats
       const currentDate = new Date()
@@ -424,6 +457,7 @@ export async function updateUser(data: UpdateUserData): Promise<AdminActionResul
   return withAdminAuth(async (supabase) => {
     try {
       const { id, ...updateData } = data
+
 
       // Validate email if provided
       if (updateData.email) {

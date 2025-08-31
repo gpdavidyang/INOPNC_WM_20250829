@@ -108,6 +108,10 @@ export default function EnhancedDocumentsView() {
         // Use documents array from API response
         const documentsArray = data.documents || []
         
+        console.log('API Response:', data)
+        console.log('Documents:', documentsArray)
+        console.log('Documents count by category:', data.statistics?.by_category)
+        
         setDocuments(documentsArray)
         
         // Use statistics from API response
@@ -167,6 +171,7 @@ export default function EnhancedDocumentsView() {
       shared: { name: '공유문서함', color: 'blue', icon: FileText },
       markup: { name: '도면마킹문서함', color: 'purple', icon: Image },
       required: { name: '필수제출서류함', color: 'green', icon: Shield },
+      required_user_docs: { name: '필수제출서류함', color: 'green', icon: Shield },
       invoice: { name: '기성청구문서함', color: 'orange', icon: Package },
       photo_grid: { name: '사진대지문서함', color: 'pink', icon: FileImage }
     }

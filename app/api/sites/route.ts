@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -35,20 +35,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Return sites in the format expected by the frontend
-    const formattedSites = [
-      { id: 'all', name: '전체 현장' },
-      ...(sites || []).map(site => ({
-        id: site.id,
-        name: site.name,
-        address: site.address,
-        status: site.status
-      }))
-    ]
+    const formattedSites = (sites || []).map(site => ({
+      id: site.id,
+      name: site.name,
+      address: site.address,
+      status: site.status
+    }))
 
-    return NextResponse.json({
-      success: true,
-      data: formattedSites
-    })
+    return NextResponse.json(formattedSites)
 
   } catch (error) {
     console.error('API error:', error)

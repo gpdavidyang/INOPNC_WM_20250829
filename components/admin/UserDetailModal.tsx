@@ -25,7 +25,10 @@ import {
   Briefcase,
   CreditCard,
   FileCheck,
-  BarChart3
+  BarChart3,
+  Download,
+  Eye,
+  Plus
 } from 'lucide-react'
 import { UserWithSites, UpdateUserData, updateUser, resetUserPassword, deleteUsers } from '@/app/actions/admin/users'
 import { UserRole, UserStatus } from '@/types'
@@ -57,6 +60,9 @@ export default function UserDetailModal({
   const [editData, setEditData] = useState<Partial<UpdateUserData>>({})
   const [organizations, setOrganizations] = useState<any[]>([])
   const [loadingOrgs, setLoadingOrgs] = useState(false)
+  const [userDocuments, setUserDocuments] = useState<any>({})
+  const [loadingDocs, setLoadingDocs] = useState(false)
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null)
 
   useEffect(() => {
     if (user && isOpen) {
@@ -71,6 +77,7 @@ export default function UserDetailModal({
       })
       setIsEditing(false)
       fetchOrganizations()
+      fetchUserDocuments()
     }
   }, [user, isOpen])
 
@@ -81,11 +88,108 @@ export default function UserDetailModal({
       if (response.ok) {
         const data = await response.json()
         setOrganizations(data.organizations || [])
+      } else {
+        console.error('Failed to fetch organizations:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Failed to fetch organizations:', error)
     } finally {
       setLoadingOrgs(false)
+    }
+  }
+
+  const fetchUserDocuments = async () => {
+    if (!user) return
+    
+    setLoadingDocs(true)
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/documents`)
+      if (response.ok) {
+        const data = await response.json()
+        setUserDocuments(data.documents || {})
+      } else {
+        console.error('Failed to fetch user documents:', response.status, response.statusText)
+      }
+    } catch (error) {
+      console.error('Failed to fetch user documents:', error)
+    } finally {
+      setLoadingDocs(false)
+    }
+  }
+
+  const handleFileUpload = async (documentType: string, file: File) => {
+    if (!user) return
+
+    setUploadingDoc(documentType)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('documentType', documentType)
+
+      const response = await fetch(`/api/admin/users/${user.id}/documents`, {
+        method: 'POST',
+        body: formData
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(data.message)
+        await fetchUserDocuments()
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || '파일 업로드에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('File upload error:', error)
+      alert('파일 업로드 중 오류가 발생했습니다.')
+    } finally {
+      setUploadingDoc(null)
+    }
+  }
+
+  const handleDocumentDelete = async (documentType: string) => {
+    if (!user || !confirm('이 문서를 삭제하시겠습니까?')) return
+
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/documents?documentType=${documentType}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        alert(data.message)
+        await fetchUserDocuments()
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || '문서 삭제에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Document delete error:', error)
+      alert('문서 삭제 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handleDocumentDownload = async (documentType: string) => {
+    if (!user) return
+
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/documents/download?documentType=${documentType}`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        const link = document.createElement('a')
+        link.href = data.downloadUrl
+        link.download = data.filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      } else {
+        const errorData = await response.json()
+        alert(errorData.error || '다운로드에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Download error:', error)
+      alert('다운로드 중 오류가 발생했습니다.')
     }
   }
 
@@ -331,11 +435,21 @@ export default function UserDetailModal({
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">없음</SelectItem>
-                        {organizations.map((org) => (
-                          <SelectItem key={org.id} value={org.id}>
-                            {org.name}
+                        {loadingOrgs ? (
+                          <SelectItem value="loading" disabled>
+                            로딩 중...
                           </SelectItem>
-                        ))}
+                        ) : organizations.length > 0 ? (
+                          organizations.map((org) => (
+                            <SelectItem key={org.id} value={org.id}>
+                              {org.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-orgs" disabled>
+                            조직이 없습니다
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   ) : user.organization ? (
@@ -428,32 +542,87 @@ export default function UserDetailModal({
                 <FileCheck className="h-4 w-4 text-gray-400" />
                 <h3 className="text-sm font-medium text-gray-900">필수 서류 현황</h3>
               </div>
-              {user.required_documents && user.required_documents.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {user.required_documents.map((doc, index) => (
-                    <div key={index} className="p-3 border rounded-lg flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">{doc.document_type}</p>
-                        {doc.file_name && (
-                          <p className="text-xs text-gray-500 mt-1">{doc.file_name}</p>
-                        )}
-                      </div>
-                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
-                        doc.status === 'approved' ? 'bg-green-100 text-green-800' :
-                        doc.status === 'rejected' ? 'bg-red-100 text-red-800' :
-                        doc.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {doc.status === 'approved' ? '승인' :
-                         doc.status === 'rejected' ? '반려' :
-                         doc.status === 'submitted' ? '제출' : '대기'}
-                      </span>
-                    </div>
-                  ))}
+              {loadingDocs ? (
+                <div className="p-4 text-center">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="text-sm text-gray-500 mt-2">서류 정보를 불러오는 중...</p>
                 </div>
               ) : (
-                <div className="p-8 text-center bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-500">등록된 서류가 없습니다</p>
+                <div className="space-y-3">
+                  {Object.entries(userDocuments).map(([docType, docInfo]: [string, any]) => (
+                    <div key={docType} className="p-3 border rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h4 className="text-sm font-medium text-gray-900">{docInfo.label}</h4>
+                          {docInfo.uploaded && docInfo.document && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {docInfo.document.original_filename}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {docInfo.uploaded ? (
+                            <>
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                업로드됨
+                              </span>
+                              <button
+                                onClick={() => handleDocumentDownload(docType)}
+                                className="p-1 hover:bg-gray-100 rounded text-blue-600"
+                                title="다운로드"
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>
+                              {isEditing && (
+                                <button
+                                  onClick={() => handleDocumentDelete(docType)}
+                                  className="p-1 hover:bg-gray-100 rounded text-red-600"
+                                  title="삭제"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                                미제출
+                              </span>
+                              {isEditing && (
+                                <div className="relative">
+                                  <input
+                                    type="file"
+                                    id={`file-${docType}`}
+                                    className="hidden"
+                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0]
+                                      if (file) {
+                                        handleFileUpload(docType, file)
+                                      }
+                                    }}
+                                    disabled={uploadingDoc === docType}
+                                  />
+                                  <button
+                                    onClick={() => document.getElementById(`file-${docType}`)?.click()}
+                                    disabled={uploadingDoc === docType}
+                                    className="p-1 hover:bg-gray-100 rounded text-blue-600 disabled:opacity-50"
+                                    title="업로드"
+                                  >
+                                    {uploadingDoc === docType ? (
+                                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                    ) : (
+                                      <Plus className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

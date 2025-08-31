@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    return NextResponse.json(organizations || [])
+    return NextResponse.json({ organizations: organizations || [] })
   } catch (error) {
     console.error('Organizations API error:', error)
     return NextResponse.json(
