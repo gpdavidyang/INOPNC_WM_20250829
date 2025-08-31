@@ -238,8 +238,12 @@ export default function DailyReportForm({
       //   await submitDailyReport(dailyReportId)
       // }
 
-      // Success - redirect to daily reports list
-      router.push('/dashboard/daily-reports')
+      // Success - redirect based on user role
+      if (currentUser.role === 'admin' || currentUser.role === 'system_admin') {
+        router.push('/dashboard/admin/daily-reports')
+      } else {
+        router.push('/dashboard/daily-reports')
+      }
     } catch (err) {
       console.error('Error creating daily report:', err)
       setError(err instanceof Error ? err.message : 'Failed to create daily report')

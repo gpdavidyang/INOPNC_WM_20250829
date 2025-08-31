@@ -133,7 +133,7 @@ export default function WorkerManagementTab({
         .select('id, full_name, role')
         .in('role', ['worker', 'site_manager'])
         .order('full_name')
-
+      
       if (workersError) throw workersError
       setAvailableWorkers(allWorkers || [])
     } catch (error) {
@@ -399,12 +399,21 @@ export default function WorkerManagementTab({
                         <CustomSelectValue placeholder="작업자 선택" />
                       </CustomSelectTrigger>
                       <CustomSelectContent className="bg-white border border-gray-300">
-                        {availableWorkers.map(worker => (
-                          <CustomSelectItem key={worker.id} value={worker.full_name}>
-                            {worker.full_name} ({worker.role === 'worker' ? '작업자' : worker.role === 'site_manager' ? '현장관리자' : worker.role})
-                          </CustomSelectItem>
-                        ))}
-                        <CustomSelectItem value="custom">직접 입력</CustomSelectItem>
+                        {availableWorkers.length > 0 ? (
+                          <>
+                            {availableWorkers.map(worker => (
+                              <CustomSelectItem key={worker.id} value={worker.full_name}>
+                                {worker.full_name} ({worker.role === 'worker' ? '작업자' : worker.role === 'site_manager' ? '현장관리자' : worker.role})
+                              </CustomSelectItem>
+                            ))}
+                            <CustomSelectItem value="custom">직접 입력</CustomSelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <div className="px-2 py-1.5 text-sm text-gray-500">등록된 작업자가 없습니다</div>
+                            <CustomSelectItem value="custom">직접 입력</CustomSelectItem>
+                          </>
+                        )}
                       </CustomSelectContent>
                     </CustomSelect>
                     {(newWorker.name === '' || !availableWorkers.some(w => w.full_name === newWorker.name)) && (

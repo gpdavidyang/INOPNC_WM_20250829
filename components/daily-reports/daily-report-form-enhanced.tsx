@@ -879,8 +879,12 @@ export default function DailyReportFormEnhanced({
         : '일일보고서가 성공적으로 작성되었습니다.'
       toast.success(successMessage)
 
-      // Redirect
-      router.push('/dashboard/daily-reports')
+      // Redirect based on user role
+      if (currentUser.role === 'admin' || currentUser.role === 'system_admin') {
+        router.push('/dashboard/admin/daily-reports')
+      } else {
+        router.push('/dashboard/daily-reports')
+      }
     } catch (err) {
       showErrorNotification(err, 'handleSubmit')
       setError(err instanceof Error ? err.message : '일일보고서 작성에 실패했습니다')

@@ -78,12 +78,12 @@ CustomSelectScrollDownButton.displayName = "CustomSelectScrollDownButton"
 const CustomSelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
->(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
+>(({ className, children, position = "popper", sideOffset = 5, align = "start", ...props }, ref) => (
+  <SelectPrimitive.Portal container={typeof window !== 'undefined' ? document.body : undefined}>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border",
+        "relative z-[9999] max-h-96 min-w-[8rem] overflow-hidden rounded-md border",
         "bg-white dark:bg-gray-800",
         "border-gray-200 dark:border-gray-700",
         "text-gray-900 dark:text-gray-100",
@@ -100,6 +100,9 @@ const CustomSelectContent = React.forwardRef<
         className
       )}
       position={position}
+      sideOffset={sideOffset}
+      align={align}
+      collisionPadding={10}
       {...props}
     >
       <CustomSelectScrollUpButton />
