@@ -14,6 +14,7 @@ export interface CreateUserData {
 
 export interface UpdateUserData extends Partial<CreateUserData> {
   id: string
+  organization_id?: string
 }
 
 export interface UserWithSites extends Profile {
@@ -21,7 +22,7 @@ export interface UserWithSites extends Profile {
     site_id: string
     site_name: string
     role: string
-    assigned_date: string
+    assigned_at: string
     is_active: boolean
   }>
   required_documents?: Array<{
@@ -193,6 +194,122 @@ export async function getUsers(
       return {
         success: false,
         error: AdminErrors.UNKNOWN_ERROR
+      }
+    }
+  })
+}
+
+/**
+ * Get a single user by ID
+ */
+export async function getUser(userId: string): Promise<AdminActionResult<UserWithSites>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      // Get the profile with organization info
+      const { data: user, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          organizations!profiles_organization_id_fkey(
+            id,
+            name,
+            type
+          )
+        `)
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching user:', error)
+        return {
+          success: false,
+          error: AdminErrors.DATABASE_ERROR
+        }
+      }
+
+      if (!user) {
+        return {
+          success: false,
+          error: '사용자를 찾을 수 없습니다.'
+        }
+      }
+
+      // Fetch site assignments
+      const { data: assignments } = await supabase
+        .from('user_site_assignments')
+        .select(`
+          site_id,
+          role,
+          assigned_at,
+          is_active,
+          sites!inner(
+            name
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('assigned_at', { ascending: false })
+
+      // Fetch required documents
+      const { data: documents } = await supabase
+        .from('user_required_documents')
+        .select(`
+          document_name,
+          document_type,
+          status,
+          submitted_at,
+          expires_at
+        `)
+        .eq('user_id', user.id)
+        .order('submitted_at', { ascending: false })
+
+      // Fetch work log stats
+      const currentDate = new Date()
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
+      
+      const { data: workLogs } = await supabase
+        .from('daily_reports')
+        .select('report_date')
+        .eq('user_id', user.id)
+        .order('report_date', { ascending: false })
+
+      const thisMonthReports = workLogs?.filter(log => 
+        new Date(log.report_date) >= startOfMonth
+      ).length || 0
+
+      const transformedUser: UserWithSites = {
+        ...user,
+        organization: user.organizations || null,
+        site_assignments: assignments?.map(a => ({
+          site_id: a.site_id,
+          site_name: (a.sites as any)?.name || 'Unknown',
+          role: a.role,
+          assigned_at: a.assigned_at,
+          is_active: a.is_active
+        })) || [],
+        required_documents: documents?.map(d => ({
+          document_type: d.document_type,
+          document_name: d.document_name,
+          status: d.status,
+          submitted_at: d.submitted_at,
+          expires_at: d.expires_at
+        })) || [],
+        work_log_stats: {
+          total_reports: workLogs?.length || 0,
+          this_month: thisMonthReports,
+          last_report_date: workLogs?.[0]?.report_date || null
+        }
+      }
+
+      return {
+        success: true,
+        data: transformedUser,
+        message: '사용자 정보를 가져왔습니다.'
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching user:', error)
+      return {
+        success: false,
+        error: AdminErrors.UNEXPECTED_ERROR
       }
     }
   })

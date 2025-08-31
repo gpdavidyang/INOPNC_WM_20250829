@@ -90,7 +90,7 @@ interface FilterState {
   work_section: string    // 작업구간 필터
 }
 
-type SortField = 'work_date' | 'site_name' | 'member_name' | 'total_workers' | 'status' | 'created_at'
+type SortField = 'work_date' | 'site_name' | 'member_name' | 'total_workers' | 'status' | 'created_at' | 'component_name' | 'work_process' | 'work_section'
 type SortDirection = 'asc' | 'desc'
 
 interface SortState {
@@ -191,7 +191,9 @@ export default function DailyReportsManagement() {
   }
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }))
+    // Convert "all" value to empty string for API compatibility
+    const processedValue = value === 'all' ? '' : value
+    setFilters(prev => ({ ...prev, [key]: processedValue }))
     setCurrentPage(1) // Reset to first page when filtering
   }
 
@@ -306,14 +308,14 @@ export default function DailyReportsManagement() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">현장</label>
                 <Select
-                  value={filters.site}
+                  value={filters.site || 'all'}
                   onValueChange={(value) => handleFilterChange('site', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="현장 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">모든 현장</SelectItem>
+                    <SelectItem value="all">모든 현장</SelectItem>
                     {sites.map(site => (
                       <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
                     ))}
@@ -323,14 +325,14 @@ export default function DailyReportsManagement() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">상태</label>
                 <Select
-                  value={filters.status}
+                  value={filters.status || 'all'}
                   onValueChange={(value) => handleFilterChange('status', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="상태 선택" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">모든 상태</SelectItem>
+                    <SelectItem value="all">모든 상태</SelectItem>
                     <SelectItem value="draft">임시저장</SelectItem>
                     <SelectItem value="submitted">제출됨</SelectItem>
                   </SelectContent>
@@ -443,14 +445,32 @@ export default function DailyReportsManagement() {
                       {getSortIcon('site_name')}
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    부재명
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('component_name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      부재명
+                      {getSortIcon('component_name')}
+                    </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업공정
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('work_process')}
+                  >
+                    <div className="flex items-center gap-1">
+                      작업공정
+                      {getSortIcon('work_process')}
+                    </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    작업구간
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
+                    onClick={() => handleSort('work_section')}
+                  >
+                    <div className="flex items-center gap-1">
+                      작업구간
+                      {getSortIcon('work_section')}
+                    </div>
                   </th>
                   <th 
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"

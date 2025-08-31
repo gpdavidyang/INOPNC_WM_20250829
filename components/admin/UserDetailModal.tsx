@@ -15,27 +15,41 @@ import {
   Edit3,
   Save,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Key,
+  Upload,
+  Trash2
 } from 'lucide-react'
-import { UserWithSites, UpdateUserData, updateUser } from '@/app/actions/admin/users'
+import { UserWithSites, UpdateUserData, updateUser, resetUserPassword, deleteUsers } from '@/app/actions/admin/users'
 import { UserRole, UserStatus } from '@/types'
+import {
+  CustomSelect as Select,
+  CustomSelectContent as SelectContent,
+  CustomSelectItem as SelectItem,
+  CustomSelectTrigger as SelectTrigger,
+  CustomSelectValue as SelectValue
+} from '@/components/ui/custom-select'
 
 interface UserDetailModalProps {
   isOpen: boolean
   onClose: () => void
   user: UserWithSites | null
   onUserUpdated: () => void
+  onUserDeleted?: () => void
 }
 
 export default function UserDetailModal({ 
   isOpen, 
   onClose, 
   user, 
-  onUserUpdated 
+  onUserUpdated,
+  onUserDeleted 
 }: UserDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [editData, setEditData] = useState<Partial<UpdateUserData>>({})
+  const [organizations, setOrganizations] = useState<any[]>([])
+  const [loadingOrgs, setLoadingOrgs] = useState(false)
 
   useEffect(() => {
     if (user && isOpen) {
@@ -45,11 +59,29 @@ export default function UserDetailModal({
         email: user.email,
         phone: user.phone,
         role: user.role,
-        status: user.status || 'active'
+        status: user.status || 'active',
+        organization_id: user.organization?.id || ''
       })
       setIsEditing(false)
+      fetchOrganizations()
     }
   }, [user, isOpen])
+
+  const fetchOrganizations = async () => {
+    setLoadingOrgs(true)
+    try {
+      // Fetch organizations from API
+      const response = await fetch('/api/admin/organizations')
+      if (response.ok) {
+        const data = await response.json()
+        setOrganizations(data.organizations || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch organizations:', error)
+    } finally {
+      setLoadingOrgs(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!user || !editData.id) return
@@ -66,6 +98,151 @@ export default function UserDetailModal({
       }
     } catch (error) {
       alert('업데이트 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePasswordReset = async () => {
+    if (!user) return
+
+    if (!confirm(`${user.full_name}님의 비밀번호를 재설정하시겠습니까?\n새로운 임시 비밀번호가 생성됩니다.`)) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await resetUserPassword(user.id)
+      if (result.success && result.data) {
+        // Show the temporary password to the admin
+        alert(`비밀번호가 재설정되었습니다.\n\n임시 비밀번호: ${result.data}\n\n이 비밀번호를 사용자에게 안전하게 전달해주세요.`)
+      } else {
+        alert(result.error || '비밀번호 재설정에 실패했습니다.')
+      }
+    } catch (error) {
+      alert('비밀번호 재설정 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDocumentUpload = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.jpg,.jpeg,.png'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('user_id', user.id)
+      formData.append('document_type', prompt('서류 종류를 입력하세요 (예: 신분증, 통장사본 등)') || '기타')
+
+      setLoading(true)
+      try {
+        const response = await fetch('/api/admin/users/documents', {
+          method: 'POST',
+          body: formData
+        })
+
+        if (response.ok) {
+          alert('서류가 업로드되었습니다.')
+          onUserUpdated()
+        } else {
+          alert('서류 업로드에 실패했습니다.')
+        }
+      } catch (error) {
+        alert('서류 업로드 중 오류가 발생했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    input.click()
+  }
+
+  const handleDocumentReplace = (docId: string) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf,.jpg,.jpeg,.png'
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (!file) return
+
+      const formData = new FormData()
+      formData.append('file', file)
+
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/admin/users/documents/${docId}`, {
+          method: 'PUT',
+          body: formData
+        })
+
+        if (response.ok) {
+          alert('서류가 교체되었습니다.')
+          onUserUpdated()
+        } else {
+          alert('서류 교체에 실패했습니다.')
+        }
+      } catch (error) {
+        alert('서류 교체 중 오류가 발생했습니다.')
+      } finally {
+        setLoading(false)
+      }
+    }
+    input.click()
+  }
+
+  const handleDocumentDelete = async (docId: string) => {
+    if (!confirm('이 서류를 삭제하시겠습니까?')) return
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/admin/users/documents/${docId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        alert('서류가 삭제되었습니다.')
+        onUserUpdated()
+      } else {
+        alert('서류 삭제에 실패했습니다.')
+      }
+    } catch (error) {
+      alert('서류 삭제 중 오류가 발생했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleUserDelete = async () => {
+    if (!user) return
+
+    // Prevent deleting admin or system admin users
+    if (user.role === 'admin' || user.role === 'system_admin') {
+      alert('관리자 계정은 삭제할 수 없습니다.')
+      return
+    }
+
+    if (!confirm(`정말로 ${user.full_name}님의 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
+      return
+    }
+
+    setLoading(true)
+    try {
+      const result = await deleteUsers([user.id])
+      if (result.success) {
+        alert(result.message)
+        onClose()
+        if (onUserDeleted) {
+          onUserDeleted()
+        }
+      } else {
+        alert(result.error || '사용자 삭제에 실패했습니다.')
+      }
+    } catch (error) {
+      alert('사용자 삭제 중 오류가 발생했습니다.')
     } finally {
       setLoading(false)
     }
@@ -116,13 +293,25 @@ export default function UserDetailModal({
           </h2>
           <div className="flex items-center gap-2">
             {!isEditing ? (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <Edit3 className="h-4 w-4" />
-                편집
-              </button>
+              <>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  편집
+                </button>
+                {user.role !== 'admin' && user.role !== 'system_admin' && (
+                  <button
+                    onClick={handleUserDelete}
+                    disabled={loading}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 transition-colors"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    삭제
+                  </button>
+                )}
+              </>
             ) : (
               <div className="flex items-center gap-2">
                 <button
@@ -222,16 +411,20 @@ export default function UserDetailModal({
                     역할
                   </label>
                   {isEditing ? (
-                    <select
+                    <Select
                       value={editData.role || user.role}
-                      onChange={(e) => setEditData({ ...editData, role: e.target.value as UserRole })}
-                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      onValueChange={(value) => setEditData({ ...editData, role: value as UserRole })}
                     >
-                      <option value="worker">작업자</option>
-                      <option value="site_manager">현장관리자</option>
-                      <option value="customer_manager">파트너사</option>
-                      <option value="admin">관리자</option>
-                    </select>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="역할 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="worker">작업자</SelectItem>
+                        <SelectItem value="site_manager">현장관리자</SelectItem>
+                        <SelectItem value="customer_manager">파트너사</SelectItem>
+                        <SelectItem value="admin">관리자</SelectItem>
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <div>{getRoleBadge(user.role)}</div>
                   )}
@@ -242,19 +435,41 @@ export default function UserDetailModal({
                     상태
                   </label>
                   {isEditing ? (
-                    <select
+                    <Select
                       value={editData.status || user.status || 'active'}
-                      onChange={(e) => setEditData({ ...editData, status: e.target.value as UserStatus })}
-                      className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                      onValueChange={(value) => setEditData({ ...editData, status: value as UserStatus })}
                     >
-                      <option value="active">활성</option>
-                      <option value="inactive">비활성</option>
-                      <option value="suspended">정지</option>
-                    </select>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="상태 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">활성</SelectItem>
+                        <SelectItem value="inactive">비활성</SelectItem>
+                        <SelectItem value="suspended">정지</SelectItem>
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <div>{getStatusBadge(user.status || 'active')}</div>
                   )}
                 </div>
+
+                {/* Password Reset Button - Only show in edit mode */}
+                {isEditing && (
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-600">
+                    <button
+                      type="button"
+                      onClick={handlePasswordReset}
+                      disabled={loading}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Key className="h-4 w-4" />
+                      비밀번호 재설정
+                    </button>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                      새로운 임시 비밀번호가 생성되어 표시됩니다
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -266,13 +481,35 @@ export default function UserDetailModal({
                   <Building className="h-5 w-5" />
                   소속 조직
                 </h3>
-                {user.organization ? (
+                {isEditing ? (
                   <div>
-                    <p className="font-medium text-gray-900 dark:text-gray-100">{user.organization.name}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{user.organization.type}</p>
+                    <Select
+                      value={editData.organization_id || ''}
+                      onValueChange={(value) => setEditData({ ...editData, organization_id: value })}
+                      disabled={loadingOrgs}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="소속업체 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">없음</SelectItem>
+                        {organizations.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>
+                            {org.name} ({org.type === 'partner' ? '파트너사' : org.type})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 ) : (
-                  <p className="text-gray-400">소속 조직이 없습니다</p>
+                  user.organization ? (
+                    <div>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">{user.organization.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{user.organization.type}</p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-400">소속 조직이 없습니다</p>
+                  )
                 )}
               </div>
 
@@ -310,6 +547,16 @@ export default function UserDetailModal({
               <MapPin className="h-5 w-5" />
               현장 배정 ({user.site_assignments?.filter(a => a.is_active).length || 0})
             </h3>
+            
+            {/* Guidance text for site assignment */}
+            {isEditing && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                <p className="text-sm text-blue-800 dark:text-blue-300">
+                  ℹ️ 현장 배정은 <strong>현장관리 페이지</strong>에서 관리할 수 있습니다.
+                </p>
+              </div>
+            )}
+            
             {user.site_assignments && user.site_assignments.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {user.site_assignments.filter(a => a.is_active).map((assignment, index) => (
@@ -332,12 +579,52 @@ export default function UserDetailModal({
               <FileText className="h-5 w-5" />
               필수 서류 현황
             </h3>
+            
+            {/* Add document button when editing */}
+            {isEditing && (
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => handleDocumentUpload()}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  서류 업로드
+                </button>
+              </div>
+            )}
+            
             {user.required_documents && user.required_documents.length > 0 ? (
               <div className="space-y-2">
                 {user.required_documents.map((doc, index) => (
                   <div key={index} className="flex items-center justify-between py-2 px-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-600">
-                    <span className="text-gray-900 dark:text-gray-100">{doc.document_type}</span>
+                    <div className="flex-1">
+                      <span className="text-gray-900 dark:text-gray-100">{doc.document_type}</span>
+                      {doc.file_name && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{doc.file_name}</p>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
+                      {isEditing && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleDocumentReplace(doc.id)}
+                            className="p-1 text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-100"
+                            title="파일 교체"
+                          >
+                            <Upload className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDocumentDelete(doc.id)}
+                            className="p-1 text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-100"
+                            title="삭제"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
                       {doc.status === 'approved' && <CheckCircle className="h-4 w-4 text-green-600" />}
                       {doc.status === 'rejected' && <AlertTriangle className="h-4 w-4 text-red-600" />}
                       <span className={`px-2 py-1 text-xs rounded-full ${

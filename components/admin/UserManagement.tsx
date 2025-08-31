@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Profile, UserRole, UserStatus } from '@/types'
 import AdminDataTable from './AdminDataTable'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
@@ -26,6 +27,7 @@ interface UserManagementProps {
 }
 
 export default function UserManagement({ profile }: UserManagementProps) {
+  const router = useRouter()
   const [users, setUsers] = useState<UserWithSites[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -210,7 +212,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
           <User className="h-8 w-8 text-gray-400 mr-3" />
           <div>
             <button
-              onClick={() => handleViewUser(user)}
+              onClick={() => router.push(`/dashboard/admin/users/${user.id}`)}
               className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
             >
               {value}
@@ -528,7 +530,6 @@ export default function UserManagement({ profile }: UserManagementProps) {
         onSelectionChange={setSelectedIds}
         getRowId={(user: UserWithSites) => user.id}
         onView={handleViewUser}
-        onEdit={handleEditUser}
         onDelete={handleDeleteUser}
         customActions={customActions}
         currentPage={currentPage}
@@ -557,6 +558,11 @@ export default function UserManagement({ profile }: UserManagementProps) {
         }}
         user={detailUser}
         onUserUpdated={loadUsers}
+        onUserDeleted={() => {
+          setShowDetailModal(false)
+          setDetailUser(null)
+          loadUsers()
+        }}
       />
 
       {showCreateModal && (

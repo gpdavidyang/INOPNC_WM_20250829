@@ -109,6 +109,15 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       case 'created_at':
         query = query.order('created_at', { ascending })
         break
+      case 'component_name':
+        query = query.order('component_name', { ascending, nullsFirst: false })
+        break
+      case 'work_process':
+        query = query.order('work_process', { ascending, nullsFirst: false })
+        break
+      case 'work_section':
+        query = query.order('work_section', { ascending, nullsFirst: false })
+        break
       default:
         query = query.order('work_date', { ascending: false })
     }
