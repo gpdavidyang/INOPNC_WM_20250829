@@ -108,9 +108,18 @@ export default function EnhancedDocumentsView() {
         // Use documents array from API response
         const documentsArray = data.documents || []
         
-        console.log('API Response:', data)
-        console.log('Documents:', documentsArray)
-        console.log('Documents count by category:', data.statistics?.by_category)
+        console.log('EnhancedDocumentsView - API Response:', data)
+        console.log('EnhancedDocumentsView - Documents Array Length:', documentsArray.length)
+        console.log('EnhancedDocumentsView - Documents Sample:', documentsArray.slice(0, 3))
+        console.log('EnhancedDocumentsView - Statistics:', data.statistics)
+        console.log('EnhancedDocumentsView - Active Category:', activeCategory)
+        console.log('EnhancedDocumentsView - Documents by category breakdown:', 
+          documentsArray.reduce((acc, doc) => {
+            const cat = doc.category_type || 'unknown'
+            acc[cat] = (acc[cat] || 0) + 1
+            return acc
+          }, {})
+        )
         
         setDocuments(documentsArray)
         
@@ -213,6 +222,19 @@ export default function EnhancedDocumentsView() {
       doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
     
     return matchesCategory && matchesSearch
+  })
+  
+  // Log filtering results
+  console.log('EnhancedDocumentsView - Filtering Results:', {
+    totalDocuments: documents.length,
+    activeCategory,
+    filteredDocuments: filteredDocuments.length,
+    filteredSample: filteredDocuments.slice(0, 3).map(doc => ({
+      id: doc.id,
+      fileName: doc.file_name,
+      categoryType: doc.category_type,
+      title: doc.title
+    }))
   })
 
   const categories = [

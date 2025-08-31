@@ -28,7 +28,8 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50')
 
     // Admin can access all documents across all categories
-    let query = supabase
+    // First get unified_documents
+    let unifiedQuery = supabase
       .from('unified_documents')
       .select(`
         *,
@@ -51,16 +52,75 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
       .limit(limit)
 
-    // Apply filters if provided
+    // Apply filters for unified_documents
     if (siteId) {
-      query = query.eq('site_id', siteId)
+      unifiedQuery = unifiedQuery.eq('site_id', siteId)
     }
     
-    if (categoryType) {
-      query = query.eq('category_type', categoryType)
+    if (categoryType && categoryType !== 'shared') {
+      unifiedQuery = unifiedQuery.eq('category_type', categoryType)
     }
 
-    const { data: documents, error: documentsError } = await query
+    // Get legacy documents for shared category
+    let legacyQuery = supabase
+      .from('documents')
+      .select(`
+        *,
+        owner:profiles!documents_owner_id_fkey(
+          id,
+          full_name,
+          role
+        ),
+        site:sites(
+          id,
+          name,
+          address
+        )
+      `)
+      .eq('document_type', 'shared')
+      .order('created_at', { ascending: false })
+
+    // Apply filters for legacy documents
+    if (siteId) {
+      legacyQuery = legacyQuery.eq('site_id', siteId)
+    }
+
+    // Execute queries
+    const [unifiedResult, legacyResult] = await Promise.all([
+      unifiedQuery,
+      categoryType === 'shared' || !categoryType ? legacyQuery : Promise.resolve({ data: [], error: null })
+    ])
+
+    if (unifiedResult.error) {
+      return NextResponse.json({ error: 'Failed to fetch unified documents' }, { status: 500 })
+    }
+
+    if (legacyResult.error) {
+      return NextResponse.json({ error: 'Failed to fetch legacy documents' }, { status: 500 })
+    }
+
+    // Combine and transform documents
+    const unifiedDocuments = unifiedResult.data || []
+    const legacyDocuments = (legacyResult.data || []).map(doc => ({
+      ...doc,
+      category_type: 'shared',
+      document_type: doc.document_type || 'shared',
+      uploaded_by: doc.owner_id,
+      profiles: doc.owner ? {
+        id: doc.owner.id,
+        full_name: doc.owner.full_name,
+        role: doc.owner.role
+      } : null,
+      sites: doc.site,
+      customer_companies: null
+    }))
+
+    const allDocuments = [...unifiedDocuments, ...legacyDocuments]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, limit)
+
+    const documents = allDocuments
+    const documentsError = null
 
     if (documentsError) {
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
@@ -72,19 +132,29 @@ export async function GET(request: Request) {
       .select('*')
       .order('name')
 
-    // Get document statistics by category
-    const { data: docStats } = await supabase
-      .from('unified_documents')
-      .select('category_type')
-      .then(({ data }) => {
-        const stats = data?.reduce((acc, doc) => {
-          const category = doc.category_type || 'shared'
-          acc[category] = (acc[category] || 0) + 1
-          return acc
-        }, {} as Record<string, number>) || {}
-        
-        return { data: stats, error: null }
-      })
+    // Get document statistics by category from both tables
+    const [unifiedStatsResult, legacyStatsResult] = await Promise.all([
+      supabase.from('unified_documents').select('category_type'),
+      supabase.from('documents').select('document_type').eq('document_type', 'shared')
+    ])
+
+    const unifiedStats = unifiedStatsResult.data?.reduce((acc, doc) => {
+      const category = doc.category_type || 'shared'
+      acc[category] = (acc[category] || 0) + 1
+      return acc
+    }, {} as Record<string, number>) || {}
+
+    const legacyStats = {
+      shared: legacyStatsResult.data?.length || 0
+    }
+
+    const docStats = {
+      data: {
+        ...unifiedStats,
+        shared: (unifiedStats.shared || 0) + legacyStats.shared
+      },
+      error: null
+    }
 
     // Group documents by category
     const documentsByCategory = documents?.reduce((acc, doc) => {

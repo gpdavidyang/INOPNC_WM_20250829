@@ -62,6 +62,9 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
       const response = await fetch('/api/admin/documents/integrated')
       if (response.ok) {
         const data = await response.json()
+        console.log('DocumentManagement - API Response:', data)
+        console.log('DocumentManagement - Documents Count:', data.documents?.length || 0)
+        console.log('DocumentManagement - Statistics:', data.statistics)
         setIntegratedDocuments(data)
       } else {
         setError('통합 문서 데이터를 불러오는데 실패했습니다.')

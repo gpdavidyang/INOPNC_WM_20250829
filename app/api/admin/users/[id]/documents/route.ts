@@ -199,25 +199,34 @@ export async function POST(
     }
 
     // Also save to unified_documents for document management system
+    const subType = {
+      'medical_checkup': 'safety_certificate',
+      'safety_education': 'safety_certificate',
+      'vehicle_insurance': 'inspection_certificate',
+      'vehicle_registration': 'inspection_certificate',
+      'payroll_stub': 'inspection_certificate',
+      'id_card': 'inspection_certificate',
+      'senior_documents': 'safety_certificate'
+    }[documentType] || 'inspection_certificate'
+
     const { error: unifiedError } = await serviceClient
       .from('unified_documents')
       .upsert({
         site_id: null, // User documents are not site-specific
-        user_id: userId,
-        original_filename: file.name,
-        stored_filename: fileName,
-        file_path: fileName,
+        profile_id: userId,
+        file_name: file.name,
+        file_url: fileName,
         file_size: file.size,
         mime_type: file.type,
-        document_type: DOCUMENT_LABELS[documentType],
+        document_type: 'certificate',
+        sub_type: subType,
         category_type: 'required_user_docs',
         title: `${userInfo?.full_name || 'Unknown'} - ${DOCUMENT_LABELS[documentType]}`,
         description: `${userInfo?.organization?.name || ''} 소속 ${userInfo?.full_name || 'Unknown'}의 ${DOCUMENT_LABELS[documentType]}`,
         uploaded_by: user.id,
-        tags: [documentType, 'required_document', 'user_document'],
-        is_active: true
+        tags: [documentType, 'required_document', 'user_document']
       }, {
-        onConflict: 'user_id,document_type'
+        onConflict: 'profile_id,tags'
       })
 
     if (unifiedError) {
@@ -314,8 +323,8 @@ export async function DELETE(
     await serviceClient
       .from('unified_documents')
       .delete()
-      .eq('user_id', userId)
-      .eq('tags', 'cs', `{${documentType}}`)
+      .eq('profile_id', userId)
+      .contains('tags', [documentType])
 
     return NextResponse.json({
       success: true,
