@@ -323,14 +323,14 @@ export default function UserDetailModal({
                 <div className="p-3 bg-gray-50 rounded-lg">
                   {isEditing ? (
                     <Select
-                      value={editData.organization_id || ''}
-                      onValueChange={(value) => setEditData({ ...editData, organization_id: value })}
+                      value={editData.organization_id || 'none'}
+                      onValueChange={(value) => setEditData({ ...editData, organization_id: value === 'none' ? null : value })}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="소속 선택" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">없음</SelectItem>
+                        <SelectItem value="none">없음</SelectItem>
                         {organizations.map((org) => (
                           <SelectItem key={org.id} value={org.id}>
                             {org.name}

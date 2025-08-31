@@ -105,8 +105,8 @@ export default function SiteDetailPage() {
         return
       }
       
-      // Fetch statistics in parallel - only for tables that exist
-      const [reportsCount, workersCount] = await Promise.all([
+      // Fetch statistics in parallel
+      const [reportsCount, workersCount, partnersCount, documentsCount] = await Promise.all([
         // Get daily reports count
         supabase
           .from('daily_reports')
@@ -117,13 +117,24 @@ export default function SiteDetailPage() {
           .from('site_assignments')
           .select('id', { count: 'exact', head: true })
           .eq('site_id', siteId)
-          .eq('is_active', true)
-        // Note: site_documents and site_customers tables don't exist in current schema
+          .eq('is_active', true),
+        // Get partners count
+        supabase
+          .from('site_partners')
+          .select('id', { count: 'exact', head: true })
+          .eq('site_id', siteId),
+        // Get documents count
+        supabase
+          .from('unified_documents')
+          .select('id', { count: 'exact', head: true })
+          .eq('site_id', siteId)
       ])
       
       // Check for any errors in the queries
       if (reportsCount.error) console.error('Reports count error:', reportsCount.error)
       if (workersCount.error) console.error('Workers count error:', workersCount.error)
+      if (partnersCount.error) console.error('Partners count error:', partnersCount.error)
+      if (documentsCount.error) console.error('Documents count error:', documentsCount.error)
       
       // Create integrated data structure with real statistics
       const integratedData: IntegratedSiteData = {
@@ -134,9 +145,9 @@ export default function SiteDetailPage() {
         documents_by_category: {},
         statistics: {
           total_reports: reportsCount.count || 0,
-          total_documents: 0, // Table doesn't exist yet
+          total_documents: documentsCount.count || 0,
           assigned_workers: workersCount.count || 0,
-          total_partners: 0   // Table doesn't exist yet
+          total_partners: partnersCount.count || 0
         },
         recent_activities: [],
         assigned_workers: [],
