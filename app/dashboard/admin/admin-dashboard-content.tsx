@@ -58,6 +58,8 @@ export function AdminDashboardContent() {
   const { touchMode } = useTouchMode()
   const [quickActions, setQuickActions] = useState<QuickAction[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [unreadNotifications, setUnreadNotifications] = useState(0)
+  const [pendingSignups, setPendingSignups] = useState(0)
 
   // 빠른 작업 불러오기
   const fetchQuickActions = async () => {
@@ -75,8 +77,37 @@ export function AdminDashboardContent() {
     }
   }
 
+  // 읽지 않은 알림 수 불러오기
+  const fetchUnreadNotifications = async () => {
+    try {
+      const response = await fetch('/api/notifications/history')
+      if (response.ok) {
+        const data = await response.json()
+        const unreadCount = data.notifications?.filter((n: any) => !n.is_read).length || 0
+        setUnreadNotifications(unreadCount)
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+    }
+  }
+
+  // 가입 승인 대기 수 불러오기
+  const fetchPendingSignups = async () => {
+    try {
+      const module = await import('@/app/actions/admin/signup-approvals')
+      const result = await module.getSignupRequests('pending')
+      if (result.success && result.data) {
+        setPendingSignups(result.data.length)
+      }
+    } catch (error) {
+      console.error('Error fetching pending signups:', error)
+    }
+  }
+
   useEffect(() => {
     fetchQuickActions()
+    fetchUnreadNotifications()
+    fetchPendingSignups()
   }, [])
 
   return (
@@ -94,7 +125,7 @@ export function AdminDashboardContent() {
       
       <div className="space-y-6">
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className={`${
           touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
         }`}>
@@ -136,10 +167,22 @@ export function AdminDashboardContent() {
         }`}>
           <div className="flex items-center justify-between">
             <div>
-              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>승인 대기</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>5건</p>
+              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>미확인 알림</p>
+              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>{unreadNotifications}건</p>
             </div>
-            <Clock className="h-8 w-8 text-purple-500" />
+            <Bell className="h-8 w-8 text-purple-500" />
+          </div>
+        </Card>
+        
+        <Card className={`${
+          touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>가입요청 승인대기</p>
+              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>{pendingSignups}건</p>
+            </div>
+            <Clock className="h-8 w-8 text-red-500" />
           </div>
         </Card>
       </div>
