@@ -62,14 +62,12 @@ export default function WorkerManagementTab({
   const [error, setError] = useState<string | null>(null)
 
   const workHourOptions = [
-    { value: 0.5, label: '0.5시간' },
-    { value: 1, label: '1시간' },
-    { value: 2, label: '2시간' },
-    { value: 4, label: '4시간 (반일)' },
-    { value: 6, label: '6시간' },
-    { value: 8, label: '8시간 (정규)' },
-    { value: 10, label: '10시간' },
-    { value: 12, label: '12시간 (연장)' }
+    { value: 0.5, label: '0.5' },
+    { value: 1, label: '1.0' },
+    { value: 1.5, label: '1.5' },
+    { value: 2, label: '2.0' },
+    { value: 2.5, label: '2.5' },
+    { value: 3, label: '3.0' }
   ]
 
   useEffect(() => {
