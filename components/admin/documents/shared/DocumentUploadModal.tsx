@@ -52,7 +52,7 @@ export default function DocumentUploadModal({
   const supabase = createClient()
   const isEdit = !!document
 
-  const categories: DocumentCategory[] = ['도면', '계약서', '보고서', '사진', '기타']
+  const categories: DocumentCategory[] = ['도면', '계약서', '보고서', '사진', 'PTW 작업허가서', '기타']
 
   // Load options
   useEffect(() => {

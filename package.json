@@ -39,6 +39,7 @@
     "@supabase/supabase-js": "^2.53.0",
     "@types/lodash": "^4.17.20",
     "autoprefixer": "^10.4.21",
+    "canvas": "^3.2.0",
     "chart.js": "^4.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

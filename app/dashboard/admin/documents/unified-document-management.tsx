@@ -18,6 +18,8 @@ import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { getSharedDocuments, getAllUnifiedDocuments, DocumentWithApproval } from '@/app/actions/admin/documents'
+import UnifiedSharedDocumentsList from '@/components/admin/documents/UnifiedSharedDocumentsList'
 
 interface UnifiedDocumentManagementProps {
   profile: Profile
@@ -110,6 +112,7 @@ interface UnifiedDocument {
   viewCount: number
   downloadCount: number
   tags?: string[]
+  folder_path?: string
 }
 
 export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagementProps) {
@@ -142,129 +145,115 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
     fileType: 'all'
   })
 
+  // Transform DocumentWithApproval to UnifiedDocument
+  const transformDocument = (doc: DocumentWithApproval): UnifiedDocument => {
+    return {
+      id: doc.id,
+      title: doc.title || doc.file_name,
+      description: doc.description,
+      category: getCategoryFromPath(doc.folder_path || ''),
+      documentType: doc.document_type || 'document',
+      fileName: doc.file_name,
+      fileSize: doc.file_size || 0,
+      fileUrl: doc.file_url,
+      mimeType: doc.mime_type || 'application/octet-stream',
+      owner: {
+        id: doc.owner_id,
+        name: doc.owner?.full_name || 'Unknown',
+        email: doc.owner?.email || ''
+      },
+      site: doc.site ? {
+        id: doc.site_id!,
+        name: doc.site.name
+      } : undefined,
+      status: 'active',
+      visibility: doc.is_public ? 'public' : doc.folder_path === '/shared' ? 'shared' : 'private',
+      createdAt: doc.created_at,
+      updatedAt: doc.updated_at,
+      viewCount: doc.view_count || 0,
+      downloadCount: doc.download_count || 0,
+      tags: doc.tags,
+      folder_path: doc.folder_path
+    }
+  }
+
+  // Get category from folder path
+  const getCategoryFromPath = (folderPath: string): string => {
+    if (folderPath.includes('/shared')) return 'shared'
+    if (folderPath.includes('/markup')) return 'markup'
+    if (folderPath.includes('/photo')) return 'photo_reports'
+    if (folderPath.includes('/site')) return 'site_documents'
+    if (folderPath.includes('/correction')) return 'correction_requests'
+    return 'personal'
+  }
+
   // Load documents based on category and filters
   const loadDocuments = useCallback(async () => {
     setLoading(true)
     try {
-      // Simulate loading unified documents from multiple sources
-      // In production, this would call the unified API
-      const mockDocuments: UnifiedDocument[] = [
-        {
-          id: '1',
-          title: '강남 A현장 작업일지',
-          description: '2025년 8월 작업 현황',
-          category: 'shared',
-          documentType: 'report',
-          fileName: 'gangnam_daily_report.pdf',
-          fileSize: 2048000,
-          fileUrl: '/documents/report.pdf',
-          mimeType: 'application/pdf',
-          owner: { id: '1', name: '김철수', email: 'kim@inopnc.com' },
-          site: { id: '1', name: '강남 A현장' },
-          status: 'active',
-          visibility: 'shared',
-          createdAt: '2025-08-22T10:00:00Z',
-          updatedAt: '2025-08-22T10:00:00Z',
-          viewCount: 45,
-          downloadCount: 12,
-          tags: ['작업일지', '일일보고']
-        },
-        {
-          id: '2',
-          title: '송파 C현장 도면 마킹',
-          category: 'markup',
-          documentType: 'blueprint',
-          fileName: 'songpa_blueprint_marked.jpg',
-          fileSize: 5120000,
-          fileUrl: '/documents/blueprint.jpg',
-          mimeType: 'image/jpeg',
-          owner: { id: '2', name: '이영희', email: 'lee@inopnc.com' },
-          site: { id: '2', name: '송파 C현장' },
-          status: 'active',
-          visibility: 'shared',
-          createdAt: '2025-08-21T14:30:00Z',
-          updatedAt: '2025-08-21T15:45:00Z',
-          viewCount: 23,
-          downloadCount: 5
-        },
-        {
-          id: '3',
-          title: '서초 B현장 사진대지',
-          description: '외벽 공사 진행 사진',
-          category: 'photo_reports',
-          documentType: 'photo_grid',
-          fileName: 'seocho_photo_grid.pdf',
-          fileSize: 8192000,
-          fileUrl: '/documents/photo_grid.pdf',
-          mimeType: 'application/pdf',
-          owner: { id: '3', name: '박민수', email: 'park@inopnc.com' },
-          site: { id: '3', name: '서초 B현장' },
-          status: 'active',
-          visibility: 'private',
-          createdAt: '2025-08-20T09:15:00Z',
-          updatedAt: '2025-08-20T09:15:00Z',
-          viewCount: 67,
-          downloadCount: 8
-        },
-        {
-          id: '4',
-          title: 'PTW 작업허가서 #2025-08-001',
-          category: 'site_documents',
-          documentType: 'ptw',
-          fileName: 'ptw_2025_08_001.pdf',
-          fileSize: 1024000,
-          fileUrl: '/documents/ptw.pdf',
-          mimeType: 'application/pdf',
-          owner: { id: '1', name: '김철수', email: 'kim@inopnc.com' },
-          site: { id: '1', name: '강남 A현장' },
-          status: 'active',
-          visibility: 'shared',
-          createdAt: '2025-08-22T08:00:00Z',
-          updatedAt: '2025-08-22T08:00:00Z',
-          viewCount: 12,
-          downloadCount: 3
-        }
-      ]
-
-      // Apply filters
-      let filteredDocuments = mockDocuments
+      let result
       
-      if (selectedCategory !== 'all') {
-        filteredDocuments = filteredDocuments.filter(doc => doc.category === selectedCategory)
+      if (selectedCategory === 'all') {
+        result = await getAllUnifiedDocuments()
+      } else if (selectedCategory === 'shared') {
+        result = await getSharedDocuments()
+      } else {
+        // For other categories, get all documents and filter by category
+        result = await getAllUnifiedDocuments()
+      }
+
+      if (!result.success) {
+        console.error('Error loading documents:', result.error)
+        setDocuments([])
+        return
+      }
+
+      let allDocuments = result.data.map(transformDocument)
+
+      // Apply category filter (except for 'all' and 'shared' which are handled above)
+      if (selectedCategory !== 'all' && selectedCategory !== 'shared') {
+        allDocuments = allDocuments.filter(doc => doc.category === selectedCategory)
       }
       
+      // Apply search filter
       if (searchTerm) {
-        filteredDocuments = filteredDocuments.filter(doc =>
+        allDocuments = allDocuments.filter(doc =>
           doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           doc.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
         )
       }
 
-      setDocuments(filteredDocuments)
+      setDocuments(allDocuments)
       
-      // Calculate stats
-      setStats({
-        totalDocuments: mockDocuments.length,
-        totalSize: formatFileSize(mockDocuments.reduce((sum, doc) => sum + doc.fileSize, 0)),
-        documentsThisMonth: mockDocuments.filter(doc => {
-          const docDate = new Date(doc.createdAt)
-          const now = new Date()
-          return docDate.getMonth() === now.getMonth() && docDate.getFullYear() === now.getFullYear()
-        }).length,
-        recentUploads: mockDocuments.filter(doc => {
-          const docDate = new Date(doc.createdAt)
-          const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-          return docDate > dayAgo
-        }).length,
-        categoryBreakdown: mockDocuments.reduce((acc, doc) => {
-          acc[doc.category] = (acc[doc.category] || 0) + 1
-          return acc
-        }, {} as Record<string, number>)
-      })
+      // Calculate stats based on all documents (not filtered)
+      const allDocsResult = selectedCategory !== 'all' ? await getAllUnifiedDocuments() : result
+      if (allDocsResult.success) {
+        const allDocsTransformed = allDocsResult.data.map(transformDocument)
+        
+        setStats({
+          totalDocuments: allDocsTransformed.length,
+          totalSize: formatFileSize(allDocsTransformed.reduce((sum, doc) => sum + doc.fileSize, 0)),
+          documentsThisMonth: allDocsTransformed.filter(doc => {
+            const docDate = new Date(doc.createdAt)
+            const now = new Date()
+            return docDate.getMonth() === now.getMonth() && docDate.getFullYear() === now.getFullYear()
+          }).length,
+          recentUploads: allDocsTransformed.filter(doc => {
+            const docDate = new Date(doc.createdAt)
+            const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+            return docDate > dayAgo
+          }).length,
+          categoryBreakdown: allDocsTransformed.reduce((acc, doc) => {
+            acc[doc.category] = (acc[doc.category] || 0) + 1
+            return acc
+          }, {} as Record<string, number>)
+        })
+      }
       
     } catch (error) {
       console.error('Error loading documents:', error)
+      setDocuments([])
     } finally {
       setLoading(false)
     }
@@ -598,124 +587,41 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
           )}
 
           {/* Documents List/Grid */}
-          <TabsContent value={selectedCategory} className="mt-0">
-            {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
-            ) : documents.length === 0 ? (
-              <div className="text-center py-12">
-                <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500`}>
-                  문서가 없습니다
-                </p>
-              </div>
-            ) : viewMode === 'list' ? (
-              <div className="space-y-2">
-                {documents.map((doc) => {
-                  const Icon = getCategoryIcon(doc.category)
-                  const isSelected = selectedDocuments.includes(doc.id)
-                  
-                  return (
-                    <div
-                      key={doc.id}
-                      className={`flex items-center gap-4 p-3 rounded-lg border ${
-                        isSelected 
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
-                      } transition-colors`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setSelectedDocuments([...selectedDocuments, doc.id])
-                          } else {
-                            setSelectedDocuments(selectedDocuments.filter(id => id !== doc.id))
-                          }
-                        }}
-                        className="h-4 w-4 text-blue-600 rounded border-gray-300"
-                      />
-                      
-                      <Icon className={`h-8 w-8 text-${getCategoryColor(doc.category)}-500 flex-shrink-0`} />
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h3 className={`${getFullTypographyClass('body', 'base', isLargeFont)} font-medium truncate`}>
-                            {doc.title}
-                          </h3>
-                          {doc.visibility === 'shared' && (
-                            <Badge variant="secondary" className="text-xs">
-                              <Share2 className="h-3 w-3 mr-1" />
-                              공유
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 mt-1">
-                          <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                            {doc.fileName}
-                          </span>
-                          <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                            {formatFileSize(doc.fileSize)}
-                          </span>
-                          {doc.site && (
-                            <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                              {doc.site.name}
-                            </span>
-                          )}
-                          <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                            {format(new Date(doc.createdAt), 'yyyy-MM-dd HH:mm', { locale: ko })}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <div className="flex items-center gap-1 text-gray-500">
-                          <Eye className="h-4 w-4" />
-                          <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>
-                            {doc.viewCount}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-500">
-                          <Download className="h-4 w-4" />
-                          <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>
-                            {doc.downloadCount}
-                          </span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`${
-                            touchMode === 'glove' ? 'p-2' : touchMode === 'precision' ? 'p-1' : 'p-1.5'
-                          }`}
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {documents.map((doc) => {
-                  const Icon = getCategoryIcon(doc.category)
-                  const isSelected = selectedDocuments.includes(doc.id)
-                  
-                  return (
-                    <Card
-                      key={doc.id}
-                      className={`${
-                        touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
-                      } ${
-                        isSelected 
-                          ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                          : 'hover:shadow-lg'
-                      } transition-all cursor-pointer`}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <Icon className={`h-10 w-10 text-${getCategoryColor(doc.category)}-500`} />
+          {DOCUMENT_CATEGORIES.map((category) => (
+            <TabsContent key={category.id} value={category.id} className="mt-0">
+              {category.id === 'shared' ? (
+                <div className="mt-6">
+                  <UnifiedSharedDocumentsList />
+                </div>
+              ) : loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : documents.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-gray-500`}>
+                    {category.id === 'all' ? '문서가 없습니다' : `${category.label} 문서가 없습니다`}
+                  </p>
+                  <p className={`${getFullTypographyClass('caption', 'sm', isLargeFont)} text-gray-400 mt-2`}>
+                    {category.description}
+                  </p>
+                </div>
+              ) : viewMode === 'list' ? (
+                <div className="space-y-2">
+                  {documents.map((doc) => {
+                    const Icon = getCategoryIcon(doc.category)
+                    const isSelected = selectedDocuments.includes(doc.id)
+                    
+                    return (
+                      <div
+                        key={doc.id}
+                        className={`flex items-center gap-4 p-3 rounded-lg border ${
+                          isSelected 
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
+                        } transition-colors`}
+                      >
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -728,64 +634,171 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
                           }}
                           className="h-4 w-4 text-blue-600 rounded border-gray-300"
                         />
-                      </div>
-                      
-                      <h3 className={`${getFullTypographyClass('body', 'base', isLargeFont)} font-medium mb-1 line-clamp-2`}>
-                        {doc.title}
-                      </h3>
-                      
-                      {doc.description && (
-                        <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500 mb-2 line-clamp-2`}>
-                          {doc.description}
-                        </p>
-                      )}
-                      
-                      <div className="space-y-1 mb-3">
-                        <div className="flex items-center justify-between">
-                          <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                            크기
-                          </span>
-                          <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium`}>
-                            {formatFileSize(doc.fileSize)}
-                          </span>
-                        </div>
-                        {doc.site && (
-                          <div className="flex items-center justify-between">
+                        
+                        <Icon className={`h-8 w-8 text-${getCategoryColor(doc.category)}-500 flex-shrink-0`} />
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h3 className={`${getFullTypographyClass('body', 'base', isLargeFont)} font-medium truncate`}>
+                              {doc.title}
+                            </h3>
+                            {doc.visibility === 'shared' && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Share2 className="h-3 w-3 mr-1" />
+                                공유
+                              </Badge>
+                            )}
+                            {doc.folder_path && (
+                              <Badge variant="outline" className="text-xs">
+                                {doc.folder_path}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4 mt-1">
                             <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                              현장
+                              {doc.fileName}
                             </span>
-                            <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium`}>
-                              {doc.site.name}
+                            <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                              {formatFileSize(doc.fileSize)}
+                            </span>
+                            {doc.site && (
+                              <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                                {doc.site.name}
+                              </span>
+                            )}
+                            <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                              {format(new Date(doc.createdAt), 'yyyy-MM-dd HH:mm', { locale: ko })}
                             </span>
                           </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center gap-2">
-                          <Eye className="h-3 w-3 text-gray-400" />
-                          <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                            {doc.viewCount}
-                          </span>
-                          <Download className="h-3 w-3 text-gray-400 ml-2" />
-                          <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                            {doc.downloadCount}
-                          </span>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                        >
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
+                        
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <Eye className="h-4 w-4" />
+                            <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>
+                              {doc.viewCount}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-gray-500">
+                            <Download className="h-4 w-4" />
+                            <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>
+                              {doc.downloadCount}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`${
+                              touchMode === 'glove' ? 'p-2' : touchMode === 'precision' ? 'p-1' : 'p-1.5'
+                            }`}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </Card>
-                  )
-                })}
-              </div>
-            )}
-          </TabsContent>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {documents.map((doc) => {
+                    const Icon = getCategoryIcon(doc.category)
+                    const isSelected = selectedDocuments.includes(doc.id)
+                    
+                    return (
+                      <Card
+                        key={doc.id}
+                        className={`${
+                          touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
+                        } ${
+                          isSelected 
+                            ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-900/20' 
+                            : 'hover:shadow-lg'
+                        } transition-all cursor-pointer`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <Icon className={`h-10 w-10 text-${getCategoryColor(doc.category)}-500`} />
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedDocuments([...selectedDocuments, doc.id])
+                              } else {
+                                setSelectedDocuments(selectedDocuments.filter(id => id !== doc.id))
+                              }
+                            }}
+                            className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                          />
+                        </div>
+                        
+                        <h3 className={`${getFullTypographyClass('body', 'base', isLargeFont)} font-medium mb-1 line-clamp-2`}>
+                          {doc.title}
+                        </h3>
+                        
+                        {doc.description && (
+                          <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500 mb-2 line-clamp-2`}>
+                            {doc.description}
+                          </p>
+                        )}
+                        
+                        <div className="space-y-1 mb-3">
+                          <div className="flex items-center justify-between">
+                            <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                              크기
+                            </span>
+                            <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium`}>
+                              {formatFileSize(doc.fileSize)}
+                            </span>
+                          </div>
+                          {doc.site && (
+                            <div className="flex items-center justify-between">
+                              <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                                현장
+                              </span>
+                              <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium`}>
+                                {doc.site.name}
+                              </span>
+                            </div>
+                          )}
+                          {doc.folder_path && (
+                            <div className="flex items-center justify-between">
+                              <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                                경로
+                              </span>
+                              <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium`}>
+                                {doc.folder_path}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+                          <div className="flex items-center gap-2">
+                            <Eye className="h-3 w-3 text-gray-400" />
+                            <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                              {doc.viewCount}
+                            </span>
+                            <Download className="h-3 w-3 text-gray-400 ml-2" />
+                            <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                              {doc.downloadCount}
+                            </span>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </Card>
+                    )
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          ))}
         </Tabs>
       </Card>
 

@@ -38,6 +38,7 @@ export type DocumentCategory =
   | '계약서'
   | '보고서'
   | '사진'
+  | 'PTW 작업허가서'
   | '기타';
 
 export interface DocumentPermission {

@@ -141,13 +141,16 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
   const getRoleBadge = (role: string) => {
     const roleConfig = {
       admin: { text: '관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: Shield },
-      supervisor: { text: '감독관', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: User },
+      site_manager: { text: '현장관리자', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300', icon: Building2 },
+      customer_manager: { text: '고객담당자', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: User },
       worker: { text: '작업자', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: HardHat },
+      partner: { text: '파트너사', color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-300', icon: Building2 },
       safety_officer: { text: '안전관리자', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: Shield },
+      // Korean fallbacks
       '작업자': { text: '작업자', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: HardHat },
-      '감독자': { text: '감독자', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: User },
-      '안전관리자': { text: '안전관리자', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: Shield },
-      '현장관리자': { text: '현장관리자', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300', icon: Building2 }
+      '현장관리자': { text: '현장관리자', color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/20 dark:text-indigo-300', icon: Building2 },
+      '고객담당자': { text: '고객담당자', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: User },
+      '관리자': { text: '관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: Shield }
     }
     
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.worker
@@ -235,9 +238,9 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">감독관</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">현장관리자</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {assignedWorkers.filter(w => w.role === 'supervisor').length}
+                {assignedWorkers.filter(w => w.role === 'site_manager').length}
               </p>
             </div>
             <User className="h-8 w-8 text-purple-400" />
@@ -280,7 +283,9 @@ export default function SiteWorkersTab({ siteId, siteName }: SiteWorkersTabProps
           >
             <option value="all">모든 역할</option>
             <option value="worker">작업자</option>
-            <option value="supervisor">감독관</option>
+            <option value="site_manager">현장관리자</option>
+            <option value="customer_manager">고객담당자</option>
+            <option value="partner">파트너사</option>
             <option value="safety_officer">안전관리자</option>
             <option value="admin">관리자</option>
           </select>

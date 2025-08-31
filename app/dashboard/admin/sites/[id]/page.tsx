@@ -42,6 +42,9 @@ interface Site {
   construction_manager_phone?: string
   safety_manager_name?: string
   safety_manager_phone?: string
+  accommodation_name?: string
+  accommodation_address?: string
+  accommodation_phone?: string
   created_at: string
   updated_at?: string
 }
@@ -160,6 +163,9 @@ export default function SiteDetailPage() {
     construction_manager_phone?: string
     safety_manager_name?: string
     safety_manager_phone?: string
+    accommodation_name?: string
+    accommodation_address?: string
+    accommodation_phone?: string
   }) => {
     try {
       setEditLoading(true)
@@ -176,6 +182,9 @@ export default function SiteDetailPage() {
         construction_manager_phone: formData.construction_manager_phone || null,
         safety_manager_name: formData.safety_manager_name || null,
         safety_manager_phone: formData.safety_manager_phone || null,
+        accommodation_name: formData.accommodation_name || null,
+        accommodation_address: formData.accommodation_address || null,
+        accommodation_phone: formData.accommodation_phone || null,
         updated_at: new Date().toISOString()
       }
 
@@ -472,6 +481,48 @@ export default function SiteDetailPage() {
                   </div>
                 </div>
               </div>
+
+              {/* 숙소 정보 */}
+              {(site.accommodation_name || site.accommodation_address || site.accommodation_phone) && (
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 lg:col-span-2">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">숙소 정보</h3>
+                  <div className="space-y-4">
+                    {site.accommodation_name && (
+                      <div className="flex items-start gap-3">
+                        <Building2 className="h-5 w-5 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">숙소명</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {site.accommodation_name}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {site.accommodation_address && (
+                      <div className="flex items-start gap-3">
+                        <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">숙소 주소</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {site.accommodation_address}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                    {site.accommodation_phone && (
+                      <div className="flex items-start gap-3">
+                        <Phone className="h-5 w-5 text-gray-400 mt-0.5" />
+                        <div>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">숙소 연락처</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {site.accommodation_phone}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 통계 정보 */}
@@ -595,7 +646,10 @@ function EditSiteModal({
     construction_manager_name: siteData.construction_manager_name || '',
     construction_manager_phone: siteData.construction_manager_phone || '',
     safety_manager_name: siteData.safety_manager_name || '',
-    safety_manager_phone: siteData.safety_manager_phone || ''
+    safety_manager_phone: siteData.safety_manager_phone || '',
+    accommodation_name: siteData.accommodation_name || '',
+    accommodation_address: siteData.accommodation_address || '',
+    accommodation_phone: siteData.accommodation_phone || ''
   })
 
   // Reset form data when siteData changes
@@ -611,7 +665,10 @@ function EditSiteModal({
       construction_manager_name: siteData.construction_manager_name || '',
       construction_manager_phone: siteData.construction_manager_phone || '',
       safety_manager_name: siteData.safety_manager_name || '',
-      safety_manager_phone: siteData.safety_manager_phone || ''
+      safety_manager_phone: siteData.safety_manager_phone || '',
+      accommodation_name: siteData.accommodation_name || '',
+      accommodation_address: siteData.accommodation_address || '',
+      accommodation_phone: siteData.accommodation_phone || ''
     })
   }, [siteData])
 
@@ -863,6 +920,62 @@ function EditSiteModal({
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 숙소 정보 섹션 */}
+            <div className="md:col-span-2">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4 border-b border-gray-200 dark:border-gray-600 pb-2">
+                숙소 정보
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* 숙소명 */}
+                <div>
+                  <label htmlFor="accommodation_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    숙소명
+                  </label>
+                  <input
+                    type="text"
+                    id="accommodation_name"
+                    name="accommodation_name"
+                    value={formData.accommodation_name}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    placeholder="숙소 이름"
+                  />
+                </div>
+
+                {/* 숙소 연락처 */}
+                <div>
+                  <label htmlFor="accommodation_phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    숙소 연락처
+                  </label>
+                  <input
+                    type="tel"
+                    id="accommodation_phone"
+                    name="accommodation_phone"
+                    value={formData.accommodation_phone}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    placeholder="010-0000-0000"
+                  />
+                </div>
+
+                {/* 숙소 주소 */}
+                <div className="md:col-span-2">
+                  <label htmlFor="accommodation_address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    숙소 주소
+                  </label>
+                  <input
+                    type="text"
+                    id="accommodation_address"
+                    name="accommodation_address"
+                    value={formData.accommodation_address}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+                    placeholder="숙소 주소를 입력하세요"
+                  />
                 </div>
               </div>
             </div>

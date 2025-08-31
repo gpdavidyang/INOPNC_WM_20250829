@@ -125,13 +125,6 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
       icon: Image 
     },
     { 
-      key: 'required', 
-      label: '필수제출문서함', 
-      description: '현장에서 필수로 제출해야 하는 문서',
-      color: 'blue',
-      icon: FileText 
-    },
-    { 
       key: 'invoice', 
       label: '기성청구문서함', 
       description: '공사 기성 및 청구 관련 문서',
@@ -157,7 +150,6 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
     receipts: documents.filter(d => d.document_type === 'receipt').length,
     shared: documents.filter(d => d.category_type === 'shared').length,
     markup: documents.filter(d => d.category_type === 'markup').length,
-    required: documents.filter(d => d.category_type === 'required').length,
     invoice: documents.filter(d => d.category_type === 'invoice').length
   }
 

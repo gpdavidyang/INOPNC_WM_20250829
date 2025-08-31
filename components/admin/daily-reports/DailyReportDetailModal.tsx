@@ -88,7 +88,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
   const [saving, setSaving] = useState(false)
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'photos'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'attachments' | 'photos' | 'receipts'>('info')
   
   const [editData, setEditData] = useState({
     work_date: report.work_date,
@@ -106,7 +106,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
   })
 
   useEffect(() => {
-    if (activeTab === 'photos') {
+    if (activeTab === 'attachments' || activeTab === 'photos' || activeTab === 'receipts') {
       fetchPhotos()
     }
   }, [activeTab])
@@ -332,6 +332,16 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
               작업일지 정보
             </button>
             <button
+              onClick={() => setActiveTab('attachments')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'attachments'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              첨부파일 ({photos.filter(p => p.file_type !== 'photo_before' && p.file_type !== 'photo_after' && p.file_type !== 'receipt').length})
+            </button>
+            <button
               onClick={() => setActiveTab('photos')}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'photos'
@@ -339,7 +349,17 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
-              첨부파일 ({photos.length})
+              사진 ({photos.filter(p => p.file_type === 'photo_before' || p.file_type === 'photo_after').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('receipts')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'receipts'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              영수증정보 ({photos.filter(p => p.file_type === 'receipt').length})
             </button>
           </nav>
         </div>
@@ -650,7 +670,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
             </div>
           )}
 
-          {activeTab === 'photos' && (
+          {activeTab === 'attachments' && (
             <div className="space-y-6">
               {/* Upload Section */}
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
@@ -686,7 +706,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {photos.map((photo) => (
+                  {photos.filter(p => p.file_type !== 'photo_before' && p.file_type !== 'photo_after' && p.file_type !== 'receipt').map((photo) => (
                     <div
                       key={photo.id}
                       className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
@@ -733,6 +753,294 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'photos' && (
+            <div className="space-y-8">
+              {/* Before Work Photos */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <FileImage className="h-5 w-5 text-yellow-600" />
+                    작업 전 사진
+                  </h3>
+                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
+                    {photos.filter(p => p.file_type === 'photo_before').length}장
+                  </span>
+                </div>
+                
+                {loadingPhotos ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  </div>
+                ) : photos.filter(p => p.file_type === 'photo_before').length === 0 ? (
+                  <div className="bg-gray-50 rounded-lg p-8 text-center">
+                    <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600">작업 전 사진이 없습니다.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {photos.filter(p => p.file_type === 'photo_before').map((photo) => (
+                      <div
+                        key={photo.id}
+                        className="relative group border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all"
+                      >
+                        <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                          <FileImage className="h-12 w-12 text-gray-400" />
+                        </div>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <div className="flex gap-2">
+                            <button
+                              className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50"
+                              title="보기"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50"
+                              title="다운로드"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePhoto(photo.id, photo.file_path)}
+                              className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50"
+                              title="삭제"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-white">
+                          <p className="text-xs text-gray-600 truncate">{photo.filename}</p>
+                          <p className="text-xs text-gray-400">
+                            {format(new Date(photo.created_at), 'MM.dd HH:mm')}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* After Work Photos */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <FileImage className="h-5 w-5 text-green-600" />
+                    작업 후 사진
+                  </h3>
+                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                    {photos.filter(p => p.file_type === 'photo_after').length}장
+                  </span>
+                </div>
+                
+                {loadingPhotos ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  </div>
+                ) : photos.filter(p => p.file_type === 'photo_after').length === 0 ? (
+                  <div className="bg-gray-50 rounded-lg p-8 text-center">
+                    <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-gray-600">작업 후 사진이 없습니다.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {photos.filter(p => p.file_type === 'photo_after').map((photo) => (
+                      <div
+                        key={photo.id}
+                        className="relative group border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all"
+                      >
+                        <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                          <FileImage className="h-12 w-12 text-gray-400" />
+                        </div>
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <div className="flex gap-2">
+                            <button
+                              className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50"
+                              title="보기"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <button
+                              className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50"
+                              title="다운로드"
+                            >
+                              <Download className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeletePhoto(photo.id, photo.file_path)}
+                              className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50"
+                              title="삭제"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="p-2 bg-white">
+                          <p className="text-xs text-gray-600 truncate">{photo.filename}</p>
+                          <p className="text-xs text-gray-400">
+                            {format(new Date(photo.created_at), 'MM.dd HH:mm')}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Upload Instructions */}
+              <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
+                <p className="font-medium mb-1">📸 사진 업로드 안내</p>
+                <p>작업 전/후 사진은 작업일지 작성 시 구분하여 업로드해주세요.</p>
+                <p>업로드된 사진은 자동으로 분류되어 표시됩니다.</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'receipts' && (
+            <div className="space-y-6">
+              {/* Receipt Summary */}
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <FileImage className="h-5 w-5 text-purple-600" />
+                    영수증 요약
+                  </h3>
+                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                    총 {photos.filter(p => p.file_type === 'receipt').length}건
+                  </span>
+                </div>
+                {photos.filter(p => p.file_type === 'receipt').length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">총 영수증 수</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {photos.filter(p => p.file_type === 'receipt').length}건
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">총 용량</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {formatFileSize(photos.filter(p => p.file_type === 'receipt').reduce((sum, p) => sum + p.file_size, 0))}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">최초 등록일</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {photos.filter(p => p.file_type === 'receipt').length > 0 
+                          ? format(new Date(Math.min(...photos.filter(p => p.file_type === 'receipt').map(p => new Date(p.created_at).getTime()))), 'MM.dd')
+                          : '-'}
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">최근 등록일</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {photos.filter(p => p.file_type === 'receipt').length > 0
+                          ? format(new Date(Math.max(...photos.filter(p => p.file_type === 'receipt').map(p => new Date(p.created_at).getTime()))), 'MM.dd')
+                          : '-'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Receipts List */}
+              {loadingPhotos ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">영수증을 불러오는 중...</p>
+                </div>
+              ) : photos.filter(p => p.file_type === 'receipt').length === 0 ? (
+                <div className="bg-gray-50 rounded-lg p-8 text-center">
+                  <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-600">등록된 영수증이 없습니다.</p>
+                  <p className="text-sm text-gray-500 mt-1">작업일지 작성 시 영수증을 첨부해주세요.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-900">영수증 목록</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {photos.filter(p => p.file_type === 'receipt').map((receipt, index) => (
+                      <div
+                        key={receipt.id}
+                        className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex">
+                          {/* Receipt Preview */}
+                          <div className="w-32 h-32 bg-gray-100 flex items-center justify-center flex-shrink-0">
+                            <FileImage className="h-12 w-12 text-gray-400" />
+                          </div>
+                          
+                          {/* Receipt Details */}
+                          <div className="flex-1 p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <p className="font-medium text-gray-900 flex items-center gap-2">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                                    #{index + 1}
+                                  </span>
+                                  영수증
+                                </p>
+                                <p className="text-sm text-gray-600 mt-1 truncate">
+                                  {receipt.filename}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-1 text-xs text-gray-500">
+                              <p>크기: {formatFileSize(receipt.file_size)}</p>
+                              <p>등록일: {format(new Date(receipt.created_at), 'yyyy.MM.dd HH:mm')}</p>
+                            </div>
+                            
+                            {receipt.description && (
+                              <p className="mt-2 text-sm text-gray-700 bg-gray-50 rounded p-2">
+                                {receipt.description}
+                              </p>
+                            )}
+                            
+                            <div className="flex gap-2 mt-3">
+                              <button
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                                title="다운로드"
+                              >
+                                <Download className="h-3 w-3" />
+                                다운로드
+                              </button>
+                              <button
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
+                                title="보기"
+                              >
+                                <Eye className="h-3 w-3" />
+                                보기
+                              </button>
+                              <button
+                                onClick={() => handleDeletePhoto(receipt.id, receipt.file_path)}
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
+                                title="삭제"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                                삭제
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Guide */}
+              <div className="bg-purple-50 rounded-lg p-4 text-sm text-purple-800">
+                <p className="font-medium mb-1">💳 영수증 관리 안내</p>
+                <ul className="space-y-1 ml-4">
+                  <li>• 작업일지 작성 시 영수증 첨부 섹션에서 업로드 가능합니다.</li>
+                  <li>• 영수증은 자재 구매, 식대, 기타 경비 등의 증빙자료로 사용됩니다.</li>
+                  <li>• 영수증 원본은 별도 보관하시기 바랍니다.</li>
+                </ul>
+              </div>
             </div>
           )}
         </div>

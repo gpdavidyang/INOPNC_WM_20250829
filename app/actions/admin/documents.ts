@@ -295,6 +295,77 @@ export async function getDocumentApprovalStats(): Promise<AdminActionResult<{
 }
 
 /**
+ * Get shared documents for unified view
+ */
+export async function getSharedDocuments(): Promise<AdminActionResult<DocumentWithApproval[]>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      const { data: documents, error } = await supabase
+        .from('documents')
+        .select(`
+          *,
+          owner:profiles!documents_owner_id_fkey(full_name, email),
+          site:sites(name)
+        `)
+        .eq('folder_path', '/shared')
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching shared documents:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return {
+        success: true,
+        data: documents || []
+      }
+    } catch (error) {
+      console.error('Shared documents fetch error:', error)
+      return {
+        success: false,
+        error: AdminErrors.UNKNOWN_ERROR
+      }
+    }
+  })
+}
+
+/**
+ * Get all documents from various document folders for unified view
+ */
+export async function getAllUnifiedDocuments(): Promise<AdminActionResult<DocumentWithApproval[]>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      const { data: documents, error } = await supabase
+        .from('documents')
+        .select(`
+          *,
+          owner:profiles!documents_owner_id_fkey(full_name, email),
+          site:sites(name)
+        `)
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching all unified documents:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return {
+        success: true,
+        data: documents || []
+      }
+    } catch (error) {
+      console.error('All unified documents fetch error:', error)
+      return {
+        success: false,
+        error: AdminErrors.UNKNOWN_ERROR
+      }
+    }
+  })
+}
+
+/**
  * Get available sites for document assignment
  */
 export async function getAvailableSitesForDocuments(): Promise<AdminActionResult<Array<{ id: string; name: string }>>> {

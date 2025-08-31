@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileCheck, Search, Download, Eye, Trash2, User, Calendar, RefreshCw, Upload, AlertCircle, CheckCircle } from 'lucide-react'
+import { FileCheck, Search, Download, Eye, Trash2, User, Calendar, RefreshCw, Upload, AlertCircle, CheckCircle, X } from 'lucide-react'
 import RequiredDocumentUploadModal from './RequiredDocumentUploadModal'
 import RequiredDocumentDetailModal from './RequiredDocumentDetailModal'
 
@@ -51,6 +51,7 @@ export default function RequiredDocumentsManagement() {
   const [documents, setDocuments] = useState<RequiredDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [userSearchTerm, setUserSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -77,6 +78,26 @@ export default function RequiredDocumentsManagement() {
       // 검색 필터 적용
       if (searchTerm) {
         query = query.or(`title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,document_type.ilike.%${searchTerm}%`)
+      }
+
+      // 사용자 검색 필터 적용 (이름, 이메일, 역할로 검색)
+      if (userSearchTerm) {
+        // First get user IDs that match the search term
+        const { data: users, error: userError } = await supabase
+          .from('profiles')
+          .select('id')
+          .or(`full_name.ilike.%${userSearchTerm}%,email.ilike.%${userSearchTerm}%,role.ilike.%${userSearchTerm}%`)
+        
+        if (!userError && users && users.length > 0) {
+          const userIds = users.map(u => u.id)
+          query = query.in('submitted_by', userIds)
+        } else {
+          // If no users found, return empty result
+          setDocuments([])
+          setTotalCount(0)
+          setLoading(false)
+          return
+        }
       }
 
       // 상태 필터 적용
@@ -199,7 +220,7 @@ export default function RequiredDocumentsManagement() {
 
   useEffect(() => {
     fetchDocuments()
-  }, [currentPage, searchTerm, statusFilter, typeFilter])
+  }, [currentPage, searchTerm, userSearchTerm, statusFilter, typeFilter])
 
   const totalPages = Math.ceil(totalCount / itemsPerPage)
 
@@ -207,66 +228,100 @@ export default function RequiredDocumentsManagement() {
     <div className="space-y-6">
       {/* 검색 및 필터 섹션 */}
       <div className="bg-white p-6 rounded-lg shadow">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="서류명, 파일명으로 검색..."
-              className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
-              value={searchTerm}
+        <div className="space-y-4">
+          {/* 첫 번째 줄: 서류명 검색, 사용자 검색 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="서류명, 파일명으로 검색..."
+                className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value)
+                  setCurrentPage(1)
+                }}
+              />
+            </div>
+            
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="제출자 이름, 이메일, 역할로 검색..."
+                className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
+                value={userSearchTerm}
+                onChange={(e) => {
+                  setUserSearchTerm(e.target.value)
+                  setCurrentPage(1)
+                }}
+              />
+            </div>
+          </div>
+
+          {/* 두 번째 줄: 필터 및 액션 버튼 */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <select
+              className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
+              value={statusFilter}
               onChange={(e) => {
-                setSearchTerm(e.target.value)
+                setStatusFilter(e.target.value)
                 setCurrentPage(1)
               }}
-            />
+            >
+              <option value="">모든 상태</option>
+              <option value="pending">검토중</option>
+              <option value="approved">승인</option>
+              <option value="rejected">반려</option>
+            </select>
+
+            <select
+              className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
+              value={typeFilter}
+              onChange={(e) => {
+                setTypeFilter(e.target.value)
+                setCurrentPage(1)
+              }}
+            >
+              <option value="">모든 서류 유형</option>
+              {documentTypes.map((type) => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            
+            <button
+              onClick={() => {
+                setSearchTerm('')
+                setUserSearchTerm('')
+                setStatusFilter('')
+                setTypeFilter('')
+                setCurrentPage(1)
+              }}
+              className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+            >
+              <X className="w-4 h-4 mr-2" />
+              초기화
+            </button>
+            
+            <button
+              onClick={fetchDocuments}
+              className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              새로고침
+            </button>
+
+            <button
+              onClick={() => setIsUploadModalOpen(true)}
+              className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              직접 등록
+            </button>
           </div>
-          
-          <select
-            className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value)
-              setCurrentPage(1)
-            }}
-          >
-            <option value="">모든 상태</option>
-            <option value="pending">검토중</option>
-            <option value="approved">승인</option>
-            <option value="rejected">반려</option>
-          </select>
-
-          <select
-            className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
-            value={typeFilter}
-            onChange={(e) => {
-              setTypeFilter(e.target.value)
-              setCurrentPage(1)
-            }}
-          >
-            <option value="">모든 서류 유형</option>
-            {documentTypes.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-          
-          <button
-            onClick={fetchDocuments}
-            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            새로고침
-          </button>
-
-          <button
-            onClick={() => setIsUploadModalOpen(true)}
-            className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            직접 등록
-          </button>
         </div>
       </div>
 
