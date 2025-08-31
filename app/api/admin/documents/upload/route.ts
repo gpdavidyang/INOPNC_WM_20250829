@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
     const siteId = formData.get('siteId') as string
     const documentType = formData.get('documentType') as string
+    const categoryType = formData.get('categoryType') as string
     const title = formData.get('title') as string
     const description = formData.get('description') as string
 
@@ -45,12 +46,13 @@ export async function POST(request: NextRequest) {
       .from('documents')
       .getPublicUrl(fileName)
 
-    // 문서 정보를 데이터베이스에 저장
+    // 문서 정보를 통합 문서 테이블에 저장
     const { data: document, error: dbError } = await supabase
-      .from('documents')
+      .from('unified_documents')
       .insert({
         site_id: siteId,
         document_type: documentType,
+        category_type: categoryType || 'shared',
         title: title || file.name,
         description: description || '',
         file_url: publicUrl,

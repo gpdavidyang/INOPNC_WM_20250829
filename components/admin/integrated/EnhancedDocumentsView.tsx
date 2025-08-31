@@ -148,7 +148,8 @@ export default function EnhancedDocumentsView() {
       shared: { name: '공유문서함', color: 'blue', icon: FileText },
       markup: { name: '도면마킹문서함', color: 'purple', icon: Image },
       required: { name: '필수제출서류함', color: 'green', icon: Shield },
-      invoice: { name: '기성청구문서함', color: 'orange', icon: Package }
+      invoice: { name: '기성청구문서함', color: 'orange', icon: Package },
+      photo_grid: { name: '사진대지문서함', color: 'pink', icon: FileImage }
     }
     return configs[category as keyof typeof configs] || configs.all
   }
@@ -189,7 +190,8 @@ export default function EnhancedDocumentsView() {
     { id: 'shared', ...getCategoryConfig('shared') },
     { id: 'markup', ...getCategoryConfig('markup') },
     { id: 'required', ...getCategoryConfig('required') },
-    { id: 'invoice', ...getCategoryConfig('invoice') }
+    { id: 'invoice', ...getCategoryConfig('invoice') },
+    { id: 'photo_grid', ...getCategoryConfig('photo_grid') }
   ]
 
   if (loading) {
@@ -243,7 +245,7 @@ export default function EnhancedDocumentsView() {
               placeholder="문서 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-white text-gray-900 dark:text-gray-900"
             />
           </div>
 

@@ -104,7 +104,8 @@ export default function PDFReportGenerator({
           const formData = new FormData()
           formData.append('file', pdfBlob, `사진대지_${siteName}_${reportDate || new Date().toISOString().split('T')[0]}.pdf`)
           formData.append('siteId', siteId)
-          formData.append('documentType', 'markup') // 사진대지 문서함
+          formData.append('categoryType', 'photo_grid') // 사진대지 문서함
+          formData.append('documentType', 'photo_template') 
           formData.append('title', `사진대지 - ${reportDate || new Date().toLocaleDateString('ko-KR')}`)
           formData.append('description', `${siteName} 현장 사진대지`)
           

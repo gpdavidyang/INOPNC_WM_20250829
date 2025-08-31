@@ -110,11 +110,11 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
     // console.log('🏢 Loading sites...')
     const result = await getSites()
     // console.log('🏢 Sites result:', {
-      success: result.success,
-      count: result.data?.length,
-      error: result.error,
-      sites: result.data
-    })
+    //   success: result.success,
+    //   count: result.data?.length,
+    //   error: result.error,
+    //   sites: result.data
+    // })
     
     if (result.success && result.data) {
       setSites(result.data as any)
@@ -135,12 +135,12 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
 
   const loadAttendanceData = async () => {
     // console.log('🔍 loadAttendanceData called', {
-      currentDate: currentDate.toISOString(),
-      selectedSite,
-      profileSiteId: profile.site_id,
-      profileId: profile.id,
-      isPartnerView
-    })
+    //   currentDate: currentDate.toISOString(),
+    //   selectedSite,
+    //   profileSiteId: profile.site_id,
+    //   profileId: profile.id,
+    //   isPartnerView
+    // })
     
     setLoading(true)
     try {
@@ -148,9 +148,9 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
       const endDate = endOfMonth(currentDate)
       
       // console.log('📅 Date range:', {
-        startDate: format(startDate, 'yyyy-MM-dd'),
-        endDate: format(endDate, 'yyyy-MM-dd')
-      })
+      //   startDate: format(startDate, 'yyyy-MM-dd'),
+      //   endDate: format(endDate, 'yyyy-MM-dd')
+      // })
       
       if (isPartnerView) {
         // Load company-wide attendance summary
@@ -181,11 +181,11 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
         // console.log('📤 Calling getAttendanceRecords with params:', params)
         const result = await getAttendanceRecords(params)
         // console.log('📥 getAttendanceRecords result:', {
-          success: result.success,
-          dataLength: result.data?.length,
-          error: result.error,
-          firstRecord: result.data?.[0]
-        })
+        //   success: result.success,
+        //   dataLength: result.data?.length,
+        //   error: result.error,
+        //   firstRecord: result.data?.[0]
+        // })
         
         if (result.success && result.data) {
           // console.log('🔄 Transforming records:', result.data.length, 'records')
