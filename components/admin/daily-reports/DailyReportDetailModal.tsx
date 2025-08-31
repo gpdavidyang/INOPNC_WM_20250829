@@ -84,7 +84,8 @@ const statusColors = {
   submitted: 'bg-blue-100 text-blue-800'
 }
 
-export default function DailyReportDetailModal({ report, onClose, onUpdated }: DailyReportDetailModalProps) {
+export default function DailyReportDetailModal({ report: initialReport, onClose, onUpdated }: DailyReportDetailModalProps) {
+  const [report, setReport] = useState(initialReport)
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [photos, setPhotos] = useState<PhotoFile[]>([])
@@ -249,7 +250,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
     setSaving(true)
     try {
       const supabase = createClient()
-      const { error } = await supabase
+      const { data: updatedReport, error } = await supabase
         .from('daily_reports')
         .update({
           work_date: editData.work_date,
@@ -267,8 +268,21 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
           updated_at: new Date().toISOString()
         })
         .eq('id', report.id)
+        .select(`
+          *,
+          sites(name, address)
+        `)
+        .single()
 
       if (error) throw error
+
+      // Update the local report state with the new data
+      if (updatedReport) {
+        setReport(prev => ({
+          ...prev,
+          ...updatedReport
+        }))
+      }
 
       setIsEditing(false)
       onUpdated()

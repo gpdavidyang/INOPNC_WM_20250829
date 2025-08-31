@@ -936,7 +936,7 @@ export default function DailyReportFormEnhanced({
                   <CustomSelectTrigger className="w-full h-9 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                     <CustomSelectValue placeholder="현장 선택" />
                   </CustomSelectTrigger>
-                  <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
+                  <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700" sideOffset={5} align="start">
                     {sites && sites.length > 0 ? (
                       sites.map(site => (
                         <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
@@ -1020,7 +1020,7 @@ export default function DailyReportFormEnhanced({
                           <CustomSelectTrigger className="w-full h-8 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                             <CustomSelectValue placeholder="선택" />
                           </CustomSelectTrigger>
-                          <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
+                          <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700" sideOffset={5} align="start">
                             <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
                             <CustomSelectItem value="거더">거더</CustomSelectItem>
                             <CustomSelectItem value="기둥">기둥</CustomSelectItem>
@@ -1046,7 +1046,7 @@ export default function DailyReportFormEnhanced({
                           <CustomSelectTrigger className="w-full h-8 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                             <CustomSelectValue placeholder="선택" />
                           </CustomSelectTrigger>
-                          <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
+                          <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700" sideOffset={5} align="start">
                             <CustomSelectItem value="균일">균일</CustomSelectItem>
                             <CustomSelectItem value="면">면</CustomSelectItem>
                             <CustomSelectItem value="마감">마감</CustomSelectItem>
@@ -1351,7 +1351,7 @@ export default function DailyReportFormEnhanced({
                                 "선택"
                               } />
                             </CustomSelectTrigger>
-                            <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
+                            <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700" sideOffset={5} align="start">
                               {!formData.site_id ? (
                                 <CustomSelectItem value="no_site" disabled>먼저 현장을 선택해주세요</CustomSelectItem>
                               ) : workersLoading ? (
@@ -1396,9 +1396,9 @@ export default function DailyReportFormEnhanced({
                           <CustomSelectValue placeholder="공수 선택" />
                         </CustomSelectTrigger>
                         <CustomSelectContent 
-                          className="bg-white dark:bg-gray-800 border dark:border-gray-700" 
-                          position="popper"
-                          style={{ zIndex: 9999 }}
+                          className="bg-white dark:bg-gray-800 border dark:border-gray-700"
+                          sideOffset={5}
+                          align="start"
                         >
                           <CustomSelectItem value="0.5">0.5 공수</CustomSelectItem>
                           <CustomSelectItem value="1.0">1.0 공수</CustomSelectItem>

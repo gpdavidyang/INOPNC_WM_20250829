@@ -198,7 +198,6 @@ export async function submitDailyReport(id: string) {
       .from('daily_reports')
       .update({
         status: 'submitted' as DailyReportStatus,
-        submitted_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('id', id)

@@ -74,9 +74,7 @@ export default function WorkerManagementTab({
 
   useEffect(() => {
     fetchWorkers()
-    if (siteId) {
-      fetchAvailableWorkers()
-    }
+    fetchAvailableWorkers() // Always fetch available workers
   }, [reportId, siteId])
 
   const fetchWorkers = async () => {
@@ -106,27 +104,42 @@ export default function WorkerManagementTab({
     try {
       const supabase = createClient()
       
-      // 현장의 작업자들을 가져옴
-      const { data: siteWorkers, error } = await supabase
-        .from('site_workers')
-        .select(`
-          profiles:user_id (
-            id,
-            full_name,
-            role
-          )
-        `)
-        .eq('site_id', siteId)
+      // If siteId is provided, first try to get site-specific workers
+      if (siteId) {
+        const { data: siteWorkers, error: siteError } = await supabase
+          .from('site_workers')
+          .select(`
+            profiles:user_id (
+              id,
+              full_name,
+              role
+            )
+          `)
+          .eq('site_id', siteId)
+          .eq('is_active', true)
 
-      if (error) throw error
+        if (!siteError && siteWorkers && siteWorkers.length > 0) {
+          const profiles = siteWorkers
+            ?.map(sw => sw.profiles)
+            .filter(p => p) as Profile[]
+          setAvailableWorkers(profiles || [])
+          return
+        }
+      }
+      
+      // If no site-specific workers or no siteId, get all workers and site_managers
+      const { data: allWorkers, error: workersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .in('role', ['worker', 'site_manager'])
+        .order('full_name')
 
-      const profiles = siteWorkers
-        ?.map(sw => sw.profiles)
-        .filter(p => p) as Profile[]
-
-      setAvailableWorkers(profiles || [])
+      if (workersError) throw workersError
+      setAvailableWorkers(allWorkers || [])
     } catch (error) {
       console.error('Error fetching available workers:', error)
+      // Still provide manual input option if fetching fails
+      setAvailableWorkers([])
     }
   }
 
@@ -388,7 +401,7 @@ export default function WorkerManagementTab({
                       <CustomSelectContent className="bg-white border border-gray-300">
                         {availableWorkers.map(worker => (
                           <CustomSelectItem key={worker.id} value={worker.full_name}>
-                            {worker.full_name} ({worker.role === 'worker' ? '작업자' : worker.role})
+                            {worker.full_name} ({worker.role === 'worker' ? '작업자' : worker.role === 'site_manager' ? '현장관리자' : worker.role})
                           </CustomSelectItem>
                         ))}
                         <CustomSelectItem value="custom">직접 입력</CustomSelectItem>
