@@ -5,6 +5,7 @@ import { getAuthenticatedUser } from '@/lib/auth/session'
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 // Explicitly export all HTTP methods this route handles
 export async function GET(request: NextRequest) {

@@ -264,10 +264,15 @@ export default function WorkerManagementTab({
     try {
       const supabase = createClient()
       
-      const { count } = await supabase
+      const { count, error } = await supabase
         .from('daily_report_workers')
-        .select('id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('daily_report_id', reportId)
+
+      if (error) {
+        console.error('Error counting workers:', error)
+        return
+      }
 
       // daily_reports 테이블의 total_workers 업데이트
       await supabase
