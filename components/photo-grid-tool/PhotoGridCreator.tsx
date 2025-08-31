@@ -94,10 +94,13 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
       const response = await fetch('/api/sites')
       if (response.ok) {
         const data = await response.json()
-        setSites(data)
+        setSites(Array.isArray(data) ? data : [])
+      } else {
+        setSites([])
       }
     } catch (error) {
       console.error('Failed to fetch sites:', error)
+      setSites([])
     }
   }
 

@@ -49,10 +49,13 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
       const response = await fetch('/api/photo-grids')
       if (response.ok) {
         const data = await response.json()
-        setDocuments(data)
+        setDocuments(Array.isArray(data) ? data : [])
+      } else {
+        setDocuments([])
       }
     } catch (error) {
       console.error('Failed to fetch documents:', error)
+      setDocuments([])
     } finally {
       setLoading(false)
     }
@@ -63,10 +66,13 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
       const response = await fetch('/api/sites')
       if (response.ok) {
         const data = await response.json()
-        setSites(data)
+        setSites(Array.isArray(data) ? data : [])
+      } else {
+        setSites([])
       }
     } catch (error) {
       console.error('Failed to fetch sites:', error)
+      setSites([])
     }
   }
 

@@ -27,8 +27,7 @@ import {
   X,
   ChevronUp,
   ChevronDown,
-  ChevronsUpDown,
-  Activity
+  ChevronsUpDown
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -660,13 +659,6 @@ export default function DailyReportsManagement() {
                           title="상세보기"
                         >
                           <Eye className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => handleViewIntegrated(report.id)}
-                          className="p-1 text-purple-600 hover:text-purple-900 hover:bg-purple-50 rounded transition-colors"
-                          title="통합 보기"
-                        >
-                          <Activity className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => router.push(`/dashboard/admin/daily-reports/${report.id}/edit`)}
