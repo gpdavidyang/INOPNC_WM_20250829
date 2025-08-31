@@ -22,6 +22,7 @@ import {
   CustomSelectTrigger, 
   CustomSelectValue 
 } from '@/components/ui/custom-select'
+import WorkerDebugPanel from './WorkerDebugPanel'
 
 interface Worker {
   id: string
@@ -63,6 +64,7 @@ export default function WorkerManagementTab({
   const [error, setError] = useState<string | null>(null)
   const [sessionError, setSessionError] = useState<string | null>(null)
   const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createClient> | null>(null)
+  const [showDebugPanel, setShowDebugPanel] = useState(false)
 
   const workHourOptions = [
     { value: 0.5, label: '0.5' },
@@ -188,6 +190,12 @@ export default function WorkerManagementTab({
   }
 
   const handleSaveWorker = async (workerId: string, name: string, hours: number) => {
+    if (!supabaseClient) {
+      console.error('[WorkerManagementTab] Supabase client not initialized')
+      alert('세션이 초기화되지 않았습니다. 페이지를 새로고침해주세요.')
+      return
+    }
+    
     if (!name.trim() || hours <= 0) {
       alert('작업자명과 공수를 올바르게 입력해주세요.')
       return
@@ -195,9 +203,8 @@ export default function WorkerManagementTab({
 
     try {
       setSaving(true)
-      const supabase = createClient()
 
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('daily_report_workers')
         .update({
           worker_name: name.trim(),
@@ -211,7 +218,7 @@ export default function WorkerManagementTab({
       setEditingWorkerId(null)
       
       // 총 작업자 수 업데이트 알림
-      const updatedWorkers = await supabase
+      const updatedWorkers = await supabaseClient
         .from('daily_report_workers')
         .select('id')
         .eq('daily_report_id', reportId)
@@ -229,7 +236,15 @@ export default function WorkerManagementTab({
     }
   }
 
-  const handleAddWorker = async () => {
+  const handleAddWorker = useCallback(async () => {
+    console.log('[WorkerManagementTab] handleAddWorker called with:', newWorker)
+    
+    if (!supabaseClient) {
+      console.error('[WorkerManagementTab] Supabase client not initialized')
+      alert('세션이 초기화되지 않았습니다. 페이지를 새로고침해주세요.')
+      return
+    }
+    
     if (!newWorker || !newWorker.name.trim() || newWorker.hours <= 0) {
       alert('작업자명과 공수를 올바르게 입력해주세요.')
       return
@@ -237,15 +252,23 @@ export default function WorkerManagementTab({
 
     try {
       setSaving(true)
-      const supabase = createClient()
+      setError(null)
 
-      console.log('Adding worker:', {
+      // Check session before insert
+      const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession()
+      if (sessionError || !session) {
+        console.error('[WorkerManagementTab] Session check failed:', sessionError)
+        throw new Error('인증 세션이 없습니다. 다시 로그인해주세요.')
+      }
+      
+      console.log('[WorkerManagementTab] Session valid, adding worker:', {
         daily_report_id: reportId,
         worker_name: newWorker.name.trim(),
-        work_hours: newWorker.hours
+        work_hours: newWorker.hours,
+        user: session.user?.email
       })
 
-      const { data: insertedData, error } = await supabase
+      const { data: insertedData, error } = await supabaseClient
         .from('daily_report_workers')
         .insert({
           daily_report_id: reportId,
@@ -256,11 +279,18 @@ export default function WorkerManagementTab({
         .single()
 
       if (error) {
-        console.error('Insert error:', error)
-        throw error
+        console.error('[WorkerManagementTab] Insert error:', error)
+        // Provide more detailed error information
+        if (error.code === 'PGRST301') {
+          throw new Error('인증 오류: 다시 로그인해주세요.')
+        } else if (error.code === '23503') {
+          throw new Error('일일보고서를 찾을 수 없습니다.')
+        } else {
+          throw error
+        }
       }
 
-      console.log('Worker inserted successfully:', insertedData)
+      console.log('[WorkerManagementTab] Worker inserted successfully:', insertedData)
 
       // Clear the new worker form first
       setNewWorker(null)
@@ -270,7 +300,7 @@ export default function WorkerManagementTab({
       
       // Update total workers count
       if (onWorkersUpdate) {
-        const { data: workersList } = await supabase
+        const { data: workersList } = await supabaseClient
           .from('daily_report_workers')
           .select('*')
           .eq('daily_report_id', reportId)
@@ -280,21 +310,28 @@ export default function WorkerManagementTab({
 
       alert('작업자가 추가되었습니다.')
     } catch (error) {
-      console.error('Error adding worker:', error)
-      alert('작업자 추가에 실패했습니다.')
+      console.error('[WorkerManagementTab] Error adding worker:', error)
+      const errorMessage = error instanceof Error ? error.message : '작업자 추가에 실패했습니다.'
+      setError(errorMessage)
+      alert(errorMessage)
     } finally {
       setSaving(false)
     }
-  }
+  }, [newWorker, reportId, supabaseClient, onWorkersUpdate])
 
   const handleDeleteWorker = async (workerId: string) => {
+    if (!supabaseClient) {
+      console.error('[WorkerManagementTab] Supabase client not initialized')
+      alert('세션이 초기화되지 않았습니다. 페이지를 새로고침해주세요.')
+      return
+    }
+    
     if (!confirm('이 작업자를 삭제하시겠습니까?')) return
 
     try {
       setSaving(true)
-      const supabase = createClient()
 
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('daily_report_workers')
         .delete()
         .eq('id', workerId)
@@ -306,7 +343,7 @@ export default function WorkerManagementTab({
       
       // Update total workers count
       if (onWorkersUpdate) {
-        const { data: workersList } = await supabase
+        const { data: workersList } = await supabaseClient
           .from('daily_report_workers')
           .select('*')
           .eq('daily_report_id', reportId)
@@ -324,10 +361,13 @@ export default function WorkerManagementTab({
   }
 
   const updateTotalWorkers = async () => {
+    if (!supabaseClient) {
+      console.error('[WorkerManagementTab] Supabase client not initialized')
+      return
+    }
+    
     try {
-      const supabase = createClient()
-      
-      const { data: workersList, error } = await supabase
+      const { data: workersList, error } = await supabaseClient
         .from('daily_report_workers')
         .select('*')
         .eq('daily_report_id', reportId)
@@ -340,7 +380,7 @@ export default function WorkerManagementTab({
       const count = workersList?.length || 0
 
       // daily_reports 테이블의 total_workers 업데이트
-      await supabase
+      await supabaseClient
         .from('daily_reports')
         .update({ total_workers: count })
         .eq('id', reportId)
@@ -397,6 +437,24 @@ export default function WorkerManagementTab({
 
   return (
     <div className="space-y-6">
+      {/* Session Error Alert */}
+      {sessionError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-medium text-red-800">인증 오류</h3>
+              <p className="text-sm text-red-700 mt-1">{sessionError}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                페이지 새로고침
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -536,13 +594,15 @@ export default function WorkerManagementTab({
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
-                      onClick={() => {
-                        console.log('Save button clicked, newWorker:', newWorker)
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        console.log('[WorkerManagementTab] Save button clicked, newWorker:', newWorker)
                         handleAddWorker()
                       }}
-                      disabled={saving}
-                      className="p-1 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
-                      title="저장"
+                      disabled={saving || !supabaseClient || !!sessionError}
+                      className="p-1 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={sessionError ? '인증 오류' : '저장'}
                     >
                       <Save className="h-4 w-4" />
                     </button>
@@ -648,6 +708,24 @@ export default function WorkerManagementTab({
           </div>
         )}
       </div>
+      
+      {/* Debug Panel - Remove this after fixing the issue */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mt-4 p-3 bg-gray-100 rounded-lg">
+          <button
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="text-sm text-gray-600 hover:text-gray-800 underline"
+          >
+            {showDebugPanel ? 'Hide' : 'Show'} Debug Panel
+          </button>
+        </div>
+      )}
+      {showDebugPanel && (
+        <WorkerDebugPanel 
+          reportId={reportId} 
+          onClose={() => setShowDebugPanel(false)}
+        />
+      )}
     </div>
   )
 }
