@@ -35,47 +35,33 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    // Get required documents from unified_documents
+    // Get required documents from unified_document_system (same table as integrated view)
     const { data: documents, error } = await serviceClient
-      .from('unified_documents')
+      .from('unified_document_system')
       .select(`
-        id,
-        title,
-        description,
-        file_name,
-        file_size,
-        mime_type,
-        tags,
-        status,
-        created_at,
-        profile_id
-      `)
-      .eq('category_type', 'required_user_docs')
-      .order('created_at', { ascending: false })
-
-    // Get profile data separately to avoid join issues
-    let documentsWithProfiles = []
-    if (documents && documents.length > 0) {
-      const profileIds = [...new Set(documents.map(doc => doc.profile_id))]
-      const { data: profiles } = await serviceClient
-        .from('profiles')
-        .select(`
+        *,
+        uploader:profiles!unified_document_system_uploaded_by_fkey(
           id,
           full_name,
           email,
-          role,
-          organization_id,
-          organizations(name)
-        `)
-        .in('id', profileIds)
+          role
+        ),
+        site:sites(
+          id,
+          name,
+          address
+        ),
+        approver:profiles!unified_document_system_approved_by_fkey(
+          id,
+          full_name,
+          role
+        )
+      `)
+      .in('category_type', ['required', 'required_user_docs'])
+      .eq('is_archived', false)
+      .order('created_at', { ascending: false })
 
-      documentsWithProfiles = documents.map(doc => ({
-        ...doc,
-        profiles: profiles?.find(p => p.id === doc.profile_id)
-      }))
-    } else {
-      documentsWithProfiles = documents || []
-    }
+    const documentsWithProfiles = documents || []
 
     if (error) {
       console.error('Error fetching required documents:', error)
@@ -90,18 +76,18 @@ export async function GET(request: NextRequest) {
       id: doc.id,
       title: doc.title,
       description: doc.description,
-      document_type: doc.tags?.[0] || 'unknown', // First tag is the document type
+      document_type: (doc.tags && doc.tags.length > 0) ? doc.tags[0] : (doc.sub_category || 'unknown'),
       file_name: doc.file_name,
       file_size: doc.file_size,
       status: doc.status === 'uploaded' ? 'pending' : doc.status,
       submission_date: doc.created_at,
       submitted_by: {
-        id: doc.profile_id,
-        full_name: (doc.profiles as any)?.full_name || 'Unknown',
-        email: (doc.profiles as any)?.email || '',
-        role: (doc.profiles as any)?.role || 'worker'
+        id: doc.uploaded_by,
+        full_name: doc.uploader?.full_name || 'Unknown',
+        email: doc.uploader?.email || '',
+        role: doc.uploader?.role || 'worker'
       },
-      organization_name: (doc.profiles as any)?.organizations?.name || ''
+      organization_name: doc.uploader?.organization_name || '' // Organization data can be added later if needed
     })) || []
 
     return NextResponse.json({

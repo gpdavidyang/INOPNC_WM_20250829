@@ -789,7 +789,11 @@ export default function DailyReportFormEnhanced({
         npc1000_used: parseFloat(materialData.used) || 0,
         npc1000_remaining: parseFloat(materialData.remaining) || 0,
         issues: specialNotes || ''
-      })
+      }, workerEntries.map(w => ({
+        worker_name: w.is_direct_input ? w.worker_name : w.worker_id,
+        labor_hours: w.labor_hours || 1.0,
+        worker_id: w.worker_id
+      })).filter(w => w.worker_name))
 
       if (!reportResult.success || !reportResult.data) {
         showErrorNotification(reportResult.error || '일일보고서 생성에 실패했습니다', 'handleSubmit')
@@ -1344,11 +1348,11 @@ export default function DailyReportFormEnhanced({
                             </CustomSelectTrigger>
                             <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
                               {!formData.site_id ? (
-                                <CustomSelectItem value="" disabled>먼저 현장을 선택해주세요</CustomSelectItem>
+                                <CustomSelectItem value="no_site" disabled>먼저 현장을 선택해주세요</CustomSelectItem>
                               ) : workersLoading ? (
-                                <CustomSelectItem value="" disabled>작업자 로딩 중...</CustomSelectItem>
+                                <CustomSelectItem value="loading" disabled>작업자 로딩 중...</CustomSelectItem>
                               ) : siteWorkers.length === 0 ? (
-                                <CustomSelectItem value="" disabled>배정된 작업자가 없습니다</CustomSelectItem>
+                                <CustomSelectItem value="no_workers" disabled>배정된 작업자가 없습니다</CustomSelectItem>
                               ) : (
                                 <>
                                   {siteWorkers.map(worker => (

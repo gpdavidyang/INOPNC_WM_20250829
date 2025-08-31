@@ -38,7 +38,7 @@ export async function createDailyReport(data: {
   npc1000_used?: number
   npc1000_remaining?: number
   issues?: string
-}) {
+}, workerDetails?: Array<{worker_name: string, labor_hours: number, worker_id?: string}>) {
   try {
     const supabase = createClient()
     
@@ -71,6 +71,37 @@ export async function createDailyReport(data: {
 
       validateSupabaseResponse(report, error)
 
+      // Update worker details if provided
+      if (workerDetails && report) {
+        // Delete existing worker details
+        await supabase
+          .from('daily_report_workers')
+          .delete()
+          .eq('daily_report_id', report.id)
+
+        // Insert new worker details
+        if (workerDetails.length > 0) {
+          const workerInserts = workerDetails
+            .filter(worker => worker.worker_name && worker.labor_hours > 0)
+            .map(worker => ({
+              daily_report_id: report.id,
+              worker_name: worker.worker_name,
+              work_hours: worker.labor_hours,
+              created_at: new Date().toISOString()
+            }))
+
+          if (workerInserts.length > 0) {
+            const { error: workerError } = await supabase
+              .from('daily_report_workers')
+              .insert(workerInserts)
+
+            if (workerError) {
+              console.error('Error saving worker details:', workerError)
+            }
+          }
+        }
+      }
+
       revalidatePath('/dashboard/daily-reports')
       return { success: true, data: report }
     }
@@ -87,6 +118,29 @@ export async function createDailyReport(data: {
       .single()
 
     validateSupabaseResponse(report, error)
+
+    // Save worker details if provided
+    if (workerDetails && workerDetails.length > 0 && report) {
+      const workerInserts = workerDetails
+        .filter(worker => worker.worker_name && worker.labor_hours > 0)
+        .map(worker => ({
+          daily_report_id: report.id,
+          worker_name: worker.worker_name,
+          work_hours: worker.labor_hours,
+          created_at: new Date().toISOString()
+        }))
+
+      if (workerInserts.length > 0) {
+        const { error: workerError } = await supabase
+          .from('daily_report_workers')
+          .insert(workerInserts)
+
+        if (workerError) {
+          console.error('Error saving worker details:', workerError)
+          // Don't throw error here to avoid transaction rollback, just log
+        }
+      }
+    }
 
     revalidatePath('/dashboard/daily-reports')
     return { success: true, data: report }

@@ -80,9 +80,18 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
       console.log('🔍 Sites response:', response.status, response.statusText)
       
       if (response.ok) {
-        const data = await response.json()
-        console.log('🔍 Sites data:', data)
-        setSites(Array.isArray(data) ? data : [])
+        const result = await response.json()
+        console.log('🔍 Sites result:', result)
+        
+        // Handle the response format: { success: true, data: [...] }
+        if (result.success && Array.isArray(result.data)) {
+          setSites(result.data)
+        } else if (Array.isArray(result)) {
+          setSites(result)
+        } else {
+          console.log('🔍 Unexpected sites data format:', result)
+          setSites([])
+        }
       } else {
         console.log('🔍 Sites response not ok:', response.status)
         const errorData = await response.text()
