@@ -62,7 +62,7 @@ export async function generatePhotoGridPDF(data: PhotoGridData): Promise<Buffer>
   drawField('현장명', data.site?.name || '-')
   drawField('현장주소', data.site?.address || '-')
   drawField('작업일자', data.work_date || '-')
-  drawField('구성요소', data.component_name || '-')
+  drawField('부재명', data.component_name || '-')
   drawField('작업공정', data.work_process || '-')
   drawField('작업구간', data.work_section || '-')
   drawField('작성자', data.creator?.full_name || '-')

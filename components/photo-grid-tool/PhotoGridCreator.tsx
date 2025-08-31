@@ -39,7 +39,9 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
   // Form state
   const [selectedSite, setSelectedSite] = useState(document?.site_id || '')
   const [componentName, setComponentName] = useState(document?.component_name || '')
+  const [customComponentName, setCustomComponentName] = useState('')
   const [workProcess, setWorkProcess] = useState(document?.work_process || '')
+  const [customWorkProcess, setCustomWorkProcess] = useState('')
   const [workSection, setWorkSection] = useState(document?.work_section || '')
   const [workDate, setWorkDate] = useState(
     document?.work_date || format(new Date(), 'yyyy-MM-dd')
@@ -51,38 +53,20 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
     afterPreview: document?.after_photo_url || null,
   })
 
-  // Component type options
+  // Component type options (부재명)
   const componentTypes = [
-    '가설공사',
-    '토공사',
-    '기초공사',
-    '철근콘크리트공사',
-    '철골공사',
-    '조적공사',
-    '미장공사',
-    '방수공사',
-    '창호공사',
-    '유리공사',
-    '타일공사',
-    '돌공사',
-    '도장공사',
-    '내장공사',
-    '단열공사',
-    '지붕공사',
-    '금속공사',
-    '전기공사',
-    '설비공사',
-    '조경공사',
+    '슬라브',
+    '거더',
+    '기둥',
+    '기타',
   ]
 
-  // Process type options
+  // Process type options (작업공정)
   const processTypes = [
-    '준비',
-    '시공',
-    '검측',
-    '완료',
-    '보수',
-    '점검',
+    '균열',
+    '면',
+    '마감',
+    '기타',
   ]
 
   useEffect(() => {
@@ -147,7 +131,25 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
     if (!componentName || !workProcess) {
       toast({
         title: '오류',
-        description: '구성요소와 작업공정을 입력해주세요.',
+        description: '부재명과 작업공정을 선택해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (componentName === '기타' && !customComponentName) {
+      toast({
+        title: '오류',
+        description: '부재명을 입력해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (workProcess === '기타' && !customWorkProcess) {
+      toast({
+        title: '오류',
+        description: '작업공정을 입력해주세요.',
         variant: 'destructive',
       })
       return
@@ -176,8 +178,8 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
     try {
       const formData = new FormData()
       formData.append('site_id', selectedSite)
-      formData.append('component_name', componentName)
-      formData.append('work_process', workProcess)
+      formData.append('component_name', componentName === '기타' ? customComponentName : componentName)
+      formData.append('work_process', workProcess === '기타' ? customWorkProcess : workProcess)
       formData.append('work_section', workSection)
       formData.append('work_date', workDate)
       
@@ -262,10 +264,15 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
             </div>
 
             <div>
-              <Label htmlFor="component">구성요소명 *</Label>
-              <Select value={componentName} onValueChange={setComponentName}>
+              <Label htmlFor="component">부재명 *</Label>
+              <Select value={componentName} onValueChange={(value) => {
+                setComponentName(value)
+                if (value !== '기타') {
+                  setCustomComponentName('')
+                }
+              }}>
                 <SelectTrigger id="component">
-                  <SelectValue placeholder="구성요소를 선택하세요" />
+                  <SelectValue placeholder="부재명을 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
                   {componentTypes.map(type => (
@@ -275,11 +282,24 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
                   ))}
                 </SelectContent>
               </Select>
+              {componentName === '기타' && (
+                <Input
+                  className="mt-2"
+                  placeholder="부재명을 입력하세요"
+                  value={customComponentName}
+                  onChange={(e) => setCustomComponentName(e.target.value)}
+                />
+              )}
             </div>
 
             <div>
               <Label htmlFor="process">작업공정 *</Label>
-              <Select value={workProcess} onValueChange={setWorkProcess}>
+              <Select value={workProcess} onValueChange={(value) => {
+                setWorkProcess(value)
+                if (value !== '기타') {
+                  setCustomWorkProcess('')
+                }
+              }}>
                 <SelectTrigger id="process">
                   <SelectValue placeholder="작업공정을 선택하세요" />
                 </SelectTrigger>
@@ -291,6 +311,14 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
                   ))}
                 </SelectContent>
               </Select>
+              {workProcess === '기타' && (
+                <Input
+                  className="mt-2"
+                  placeholder="작업공정을 입력하세요"
+                  value={customWorkProcess}
+                  onChange={(e) => setCustomWorkProcess(e.target.value)}
+                />
+              )}
             </div>
 
             <div>

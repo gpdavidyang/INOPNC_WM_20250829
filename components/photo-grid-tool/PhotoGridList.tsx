@@ -173,7 +173,7 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
               <TableRow>
                 <TableHead>작성일</TableHead>
                 <TableHead>현장명</TableHead>
-                <TableHead>구성요소</TableHead>
+                <TableHead>부재명</TableHead>
                 <TableHead>작업공정</TableHead>
                 <TableHead>작업구간</TableHead>
                 <TableHead>작성자</TableHead>
