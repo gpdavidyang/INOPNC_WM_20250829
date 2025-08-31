@@ -1383,9 +1383,9 @@ export default function DailyReportFormEnhanced({
                     <div>
                       <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">공수</label>
                       <CustomSelect
-                        value={entry.labor_hours?.toString() || "1.0"}
+                        value={(entry.labor_hours || 1.0).toFixed(1)}
                         onValueChange={(value) => {
-                          console.log(`Updating worker ${index} labor_hours:`, value, 'parsed:', parseFloat(value))
+                          console.log(`Updating worker ${index} labor_hours from ${(entry.labor_hours || 1.0).toFixed(1)} to ${value}, parsed:`, parseFloat(value))
                           const parsedValue = parseFloat(value)
                           if (!isNaN(parsedValue)) {
                             updateWorker(index, 'labor_hours', parsedValue)
@@ -1395,7 +1395,11 @@ export default function DailyReportFormEnhanced({
                         <CustomSelectTrigger className="w-full h-8 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
                           <CustomSelectValue placeholder="공수 선택" />
                         </CustomSelectTrigger>
-                        <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
+                        <CustomSelectContent 
+                          className="bg-white dark:bg-gray-800 border dark:border-gray-700" 
+                          position="popper"
+                          style={{ zIndex: 9999 }}
+                        >
                           <CustomSelectItem value="0.5">0.5 공수</CustomSelectItem>
                           <CustomSelectItem value="1.0">1.0 공수</CustomSelectItem>
                           <CustomSelectItem value="1.5">1.5 공수</CustomSelectItem>

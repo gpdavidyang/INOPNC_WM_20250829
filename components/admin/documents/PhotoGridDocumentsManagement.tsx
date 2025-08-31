@@ -52,35 +52,41 @@ export default function PhotoGridDocumentsManagement() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
 
-  // Mock data for demonstration
+  // Fetch photo grid documents from database
   useEffect(() => {
-    setDocuments([
-      {
-        id: '1',
-        title: '현장 전경 사진',
-        fileName: 'site_overview_20231201.jpg',
-        fileSize: 2048000,
-        uploadDate: '2023-12-01',
-        uploadedBy: '김현장',
-        siteId: 'site1',
-        siteName: '서울 아파트 건설현장',
-        status: 'active',
-        tags: ['전경', '진행상황']
-      },
-      {
-        id: '2',
-        title: '안전시설 점검 사진',
-        fileName: 'safety_check_20231202.jpg',
-        fileSize: 1536000,
-        uploadDate: '2023-12-02',
-        uploadedBy: '이안전',
-        siteId: 'site1',
-        siteName: '서울 아파트 건설현장',
-        status: 'active',
-        tags: ['안전', '점검']
-      }
-    ])
+    fetchDocuments()
   }, [])
+
+  const fetchDocuments = async () => {
+    setLoading(true)
+    try {
+      const response = await fetch('/api/admin/documents/photo-grid')
+      if (response.ok) {
+        const data = await response.json()
+        const formattedDocs = data.map((doc: any) => {
+          const content = JSON.parse(doc.content || '{}')
+          return {
+            id: doc.id,
+            title: doc.name,
+            fileName: doc.name,
+            fileSize: 0, // Will be updated when we have actual file size
+            uploadDate: doc.created_at,
+            uploadedBy: doc.creator?.full_name || '알 수 없음',
+            siteId: doc.site_id,
+            siteName: doc.site?.name || '알 수 없음',
+            status: doc.status || 'active',
+            tags: [content.component_name, content.work_process].filter(Boolean),
+            content: content
+          }
+        })
+        setDocuments(formattedDocs)
+      }
+    } catch (error) {
+      console.error('Failed to fetch photo grid documents:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B'

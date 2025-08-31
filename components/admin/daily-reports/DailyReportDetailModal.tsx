@@ -90,6 +90,8 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [activeTab, setActiveTab] = useState<'info' | 'workers' | 'attachments' | 'photos' | 'receipts'>('info')
+  const [actualWorkersCount, setActualWorkersCount] = useState<number>(0)
+  const [loadingWorkers, setLoadingWorkers] = useState(true)
   
   const [editData, setEditData] = useState({
     work_date: report.work_date,
@@ -112,8 +114,34 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
     }
   }, [activeTab])
 
+  useEffect(() => {
+    fetchActualWorkers()
+  }, [])
+
+  const fetchActualWorkers = async () => {
+    try {
+      setLoadingWorkers(true)
+      const supabase = createClient()
+      
+      const { count, error } = await supabase
+        .from('daily_report_workers')
+        .select('id', { count: 'exact', head: true })
+        .eq('daily_report_id', report.id)
+
+      if (error) throw error
+      
+      setActualWorkersCount(count || 0)
+    } catch (error) {
+      console.error('Error fetching actual workers count:', error)
+      setActualWorkersCount(0)
+    } finally {
+      setLoadingWorkers(false)
+    }
+  }
+
   const handleWorkersUpdate = (totalWorkers: number) => {
     setEditData(prev => ({ ...prev, total_workers: totalWorkers }))
+    setActualWorkersCount(totalWorkers)
   }
 
   const fetchPhotos = async () => {
@@ -345,7 +373,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
               }`}
             >
               <Users className="h-4 w-4 inline-block mr-2" />
-              작업자 관리 ({editData.total_workers}명)
+              작업자 관리 ({loadingWorkers ? '...' : actualWorkersCount}명)
             </button>
             <button
               onClick={() => setActiveTab('attachments')}
@@ -451,16 +479,32 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업인원</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
-                          <input
-                            type="number"
-                            value={editData.total_workers}
-                            onChange={(e) => setEditData(prev => ({ ...prev, total_workers: parseInt(e.target.value) || 0 }))}
-                            className="w-24 px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                            min="0"
-                          />
+                        {loadingWorkers ? (
+                          <div className="flex items-center">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                            조회 중...
+                          </div>
                         ) : (
-                          `${report.total_workers}명`
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">
+                                실제: {actualWorkersCount}명
+                              </div>
+                              {actualWorkersCount !== report.total_workers && (
+                                <div className="text-xs text-gray-500">
+                                  기록: {report.total_workers}명
+                                  <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                                    불일치
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {actualWorkersCount === 0 && (
+                              <div className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
+                                ⚠️ 작업자 상세 정보 없음
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>
