@@ -92,40 +92,59 @@ export default function EnhancedDocumentsView() {
 
   const fetchDocuments = async () => {
     try {
-      let url = '/api/admin/documents/integrated?'
       const params = new URLSearchParams()
       
-      if (activeCategory !== 'all') params.append('category', activeCategory)
+      // Always fetch all documents, filtering will be done on client side
       if (selectedSite !== 'all') params.append('site_id', selectedSite)
       if (selectedType !== 'all') params.append('type', selectedType)
       
-      const response = await fetch(url + params.toString())
+      const url = '/api/admin/documents/integrated?' + params.toString()
+      console.log('Fetching documents with URL:', url)
+      
+      const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
-        setDocuments(data.data || [])
         
-        // Calculate statistics
-        const stats: DocumentStats = {
-          total: data.data?.length || 0,
-          by_category: {},
-          by_type: {},
-          by_site: {}
-        }
+        // Use documents array from API response
+        const documentsArray = data.documents || []
         
-        data.data?.forEach((doc: Document) => {
-          // By category
-          stats.by_category[doc.category_type] = (stats.by_category[doc.category_type] || 0) + 1
-          
-          // By type
-          stats.by_type[doc.document_type] = (stats.by_type[doc.document_type] || 0) + 1
-          
-          // By site
-          if (doc.site_name) {
-            stats.by_site[doc.site_name] = (stats.by_site[doc.site_name] || 0) + 1
+        setDocuments(documentsArray)
+        
+        // Use statistics from API response
+        if (data.statistics) {
+          setStatistics({
+            total: data.statistics.total_documents || 0,
+            by_category: data.statistics.by_category || {},
+            by_type: {},
+            by_site: {}
+          })
+        } else {
+          // Calculate statistics if not provided
+          const stats: DocumentStats = {
+            total: documentsArray.length,
+            by_category: {},
+            by_type: {},
+            by_site: {}
           }
-        })
-        
-        setStatistics(stats)
+          
+          documentsArray.forEach((doc: Document) => {
+            // By category
+            const categoryType = doc.category_type || 'shared'
+            stats.by_category[categoryType] = (stats.by_category[categoryType] || 0) + 1
+            
+            // By type
+            if (doc.document_type) {
+              stats.by_type[doc.document_type] = (stats.by_type[doc.document_type] || 0) + 1
+            }
+            
+            // By site
+            if (doc.site_name) {
+              stats.by_site[doc.site_name] = (stats.by_site[doc.site_name] || 0) + 1
+            }
+          })
+          
+          setStatistics(stats)
+        }
       }
     } catch (error) {
       console.error('Error fetching documents:', error)
@@ -178,11 +197,17 @@ export default function EnhancedDocumentsView() {
   }
 
   const filteredDocuments = documents.filter(doc => {
+    // Filter by category
+    const matchesCategory = activeCategory === 'all' || 
+      (doc.category_type || 'shared') === activeCategory
+    
+    // Filter by search term
     const matchesSearch = searchTerm === '' || 
       doc.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
+    
+    return matchesCategory && matchesSearch
   })
 
   const categories = [
@@ -352,7 +377,17 @@ export default function EnhancedDocumentsView() {
           <p className="text-gray-500 dark:text-gray-400">
             {searchTerm || selectedSite !== 'all' || selectedType !== 'all' 
               ? '검색 결과가 없습니다' 
-              : '등록된 문서가 없습니다'}
+              : activeCategory === 'shared'
+                ? '공유문서함에 등록된 문서가 없습니다'
+                : activeCategory === 'markup'
+                  ? '도면마킹문서함에 등록된 문서가 없습니다'
+                  : activeCategory === 'required'
+                    ? '필수제출서류함에 등록된 문서가 없습니다'
+                    : activeCategory === 'invoice'
+                      ? '기성청구문서함에 등록된 문서가 없습니다'
+                      : activeCategory === 'photo_grid'
+                        ? '사진대지문서함에 등록된 문서가 없습니다'
+                        : '등록된 문서가 없습니다'}
           </p>
         </div>
       ) : viewMode === 'grid' ? (

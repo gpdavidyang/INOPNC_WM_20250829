@@ -248,10 +248,14 @@ export default function IntegratedDashboard() {
               {sites.slice(0, 3).map((site) => (
                 <div 
                   key={site.id} 
-                  className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer hover:border-blue-400"
-                  onClick={() => router.push(`/dashboard/admin/sites/${site.id}`)}
+                  className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow"
                 >
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 transition-colors">{site.name}</h4>
+                  <h4 
+                    className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer hover:underline"
+                    onClick={() => router.push(`/dashboard/admin/sites/${site.id}`)}
+                  >
+                    {site.name}
+                  </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{site.address}</p>
                   <div className="mt-2">
                     <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
