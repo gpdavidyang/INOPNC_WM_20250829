@@ -38,13 +38,28 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('POST /api/photo-grids - Request received')
+  
   try {
+    // Log request headers for debugging
+    console.log('Request headers:', Object.fromEntries(request.headers.entries()))
+    
     const user = await getAuthenticatedUser()
     if (!user) {
+      console.log('POST /api/photo-grids - Unauthorized user')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const formData = await request.formData()
+    console.log('POST /api/photo-grids - User authenticated:', user.id)
+    
+    let formData: FormData
+    try {
+      formData = await request.formData()
+      console.log('POST /api/photo-grids - FormData parsed successfully')
+    } catch (formError) {
+      console.error('POST /api/photo-grids - Error parsing FormData:', formError)
+      return NextResponse.json({ error: 'Invalid form data' }, { status: 400 })
+    }
     const supabase = await createClient()
 
     // Get user profile
