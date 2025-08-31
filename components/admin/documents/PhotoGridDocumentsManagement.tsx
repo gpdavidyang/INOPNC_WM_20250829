@@ -112,62 +112,6 @@ export default function PhotoGridDocumentsManagement() {
         </Button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="p-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Image className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-gray-500">전체 사진</p>
-              <p className="text-2xl font-bold text-gray-900">{documents.length}</p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Building2 className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-gray-500">현장 수</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {new Set(documents.map(d => d.siteId)).size}
-              </p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Calendar className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-gray-500">이번 달 업로드</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {documents.filter(d => new Date(d.uploadDate).getMonth() === new Date().getMonth()).length}
-              </p>
-            </div>
-          </div>
-        </Card>
-        
-        <Card className="p-4">
-          <div className="flex items-center">
-            <div className="p-2 bg-orange-100 rounded-lg">
-              <User className="h-6 w-6 text-orange-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-gray-500">업로더 수</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {new Set(documents.map(d => d.uploadedBy)).size}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
 
       {/* Filters */}
       <Card className="p-4">

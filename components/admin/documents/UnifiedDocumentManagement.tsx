@@ -1,11 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Share2, Edit3, FileCheck, FileText, Image } from 'lucide-react'
+import { Share2, Edit3, FileCheck, FileText, Image, BarChart3 } from 'lucide-react'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 
 // 각 탭의 컴포넌트들을 임시로 import (기존 컴포넌트들 활용)
+import DocumentOverviewManagement from './DocumentOverviewManagement'
 import SharedDocumentsManagement from './SharedDocumentsManagement'
 import MarkupDocumentsManagement from './MarkupDocumentsManagement' 
 import RequiredDocumentsManagement from './RequiredDocumentsManagement'
@@ -21,6 +22,12 @@ interface Tab {
 }
 
 const tabs: Tab[] = [
+  {
+    id: 'overview',
+    label: '전체 개요',
+    icon: BarChart3,
+    component: DocumentOverviewManagement
+  },
   {
     id: 'shared',
     label: '공유문서함',
@@ -59,7 +66,7 @@ function getTypographyClass(type: string, size: string = 'base', isLargeFont: bo
 }
 
 export default function UnifiedDocumentManagement() {
-  const [activeTab, setActiveTab] = useState('shared')
+  const [activeTab, setActiveTab] = useState('overview')
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
 

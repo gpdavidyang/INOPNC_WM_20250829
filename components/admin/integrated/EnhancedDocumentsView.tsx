@@ -5,7 +5,7 @@ import {
   FileText, Package, Shield, Image, Briefcase, 
   Search, Filter, Download, Eye, Calendar, User,
   Building2, ChevronRight, File, FileImage, FileType,
-  FileSpreadsheet, FileArchive, Folder
+  FileSpreadsheet, FileArchive, Folder, Grid, List
 } from 'lucide-react'
 import { 
   CustomSelect,
@@ -348,23 +348,23 @@ export default function EnhancedDocumentsView() {
           <div className="flex rounded-md shadow-sm">
             <button
               onClick={() => setViewMode('grid')}
-              className={`px-3 py-2 text-sm font-medium rounded-l-md border ${
+              className={`px-3 py-2 text-sm font-medium rounded-l-md border flex items-center justify-center ${
                 viewMode === 'grid'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
               }`}
             >
-              그리드
+              <Grid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-2 text-sm font-medium rounded-r-md border-t border-b border-r ${
+              className={`px-3 py-2 text-sm font-medium rounded-r-md border-t border-b border-r flex items-center justify-center ${
                 viewMode === 'list'
                   ? 'bg-blue-600 text-white border-blue-600'
                   : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
               }`}
             >
-              리스트
+              <List className="h-4 w-4" />
             </button>
           </div>
 

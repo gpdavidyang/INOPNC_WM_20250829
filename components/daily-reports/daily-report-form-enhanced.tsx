@@ -204,7 +204,8 @@ export default function DailyReportFormEnhanced({
   
   // Section 3: Workers
   const [workerEntries, setWorkerEntries] = useState<WorkerEntry[]>([])
-  
+  const [siteWorkers, setSiteWorkers] = useState<Profile[]>([])
+  const [workersLoading, setWorkersLoading] = useState(false)
   
   // Section 4: Photos (Legacy)
   const [photos, setPhotos] = useState<PhotoEntry[]>([])
@@ -335,6 +336,35 @@ export default function DailyReportFormEnhanced({
     return () => clearInterval(interval)
   }, [saveToLocalStorage])
 
+  // Load site workers when site_id changes
+  useEffect(() => {
+    const loadSiteWorkers = async () => {
+      if (!formData.site_id) {
+        setSiteWorkers([])
+        return
+      }
+
+      setWorkersLoading(true)
+      try {
+        const response = await fetch(`/api/admin/sites/${formData.site_id}/workers`)
+        const data = await response.json()
+        
+        if (data.success && data.data) {
+          setSiteWorkers(data.data)
+        } else {
+          console.error('Failed to load site workers:', data.error)
+          setSiteWorkers([])
+        }
+      } catch (error) {
+        console.error('Error loading site workers:', error)
+        setSiteWorkers([])
+      } finally {
+        setWorkersLoading(false)
+      }
+    }
+
+    loadSiteWorkers()
+  }, [formData.site_id])
 
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
@@ -1305,14 +1335,29 @@ export default function DailyReportFormEnhanced({
                             }}
                           >
                             <CustomSelectTrigger className="w-full h-8 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-                              <CustomSelectValue placeholder="선택" />
+                              <CustomSelectValue placeholder={
+                                !formData.site_id ? "먼저 현장을 선택해주세요" :
+                                workersLoading ? "작업자 로딩 중..." :
+                                siteWorkers.length === 0 ? "배정된 작업자가 없습니다" :
+                                "선택"
+                              } />
                             </CustomSelectTrigger>
                             <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
-                              {workers.map(worker => (
-                                <CustomSelectItem key={worker.id} value={worker.id}>
-                                  {worker.full_name} ({worker.role})
-                                </CustomSelectItem>
-                              ))}
+                              {!formData.site_id ? (
+                                <CustomSelectItem value="" disabled>먼저 현장을 선택해주세요</CustomSelectItem>
+                              ) : workersLoading ? (
+                                <CustomSelectItem value="" disabled>작업자 로딩 중...</CustomSelectItem>
+                              ) : siteWorkers.length === 0 ? (
+                                <CustomSelectItem value="" disabled>배정된 작업자가 없습니다</CustomSelectItem>
+                              ) : (
+                                <>
+                                  {siteWorkers.map(worker => (
+                                    <CustomSelectItem key={worker.id} value={worker.id}>
+                                      {worker.full_name} ({worker.role === 'worker' ? '작업자' : worker.role === 'site_manager' ? '현장관리자' : worker.role})
+                                    </CustomSelectItem>
+                                  ))}
+                                </>
+                              )}
                               <CustomSelectItem value="direct_input">
                                 <div className="flex items-center gap-2">
                                   <Plus className="h-3 w-3" />

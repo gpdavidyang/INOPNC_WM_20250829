@@ -123,8 +123,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to create document' }, { status: 500 })
     }
 
-    // Generate PDF and save to documents
-    // This will be implemented in the next step
+    // Generate PDF document and save to documents table
+    try {
+      // Create document record in documents table
+      const { data: documentData, error: docError } = await supabase
+        .from('documents')
+        .insert({
+          name: `사진대지_${component_name}_${work_process}_${work_date}`,
+          type: 'photo_grid',
+          content: JSON.stringify({
+            photo_grid_id: data.id,
+            site_id,
+            component_name,
+            work_process,
+            work_section,
+            work_date,
+            before_photo_url: beforePhotoUrl,
+            after_photo_url: afterPhotoUrl
+          }),
+          site_id,
+          created_by: profile.id,
+          status: 'active'
+        })
+        .select()
+        .single()
+
+      if (docError) {
+        console.error('Error creating document:', docError)
+        // Don't fail the entire operation if document creation fails
+      }
+    } catch (error) {
+      console.error('Error in document creation:', error)
+      // Don't fail the entire operation
+    }
     
     return NextResponse.json(data)
   } catch (error) {

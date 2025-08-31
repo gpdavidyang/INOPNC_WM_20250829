@@ -254,6 +254,91 @@ export default function DailyReportsManagement() {
     setCurrentPage(1) // Reset to first page when sorting
   }
 
+  const handleExcelDownload = async () => {
+    try {
+      // Create URL parameters from current filters
+      const params = new URLSearchParams()
+      
+      if (filters.site) params.append('site', filters.site)
+      if (filters.status) params.append('status', filters.status)
+      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom)
+      if (filters.dateTo) params.append('dateTo', filters.dateTo)
+      if (filters.search) params.append('search', filters.search)
+      if (filters.component_name) params.append('component_name', filters.component_name)
+      if (filters.work_process) params.append('work_process', filters.work_process)
+      if (filters.work_section) params.append('work_section', filters.work_section)
+
+      // Show loading state
+      const originalText = document.querySelector('.excel-download-btn')?.textContent
+      const btn = document.querySelector('.excel-download-btn') as HTMLButtonElement
+      if (btn) {
+        btn.disabled = true
+        btn.innerHTML = `
+          <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+          내보내는 중...
+        `
+      }
+
+      // Make API request
+      const response = await fetch(`/api/admin/daily-reports/export?${params.toString()}`)
+      
+      if (!response.ok) {
+        throw new Error('Excel 파일 생성에 실패했습니다.')
+      }
+
+      // Get the blob
+      const blob = await response.blob()
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      
+      // Get filename from response header
+      const contentDisposition = response.headers.get('Content-Disposition')
+      let filename = '작업일지.xlsx'
+      if (contentDisposition) {
+        const matches = /filename\*=UTF-8''(.+)/.exec(contentDisposition)
+        if (matches) {
+          filename = decodeURIComponent(matches[1])
+        }
+      }
+      
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      // Reset button
+      if (btn) {
+        btn.disabled = false
+        btn.innerHTML = `
+          <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Excel 다운로드
+        `
+      }
+
+    } catch (error) {
+      console.error('Excel download error:', error)
+      alert('Excel 파일 다운로드 중 오류가 발생했습니다.')
+      
+      // Reset button on error
+      const btn = document.querySelector('.excel-download-btn') as HTMLButtonElement
+      if (btn) {
+        btn.disabled = false
+        btn.innerHTML = `
+          <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          Excel 다운로드
+        `
+      }
+    }
+  }
+
   const getSortIcon = (field: SortField) => {
     if (sortState.field !== field) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
@@ -403,7 +488,10 @@ export default function DailyReportsManagement() {
         <p className="text-sm text-gray-600">
           총 <span className="font-semibold text-gray-900">{totalCount}</span>개의 작업일지
         </p>
-        <button className="flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        <button 
+          onClick={handleExcelDownload}
+          className="excel-download-btn flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
           <Download className="h-4 w-4" />
           Excel 다운로드
         </button>

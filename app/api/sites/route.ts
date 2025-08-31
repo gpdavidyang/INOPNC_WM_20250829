@@ -24,10 +24,11 @@ export async function GET(request: NextRequest) {
         id,
         name,
         address,
-        status
+        status,
+        created_at
       `)
       .eq('status', 'active')
-      .order('name')
+      .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Sites query error:', error)
@@ -39,10 +40,14 @@ export async function GET(request: NextRequest) {
       id: site.id,
       name: site.name,
       address: site.address,
-      status: site.status
+      status: site.status,
+      created_at: site.created_at
     }))
 
-    return NextResponse.json(formattedSites)
+    return NextResponse.json({
+      success: true,
+      data: formattedSites
+    })
 
   } catch (error) {
     console.error('API error:', error)
