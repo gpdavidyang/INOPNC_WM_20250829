@@ -201,17 +201,23 @@ export default function WorkerManagementTab({
           work_hours: newWorker.hours
         })
         .select()
+        .single()
 
       if (error) throw error
 
-      // 먼저 새 작업자 행을 숨김
+      // Immediately add the new worker to the list
+      if (insertedData) {
+        setWorkers(prev => [...prev, insertedData])
+        
+        // Update total workers count
+        const newTotal = workers.length + 1
+        if (onWorkersUpdate) {
+          onWorkersUpdate(newTotal)
+        }
+      }
+
+      // Clear the new worker form
       setNewWorker(null)
-      
-      // 작업자 목록 새로고침 - 딜레이 추가
-      setTimeout(async () => {
-        await fetchWorkers()
-        await updateTotalWorkers()
-      }, 100)
 
       alert('작업자가 추가되었습니다.')
     } catch (error) {
@@ -236,10 +242,14 @@ export default function WorkerManagementTab({
 
       if (error) throw error
 
-      await fetchWorkers()
+      // Immediately remove the worker from the list
+      setWorkers(prev => prev.filter(w => w.id !== workerId))
       
-      // 총 작업자 수 업데이트
-      await updateTotalWorkers()
+      // Update total workers count
+      const newTotal = Math.max(0, workers.length - 1)
+      if (onWorkersUpdate) {
+        onWorkersUpdate(newTotal)
+      }
 
       alert('작업자가 삭제되었습니다.')
     } catch (error) {

@@ -250,7 +250,9 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
     setSaving(true)
     try {
       const supabase = createClient()
-      const { data: updatedReport, error } = await supabase
+      
+      // First, update the report
+      const { error: updateError } = await supabase
         .from('daily_reports')
         .update({
           work_date: editData.work_date,
@@ -268,16 +270,28 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
           updated_at: new Date().toISOString()
         })
         .eq('id', report.id)
+
+      if (updateError) throw updateError
+
+      // Then fetch the updated report with site info
+      const { data: updatedReport, error: fetchError } = await supabase
+        .from('daily_reports')
         .select(`
           *,
           sites(name, address)
         `)
+        .eq('id', report.id)
         .single()
 
-      if (error) throw error
-
-      // Update the local report state with the new data
-      if (updatedReport) {
+      if (fetchError) {
+        console.error('Error fetching updated report:', fetchError)
+        // Even if fetching fails, the update was successful
+        // Just update with the edit data
+        setReport(prev => ({
+          ...prev,
+          ...editData
+        }))
+      } else if (updatedReport) {
         setReport(prev => ({
           ...prev,
           ...updatedReport
