@@ -81,6 +81,8 @@ export default function WorkerManagementTab({
       setError(null)
       const supabase = createClient()
       
+      console.log('Fetching workers for report:', reportId)
+      
       const { data, error } = await supabase
         .from('daily_report_workers')
         .select('*')
@@ -89,6 +91,7 @@ export default function WorkerManagementTab({
 
       if (error) throw error
 
+      console.log('Workers fetched:', data)
       setWorkers(data || [])
     } catch (error) {
       console.error('Error fetching workers:', error)
@@ -193,18 +196,26 @@ export default function WorkerManagementTab({
       setSaving(true)
       const supabase = createClient()
 
-      const { error } = await supabase
+      console.log('Adding worker:', newWorker)
+
+      const { data: insertedData, error } = await supabase
         .from('daily_report_workers')
         .insert({
           daily_report_id: reportId,
           worker_name: newWorker.name.trim(),
           work_hours: newWorker.hours
         })
+        .select()
 
       if (error) throw error
 
-      await fetchWorkers()
+      console.log('Worker added:', insertedData)
+
+      // 먼저 새 작업자 행을 숨김
       setNewWorker(null)
+      
+      // 작업자 목록 새로고침
+      await fetchWorkers()
       
       // 총 작업자 수 업데이트
       await updateTotalWorkers()
@@ -326,7 +337,7 @@ export default function WorkerManagementTab({
         </div>
         {isEditing && (
           <button
-            onClick={() => setNewWorker({ name: '', hours: 8 })}
+            onClick={() => setNewWorker({ name: '', hours: 1 })}
             disabled={saving || newWorker}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
