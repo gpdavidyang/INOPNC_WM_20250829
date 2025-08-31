@@ -9,7 +9,7 @@ import { useTouchMode } from '@/contexts/TouchModeContext'
 import DocumentOverviewManagement from './DocumentOverviewManagement'
 import SharedDocumentsManagement from './SharedDocumentsManagement'
 import MarkupDocumentsManagement from './MarkupDocumentsManagement' 
-import RequiredDocumentsManagement from './RequiredDocumentsManagement'
+import RealRequiredDocumentsManagement from './RealRequiredDocumentsManagement'
 import InvoiceDocumentsManagement from './InvoiceDocumentsManagement'
 import PhotoGridDocumentsManagement from './PhotoGridDocumentsManagement'
 
@@ -44,7 +44,7 @@ const tabs: Tab[] = [
     id: 'required',
     label: '필수제출서류함',
     icon: FileCheck,
-    component: RequiredDocumentsManagement
+    component: RealRequiredDocumentsManagement
   },
   {
     id: 'invoice',

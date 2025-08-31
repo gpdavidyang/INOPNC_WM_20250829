@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    if (!profile || profile.role !== 'admin') {
+    if (!profile || !['admin', 'system_admin', 'site_manager'].includes(profile.role)) {
       console.log('Required documents API - Admin check failed:', { profile })
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
 
     console.log('Required documents API - Documents found:', documentsWithProfiles?.length || 0)
     console.log('Required documents API - Sample document:', documentsWithProfiles?.[0])
+    console.log('Required documents API - All document titles:', documentsWithProfiles?.map(d => d.title))
 
     // Transform data to match the expected format
     const transformedDocuments = documentsWithProfiles?.map(doc => ({
@@ -89,6 +90,9 @@ export async function GET(request: NextRequest) {
       },
       organization_name: doc.uploader?.organization_name || '' // Organization data can be added later if needed
     })) || []
+
+    console.log('Required documents API - Transformed documents:', transformedDocuments.length)
+    console.log('Required documents API - Sample transformed:', transformedDocuments[0])
 
     return NextResponse.json({
       success: true,

@@ -219,11 +219,27 @@ export async function getDailyReportById(id: string) {
       }
     }
 
+    // Get worker details
+    let workers = []
+    try {
+      const { data: workerData } = await supabase
+        .from('daily_report_workers')
+        .select('*')
+        .eq('daily_report_id', id)
+        .order('created_at', { ascending: true })
+      workers = workerData || []
+    } catch (err) {
+      console.error('Error fetching workers:', err)
+      // Continue without workers
+    }
+
     return {
       success: true,
       data: {
         ...data,
-        profiles: profile
+        profiles: profile,
+        workers: workers,
+        worker_details_count: workers.length
       }
     }
   })

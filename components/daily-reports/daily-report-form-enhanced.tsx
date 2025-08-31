@@ -542,9 +542,14 @@ export default function DailyReportFormEnhanced({
   }
 
   const updateWorker = (index: number, field: keyof WorkerEntry, value: any) => {
-    setWorkerEntries(workerEntries.map((entry, i) => 
-      i === index ? { ...entry, [field]: value } : entry
-    ))
+    console.log(`updateWorker called: index=${index}, field=${field}, value=${value}`)
+    setWorkerEntries(prevEntries => {
+      const newEntries = prevEntries.map((entry, i) => 
+        i === index ? { ...entry, [field]: value } : entry
+      )
+      console.log('New worker entries:', newEntries)
+      return newEntries
+    })
   }
 
   const removeWorker = (index: number) => {
@@ -1342,7 +1347,7 @@ export default function DailyReportFormEnhanced({
                               <CustomSelectValue placeholder={
                                 !formData.site_id ? "먼저 현장을 선택해주세요" :
                                 workersLoading ? "작업자 로딩 중..." :
-                                siteWorkers.length === 0 ? "배정된 작업자가 없습니다" :
+                                siteWorkers.filter(worker => ['worker', 'site_manager'].includes(worker.role)).length === 0 ? "배정된 작업자가 없습니다" :
                                 "선택"
                               } />
                             </CustomSelectTrigger>
@@ -1351,15 +1356,17 @@ export default function DailyReportFormEnhanced({
                                 <CustomSelectItem value="no_site" disabled>먼저 현장을 선택해주세요</CustomSelectItem>
                               ) : workersLoading ? (
                                 <CustomSelectItem value="loading" disabled>작업자 로딩 중...</CustomSelectItem>
-                              ) : siteWorkers.length === 0 ? (
+                              ) : siteWorkers.filter(worker => ['worker', 'site_manager'].includes(worker.role)).length === 0 ? (
                                 <CustomSelectItem value="no_workers" disabled>배정된 작업자가 없습니다</CustomSelectItem>
                               ) : (
                                 <>
-                                  {siteWorkers.map(worker => (
-                                    <CustomSelectItem key={worker.id} value={worker.id}>
-                                      {worker.full_name} ({worker.role === 'worker' ? '작업자' : worker.role === 'site_manager' ? '현장관리자' : worker.role})
-                                    </CustomSelectItem>
-                                  ))}
+                                  {siteWorkers
+                                    .filter(worker => ['worker', 'site_manager'].includes(worker.role))
+                                    .map(worker => (
+                                      <CustomSelectItem key={worker.id} value={worker.id}>
+                                        {worker.full_name} ({worker.role === 'worker' ? '작업자' : worker.role === 'site_manager' ? '현장관리자' : worker.role})
+                                      </CustomSelectItem>
+                                    ))}
                                 </>
                               )}
                               <CustomSelectItem value="direct_input">
@@ -1376,11 +1383,17 @@ export default function DailyReportFormEnhanced({
                     <div>
                       <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">공수</label>
                       <CustomSelect
-                        value={(entry.labor_hours || 0).toString()}
-                        onValueChange={(value) => updateWorker(index, 'labor_hours', parseFloat(value))}
+                        value={entry.labor_hours?.toString() || "1.0"}
+                        onValueChange={(value) => {
+                          console.log(`Updating worker ${index} labor_hours:`, value, 'parsed:', parseFloat(value))
+                          const parsedValue = parseFloat(value)
+                          if (!isNaN(parsedValue)) {
+                            updateWorker(index, 'labor_hours', parsedValue)
+                          }
+                        }}
                       >
                         <CustomSelectTrigger className="w-full h-8 text-sm bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-gray-100">
-                          <CustomSelectValue placeholder="0.0" />
+                          <CustomSelectValue placeholder="공수 선택" />
                         </CustomSelectTrigger>
                         <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700">
                           <CustomSelectItem value="0.5">0.5 공수</CustomSelectItem>

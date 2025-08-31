@@ -26,6 +26,7 @@ import {
   CustomSelectTrigger, 
   CustomSelectValue 
 } from '@/components/ui/custom-select'
+import WorkerManagementTab from './WorkerManagementTab'
 
 interface DailyReport {
   id: string
@@ -88,7 +89,7 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
   const [saving, setSaving] = useState(false)
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'attachments' | 'photos' | 'receipts'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'workers' | 'attachments' | 'photos' | 'receipts'>('info')
   
   const [editData, setEditData] = useState({
     work_date: report.work_date,
@@ -110,6 +111,10 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
       fetchPhotos()
     }
   }, [activeTab])
+
+  const handleWorkersUpdate = (totalWorkers: number) => {
+    setEditData(prev => ({ ...prev, total_workers: totalWorkers }))
+  }
 
   const fetchPhotos = async () => {
     setLoadingPhotos(true)
@@ -330,6 +335,17 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
               }`}
             >
               작업일지 정보
+            </button>
+            <button
+              onClick={() => setActiveTab('workers')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'workers'
+                  ? 'border-blue-600 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Users className="h-4 w-4 inline-block mr-2" />
+              작업자 관리 ({editData.total_workers}명)
             </button>
             <button
               onClick={() => setActiveTab('attachments')}
@@ -668,6 +684,15 @@ export default function DailyReportDetailModal({ report, onClose, onUpdated }: D
                 </table>
               </div>
             </div>
+          )}
+
+          {activeTab === 'workers' && (
+            <WorkerManagementTab
+              reportId={report.id}
+              siteId={report.site_id}
+              isEditing={isEditing}
+              onWorkersUpdate={handleWorkersUpdate}
+            />
           )}
 
           {activeTab === 'attachments' && (
