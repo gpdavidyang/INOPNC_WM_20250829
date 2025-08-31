@@ -208,7 +208,7 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
 
       const url = document 
         ? `/api/photo-grids/${document.id}`
-        : '/api/photo-grids'
+        : '/api/photo-grids/create'  // Use dedicated create endpoint to avoid route conflicts
       
       const method = document ? 'PUT' : 'POST'
 

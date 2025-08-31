@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { 
   Users, 
   Plus, 
@@ -11,7 +11,8 @@ import {
   Clock, 
   User,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  AlertCircle
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { 
@@ -60,6 +61,8 @@ export default function WorkerManagementTab({
   const [newWorker, setNewWorker] = useState<{ name: string; hours: number } | null>(null)
   const [availableWorkers, setAvailableWorkers] = useState<Profile[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [sessionError, setSessionError] = useState<string | null>(null)
+  const [supabaseClient, setSupabaseClient] = useState<ReturnType<typeof createClient> | null>(null)
 
   const workHourOptions = [
     { value: 0.5, label: '0.5' },
@@ -70,25 +73,65 @@ export default function WorkerManagementTab({
     { value: 3, label: '3.0' }
   ]
 
+  // Initialize Supabase client and check session
   useEffect(() => {
-    fetchWorkers()
-    fetchAvailableWorkers() // Always fetch available workers
-  }, [reportId, siteId])
+    const initializeClient = async () => {
+      try {
+        const client = createClient()
+        setSupabaseClient(client)
+        
+        // Check authentication status
+        const { data: { session }, error } = await client.auth.getSession()
+        if (error) {
+          console.error('[WorkerManagementTab] Auth error:', error)
+          setSessionError('Authentication error: ' + error.message)
+        } else if (!session) {
+          console.warn('[WorkerManagementTab] No active session found')
+          setSessionError('No active session. Please refresh the page or log in again.')
+        } else {
+          console.log('[WorkerManagementTab] Session valid for:', session.user?.email)
+          setSessionError(null)
+        }
+      } catch (err) {
+        console.error('[WorkerManagementTab] Failed to initialize client:', err)
+        setSessionError('Failed to initialize. Please refresh the page.')
+      }
+    }
+    
+    initializeClient()
+  }, [])
+
+  useEffect(() => {
+    if (supabaseClient) {
+      fetchWorkers()
+      fetchAvailableWorkers() // Always fetch available workers
+    }
+  }, [reportId, siteId, supabaseClient])
 
   const fetchWorkers = async () => {
+    if (!supabaseClient) {
+      console.error('[WorkerManagementTab] Supabase client not initialized')
+      return
+    }
+    
     try {
       setLoading(true)
       setError(null)
-      const supabase = createClient()
       
-      const { data, error } = await supabase
+      console.log('[WorkerManagementTab] Fetching workers for report:', reportId)
+      
+      const { data, error } = await supabaseClient
         .from('daily_report_workers')
         .select('*')
         .eq('daily_report_id', reportId)
         .order('created_at', { ascending: true })
 
-      if (error) throw error
+      if (error) {
+        console.error('[WorkerManagementTab] Fetch error:', error)
+        throw error
+      }
 
+      console.log('[WorkerManagementTab] Workers fetched:', data?.length || 0)
       setWorkers(data || [])
     } catch (error) {
       console.error('Error fetching workers:', error)
@@ -99,12 +142,15 @@ export default function WorkerManagementTab({
   }
 
   const fetchAvailableWorkers = async () => {
+    if (!supabaseClient) {
+      console.error('[WorkerManagementTab] Supabase client not initialized')
+      return
+    }
+    
     try {
-      const supabase = createClient()
-      
       // If siteId is provided, first try to get site-specific workers
       if (siteId) {
-        const { data: siteWorkers, error: siteError } = await supabase
+        const { data: siteWorkers, error: siteError } = await supabaseClient
           .from('site_workers')
           .select(`
             profiles:user_id (
@@ -126,7 +172,7 @@ export default function WorkerManagementTab({
       }
       
       // If no site-specific workers or no siteId, get all workers and site_managers
-      const { data: allWorkers, error: workersError } = await supabase
+      const { data: allWorkers, error: workersError } = await supabaseClient
         .from('profiles')
         .select('id, full_name, role')
         .in('role', ['worker', 'site_manager'])
@@ -424,6 +470,7 @@ export default function WorkerManagementTab({
                     <CustomSelect
                       value={newWorker.name}
                       onValueChange={(value) => {
+                        console.log('Worker name changed:', value)
                         if (value === 'custom') {
                           setNewWorker(prev => prev ? { ...prev, name: '' } : null)
                         } else {
@@ -456,7 +503,10 @@ export default function WorkerManagementTab({
                       <input
                         type="text"
                         value={newWorker.name}
-                        onChange={(e) => setNewWorker(prev => prev ? { ...prev, name: e.target.value } : null)}
+                        onChange={(e) => {
+                          console.log('Worker name input changed:', e.target.value)
+                          setNewWorker(prev => prev ? { ...prev, name: e.target.value } : null)
+                        }}
                         placeholder="작업자명 입력"
                         className="ml-2 w-32 px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                       />
@@ -466,7 +516,10 @@ export default function WorkerManagementTab({
                 <td className="px-4 py-3">
                   <CustomSelect
                     value={newWorker.hours.toString()}
-                    onValueChange={(value) => setNewWorker(prev => prev ? { ...prev, hours: parseFloat(value) } : null)}
+                    onValueChange={(value) => {
+                      console.log('Worker hours changed:', value)
+                      setNewWorker(prev => prev ? { ...prev, hours: parseFloat(value) } : null)
+                    }}
                   >
                     <CustomSelectTrigger className="w-full h-8 bg-white border border-gray-300 text-gray-900">
                       <CustomSelectValue />
@@ -483,7 +536,10 @@ export default function WorkerManagementTab({
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     <button
-                      onClick={handleAddWorker}
+                      onClick={() => {
+                        console.log('Save button clicked, newWorker:', newWorker)
+                        handleAddWorker()
+                      }}
                       disabled={saving}
                       className="p-1 text-green-600 hover:text-green-900 hover:bg-green-50 rounded transition-colors disabled:opacity-50"
                       title="저장"
@@ -491,7 +547,10 @@ export default function WorkerManagementTab({
                       <Save className="h-4 w-4" />
                     </button>
                     <button
-                      onClick={() => setNewWorker(null)}
+                      onClick={() => {
+                        console.log('Cancel button clicked')
+                        setNewWorker(null)
+                      }}
                       disabled={saving}
                       className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
                       title="취소"

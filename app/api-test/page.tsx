@@ -70,14 +70,14 @@ export default function ApiTestPage() {
       formData.append('work_section', 'test')
       formData.append('work_date', '2024-01-01')
       
-      const res = await fetch('/api/photo-grids', {
+      const res = await fetch('/api/photo-grids/create', {
         method: 'POST',
         body: formData
       })
       const data = await res.json()
-      addResult('POST /api/photo-grids', { status: res.status, data: data.error || 'Success' })
+      addResult('POST /api/photo-grids/create', { status: res.status, data: data.error || 'Success' })
     } catch (error) {
-      addResult('POST /api/photo-grids', { error: error instanceof Error ? error.message : 'Failed' })
+      addResult('POST /api/photo-grids/create', { error: error instanceof Error ? error.message : 'Failed' })
     }
 
     // Test 6: OPTIONS to photo-grids
