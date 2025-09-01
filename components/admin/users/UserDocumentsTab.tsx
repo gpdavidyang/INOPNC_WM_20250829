@@ -28,6 +28,7 @@ export default function UserDocumentsTab({ userId, userName }: UserDocumentsTabP
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'submitted' | 'approved' | 'rejected'>('all')
+  const [viewingDoc, setViewingDoc] = useState<string | null>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -133,6 +134,66 @@ export default function UserDocumentsTab({ userId, userName }: UserDocumentsTabP
         {config.text}
       </span>
     )
+  }
+
+  const handleViewDocument = async (fileUrl: string) => {
+    try {
+      // Get the actual file URL from storage
+      const fileName = fileUrl.split('/').pop()
+      const filePath = `user_documents/${userId}/${fileName}`
+      
+      const { data } = supabase.storage
+        .from('files')
+        .getPublicUrl(filePath)
+      
+      if (data?.publicUrl) {
+        window.open(data.publicUrl, '_blank')
+      } else {
+        // Fallback: try opening the file path directly
+        window.open(fileUrl, '_blank')
+      }
+    } catch (error) {
+      console.error('Error viewing document:', error)
+      alert('문서를 열 수 없습니다.')
+    }
+  }
+
+  const handleDownloadDocument = async (fileUrl: string, fileName: string) => {
+    try {
+      // Get the actual file URL from storage
+      const storageName = fileUrl.split('/').pop()
+      const filePath = `user_documents/${userId}/${storageName}`
+      
+      const { data, error } = await supabase.storage
+        .from('files')
+        .download(filePath)
+      
+      if (error) {
+        console.error('Download error:', error)
+        // Fallback: try downloading directly
+        const link = document.createElement('a')
+        link.href = fileUrl
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        return
+      }
+      
+      if (data) {
+        const url = URL.createObjectURL(data)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = fileName
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+      }
+    } catch (error) {
+      console.error('Error downloading document:', error)
+      alert('문서를 다운로드할 수 없습니다.')
+    }
   }
 
   const filteredDocuments = documents.filter(doc => {

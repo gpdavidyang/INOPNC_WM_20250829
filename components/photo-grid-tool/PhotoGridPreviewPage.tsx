@@ -58,16 +58,20 @@ export default function PhotoGridPreviewPage({ photoGridId }: PhotoGridPreviewPa
       if (response.ok) {
         const blob = await response.blob()
         const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `사진대지_${photoGrid.component_name}_${photoGrid.work_date}.pdf`
-        a.click()
-        window.URL.revokeObjectURL(url)
         
-        toast({
-          title: '다운로드 완료',
-          description: 'PDF 파일이 다운로드되었습니다.',
-        })
+        // Open in new window for printing/saving as PDF
+        const printWindow = window.open(url, '_blank')
+        if (printWindow) {
+          toast({
+            title: '문서 준비 완료',
+            description: '새 창에서 인쇄(Ctrl+P)를 통해 PDF로 저장할 수 있습니다.',
+          })
+        }
+        
+        // Clean up after a delay
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url)
+        }, 10000)
       }
     } catch (error) {
       console.error('Failed to download PDF:', error)

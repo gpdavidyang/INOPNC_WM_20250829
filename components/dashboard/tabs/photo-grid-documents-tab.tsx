@@ -140,11 +140,14 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
         if (response.ok) {
           const blob = await response.blob()
           const url = window.URL.createObjectURL(blob)
-          const a = document.createElement('a')
-          a.href = url
-          a.download = `${doc.title || '사진대지'}.pdf`
-          a.click()
-          window.URL.revokeObjectURL(url)
+          
+          // Open in new window for printing/saving as PDF
+          const printWindow = window.open(url, '_blank')
+          
+          // Clean up after a delay
+          setTimeout(() => {
+            window.URL.revokeObjectURL(url)
+          }, 10000)
         }
       }
     } catch (error) {

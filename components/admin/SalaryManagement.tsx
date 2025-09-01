@@ -330,48 +330,113 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               <p className="text-red-600 dark:text-red-400">{outputError}</p>
             </div>
           ) : outputData.length > 0 ? (
-            <div className="space-y-6">
-              {outputData.map((item, index) => (
-                <div 
-                  key={index} 
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md"
-                >
-                  {/* Header with worker info and actions - Compact */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 px-4 py-3 border-b border-gray-200 dark:border-gray-600">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
-                          {item.worker_name.charAt(0)}
-                        </div>
-                        <div>
-                          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      작업자
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      역할
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      현장
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      총 공수
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      실제
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      연장
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      근무일
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      기본급
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      연장수당
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      총 급여
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      작업
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {outputData.map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
+                            {item.worker_name.charAt(0)}
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {item.worker_name}
-                          </h3>
-                          <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-300">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              item.worker_role === 'site_manager' 
-                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                                : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            }`}>
-                              {item.worker_role === 'site_manager' ? '현장관리자' : '작업자'}
-                            </span>
-                            <span className="flex items-center">
-                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
-                              {item.site_name}
-                            </span>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <div className="text-right">
-                          <div className="text-xl font-bold text-green-600 dark:text-green-400">
-                            ₩{(item.total_pay || 0).toLocaleString()}
-                          </div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">총 급여</div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          item.worker_role === 'site_manager' 
+                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                            : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        }`}>
+                          {item.worker_role === 'site_manager' ? '현장관리자' : '작업자'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {item.site_name}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
+                        {item.total_work_hours || 0}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
+                        {item.total_actual_hours || 0}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-center text-sm">
+                        {(item.total_overtime_hours || 0) > 0 ? (
+                          <span className="text-orange-600 dark:text-orange-400 font-medium">
+                            {item.total_overtime_hours}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-center">
+                        <div className="text-sm text-gray-900 dark:text-gray-100 font-medium">
+                          {item.work_days_count || 0}일
                         </div>
+                        {item.last_work_date && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            ~{new Date(item.last_work_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-gray-100">
+                        ₩{(item.base_pay || 0).toLocaleString()}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
+                        {(item.overtime_pay || 0) > 0 ? (
+                          <span className="text-orange-600 dark:text-orange-400">
+                            ₩{(item.overtime_pay || 0).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-right">
+                        <div className="text-sm font-bold text-green-600 dark:text-green-400">
+                          ₩{(item.total_pay || 0).toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-center">
                         <button
                           onClick={() => {
                             const worker = availableWorkers.find(w => w.name === item.worker_name)
@@ -379,146 +444,18 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                               window.location.href = `/dashboard/admin/salary/calendar/${worker.id}?name=${encodeURIComponent(item.worker_name)}&year=${selectedYear}&month=${selectedMonth}`
                             }
                           }}
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded transition-colors duration-200 flex items-center space-x-1 text-sm"
+                          className="inline-flex items-center px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors duration-200"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          <span>캘린더보기</span>
+                          캘린더
                         </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Content with stats grid - Compact */}
-                  <div className="px-4 py-3">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {/* Work Units Stats */}
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          공수
-                        </h4>
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded">
-                            <span className="text-xs text-gray-600 dark:text-gray-300">총</span>
-                            <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
-                              {item.total_work_hours || 0}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded">
-                            <span className="text-xs text-gray-600 dark:text-gray-300">실제</span>
-                            <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
-                              {item.total_actual_hours || 0}
-                            </span>
-                          </div>
-                          {(item.total_overtime_hours || 0) > 0 && (
-                            <div className="flex justify-between items-center px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded">
-                              <span className="text-xs text-orange-600 dark:text-orange-300">연장</span>
-                              <span className="font-medium text-sm text-orange-700 dark:text-orange-300">
-                                {item.total_overtime_hours || 0}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Pay Details */}
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                          </svg>
-                          급여
-                        </h4>
-                        <div className="space-y-1">
-                          <div className="flex justify-between items-center px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded">
-                            <span className="text-xs text-gray-600 dark:text-gray-300">기본</span>
-                            <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
-                              {((item.base_pay || 0) / 10000).toFixed(0)}만
-                            </span>
-                          </div>
-                          {(item.overtime_pay || 0) > 0 && (
-                            <div className="flex justify-between items-center px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded">
-                              <span className="text-xs text-orange-600 dark:text-orange-300">연장</span>
-                              <span className="font-medium text-sm text-orange-700 dark:text-orange-300">
-                                {((item.overtime_pay || 0) / 10000).toFixed(0)}만
-                              </span>
-                            </div>
-                          )}
-                          {(item.bonus_pay || 0) > 0 && (
-                            <div className="flex justify-between items-center px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded">
-                              <span className="text-xs text-green-600 dark:text-green-300">보너스</span>
-                              <span className="font-medium text-sm text-green-700 dark:text-green-300">
-                                {((item.bonus_pay || 0) / 10000).toFixed(0)}만
-                              </span>
-                            </div>
-                          )}
-                          {(item.deductions || 0) > 0 && (
-                            <div className="flex justify-between items-center px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded">
-                              <span className="text-xs text-red-600 dark:text-red-300">공제</span>
-                              <span className="font-medium text-sm text-red-700 dark:text-red-300">
-                                -{((item.deductions || 0) / 10000).toFixed(0)}만
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Work Days */}
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          근무일
-                        </h4>
-                        <div className="space-y-1">
-                          <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-center">
-                            <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                              {item.work_days_count || 0}일
-                            </div>
-                          </div>
-                          {item.last_work_date && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                              ~{new Date(item.last_work_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Work Dates */}
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                          <svg className="w-4 h-4 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          날짜
-                        </h4>
-                        <div className="max-h-20 overflow-y-auto">
-                          <div className="flex flex-wrap gap-1">
-                            {(item.work_dates || []).slice(0, 8).map((date, idx) => (
-                              <span
-                                key={idx}
-                                className="px-1 py-0.5 text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 rounded"
-                              >
-                                {new Date(date).getDate()}
-                              </span>
-                            ))}
-                            {(item.work_dates || []).length > 8 && (
-                              <span className="px-1 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded">
-                                +{(item.work_dates || []).length - 8}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="text-center py-8">
