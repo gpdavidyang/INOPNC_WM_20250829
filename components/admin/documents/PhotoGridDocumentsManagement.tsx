@@ -60,9 +60,11 @@ export default function PhotoGridDocumentsManagement() {
   const fetchDocuments = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/admin/documents/photo-grid')
+      // 통합 API 사용
+      const response = await fetch('/api/unified-documents?category_type=photo_grid&status=active')
       if (response.ok) {
-        const data = await response.json()
+        const result = await response.json()
+        const data = result.documents || []
         const formattedDocs = data.map((doc: any) => {
           return {
             id: doc.id,
@@ -70,9 +72,9 @@ export default function PhotoGridDocumentsManagement() {
             fileName: doc.file_name || doc.original_filename,
             fileSize: doc.file_size || 0,
             uploadDate: doc.created_at,
-            uploadedBy: doc.profiles?.full_name || '알 수 없음',
+            uploadedBy: doc.uploader?.full_name || '알 수 없음',
             siteId: doc.site_id,
-            siteName: doc.sites?.name || '알 수 없음',
+            siteName: doc.site?.name || '알 수 없음',
             status: doc.status || 'active',
             tags: ['사진대지', doc.category_type].filter(Boolean),
             fileUrl: doc.file_url

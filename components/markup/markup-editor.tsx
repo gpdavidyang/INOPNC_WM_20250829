@@ -85,6 +85,27 @@ export function MarkupEditor({
   const canvasState = useCanvasState(editorState, setEditorState)
   const fileManager = useFileManager(editorState, setEditorState)
 
+  // initialFile이 변경될 때 상태 업데이트
+  useEffect(() => {
+    if (initialFile) {
+      console.log('Updating editor with initialFile:', initialFile)
+      setEditorState(prev => ({
+        ...prev,
+        currentFile: initialFile,
+        markupObjects: initialFile.markup_data || initialFile.markupObjects || [],
+        originalBlueprint: initialFile.original_blueprint_url || null
+      }))
+      
+      // 블루프린트 URL 설정
+      if (initialFile.original_blueprint_url) {
+        setBlueprintUrl(initialFile.original_blueprint_url)
+      }
+      
+      // 에디터 뷰로 전환
+      setCurrentView('editor')
+    }
+  }, [initialFile])
+
   // 도면 이미지 로드
   useEffect(() => {
     if (blueprintUrl) {

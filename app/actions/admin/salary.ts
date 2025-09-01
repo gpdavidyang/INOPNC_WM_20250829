@@ -562,6 +562,7 @@ export async function calculateSalaries(
           const totalPay = basePay + overtimePay
 
           calculatedRecords.push({
+            id: crypto.randomUUID(),
             worker_id: worker.id,
             site_id: report.site_id,
             work_date: report.work_date,
@@ -585,7 +586,7 @@ export async function calculateSalaries(
         const { error: insertError } = await supabase
           .from('salary_records')
           .upsert(calculatedRecords, {
-            onConflict: 'worker_id,site_id,work_date'
+            onConflict: 'worker_id,work_date'
           })
 
         if (insertError) {

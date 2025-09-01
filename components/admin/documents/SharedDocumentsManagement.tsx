@@ -82,36 +82,30 @@ export default function SharedDocumentsManagement() {
   const fetchDocuments = async () => {
     setLoading(true)
     try {
-      let query = supabase
-        .from('unified_document_system')
-        .select(`
-          *,
-          profiles:uploaded_by(id, full_name, email),
-          sites(id, name, address)
-        `, { count: 'exact' })
-        .eq('category_type', 'shared')
+      // 통합 API 사용
+      const params = new URLSearchParams({
+        category_type: 'shared',
+        status: 'active',
+        limit: itemsPerPage.toString(),
+        offset: ((currentPage - 1) * itemsPerPage).toString()
+      })
 
       // 검색 필터 적용
       if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        params.append('search', searchTerm)
       }
 
       // 현장 필터 적용
       if (selectedSite) {
-        query = query.eq('site_id', selectedSite)
+        params.append('site_id', selectedSite)
       }
 
-      const from = (currentPage - 1) * itemsPerPage
-      const to = from + itemsPerPage - 1
+      const response = await fetch(`/api/unified-documents?${params}`)
+      if (!response.ok) throw new Error('Failed to fetch documents')
 
-      const { data, error, count } = await query
-        .order('created_at', { ascending: false })
-        .range(from, to)
-
-      if (error) throw error
-
-      setDocuments(data || [])
-      setTotalCount(count || 0)
+      const result = await response.json()
+      setDocuments(result.documents || [])
+      setTotalCount(result.total || 0)
     } catch (error) {
       console.error('Error fetching documents:', error)
     } finally {

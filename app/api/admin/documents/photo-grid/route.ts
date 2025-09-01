@@ -1,36 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getAuthenticatedUser } from '@/lib/auth/session'
 
+// DEPRECATED: 통합 API(/api/unified-documents)를 사용하세요
+// 이 엔드포인트는 하위 호환성을 위해 리다이렉트합니다
 export async function GET(request: NextRequest) {
-  try {
-    const user = await getAuthenticatedUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { searchParams } = new URL(request.url)
+  
+  // 통합 API로 리다이렉트
+  const newUrl = new URL('/api/unified-documents', request.url)
+  newUrl.searchParams.set('category_type', 'photo_grid')
+  newUrl.searchParams.set('status', searchParams.get('status') || 'active')
+  
+  // 다른 파라미터들도 전달
+  searchParams.forEach((value, key) => {
+    if (key !== 'category_type' && key !== 'status') {
+      newUrl.searchParams.set(key, value)
     }
-
-    const supabase = await createClient()
-    
-    // Fetch photo grid type documents from unified table
-    const { data, error } = await supabase
-      .from('unified_document_system')
-      .select(`
-        *,
-        sites(id, name),
-        profiles!unified_document_system_uploaded_by_fkey(id, full_name)
-      `)
-      .eq('category_type', 'photo_grid')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Error fetching photo grid documents:', error)
-      return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
-    }
-
-    return NextResponse.json(data || [])
-  } catch (error) {
-    console.error('Error in GET /api/admin/documents/photo-grid:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
+  })
+  
+  return NextResponse.redirect(newUrl, 308) // Permanent Redirect
 }

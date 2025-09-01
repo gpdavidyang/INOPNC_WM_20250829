@@ -117,7 +117,14 @@ export default function RequiredDocumentsManagement() {
 
       if (error) throw error
 
-      setDocuments(data || [])
+      // Map data to match API response format
+      const mappedData = (data || []).map((doc: any) => ({
+        ...doc,
+        uploader: doc.profiles,
+        approver: doc.reviewer_profile
+      }))
+      
+      setDocuments(mappedData)
       setTotalCount(count || 0)
     } catch (error) {
       console.error('Error fetching required documents:', error)
