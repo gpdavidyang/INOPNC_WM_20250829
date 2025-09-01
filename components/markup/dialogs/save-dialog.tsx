@@ -24,23 +24,21 @@ import { Textarea } from '@/components/ui/textarea'
 interface SaveDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (fileName: string, location: 'personal' | 'shared', description?: string) => void
+  onSave: (fileName: string, description?: string) => void
   defaultFileName?: string
 }
 
 export function SaveDialog({ open, onOpenChange, onSave, defaultFileName = '' }: SaveDialogProps) {
   const [fileName, setFileName] = useState(defaultFileName)
-  const [location, setLocation] = useState<'personal' | 'shared'>('personal')
   const [description, setDescription] = useState('')
 
   const handleSave = () => {
     if (fileName.trim()) {
-      onSave(fileName.trim(), location, description.trim())
+      onSave(fileName.trim(), description.trim())
       // 다이얼로그 닫기 후 상태 초기화
       onOpenChange(false)
       setFileName('')
       setDescription('')
-      setLocation('personal')
     }
   }
 
@@ -50,7 +48,7 @@ export function SaveDialog({ open, onOpenChange, onSave, defaultFileName = '' }:
         <DialogHeader>
           <DialogTitle>마킹 도면 저장</DialogTitle>
           <DialogDescription>
-            마킹된 도면을 저장합니다. 파일명과 저장 위치를 선택해주세요.
+            마킹된 도면을 도면마킹문서함에 저장합니다.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -62,21 +60,6 @@ export function SaveDialog({ open, onOpenChange, onSave, defaultFileName = '' }:
               onChange={(e) => setFileName(e.target.value)}
               placeholder="마킹 도면 파일명"
             />
-          </div>
-          <div className="grid gap-2">
-            <Label>저장 위치</Label>
-            <Select 
-              value={location} 
-              onValueChange={(value) => setLocation(value as 'personal' | 'shared')}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="저장 위치 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="personal">내문서함</SelectItem>
-                <SelectItem value="shared">공유문서함</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="description">설명 (선택사항)</Label>

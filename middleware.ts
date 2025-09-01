@@ -88,7 +88,7 @@ export async function middleware(request: NextRequest) {
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
     
     // Demo pages that are accessible regardless of auth status
-    const demoPaths = ['/mobile-demo', '/components']
+    const demoPaths = ['/mobile-demo', '/components', '/test-photo-grid', '/api-test']
     const isDemoPath = demoPaths.some(path => pathname.startsWith(path))
 
     // Debug logging - disabled for performance

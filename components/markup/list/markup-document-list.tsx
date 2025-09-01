@@ -60,7 +60,6 @@ export function MarkupDocumentList({
   const [documents, setDocuments] = useState<MarkupDocument[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [location, setLocation] = useState<'personal' | 'shared'>('personal')
   const [selectedSite, setSelectedSite] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const [currentPage, setCurrentPage] = useState(1)
@@ -88,7 +87,6 @@ export function MarkupDocumentList({
     
     try {
       const params = new URLSearchParams({
-        location,
         page: currentPage.toString(),
         limit: '12',
         ...(searchQuery && { search: searchQuery }),
@@ -116,7 +114,7 @@ export function MarkupDocumentList({
 
   useEffect(() => {
     fetchDocuments()
-  }, [location, currentPage, searchQuery, selectedSite])
+  }, [currentPage, searchQuery, selectedSite])
 
   const handleSearch = (value: string) => {
     setSearchQuery(value)
@@ -302,28 +300,6 @@ export function MarkupDocumentList({
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
-              <button
-                onClick={() => setLocation('personal')}
-                className={`px-2 py-1 text-xs font-medium transition-colors ${
-                  location === 'personal' 
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                }`}
-              >
-                내문서함
-              </button>
-              <button
-                onClick={() => setLocation('shared')}
-                className={`px-2 py-1 text-xs font-medium transition-colors ${
-                  location === 'shared' 
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-                }`}
-              >
-                공유문서함
-              </button>
-            </div>
             <div className="flex border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
               <button
                 onClick={() => setViewMode('list')}
