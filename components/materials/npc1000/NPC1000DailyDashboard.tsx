@@ -21,8 +21,7 @@ import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { createClient } from '@/lib/supabase/client'
 import { getNPCMaterialsData, getSitesForMaterials } from '@/app/actions/npc-materials'
-import MaterialRequestDialog from './MaterialRequestDialog'
-import InventoryRecordDialog from './InventoryRecordDialog'
+import { useRouter } from 'next/navigation'
 
 interface DailyStatus {
   incoming: number
@@ -54,6 +53,7 @@ interface Props {
 }
 
 export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }: Props) {
+  const router = useRouter()
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
   
@@ -67,9 +67,6 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
   const [sortField, setSortField] = useState<'date' | 'incoming' | 'used' | 'inventory'>('date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
   
-  // Dialog states
-  const [requestDialogOpen, setRequestDialogOpen] = useState(false)
-  const [recordDialogOpen, setRecordDialogOpen] = useState(false)
   
   // Touch-responsive sizing
   const getButtonSize = () => {
@@ -275,10 +272,6 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
     return 0
   })
 
-  // Handle dialog success callbacks
-  const handleDialogSuccess = () => {
-    loadNPCData() // Reload data after successful dialog operations
-  }
 
   // Get selected site info
   const selectedSiteName = currentSiteName || 
@@ -479,7 +472,7 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
           size={getButtonSize()}
           className="flex-1 gap-1.5"
           variant="outline"
-          onClick={() => setRequestDialogOpen(true)}
+          onClick={() => router.push('/dashboard/site-info/npc1000-request')}
           disabled={!selectedSiteId}
         >
           <Plus className={getIconSize()} />
@@ -489,7 +482,7 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
           size={getButtonSize()}
           className="flex-1 gap-1.5"
           variant="outline"
-          onClick={() => setRecordDialogOpen(true)}
+          onClick={() => router.push('/dashboard/site-info/npc1000-usage')}
           disabled={!selectedSiteId}
         >
           <FileText className={getIconSize()} />
@@ -497,22 +490,6 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
         </Button>
       </div>
 
-      {/* Dialogs */}
-      <MaterialRequestDialog
-        open={requestDialogOpen}
-        onOpenChange={setRequestDialogOpen}
-        siteId={selectedSiteId}
-        siteName={selectedSiteName}
-        onSuccess={handleDialogSuccess}
-      />
-
-      <InventoryRecordDialog
-        open={recordDialogOpen}
-        onOpenChange={setRecordDialogOpen}
-        siteId={selectedSiteId}
-        siteName={selectedSiteName}
-        onSuccess={handleDialogSuccess}
-      />
     </div>
   )
 }

@@ -8,6 +8,8 @@ import { ArrowLeft, Download, Printer, Calendar, Building2, User, Wrench, MapPin
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import { useToast } from '@/components/ui/use-toast'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 interface PhotoGridPreviewPageProps {
   photoGridId: string
@@ -54,25 +56,136 @@ export default function PhotoGridPreviewPage({ photoGridId }: PhotoGridPreviewPa
   const handleDownload = async () => {
     setDownloading(true)
     try {
-      const response = await fetch(`/api/photo-grids/${photoGridId}/download`)
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        
-        // Open in new window for printing/saving as PDF
-        const printWindow = window.open(url, '_blank')
-        if (printWindow) {
-          toast({
-            title: '문서 준비 완료',
-            description: '새 창에서 인쇄(Ctrl+P)를 통해 PDF로 저장할 수 있습니다.',
-          })
-        }
-        
-        // Clean up after a delay
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url)
-        }, 10000)
+      // Create a temporary container for PDF generation
+      const pdfContainer = document.createElement('div')
+      pdfContainer.style.position = 'absolute'
+      pdfContainer.style.left = '-9999px'
+      pdfContainer.style.width = '1200px'
+      pdfContainer.style.backgroundColor = 'white'
+      pdfContainer.style.padding = '40px'
+      
+      // Create PDF content HTML
+      pdfContainer.innerHTML = `
+        <div style="font-family: Arial, sans-serif;">
+          <h1 style="text-align: center; font-size: 32px; margin-bottom: 40px; color: #333;">사진대지 미리보기</h1>
+          
+          <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px;">
+            <h2 style="font-size: 24px; margin-bottom: 20px; color: #333;">문서 정보</h2>
+            <table style="width: 100%; font-size: 14px;">
+              <tr style="height: 35px;">
+                <td style="width: 120px; font-weight: bold; color: #666;">현장명</td>
+                <td>${photoGrid?.site?.name || '-'}</td>
+                <td style="width: 120px; font-weight: bold; color: #666;">작업일자</td>
+                <td>${photoGrid?.work_date || '-'}</td>
+              </tr>
+              <tr style="height: 35px;">
+                <td style="font-weight: bold; color: #666;">부재명</td>
+                <td>${photoGrid?.component_name || '-'}</td>
+                <td style="font-weight: bold; color: #666;">작업공정</td>
+                <td>${photoGrid?.work_process || '-'}</td>
+              </tr>
+              <tr style="height: 35px;">
+                <td style="font-weight: bold; color: #666;">작업구간</td>
+                <td>${photoGrid?.work_section || '-'}</td>
+                <td style="font-weight: bold; color: #666;">작성자</td>
+                <td>${photoGrid?.creator?.full_name || '-'}</td>
+              </tr>
+            </table>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #dee2e6; color: #666; font-size: 12px;">
+              작성일: ${photoGrid?.created_at ? format(new Date(photoGrid.created_at), 'yyyy년 MM월 dd일 HH:mm', { locale: ko }) : '-'}
+            </div>
+          </div>
+          
+          <h2 style="font-size: 24px; margin-bottom: 20px; color: #333;">작업 사진</h2>
+          
+          <div style="display: flex; gap: 20px; margin-bottom: 30px;">
+            <div style="flex: 1;">
+              <div style="background: #ff6b35; color: white; padding: 8px 16px; border-radius: 4px; display: inline-block; margin-bottom: 10px; font-weight: bold;">
+                작업 전
+              </div>
+              ${photoGrid?.before_photo_url ? 
+                `<img src="${photoGrid.before_photo_url}" style="width: 100%; border: 2px solid #dee2e6; border-radius: 8px;" alt="작업 전">` :
+                `<div style="width: 100%; height: 400px; background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #999;">
+                  <div style="text-align: center;">
+                    <div style="font-size: 48px;">📷</div>
+                    <div>사진 없음</div>
+                  </div>
+                </div>`
+              }
+            </div>
+            <div style="flex: 1;">
+              <div style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; display: inline-block; margin-bottom: 10px; font-weight: bold;">
+                작업 후
+              </div>
+              ${photoGrid?.after_photo_url ? 
+                `<img src="${photoGrid.after_photo_url}" style="width: 100%; border: 2px solid #dee2e6; border-radius: 8px;" alt="작업 후">` :
+                `<div style="width: 100%; height: 400px; background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #999;">
+                  <div style="text-align: center;">
+                    <div style="font-size: 48px;">📷</div>
+                    <div>사진 없음</div>
+                  </div>
+                </div>`
+              }
+            </div>
+          </div>
+          
+          ${photoGrid?.notes ? `
+            <div style="background: #fff3cd; border: 1px solid #ffc107; padding: 15px; border-radius: 8px;">
+              <h3 style="font-size: 16px; margin-bottom: 10px; color: #856404;">작업 메모</h3>
+              <p style="color: #856404; font-size: 14px; margin: 0;">${photoGrid.notes}</p>
+            </div>
+          ` : ''}
+          
+          <div style="margin-top: 50px; text-align: center; color: #666; font-size: 12px;">
+            생성일: ${format(new Date(), 'yyyy년 MM월 dd일 HH:mm', { locale: ko })}
+          </div>
+        </div>
+      `
+      
+      document.body.appendChild(pdfContainer)
+      
+      // Wait for images to load
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Generate canvas from HTML
+      const canvas = await html2canvas(pdfContainer, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        logging: false
+      })
+      
+      // Create PDF
+      const imgWidth = 210 // A4 width in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      
+      // Add pages if content is too long
+      let heightLeft = imgHeight
+      let position = 0
+      const pageHeight = 295 // A4 height in mm
+      
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight)
+      heightLeft -= pageHeight
+      
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight
+        pdf.addPage()
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight)
+        heightLeft -= pageHeight
       }
+      
+      // Download PDF
+      const fileName = `사진대지_${photoGrid?.work_date || format(new Date(), 'yyyy-MM-dd')}.pdf`
+      pdf.save(fileName)
+      
+      // Clean up
+      document.body.removeChild(pdfContainer)
+      
+      toast({
+        title: 'PDF 다운로드 완료',
+        description: `${fileName} 파일이 다운로드되었습니다.`,
+      })
     } catch (error) {
       console.error('Failed to download PDF:', error)
       toast({
