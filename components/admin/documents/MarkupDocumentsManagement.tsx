@@ -609,7 +609,7 @@ export default function MarkupDocumentsManagement() {
                     <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
                       <div>
                         <p className="text-xs text-gray-500">원본 파일명</p>
-                        <p className="text-sm text-gray-900 mt-1">{selectedDocument.original_filename}</p>
+                        <p className="text-sm text-gray-900 mt-1">{selectedDocument.metadata?.original_filename || selectedDocument.file_name}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">마킹 개수</p>
