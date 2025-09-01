@@ -44,6 +44,7 @@ export default function AttachmentsTab({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' })
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   useEffect(() => {
     fetchFiles()
@@ -83,26 +84,12 @@ export default function AttachmentsTab({
 
   const validateFile = (file: File) => {
     const maxSize = 50 * 1024 * 1024 // 50MB
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'application/zip',
-      'application/x-rar-compressed'
-    ]
 
     if (file.size > maxSize) {
       throw new Error(`파일 크기가 너무 큽니다. 최대 50MB까지 업로드 가능합니다. (${file.name})`)
     }
 
-    if (!allowedTypes.includes(file.type)) {
-      throw new Error(`지원하지 않는 파일 형식입니다. (${file.name})`)
-    }
+    // 모든 파일 형식 허용 - 제한 제거
   }
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -266,8 +253,12 @@ export default function AttachmentsTab({
   }
 
   const getFileIcon = (mimeType: string) => {
-    if (mimeType.startsWith('image/')) return FileImage
-    if (mimeType.includes('pdf')) return FileText
+    if (mimeType?.startsWith('image/')) return FileImage
+    if (mimeType?.includes('pdf')) return FileText
+    if (mimeType?.includes('word') || mimeType?.includes('document')) return FileText
+    if (mimeType?.includes('sheet') || mimeType?.includes('excel')) return FileText
+    if (mimeType?.includes('presentation') || mimeType?.includes('powerpoint')) return FileText
+    if (mimeType?.includes('zip') || mimeType?.includes('rar') || mimeType?.includes('compressed')) return File
     return File
   }
 
@@ -317,7 +308,6 @@ export default function AttachmentsTab({
             id="attachment-upload"
             className="hidden"
             onChange={handleFileUpload}
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
             multiple
             disabled={uploading}
           />
@@ -342,10 +332,10 @@ export default function AttachmentsTab({
             )}
           </label>
           <p className="mt-2 text-sm text-gray-600">
-            PDF, Word, Excel, PowerPoint, 텍스트, 압축 파일을 업로드할 수 있습니다.
+            이미지, 문서, 압축 파일 등 모든 형식의 파일을 업로드할 수 있습니다.
           </p>
           <p className="text-xs text-gray-500 mt-1">
-            여러 파일을 동시에 선택할 수 있습니다.
+            여러 파일을 동시에 선택할 수 있습니다. (최대 50MB/파일)
           </p>
         </div>
       )}
@@ -381,11 +371,30 @@ export default function AttachmentsTab({
             <tbody className="divide-y divide-gray-200">
               {files.map((file) => {
                 const FileIcon = getFileIcon(file.mime_type)
+                const isImage = file.mime_type?.startsWith('image/')
+                
                 return (
                   <tr key={file.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <FileIcon className="h-5 w-5 text-gray-400" />
+                        {isImage ? (
+                          <div 
+                            className="w-10 h-10 rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setPreviewImage(file.file_path)}
+                          >
+                            <img 
+                              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/daily-report-attachments/${file.file_path}`}
+                              alt={file.filename}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                                e.currentTarget.parentElement!.innerHTML = '<div class="w-10 h-10 bg-gray-100 flex items-center justify-center"><svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>'
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <FileIcon className="h-5 w-5 text-gray-400" />
+                        )}
                         <div>
                           <p className="text-sm font-medium text-gray-900">
                             {file.filename}
@@ -404,6 +413,15 @@ export default function AttachmentsTab({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2 justify-center">
+                        {isImage && (
+                          <button
+                            onClick={() => setPreviewImage(file.file_path)}
+                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                            title="미리보기"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDownload(file)}
                           className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
@@ -427,6 +445,29 @@ export default function AttachmentsTab({
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <X className="h-8 w-8" />
+            </button>
+            <img
+              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/daily-report-attachments/${previewImage}`}
+              alt="Preview"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </div>

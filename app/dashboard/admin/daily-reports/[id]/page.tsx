@@ -6,7 +6,7 @@ import {
   ArrowLeft, Edit, FileText, Users, Calendar, Building2, 
   AlertTriangle, Camera, Paperclip, Receipt, Map, User,
   MapPin, Phone, HardHat, Shield, Clock, Hash, Layers,
-  Package, CheckCircle, XCircle
+  Package, CheckCircle, XCircle, Save, X
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -15,7 +15,7 @@ import AttachmentsTab from '@/components/admin/daily-reports/AttachmentsTab'
 import WorkerManagementTab from '@/components/admin/daily-reports/WorkerManagementTab'
 import MarkupTab from '@/components/admin/daily-reports/MarkupTab'
 import ReceiptsTab from '@/components/admin/daily-reports/ReceiptsTab'
-import { getDailyReportById } from '@/app/actions/admin/daily-reports'
+import { getDailyReportById, updateDailyReport } from '@/app/actions/admin/daily-reports'
 
 interface DailyReport {
   id: string
@@ -63,6 +63,9 @@ export default function DailyReportDetailPage() {
   const [report, setReport] = useState<DailyReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [isEditingOverview, setIsEditingOverview] = useState(false)
+  const [editedData, setEditedData] = useState<Partial<DailyReport>>({})
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (reportId) {
@@ -75,6 +78,7 @@ export default function DailyReportDetailPage() {
       const result = await getDailyReportById(reportId)
       if (result.success && result.data) {
         setReport(result.data)
+        setEditedData(result.data)
       } else {
         console.error('Error fetching report:', result.error)
         alert('작업일지를 불러올 수 없습니다.')
@@ -86,6 +90,54 @@ export default function DailyReportDetailPage() {
       router.push('/dashboard/admin/daily-reports')
     }
     setLoading(false)
+  }
+
+  const handleEditOverview = () => {
+    setIsEditingOverview(true)
+    setEditedData({ ...report })
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditingOverview(false)
+    setEditedData({ ...report })
+  }
+
+  const handleSaveOverview = async () => {
+    setSaving(true)
+    try {
+      const result = await updateDailyReport(reportId, {
+        member_name: editedData.member_name,
+        process_type: editedData.process_type,
+        component_name: editedData.component_name,
+        work_process: editedData.work_process,
+        work_section: editedData.work_section,
+        total_workers: editedData.total_workers,
+        npc1000_incoming: editedData.npc1000_incoming,
+        npc1000_used: editedData.npc1000_used,
+        npc1000_remaining: editedData.npc1000_remaining,
+        issues: editedData.issues,
+        status: editedData.status
+      })
+
+      if (result.success) {
+        setReport(editedData as DailyReport)
+        setIsEditingOverview(false)
+        alert('작업일지가 성공적으로 수정되었습니다.')
+      } else {
+        alert(result.error || '수정 중 오류가 발생했습니다.')
+      }
+    } catch (error) {
+      console.error('Error saving report:', error)
+      alert('저장 중 오류가 발생했습니다.')
+    }
+    setSaving(false)
+  }
+
+  const handleFieldChange = (field: keyof DailyReport, value: any) => {
+    setEditedData(prev => ({
+      ...prev,
+      [field]: value
+    }))
   }
 
   if (loading) {
@@ -124,12 +176,17 @@ export default function DailyReportDetailPage() {
 
   const tabs = [
     { id: 'overview', label: '작업일지 정보', icon: FileText },
-    { id: 'workers', label: '작업자 관리 (5명)', icon: Users, count: report.worker_details_count },
-    { id: 'photos', label: '사진 (0)', icon: Camera },
-    { id: 'attachments', label: '첨부파일 (0)', icon: Paperclip },
-    { id: 'markup', label: '도면마킹 (0)', icon: Map },
-    { id: 'receipts', label: '영수증정보 (0)', icon: Receipt }
+    { id: 'workers', label: '작업자 관리', icon: Users, count: report.worker_details_count },
+    { id: 'photos', label: '사진', icon: Camera },
+    { id: 'attachments', label: '첨부파일', icon: Paperclip },
+    { id: 'markup', label: '도면마킹', icon: Map },
+    { id: 'receipts', label: '영수증정보', icon: Receipt }
   ]
+
+  // Determine if we're in any editing mode
+  const isInEditMode = activeTab === 'workers' || activeTab === 'photos' || 
+                       activeTab === 'attachments' || activeTab === 'markup' || 
+                       activeTab === 'receipts'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -156,13 +213,39 @@ export default function DailyReportDetailPage() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => router.push(`/dashboard/admin/daily-reports/${reportId}/edit`)}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Edit className="h-4 w-4" />
-              편집
-            </button>
+            {activeTab === 'overview' && !isEditingOverview && (
+              <button
+                onClick={handleEditOverview}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Edit className="h-4 w-4" />
+                편집
+              </button>
+            )}
+            {activeTab === 'overview' && isEditingOverview && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCancelEdit}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                  disabled={saving}
+                >
+                  <X className="h-4 w-4" />
+                  취소
+                </button>
+                <button
+                  onClick={handleSaveOverview}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                  ) : (
+                    <Save className="h-4 w-4" />
+                  )}
+                  저장
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -172,7 +255,7 @@ export default function DailyReportDetailPage() {
             {tabs.map((tab) => {
               const Icon = tab.icon
               const label = tab.id === 'workers' && tab.count 
-                ? `작업자 관리 (${tab.count}명)`
+                ? `${tab.label} (${tab.count}명)`
                 : tab.label
               
               return (
@@ -249,34 +332,79 @@ export default function DailyReportDetailPage() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-600">작업책임자</label>
-                  <p className="mt-1 text-sm font-medium text-gray-900">{report.member_name}</p>
+                  {isEditingOverview ? (
+                    <input
+                      type="text"
+                      value={editedData.member_name || ''}
+                      onChange={(e) => handleFieldChange('member_name', e.target.value)}
+                      className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  ) : (
+                    <p className="mt-1 text-sm font-medium text-gray-900">{report.member_name}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-gray-600">작업공정</label>
-                  <p className="mt-1 text-sm font-medium text-gray-900">{report.process_type}</p>
+                  {isEditingOverview ? (
+                    <input
+                      type="text"
+                      value={editedData.process_type || ''}
+                      onChange={(e) => handleFieldChange('process_type', e.target.value)}
+                      className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  ) : (
+                    <p className="mt-1 text-sm font-medium text-gray-900">{report.process_type}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-gray-600">부재명</label>
-                  <p className="mt-1 text-sm font-medium text-gray-900">
-                    {report.component_name || '-'}
-                  </p>
+                  {isEditingOverview ? (
+                    <input
+                      type="text"
+                      value={editedData.component_name || ''}
+                      onChange={(e) => handleFieldChange('component_name', e.target.value)}
+                      className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  ) : (
+                    <p className="mt-1 text-sm font-medium text-gray-900">
+                      {report.component_name || '-'}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-gray-600">작업구간</label>
-                  <p className="mt-1 text-sm font-medium text-gray-900">
-                    {report.work_section || '-'}
-                  </p>
+                  {isEditingOverview ? (
+                    <input
+                      type="text"
+                      value={editedData.work_section || ''}
+                      onChange={(e) => handleFieldChange('work_section', e.target.value)}
+                      className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  ) : (
+                    <p className="mt-1 text-sm font-medium text-gray-900">
+                      {report.work_section || '-'}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm text-gray-600">작업인원</label>
-                  <p className="mt-1 text-sm font-medium text-gray-900">
-                    총 {report.total_workers}명
-                    {report.worker_details_count && report.worker_details_count > 0 && (
-                      <span className="text-xs text-blue-600 ml-1">
-                        (상세: {report.worker_details_count}명)
-                      </span>
-                    )}
-                  </p>
+                  {isEditingOverview ? (
+                    <input
+                      type="number"
+                      value={editedData.total_workers || 0}
+                      onChange={(e) => handleFieldChange('total_workers', parseInt(e.target.value))}
+                      className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  ) : (
+                    <p className="mt-1 text-sm font-medium text-gray-900">
+                      총 {report.total_workers}명
+                      {report.worker_details_count && report.worker_details_count > 0 && (
+                        <span className="text-xs text-blue-600 ml-1">
+                          (상세: {report.worker_details_count}명)
+                        </span>
+                      )}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -290,34 +418,73 @@ export default function DailyReportDetailPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                   <p className="text-sm text-blue-600 font-medium mb-2">입고</p>
-                  <p className="text-3xl font-bold text-blue-700">{report.npc1000_incoming}</p>
+                  {isEditingOverview ? (
+                    <input
+                      type="number"
+                      value={editedData.npc1000_incoming || 0}
+                      onChange={(e) => handleFieldChange('npc1000_incoming', parseInt(e.target.value))}
+                      className="w-full text-center text-2xl font-bold text-blue-700 bg-transparent border-b-2 border-blue-300 focus:outline-none focus:border-blue-500"
+                    />
+                  ) : (
+                    <p className="text-3xl font-bold text-blue-700">{report.npc1000_incoming}</p>
+                  )}
                   <p className="text-xs text-blue-500 mt-1">개</p>
                 </div>
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-center">
                   <p className="text-sm text-orange-600 font-medium mb-2">사용</p>
-                  <p className="text-3xl font-bold text-orange-700">{report.npc1000_used}</p>
+                  {isEditingOverview ? (
+                    <input
+                      type="number"
+                      value={editedData.npc1000_used || 0}
+                      onChange={(e) => handleFieldChange('npc1000_used', parseInt(e.target.value))}
+                      className="w-full text-center text-2xl font-bold text-orange-700 bg-transparent border-b-2 border-orange-300 focus:outline-none focus:border-orange-500"
+                    />
+                  ) : (
+                    <p className="text-3xl font-bold text-orange-700">{report.npc1000_used}</p>
+                  )}
                   <p className="text-xs text-orange-500 mt-1">개</p>
                 </div>
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
                   <p className="text-sm text-green-600 font-medium mb-2">잔여</p>
-                  <p className="text-3xl font-bold text-green-700">{report.npc1000_remaining}</p>
+                  {isEditingOverview ? (
+                    <input
+                      type="number"
+                      value={editedData.npc1000_remaining || 0}
+                      onChange={(e) => handleFieldChange('npc1000_remaining', parseInt(e.target.value))}
+                      className="w-full text-center text-2xl font-bold text-green-700 bg-transparent border-b-2 border-green-300 focus:outline-none focus:border-green-500"
+                    />
+                  ) : (
+                    <p className="text-3xl font-bold text-green-700">{report.npc1000_remaining}</p>
+                  )}
                   <p className="text-xs text-green-500 mt-1">개</p>
                 </div>
               </div>
             </div>
 
             {/* 특이사항 */}
-            {report.issues && (
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                  <h2 className="text-lg font-semibold text-gray-900">특이사항</h2>
-                </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.issues}</p>
-                </div>
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4 pb-3 border-b border-gray-200">
+                <AlertTriangle className="h-5 w-5 text-amber-500" />
+                <h2 className="text-lg font-semibold text-gray-900">특이사항</h2>
               </div>
-            )}
+              {isEditingOverview ? (
+                <textarea
+                  value={editedData.issues || ''}
+                  onChange={(e) => handleFieldChange('issues', e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="특이사항을 입력하세요..."
+                />
+              ) : (
+                report.issues ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.issues}</p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">특이사항이 없습니다.</p>
+                )
+              )}
+            </div>
 
             {/* 작성 정보 */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -361,38 +528,51 @@ export default function DailyReportDetailPage() {
                 </div>
                 <div>
                   <label className="text-sm text-gray-600">상태</label>
-                  <p className="mt-1">
-                    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${statusColors[report.status]}`}>
-                      {statusLabels[report.status]}
-                    </span>
-                  </p>
+                  {isEditingOverview ? (
+                    <select
+                      value={editedData.status || 'draft'}
+                      onChange={(e) => handleFieldChange('status', e.target.value as 'draft' | 'submitted')}
+                      className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="draft">임시저장</option>
+                      <option value="submitted">제출됨</option>
+                    </select>
+                  ) : (
+                    <p className="mt-1">
+                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${statusColors[report.status]}`}>
+                        {statusLabels[report.status]}
+                      </span>
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => router.push('/dashboard/admin/daily-reports')}
-                className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                목록으로
-              </button>
-              <button
-                onClick={() => router.push(`/dashboard/admin/daily-reports/${reportId}/edit`)}
-                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-              >
-                <Edit className="h-4 w-4" />
-                수정하기
-              </button>
-            </div>
+            {/* Action Buttons - Only show when not editing */}
+            {!isEditingOverview && (
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => router.push('/dashboard/admin/daily-reports')}
+                  className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  목록으로
+                </button>
+                <button
+                  onClick={handleEditOverview}
+                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  수정하기
+                </button>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'workers' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <WorkerManagementTab reportId={reportId} isEditing={false} />
+              <WorkerManagementTab reportId={reportId} isEditing={true} />
             </div>
           </div>
         )}
@@ -400,7 +580,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'photos' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <PhotosTab reportId={reportId} isEditing={false} />
+              <PhotosTab reportId={reportId} isEditing={true} />
             </div>
           </div>
         )}
@@ -408,7 +588,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'attachments' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <AttachmentsTab reportId={reportId} isEditing={false} />
+              <AttachmentsTab reportId={reportId} isEditing={true} />
             </div>
           </div>
         )}
@@ -416,7 +596,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'markup' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <MarkupTab reportId={reportId} isEditing={false} reportData={report} />
+              <MarkupTab reportId={reportId} isEditing={true} reportData={report} />
             </div>
           </div>
         )}
@@ -424,7 +604,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'receipts' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <ReceiptsTab reportId={reportId} isEditing={false} />
+              <ReceiptsTab reportId={reportId} isEditing={true} />
             </div>
           </div>
         )}

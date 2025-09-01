@@ -27,20 +27,17 @@ export default function PhotoGridPreviewPage({ photoGridId }: PhotoGridPreviewPa
   const fetchPhotoGrid = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/photo-grids')
+      const response = await fetch(`/api/photo-grids/${photoGridId}`)
       if (response.ok) {
         const data = await response.json()
-        const grid = data.find((item: any) => item.id === photoGridId)
-        if (grid) {
-          setPhotoGrid(grid)
-        } else {
-          toast({
-            title: '오류',
-            description: '사진대지 문서를 찾을 수 없습니다.',
-            variant: 'destructive'
-          })
-          router.back()
-        }
+        setPhotoGrid(data)
+      } else {
+        toast({
+          title: '오류',
+          description: '사진대지 문서를 찾을 수 없습니다.',
+          variant: 'destructive'
+        })
+        router.back()
       }
     } catch (error) {
       console.error('Failed to fetch photo grid:', error)
