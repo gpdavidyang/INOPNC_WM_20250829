@@ -61,8 +61,8 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
   }
 
   const handleOpenDocument = (document: MarkupDocument) => {
-    setSelectedDocument(document)
-    setView('editor')
+    // 마킹 편집기 페이지로 이동 (편집 모드)
+    window.open(`/dashboard/markup/editor?document=${document.id}&mode=edit`, '_blank')
   }
 
   const handleSave = () => {
@@ -249,13 +249,15 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
                           {recentDocuments.map((doc) => (
                             <tr
                               key={doc.id}
-                              className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
-                              onClick={() => handleOpenDocument(doc)}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                             >
                               <td className="px-4 py-3 whitespace-nowrap">
-                                <div className="flex items-center">
+                                <div 
+                                  className="flex items-center cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                                  onClick={() => handleOpenDocument(doc)}
+                                >
                                   <FileText className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
-                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-xs">
+                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-xs underline decoration-dotted underline-offset-2">
                                     {doc.title || '제목 없음'}
                                   </div>
                                 </div>
