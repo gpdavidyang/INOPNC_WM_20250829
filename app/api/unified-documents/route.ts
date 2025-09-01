@@ -66,6 +66,7 @@ export async function GET(request: Request) {
       // 3. Documents shared with their sites (if they have site access)
       query = query.or(`uploaded_by.eq.${user.id},is_public.eq.true`)
     }
+    // Admin users can see all documents - no additional filtering needed
     
     query = query
       .order('created_at', { ascending: false })
@@ -105,6 +106,7 @@ export async function GET(request: Request) {
     if (!isAdmin) {
       countQuery = countQuery.or(`uploaded_by.eq.${user.id},is_public.eq.true`)
     }
+    // Admin users can see all documents for count
 
     if (siteId && siteId !== 'all') {
       countQuery = countQuery.eq('site_id', siteId)
@@ -133,6 +135,7 @@ export async function GET(request: Request) {
     if (!isAdmin) {
       categoryStatsQuery = categoryStatsQuery.or(`uploaded_by.eq.${user.id},is_public.eq.true`)
     }
+    // Admin users can see all document statistics
 
     const { data: categoryStats } = await categoryStatsQuery
 
@@ -151,6 +154,7 @@ export async function GET(request: Request) {
     if (!isAdmin) {
       statusStatsQuery = statusStatsQuery.or(`uploaded_by.eq.${user.id},is_public.eq.true`)
     }
+    // Admin users can see all status statistics
 
     const { data: statusStats } = await statusStatsQuery
 

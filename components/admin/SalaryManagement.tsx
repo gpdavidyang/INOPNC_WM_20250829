@@ -52,8 +52,8 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   const [availableSites, setAvailableSites] = useState<Array<{ id: string; name: string }>>([])
   const [availableWorkers, setAvailableWorkers] = useState<Array<{ id: string; name: string }>>([])
 
-  // Salary rates state
-  const [salaryRates, setSalaryRates] = useState<Array<{ worker_id: string; worker_name: string; daily_rate: number; hourly_rate: number }>>([])
+  // Salary rates state (role-based)
+  const [salaryRates, setSalaryRates] = useState<Array<{ role: string; role_name: string; daily_rate: number; hourly_rate: number; description: string }>>([])
   const [ratesLoading, setRatesLoading] = useState(false)
   const [editingRates, setEditingRates] = useState<Record<string, { daily_rate: number; hourly_rate: number }>>({})
 
@@ -146,17 +146,35 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     }
   }
 
-  // Load salary rates
+  // Load salary rates (role-based)
   const loadSalaryRates = async () => {
     setRatesLoading(true)
     try {
-      // Mock data for now - in real implementation, this would fetch from database
-      const mockRates = [
-        { worker_id: '1', worker_name: '김철수', daily_rate: 150000, hourly_rate: 18750 },
-        { worker_id: '2', worker_name: '이영희', daily_rate: 130000, hourly_rate: 16250 },
-        { worker_id: '3', worker_name: '박민수', daily_rate: 140000, hourly_rate: 17500 }
+      // Role-based salary rates
+      const roleRates = [
+        { 
+          role: 'worker', 
+          role_name: '작업자', 
+          daily_rate: 130000, 
+          hourly_rate: 16250,
+          description: '일반 현장 작업자'
+        },
+        { 
+          role: 'site_manager', 
+          role_name: '현장관리자', 
+          daily_rate: 220000, 
+          hourly_rate: 27500,
+          description: '현장 총괄 관리자'
+        },
+        { 
+          role: 'customer_manager', 
+          role_name: '기타', 
+          daily_rate: 180000, 
+          hourly_rate: 22500,
+          description: '고객 관리 및 기타 업무'
+        }
       ]
-      setSalaryRates(mockRates)
+      setSalaryRates(roleRates)
     } catch (err) {
       console.error('Failed to load salary rates:', err)
     } finally {
@@ -164,28 +182,28 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     }
   }
 
-  // Handle edit rate
-  const handleEditRate = (workerId: string, field: 'daily_rate' | 'hourly_rate', value: number) => {
+  // Handle edit rate (role-based)
+  const handleEditRate = (role: string, field: 'daily_rate' | 'hourly_rate', value: number) => {
     setEditingRates(prev => ({
       ...prev,
-      [workerId]: {
-        ...prev[workerId],
+      [role]: {
+        ...prev[role],
         [field]: value
       }
     }))
   }
 
-  // Save salary rates
+  // Save salary rates (role-based)
   const saveSalaryRates = async () => {
     try {
       // In real implementation, this would save to database
       const updatedRates = salaryRates.map(rate => ({
         ...rate,
-        ...(editingRates[rate.worker_id] || {})
+        ...(editingRates[rate.role] || {})
       }))
       setSalaryRates(updatedRates)
       setEditingRates({})
-      alert('급여 기준이 저장되었습니다.')
+      alert('역할별 급여 기준이 저장되었습니다.')
     } catch (err) {
       console.error('Failed to save salary rates:', err)
       alert('급여 기준 저장에 실패했습니다.')
@@ -625,7 +643,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">급여기준 및 할당</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                작업자별 일당 및 시급을 설정합니다.
+                역할별 일당 및 시급 기준을 설정합니다.
               </p>
             </div>
             <button
@@ -653,7 +671,10 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      작업자
+                      역할
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      설명
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       일당 (원)
