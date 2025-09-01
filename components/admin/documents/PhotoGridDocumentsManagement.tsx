@@ -67,14 +67,14 @@ export default function PhotoGridDocumentsManagement() {
           return {
             id: doc.id,
             title: doc.title,
-            fileName: doc.file_name,
+            fileName: doc.file_name || doc.original_filename,
             fileSize: doc.file_size || 0,
             uploadDate: doc.created_at,
-            uploadedBy: doc.creator?.full_name || '알 수 없음',
+            uploadedBy: doc.profiles?.full_name || '알 수 없음',
             siteId: doc.site_id,
-            siteName: doc.site?.name || '알 수 없음',
-            status: 'active',
-            tags: ['사진대지', doc.document_type].filter(Boolean),
+            siteName: doc.sites?.name || '알 수 없음',
+            status: doc.status || 'active',
+            tags: ['사진대지', doc.category_type].filter(Boolean),
             fileUrl: doc.file_url
           }
         })

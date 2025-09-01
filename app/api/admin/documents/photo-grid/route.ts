@@ -11,16 +11,16 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
     
-    // Fetch photo grid type documents
+    // Fetch photo grid type documents from unified table
     const { data, error } = await supabase
-      .from('documents')
+      .from('unified_document_system')
       .select(`
         *,
-        site:sites!documents_site_id_fkey(id, name),
-        creator:profiles!documents_owner_id_fkey(id, full_name)
+        sites(id, name),
+        profiles!unified_document_system_uploaded_by_fkey(id, full_name)
       `)
-      .eq('document_type', 'report') // Photo grids stored as reports
-      .ilike('title', '%사진대지%') // Filter for photo grid reports
+      .eq('category_type', 'photo_grid')
+      .eq('status', 'active')
       .order('created_at', { ascending: false })
 
     if (error) {

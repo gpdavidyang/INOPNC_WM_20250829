@@ -62,7 +62,7 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
 
   const handleOpenDocument = (document: MarkupDocument) => {
     // 마킹 편집기 페이지로 이동 (편집 모드)
-    window.open(`/dashboard/markup/editor?document=${document.id}&mode=edit`, '_blank')
+    window.open(`/dashboard/markup?document=${document.id}&mode=edit`, '_blank')
   }
 
   const handleSave = () => {
