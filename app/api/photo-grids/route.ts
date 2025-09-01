@@ -10,6 +10,8 @@ export const maxDuration = 60
 // Handle POST request for creating new photo grids
 export async function POST(request: NextRequest) {
   console.log('POST /api/photo-grids - Request received')
+  console.log('Request URL:', request.url)
+  console.log('Request method:', request.method)
   
   try {
     // Log request headers for debugging

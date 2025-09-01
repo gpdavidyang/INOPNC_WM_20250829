@@ -208,25 +208,46 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
 
       const url = document 
         ? `/api/photo-grids/${document.id}`
-        : '/api/photo-grids'  // Use dedicated create endpoint to avoid route conflicts
+        : '/api/photo-grids'
       
       const method = document ? 'PUT' : 'POST'
 
-      const response = await fetch(url, {
+      // Add timestamp to force cache bypass
+      const cacheBuster = `?t=${Date.now()}`
+      const finalUrl = url + cacheBuster
+
+      console.log(`[PhotoGrid] Sending ${method} request to:`, finalUrl)
+
+      const response = await fetch(finalUrl, {
         method,
         body: formData,
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
       })
 
+      console.log(`[PhotoGrid] Response status:`, response.status)
+
       if (response.ok) {
+        const result = await response.json()
+        console.log('[PhotoGrid] Save successful:', result)
+        toast({
+          title: '성공',
+          description: '사진대지가 저장되었습니다.',
+        })
         onSave()
       } else {
-        throw new Error('Failed to save document')
+        const errorText = await response.text()
+        console.error(`[PhotoGrid] Error response (${response.status}):`, errorText)
+        throw new Error(`서버 오류 (${response.status}): ${errorText || 'Failed to save document'}`)
       }
     } catch (error) {
       console.error('Error saving document:', error)
+      const errorMessage = error instanceof Error ? error.message : '문서 저장에 실패했습니다.'
       toast({
         title: '오류',
-        description: '문서 저장에 실패했습니다.',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {

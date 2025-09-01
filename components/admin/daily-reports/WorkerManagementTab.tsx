@@ -246,15 +246,15 @@ export default function WorkerManagementTab({
 
   const calculateStats = () => {
     const totalWorkers = workers.length
-    const totalHours = workers.reduce((sum, w) => sum + Number(w.work_hours), 0)
-    const averageHours = totalWorkers > 0 ? totalHours / totalWorkers : 0
-    const totalDays = totalHours / 8
+    const totalManDays = workers.reduce((sum, w) => sum + Number(w.work_hours), 0)
+    const averageManDays = totalWorkers > 0 ? totalManDays / totalWorkers : 0
+    const totalHours = totalManDays * 8  // 공수를 시간으로 환산
 
     return {
       totalWorkers,
-      totalHours,
-      averageHours,
-      totalDays
+      totalManDays,
+      averageManDays,
+      totalHours
     }
   }
 
@@ -483,7 +483,7 @@ export default function WorkerManagementTab({
               </div>
               <div className="ml-3">
                 <p className="text-xs text-gray-500">총 공수</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalHours.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalManDays.toFixed(1)}</p>
               </div>
             </div>
           </div>
@@ -495,7 +495,7 @@ export default function WorkerManagementTab({
               </div>
               <div className="ml-3">
                 <p className="text-xs text-gray-500">평균 공수</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.averageHours.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.averageManDays.toFixed(1)}</p>
               </div>
             </div>
           </div>
@@ -506,8 +506,8 @@ export default function WorkerManagementTab({
                 <Clock className="h-5 w-5 text-orange-600" />
               </div>
               <div className="ml-3">
-                <p className="text-xs text-gray-500">총 작업일</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalDays.toFixed(1)}일</p>
+                <p className="text-xs text-gray-500">총 작업시간</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalHours.toFixed(1)}시간</p>
               </div>
             </div>
           </div>

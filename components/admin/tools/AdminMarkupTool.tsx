@@ -1,29 +1,53 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   Edit3, 
   FileImage,
   FolderOpen,
   Plus,
-  Grid,
-  List,
-  Search,
-  Filter
+  ArrowLeft,
+  FileText
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
-import { MarkupDocumentList } from '@/components/markup/list/markup-document-list'
+import { MarkupEditor } from '@/components/markup/markup-editor'
 import type { Profile } from '@/types'
 import type { MarkupDocument } from '@/types/markup'
+import { createClient } from '@/lib/supabase/client'
 
 interface AdminMarkupToolProps {
   profile: Profile
 }
 
 export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
-  const [view, setView] = useState<'list' | 'editor'>('list')
+  const [view, setView] = useState<'quick-access' | 'editor'>('quick-access')
   const [selectedDocument, setSelectedDocument] = useState<MarkupDocument | undefined>()
+  const [recentDocuments, setRecentDocuments] = useState<MarkupDocument[]>([])
+  const [loading, setLoading] = useState(false)
+  const supabase = createClient()
+
+  useEffect(() => {
+    fetchRecentDocuments()
+  }, [])
+
+  const fetchRecentDocuments = async () => {
+    setLoading(true)
+    try {
+      const { data, error } = await supabase
+        .from('markup_documents')
+        .select('*')
+        .eq('is_deleted', false)
+        .order('updated_at', { ascending: false })
+        .limit(6)
+
+      if (error) throw error
+      setRecentDocuments(data || [])
+    } catch (error) {
+      console.error('Error fetching recent documents:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleCreateNew = () => {
     setSelectedDocument(undefined)
@@ -35,33 +59,47 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
     setView('editor')
   }
 
-  const handleEditDocument = (document: MarkupDocument) => {
-    setSelectedDocument(document)
-    setView('editor')
-  }
-
-  const handleSave = (document: MarkupDocument) => {
-    setView('list')
+  const handleSave = () => {
+    fetchRecentDocuments()
+    setView('quick-access')
   }
 
   const handleClose = () => {
-    setView('list')
+    setView('quick-access')
+  }
+
+  const handleViewAllDocuments = () => {
+    window.location.href = '/dashboard/admin/documents'
   }
 
   if (view === 'editor') {
     return (
-      <SharedMarkupEditor
-        profile={profile}
-        mode="admin"
-        onSave={handleSave}
-        onClose={handleClose}
-      />
+      <div className="h-full flex flex-col">
+        <div className="px-4 sm:px-6 lg:px-8 py-4 border-b border-gray-200 dark:border-gray-700">
+          <Button
+            onClick={handleClose}
+            variant="ghost"
+            className="mb-2"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            돌아가기
+          </Button>
+        </div>
+        <div className="flex-1">
+          <MarkupEditor
+            initialFile={selectedDocument}
+            onSave={handleSave}
+            onClose={handleClose}
+            profile={profile}
+          />
+        </div>
+      </div>
     )
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200 dark:border-gray-700">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
@@ -69,26 +107,132 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
               도면 마킹 도구
             </h1>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              도면에 마킹을 추가하고 관리할 수 있습니다
+              도면에 마킹을 추가하고 편집할 수 있습니다
             </p>
           </div>
-          
-          <Button
-            onClick={handleCreateNew}
-            className="flex items-center bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            새 마킹 생성
-          </Button>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto">
-        <MarkupDocumentList
-          onCreateNew={handleCreateNew}
-          onOpenDocument={handleOpenDocument}
-          onEditDocument={handleEditDocument}
-        />
+      <div className="flex-1 p-6 overflow-auto">
+        {/* 빠른 시작 섹션 */}
+        <div className="max-w-6xl mx-auto space-y-6">
+          {/* 새 마킹 생성 카드 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8">
+            <div className="text-center">
+              <div className="mx-auto w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mb-4">
+                <Plus className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                새 도면 마킹 시작
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                도면을 업로드하고 마킹 작업을 시작하세요
+              </p>
+              <Button
+                onClick={handleCreateNew}
+                size="lg"
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+              >
+                <FileImage className="h-5 w-5 mr-2" />
+                도면 업로드 및 마킹 시작
+              </Button>
+            </div>
+          </div>
+
+          {/* 최근 작업 문서 */}
+          {recentDocuments.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  최근 작업 문서
+                </h3>
+                <Button
+                  onClick={handleViewAllDocuments}
+                  variant="ghost"
+                  size="sm"
+                >
+                  전체 보기
+                  <FolderOpen className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+              
+              {loading ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {recentDocuments.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => handleOpenDocument(doc)}
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <FileText className="h-5 w-5 text-gray-400" />
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          doc.location === 'shared' 
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                        }`}>
+                          {doc.location === 'shared' ? '공유' : '개인'}
+                        </span>
+                      </div>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate">
+                        {doc.title || doc.fileName}
+                      </h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                        마킹: {doc.markupObjects?.length || 0}개
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                        {new Date(doc.updatedAt || doc.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 안내 섹션 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center mb-2">
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold">1</span>
+                </div>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">도면 업로드</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+                JPG, PNG, PDF 형식의 도면을 업로드하세요
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center mb-2">
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold">2</span>
+                </div>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">마킹 작업</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+                다양한 도구로 도면에 마킹을 추가하세요
+              </p>
+            </div>
+            
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center mb-2">
+                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
+                  <span className="text-blue-600 dark:text-blue-400 font-semibold">3</span>
+                </div>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">저장 및 공유</h4>
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
+                문서함에 저장하고 필요시 공유하세요
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
