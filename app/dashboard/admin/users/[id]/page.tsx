@@ -13,6 +13,7 @@ import UserBasicInfoTab from '@/components/admin/users/UserBasicInfoTab'
 import UserSitesPrintsTab from '@/components/admin/users/UserSitesPrintsTab'
 import UserWorkLogsTab from '@/components/admin/users/UserWorkLogsTab'
 import UserDocumentsTab from '@/components/admin/users/UserDocumentsTab'
+import { createClient } from '@/lib/supabase/client'
 
 export default function UserDetailPage() {
   const params = useParams()
@@ -26,6 +27,7 @@ export default function UserDetailPage() {
   const [editLoading, setEditLoading] = useState(false)
   const [statistics, setStatistics] = useState({
     total_sites: 0,
+    total_work_hours: 0,
     total_daily_reports: 0,
     total_documents: 0,
     active_sites: 0
@@ -33,6 +35,7 @@ export default function UserDetailPage() {
 
   useEffect(() => {
     loadUser()
+    loadStatistics()
   }, [userId])
 
   const loadUser = async () => {
@@ -41,15 +44,6 @@ export default function UserDetailPage() {
       const result = await getUser(userId)
       if (result.success && result.data) {
         setUser(result.data)
-        
-        // Calculate statistics
-        const stats = {
-          total_sites: result.data.site_assignments?.length || 0,
-          active_sites: result.data.site_assignments?.filter(a => a.is_active).length || 0,
-          total_daily_reports: result.data.work_log_stats?.total_reports || 0,
-          total_documents: result.data.required_documents?.length || 0
-        }
-        setStatistics(stats)
       } else {
         toast.error(result.error || '사용자 정보를 불러오는데 실패했습니다.')
         router.push('/dashboard/admin/users')
@@ -60,6 +54,41 @@ export default function UserDetailPage() {
       router.push('/dashboard/admin/users')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadStatistics = async () => {
+    try {
+      const supabase = createClient()
+      
+      // Get total work hours from attendance_records
+      const { data: attendanceData } = await supabase
+        .from('attendance_records')
+        .select('work_hours')
+        .eq('user_id', userId)
+      
+      const totalWorkHours = attendanceData?.reduce((sum, record) => sum + (record.work_hours || 0), 0) || 0
+      
+      // Get total daily reports count
+      const { count: reportsCount } = await supabase
+        .from('daily_reports')
+        .select('id', { count: 'exact', head: true })
+        .eq('created_by', userId)
+      
+      // Get submitted documents count
+      const { count: documentsCount } = await supabase
+        .from('user_documents')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+      
+      setStatistics(prev => ({
+        ...prev,
+        total_work_hours: totalWorkHours,
+        total_daily_reports: reportsCount || 0,
+        total_documents: documentsCount || 0
+      }))
+    } catch (error) {
+      console.error('Failed to load statistics:', error)
     }
   }
 
@@ -257,7 +286,7 @@ export default function UserDetailPage() {
           <nav className="flex space-x-8 px-4 sm:px-6 lg:px-8">
             {[
               { key: 'info', label: '기본 정보', icon: User },
-              { key: 'sites', label: '현장 및 출력', icon: Building, count: statistics?.total_sites },
+              { key: 'sites', label: '현장 및 출력', icon: Building, count: statistics?.total_work_hours },
               { key: 'workLogs', label: '작업일지', icon: FileText, count: statistics?.total_daily_reports },
               { key: 'documents', label: '필수 제출 서류', icon: ClipboardCheck, count: statistics?.total_documents }
             ].map((tab) => {
