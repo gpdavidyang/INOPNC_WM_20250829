@@ -184,15 +184,33 @@ export default function ReceiptsTab({
   }
 
   const handleAllReceiptsUpload = async () => {
+    console.log('handleAllReceiptsUpload called')
+    console.log('Receipt entries:', receiptEntries)
+    
+    // Check for entries with at least some required fields filled
     const validEntries = receiptEntries.filter(entry => 
       entry.category && entry.amount && entry.receipt_date && entry.files.length > 0
     )
 
+    console.log('Valid entries:', validEntries)
+
     if (validEntries.length === 0) {
-      setSaveStatus({ 
-        type: 'error', 
-        message: '업로드할 유효한 영수증이 없습니다.' 
-      })
+      // Check if there are entries with missing data
+      const hasPartialEntries = receiptEntries.some(entry => 
+        entry.category || entry.amount || entry.receipt_date || entry.files.length > 0
+      )
+      
+      if (hasPartialEntries) {
+        setSaveStatus({ 
+          type: 'error', 
+          message: '모든 필수 항목(구분, 금액, 일자, 파일)을 입력해주세요.' 
+        })
+      } else {
+        setSaveStatus({ 
+          type: 'error', 
+          message: '업로드할 영수증 정보를 입력해주세요.' 
+        })
+      }
       return
     }
 
@@ -223,12 +241,15 @@ export default function ReceiptsTab({
           const safeFileName = `${timestamp}.${fileExt}`
           const fileName = `${reportId}/receipts/${safeFileName}`
 
+          console.log(`Uploading file: ${file.name} to ${fileName}`)
+
           // Upload to storage
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('receipts')
             .upload(fileName, file)
 
           if (uploadError) {
+            console.error('Storage upload error:', uploadError)
             throw new Error(`파일 업로드 실패: ${uploadError.message} (${file.name})`)
           }
 
@@ -260,11 +281,13 @@ export default function ReceiptsTab({
             .single()
 
           if (dbError) {
+            console.error('Database insert error:', dbError)
             // Try to clean up uploaded file
             await supabase.storage.from('receipts').remove([fileName])
             throw new Error(`메타데이터 저장 실패: ${dbError.message} (${file.name})`)
           }
 
+          console.log('File uploaded successfully:', fileData)
           totalUploaded++
           return fileData
         })
@@ -651,10 +674,10 @@ export default function ReceiptsTab({
               <button
                 onClick={handleAllReceiptsUpload}
                 disabled={uploading || !hasValidEntries()}
-                className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all transform ${
                   uploading || !hasValidEntries()
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-60' 
+                    : 'bg-yellow-500 hover:bg-yellow-600 text-white hover:scale-105 shadow-lg'
                 }`}
               >
                 {uploading ? (
@@ -670,7 +693,12 @@ export default function ReceiptsTab({
                 )}
               </button>
               <p className="mt-2 text-sm text-gray-600">
-                입력된 모든 영수증 정보를 저장합니다
+                {hasValidEntries() 
+                  ? `${receiptEntries.filter(entry => 
+                      entry.category && entry.amount && entry.receipt_date && entry.files.length > 0
+                    ).length}개의 영수증을 저장할 준비가 되었습니다`
+                  : '구분, 금액, 일자, 파일을 모두 입력해주세요'
+                }
               </p>
             </div>
           </div>

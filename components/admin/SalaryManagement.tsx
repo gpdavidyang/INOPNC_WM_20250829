@@ -87,8 +87,8 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       '작업자역할': item.worker_role,
       '현장': item.site_name,
       '총 공수': item.total_work_hours,
-      '총 실제시간': item.total_actual_hours,
-      '총 연장시간': item.total_overtime_hours,
+      '총 실제공수': item.total_actual_hours,
+      '총 연장공수': item.total_overtime_hours,
       '기본급': item.base_pay,
       '연장수당': item.overtime_pay,
       '보너스': item.bonus_pay,
@@ -334,20 +334,20 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               {outputData.map((item, index) => (
                 <div 
                   key={index} 
-                  className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01]"
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md"
                 >
-                  {/* Header with worker info and actions */}
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 px-6 py-4 border-b border-gray-200 dark:border-gray-600">
+                  {/* Header with worker info and actions - Compact */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 px-4 py-3 border-b border-gray-200 dark:border-gray-600">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                        <div className="w-10 h-10 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
                           {item.worker_name.charAt(0)}
                         </div>
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
                             {item.worker_name}
                           </h3>
-                          <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-300">
+                          <div className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-300">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                               item.worker_role === 'site_manager' 
                                 ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
@@ -367,7 +367,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="text-right">
-                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          <div className="text-xl font-bold text-green-600 dark:text-green-400">
                             ₩{(item.total_pay || 0).toLocaleString()}
                           </div>
                           <div className="text-xs text-gray-500 dark:text-gray-400">총 급여</div>
@@ -379,7 +379,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                               window.location.href = `/dashboard/admin/salary/calendar/${worker.id}?name=${encodeURIComponent(item.worker_name)}&year=${selectedYear}&month=${selectedMonth}`
                             }
                           }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded transition-colors duration-200 flex items-center space-x-1 text-sm"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -390,35 +390,35 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                     </div>
                   </div>
 
-                  {/* Content with stats grid */}
-                  <div className="p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {/* Work Hours Stats */}
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* Content with stats grid - Compact */}
+                  <div className="px-4 py-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {/* Work Units Stats */}
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                          <svg className="w-4 h-4 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          근무 시간
+                          공수
                         </h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <span className="text-sm text-gray-600 dark:text-gray-300">총 근무</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
-                              {item.total_work_hours || 0}h
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded">
+                            <span className="text-xs text-gray-600 dark:text-gray-300">총</span>
+                            <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                              {item.total_work_hours || 0}
                             </span>
                           </div>
-                          <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <span className="text-sm text-gray-600 dark:text-gray-300">실제</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
-                              {item.total_actual_hours || 0}h
+                          <div className="flex justify-between items-center px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded">
+                            <span className="text-xs text-gray-600 dark:text-gray-300">실제</span>
+                            <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                              {item.total_actual_hours || 0}
                             </span>
                           </div>
                           {(item.total_overtime_hours || 0) > 0 && (
-                            <div className="flex justify-between items-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                              <span className="text-sm text-orange-600 dark:text-orange-300">연장</span>
-                              <span className="font-medium text-orange-700 dark:text-orange-300">
-                                {item.total_overtime_hours || 0}h
+                            <div className="flex justify-between items-center px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded">
+                              <span className="text-xs text-orange-600 dark:text-orange-300">연장</span>
+                              <span className="font-medium text-sm text-orange-700 dark:text-orange-300">
+                                {item.total_overtime_hours || 0}
                               </span>
                             </div>
                           )}
