@@ -3,20 +3,6 @@
   "outputDirectory": ".next",
   "framework": "nextjs",
   "regions": ["icn1"],
-  "rewrites": [
-    {
-      "source": "/sw.js",
-      "destination": "/_next/static/sw.js"
-    },
-    {
-      "source": "/manifest.json", 
-      "destination": "/_next/static/manifest.json"
-    },
-    {
-      "source": "/robots.txt",
-      "destination": "/_next/static/robots.txt"
-    }
-  ],
   "headers": [
     {
       "source": "/sw.js",
