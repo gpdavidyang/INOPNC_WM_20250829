@@ -25,10 +25,12 @@ import {
   Monitor,
   Database,
   Settings,
-  HelpCircle
+  HelpCircle,
+  Camera
 } from 'lucide-react'
 import Link from 'next/link'
 import type { QuickAction } from '@/types'
+import { getDashboardStats, formatRelativeTime, type DashboardStats, type RecentActivity } from '@/app/actions/admin/dashboard-stats'
 
 // 아이콘 매핑
 const ICON_MAP = {
@@ -50,7 +52,18 @@ const ICON_MAP = {
   TrendingUp,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Camera
+}
+
+// 활동 아이콘 매핑
+const ACTIVITY_ICON_MAP = {
+  CheckCircle,
+  AlertCircle,
+  TrendingUp,
+  Camera,
+  Building2,
+  Users
 }
 
 export function AdminDashboardContent() {
@@ -60,6 +73,12 @@ export function AdminDashboardContent() {
   const [isLoading, setIsLoading] = useState(true)
   const [unreadNotifications, setUnreadNotifications] = useState(0)
   const [pendingSignups, setPendingSignups] = useState(0)
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    totalUsers: 0,
+    activeSites: 0,
+    todayReports: 0,
+    recentActivities: []
+  })
 
   // 빠른 작업 불러오기
   const fetchQuickActions = async () => {
@@ -104,10 +123,27 @@ export function AdminDashboardContent() {
     }
   }
 
+  // 대시보드 통계 불러오기
+  const fetchDashboardStats = async () => {
+    try {
+      const result = await getDashboardStats()
+      if (result.success && result.data) {
+        setDashboardStats(result.data)
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error)
+    }
+  }
+
   useEffect(() => {
     fetchQuickActions()
     fetchUnreadNotifications()
     fetchPendingSignups()
+    fetchDashboardStats()
+    
+    // 30초마다 통계 새로고침
+    const interval = setInterval(fetchDashboardStats, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   return (
@@ -132,7 +168,7 @@ export function AdminDashboardContent() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>전체 사용자</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>24명</p>
+              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>{dashboardStats.totalUsers}명</p>
             </div>
             <Users className="h-8 w-8 text-blue-500" />
           </div>
@@ -144,7 +180,7 @@ export function AdminDashboardContent() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>활성 현장</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>3개</p>
+              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>{dashboardStats.activeSites}개</p>
             </div>
             <Building2 className="h-8 w-8 text-green-500" />
           </div>
@@ -156,7 +192,7 @@ export function AdminDashboardContent() {
           <div className="flex items-center justify-between">
             <div>
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>오늘 작업일지</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>12건</p>
+              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>{dashboardStats.todayReports}건</p>
             </div>
             <FileText className="h-8 w-8 text-orange-500" />
           </div>
@@ -247,29 +283,28 @@ export function AdminDashboardContent() {
         }`}>
           <h2 className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-semibold mb-4`}>최근 활동</h2>
           <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <CheckCircle className="h-5 w-5 text-green-500 mt-0.5" />
-              <div className="flex-1">
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium`}>작업일지 승인</p>
-                <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>김철수 - 강남 A현장 (2분 전)</p>
+            {dashboardStats.recentActivities.length > 0 ? (
+              dashboardStats.recentActivities.map((activity) => {
+                const IconComponent = ACTIVITY_ICON_MAP[activity.icon as keyof typeof ACTIVITY_ICON_MAP] || AlertCircle
+                return (
+                  <div key={activity.id} className="flex items-start gap-3">
+                    <IconComponent className={`h-5 w-5 ${activity.iconColor} mt-0.5`} />
+                    <div className="flex-1">
+                      <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium`}>{activity.title}</p>
+                      <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
+                        {activity.description} ({formatRelativeTime(activity.timestamp)})
+                      </p>
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <div className="text-center py-4">
+                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
+                  최근 활동이 없습니다
+                </p>
               </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 text-orange-500 mt-0.5" />
-              <div className="flex-1">
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium`}>신규 사용자 등록</p>
-                <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>이영희 - 작업자 (10분 전)</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start gap-3">
-              <TrendingUp className="h-5 w-5 text-blue-500 mt-0.5" />
-              <div className="flex-1">
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium`}>자재 입고</p>
-                <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>NPC-1000 500kg (1시간 전)</p>
-              </div>
-            </div>
+            )}
           </div>
         </Card>
         
