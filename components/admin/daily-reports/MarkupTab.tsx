@@ -33,12 +33,14 @@ interface MarkupTabProps {
   reportId: string
   isEditing: boolean
   onSaveComplete?: () => void
+  reportData?: any // Daily report data for auto-population
 }
 
 export default function MarkupTab({ 
   reportId, 
   isEditing,
-  onSaveComplete
+  onSaveComplete,
+  reportData
 }: MarkupTabProps) {
   const [markups, setMarkups] = useState<MarkupFile[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,11 +48,6 @@ export default function MarkupTab({
   const [error, setError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' })
   const [selectedMarkup, setSelectedMarkup] = useState<MarkupFile | null>(null)
-  const [showDetailModal, setShowDetailModal] = useState(false)
-  const [markupDetails, setMarkupDetails] = useState({
-    markup_type: 'drawing' as MarkupFile['markup_type'],
-    description: ''
-  })
 
   useEffect(() => {
     fetchMarkups()
@@ -92,28 +89,30 @@ export default function MarkupTab({
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Show detail modal for first file
-    setSelectedMarkup(null)
-    setShowDetailModal(true)
-    
-    // Store files for upload after details are entered
-    const fileList = Array.from(files)
-    ;(window as any).__pendingMarkupFiles = fileList
-  }
-
-  const handleUploadWithDetails = async () => {
-    const files = (window as any).__pendingMarkupFiles as File[]
-    if (!files || files.length === 0) return
-
     setUploading(true)
     setSaveStatus({ type: null, message: '' })
-    setShowDetailModal(false)
 
     try {
       const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       
-      const uploadPromises = files.map(async (file) => {
+      // Fetch daily report data if not provided
+      let reportInfo = reportData
+      if (!reportInfo) {
+        const { data: report, error: reportError } = await supabase
+          .from('daily_reports')
+          .select('*, sites(name)')
+          .eq('id', reportId)
+          .single()
+        
+        if (reportError) {
+          console.error('Error fetching report data:', reportError)
+        } else {
+          reportInfo = report
+        }
+      }
+      
+      const uploadPromises = Array.from(files).map(async (file) => {
         const fileExt = file.name.split('.').pop()
         const fileName = `${reportId}/markups/${Date.now()}_${file.name}`
 
@@ -124,7 +123,12 @@ export default function MarkupTab({
 
         if (uploadError) throw uploadError
 
-        // Save metadata with markup details
+        // Auto-generate description from daily report data
+        const autoDescription = reportInfo ? 
+          `${reportInfo.sites?.name || ''} - ${reportInfo.work_type || ''} - ${reportInfo.work_location || ''}`.trim() : 
+          ''
+
+        // Save metadata with auto-populated data from daily report
         const { data: fileData, error: dbError } = await supabase
           .from('daily_documents')
           .insert({
@@ -134,9 +138,13 @@ export default function MarkupTab({
             file_type: 'markup',
             file_size: file.size,
             mime_type: file.type,
-            description: markupDetails.description,
-            markup_type: markupDetails.markup_type,
-            created_by: user?.id
+            description: autoDescription,
+            markup_type: 'markup', // Default type
+            created_by: user?.id,
+            // Include daily report related data if available
+            site_id: reportInfo?.site_id,
+            work_type: reportInfo?.work_type,
+            work_location: reportInfo?.work_location
           })
           .select()
           .single()
@@ -147,14 +155,7 @@ export default function MarkupTab({
 
       await Promise.all(uploadPromises)
       await fetchMarkups()
-      setSaveStatus({ type: 'success', message: '도면마킹이 업로드되었습니다.' })
-      
-      // Reset form
-      setMarkupDetails({
-        markup_type: 'drawing',
-        description: ''
-      })
-      delete (window as any).__pendingMarkupFiles
+      setSaveStatus({ type: 'success', message: `도면마킹 ${files.length}개가 업로드되었습니다.` })
       
       if (onSaveComplete) {
         onSaveComplete()
@@ -367,63 +368,6 @@ export default function MarkupTab({
               getMarkupTypeColor={getMarkupTypeColor}
             />
           ))}
-        </div>
-      )}
-
-      {/* Markup Detail Modal for Upload */}
-      {showDetailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">도면마킹 정보 입력</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  타입
-                </label>
-                <select
-                  value={markupDetails.markup_type}
-                  onChange={(e) => setMarkupDetails(prev => ({ ...prev, markup_type: e.target.value as MarkupFile['markup_type'] }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="drawing">도면</option>
-                  <option value="blueprint">청사진</option>
-                  <option value="sketch">스케치</option>
-                  <option value="markup">마킹</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  설명
-                </label>
-                <textarea
-                  value={markupDetails.description}
-                  onChange={(e) => setMarkupDetails(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                  placeholder="설명 입력 (선택사항)"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleUploadWithDetails}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                업로드
-              </button>
-              <button
-                onClick={() => {
-                  setShowDetailModal(false)
-                  delete (window as any).__pendingMarkupFiles
-                  const input = document.getElementById('markup-upload') as HTMLInputElement
-                  if (input) input.value = ''
-                }}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                취소
-              </button>
-            </div>
-          </div>
         </div>
       )}
 

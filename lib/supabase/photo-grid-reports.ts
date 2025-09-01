@@ -3,66 +3,6 @@ import type { PhotoGridReport, PhotoGridPDFOptions, PhotoGridReportStats, Docume
 
 const supabase = createClient()
 
-// 공유문서함에 PDF 저장
-async function saveToSharedDocuments(params: {
-  title: string
-  file_url: string
-  file_name: string
-  file_size: number
-  site_name?: string
-  daily_report_id: string
-  photo_grid_report_id: string
-}): Promise<void> {
-  try {
-    // 현재 사용자 정보 조회
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) throw new Error('사용자 정보를 찾을 수 없습니다.')
-
-    // 작업일지에서 site_id 조회
-    const { data: dailyReport } = await supabase
-      .from('daily_reports')
-      .select('site_id')
-      .eq('id', params.daily_report_id)
-      .single()
-    
-    const siteId = dailyReport?.site_id
-
-    // documents 테이블에 저장 (공유문서함)
-    const { error: docError } = await supabase
-      .from('documents')
-      .insert({
-        title: params.title,
-        description: `사진대지 PDF - ${params.site_name || '현장'} (${new Date().toLocaleDateString('ko-KR')})`,
-        file_url: params.file_url,
-        file_name: params.file_name,
-        file_size: params.file_size,
-        mime_type: 'application/pdf',
-        document_type: 'report' as const, // 보고서 타입
-        folder_path: '/shared/photo-grid-reports', // 공유문서함 내 사진대지 폴더
-        owner_id: user.id,
-        is_public: false, // 사이트 멤버만 접근 가능
-        site_id: siteId,
-        // 메타데이터에 연관 정보 저장
-        metadata: {
-          photo_grid_report_id: params.photo_grid_report_id,
-          daily_report_id: params.daily_report_id,
-          generated_at: new Date().toISOString(),
-          document_category: '사진대지PDF'
-        }
-      })
-    
-    if (docError) {
-      console.error('문서함 저장 오류:', docError)
-      throw docError
-    }
-
-    console.log('사진대지 PDF가 공유문서함에 저장되었습니다.')
-  } catch (error) {
-    console.error('공유문서함 저장 실패:', error)
-    throw error
-  }
-}
-
 // PDF 보고서 생성 및 저장
 export async function createPhotoGridReport(
   dailyReportId: string,
@@ -184,21 +124,7 @@ export async function createPhotoGridReport(
       // 이 오류는 전체 프로세스를 중단시키지 않음
     }
 
-    // 5. 공유문서함에도 자동 저장 (기존 호환성 유지)
-    try {
-      await saveToSharedDocuments({
-        title: `${options.title || '사진대지양식'}_${options.reportDate}`,
-        file_url: urlData.publicUrl,
-        file_name: fileName,
-        file_size: file.size,
-        site_name: options.siteName,
-        daily_report_id: dailyReportId,
-        photo_grid_report_id: reportData.id
-      })
-    } catch (docError) {
-      console.warn('공유문서함 저장 실패 (PDF는 정상 생성됨):', docError)
-      // 공유문서함 저장 실패는 무시하고 진행 (PDF는 이미 생성됨)
-    }
+    // 5. 중복 저장 제거 - unified_document_system만 사용
     
     return { success: true, data: reportData }
   } catch (error) {

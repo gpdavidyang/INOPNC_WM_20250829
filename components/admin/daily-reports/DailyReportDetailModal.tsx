@@ -825,6 +825,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
               reportId={report.id}
               isEditing={tabEditStates.markup}
               onSaveComplete={handleTabSaveComplete}
+              reportData={report}
             />
           )}
         </div>
