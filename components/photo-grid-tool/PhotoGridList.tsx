@@ -22,6 +22,7 @@ import {
 import { Search, Filter, Eye, Edit, Trash2, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import PhotoGridPreviewModal from './PhotoGridPreviewModal'
 
 interface PhotoGridListProps {
   onEdit: (document: any) => void
@@ -34,6 +35,8 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
   const [selectedSite, setSelectedSite] = useState<string>('all')
   const [sites, setSites] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [previewDocument, setPreviewDocument] = useState<any>(null)
+  const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {
     fetchDocuments()
@@ -127,6 +130,11 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
     }
   }
 
+  const handlePreview = (doc: any) => {
+    setPreviewDocument(doc)
+    setShowPreview(true)
+  }
+
   if (loading) {
     return (
       <Card>
@@ -203,7 +211,16 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => handlePreview(doc)}
+                          title="미리보기"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => handleDownload(doc.id)}
+                          title="다운로드"
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -211,6 +228,7 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
                           variant="ghost"
                           size="sm"
                           onClick={() => onEdit(doc)}
+                          title="수정"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -218,6 +236,7 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(doc.id)}
+                          title="삭제"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -229,6 +248,16 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
             </TableBody>
           </Table>
         </div>
+
+        {/* Preview Modal */}
+        <PhotoGridPreviewModal
+          isOpen={showPreview}
+          onClose={() => {
+            setShowPreview(false)
+            setPreviewDocument(null)
+          }}
+          photoGrid={previewDocument}
+        />
       </CardContent>
     </Card>
   )

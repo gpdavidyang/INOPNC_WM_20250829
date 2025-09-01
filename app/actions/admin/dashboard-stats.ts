@@ -160,8 +160,9 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
 
 /**
  * Format timestamp to relative time
+ * Note: This is a utility function, not a server action
  */
-export function formatRelativeTime(timestamp: string): string {
+function formatRelativeTime(timestamp: string): string {
   const now = new Date()
   const time = new Date(timestamp)
   const diff = now.getTime() - time.getTime()

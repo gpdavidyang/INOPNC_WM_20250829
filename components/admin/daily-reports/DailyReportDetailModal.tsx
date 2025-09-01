@@ -86,13 +86,22 @@ const statusColors = {
 
 export default function DailyReportDetailModal({ report: initialReport, onClose, onUpdated }: DailyReportDetailModalProps) {
   const [report, setReport] = useState(initialReport)
-  const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
   const [activeTab, setActiveTab] = useState<'info' | 'workers' | 'attachments' | 'photos' | 'receipts' | 'markup'>('info')
   const [actualWorkersCount, setActualWorkersCount] = useState<number>(0)
   const [loadingWorkers, setLoadingWorkers] = useState(true)
+  
+  // Tab-specific edit states
+  const [tabEditStates, setTabEditStates] = useState({
+    info: false,
+    workers: false,
+    attachments: false,
+    photos: false,
+    receipts: false,
+    markup: false
+  })
   
   const [editData, setEditData] = useState({
     work_date: report.work_date,
@@ -122,16 +131,17 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
   const fetchActualWorkers = async () => {
     try {
       setLoadingWorkers(true)
-      const supabase = createClient()
       
-      const { count, error } = await supabase
-        .from('daily_report_workers')
-        .select('id', { count: 'exact', head: true })
-        .eq('daily_report_id', report.id)
-
-      if (error) throw error
+      // Use API route instead of direct Supabase
+      const response = await fetch(`/api/admin/daily-reports/workers?reportId=${report.id}`, {
+        cache: 'no-store'
+      })
       
-      setActualWorkersCount(count || 0)
+      if (response.ok) {
+        const result = await response.json()
+        const workers = result.data || []
+        setActualWorkersCount(workers.length)
+      }
     } catch (error) {
       console.error('Error fetching actual workers count:', error)
       setActualWorkersCount(0)
@@ -143,6 +153,21 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
   const handleWorkersUpdate = (totalWorkers: number) => {
     setEditData(prev => ({ ...prev, total_workers: totalWorkers }))
     setActualWorkersCount(totalWorkers)
+  }
+  
+  const handleTabEditToggle = (tab: typeof activeTab) => {
+    setTabEditStates(prev => ({
+      ...prev,
+      [tab]: !prev[tab]
+    }))
+  }
+  
+  const handleTabSaveComplete = () => {
+    // Reset edit mode for current tab after save
+    setTabEditStates(prev => ({
+      ...prev,
+      [activeTab]: false
+    }))
   }
 
   const fetchPhotos = async () => {
@@ -298,7 +323,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
         }))
       }
 
-      setIsEditing(false)
+      handleTabSaveComplete()
       onUpdated()
       alert('작업일지가 수정되었습니다.')
     } catch (error) {
@@ -360,23 +385,12 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
               {statusLabels[editData.status]}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            {!isEditing && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <Edit className="h-4 w-4" />
-                편집
-              </button>
-            )}
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Tabs */}
@@ -476,7 +490,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                     <tr>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업일</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <input
                             type="date"
                             value={editData.work_date}
@@ -489,7 +503,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업책임자</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <input
                             type="text"
                             value={editData.member_name}
@@ -504,7 +518,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                     <tr>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">공정 유형</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <input
                             type="text"
                             value={editData.process_type}
@@ -539,7 +553,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                             </div>
                             {actualWorkersCount === 0 && (
                               <div className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                                ⚠️ 작업자 상세 정보 없음
+                                작업자 상세 정보 없음
                               </div>
                             )}
                           </div>
@@ -556,7 +570,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                     <tr>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">부재명</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <div>
                             <CustomSelect
                               value={editData.component_name?.startsWith('기타:') ? '기타' : editData.component_name || ''}
@@ -594,7 +608,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업공정</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <div>
                             <CustomSelect
                               value={editData.work_process?.startsWith('기타:') ? '기타' : editData.work_process || ''}
@@ -634,7 +648,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                     <tr>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업구간</td>
                       <td colSpan={3} className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <input
                             type="text"
                             value={editData.work_section}
@@ -657,7 +671,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                     <tr>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">입고량</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <input
                             type="number"
                             value={editData.npc1000_incoming}
@@ -671,7 +685,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">사용량</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <input
                             type="number"
                             value={editData.npc1000_used}
@@ -687,7 +701,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                     <tr>
                       <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">잔여량</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <input
                             type="number"
                             value={editData.npc1000_remaining}
@@ -699,7 +713,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                           report.npc1000_remaining.toLocaleString()
                         )}
                       </td>
-                      {isEditing && (
+                      {tabEditStates.info && (
                         <>
                           <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">상태</td>
                           <td className="px-4 py-3 text-sm text-gray-900">
@@ -724,7 +738,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                     </tr>
                     <tr>
                       <td colSpan={4} className="px-4 py-3">
-                        {isEditing ? (
+                        {tabEditStates.info ? (
                           <textarea
                             value={editData.issues}
                             onChange={(e) => setEditData(prev => ({ ...prev, issues: e.target.value }))}
@@ -772,8 +786,9 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
             <WorkerManagementTab
               reportId={report.id}
               siteId={report.site_id}
-              isEditing={isEditing}
+              isEditing={tabEditStates.workers}
               onWorkersUpdate={handleWorkersUpdate}
+              onSaveComplete={handleTabSaveComplete}
             />
           )}
 
@@ -999,7 +1014,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
 
               {/* Upload Instructions */}
               <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
-                <p className="font-medium mb-1">📸 사진 업로드 안내</p>
+                <p className="font-medium mb-1">사진 업로드 안내</p>
                 <p>작업 전/후 사진은 작업일지 작성 시 구분하여 업로드해주세요.</p>
                 <p>업로드된 사진은 자동으로 분류되어 표시됩니다.</p>
               </div>
@@ -1141,7 +1156,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
 
               {/* Upload Guide */}
               <div className="bg-purple-50 rounded-lg p-4 text-sm text-purple-800">
-                <p className="font-medium mb-1">💳 영수증 관리 안내</p>
+                <p className="font-medium mb-1">영수증 관리 안내</p>
                 <ul className="space-y-1 ml-4">
                   <li>• 작업일지 작성 시 영수증 첨부 섹션에서 업로드 가능합니다.</li>
                   <li>• 영수증은 자재 구매, 식대, 기타 경비 등의 증빙자료로 사용됩니다.</li>
@@ -1164,7 +1179,6 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                     총 {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).length}건
                   </span>
                 </div>
-                
                 
                 {/* Summary Statistics */}
                 {photos.length > 0 && (
@@ -1257,7 +1271,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
               
               {/* Markup Guide */}
               <div className="bg-purple-50 rounded-lg p-4 text-sm text-purple-800">
-                <p className="font-medium mb-1">📐 도면마킹 관리 안내</p>
+                <p className="font-medium mb-1">도면마킹 관리 안내</p>
                 <ul className="space-y-1 ml-4">
                   <li>• 작업일지 작성 시 도면마킹문서함에서 도면을 선택할 수 있습니다.</li>
                   <li>• 선택된 도면은 작업 진행 상황을 표시하는 용도로 사용됩니다.</li>
@@ -1268,13 +1282,45 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
           )}
         </div>
 
-        {/* Footer */}
+        {/* Footer with Tab-specific Actions */}
         <div className="border-t border-gray-200 px-6 py-4">
-          <div className="flex justify-end gap-3">
-            {isEditing ? (
+          <div className="flex justify-between items-center">
+            {/* Tab-specific edit button */}
+            <div>
+              {activeTab === 'info' && (
+                <button
+                  onClick={() => handleTabEditToggle('info')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors ${
+                    tabEditStates.info
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <Edit className="h-4 w-4" />
+                  {tabEditStates.info ? '편집 취소' : '정보 편집'}
+                </button>
+              )}
+              {activeTab === 'workers' && (
+                <button
+                  onClick={() => handleTabEditToggle('workers')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors ${
+                    tabEditStates.workers
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <Edit className="h-4 w-4" />
+                  {tabEditStates.workers ? '편집 모드 종료' : '작업자 편집'}
+                </button>
+              )}
+            </div>
+            
+            {/* Save/Close buttons */}
+            <div className="flex gap-3">
+            {tabEditStates.info ? (
               <>
                 <button
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => handleTabEditToggle('info')}
                   className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
                   disabled={saving}
                 >
@@ -1297,6 +1343,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                 닫기
               </button>
             )}
+            </div>
           </div>
         </div>
       </div>
