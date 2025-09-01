@@ -332,25 +332,24 @@ export async function getSalaryRecords(
 ): Promise<AdminActionResult<{ records: SalaryRecord[]; total: number; pages: number }>> {
   return withAdminAuth(async (supabase) => {
     try {
+      // Since salary_records table doesn't exist, use daily_reports data to simulate salary records
       let query = supabase
-        .from('salary_records')
-        .select('*', { count: 'exact' })
+        .from('daily_reports')
+        .select(`
+          id,
+          work_date,
+          site_id,
+          created_by,
+          daily_report_workers(worker_name, work_hours)
+        `)
         .order('work_date', { ascending: false })
-
-      // Note: Search functionality will be implemented with client-side filtering for now
-      // due to complex join requirements
-
-      // Apply status filter
-      if (status) {
-        query = query.eq('status', status)
-      }
 
       // Apply site filter
       if (site_id) {
         query = query.eq('site_id', site_id)
       }
 
-      // Apply date filters
+      // Apply date filters  
       if (date_from) {
         query = query.gte('work_date', date_from)
       }
@@ -358,93 +357,92 @@ export async function getSalaryRecords(
         query = query.lte('work_date', date_to)
       }
 
-      // Apply pagination
-      const offset = (page - 1) * limit
-      query = query.range(offset, offset + limit - 1)
-
-      const { data: records, error, count } = await query
+      const { data: dailyReports, error } = await query
 
       if (error) {
-        console.error('Error fetching salary records:', error)
+        console.error('Error fetching daily reports for salary records:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Get sites and profiles data for additional info
+      const { data: sitesData } = await supabase.from('sites').select('id, name')
+      const { data: profilesData } = await supabase.from('profiles').select('id, full_name, email, role')
+      
+      const sites = sitesData || []
+      const profiles = profilesData || []
+
+      // Transform daily reports into salary record format
+      const salaryRecords: SalaryRecord[] = []
+      
+      for (const report of dailyReports || []) {
+        const site = sites.find(s => s.id === report.site_id)
         
-        // If table doesn't exist, return mock data for development
-        if (error.code === '42P01' || error.message?.includes('does not exist')) {
-          // console.log('🧪 Using mock data for salary records (table not found)')
-          const mockRecords = [
-            {
-              id: '1',
-              worker_id: '1',
-              worker: {
-                full_name: '김철수',
-                email: 'kim@example.com',
-                role: 'worker'
-              },
-              site_id: '1',
-              site: { name: 'A 현장' },
-              work_date: new Date().toISOString().split('T')[0],
-              regular_hours: 8,
-              overtime_hours: 2,
-              base_pay: 120000,
-              overtime_pay: 45000,
-              bonus_pay: 0,
-              deductions: 0,
-              total_pay: 165000,
-              status: 'calculated' as const,
-              notes: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            },
-            {
-              id: '2',
-              worker_id: '2',
-              worker: {
-                full_name: '이영희',
-                email: 'lee@example.com',
-                role: 'site_manager'
-              },
-              site_id: '1',
-              site: { name: 'A 현장' },
-              work_date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-              regular_hours: 8,
-              overtime_hours: 0,
-              base_pay: 200000,
-              overtime_pay: 0,
-              bonus_pay: 0,
-              deductions: 0,
-              total_pay: 200000,
-              status: 'approved' as const,
-              notes: null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            }
-          ]
+        for (const workerEntry of report.daily_report_workers || []) {
+          const worker = profiles.find(p => p.full_name === workerEntry.worker_name)
           
-          return {
-            success: true,
-            data: {
-              records: mockRecords,
-              total: mockRecords.length,
-              pages: 1
-            }
+          if (worker) {
+            const workHours = parseFloat(workerEntry.work_hours) || 0
+            const regularHours = Math.min(workHours, 8) // Regular hours capped at 8
+            const overtimeHours = Math.max(workHours - 8, 0) // Overtime beyond 8 hours
+            
+            // Calculate pay based on role (matching OutputSummary logic)
+            const hourlyRate = worker.role === 'site_manager' ? 27500 : 16250 // 220k/8h, 130k/8h
+            const basePay = regularHours * hourlyRate
+            const overtimePay = overtimeHours * hourlyRate * 1.5 // 1.5x for overtime
+            
+            salaryRecords.push({
+              id: `${report.id}-${worker.id}`,
+              worker_id: worker.id,
+              worker: {
+                full_name: worker.full_name,
+                email: worker.email,
+                role: worker.role
+              },
+              site_id: report.site_id,
+              site: { name: site?.name || '알 수 없는 현장' },
+              work_date: report.work_date,
+              regular_hours: regularHours,
+              overtime_hours: overtimeHours,
+              base_pay: Math.round(basePay),
+              overtime_pay: Math.round(overtimePay),
+              bonus_pay: 0,
+              deductions: 0,
+              total_pay: Math.round(basePay + overtimePay),
+              status: 'calculated' as const,
+              notes: workHours > 8 ? `연장근무 ${overtimeHours.toFixed(1)}시간` : null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
           }
-        }
-        
-        return {
-          success: false,
-          error: AdminErrors.DATABASE_ERROR
         }
       }
 
-      const totalPages = Math.ceil((count || 0) / limit)
+      // Apply status filter (all records are 'calculated' in this implementation)
+      const filteredRecords = status ? salaryRecords.filter(r => r.status === status) : salaryRecords
+
+      // Apply search filter
+      const searchedRecords = search 
+        ? filteredRecords.filter(r => 
+            r.worker.full_name.toLowerCase().includes(search.toLowerCase()) ||
+            r.site.name.toLowerCase().includes(search.toLowerCase())
+          )
+        : filteredRecords
+
+      // Calculate pagination
+      const totalRecords = searchedRecords.length
+      const totalPages = Math.ceil(totalRecords / limit)
+      const offset = (page - 1) * limit
+      const paginatedRecords = searchedRecords.slice(offset, offset + limit)
 
       return {
         success: true,
         data: {
-          records: records || [],
-          total: count || 0,
+          records: paginatedRecords,
+          total: totalRecords,
           pages: totalPages
         }
       }
+
     } catch (error) {
       console.error('Salary records fetch error:', error)
       return {

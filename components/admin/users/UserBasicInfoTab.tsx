@@ -225,34 +225,6 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
         </div>
       </div>
 
-      {/* 필수 서류 현황 */}
-      {user.required_documents && user.required_documents.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mt-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">필수 서류 현황</h3>
-          <div className="space-y-3">
-            {user.required_documents.map((doc: any, index: number) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-gray-400 mr-3" />
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {doc.document_name}
-                  </span>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  doc.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' :
-                  doc.status === 'submitted' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                  doc.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' :
-                  'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
-                }`}>
-                  {doc.status === 'approved' ? '승인' :
-                   doc.status === 'submitted' ? '제출' :
-                   doc.status === 'rejected' ? '반려' : '대기'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* 현장 배정 현황 */}
       {user.site_assignments && user.site_assignments.length > 0 && (

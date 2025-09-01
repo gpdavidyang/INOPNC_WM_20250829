@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import * as XLSX from 'xlsx'
 import { Profile } from '@/types'
 import AdminDataTable from './AdminDataTable'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
@@ -25,6 +26,7 @@ import {
 import { Search, DollarSign, Calculator, CheckCircle, Clock, Users, TrendingUp, Settings, Plus, Play, FileText } from 'lucide-react'
 import { CustomSelect, CustomSelectContent, CustomSelectItem, CustomSelectTrigger, CustomSelectValue } from '@/components/ui/custom-select'
 import SalaryStatement from './salary/SalaryStatement'
+import WorkerCalendar from './WorkerCalendar'
 
 interface SalaryManagementProps {
   profile: Profile
@@ -133,18 +135,97 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   }
 
   // Load worker calendar data
-  const loadWorkerCalendarData = async (workerId: string) => {
+  const loadWorkerCalendarData = async (workerId: string, year?: number, month?: number) => {
     try {
-      const result = await getWorkerCalendarData(workerId, selectedYear, selectedMonth)
+      const targetYear = year || selectedYear
+      const targetMonth = month || selectedMonth
+      const result = await getWorkerCalendarData(workerId, targetYear, targetMonth)
       
       if (result.success && result.data) {
         setWorkerCalendarData(result.data)
       } else {
         console.error('Failed to load worker calendar data:', result.error)
+        setWorkerCalendarData([])
       }
     } catch (err) {
       console.error('Worker calendar data fetch error:', err)
+      setWorkerCalendarData([])
     }
+  }
+
+  // Export output data to Excel
+  const exportToExcel = () => {
+    if (outputData.length === 0) {
+      alert('내보낼 데이터가 없습니다.')
+      return
+    }
+
+    // Prepare data for Excel
+    const excelData = outputData.map((item, index) => ({
+      '번호': index + 1,
+      '작업자명': item.worker_name,
+      '역할': item.role === 'site_manager' ? '현장관리자' : '작업자',
+      '현장명': item.site_name,
+      '총 출력일수': `${item.total_work_days}일`,
+      '총 공수': `${item.total_work_hours}공수`,
+      '예상 급여': `${item.estimated_salary.toLocaleString()}원`
+    }))
+
+    // Create workbook
+    const wb = XLSX.utils.book_new()
+    
+    // Create worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData)
+    
+    // Set column widths
+    const colWidths = [
+      { wch: 8 },  // 번호
+      { wch: 15 }, // 작업자명
+      { wch: 12 }, // 역할
+      { wch: 25 }, // 현장명
+      { wch: 15 }, // 총 출력일수
+      { wch: 12 }, // 총 공수
+      { wch: 18 }  // 예상 급여
+    ]
+    ws['!cols'] = colWidths
+
+    // Add summary information as header
+    const summaryData = [
+      [`출력정보 요약 - ${selectedYear}년 ${selectedMonth}월`],
+      [`출력 일시: ${new Date().toLocaleString('ko-KR')}`],
+      [`총 작업자 수: ${outputData.length}명`],
+      [`월 평균 출력일수: ${outputData.length > 0 ? (outputData.reduce((sum, item) => sum + item.total_work_days, 0) / outputData.length).toFixed(1) : 0}일`],
+      [`총 공수 합계: ${outputData.reduce((sum, item) => sum + item.total_work_hours, 0).toFixed(1)}공수`],
+      [`예상 급여 총액: ${outputData.reduce((sum, item) => sum + item.estimated_salary, 0).toLocaleString()}원`],
+      [''], // Empty row
+      ['상세 데이터:'] // Header for detailed data
+    ]
+
+    // Create new worksheet with summary + data
+    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData)
+    
+    // Add the detailed data starting from row 9 (0-indexed row 8)
+    XLSX.utils.sheet_add_json(summaryWs, excelData, { origin: 'A9' })
+    
+    // Set column widths for summary sheet
+    summaryWs['!cols'] = [
+      { wch: 25 }, // Summary info
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 25 },
+      { wch: 15 },
+      { wch: 12 },
+      { wch: 18 }
+    ]
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, summaryWs, '출력정보')
+    
+    // Generate filename
+    const filename = `출력정보_${selectedYear}년_${selectedMonth}월_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`
+    
+    // Save file
+    XLSX.writeFile(wb, filename)
   }
 
   // Load rules data
@@ -581,34 +662,6 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
 
   return (
     <div className="space-y-4">
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 xl:grid-cols-6 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">총 근로자</div>
-          <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">{stats.total_workers}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">계산 대기</div>
-          <div className="text-lg font-semibold text-yellow-600">{stats.pending_calculations}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">승인됨</div>
-          <div className="text-lg font-semibold text-green-600">{stats.approved_payments}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">총 급여</div>
-          <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">₩{stats.total_payroll.toLocaleString()}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">일평균 급여</div>
-          <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">₩{Math.round(stats.average_daily_pay).toLocaleString()}</div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border border-gray-200 dark:border-gray-700">
-          <div className="text-sm font-medium text-gray-500 dark:text-gray-400">연장근무율</div>
-          <div className="text-lg font-semibold text-orange-600">{stats.overtime_percentage.toFixed(1)}%</div>
-        </div>
-      </div>
-
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-8">
@@ -672,10 +725,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">출력정보</h3>
             <button
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-              onClick={() => {
-                // TODO: Implement Excel export
-                alert('Excel 내보내기 기능을 구현 중입니다.')
-              }}
+              onClick={exportToExcel}
             >
               <FileText className="w-4 h-4" />
               Excel 내보내기
@@ -898,12 +948,17 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                     </button>
                   </div>
                   
-                  <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                    캘린더 뷰는 구현 중입니다.
-                    <div className="text-sm mt-2">
-                      {selectedYear}년 {selectedMonth}월 {outputData.find(item => item.worker_id === selectedWorkerForCalendar)?.worker_name}의 일별 출력 현황이 표시될 예정입니다.
-                    </div>
-                  </div>
+                  <WorkerCalendar
+                    calendarData={workerCalendarData}
+                    year={selectedYear}
+                    month={selectedMonth}
+                    workerName={outputData.find(item => item.worker_id === selectedWorkerForCalendar)?.worker_name || ''}
+                    onMonthChange={(newYear, newMonth) => {
+                      setSelectedYear(newYear)
+                      setSelectedMonth(newMonth)
+                      loadWorkerCalendarData(selectedWorkerForCalendar, newYear, newMonth)
+                    }}
+                  />
                 </div>
               </div>
             </div>
