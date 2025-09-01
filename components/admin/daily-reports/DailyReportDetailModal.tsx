@@ -110,7 +110,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
   })
 
   useEffect(() => {
-    if (activeTab === 'attachments' || activeTab === 'photos' || activeTab === 'receipts') {
+    if (activeTab === 'attachments' || activeTab === 'photos' || activeTab === 'receipts' || activeTab === 'markup') {
       fetchPhotos()
     }
   }, [activeTab])
@@ -1146,6 +1146,122 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                   <li>• 작업일지 작성 시 영수증 첨부 섹션에서 업로드 가능합니다.</li>
                   <li>• 영수증은 자재 구매, 식대, 기타 경비 등의 증빙자료로 사용됩니다.</li>
                   <li>• 영수증 원본은 별도 보관하시기 바랍니다.</li>
+                </ul>
+              </div>
+            </div>
+          )}
+          
+          {activeTab === 'markup' && (
+            <div className="space-y-6">
+              {/* Markup Summary */}
+              <div className="bg-purple-50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <FileImage className="h-5 w-5 text-purple-600" />
+                    도면마킹 요약
+                  </h3>
+                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                    총 {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).length}건
+                  </span>
+                </div>
+                
+                
+                {/* Summary Statistics */}
+                {photos.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">총 도면 수</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).length}건
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">첨부파일</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {photos.filter(p => p.file_type === 'document' || p.file_type === 'other').length}건
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">작업 사진</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {photos.filter(p => p.file_type === 'photo_before' || p.file_type === 'photo_after').length}건
+                      </p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">작업일</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {format(new Date(report.work_date), 'MM.dd')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Drawing Documents List */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <h4 className="font-medium text-gray-900 mb-4">도면 문서 목록</h4>
+                
+                {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).length > 0 ? (
+                  <div className="grid gap-4">
+                    {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).map((drawing) => (
+                      <div key={drawing.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-start gap-4">
+                          {/* Preview Image */}
+                          <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                            <FileImage className="h-12 w-12 text-gray-400" />
+                          </div>
+                          
+                          {/* Document Info */}
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">{drawing.filename}</h4>
+                            <div className="mt-2 text-sm text-gray-600 space-y-1">
+                              <p>크기: {formatFileSize(drawing.file_size)}</p>
+                              <p>등록일: {format(new Date(drawing.created_at), 'yyyy.MM.dd HH:mm')}</p>
+                            </div>
+                            
+                            {drawing.description && (
+                              <p className="mt-2 text-sm text-gray-700 bg-gray-50 rounded p-2">
+                                {drawing.description}
+                              </p>
+                            )}
+                            
+                            <div className="flex gap-2 mt-3">
+                              <button
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                                title="다운로드"
+                              >
+                                <Download className="h-3 w-3" />
+                                다운로드
+                              </button>
+                              <button
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
+                                title="마킹 도구로 열기"
+                              >
+                                <Edit className="h-3 w-3" />
+                                마킹 도구로 열기
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 bg-white rounded-lg">
+                    <FileImage className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">등록된 도면마킹 문서가 없습니다</p>
+                    <p className="text-sm text-gray-400 mt-1">작업일지 작성 시 도면을 첨부하면 여기에 표시됩니다</p>
+                  </div>
+                )}
+              </div>
+              
+              {/* Markup Guide */}
+              <div className="bg-purple-50 rounded-lg p-4 text-sm text-purple-800">
+                <p className="font-medium mb-1">📐 도면마킹 관리 안내</p>
+                <ul className="space-y-1 ml-4">
+                  <li>• 작업일지 작성 시 도면마킹문서함에서 도면을 선택할 수 있습니다.</li>
+                  <li>• 선택된 도면은 작업 진행 상황을 표시하는 용도로 사용됩니다.</li>
+                  <li>• 마킹 도구로 열기를 통해 도면에 추가 마킹을 할 수 있습니다.</li>
                 </ul>
               </div>
             </div>
