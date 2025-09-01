@@ -137,8 +137,7 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
               </p>
               <Button
                 onClick={handleCreateNew}
-                size="lg"
-                className="bg-purple-600 hover:bg-purple-700 text-white"
+                className="h-12 px-6 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-md transition-colors"
               >
                 <FileImage className="h-5 w-5 mr-2" />
                 도면 업로드 및 마킹 시작
