@@ -22,21 +22,20 @@ import {
 import { Search, Filter, Eye, Edit, Trash2, Download } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import PhotoGridPreviewModal from './PhotoGridPreviewModal'
+import { useRouter } from 'next/navigation'
 
 interface PhotoGridListProps {
   onEdit: (document: any) => void
 }
 
 export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
+  const router = useRouter()
   const [documents, setDocuments] = useState<any[]>([])
   const [filteredDocuments, setFilteredDocuments] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSite, setSelectedSite] = useState<string>('all')
   const [sites, setSites] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [previewDocument, setPreviewDocument] = useState<any>(null)
-  const [showPreview, setShowPreview] = useState(false)
 
   useEffect(() => {
     fetchDocuments()
@@ -131,8 +130,7 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
   }
 
   const handlePreview = (doc: any) => {
-    setPreviewDocument(doc)
-    setShowPreview(true)
+    router.push(`/dashboard/photo-grids/${doc.id}/preview`)
   }
 
   if (loading) {
@@ -248,16 +246,6 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
             </TableBody>
           </Table>
         </div>
-
-        {/* Preview Modal */}
-        <PhotoGridPreviewModal
-          isOpen={showPreview}
-          onClose={() => {
-            setShowPreview(false)
-            setPreviewDocument(null)
-          }}
-          photoGrid={previewDocument}
-        />
       </CardContent>
     </Card>
   )

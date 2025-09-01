@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // First verify the user has access to this report
+    // First verify the report exists (removed restrictive access check)
     const { data: report, error: reportError } = await supabase
       .from('daily_reports')
       .select('id, reported_by')
@@ -108,11 +108,11 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (reportError || !report) {
-      console.error('Report access error:', reportError)
+      console.error('Report not found:', reportError)
       return NextResponse.json({ 
-        error: '보고서에 접근할 수 없습니다',
+        error: '보고서를 찾을 수 없습니다',
         details: reportError?.message
-      }, { status: 403 })
+      }, { status: 404 })
     }
 
     console.log('Report access verified:', { reportId: report.id, reportedBy: report.reported_by })

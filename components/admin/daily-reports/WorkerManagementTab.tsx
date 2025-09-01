@@ -394,14 +394,33 @@ export default function WorkerManagementTab({
                   {workers.length + 1}
                 </td>
                 <td className="px-4 py-3">
-                  <input
-                    type="text"
-                    value={newWorker.name}
-                    onChange={(e) => setNewWorker(prev => prev ? { ...prev, name: e.target.value } : null)}
-                    placeholder="작업자명 입력"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    disabled={saving}
-                  />
+                  {availableWorkers.length > 0 ? (
+                    <CustomSelect
+                      value={newWorker.name}
+                      onValueChange={(value) => setNewWorker(prev => prev ? { ...prev, name: value } : null)}
+                      disabled={saving}
+                    >
+                      <CustomSelectTrigger className="w-full h-10 bg-white border border-gray-300 text-gray-900">
+                        <CustomSelectValue placeholder="작업자 선택" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent className="bg-white border border-gray-300">
+                        {availableWorkers.map(worker => (
+                          <CustomSelectItem key={worker.id} value={worker.full_name}>
+                            {worker.full_name} ({worker.role === 'site_manager' ? '현장소장' : '작업자'})
+                          </CustomSelectItem>
+                        ))}
+                      </CustomSelectContent>
+                    </CustomSelect>
+                  ) : (
+                    <input
+                      type="text"
+                      value={newWorker.name}
+                      onChange={(e) => setNewWorker(prev => prev ? { ...prev, name: e.target.value } : null)}
+                      placeholder="작업자명 입력"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      disabled={saving}
+                    />
+                  )}
                 </td>
                 <td className="px-4 py-3">
                   <CustomSelect
@@ -571,14 +590,33 @@ function WorkerRow({
       </td>
       <td className="px-4 py-3">
         {isEditing ? (
-          <input
-            type="text"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="작업자명 입력"
-            disabled={saving}
-          />
+          availableWorkers.length > 0 ? (
+            <CustomSelect
+              value={editName}
+              onValueChange={(value) => setEditName(value)}
+              disabled={saving}
+            >
+              <CustomSelectTrigger className="w-full h-10 bg-white border border-gray-300 text-gray-900">
+                <CustomSelectValue placeholder="작업자 선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent className="bg-white border border-gray-300">
+                {availableWorkers.map(worker => (
+                  <CustomSelectItem key={worker.id} value={worker.full_name}>
+                    {worker.full_name} ({worker.role === 'site_manager' ? '현장소장' : '작업자'})
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
+          ) : (
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="작업자명 입력"
+              disabled={saving}
+            />
+          )
         ) : (
           <div className="text-sm font-medium text-gray-900">{worker.worker_name}</div>
         )}

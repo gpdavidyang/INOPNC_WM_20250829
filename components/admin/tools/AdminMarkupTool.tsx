@@ -7,7 +7,11 @@ import {
   FolderOpen,
   Plus,
   ArrowLeft,
-  FileText
+  FileText,
+  Grid3x3,
+  List,
+  Calendar,
+  Clock
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { MarkupEditor } from '@/components/markup/markup-editor'
@@ -24,6 +28,7 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
   const [selectedDocument, setSelectedDocument] = useState<MarkupDocument | undefined>()
   const [recentDocuments, setRecentDocuments] = useState<MarkupDocument[]>([])
   const [loading, setLoading] = useState(false)
+  const [listViewType, setListViewType] = useState<'card' | 'list'>('card')
   const supabase = createClient()
 
   useEffect(() => {

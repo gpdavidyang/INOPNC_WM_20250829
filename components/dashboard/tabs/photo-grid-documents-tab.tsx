@@ -23,21 +23,20 @@ import {
 import { Search, Eye, Download, Calendar, Building2, Camera, FileImage } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import PhotoGridPreviewModal from '@/components/photo-grid-tool/PhotoGridPreviewModal'
+import { useRouter } from 'next/navigation'
 
 interface PhotoGridDocumentsTabProps {
   profile: Profile
 }
 
 export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTabProps) {
+  const router = useRouter()
   const [documents, setDocuments] = useState<any[]>([])
   const [filteredDocuments, setFilteredDocuments] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSite, setSelectedSite] = useState<string>('all')
   const [sites, setSites] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [previewDocument, setPreviewDocument] = useState<any>(null)
-  const [showPreview, setShowPreview] = useState(false)
   const [statistics, setStatistics] = useState({
     total: 0,
     thisMonth: 0,
@@ -144,8 +143,7 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
   }
 
   const handlePreview = (doc: any) => {
-    setPreviewDocument(doc)
-    setShowPreview(true)
+    router.push(`/dashboard/photo-grids/${doc.id}/preview`)
   }
 
   if (loading) {
@@ -297,16 +295,6 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
           </div>
         </CardContent>
       </Card>
-
-      {/* Preview Modal */}
-      <PhotoGridPreviewModal
-        isOpen={showPreview}
-        onClose={() => {
-          setShowPreview(false)
-          setPreviewDocument(null)
-        }}
-        photoGrid={previewDocument}
-      />
     </div>
   )
 }
