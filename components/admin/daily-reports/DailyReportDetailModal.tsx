@@ -827,495 +827,6 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
               onSaveComplete={handleTabSaveComplete}
             />
           )}
-
-          {false && activeTab === 'old_attachments' && (
-            <div className="space-y-6">
-              {/* Upload Section */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <input
-                  type="file"
-                  id="file-upload"
-                  className="hidden"
-                  onChange={handleFileUpload}
-                  accept="image/*,.pdf,.doc,.docx"
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <Upload className="h-5 w-5" />
-                  파일 업로드
-                </label>
-                <p className="mt-2 text-sm text-gray-600">
-                  이미지, PDF, Word 문서를 업로드할 수 있습니다.
-                </p>
-              </div>
-
-              {/* Photos List */}
-              {loadingPhotos ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">파일을 불러오는 중...</p>
-                </div>
-              ) : photos.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">첨부된 파일이 없습니다.</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {photos.filter(p => p.file_type !== 'photo_before' && p.file_type !== 'photo_after' && p.file_type !== 'receipt').map((photo) => (
-                    <div
-                      key={photo.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">
-                            {photo.filename}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {formatFileSize(photo.file_size)}
-                          </p>
-                        </div>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getFileTypeColor(photo.file_type)}`}>
-                          {getFileTypeLabel(photo.file_type)}
-                        </span>
-                      </div>
-                      
-                      {photo.description && (
-                        <p className="text-xs text-gray-600 mb-2">{photo.description}</p>
-                      )}
-                      
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-gray-400">
-                          {format(new Date(photo.created_at), 'yyyy.MM.dd HH:mm')}
-                        </p>
-                        <div className="flex gap-1">
-                          <button
-                            className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
-                            title="다운로드"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeletePhoto(photo.id, photo.file_path)}
-                            className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors"
-                            title="삭제"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'photos' && (
-            <div className="space-y-8">
-              {/* Before Work Photos */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FileImage className="h-5 w-5 text-yellow-600" />
-                    작업 전 사진
-                  </h3>
-                  <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-medium">
-                    {photos.filter(p => p.file_type === 'photo_before').length}장
-                  </span>
-                </div>
-                
-                {loadingPhotos ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  </div>
-                ) : photos.filter(p => p.file_type === 'photo_before').length === 0 ? (
-                  <div className="bg-gray-50 rounded-lg p-8 text-center">
-                    <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600">작업 전 사진이 없습니다.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {photos.filter(p => p.file_type === 'photo_before').map((photo) => (
-                      <div
-                        key={photo.id}
-                        className="relative group border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all"
-                      >
-                        <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                          <FileImage className="h-12 w-12 text-gray-400" />
-                        </div>
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <div className="flex gap-2">
-                            <button
-                              className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50"
-                              title="보기"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50"
-                              title="다운로드"
-                            >
-                              <Download className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePhoto(photo.id, photo.file_path)}
-                              className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50"
-                              title="삭제"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                        <div className="p-2 bg-white">
-                          <p className="text-xs text-gray-600 truncate">{photo.filename}</p>
-                          <p className="text-xs text-gray-400">
-                            {format(new Date(photo.created_at), 'MM.dd HH:mm')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* After Work Photos */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FileImage className="h-5 w-5 text-green-600" />
-                    작업 후 사진
-                  </h3>
-                  <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
-                    {photos.filter(p => p.file_type === 'photo_after').length}장
-                  </span>
-                </div>
-                
-                {loadingPhotos ? (
-                  <div className="text-center py-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  </div>
-                ) : photos.filter(p => p.file_type === 'photo_after').length === 0 ? (
-                  <div className="bg-gray-50 rounded-lg p-8 text-center">
-                    <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-600">작업 후 사진이 없습니다.</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {photos.filter(p => p.file_type === 'photo_after').map((photo) => (
-                      <div
-                        key={photo.id}
-                        className="relative group border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-all"
-                      >
-                        <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                          <FileImage className="h-12 w-12 text-gray-400" />
-                        </div>
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity flex items-center justify-center opacity-0 group-hover:opacity-100">
-                          <div className="flex gap-2">
-                            <button
-                              className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50"
-                              title="보기"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </button>
-                            <button
-                              className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50"
-                              title="다운로드"
-                            >
-                              <Download className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeletePhoto(photo.id, photo.file_path)}
-                              className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50"
-                              title="삭제"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
-                        <div className="p-2 bg-white">
-                          <p className="text-xs text-gray-600 truncate">{photo.filename}</p>
-                          <p className="text-xs text-gray-400">
-                            {format(new Date(photo.created_at), 'MM.dd HH:mm')}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Upload Instructions */}
-              <div className="bg-blue-50 rounded-lg p-4 text-sm text-blue-800">
-                <p className="font-medium mb-1">사진 업로드 안내</p>
-                <p>작업 전/후 사진은 작업일지 작성 시 구분하여 업로드해주세요.</p>
-                <p>업로드된 사진은 자동으로 분류되어 표시됩니다.</p>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'receipts' && (
-            <div className="space-y-6">
-              {/* Receipt Summary */}
-              <div className="bg-purple-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FileImage className="h-5 w-5 text-purple-600" />
-                    영수증 요약
-                  </h3>
-                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                    총 {photos.filter(p => p.file_type === 'receipt').length}건
-                  </span>
-                </div>
-                {photos.filter(p => p.file_type === 'receipt').length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">총 영수증 수</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        {photos.filter(p => p.file_type === 'receipt').length}건
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">총 용량</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        {formatFileSize(photos.filter(p => p.file_type === 'receipt').reduce((sum, p) => sum + p.file_size, 0))}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">최초 등록일</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {photos.filter(p => p.file_type === 'receipt').length > 0 
-                          ? format(new Date(Math.min(...photos.filter(p => p.file_type === 'receipt').map(p => new Date(p.created_at).getTime()))), 'MM.dd')
-                          : '-'}
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">최근 등록일</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {photos.filter(p => p.file_type === 'receipt').length > 0
-                          ? format(new Date(Math.max(...photos.filter(p => p.file_type === 'receipt').map(p => new Date(p.created_at).getTime()))), 'MM.dd')
-                          : '-'}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Receipts List */}
-              {loadingPhotos ? (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">영수증을 불러오는 중...</p>
-                </div>
-              ) : photos.filter(p => p.file_type === 'receipt').length === 0 ? (
-                <div className="bg-gray-50 rounded-lg p-8 text-center">
-                  <FileImage className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">등록된 영수증이 없습니다.</p>
-                  <p className="text-sm text-gray-500 mt-1">작업일지 작성 시 영수증을 첨부해주세요.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-900">영수증 목록</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {photos.filter(p => p.file_type === 'receipt').map((receipt, index) => (
-                      <div
-                        key={receipt.id}
-                        className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex">
-                          {/* Receipt Preview */}
-                          <div className="w-32 h-32 bg-gray-100 flex items-center justify-center flex-shrink-0">
-                            <FileImage className="h-12 w-12 text-gray-400" />
-                          </div>
-                          
-                          {/* Receipt Details */}
-                          <div className="flex-1 p-4">
-                            <div className="flex items-start justify-between mb-2">
-                              <div>
-                                <p className="font-medium text-gray-900 flex items-center gap-2">
-                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                                    #{index + 1}
-                                  </span>
-                                  영수증
-                                </p>
-                                <p className="text-sm text-gray-600 mt-1 truncate">
-                                  {receipt.filename}
-                                </p>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-1 text-xs text-gray-500">
-                              <p>크기: {formatFileSize(receipt.file_size)}</p>
-                              <p>등록일: {format(new Date(receipt.created_at), 'yyyy.MM.dd HH:mm')}</p>
-                            </div>
-                            
-                            {receipt.description && (
-                              <p className="mt-2 text-sm text-gray-700 bg-gray-50 rounded p-2">
-                                {receipt.description}
-                              </p>
-                            )}
-                            
-                            <div className="flex gap-2 mt-3">
-                              <button
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
-                                title="다운로드"
-                              >
-                                <Download className="h-3 w-3" />
-                                다운로드
-                              </button>
-                              <button
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
-                                title="보기"
-                              >
-                                <Eye className="h-3 w-3" />
-                                보기
-                              </button>
-                              <button
-                                onClick={() => handleDeletePhoto(receipt.id, receipt.file_path)}
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
-                                title="삭제"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                                삭제
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Upload Guide */}
-              <div className="bg-purple-50 rounded-lg p-4 text-sm text-purple-800">
-                <p className="font-medium mb-1">영수증 관리 안내</p>
-                <ul className="space-y-1 ml-4">
-                  <li>• 작업일지 작성 시 영수증 첨부 섹션에서 업로드 가능합니다.</li>
-                  <li>• 영수증은 자재 구매, 식대, 기타 경비 등의 증빙자료로 사용됩니다.</li>
-                  <li>• 영수증 원본은 별도 보관하시기 바랍니다.</li>
-                </ul>
-              </div>
-            </div>
-          )}
-          
-          {activeTab === 'markup' && (
-            <div className="space-y-6">
-              {/* Markup Summary */}
-              <div className="bg-purple-50 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                    <FileImage className="h-5 w-5 text-purple-600" />
-                    도면마킹 요약
-                  </h3>
-                  <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                    총 {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).length}건
-                  </span>
-                </div>
-                
-                {/* Summary Statistics */}
-                {photos.length > 0 && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">총 도면 수</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).length}건
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">첨부파일</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        {photos.filter(p => p.file_type === 'document' || p.file_type === 'other').length}건
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">작업 사진</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        {photos.filter(p => p.file_type === 'photo_before' || p.file_type === 'photo_after').length}건
-                      </p>
-                    </div>
-                    <div className="bg-white rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-1">작업일</p>
-                      <p className="text-sm font-medium text-gray-900">
-                        {format(new Date(report.work_date), 'MM.dd')}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Drawing Documents List */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <h4 className="font-medium text-gray-900 mb-4">도면 문서 목록</h4>
-                
-                {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).length > 0 ? (
-                  <div className="grid gap-4">
-                    {photos.filter(p => p.file_type === 'document' || (p.file_type === 'other' && (p.filename?.toLowerCase().includes('drawing') || p.filename?.toLowerCase().includes('도면') || p.filename?.toLowerCase().includes('blueprint') || p.filename?.toLowerCase().includes('.dwg') || p.filename?.toLowerCase().includes('.pdf')))).map((drawing) => (
-                      <div key={drawing.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start gap-4">
-                          {/* Preview Image */}
-                          <div className="w-32 h-32 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                            <FileImage className="h-12 w-12 text-gray-400" />
-                          </div>
-                          
-                          {/* Document Info */}
-                          <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">{drawing.filename}</h4>
-                            <div className="mt-2 text-sm text-gray-600 space-y-1">
-                              <p>크기: {formatFileSize(drawing.file_size)}</p>
-                              <p>등록일: {format(new Date(drawing.created_at), 'yyyy.MM.dd HH:mm')}</p>
-                            </div>
-                            
-                            {drawing.description && (
-                              <p className="mt-2 text-sm text-gray-700 bg-gray-50 rounded p-2">
-                                {drawing.description}
-                              </p>
-                            )}
-                            
-                            <div className="flex gap-2 mt-3">
-                              <button
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
-                                title="다운로드"
-                              >
-                                <Download className="h-3 w-3" />
-                                다운로드
-                              </button>
-                              <button
-                                className="flex items-center gap-1 px-3 py-1.5 text-xs bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
-                                title="마킹 도구로 열기"
-                              >
-                                <Edit className="h-3 w-3" />
-                                마킹 도구로 열기
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-white rounded-lg">
-                    <FileImage className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500">등록된 도면마킹 문서가 없습니다</p>
-                    <p className="text-sm text-gray-400 mt-1">작업일지 작성 시 도면을 첨부하면 여기에 표시됩니다</p>
-                  </div>
-                )}
-              </div>
-              
-              {/* Markup Guide */}
-              <div className="bg-purple-50 rounded-lg p-4 text-sm text-purple-800">
-                <p className="font-medium mb-1">도면마킹 관리 안내</p>
-                <ul className="space-y-1 ml-4">
-                  <li>• 작업일지 작성 시 도면마킹문서함에서 도면을 선택할 수 있습니다.</li>
-                  <li>• 선택된 도면은 작업 진행 상황을 표시하는 용도로 사용됩니다.</li>
-                  <li>• 마킹 도구로 열기를 통해 도면에 추가 마킹을 할 수 있습니다.</li>
-                </ul>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Footer with Tab-specific Actions */}
@@ -1347,6 +858,58 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                 >
                   <Edit className="h-4 w-4" />
                   {tabEditStates.workers ? '편집 모드 종료' : '작업자 편집'}
+                </button>
+              )}
+              {activeTab === 'attachments' && (
+                <button
+                  onClick={() => handleTabEditToggle('attachments')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors ${
+                    tabEditStates.attachments
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <Edit className="h-4 w-4" />
+                  {tabEditStates.attachments ? '편집 모드 종료' : '첨부파일 편집'}
+                </button>
+              )}
+              {activeTab === 'photos' && (
+                <button
+                  onClick={() => handleTabEditToggle('photos')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors ${
+                    tabEditStates.photos
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <Edit className="h-4 w-4" />
+                  {tabEditStates.photos ? '편집 모드 종료' : '사진 편집'}
+                </button>
+              )}
+              {activeTab === 'receipts' && (
+                <button
+                  onClick={() => handleTabEditToggle('receipts')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors ${
+                    tabEditStates.receipts
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <Edit className="h-4 w-4" />
+                  {tabEditStates.receipts ? '편집 모드 종료' : '영수증 편집'}
+                </button>
+              )}
+              {activeTab === 'markup' && (
+                <button
+                  onClick={() => handleTabEditToggle('markup')}
+                  className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-colors ${
+                    tabEditStates.markup
+                      ? 'bg-gray-600 text-white hover:bg-gray-700'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  <Edit className="h-4 w-4" />
+                  {tabEditStates.markup ? '편집 모드 종료' : '도면마킹 편집'}
                 </button>
               )}
             </div>
