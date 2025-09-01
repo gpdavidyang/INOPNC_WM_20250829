@@ -90,7 +90,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
   const [saving, setSaving] = useState(false)
   const [photos, setPhotos] = useState<PhotoFile[]>([])
   const [loadingPhotos, setLoadingPhotos] = useState(false)
-  const [activeTab, setActiveTab] = useState<'info' | 'workers' | 'attachments' | 'photos' | 'receipts'>('info')
+  const [activeTab, setActiveTab] = useState<'info' | 'workers' | 'attachments' | 'photos' | 'receipts' | 'markup'>('info')
   const [actualWorkersCount, setActualWorkersCount] = useState<number>(0)
   const [loadingWorkers, setLoadingWorkers] = useState(true)
   
@@ -432,6 +432,16 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
               }`}
             >
               영수증정보 ({photos.filter(p => p.file_type === 'receipt').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('markup')}
+              className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === 'markup'
+                  ? 'border-purple-600 text-purple-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              도면마킹
             </button>
           </nav>
         </div>

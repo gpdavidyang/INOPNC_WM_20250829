@@ -216,6 +216,9 @@ export default function DailyReportFormEnhanced({
   const [showPDFModal, setShowPDFModal] = useState(false)
   const [pdfPhotoGroups, setPDFPhotoGroups] = useState<PhotoGroup[]>([])
   const [showDrawingModal, setShowDrawingModal] = useState(false)
+  const [showMarkupListModal, setShowMarkupListModal] = useState(false)
+  const [markupDocuments, setMarkupDocuments] = useState<any[]>([])
+  const [loadingMarkupDocs, setLoadingMarkupDocs] = useState(false)
   
   // Section 5: Receipts
   const [receipts, setReceipts] = useState<ReceiptEntry[]>([])
@@ -619,7 +622,7 @@ export default function DailyReportFormEnhanced({
     setShowDrawingModal(true)
   }
 
-  const handleDrawingSelection = (source: 'camera' | 'gallery' | 'file') => {
+  const handleDrawingSelection = (source: 'camera' | 'gallery' | 'file' | 'markup') => {
     setShowDrawingModal(false)
     
     if (source === 'camera') {
@@ -649,6 +652,12 @@ export default function DailyReportFormEnhanced({
         }
       }
       input.click()
+    } else if (source === 'markup') {
+      // 도면마킹문서함에서 선택
+      setShowMarkupListModal(true)
+      if (formData.site_id && markupDocuments.length === 0) {
+        fetchMarkupDocuments()
+      }
     } else if (source === 'file') {
       // 파일에서 선택
       const input = document.createElement('input')
@@ -662,6 +671,44 @@ export default function DailyReportFormEnhanced({
         }
       }
       input.click()
+    }
+  }
+
+  // 도면마킹문서함 데이터 가져오기
+  const fetchMarkupDocuments = async () => {
+    setLoadingMarkupDocs(true)
+    try {
+      const response = await fetch(`/api/markup-documents?site_id=${formData.site_id}`)
+      const result = await response.json()
+      
+      if (result.success) {
+        setMarkupDocuments(result.data)
+      } else {
+        console.error('Failed to fetch markup documents:', result.error)
+      }
+    } catch (error) {
+      console.error('Error fetching markup documents:', error)
+    } finally {
+      setLoadingMarkupDocs(false)
+    }
+  }
+
+  // 마크업 문서 선택 핸들러
+  const handleMarkupDocumentSelect = async (document: any) => {
+    try {
+      // 도면 이미지를 File 객체로 변환
+      const response = await fetch(document.blueprint_url)
+      const blob = await response.blob()
+      const file = new File([blob], document.original_blueprint_filename || 'markup.png', { type: blob.type })
+      
+      // drawings 배열에 추가
+      setDrawings([...drawings, file])
+      setShowMarkupListModal(false)
+      
+      showErrorNotification('성공', `${document.title} 도면이 추가되었습니다`, 'success')
+    } catch (error) {
+      console.error('Error adding markup document:', error)
+      showErrorNotification('오류', '도면을 추가할 수 없습니다', 'error')
     }
   }
 
@@ -2006,6 +2053,74 @@ export default function DailyReportFormEnhanced({
                   saveToDocumentFolder={true}
                 />
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Markup Documents List Modal */}
+      {showMarkupListModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowMarkupListModal(false)}>
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl max-h-[80vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">도면마킹문서함</h2>
+                <button
+                  onClick={() => setShowMarkupListModal(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                </button>
+              </div>
+              {formData.site_id && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  현장: {sites.find(s => s.id === formData.site_id)?.name}
+                </p>
+              )}
+            </div>
+            
+            <div className="p-4 overflow-y-auto max-h-[calc(80vh-80px)]">
+              {loadingMarkupDocs ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                </div>
+              ) : markupDocuments.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400">저장된 도면마킹 문서가 없습니다</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {markupDocuments.map((doc) => (
+                    <button
+                      key={doc.id}
+                      onClick={() => handleMarkupDocumentSelect(doc)}
+                      className="w-full bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 rounded-lg p-4 text-left transition-colors"
+                    >
+                      <div className="flex items-start gap-3">
+                        {doc.blueprint_url && (
+                          <img 
+                            src={doc.blueprint_url} 
+                            alt={doc.title}
+                            className="w-20 h-20 object-cover rounded border border-gray-200 dark:border-gray-600"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate">{doc.title}</h3>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            {doc.original_blueprint_filename}
+                          </p>
+                          <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            <span>마킹: {doc.markup_count || 0}개</span>
+                            <span>{new Date(doc.created_at).toLocaleDateString('ko-KR')}</span>
+                          </div>
+                        </div>
+                        <ChevronDown className="h-5 w-5 text-gray-400 transform -rotate-90" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

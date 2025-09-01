@@ -78,18 +78,29 @@ export default function WorkerManagementTab({
   const runDebugCheck = async () => {
     console.log('=== RUNNING DEBUG CHECK ===')
     try {
-      const response = await fetch(`/api/debug/workers?reportId=${reportId}`)
+      const response = await fetch(`/api/debug/worker-diagnostics?reportId=${reportId}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      })
       const data = await response.json()
-      console.log('Debug info:', data)
+      console.log('Debug diagnostics:', data)
       setDebugInfo(data)
       
-      // Show alert with key info
-      alert(`Debug Info:
-- Auth: ${data.auth?.hasUser ? 'Yes' : 'No'} (${data.auth?.userEmail})
-- Reports Access: ${data.reports?.canAccess ? 'Yes' : 'No'} (${data.reports?.count} reports)
-- Workers Read: ${data.workers?.canRead ? 'Yes' : 'No'} (${data.workers?.count} workers)
-- Insert Test: ${data.insertTest?.success ? 'Success' : 'Failed'}
-${data.insertTest?.error ? `- Insert Error: ${data.insertTest.error}` : ''}`)
+      // Show alert with summary
+      const summary = data.summary
+      alert(`🔍 Worker Management Diagnostics:
+      
+✅ Auth: ${summary.authOk ? 'OK' : '❌ FAILED'}
+✅ Database: ${summary.tableAccessible ? 'OK' : '❌ FAILED'}
+📊 Total Workers in DB: ${summary.totalWorkersInDb}
+📋 Workers for this Report: ${summary.reportHasWorkers}
+🌐 API Endpoint: ${summary.apiWorking ? 'OK' : '❌ FAILED'}
+
+🎯 Likely Issue: ${summary.likelyIssue}
+
+Check console for full details.`)
     } catch (error) {
       console.error('Debug check failed:', error)
       alert('Debug check failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
@@ -419,9 +430,22 @@ ${data.insertTest?.error ? `- Insert Error: ${data.insertTest.error}` : ''}`)
       </div>
 
       {/* Debug Info Panel */}
-      {debugMode && debugInfo && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-xs font-mono overflow-auto max-h-96">
-          <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+      {debugMode && (
+        <div className="space-y-2">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm font-semibold text-blue-900">Current State:</p>
+            <p className="text-xs text-blue-700">
+              Report ID: {reportId || 'None'} | 
+              Workers in State: {workers.length} | 
+              Loading: {loading ? 'Yes' : 'No'} | 
+              Error: {error || 'None'}
+            </p>
+          </div>
+          {debugInfo && (
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-xs font-mono overflow-auto max-h-96">
+              <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+            </div>
+          )}
         </div>
       )}
 
