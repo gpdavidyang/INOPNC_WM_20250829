@@ -57,8 +57,6 @@ export function DailyReportDetailView({
   const [showActions, setShowActions] = useState(false)
 
   const canEdit = currentUser.id === report.created_by && report.status === 'draft'
-  const canApprove = ['admin', 'site_manager'].includes(currentUser.role) && 
-                     report.status === 'submitted'
   const canDelete = currentUser.id === report.created_by && report.status === 'draft'
 
   const getStatusBadge = (status: string) => {
@@ -122,7 +120,7 @@ export function DailyReportDetailView({
               <Share2 className="w-4 h-4 mr-1" />
               공유
             </Button>
-            {(canEdit || canApprove || canDelete) && (
+            {(canEdit || canDelete) && (
               <div className="relative">
                 <Button
                   variant="outline"
@@ -144,24 +142,6 @@ export function DailyReportDetailView({
                         <Edit className="w-4 h-4" />
                         수정
                       </button>
-                    )}
-                    {canApprove && (
-                      <>
-                        <button
-                          onClick={onApprove}
-                          className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-100 text-green-600"
-                        >
-                          <CheckCircle className="w-4 h-4" />
-                          승인
-                        </button>
-                        <button
-                          onClick={onReject}
-                          className="flex items-center gap-2 w-full px-4 py-2 text-sm hover:bg-gray-100 text-red-600"
-                        >
-                          <XCircle className="w-4 h-4" />
-                          반려
-                        </button>
-                      </>
                     )}
                     {canDelete && (
                       <button

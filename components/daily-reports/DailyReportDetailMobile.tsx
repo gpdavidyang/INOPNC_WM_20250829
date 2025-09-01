@@ -649,25 +649,6 @@ export default function DailyReportDetailMobile({ report, currentUser }: DailyRe
               수정
             </button>
           )}
-          {canApprove && (
-            <>
-              <button
-                onClick={() => setShowRejectDialog(true)}
-                className="flex-1 h-12 px-4 border border-red-300 dark:border-red-700 bg-white dark:bg-gray-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center justify-center gap-2 font-medium"
-              >
-                <XCircle className="h-5 w-5" />
-                반려
-              </button>
-              <button
-                onClick={() => handleApproval(true)}
-                disabled={loading}
-                className="flex-1 h-12 px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium disabled:cursor-not-allowed"
-              >
-                <CheckCircle className="h-5 w-5" />
-                승인
-              </button>
-            </>
-          )}
           {!canEdit && !canApprove && (
             <button
               className="flex-1 h-12 px-4 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 font-medium"

@@ -24,7 +24,8 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  AlertTriangle
+  AlertTriangle,
+  Camera
 } from 'lucide-react'
 import { DailyReport, Profile } from '@/types'
 import { showErrorNotification } from '@/lib/error-handling'
@@ -260,225 +261,231 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
             </div>
           </div>
 
-          {/* Work Summary - 작업 내용 요약 (파트너사 스타일) */}
+          {/* Work Content - 작업 내용 (부재명, 작업공정, 작업구간) */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
                 <FileText className="h-5 w-5" />
-                작업 내용 요약
+                작업 내용
               </h2>
             </div>
             <div className="px-3 py-3">
-              {report.work_logs && report.work_logs.length > 0 ? (
-                <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
-                  <div className="space-y-3">
-                    {report.work_logs.slice(0, 3).map((workLog, index) => (
-                      <div key={workLog.id} className="border-l-4 border-blue-500 pl-4">
-                        <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {workLog.work_type} - {workLog.location}
-                        </p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 leading-relaxed">
-                          {workLog.description}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">투입 인원: {workLog.worker_count}명</p>
-                      </div>
-                    ))}
-                    {report.work_logs.length > 3 && (
-                      <p className="text-sm text-gray-500 italic">
-                        외 {report.work_logs.length - 3}개 작업 항목...
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-gray-500 dark:text-gray-400">작업 내용이 없습니다.</p>
-              )}
-            </div>
-          </div>
-
-        {/* Detailed Work Logs - 컴팩트 접기/펼치기 */}
-        {report.work_logs && report.work_logs.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setShowDetailedWorkLogs(!showDetailedWorkLogs)}
-              className="w-full p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <Package className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                  상세 작업 내역 ({report.work_logs.length}건)
-                </h2>
-                {showDetailedWorkLogs ? (
-                  <ChevronUp className="h-4 w-4 text-gray-500" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                )}
-              </div>
-            </button>
-            
-            {showDetailedWorkLogs && (
-              <div className="p-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="space-y-2">
-                  {report.work_logs.map((workLog, index) => (
-                    <div key={workLog.id} className="border dark:border-gray-600 rounded-lg p-2.5 bg-gray-50 dark:bg-gray-700/50">
-                      <div className="mb-1.5">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">작업 {index + 1}</h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400">작업 종류</p>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">{workLog.work_type}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400">작업 위치</p>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">{workLog.location}</p>
-                        </div>
-                        <div className="col-span-2">
-                          <p className="text-gray-500 dark:text-gray-400">작업 내용</p>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">{workLog.description}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400">투입 인원</p>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">{workLog.worker_count}명</p>
-                        </div>
-                      </div>
-
-                      {workLog.work_log_materials && workLog.work_log_materials.length > 0 && (
-                        <div className="col-span-2 mt-1.5 pt-1.5 border-t border-gray-300 dark:border-gray-600">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">사용 자재</p>
-                          <div className="space-y-0.5">
-                            {workLog.work_log_materials.map((material: any) => (
-                              <div key={material.id} className="flex items-center justify-between text-xs">
-                                <span className="text-gray-900 dark:text-gray-100">{material.material?.name}</span>
-                                <span className="font-medium text-gray-900 dark:text-gray-100">
-                                  {material.quantity} {material.material?.unit}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Attendance Records - 작업자명과 공수 정보 */}
-        {report.attendance_records && report.attendance_records.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <button
-              onClick={() => setShowAttendanceDetails(!showAttendanceDetails)}
-              className="w-full p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex flex-col items-start gap-1">
-                  <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                    <Users className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                    출근 현황
-                  </h2>
-                  <div className="text-xs text-gray-600 dark:text-gray-400">
-                    {report.attendance_records.map((record: any, index: number) => (
-                      <span key={record.id}>
-                        {record.worker?.full_name}({record.work_hours ? `${record.work_hours.toFixed(1)}h` : '0h'})
-                        {index < report.attendance_records.length - 1 && ', '}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                {showAttendanceDetails ? (
-                  <ChevronUp className="h-4 w-4 text-gray-500" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                )}
-              </div>
-            </button>
-            
-            {showAttendanceDetails && (
-              <div className="p-3 border-t border-gray-200 dark:border-gray-700">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-600">
-                        <th className="text-left py-1.5 font-medium text-gray-500 dark:text-gray-400">작업자</th>
-                        <th className="text-left py-1.5 font-medium text-gray-500 dark:text-gray-400">출근</th>
-                        <th className="text-left py-1.5 font-medium text-gray-500 dark:text-gray-400">퇴근</th>
-                        <th className="text-left py-1.5 font-medium text-gray-500 dark:text-gray-400">시간</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {report.attendance_records.map((record: any) => (
-                        <tr key={record.id} className="border-b border-gray-100 dark:border-gray-600">
-                          <td className="py-1.5 text-gray-900 dark:text-gray-100">{record.worker?.full_name}</td>
-                          <td className="py-1.5 text-gray-900 dark:text-gray-100">{record.check_in_time || '-'}</td>
-                          <td className="py-1.5 text-gray-900 dark:text-gray-100">{record.check_out_time || '-'}</td>
-                          <td className="py-1.5 text-gray-900 dark:text-gray-100">
-                            {record.work_hours ? `${record.work_hours.toFixed(1)}h` : '-'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Notes & Issues - 컴팩트 카드 스타일 */}
-        {((report as any).notes || attachments.length > 0) && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-            <h2 className="text-sm font-semibold mb-2 text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-orange-500 dark:text-orange-400" />
-              특이사항 및 첨부파일
-            </h2>
-            <div>
-              {(report as any).notes && (
-                <div className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                  <p className="whitespace-pre-wrap">
-                    {(report as any).notes}
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">부재명</label>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {(report as any).component_name || (report as any).member_name || '해당 데이터 없음'}
                   </p>
                 </div>
-              )}
-              
-              {attachments.length > 0 && (
-                <div className={`${(report as any).notes ? 'mt-2 pt-2 border-t border-gray-200 dark:border-gray-700' : ''}`}>
-                  <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">첨부파일</p>
-                  <div className="space-y-1">
-                    {attachments.map((attachment: any) => (
-                      <div 
-                        key={attachment.id} 
-                        className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"
-                      >
-                        <div className="flex items-center gap-2">
-                          <Paperclip className="h-3.5 w-3.5 text-gray-500" />
-                          <span className="text-xs text-gray-900 dark:text-gray-100">{attachment.file_name}</span>
-                          <span className="text-xs text-gray-500">
-                            ({Math.round(attachment.file_size / 1024)}KB)
-                          </span>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="compact"
-                          onClick={() => window.open(attachment.file_path, '_blank')}
-                          className="p-1"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">작업공정</label>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {(report as any).work_process || (report as any).process_type || '해당 데이터 없음'}
+                  </p>
                 </div>
-              )}
-              
-              {!(report as any).notes && attachments.length === 0 && (
-                <p className="text-sm text-gray-500 dark:text-gray-400">특별한 사항이나 첨부파일이 없습니다.</p>
-              )}
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">작업구간</label>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {(report as any).work_section || '해당 데이터 없음'}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
-        )}
+
+
+        {/* Worker Information - 작업자 정보 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              작업자 정보
+            </h2>
+          </div>
+          <div className="px-3 py-3">
+            {report.attendance_records && report.attendance_records.length > 0 ? (
+              <div className="space-y-2">
+                {report.attendance_records.map((record: any) => (
+                  <div key={record.id} className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{record.worker?.full_name || '이름 없음'}</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      {record.work_hours ? `${record.work_hours.toFixed(1)}시간` : '0시간'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+            )}
+          </div>
+        </div>
+
+        {/* Before Work Photos - 작업 전 사진 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              작업 전 사진
+            </h2>
+          </div>
+          <div className="px-3 py-3">
+            {(report as any).before_photos && (report as any).before_photos.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {(report as any).before_photos.map((photo: any, index: number) => (
+                  <img 
+                    key={index} 
+                    src={photo.url || photo} 
+                    alt={`작업 전 사진 ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                    onClick={() => window.open(photo.url || photo, '_blank')}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+            )}
+          </div>
+        </div>
+
+        {/* After Work Photos - 작업 후 사진 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              작업 후 사진
+            </h2>
+          </div>
+          <div className="px-3 py-3">
+            {(report as any).after_photos && (report as any).after_photos.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {(report as any).after_photos.map((photo: any, index: number) => (
+                  <img 
+                    key={index} 
+                    src={photo.url || photo} 
+                    alt={`작업 후 사진 ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                    onClick={() => window.open(photo.url || photo, '_blank')}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+            )}
+          </div>
+        </div>
+
+        {/* Receipt Information - 영수증 정보 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              영수증 정보
+            </h2>
+          </div>
+          <div className="px-3 py-3">
+            {(report as any).receipts && (report as any).receipts.length > 0 ? (
+              <div className="space-y-2">
+                {(report as any).receipts.map((receipt: any, index: number) => (
+                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{receipt.store_name || '상호명 없음'}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">{receipt.amount ? `${receipt.amount.toLocaleString()}원` : '금액 정보 없음'}</p>
+                      </div>
+                      {receipt.image_url && (
+                        <button 
+                          onClick={() => window.open(receipt.image_url, '_blank')}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          보기
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+            )}
+          </div>
+        </div>
+
+        {/* Request to Headquarters - 본사에게 요청 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              본사에게 요청
+            </h2>
+          </div>
+          <div className="px-3 py-3">
+            {(report as any).headquarters_request ? (
+              <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                {(report as any).headquarters_request}
+              </p>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+            )}
+          </div>
+        </div>
+
+        {/* NPC-1000 Material Management - NPC-1000 자재관리 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              NPC-1000 자재관리
+            </h2>
+          </div>
+          <div className="px-3 py-3">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">입고</label>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {(report as any).npc1000_incoming !== null && (report as any).npc1000_incoming !== undefined 
+                    ? `${(report as any).npc1000_incoming}개` 
+                    : '해당 데이터 없음'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">사용</label>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {(report as any).npc1000_used !== null && (report as any).npc1000_used !== undefined 
+                    ? `${(report as any).npc1000_used}개` 
+                    : '해당 데이터 없음'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">잔량</label>
+                <p className="text-gray-900 dark:text-gray-100">
+                  {(report as any).npc1000_remaining !== null && (report as any).npc1000_remaining !== undefined 
+                    ? `${(report as any).npc1000_remaining}개` 
+                    : '해당 데이터 없음'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Special Notes - 특이 사항 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              특이 사항
+            </h2>
+          </div>
+          <div className="px-3 py-3">
+            {(report as any).issues || (report as any).notes ? (
+              <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                {(report as any).issues || (report as any).notes}
+              </p>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+            )}
+          </div>
+        </div>
+
         </div>
       </div>
 
