@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getAuthenticatedUser } from '@/lib/auth/session'
 
 // Force dynamic rendering for this route
@@ -30,6 +31,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const supabase = await createClient()
+    const serviceClient = createServiceClient() // For storage operations
 
     // Get user profile - profiles.id matches auth.users.id
     const { data: profile, error: profileError } = await supabase
@@ -69,7 +71,8 @@ export async function POST(request: NextRequest) {
 
     if (beforePhoto && beforePhoto.size > 0) {
       const beforePhotoName = `${Date.now()}-before-${beforePhoto.name}`
-      const { data: beforeUpload, error: beforeError } = await supabase.storage
+      // Use service client for storage operations
+      const { data: beforeUpload, error: beforeError } = await serviceClient.storage
         .from('photo-grids')
         .upload(beforePhotoName, beforePhoto)
 
@@ -78,7 +81,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to upload before photo' }, { status: 500 })
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = serviceClient.storage
         .from('photo-grids')
         .getPublicUrl(beforePhotoName)
       
@@ -87,7 +90,8 @@ export async function POST(request: NextRequest) {
 
     if (afterPhoto && afterPhoto.size > 0) {
       const afterPhotoName = `${Date.now()}-after-${afterPhoto.name}`
-      const { data: afterUpload, error: afterError } = await supabase.storage
+      // Use service client for storage operations
+      const { data: afterUpload, error: afterError } = await serviceClient.storage
         .from('photo-grids')
         .upload(afterPhotoName, afterPhoto)
 
@@ -96,7 +100,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Failed to upload after photo' }, { status: 500 })
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = serviceClient.storage
         .from('photo-grids')
         .getPublicUrl(afterPhotoName)
       

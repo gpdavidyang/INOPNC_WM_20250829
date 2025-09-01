@@ -55,6 +55,8 @@ export default function WorkerManagementTab({
   const [newWorker, setNewWorker] = useState<{ name: string; hours: number } | null>(null)
   const [availableWorkers, setAvailableWorkers] = useState<Profile[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [debugMode, setDebugMode] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   const workHourOptions = [
     { value: 0.5, label: '0.5' },
@@ -66,39 +68,84 @@ export default function WorkerManagementTab({
   ]
 
   useEffect(() => {
+    console.log('=== WorkerManagementTab mounted/updated ===')
+    console.log('reportId:', reportId)
+    console.log('siteId:', siteId)
     fetchWorkers()
     fetchAvailableWorkers()
   }, [reportId, siteId])
+
+  const runDebugCheck = async () => {
+    console.log('=== RUNNING DEBUG CHECK ===')
+    try {
+      const response = await fetch(`/api/debug/workers?reportId=${reportId}`)
+      const data = await response.json()
+      console.log('Debug info:', data)
+      setDebugInfo(data)
+      
+      // Show alert with key info
+      alert(`Debug Info:
+- Auth: ${data.auth?.hasUser ? 'Yes' : 'No'} (${data.auth?.userEmail})
+- Reports Access: ${data.reports?.canAccess ? 'Yes' : 'No'} (${data.reports?.count} reports)
+- Workers Read: ${data.workers?.canRead ? 'Yes' : 'No'} (${data.workers?.count} workers)
+- Insert Test: ${data.insertTest?.success ? 'Success' : 'Failed'}
+${data.insertTest?.error ? `- Insert Error: ${data.insertTest.error}` : ''}`)
+    } catch (error) {
+      console.error('Debug check failed:', error)
+      alert('Debug check failed: ' + (error instanceof Error ? error.message : 'Unknown error'))
+    }
+  }
 
   const fetchWorkers = async () => {
     try {
       setLoading(true)
       setError(null)
       
-      console.log('Fetching workers for reportId:', reportId)
-      const response = await fetch(`/api/admin/daily-reports/workers?reportId=${reportId}`)
-      const result = await response.json()
+      console.log('=== FETCH WORKERS START ===')
+      console.log('Report ID:', reportId)
+      console.log('Timestamp:', new Date().toISOString())
       
-      console.log('Workers fetch response:', {
-        status: response.status,
-        ok: response.ok,
-        data: result
+      const url = `/api/admin/daily-reports/workers?reportId=${reportId}&t=${Date.now()}`
+      console.log('Fetching from:', url)
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store'
       })
+      console.log('Response status:', response.status)
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+      
+      const result = await response.json()
+      console.log('Response body:', result)
       
       if (!response.ok) {
+        console.error('Response not OK:', {
+          status: response.status,
+          error: result.error,
+          details: result.details
+        })
         throw new Error(result.error || '작업자 정보를 불러오는데 실패했습니다')
       }
 
       const workersData = result.data || []
-      console.log('Setting workers state:', workersData)
+      console.log(`Found ${workersData.length} workers:`, workersData)
       setWorkers(workersData)
       
       // Call onWorkersUpdate if we have workers
       if (onWorkersUpdate && workersData.length > 0) {
+        console.log('Calling onWorkersUpdate with count:', workersData.length)
         onWorkersUpdate(workersData.length)
       }
+      
+      console.log('=== FETCH WORKERS COMPLETE ===')
     } catch (error) {
-      console.error('Error fetching workers:', error)
+      console.error('=== FETCH WORKERS ERROR ===')
+      console.error('Error object:', error)
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack')
       setError(error instanceof Error ? error.message : '작업자 정보를 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
@@ -187,7 +234,15 @@ export default function WorkerManagementTab({
   }
 
   const handleAddWorker = async () => {
+    console.log('=== ADD WORKER START ===')
+    console.log('New worker data:', newWorker)
+    
     if (!newWorker || !newWorker.name.trim() || newWorker.hours <= 0) {
+      console.error('Invalid worker data:', {
+        hasNewWorker: !!newWorker,
+        name: newWorker?.name,
+        hours: newWorker?.hours
+      })
       alert('작업자명과 공수를 올바르게 입력해주세요.')
       return
     }
@@ -201,37 +256,74 @@ export default function WorkerManagementTab({
         work_hours: newWorker.hours
       }
       
-      console.log('Adding worker with payload:', payload)
+      console.log('=== SENDING POST REQUEST ===')
+      console.log('URL: /api/admin/daily-reports/workers')
+      console.log('Method: POST')
+      console.log('Payload:', JSON.stringify(payload, null, 2))
 
       const response = await fetch('/api/admin/daily-reports/workers', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        },
+        body: JSON.stringify(payload),
+        cache: 'no-store'
       })
 
+      console.log('Response received:')
+      console.log('- Status:', response.status)
+      console.log('- Status Text:', response.statusText)
+      console.log('- OK:', response.ok)
+      console.log('- Headers:', Object.fromEntries(response.headers.entries()))
+
       const result = await response.json()
-      console.log('Add worker response:', {
-        status: response.status,
-        ok: response.ok,
-        result
-      })
+      console.log('Response body:', JSON.stringify(result, null, 2))
       
       if (!response.ok) {
+        console.error('=== ADD WORKER FAILED ===')
+        console.error('Error details:', {
+          status: response.status,
+          error: result.error,
+          details: result.details
+        })
+        
+        // Use debug endpoint for more info
+        console.log('Running debug check...')
+        const debugResponse = await fetch('/api/debug/workers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        const debugData = await debugResponse.json()
+        console.log('Debug response:', debugData)
+        
         throw new Error(result.error || '작업자 추가에 실패했습니다')
       }
 
+      console.log('=== ADD WORKER SUCCESS ===')
+      console.log('Worker added:', result.data)
+      
       setNewWorker(null)
       
       // Force refresh workers list
       console.log('Refreshing workers list after addition...')
       await fetchWorkers()
+      
+      // Double-check the data
+      console.log('Current workers state after refresh:', workers)
 
       alert('작업자가 추가되었습니다.')
     } catch (error) {
-      console.error('Error adding worker:', error)
+      console.error('=== ADD WORKER ERROR ===')
+      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error)
+      console.error('Error message:', error instanceof Error ? error.message : String(error))
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack')
       alert(error instanceof Error ? error.message : '작업자 추가에 실패했습니다.')
     } finally {
       setSaving(false)
+      console.log('=== ADD WORKER END ===')
     }
   }
 
@@ -310,6 +402,29 @@ export default function WorkerManagementTab({
 
   return (
     <div className="space-y-6">
+      {/* Debug Button */}
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={runDebugCheck}
+          className="px-3 py-1 bg-yellow-500 text-white rounded-md text-sm hover:bg-yellow-600"
+        >
+          🔍 Debug Check
+        </button>
+        <button
+          onClick={() => setDebugMode(!debugMode)}
+          className="px-3 py-1 bg-gray-500 text-white rounded-md text-sm hover:bg-gray-600"
+        >
+          {debugMode ? '🔒 Hide Debug' : '🔓 Show Debug'}
+        </button>
+      </div>
+
+      {/* Debug Info Panel */}
+      {debugMode && debugInfo && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-xs font-mono overflow-auto max-h-96">
+          <pre>{JSON.stringify(debugInfo, null, 2)}</pre>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

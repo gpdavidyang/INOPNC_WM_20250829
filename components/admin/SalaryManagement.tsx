@@ -212,10 +212,11 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   // Handle rule creation/editing
   const handleRuleSubmit = async () => {
     try {
-      const result = await upsertSalaryRule({
-        ...(editingRule?.id && { id: editingRule.id }),
-        ...ruleFormData
-      })
+      const submitData = editingRule?.id 
+        ? { ...ruleFormData, id: editingRule.id }
+        : ruleFormData
+        
+      const result = await upsertSalaryRule(submitData)
       
       if (result.success) {
         await loadRules()
@@ -918,8 +919,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                       multiplier: selectedRuleDetail.multiplier || 1,
                       site_id: selectedRuleDetail.site_id || '',
                       role: selectedRuleDetail.role || '',
-                      is_active: selectedRuleDetail.is_active,
-                      id: selectedRuleDetail.id
+                      is_active: selectedRuleDetail.is_active
                     })
                     setShowRuleDetailModal(false)
                     setSelectedRuleDetail(null)

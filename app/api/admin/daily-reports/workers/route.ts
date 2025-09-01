@@ -50,11 +50,24 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('=== WORKERS API POST START ===')
+  console.log('Request URL:', request.url)
+  console.log('Request method:', request.method)
+  console.log('Request headers:', Object.fromEntries(request.headers.entries()))
+  
   try {
     const supabase = await createClient()
+    console.log('Supabase client created')
     
     // 인증 확인
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('Auth check:', {
+      hasUser: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+      authError: authError?.message
+    })
+    
     if (authError || !user) {
       console.error('Auth error in workers POST:', authError)
       return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
@@ -63,7 +76,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { daily_report_id, worker_name, work_hours } = body
 
-    console.log('POST worker request:', { daily_report_id, worker_name, work_hours, userId: user.id })
+    console.log('=== POST WORKER DATA ===')
+    console.log('Report ID:', daily_report_id)
+    console.log('Worker Name:', worker_name)
+    console.log('Work Hours:', work_hours)
+    console.log('User ID:', user.id)
 
     if (!daily_report_id || !worker_name || !work_hours) {
       return NextResponse.json({ 
@@ -89,30 +106,46 @@ export async function POST(request: NextRequest) {
 
     console.log('Report access verified:', { reportId: report.id, reportedBy: report.reported_by })
 
+    // Prepare insert data
+    const insertData = {
+      daily_report_id,
+      worker_name: worker_name.trim(),
+      work_hours: Number(work_hours)
+    }
+    
+    console.log('=== ATTEMPTING DATABASE INSERT ===')
+    console.log('Insert data:', insertData)
+
     const { data, error } = await supabase
       .from('daily_report_workers')
-      .insert({
-        daily_report_id,
-        worker_name: worker_name.trim(),
-        work_hours: Number(work_hours)
-      })
+      .insert(insertData)
       .select()
       .single()
 
+    console.log('=== DATABASE INSERT RESULT ===')
+    console.log('Success:', !error)
+    console.log('Data returned:', data)
+    console.log('Error:', error)
+
     if (error) {
-      console.error('Database error inserting worker:', {
-        error,
-        daily_report_id,
-        worker_name,
-        work_hours
-      })
+      console.error('=== DATABASE INSERT ERROR ===')
+      console.error('Error code:', error.code)
+      console.error('Error message:', error.message)
+      console.error('Error details:', error.details)
+      console.error('Error hint:', error.hint)
+      console.error('Full error object:', JSON.stringify(error, null, 2))
+      
       return NextResponse.json({ 
         error: error.message,
-        details: 'Check RLS policies and foreign key constraints'
+        errorCode: error.code,
+        details: 'Check RLS policies and foreign key constraints',
+        hint: error.hint
       }, { status: 500 })
     }
 
-    console.log('Worker inserted successfully:', data)
+    console.log('=== WORKER INSERTED SUCCESSFULLY ===')
+    console.log('Worker ID:', data.id)
+    console.log('Worker data:', data)
 
     // Update total workers count in daily_reports
     const { data: workers } = await supabase
