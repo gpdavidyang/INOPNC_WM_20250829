@@ -31,14 +31,16 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData()
     const supabase = await createClient()
 
-    // Get user profile
-    const { data: profile } = await supabase
+    // Get user profile - profiles.id matches auth.users.id
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .single()
 
-    if (!profile) {
+    if (profileError || !profile) {
+      console.log('Profile lookup error:', profileError)
+      console.log('User ID:', user.id)
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
