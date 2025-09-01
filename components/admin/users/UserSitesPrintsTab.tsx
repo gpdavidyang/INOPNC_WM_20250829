@@ -66,18 +66,21 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
         .eq('user_id', userId)
         .order('work_date', { ascending: false })
         .limit(1)
-        .single()
+        .maybeSingle() // single() 대신 maybeSingle() 사용
 
-      if (!error && latestRecord) {
+      if (!error && latestRecord && latestRecord.work_date) {
         const latestDate = new Date(latestRecord.work_date)
         setCurrentMonth(new Date(latestDate.getFullYear(), latestDate.getMonth(), 1))
         console.log('📅 [UserSitesPrintsTab] Set month to latest data:', format(latestDate, 'yyyy-MM'))
       } else {
-        // 기본값으로 현재 월 사용
-        console.log('📅 [UserSitesPrintsTab] No data found, using current month')
+        // 기본값으로 8월 사용 (데이터가 있는 월)
+        console.log('📅 [UserSitesPrintsTab] No data found, using August 2025')
+        setCurrentMonth(new Date(2025, 7, 1)) // 8월로 설정
       }
     } catch (error) {
       console.error('Error finding latest data:', error)
+      // 오류 시에도 8월로 설정
+      setCurrentMonth(new Date(2025, 7, 1))
     }
   }
 
