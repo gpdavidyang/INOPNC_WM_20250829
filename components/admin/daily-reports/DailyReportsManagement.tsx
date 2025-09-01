@@ -615,7 +615,7 @@ export default function DailyReportsManagement() {
                     <td className="px-4 py-3">
                       <div 
                         className="flex items-center cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => openDetailModal(report)}
+                        onClick={() => router.push(`/dashboard/admin/daily-reports/${report.id}`)}
                       >
                         <Calendar className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
                         <div>
@@ -742,7 +742,7 @@ export default function DailyReportsManagement() {
                     <td className="px-4 py-3 text-sm font-medium">
                       <div className="flex justify-center gap-1">
                         <button
-                          onClick={() => openDetailModal(report)}
+                          onClick={() => router.push(`/dashboard/admin/daily-reports/${report.id}`)}
                           className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
                           title="상세보기"
                         >
