@@ -45,11 +45,21 @@ export interface SalaryRecord {
 export interface OutputSummary {
   worker_id: string
   worker_name: string
-  role: string
+  worker_role: string
+  site_id: string
   site_name: string
-  total_work_days: number
+  work_days_count: number
   total_work_hours: number
-  estimated_salary: number
+  total_actual_hours: number
+  total_overtime_hours: number
+  total_pay: number
+  base_pay: number
+  overtime_pay: number
+  bonus_pay: number
+  deductions: number
+  first_work_date: string
+  last_work_date: string
+  work_dates: string[]
 }
 
 export interface WorkerCalendarData {
@@ -1004,6 +1014,13 @@ export async function getOutputSummary(
         site: any
         work_days: Set<string>
         total_work_hours: number
+        total_actual_hours: number
+        total_overtime_hours: number
+        total_pay: number
+        base_pay: number
+        overtime_pay: number
+        bonus_pay: number
+        deductions: number
       }> = {}
 
       for (const report of reports) {
@@ -1024,43 +1041,59 @@ export async function getOutputSummary(
               worker,
               site,
               work_days: new Set(),
-              total_work_hours: 0
+              total_work_hours: 0,
+              total_actual_hours: 0,
+              total_overtime_hours: 0,
+              total_pay: 0,
+              base_pay: 0,
+              overtime_pay: 0,
+              bonus_pay: 0,
+              deductions: 0
             }
           }
 
+          const workHours = parseFloat(workerEntry.work_hours) || 0
+          const regularHours = Math.min(workHours, 8)
+          const overtimeHours = Math.max(workHours - 8, 0)
+
           workSummary[key].work_days.add(report.work_date)
-          workSummary[key].total_work_hours += parseFloat(workerEntry.work_hours) || 0
+          workSummary[key].total_work_hours += workHours
+          workSummary[key].total_actual_hours += workHours
+          workSummary[key].total_overtime_hours += overtimeHours
+
+          // Calculate pay based on role
+          const hourlyRate = worker.role === 'site_manager' ? 27500 : 16250
+          const dayBasePay = regularHours * hourlyRate
+          const dayOvertimePay = overtimeHours * hourlyRate * 1.5
+
+          workSummary[key].base_pay += Math.round(dayBasePay)
+          workSummary[key].overtime_pay += Math.round(dayOvertimePay)
+          workSummary[key].total_pay += Math.round(dayBasePay + dayOvertimePay)
         }
       }
 
-      // Transform to output format and estimate salaries
+      // Transform to output format 
       const outputData: OutputSummary[] = Object.values(workSummary).map(item => {
-        const totalWorkHours = item.total_work_hours
+        const workDatesArray = Array.from(item.work_days).sort()
         
-        // Find applicable salary rules
-        const dailyRule = rules.find(r => 
-          r.rule_type === 'daily_rate' && 
-          (!r.site_id || r.site_id === item.site.id) &&
-          (!r.role || r.role === item.worker.role)
-        )
-
-        let estimatedSalary = 0
-        if (dailyRule) {
-          estimatedSalary = totalWorkHours * dailyRule.base_amount
-        } else {
-          // Default calculation based on role
-          const defaultRate = item.worker.role === 'site_manager' ? 220000 : 130000
-          estimatedSalary = totalWorkHours * defaultRate
-        }
-
         return {
           worker_id: item.worker.id,
           worker_name: item.worker.full_name,
-          role: item.worker.role,
+          worker_role: item.worker.role,
+          site_id: item.site.id,
           site_name: item.site.name,
-          total_work_days: item.work_days.size,
-          total_work_hours: totalWorkHours,
-          estimated_salary: Math.round(estimatedSalary)
+          work_days_count: item.work_days.size,
+          total_work_hours: item.total_work_hours,
+          total_actual_hours: item.total_actual_hours,
+          total_overtime_hours: item.total_overtime_hours,
+          total_pay: item.total_pay,
+          base_pay: item.base_pay,
+          overtime_pay: item.overtime_pay,
+          bonus_pay: item.bonus_pay,
+          deductions: item.deductions,
+          first_work_date: workDatesArray[0] || '',
+          last_work_date: workDatesArray[workDatesArray.length - 1] || '',
+          work_dates: workDatesArray
         }
       })
 

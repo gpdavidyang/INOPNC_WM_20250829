@@ -7,15 +7,12 @@ import {
   getAvailableSitesForSalary,
   getAvailableWorkersForSalary,
   getOutputSummary,
-  getWorkerCalendarData,
   calculateSalaries,
-  OutputSummary,
-  WorkerCalendarData
+  OutputSummary
 } from '@/app/actions/admin/salary'
 import { Search, DollarSign, Calculator, Play, FileText } from 'lucide-react'
 import { CustomSelect, CustomSelectContent, CustomSelectItem, CustomSelectTrigger, CustomSelectValue } from '@/components/ui/custom-select'
 import SalaryStatement from './salary/SalaryStatement'
-import WorkerCalendar from './WorkerCalendar'
 
 interface SalaryManagementProps {
   profile: Profile
@@ -30,9 +27,6 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   const [outputError, setOutputError] = useState<string | null>(null)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
-  const [selectedWorkerForCalendar, setSelectedWorkerForCalendar] = useState<string>('')
-  const [workerCalendarData, setWorkerCalendarData] = useState<WorkerCalendarData[]>([])
-
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -80,17 +74,6 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   }
 
   // Load calendar data for selected worker
-  const loadWorkerCalendarData = async (workerId: string) => {
-    try {
-      const result = await getWorkerCalendarData(workerId, selectedYear, selectedMonth)
-      if (result.success && result.data) {
-        setWorkerCalendarData(result.data)
-      }
-    } catch (err) {
-      console.error('Failed to load worker calendar data:', err)
-    }
-  }
-
   // Export data to Excel
   const exportToExcel = () => {
     if (!outputData || outputData.length === 0) {
@@ -347,100 +330,204 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               <p className="text-red-600 dark:text-red-400">{outputError}</p>
             </div>
           ) : outputData.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">작업자</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">현장</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">공수정보</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">급여정보</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">근무일수</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">달력</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {outputData.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap">
+            <div className="space-y-6">
+              {outputData.map((item, index) => (
+                <div 
+                  key={index} 
+                  className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01]"
+                >
+                  {/* Header with worker info and actions */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-600 px-6 py-4 border-b border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                          {item.worker_name.charAt(0)}
+                        </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {item.worker_name}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            {item.worker_role}
+                          </h3>
+                          <div className="flex items-center space-x-3 text-sm text-gray-600 dark:text-gray-300">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              item.worker_role === 'site_manager' 
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                                : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                            }`}>
+                              {item.worker_role === 'site_manager' ? '현장관리자' : '작업자'}
+                            </span>
+                            <span className="flex items-center">
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              {item.site_name}
+                            </span>
                           </div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900 dark:text-gray-100">
-                          {item.site_name}
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                            ₩{(item.total_pay || 0).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">총 급여</div>
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm">
-                          <div className="text-gray-900 dark:text-gray-100">공수: {item.total_work_hours || 0}</div>
-                          <div className="text-gray-500 dark:text-gray-400">실제: {item.total_actual_hours || 0}h</div>
+                        <button
+                          onClick={() => {
+                            const worker = availableWorkers.find(w => w.name === item.worker_name)
+                            if (worker) {
+                              window.location.href = `/dashboard/admin/salary/calendar/${worker.id}?name=${encodeURIComponent(item.worker_name)}&year=${selectedYear}&month=${selectedMonth}`
+                            }
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors duration-200 flex items-center space-x-2"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>캘린더보기</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content with stats grid */}
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {/* Work Hours Stats */}
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          근무 시간
+                        </h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">총 근무</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {item.total_work_hours || 0}h
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">실제</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {item.total_actual_hours || 0}h
+                            </span>
+                          </div>
                           {(item.total_overtime_hours || 0) > 0 && (
-                            <div className="text-orange-600">연장: {item.total_overtime_hours || 0}h</div>
+                            <div className="flex justify-between items-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                              <span className="text-sm text-orange-600 dark:text-orange-300">연장</span>
+                              <span className="font-medium text-orange-700 dark:text-orange-300">
+                                {item.total_overtime_hours || 0}h
+                              </span>
+                            </div>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm">
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
-                            총 ₩{(item.total_pay || 0).toLocaleString()}
-                          </div>
-                          <div className="text-gray-500 dark:text-gray-400">
-                            기본 ₩{(item.base_pay || 0).toLocaleString()}
+                      </div>
+
+                      {/* Pay Details */}
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                          </svg>
+                          급여 상세
+                        </h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <span className="text-sm text-gray-600 dark:text-gray-300">기본급</span>
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              ₩{(item.base_pay || 0).toLocaleString()}
+                            </span>
                           </div>
                           {(item.overtime_pay || 0) > 0 && (
-                            <div className="text-orange-600">
-                              연장 ₩{(item.overtime_pay || 0).toLocaleString()}
+                            <div className="flex justify-between items-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                              <span className="text-sm text-orange-600 dark:text-orange-300">연장수당</span>
+                              <span className="font-medium text-orange-700 dark:text-orange-300">
+                                ₩{(item.overtime_pay || 0).toLocaleString()}
+                              </span>
                             </div>
                           )}
                           {(item.bonus_pay || 0) > 0 && (
-                            <div className="text-green-600">
-                              보너스 ₩{(item.bonus_pay || 0).toLocaleString()}
+                            <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                              <span className="text-sm text-green-600 dark:text-green-300">보너스</span>
+                              <span className="font-medium text-green-700 dark:text-green-300">
+                                ₩{(item.bonus_pay || 0).toLocaleString()}
+                              </span>
                             </div>
                           )}
                           {(item.deductions || 0) > 0 && (
-                            <div className="text-red-600">
-                              공제 -₩{(item.deductions || 0).toLocaleString()}
+                            <div className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                              <span className="text-sm text-red-600 dark:text-red-300">공제</span>
+                              <span className="font-medium text-red-700 dark:text-red-300">
+                                -₩{(item.deductions || 0).toLocaleString()}
+                              </span>
                             </div>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm">
-                          <div className="text-gray-900 dark:text-gray-100">
-                            {item.work_days_count}일
+                      </div>
+
+                      {/* Work Days */}
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          근무 일수
+                        </h4>
+                        <div className="space-y-2">
+                          <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-center">
+                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                              {item.work_days_count || 0}
+                            </div>
+                            <div className="text-sm text-purple-600 dark:text-purple-300">총 근무일</div>
                           </div>
+                          {item.first_work_date && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                              시작: {new Date(item.first_work_date).toLocaleDateString('ko-KR')}
+                            </div>
+                          )}
                           {item.last_work_date && (
-                            <div className="text-gray-500 dark:text-gray-400">
+                            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
                               최종: {new Date(item.last_work_date).toLocaleDateString('ko-KR')}
                             </div>
                           )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => {
-                            setSelectedWorkerForCalendar(item.worker_name)
-                            const worker = availableWorkers.find(w => w.name === item.worker_name)
-                            if (worker) {
-                              loadWorkerCalendarData(worker.id)
-                            }
-                          }}
-                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          달력 보기
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+
+                      {/* Work Dates */}
+                      <div className="space-y-3">
+                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                          <svg className="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          근무 날짜
+                        </h4>
+                        <div className="max-h-32 overflow-y-auto">
+                          <div className="flex flex-wrap gap-1">
+                            {(item.work_dates || []).slice(0, 15).map((date, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-1 text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 rounded"
+                              >
+                                {new Date(date).toLocaleDateString('ko-KR', { 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </span>
+                            ))}
+                            {(item.work_dates || []).length > 15 && (
+                              <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded">
+                                +{(item.work_dates || []).length - 15}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-8">
@@ -450,36 +537,6 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             </div>
           )}
 
-          {/* Worker Calendar Modal */}
-          {selectedWorkerForCalendar && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                <div className="p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                      {selectedWorkerForCalendar} - {selectedYear}년 {selectedMonth}월 근무 달력
-                    </h3>
-                    <button
-                      onClick={() => {
-                        setSelectedWorkerForCalendar('')
-                        setWorkerCalendarData([])
-                      }}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                    >
-                      <span className="sr-only">닫기</span>
-                      ×
-                    </button>
-                  </div>
-                  
-                  <WorkerCalendar
-                    year={selectedYear}
-                    month={selectedMonth}
-                    calendarData={workerCalendarData}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

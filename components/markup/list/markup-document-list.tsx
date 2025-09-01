@@ -113,6 +113,15 @@ export function MarkupDocumentList({
 
       const response = await fetch(`/api/markup-documents?${params}`)
       const result: DocumentsResponse = await response.json()
+      
+      console.log('MarkupDocumentList API response:', {
+        ok: response.ok,
+        status: response.status,
+        success: result.success,
+        dataLength: result.data?.length,
+        total: result.pagination?.total,
+        params: params.toString()
+      })
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to fetch documents')

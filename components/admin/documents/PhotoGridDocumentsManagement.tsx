@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
+import { useRouter } from 'next/navigation'
 
 // Helper function to get typography class
 function getTypographyClass(type: string, size: string = 'base', isLargeFont: boolean = false): string {
@@ -44,6 +45,7 @@ interface PhotoGridDocument {
 export default function PhotoGridDocumentsManagement() {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
+  const router = useRouter()
   
   const [documents, setDocuments] = useState<PhotoGridDocument[]>([])
   const [loading, setLoading] = useState(false)
@@ -77,7 +79,8 @@ export default function PhotoGridDocumentsManagement() {
             siteName: doc.site?.name || '알 수 없음',
             status: doc.status || 'active',
             tags: ['사진대지', doc.category_type].filter(Boolean),
-            fileUrl: doc.file_url
+            fileUrl: doc.file_url,
+            metadata: doc.metadata
           }
         })
         setDocuments(formattedDocs)
@@ -93,6 +96,37 @@ export default function PhotoGridDocumentsManagement() {
     if (bytes < 1024) return bytes + ' B'
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+  }
+
+  const handlePreview = (doc: PhotoGridDocument) => {
+    // Extract photo_grid_id from the document metadata (same logic as the dashboard tab)
+    const metadata = (doc as any).metadata || {}
+    const photoGridId = metadata.photo_grid_id
+    if (photoGridId) {
+      router.push(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`)
+    }
+  }
+
+  const handleDownload = async (doc: PhotoGridDocument) => {
+    try {
+      // Extract photo_grid_id from the document metadata (same logic as the dashboard tab) 
+      const metadata = (doc as any).metadata || {}
+      const photoGridId = metadata.photo_grid_id
+      if (photoGridId) {
+        const response = await fetch(`/api/photo-grids/${photoGridId}/download`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${doc.title || '사진대지'}.pdf`
+          a.click()
+          window.URL.revokeObjectURL(url)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to download document:', error)
+    }
   }
 
   const filteredDocuments = documents.filter(doc =>
@@ -219,10 +253,10 @@ export default function PhotoGridDocumentsManagement() {
                   </div>
                   
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handlePreview(doc)}>
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDownload(doc)}>
                       <Download className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -292,10 +326,10 @@ export default function PhotoGridDocumentsManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handlePreview(doc)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" onClick={() => handleDownload(doc)}>
                           <Download className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm">
