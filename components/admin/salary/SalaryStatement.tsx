@@ -56,7 +56,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
     month: new Date().getMonth() + 1,
     startDate: '',
     endDate: '',
-    dailyRate: 150000,
+    dailyRate: 0, // Will be set based on worker role
     workHours: 8,
     overtimeHours: 0,
     workDays: 22,
@@ -254,8 +254,24 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       return
     }
     
+    // Get salary rate based on worker position (role)
+    const getRoleBasedSalaryRate = (position?: string) => {
+      switch(position) {
+        case '현장관리자':
+          return { dailyRate: 220000, hourlyRate: 27500 }
+        case '작업자':
+          return { dailyRate: 130000, hourlyRate: 16250 }
+        case '파트너사 관리자':
+        case '시스템관리자':
+        default:
+          return { dailyRate: 180000, hourlyRate: 22500 }
+      }
+    }
+    
+    const { dailyRate, hourlyRate } = getRoleBasedSalaryRate(selectedWorker.position)
+    
     const result = calculateSalary({
-      baseAmount: salaryData.dailyRate / 8, // Convert daily rate to hourly
+      baseAmount: hourlyRate,
       workHours: salaryData.workHours,
       overtimeHours: salaryData.overtimeHours,
       calculationType: salaryData.calculationType,
@@ -263,6 +279,12 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       bonuses: salaryData.bonuses,
       deductions: salaryData.deductions
     })
+    
+    // Update salary data with calculated rates for display
+    setSalaryData(prev => ({
+      ...prev,
+      dailyRate
+    }))
     
     setCalculationResult(result)
   }
@@ -336,7 +358,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
     setPreviewMode(false)
     setSalaryData(prev => ({
       ...prev,
-      dailyRate: 150000,
+      dailyRate: 0,
       workHours: 8,
       overtimeHours: 0,
       bonuses: 0,
@@ -634,9 +656,29 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 onValueChange={(value) => {
                   if (value === 'none') {
                     setSelectedWorker(null)
+                    setSalaryData(prev => ({ ...prev, dailyRate: 0 }))
                   } else {
                     const worker = filteredWorkers.find(w => w.id === value)
                     setSelectedWorker(worker || null)
+                    
+                    // Update salary rate based on worker role
+                    if (worker) {
+                      const getRoleBasedSalaryRate = (position?: string) => {
+                        switch(position) {
+                          case '현장관리자':
+                            return 220000
+                          case '작업자':
+                            return 130000
+                          case '파트너사 관리자':
+                          case '시스템관리자':
+                          default:
+                            return 180000
+                        }
+                      }
+                      
+                      const dailyRate = getRoleBasedSalaryRate(worker.position)
+                      setSalaryData(prev => ({ ...prev, dailyRate }))
+                    }
                   }
                 }}
                 disabled={filteredWorkers.length === 0}
@@ -712,93 +754,6 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                     onChange={(e) => setSalaryData(prev => ({ ...prev, month: parseInt(e.target.value) }))}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
-                </div>
-              </div>
-            </div>
-            
-            {/* Salary Details */}
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
-              <div className="flex items-center gap-2 mb-4">
-                <DollarSign className="h-5 w-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">급여 정보</h2>
-              </div>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      일급
-                    </label>
-                    <input
-                      type="number"
-                      value={salaryData.dailyRate}
-                      onChange={(e) => setSalaryData(prev => ({ ...prev, dailyRate: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      근무시간
-                    </label>
-                    <input
-                      type="number"
-                      value={salaryData.workHours}
-                      onChange={(e) => setSalaryData(prev => ({ ...prev, workHours: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      연장시간
-                    </label>
-                    <input
-                      type="number"
-                      value={salaryData.overtimeHours}
-                      onChange={(e) => setSalaryData(prev => ({ ...prev, overtimeHours: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      세금계산방식
-                    </label>
-                    <CustomSelect value={salaryData.calculationType || 'tax_prepaid'} onValueChange={(value: any) => setSalaryData(prev => ({ ...prev, calculationType: value }))}>
-                      <CustomSelectTrigger className="w-full">
-                        <CustomSelectValue placeholder="세금계산방식 선택" />
-                      </CustomSelectTrigger>
-                      <CustomSelectContent>
-                        <CustomSelectItem value="tax_prepaid">3.3% 선취</CustomSelectItem>
-                        <CustomSelectItem value="normal">일반계산</CustomSelectItem>
-                      </CustomSelectContent>
-                    </CustomSelect>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      보너스
-                    </label>
-                    <input
-                      type="number"
-                      value={salaryData.bonuses}
-                      onChange={(e) => setSalaryData(prev => ({ ...prev, bonuses: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      공제액
-                    </label>
-                    <input
-                      type="number"
-                      value={salaryData.deductions}
-                      onChange={(e) => setSalaryData(prev => ({ ...prev, deductions: parseInt(e.target.value) }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -969,6 +924,18 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                       {salaryData.year}년 {salaryData.month}월
                     </span>
                   </div>
+                  {selectedWorker && salaryData.dailyRate > 0 && (
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-4 w-4 text-gray-500" />
+                      <span className="text-gray-600 dark:text-gray-400">일당:</span>
+                      <span className="font-medium text-green-600 dark:text-green-400">
+                        {salaryData.dailyRate.toLocaleString()}원
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        ({selectedWorker.position} 기준)
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
