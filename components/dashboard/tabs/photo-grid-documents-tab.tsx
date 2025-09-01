@@ -55,10 +55,12 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
   const fetchDocuments = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/photo-grids')
+      // Fetch from unified document system instead of photo_grids directly
+      const response = await fetch('/api/unified-documents?category_type=photo_grid')
+      
       if (response.ok) {
         const data = await response.json()
-        const docs = Array.isArray(data) ? data : []
+        const docs = data.documents || []
         setDocuments(docs)
         
         // Calculate statistics
@@ -81,6 +83,7 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
           bySite
         })
       } else {
+        console.error('Failed to fetch photo grid documents: API response not OK')
         setDocuments([])
       }
     } catch (error) {
@@ -114,28 +117,35 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
     }
 
     if (searchTerm) {
-      filtered = filtered.filter(doc =>
-        doc.component_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.work_process?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.work_section?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.site?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+      filtered = filtered.filter(doc => {
+        const metadata = doc.metadata || {}
+        return doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               metadata.component_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               metadata.work_process?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               metadata.work_section?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               doc.site?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      })
     }
 
     setFilteredDocuments(filtered)
   }
 
-  const handleDownload = async (id: string, name: string) => {
+  const handleDownload = async (doc: any) => {
     try {
-      const response = await fetch(`/api/photo-grids/${id}/download`)
-      if (response.ok) {
-        const blob = await response.blob()
-        const url = window.URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `사진대지_${name}.pdf`
-        a.click()
-        window.URL.revokeObjectURL(url)
+      const metadata = doc.metadata || {}
+      const photoGridId = metadata.photo_grid_id
+      if (photoGridId) {
+        const response = await fetch(`/api/photo-grids/${photoGridId}/download`)
+        if (response.ok) {
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${doc.title || '사진대지'}.pdf`
+          a.click()
+          window.URL.revokeObjectURL(url)
+        }
       }
     } catch (error) {
       console.error('Failed to download document:', error)
@@ -143,7 +153,11 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
   }
 
   const handlePreview = (doc: any) => {
-    router.push(`/dashboard/admin/tools/photo-grids/preview/${doc.id}`)
+    const metadata = doc.metadata || {}
+    const photoGridId = metadata.photo_grid_id
+    if (photoGridId) {
+      router.push(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`)
+    }
   }
 
   if (loading) {
@@ -256,39 +270,42 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredDocuments.map((doc) => (
-                    <TableRow key={doc.id}>
-                      <TableCell>
-                        {format(new Date(doc.created_at), 'yyyy-MM-dd', { locale: ko })}
-                      </TableCell>
-                      <TableCell>{doc.site?.name || '-'}</TableCell>
-                      <TableCell>{doc.component_name || '-'}</TableCell>
-                      <TableCell>{doc.work_process || '-'}</TableCell>
-                      <TableCell>{doc.work_section || '-'}</TableCell>
-                      <TableCell>{doc.work_date || '-'}</TableCell>
-                      <TableCell>{doc.creator?.full_name || '-'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex gap-2 justify-end">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handlePreview(doc)}
-                            title="미리보기"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDownload(doc.id, doc.component_name)}
-                            title="다운로드"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredDocuments.map((doc) => {
+                    const metadata = doc.metadata || {}
+                    return (
+                      <TableRow key={doc.id}>
+                        <TableCell>
+                          {format(new Date(doc.created_at), 'yyyy-MM-dd', { locale: ko })}
+                        </TableCell>
+                        <TableCell>{doc.site?.name || '-'}</TableCell>
+                        <TableCell>{metadata.component_name || '-'}</TableCell>
+                        <TableCell>{metadata.work_process || '-'}</TableCell>
+                        <TableCell>{metadata.work_section || '-'}</TableCell>
+                        <TableCell>{metadata.work_date || '-'}</TableCell>
+                        <TableCell>{doc.uploader?.full_name || '-'}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePreview(doc)}
+                              title="미리보기"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownload(doc)}
+                              title="다운로드"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
                 )}
               </TableBody>
             </Table>

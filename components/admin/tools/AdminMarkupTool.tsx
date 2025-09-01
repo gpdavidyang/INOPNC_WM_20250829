@@ -96,6 +96,7 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
             onSave={handleSave}
             onClose={handleClose}
             profile={profile}
+            initialView="editor"
           />
         </div>
       </div>

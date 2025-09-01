@@ -303,8 +303,8 @@ export function MarkupEditor({
   // 모바일 여부 확인
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
 
-  // 문서 목록 보기
-  if (currentView === 'list') {
+  // 문서 목록 보기 - initialView가 'editor'이고 도면이 없을 때는 업로드 화면을 먼저 보여줌
+  if (currentView === 'list' && !(initialView === 'editor' && !blueprintUrl)) {
     return (
       <MarkupDocumentList
         onCreateNew={handleCreateNew}

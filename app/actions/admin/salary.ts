@@ -446,7 +446,7 @@ export async function getSalaryRecords(
 }
 
 /**
- * Calculate salaries for a specific date range
+ * Calculate salaries for a specific date range using daily reports data
  */
 export async function calculateSalaries(
   site_id?: string,
@@ -455,24 +455,26 @@ export async function calculateSalaries(
 ): Promise<AdminActionResult<{ calculated_records: number }>> {
   return withAdminAuth(async (supabase, profile) => {
     try {
-      // This would normally call a stored procedure or complex calculation logic
-      // For now, we'll simulate the calculation
-      const { data: attendanceData, error: attendanceError } = await supabase
-        .from('attendance_records')
+      // Get daily reports with worker hours data
+      let dailyReportsQuery = supabase
+        .from('daily_reports')
         .select(`
-          *,
-          worker:profiles!attendance_records_worker_id_fkey(id, full_name, role),
-          site:sites!attendance_records_site_id_fkey(id, name)
+          id,
+          site_id,
+          work_date,
+          daily_report_workers!inner(worker_name, work_hours)
         `)
-        .gte('date', date_from || new Date().toISOString().split('T')[0])
-        .lte('date', date_to || new Date().toISOString().split('T')[0])
+        .gte('work_date', date_from || new Date().toISOString().split('T')[0])
+        .lte('work_date', date_to || new Date().toISOString().split('T')[0])
 
-      if (site_id && attendanceData) {
-        // Filter by site_id after getting the data
+      if (site_id) {
+        dailyReportsQuery = dailyReportsQuery.eq('site_id', site_id)
       }
 
-      if (attendanceError) {
-        console.error('Error fetching attendance data:', attendanceError)
+      const { data: dailyReportsData, error: dailyReportsError } = await dailyReportsQuery
+
+      if (dailyReportsError) {
+        console.error('Error fetching daily reports data:', dailyReportsError)
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
@@ -487,55 +489,95 @@ export async function calculateSalaries(
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
+      // Get worker profiles to match names to IDs
+      const { data: workersData, error: workersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+
+      if (workersError) {
+        console.error('Error fetching workers data:', workersError)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
       const rules = rulesData || []
+      const workers = workersData || []
       const calculatedRecords = []
 
-      // Process attendance records and calculate salaries
-      for (const attendance of attendanceData || []) {
-        if (!attendance.check_out || !attendance.check_in) continue
+      // Process daily reports and calculate salaries
+      for (const report of dailyReportsData || []) {
+        for (const workerEntry of report.daily_report_workers || []) {
+          // Find worker profile by name
+          const worker = workers.find((w: any) => w.full_name === workerEntry.worker_name)
+          if (!worker) {
+            console.warn(`Worker not found: ${workerEntry.worker_name}`)
+            continue
+          }
 
-        const workDate = new Date(attendance.date)
-        const checkIn = new Date(`${attendance.date}T${attendance.check_in}`)
-        const checkOut = new Date(`${attendance.date}T${attendance.check_out}`)
-        
-        const totalHours = (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60)
-        const regularHours = Math.min(totalHours, 8)
-        const overtimeHours = Math.max(totalHours - 8, 0)
+          const workHours = parseFloat(workerEntry.work_hours) || 0
+          if (workHours <= 0) continue
 
-        // Find applicable rules
-        const hourlyRule = rules.find((r: any) => 
-          r.rule_type === 'hourly_rate' && 
-          (!r.site_id || r.site_id === attendance.site_id) &&
-          (!r.role || r.role === attendance.worker?.role)
-        )
-        
-        const overtimeRule = rules.find((r: any) => 
-          r.rule_type === 'overtime_multiplier' && 
-          (!r.site_id || r.site_id === attendance.site_id)
-        )
+          // Convert work_hours (공수) to actual hours (1 공수 = 8시간)
+          const actualHours = workHours * 8
+          const regularHours = Math.min(actualHours, 8)
+          const overtimeHours = Math.max(actualHours - 8, 0)
 
-        const hourlyRate = hourlyRule?.base_amount || 15000 // Default rate
-        const overtimeMultiplier = overtimeRule?.multiplier || 1.5
+          // Find applicable rules
+          const hourlyRule = rules.find((r: any) => 
+            r.rule_type === 'hourly_rate' && 
+            (!r.site_id || r.site_id === report.site_id) &&
+            (!r.role || r.role === worker.role)
+          )
+          
+          const dailyRule = rules.find((r: any) => 
+            r.rule_type === 'daily_rate' && 
+            (!r.site_id || r.site_id === report.site_id) &&
+            (!r.role || r.role === worker.role)
+          )
+          
+          const overtimeRule = rules.find((r: any) => 
+            r.rule_type === 'overtime_multiplier' && 
+            (!r.site_id || r.site_id === report.site_id)
+          )
 
-        const basePay = regularHours * hourlyRate
-        const overtimePay = overtimeHours * hourlyRate * overtimeMultiplier
-        const totalPay = basePay + overtimePay
+          let basePay = 0
+          let overtimePay = 0
 
-        calculatedRecords.push({
-          worker_id: attendance.worker.id,
-          site_id: attendance.site_id,
-          work_date: attendance.date,
-          regular_hours: regularHours,
-          overtime_hours: overtimeHours,
-          base_pay: basePay,
-          overtime_pay: overtimePay,
-          bonus_pay: 0,
-          deductions: 0,
-          total_pay: totalPay,
-          status: 'calculated',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+          if (dailyRule) {
+            // Use daily rate calculation (공수 기반)
+            basePay = workHours * dailyRule.base_amount
+          } else if (hourlyRule) {
+            // Use hourly rate calculation
+            const hourlyRate = hourlyRule.base_amount
+            basePay = regularHours * hourlyRate
+            
+            if (overtimeHours > 0) {
+              const overtimeMultiplier = overtimeRule?.multiplier || 1.5
+              overtimePay = overtimeHours * hourlyRate * overtimeMultiplier
+            }
+          } else {
+            // Default calculation - assume 150,000 per day (1 공수)
+            basePay = workHours * 150000
+          }
+
+          const totalPay = basePay + overtimePay
+
+          calculatedRecords.push({
+            worker_id: worker.id,
+            site_id: report.site_id,
+            work_date: report.work_date,
+            regular_hours: workHours, // Store work_hours (공수) in regular_hours
+            overtime_hours: overtimeHours / 8, // Convert back to 공수 for overtime
+            base_pay: Math.round(basePay),
+            overtime_pay: Math.round(overtimePay),
+            bonus_pay: 0,
+            deductions: 0,
+            total_pay: Math.round(totalPay),
+            status: 'calculated',
+            notes: `공수: ${workHours}`,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+        }
       }
 
       // Insert calculated records

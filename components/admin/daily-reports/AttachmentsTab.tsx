@@ -151,7 +151,7 @@ export default function AttachmentsTab({
           .from('daily_documents')
           .insert({
             daily_report_id: reportId,
-            document_type: 'attachment', // Required field
+            document_type: 'other', // Required field - attachments categorized as 'other'
             file_url: urlData.publicUrl, // Required field  
             filename: file.name,
             file_name: file.name,

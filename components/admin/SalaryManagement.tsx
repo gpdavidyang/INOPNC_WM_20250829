@@ -45,7 +45,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
-  const [ruleTypeFilter, setRuleTypeFilter] = useState<string>('')
+  const [ruleTypeFilter, setRuleTypeFilter] = useState<string>('hourly_rate')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [siteFilter, setSiteFilter] = useState('')
   const [dateFrom, setDateFrom] = useState('')
@@ -202,6 +202,13 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     loadStats()
     loadAvailableSites()
   }, [])
+
+  // Set default site filter when sites are loaded
+  useEffect(() => {
+    if (availableSites.length > 0 && !siteFilter) {
+      setSiteFilter(availableSites[0].id)
+    }
+  }, [availableSites])
 
   // Handle search
   const handleSearch = (term: string) => {
@@ -391,12 +398,15 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     },
     {
       key: 'regular_hours',
-      label: '근무 시간',
+      label: '공수',
       render: (regular_hours: number, record: SalaryRecord) => (
         <div className="text-sm">
-          <div>정규: {regular_hours}시간</div>
+          <div>공수: {regular_hours}</div>
           {record.overtime_hours > 0 && (
-            <div className="text-orange-600">연장: {record.overtime_hours}시간</div>
+            <div className="text-orange-600">연장: {record.overtime_hours}</div>
+          )}
+          {record.notes && (
+            <div className="text-xs text-gray-500">{record.notes}</div>
           )}
         </div>
       )
@@ -670,7 +680,6 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                   onChange={(e) => setRuleTypeFilter(e.target.value)}
                   className="min-w-[140px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
-                  <option value="">모든 규칙 타입</option>
                   <option value="hourly_rate">시급</option>
                   <option value="daily_rate">일급</option>
                   <option value="overtime_multiplier">연장근무 배율</option>
@@ -735,7 +744,6 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               onChange={(e) => setSiteFilter(e.target.value)}
               className="min-w-[100px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             >
-              <option value="">모든 현장</option>
               {availableSites.map((site) => (
                 <option key={site.id} value={site.id}>{site.name}</option>
               ))}

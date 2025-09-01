@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
             site_id,
             uploaded_by: profile.id,
             status: 'uploaded',
-            is_public: false,
+            is_public: true, // Photo grids should be visible to all users
             is_archived: false,
             file_size: null, // PDF is generated on-demand
             mime_type: 'application/pdf',
