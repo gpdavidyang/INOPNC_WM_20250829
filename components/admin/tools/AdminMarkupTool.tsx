@@ -46,6 +46,7 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
         .limit(6)
 
       if (error) throw error
+      console.log('Fetched documents:', data?.[0]) // 디버깅용
       setRecentDocuments(data || [])
     } catch (error) {
       console.error('Error fetching recent documents:', error)

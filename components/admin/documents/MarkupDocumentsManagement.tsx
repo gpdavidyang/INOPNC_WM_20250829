@@ -9,19 +9,28 @@ interface MarkupDocument {
   id: string
   title: string
   description?: string
-  original_blueprint_url: string
-  original_blueprint_filename: string
-  markup_data: any[]
-  preview_image_url?: string
-  location: 'personal' | 'shared'
-  markup_count: number
+  file_url: string
+  file_name: string
+  original_filename: string
+  file_size?: number
+  mime_type?: string
+  category_type: string
+  status: string
   created_at: string
   updated_at: string
-  created_by: string
+  uploaded_by: string
   site_id?: string
-  version_number?: number
-  is_latest_version?: boolean
-  change_summary?: string
+  metadata?: {
+    markup_data?: any[]
+    preview_image_url?: string
+    location?: 'personal' | 'shared'
+    markup_count?: number
+    version_number?: number
+    is_latest_version?: boolean
+    change_summary?: string
+    original_blueprint_url?: string
+    original_blueprint_filename?: string
+  }
   profiles?: {
     id: string
     full_name: string
@@ -78,17 +87,18 @@ export default function MarkupDocumentsManagement() {
     setLoading(true)
     try {
       let query = supabase
-        .from('markup_documents')
+        .from('unified_document_system')
         .select(`
           *,
-          profiles!markup_documents_created_by_fkey(id, full_name, email),
+          profiles!unified_document_system_uploaded_by_fkey(id, full_name, email),
           sites(id, name, address)
         `, { count: 'exact' })
-        .eq('is_deleted', false)
+        .eq('category_type', 'markup')
+        .eq('status', 'active')
 
       // 검색 필터 적용
       if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,original_blueprint_filename.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        query = query.or(`title.ilike.%${searchTerm}%,original_filename.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
       }
 
       // 현장 필터 적용
@@ -119,8 +129,8 @@ export default function MarkupDocumentsManagement() {
 
     try {
       const { error } = await supabase
-        .from('markup_documents')
-        .update({ is_deleted: true })
+        .from('unified_document_system')
+        .update({ status: 'deleted' })
         .eq('id', documentId)
 
       if (error) throw error
@@ -136,7 +146,7 @@ export default function MarkupDocumentsManagement() {
   const handleDownloadDocument = async (document: MarkupDocument) => {
     try {
       // 실제 구현에서는 Supabase Storage URL을 사용
-      window.open(document.original_blueprint_url, '_blank')
+      window.open(document.file_url, '_blank')
     } catch (error) {
       console.error('Error downloading document:', error)
       alert('문서 다운로드에 실패했습니다.')
@@ -170,7 +180,7 @@ export default function MarkupDocumentsManagement() {
       setEditFormData({
         title: selectedDocument.title,
         description: selectedDocument.description || '',
-        location: selectedDocument.location,
+        location: selectedDocument.metadata?.location || 'personal',
         site_id: selectedDocument.site_id
       })
       setIsEditMode(true)
@@ -187,12 +197,17 @@ export default function MarkupDocumentsManagement() {
 
     setIsSaving(true)
     try {
+      const updatedMetadata = {
+        ...selectedDocument.metadata,
+        location: editFormData.location
+      }
+
       const { error } = await supabase
-        .from('markup_documents')
+        .from('unified_document_system')
         .update({
           title: editFormData.title,
           description: editFormData.description,
-          location: editFormData.location,
+          metadata: updatedMetadata,
           site_id: editFormData.site_id || null,
           updated_at: new Date().toISOString()
         })
@@ -359,9 +374,9 @@ export default function MarkupDocumentsManagement() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-start">
                         <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
-                          {document.preview_image_url ? (
+                          {document.metadata?.preview_image_url ? (
                             <img 
-                              src={document.preview_image_url} 
+                              src={document.metadata.preview_image_url} 
                               alt="미리보기" 
                               className="w-full h-full object-cover rounded-lg"
                             />
@@ -377,7 +392,7 @@ export default function MarkupDocumentsManagement() {
                             {document.title}
                           </button>
                           <div className="text-sm text-gray-500 mt-1">
-                            {document.original_blueprint_filename}
+                            {document.original_filename}
                           </div>
                           {document.description && (
                             <div className="text-sm text-gray-500 mt-1">
@@ -407,23 +422,23 @@ export default function MarkupDocumentsManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {document.markup_count}개 마킹
+                        {document.metadata?.markup_count || 0}개 마킹
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center space-x-1">
                         <span className="text-sm font-medium text-gray-900">
-                          v{document.version_number || 1}
+                          v{document.metadata?.version_number || 1}
                         </span>
-                        {document.is_latest_version !== false && (
+                        {document.metadata?.is_latest_version !== false && (
                           <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             최신
                           </span>
                         )}
                       </div>
-                      {document.change_summary && (
+                      {document.metadata?.change_summary && (
                         <div className="text-xs text-gray-500 mt-1">
-                          {document.change_summary}
+                          {document.metadata.change_summary}
                         </div>
                       )}
                     </td>
@@ -594,15 +609,15 @@ export default function MarkupDocumentsManagement() {
                     <div className="grid grid-cols-2 gap-4 pt-3 border-t border-gray-200">
                       <div>
                         <p className="text-xs text-gray-500">원본 파일명</p>
-                        <p className="text-sm text-gray-900 mt-1">{selectedDocument.original_blueprint_filename}</p>
+                        <p className="text-sm text-gray-900 mt-1">{selectedDocument.original_filename}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">마킹 개수</p>
-                        <p className="text-sm text-gray-900 mt-1">{selectedDocument.markup_count || 0}개</p>
+                        <p className="text-sm text-gray-900 mt-1">{selectedDocument.metadata?.markup_count || 0}개</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">버전</p>
-                        <p className="text-sm text-gray-900 mt-1">v{selectedDocument.version_number || 1}</p>
+                        <p className="text-sm text-gray-900 mt-1">v{selectedDocument.metadata?.version_number || 1}</p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500">위치</p>
@@ -617,7 +632,7 @@ export default function MarkupDocumentsManagement() {
                           </select>
                         ) : (
                           <p className="text-sm text-gray-900 mt-1">
-                            {selectedDocument.location === 'shared' ? '공유 문서' : '개인 문서'}
+                            {selectedDocument.metadata?.location === 'shared' ? '공유 문서' : '개인 문서'}
                           </p>
                         )}
                       </div>
@@ -701,11 +716,11 @@ export default function MarkupDocumentsManagement() {
                 )}
 
                 {/* 변경 요약 */}
-                {selectedDocument.change_summary && (
+                {selectedDocument.metadata?.change_summary && (
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-3">변경 내역</h3>
                     <div className="bg-yellow-50 rounded-lg p-4">
-                      <p className="text-sm text-gray-700">{selectedDocument.change_summary}</p>
+                      <p className="text-sm text-gray-700">{selectedDocument.metadata.change_summary}</p>
                     </div>
                   </div>
                 )}
@@ -738,7 +753,7 @@ export default function MarkupDocumentsManagement() {
               ) : (
                 <>
                   <button
-                    onClick={() => handleViewDocument(selectedDocument)}
+                    onClick={() => handleOpenMarkupEditor(selectedDocument)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2"
                   >
                     <Eye className="h-4 w-4" />
