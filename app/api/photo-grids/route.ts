@@ -76,12 +76,31 @@ export async function POST(request: NextRequest) {
       hasAfterPhoto: !!afterPhoto
     })
 
+    // Helper function to sanitize filename for Supabase storage
+    const sanitizeFilename = (filename: string): string => {
+      // Get file extension
+      const ext = filename.split('.').pop() || 'jpg'
+      // Remove all non-ASCII characters and spaces, keep only alphanumeric and basic punctuation
+      const sanitized = filename
+        .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII
+        .replace(/\s+/g, '_') // Replace spaces with underscores
+        .replace(/[^a-zA-Z0-9._-]/g, '') // Keep only safe characters
+      
+      // If filename becomes empty after sanitization, use a default
+      if (!sanitized || sanitized === `.${ext}`) {
+        return `photo.${ext}`
+      }
+      
+      return sanitized
+    }
+
     // Upload photos to storage
     let beforePhotoUrl = null
     let afterPhotoUrl = null
 
     if (beforePhoto && beforePhoto.size > 0) {
-      const beforePhotoName = `${Date.now()}-before-${beforePhoto.name}`
+      const sanitizedName = sanitizeFilename(beforePhoto.name)
+      const beforePhotoName = `${Date.now()}-before-${sanitizedName}`
       console.log('Uploading before photo:', beforePhotoName, 'Size:', beforePhoto.size)
       
       // Use service client for storage operations
@@ -110,7 +129,8 @@ export async function POST(request: NextRequest) {
     }
 
     if (afterPhoto && afterPhoto.size > 0) {
-      const afterPhotoName = `${Date.now()}-after-${afterPhoto.name}`
+      const sanitizedName = sanitizeFilename(afterPhoto.name)
+      const afterPhotoName = `${Date.now()}-after-${sanitizedName}`
       console.log('Uploading after photo:', afterPhotoName, 'Size:', afterPhoto.size)
       
       // Use service client for storage operations
