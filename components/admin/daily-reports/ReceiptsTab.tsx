@@ -10,7 +10,10 @@ import {
   X,
   CheckCircle,
   AlertTriangle,
-  ZoomIn
+  ZoomIn,
+  Plus,
+  FileText,
+  Receipt
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
@@ -48,11 +51,14 @@ export default function ReceiptsTab({
   const [error, setError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' })
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptFile | null>(null)
-  const [newReceipt, setNewReceipt] = useState({
+  const [receiptEntries, setReceiptEntries] = useState([{
+    id: 'receipt-' + Date.now(),
     category: '',
     amount: '',
-    receipt_date: new Date().toISOString().split('T')[0]
-  })
+    receipt_date: new Date().toISOString().split('T')[0],
+    files: [] as File[],
+    filePreviews: [] as string[]
+  }])
 
   useEffect(() => {
     fetchReceipts()
@@ -103,12 +109,205 @@ export default function ReceiptsTab({
     }
   }
 
+  const addReceiptEntry = () => {
+    setReceiptEntries(prev => [...prev, {
+      id: 'receipt-' + Date.now(),
+      category: '',
+      amount: '',
+      receipt_date: new Date().toISOString().split('T')[0],
+      files: [] as File[],
+      filePreviews: [] as string[]
+    }])
+  }
+
+  const removeReceiptEntry = (index: number) => {
+    if (receiptEntries.length === 1) return // Keep at least one entry
+    setReceiptEntries(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const updateReceiptEntry = (index: number, field: string, value: string) => {
+    setReceiptEntries(prev => prev.map((entry, i) => 
+      i === index ? { ...entry, [field]: value } : entry
+    ))
+  }
+
+  const handleEntryFileUpload = (e: React.ChangeEvent<HTMLInputElement>, entryIndex: number) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const fileArray = Array.from(files)
+    const newFiles: File[] = []
+    const newPreviews: string[] = []
+
+    fileArray.forEach(file => {
+      newFiles.push(file)
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const preview = e.target?.result as string
+          setReceiptEntries(prev => prev.map((entry, i) => 
+            i === entryIndex ? {
+              ...entry,
+              filePreviews: [...entry.filePreviews, preview]
+            } : entry
+          ))
+        }
+        reader.readAsDataURL(file)
+      }
+    })
+
+    setReceiptEntries(prev => prev.map((entry, i) => 
+      i === entryIndex ? {
+        ...entry,
+        files: [...entry.files, ...newFiles]
+      } : entry
+    ))
+
+    // Reset file input
+    e.target.value = ''
+  }
+
+  const removeFileFromEntry = (entryIndex: number, fileIndex: number) => {
+    setReceiptEntries(prev => prev.map((entry, i) => 
+      i === entryIndex ? {
+        ...entry,
+        files: entry.files.filter((_, fi) => fi !== fileIndex),
+        filePreviews: entry.filePreviews.filter((_, fi) => fi !== fileIndex)
+      } : entry
+    ))
+  }
+
+  const hasValidEntries = () => {
+    return receiptEntries.some(entry => 
+      entry.category && entry.amount && entry.receipt_date && entry.files.length > 0
+    )
+  }
+
+  const handleAllReceiptsUpload = async () => {
+    const validEntries = receiptEntries.filter(entry => 
+      entry.category && entry.amount && entry.receipt_date && entry.files.length > 0
+    )
+
+    if (validEntries.length === 0) {
+      setSaveStatus({ 
+        type: 'error', 
+        message: '업로드할 유효한 영수증이 없습니다.' 
+      })
+      return
+    }
+
+    setUploading(true)
+    setSaveStatus({ type: null, message: '' })
+    let totalUploaded = 0
+
+    try {
+      const supabase = createClient()
+      
+      // Check authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        throw new Error('인증이 필요합니다. 다시 로그인해주세요.')
+      }
+
+      // Process each valid entry
+      for (const entry of validEntries) {
+        // Validate files
+        for (const file of entry.files) {
+          validateFile(file)
+        }
+
+        // Upload files for this entry
+        const uploadPromises = entry.files.map(async (file) => {
+          const fileName = `${reportId}/receipts/${Date.now()}_${file.name}`
+
+          // Upload to storage
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('receipts')
+            .upload(fileName, file)
+
+          if (uploadError) {
+            throw new Error(`파일 업로드 실패: ${uploadError.message} (${file.name})`)
+          }
+
+          // Get public URL
+          const { data: urlData } = supabase.storage
+            .from('receipts')
+            .getPublicUrl(fileName)
+
+          // Save metadata
+          const { data: fileData, error: dbError } = await supabase
+            .from('daily_documents')
+            .insert({
+              daily_report_id: reportId,
+              document_type: 'receipt',
+              file_url: urlData.publicUrl,
+              filename: file.name,
+              file_name: file.name,
+              file_path: fileName,
+              file_type: 'receipt',
+              file_size: file.size,
+              mime_type: file.type,
+              category: entry.category,
+              amount: entry.amount,
+              receipt_date: entry.receipt_date,
+              created_by: user.id,
+              uploaded_by: user.id
+            })
+            .select()
+            .single()
+
+          if (dbError) {
+            // Try to clean up uploaded file
+            await supabase.storage.from('receipts').remove([fileName])
+            throw new Error(`메타데이터 저장 실패: ${dbError.message} (${file.name})`)
+          }
+
+          totalUploaded++
+          return fileData
+        })
+
+        await Promise.all(uploadPromises)
+      }
+
+      await fetchReceipts()
+      
+      // Reset form to single empty entry
+      setReceiptEntries([{
+        id: 'receipt-' + Date.now(),
+        category: '',
+        amount: '',
+        receipt_date: new Date().toISOString().split('T')[0],
+        files: [] as File[],
+        filePreviews: [] as string[]
+      }])
+      
+      setSaveStatus({ 
+        type: 'success', 
+        message: `영수증 ${totalUploaded}개가 업로드되었습니다.` 
+      })
+      
+      if (onSaveComplete) {
+        onSaveComplete()
+      }
+    } catch (error: any) {
+      console.error('Error uploading receipts:', error)
+      setSaveStatus({ 
+        type: 'error', 
+        message: error.message || '영수증 업로드에 실패했습니다.' 
+      })
+    } finally {
+      setUploading(false)
+    }
+  }
+
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Validate receipt form data
-    if (!newReceipt.category || !newReceipt.amount || !newReceipt.receipt_date) {
+    // This function is kept for backward compatibility but won't be used in new UI
+    const currentEntry = receiptEntries[0]
+    
+    if (!currentEntry.category || !currentEntry.amount || !currentEntry.receipt_date) {
       setSaveStatus({ 
         type: 'error', 
         message: '카테고리, 금액, 날짜를 모두 입력해주세요.' 
@@ -165,9 +364,9 @@ export default function ReceiptsTab({
             file_type: 'receipt',
             file_size: file.size,
             mime_type: file.type,
-            category: newReceipt.category,
-            amount: newReceipt.amount,
-            receipt_date: newReceipt.receipt_date,
+            category: currentEntry.category,
+            amount: currentEntry.amount,
+            receipt_date: currentEntry.receipt_date,
             created_by: user.id,
             uploaded_by: user.id
           })
@@ -190,11 +389,14 @@ export default function ReceiptsTab({
       await fetchReceipts()
       
       // Reset form
-      setNewReceipt({
+      setReceiptEntries([{
+        id: 'receipt-' + Date.now(),
         category: '',
         amount: '',
-        receipt_date: new Date().toISOString().split('T')[0]
-      })
+        receipt_date: new Date().toISOString().split('T')[0],
+        files: [] as File[],
+        filePreviews: [] as string[]
+      }])
       
       setSaveStatus({ 
         type: 'success', 
@@ -307,82 +509,146 @@ export default function ReceiptsTab({
       {/* Receipt Form Section */}
       {isEditing && (
         <div className="space-y-4">
-          {/* Receipt Information Form */}
-          <div className="bg-white border border-gray-200 rounded-lg p-4">
-            <h4 className="text-sm font-medium text-gray-900 mb-4">영수증 정보 입력</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Category */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  카테고리 <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={newReceipt.category}
-                  onChange={(e) => setNewReceipt(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">카테고리 선택</option>
-                  <option value="교통비">교통비</option>
-                  <option value="식비">식비</option>
-                  <option value="숙박비">숙박비</option>
-                  <option value="재료비">재료비</option>
-                  <option value="장비비">장비비</option>
-                  <option value="기타">기타</option>
-                </select>
-              </div>
+          {/* Multiple Receipt Entries */}
+          <div className="space-y-4">
+            {receiptEntries.map((entry, index) => (
+              <div key={entry.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-medium text-gray-900">
+                    영수증 정보 {receiptEntries.length > 1 ? `${index + 1}` : ''}
+                  </h4>
+                  {receiptEntries.length > 1 && (
+                    <button
+                      onClick={() => removeReceiptEntry(index)}
+                      className="text-red-500 hover:text-red-700 p-1"
+                      title="영수증 항목 삭제"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  {/* Category */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      구분 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={entry.category}
+                      onChange={(e) => updateReceiptEntry(index, 'category', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">예: 자재비</option>
+                      <option value="교통비">교통비</option>
+                      <option value="식비">식비</option>
+                      <option value="숙박비">숙박비</option>
+                      <option value="재료비">재료비</option>
+                      <option value="장비비">장비비</option>
+                      <option value="자재비">자재비</option>
+                      <option value="기타">기타</option>
+                    </select>
+                  </div>
 
-              {/* Amount */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  금액 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={newReceipt.amount}
-                  onChange={(e) => setNewReceipt(prev => ({ ...prev, amount: e.target.value }))}
-                  placeholder="금액 입력"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
+                  {/* Amount */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      금액 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="number"
+                      value={entry.amount}
+                      onChange={(e) => updateReceiptEntry(index, 'amount', e.target.value)}
+                      placeholder="0"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
 
-              {/* Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  날짜 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={newReceipt.receipt_date}
-                  onChange={(e) => setNewReceipt(prev => ({ ...prev, receipt_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Upload Area */}
-          <div className="border-2 border-dashed border-yellow-300 bg-yellow-50 rounded-lg p-6">
-            <div className="text-center">
-              <input
-                type="file"
-                id="receipt-upload"
-                className="hidden"
-                onChange={handleReceiptUpload}
-                accept="image/*,application/pdf"
-                multiple
-                disabled={uploading}
-              />
-              <div className="mb-3">
-                <div className="mx-auto h-12 w-12 rounded-full flex items-center justify-center bg-yellow-100 text-yellow-600">
-                  <Receipt className="h-6 w-6" />
+                  {/* Date */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      일자 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={entry.receipt_date}
+                      onChange={(e) => updateReceiptEntry(index, 'receipt_date', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  {/* File Upload for this entry */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      파일 첨부
+                    </label>
+                    <div className="flex items-center">
+                      <input
+                        type="file"
+                        id={`receipt-upload-${entry.id}`}
+                        className="hidden"
+                        onChange={(e) => handleEntryFileUpload(e, index)}
+                        accept="image/*,application/pdf"
+                        multiple
+                        disabled={uploading}
+                      />
+                      <label
+                        htmlFor={`receipt-upload-${entry.id}`}
+                        className={`cursor-pointer inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                          uploading 
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                        }`}
+                      >
+                        <Upload className="h-4 w-4" />
+                        {entry.files.length > 0 ? `${entry.files.length}개 선택됨` : '파일 선택'}
+                      </label>
+                    </div>
+                    {/* File previews for this entry */}
+                    {entry.filePreviews.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {entry.filePreviews.map((preview, fileIndex) => (
+                          <div key={fileIndex} className="relative">
+                            <img 
+                              src={preview} 
+                              alt={`Preview ${fileIndex + 1}`}
+                              className="h-12 w-12 object-cover rounded border"
+                            />
+                            <button
+                              onClick={() => removeFileFromEntry(index, fileIndex)}
+                              className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-              <label
-                htmlFor="receipt-upload"
-                className={`cursor-pointer inline-flex items-center gap-2 px-6 py-2 rounded-lg text-white font-medium transition-colors ${
-                  uploading 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-yellow-500 hover:bg-yellow-600'
+            ))}
+            
+            {/* Add Receipt Button */}
+            <button
+              onClick={addReceiptEntry}
+              className="w-full flex items-center justify-center gap-2 py-3 px-4 border border-gray-300 border-dashed rounded-lg text-gray-600 hover:text-gray-800 hover:border-gray-400 transition-colors"
+            >
+              <Plus className="h-5 w-5" />
+              영수증 추가
+            </button>
+          </div>
+
+          {/* Upload All Button */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="text-center">
+              <button
+                onClick={handleAllReceiptsUpload}
+                disabled={uploading || !hasValidEntries()}
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                  uploading || !hasValidEntries()
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                    : 'bg-yellow-500 hover:bg-yellow-600 text-white'
                 }`}
               >
                 {uploading ? (
@@ -393,15 +659,12 @@ export default function ReceiptsTab({
                 ) : (
                   <>
                     <Upload className="h-5 w-5" />
-                    영수증 선택
+                    모든 영수증 저장
                   </>
                 )}
-              </label>
-              <p className="mt-3 text-sm text-gray-600">
-                <strong>영수증 파일</strong>을 업로드합니다
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                JPG, PNG, GIF, PDF 파일 (최대 10MB) • 여러 파일 동시 선택 가능
+              </button>
+              <p className="mt-2 text-sm text-gray-600">
+                입력된 모든 영수증 정보를 저장합니다
               </p>
             </div>
           </div>
