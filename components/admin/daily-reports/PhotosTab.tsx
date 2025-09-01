@@ -201,7 +201,8 @@ export default function PhotosTab({
   }
 
   const handleDelete = async (photo: PhotoFile) => {
-    if (!confirm(`이 사진을 삭제하시겠습니까?`)) return
+    const photoTypeText = photo.file_type === 'photo_before' ? '작업 전' : '작업 후'
+    if (!confirm(`${photoTypeText} 사진 "${photo.filename}"을(를) 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return
 
     try {
       const supabase = createClient()
@@ -407,7 +408,6 @@ export default function PhotosTab({
                   photo={photo}
                   onView={() => setSelectedPhoto(photo)}
                   onDelete={() => handleDelete(photo)}
-                  isEditing={isEditing}
                   getPhotoUrl={getPhotoUrl}
                   formatFileSize={formatFileSize}
                 />
@@ -437,7 +437,6 @@ export default function PhotosTab({
                   photo={photo}
                   onView={() => setSelectedPhoto(photo)}
                   onDelete={() => handleDelete(photo)}
-                  isEditing={isEditing}
                   getPhotoUrl={getPhotoUrl}
                   formatFileSize={formatFileSize}
                 />
@@ -483,12 +482,11 @@ interface PhotoCardProps {
   photo: PhotoFile
   onView: () => void
   onDelete: () => void
-  isEditing: boolean
   getPhotoUrl: (photo: PhotoFile) => string
   formatFileSize: (bytes: number) => string
 }
 
-function PhotoCard({ photo, onView, onDelete, isEditing, getPhotoUrl, formatFileSize }: PhotoCardProps) {
+function PhotoCard({ photo, onView, onDelete, getPhotoUrl, formatFileSize }: PhotoCardProps) {
   return (
     <div className="relative group border border-gray-200 rounded-lg overflow-hidden bg-white hover:shadow-lg transition-shadow">
       <div 
@@ -512,17 +510,16 @@ function PhotoCard({ photo, onView, onDelete, isEditing, getPhotoUrl, formatFile
           {formatFileSize(photo.file_size)}
         </p>
       </div>
-      {isEditing && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onDelete()
-          }}
-          className="absolute top-2 right-2 p-1 bg-red-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
-      )}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          onDelete()
+        }}
+        className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-700 shadow-lg"
+        title="삭제"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
     </div>
   )
 }
