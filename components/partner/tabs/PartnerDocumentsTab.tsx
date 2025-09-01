@@ -363,49 +363,92 @@ export default function PartnerDocumentsTab({ profile, sites }: PartnerDocuments
 
     try {
       const uploadedFiles: Document[] = []
+      const successCount = { count: 0 }
+      const errorMessages: string[] = []
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         
         // Validate file size (max 100MB)
         if (file.size > 100 * 1024 * 1024) {
-          alert(`${file.name}: 파일 크기가 100MB를 초과합니다.`)
+          errorMessages.push(`${file.name}: 파일 크기가 100MB를 초과합니다.`)
           continue
         }
 
-        // Create new document object
-        const newDocument: Document = {
-          id: `upload_${Date.now()}_${i}`,
-          name: file.name,
-          type: file.type || 'application/octet-stream',
-          size: file.size,
-          lastModified: new Date().toISOString(),
-          uploadedBy: profile?.name || '나',
-          site: activeTab === 'personal' ? undefined : sites.find(s => s.name === selectedSite)?.name || '내 현장'
-        }
+        try {
+          // Upload file to Supabase Storage
+          const fileName = `${profile.id}/${Date.now()}_${file.name}`
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('documents')
+            .upload(fileName, file)
 
-        uploadedFiles.push(newDocument)
+          if (uploadError) {
+            console.error('Upload error:', uploadError)
+            errorMessages.push(`${file.name}: ${uploadError.message}`)
+            continue
+          }
+
+          // Save document metadata to database
+          const { data: docData, error: docError } = await supabase
+            .from('documents')
+            .insert({
+              title: file.name,
+              file_name: file.name,
+              file_path: fileName,
+              file_size: file.size,
+              mime_type: file.type || 'application/octet-stream',
+              document_type: activeTab === 'billing' ? 'invoice' : activeTab,
+              owner_id: profile.id,
+              site_id: selectedSite === 'all' ? null : selectedSite,
+              is_public: activeTab === 'shared'
+            })
+            .select()
+            .single()
+
+          if (docError) {
+            console.error('Database error:', docError)
+            // Try to delete the uploaded file
+            await supabase.storage.from('documents').remove([fileName])
+            errorMessages.push(`${file.name}: 데이터베이스 저장 실패`)
+            continue
+          }
+
+          // Create document object for UI
+          const newDocument: Document = {
+            id: docData.id,
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            lastModified: new Date().toISOString(),
+            uploadedBy: profile?.full_name || profile?.email || '나',
+            site: activeTab === 'personal' ? undefined : userSites.find(s => s.id === selectedSite)?.name || '내 현장',
+            site_id: selectedSite === 'all' ? undefined : selectedSite,
+            document_type: activeTab === 'billing' ? 'invoice' : activeTab
+          }
+
+          uploadedFiles.push(newDocument)
+          successCount.count++
+        } catch (fileError) {
+          console.error(`Error uploading ${file.name}:`, fileError)
+          errorMessages.push(`${file.name}: 업로드 실패`)
+        }
       }
 
       if (uploadedFiles.length > 0) {
-        // Add uploaded files to the appropriate document list
-        switch (activeTab) {
-          case 'personal':
-            personalDocuments.unshift(...uploadedFiles)
-            break
-          case 'shared':
-            sharedDocuments.unshift(...uploadedFiles)
-            break
-          case 'billing':
-            billingDocuments.unshift(...uploadedFiles)
-            break
-        }
-
         // Update current documents view
         setDocuments(prev => [...uploadedFiles, ...prev])
         
         // Show success message
-        alert(`${uploadedFiles.length}개 파일이 성공적으로 업로드되었습니다.`)
+        if (errorMessages.length > 0) {
+          alert(`${successCount.count}개 파일 업로드 성공\n\n실패한 파일:\n${errorMessages.join('\n')}`)
+        } else {
+          alert(`${successCount.count}개 파일이 성공적으로 업로드되었습니다.`)
+        }
+        
+        // Refresh documents list
+        await fetchDocuments()
+      } else if (errorMessages.length > 0) {
+        alert(`업로드 실패:\n${errorMessages.join('\n')}`)
       }
     } catch (error) {
       console.error('Upload failed:', error)
