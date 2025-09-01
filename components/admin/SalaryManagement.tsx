@@ -3,27 +3,16 @@
 import { useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { Profile } from '@/types'
-import AdminDataTable from './AdminDataTable'
-import BulkActionBar, { commonBulkActions } from './BulkActionBar'
 import { 
-  getSalaryRules,
-  getSalaryRecords,
-  getSalaryStats,
   getAvailableSitesForSalary,
   getAvailableWorkersForSalary,
   getOutputSummary,
   getWorkerCalendarData,
-  upsertSalaryRule,
-  deleteSalaryRules,
   calculateSalaries,
-  approveSalaryRecords,
-  SalaryCalculationRule,
-  SalaryRecord,
-  SalaryStats,
   OutputSummary,
   WorkerCalendarData
 } from '@/app/actions/admin/salary'
-import { Search, DollarSign, Calculator, CheckCircle, Clock, Users, TrendingUp, Settings, Plus, Play, FileText } from 'lucide-react'
+import { Search, DollarSign, Calculator, Play, FileText } from 'lucide-react'
 import { CustomSelect, CustomSelectContent, CustomSelectItem, CustomSelectTrigger, CustomSelectValue } from '@/components/ui/custom-select'
 import SalaryStatement from './salary/SalaryStatement'
 import WorkerCalendar from './WorkerCalendar'
@@ -33,7 +22,7 @@ interface SalaryManagementProps {
 }
 
 export default function SalaryManagement({ profile }: SalaryManagementProps) {
-  const [activeTab, setActiveTab] = useState<'output' | 'rules' | 'records' | 'calculate' | 'statements'>('output')
+  const [activeTab, setActiveTab] = useState<'output' | 'calculate' | 'statements'>('output')
   
   // Output tab state
   const [outputData, setOutputData] = useState<OutputSummary[]>([])
@@ -44,15 +33,13 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   const [selectedWorkerForCalendar, setSelectedWorkerForCalendar] = useState<string>('')
   const [workerCalendarData, setWorkerCalendarData] = useState<WorkerCalendarData[]>([])
 
-  // Rules tab state
-  const [rules, setRules] = useState<SalaryCalculationRule[]>([])
-  const [rulesLoading, setRulesLoading] = useState(true)
-  const [rulesError, setRulesError] = useState<string | null>(null)
-  
-  // Records tab state
-  const [records, setRecords] = useState<SalaryRecord[]>([])
-  const [recordsLoading, setRecordsLoading] = useState(false)
-  const [recordsError, setRecordsError] = useState<string | null>(null)
+  // Filter state
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [siteFilter, setSiteFilter] = useState('')
+  const [workerFilter, setWorkerFilter] = useState('') // Added worker filter for salary calculation
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -60,247 +47,92 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   const [totalCount, setTotalCount] = useState(0)
   const pageSize = 10
 
-  // Filter state
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [siteFilter, setSiteFilter] = useState('')
-  const [workerFilter, setWorkerFilter] = useState('') // Added worker filter for salary calculation
-  const [dateFrom, setDateFrom] = useState('')
-  const [dateTo, setDateTo] = useState('')
-  
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  
-  // Statistics
-  const [stats, setStats] = useState<SalaryStats>({
-    total_workers: 0,
-    pending_calculations: 0,
-    approved_payments: 0,
-    total_payroll: 0,
-    average_daily_pay: 0,
-    overtime_percentage: 0
-  })
   
   // Available sites and workers
   const [availableSites, setAvailableSites] = useState<Array<{ id: string; name: string }>>([])
   const [availableWorkers, setAvailableWorkers] = useState<Array<{ id: string; name: string }>>([])
 
-  // Modal state
-  const [showRuleModal, setShowRuleModal] = useState(false)
-  const [showRuleDetailModal, setShowRuleDetailModal] = useState(false)
-  const [selectedRuleDetail, setSelectedRuleDetail] = useState<SalaryCalculationRule | null>(null)
-  const [editingRule, setEditingRule] = useState<SalaryCalculationRule | null>(null)
-  const [ruleFormData, setRuleFormData] = useState<{
-    rule_name: string
-    rule_type: 'hourly_rate' | 'daily_rate' | 'overtime_multiplier' | 'bonus_calculation'
-    base_amount: number
-    multiplier: number
-    site_id: string
-    role: string
-    is_active: boolean
-    id?: string
-  }>({
-    rule_name: '',
-    rule_type: 'hourly_rate',
-    base_amount: 0,
-    multiplier: 1,
-    site_id: '',
-    role: '',
-    is_active: true
-  })
-
   // Load output data
   const loadOutputData = async () => {
     setOutputLoading(true)
     setOutputError(null)
-
+    
     try {
       const result = await getOutputSummary(
         selectedYear,
         selectedMonth,
         siteFilter || undefined,
-        workerFilter || undefined
+        searchTerm || undefined
       )
-
+      
       if (result.success && result.data) {
         setOutputData(result.data)
       } else {
-        setOutputError(result.error || '출력정보 데이터를 불러오는데 실패했습니다.')
+        setOutputError(result.error || '출력 데이터를 불러오는데 실패했습니다.')
       }
     } catch (err) {
-      setOutputError('출력정보 데이터를 불러오는데 실패했습니다.')
+      setOutputError('출력 데이터를 불러오는데 실패했습니다.')
     } finally {
       setOutputLoading(false)
     }
   }
 
-  // Load worker calendar data
-  const loadWorkerCalendarData = async (workerId: string, year?: number, month?: number) => {
+  // Load calendar data for selected worker
+  const loadWorkerCalendarData = async (workerId: string) => {
     try {
-      const targetYear = year || selectedYear
-      const targetMonth = month || selectedMonth
-      const result = await getWorkerCalendarData(workerId, targetYear, targetMonth)
-      
+      const result = await getWorkerCalendarData(workerId, selectedYear, selectedMonth)
       if (result.success && result.data) {
         setWorkerCalendarData(result.data)
-      } else {
-        console.error('Failed to load worker calendar data:', result.error)
-        setWorkerCalendarData([])
       }
     } catch (err) {
-      console.error('Worker calendar data fetch error:', err)
-      setWorkerCalendarData([])
+      console.error('Failed to load worker calendar data:', err)
     }
   }
 
-  // Export output data to Excel
+  // Export data to Excel
   const exportToExcel = () => {
-    if (outputData.length === 0) {
+    if (!outputData || outputData.length === 0) {
       alert('내보낼 데이터가 없습니다.')
       return
     }
 
-    // Prepare data for Excel
-    const excelData = outputData.map((item, index) => ({
-      '번호': index + 1,
+    // Prepare data for export
+    const excelData = outputData.map(item => ({
       '작업자명': item.worker_name,
-      '역할': item.role === 'site_manager' ? '현장관리자' : '작업자',
-      '현장명': item.site_name,
-      '총 출력일수': `${item.total_work_days}일`,
-      '총 공수': `${item.total_work_hours}공수`,
-      '예상 급여': `${item.estimated_salary.toLocaleString()}원`
+      '작업자역할': item.worker_role,
+      '현장': item.site_name,
+      '총 공수': item.total_work_hours,
+      '총 실제시간': item.total_actual_hours,
+      '총 연장시간': item.total_overtime_hours,
+      '기본급': item.base_pay,
+      '연장수당': item.overtime_pay,
+      '보너스': item.bonus_pay,
+      '공제액': item.deductions,
+      '총 지급액': item.total_pay,
+      '근무일수': item.work_days_count,
+      '마지막근무일': item.last_work_date ? new Date(item.last_work_date).toLocaleDateString('ko-KR') : ''
     }))
 
     // Create workbook
     const wb = XLSX.utils.book_new()
-    
-    // Create worksheet
     const ws = XLSX.utils.json_to_sheet(excelData)
-    
-    // Set column widths
-    const colWidths = [
-      { wch: 8 },  // 번호
-      { wch: 15 }, // 작업자명
-      { wch: 12 }, // 역할
-      { wch: 25 }, // 현장명
-      { wch: 15 }, // 총 출력일수
-      { wch: 12 }, // 총 공수
-      { wch: 18 }  // 예상 급여
-    ]
+
+    // Auto-size columns
+    const colWidths = Object.keys(excelData[0] || {}).map(key => ({
+      wch: Math.max(key.length, 15)
+    }))
     ws['!cols'] = colWidths
 
-    // Add summary information as header
-    const summaryData = [
-      [`출력정보 요약 - ${selectedYear}년 ${selectedMonth}월`],
-      [`출력 일시: ${new Date().toLocaleString('ko-KR')}`],
-      [`총 작업자 수: ${outputData.length}명`],
-      [`월 평균 출력일수: ${outputData.length > 0 ? (outputData.reduce((sum, item) => sum + item.total_work_days, 0) / outputData.length).toFixed(1) : 0}일`],
-      [`총 공수 합계: ${outputData.reduce((sum, item) => sum + item.total_work_hours, 0).toFixed(1)}공수`],
-      [`예상 급여 총액: ${outputData.reduce((sum, item) => sum + item.estimated_salary, 0).toLocaleString()}원`],
-      [''], // Empty row
-      ['상세 데이터:'] // Header for detailed data
-    ]
-
-    // Create new worksheet with summary + data
-    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData)
-    
-    // Add the detailed data starting from row 9 (0-indexed row 8)
-    XLSX.utils.sheet_add_json(summaryWs, excelData, { origin: 'A9' })
-    
-    // Set column widths for summary sheet
-    summaryWs['!cols'] = [
-      { wch: 25 }, // Summary info
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 25 },
-      { wch: 15 },
-      { wch: 12 },
-      { wch: 18 }
-    ]
-
     // Add worksheet to workbook
-    XLSX.utils.book_append_sheet(wb, summaryWs, '출력정보')
-    
+    XLSX.utils.book_append_sheet(wb, ws, '급여 출력정보')
+
     // Generate filename
-    const filename = `출력정보_${selectedYear}년_${selectedMonth}월_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.xlsx`
+    const filename = `급여출력정보_${selectedYear}년${selectedMonth}월_${new Date().toISOString().split('T')[0]}.xlsx`
     
     // Save file
     XLSX.writeFile(wb, filename)
-  }
-
-  // Load rules data
-  const loadRules = async () => {
-    setRulesLoading(true)
-    setRulesError(null)
-    
-    try {
-      const result = await getSalaryRules(
-        currentPage,
-        pageSize,
-        searchTerm,
-        undefined, // Remove rule type filter
-        undefined  // Remove site filter for rules
-      )
-      
-      if (result.success && result.data) {
-        setRules(result.data.rules)
-        setTotalCount(result.data.total)
-        setTotalPages(result.data.pages)
-      } else {
-        setRulesError(result.error || '급여 규칙 데이터를 불러오는데 실패했습니다.')
-      }
-    } catch (err) {
-      setRulesError('급여 규칙 데이터를 불러오는데 실패했습니다.')
-    } finally {
-      setRulesLoading(false)
-    }
-  }
-
-  // Load records data
-  const loadRecords = async () => {
-    setRecordsLoading(true)
-    setRecordsError(null)
-    
-    try {
-      const result = await getSalaryRecords(
-        currentPage,
-        pageSize,
-        searchTerm,
-        statusFilter as any,
-        siteFilter || undefined,
-        dateFrom || undefined,
-        dateTo || undefined
-      )
-      
-      if (result.success && result.data) {
-        setRecords(result.data.records)
-        setTotalCount(result.data.total)
-        setTotalPages(result.data.pages)
-      } else {
-        setRecordsError(result.error || '급여 기록 데이터를 불러오는데 실패했습니다.')
-      }
-    } catch (err) {
-      setRecordsError('급여 기록 데이터를 불러오는데 실패했습니다.')
-    } finally {
-      setRecordsLoading(false)
-    }
-  }
-
-  // Load statistics
-  const loadStats = async () => {
-    try {
-      const result = await getSalaryStats(
-        siteFilter || undefined,
-        workerFilter || undefined,
-        dateFrom || undefined,
-        dateTo || undefined
-      )
-      if (result.success && result.data) {
-        setStats(result.data)
-      }
-    } catch (err) {
-      console.error('Failed to load salary stats:', err)
-    }
   }
 
   // Load available sites
@@ -334,10 +166,6 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     
     if (activeTab === 'output') {
       loadOutputData()
-    } else if (activeTab === 'rules') {
-      loadRules()
-    } else if (activeTab === 'records') {
-      loadRecords()
     }
   }, [activeTab])
 
@@ -345,15 +173,10 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   useEffect(() => {
     if (activeTab === 'output') {
       loadOutputData()
-    } else if (activeTab === 'rules') {
-      loadRules()
-    } else if (activeTab === 'records') {
-      loadRecords()
     }
   }, [currentPage, searchTerm, statusFilter, siteFilter, workerFilter, dateFrom, dateTo, selectedYear, selectedMonth])
 
   useEffect(() => {
-    loadStats()
     loadAvailableSites()
     loadAvailableWorkers()
   }, [])
@@ -371,61 +194,10 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     setCurrentPage(1)
   }
 
-  // Handle rule creation/editing
-  const handleRuleSubmit = async () => {
-    try {
-      const submitData = editingRule?.id 
-        ? { ...ruleFormData, id: editingRule.id }
-        : ruleFormData
-        
-      const result = await upsertSalaryRule(submitData)
-      
-      if (result.success) {
-        await loadRules()
-        setShowRuleModal(false)
-        setEditingRule(null)
-        setRuleFormData({
-          rule_name: '',
-          rule_type: 'hourly_rate',
-          base_amount: 0,
-          multiplier: 1,
-          site_id: '',
-          role: '',
-          is_active: true
-        })
-        alert(result.message)
-      } else {
-        alert(result.error)
-      }
-    } catch (error) {
-      alert('급여 규칙 처리 중 오류가 발생했습니다.')
-    }
-  }
-
-  // Handle bulk delete rules
-  const handleBulkDeleteRules = async (ruleIds: string[]) => {
-    if (!confirm(`${ruleIds.length}개 급여 규칙을 삭제하시겠습니까?`)) {
-      return
-    }
-
-    try {
-      const result = await deleteSalaryRules(ruleIds)
-      if (result.success) {
-        await loadRules()
-        setSelectedIds([])
-        alert(result.message)
-      } else {
-        alert(result.error)
-      }
-    } catch (error) {
-      alert('삭제 중 오류가 발생했습니다.')
-    }
-  }
-
   // Handle salary calculation
   const handleCalculateSalaries = async () => {
     if (!dateFrom || !dateTo) {
-      alert('계산할 기간을 선택하세요.')
+      alert('날짜 범위를 선택해주세요.')
       return
     }
 
@@ -436,227 +208,15 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
         dateFrom,
         dateTo
       )
-      
+
       if (result.success) {
-        await Promise.all([loadRecords(), loadStats()])
-        alert(result.message)
-        setActiveTab('records')
+        alert(`급여 계산이 완료되었습니다. ${result.data?.calculated_records || 0}개의 기록이 생성되었습니다.`)
       } else {
-        alert(result.error)
+        alert(`급여 계산 실패: ${result.error}`)
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('Salary calculation error:', err)
       alert('급여 계산 중 오류가 발생했습니다.')
-    }
-  }
-
-  // Handle salary approval
-  const handleApproveSalaries = async (recordIds: string[]) => {
-    if (!confirm(`${recordIds.length}개 급여 기록을 승인하시겠습니까?`)) {
-      return
-    }
-
-    try {
-      const result = await approveSalaryRecords(recordIds)
-      if (result.success) {
-        await Promise.all([loadRecords(), loadStats()])
-        setSelectedIds([])
-        alert(result.message)
-      } else {
-        alert(result.error)
-      }
-    } catch (error) {
-      alert('승인 처리 중 오류가 발생했습니다.')
-    }
-  }
-
-  // Define columns for different tabs
-  const rulesColumns = [
-    {
-      key: 'rule_name',
-      label: '규칙 정보',
-      sortable: true,
-      filterable: true,
-      render: (value: string, rule: SalaryCalculationRule) => (
-        <div 
-          className="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md p-2 -m-2 transition-colors"
-          onClick={() => {
-            setSelectedRuleDetail(rule)
-            setShowRuleDetailModal(true)
-          }}
-        >
-          <Settings className="h-8 w-8 text-blue-500 mr-3" />
-          <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{value}</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              {rule.rule_type.replace('_', ' ').toUpperCase()}
-            </div>
-          </div>
-        </div>
-      )
-    },
-    {
-      key: 'base_amount',
-      label: '기본 금액',
-      render: (value: number, rule: SalaryCalculationRule) => (
-        <div>
-          <div className="font-medium">₩{value.toLocaleString()}</div>
-          {rule.multiplier && rule.multiplier !== 1 && (
-            <div className="text-sm text-gray-500">
-              배율: {rule.multiplier}x
-            </div>
-          )}
-        </div>
-      )
-    },
-    {
-      key: 'site_id',
-      label: '적용 범위',
-      render: (site_id: string, rule: SalaryCalculationRule) => (
-        <div className="text-sm">
-          <div>{site_id ? availableSites.find(s => s.id === site_id)?.name || 'Unknown Site' : '전체 현장'}</div>
-          {rule.role && (
-            <div className="text-gray-500">역할: {rule.role}</div>
-          )}
-        </div>
-      )
-    },
-    {
-      key: 'is_active',
-      label: '상태',
-      render: (value: boolean) => (
-        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-          value 
-            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' 
-            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
-        }`}>
-          {value ? '활성' : '비활성'}
-        </span>
-      )
-    }
-  ]
-
-  const recordsColumns = [
-    {
-      key: 'worker',
-      label: '근로자 정보',
-      render: (worker: { full_name: string; email: string; role: string }) => (
-        <div>
-          <div className="font-medium text-gray-900 dark:text-gray-100">{worker.full_name}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">{worker.role}</div>
-          <div className="text-xs text-gray-400">{worker.email}</div>
-        </div>
-      )
-    },
-    {
-      key: 'work_date',
-      label: '근무일',
-      render: (value: string) => new Date(value).toLocaleDateString('ko-KR')
-    },
-    {
-      key: 'regular_hours',
-      label: '공수',
-      render: (regular_hours: number, record: SalaryRecord) => (
-        <div className="text-sm">
-          <div>공수: {regular_hours}</div>
-          {record.overtime_hours > 0 && (
-            <div className="text-orange-600">연장: {record.overtime_hours}</div>
-          )}
-          {record.notes && (
-            <div className="text-xs text-gray-500">{record.notes}</div>
-          )}
-        </div>
-      )
-    },
-    {
-      key: 'total_pay',
-      label: '급여 정보',
-      render: (total_pay: number, record: SalaryRecord) => (
-        <div>
-          <div className="font-medium">₩{total_pay.toLocaleString()}</div>
-          <div className="text-xs text-gray-500">
-            기본: ₩{record.base_pay.toLocaleString()}
-            {record.overtime_pay > 0 && (
-              <span> + 연장: ₩{record.overtime_pay.toLocaleString()}</span>
-            )}
-          </div>
-        </div>
-      )
-    },
-    {
-      key: 'status',
-      label: '상태',
-      render: (value: string) => {
-        const statusConfig = {
-          calculated: { text: '계산됨', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: Calculator },
-          approved: { text: '승인됨', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: CheckCircle },
-          paid: { text: '지급됨', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300', icon: DollarSign }
-        }
-        
-        const config = statusConfig[value as keyof typeof statusConfig] || statusConfig.calculated
-        const Icon = config.icon
-        
-        return (
-          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
-            <Icon className="h-3 w-3 mr-1" />
-            {config.text}
-          </span>
-        )
-      }
-    }
-  ]
-
-  // Define bulk actions for different tabs
-  const rulesBulkActions = [
-    commonBulkActions.delete(handleBulkDeleteRules)
-  ]
-
-  const recordsBulkActions = [
-    {
-      id: 'approve',
-      label: '승인',
-      icon: CheckCircle,
-      variant: 'default' as const,
-      onClick: handleApproveSalaries
-    }
-  ]
-
-  const getCurrentData = () => {
-    switch (activeTab) {
-      case 'rules': return rules
-      case 'records': return records
-      default: return []
-    }
-  }
-
-  const getCurrentColumns = () => {
-    switch (activeTab) {
-      case 'rules': return rulesColumns
-      case 'records': return recordsColumns
-      default: return []
-    }
-  }
-
-  const getCurrentLoading = () => {
-    switch (activeTab) {
-      case 'rules': return rulesLoading
-      case 'records': return recordsLoading
-      default: return false
-    }
-  }
-
-  const getCurrentError = () => {
-    switch (activeTab) {
-      case 'rules': return rulesError
-      case 'records': return recordsError
-      default: return null
-    }
-  }
-
-  const getCurrentBulkActions = () => {
-    switch (activeTab) {
-      case 'rules': return rulesBulkActions
-      case 'records': return recordsBulkActions
-      default: return []
     }
   }
 
@@ -664,7 +224,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     <div className="space-y-4">
       {/* Tab Navigation */}
       <div className="border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-8">
+        <nav className="flex space-x-8">
           <button
             onClick={() => setActiveTab('output')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${
@@ -674,26 +234,6 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             }`}
           >
             출력정보
-          </button>
-          <button
-            onClick={() => setActiveTab('rules')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'rules'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-            }`}
-          >
-            급여 규칙
-          </button>
-          <button
-            onClick={() => setActiveTab('records')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'records'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-            }`}
-          >
-            급여 기록
           </button>
           <button
             onClick={() => setActiveTab('calculate')}
@@ -727,206 +267,188 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
               onClick={exportToExcel}
             >
-              <FileText className="w-4 h-4" />
-              Excel 내보내기
+              <FileText className="h-4 w-4" />
+              엑셀 다운로드
             </button>
           </div>
-          
+
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                년도
-              </label>
-              <CustomSelect value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
-                <CustomSelectTrigger>
-                  <CustomSelectValue />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  {[2023, 2024, 2025, 2026].map(year => (
-                    <CustomSelectItem key={year} value={year.toString()}>
-                      {year}년
-                    </CustomSelectItem>
-                  ))}
-                </CustomSelectContent>
-              </CustomSelect>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                월
-              </label>
-              <CustomSelect value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
-                <CustomSelectTrigger>
-                  <CustomSelectValue />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  {Array.from({length: 12}, (_, i) => i + 1).map(month => (
-                    <CustomSelectItem key={month} value={month.toString()}>
-                      {month}월
-                    </CustomSelectItem>
-                  ))}
-                </CustomSelectContent>
-              </CustomSelect>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                현장
-              </label>
-              <CustomSelect value={siteFilter || "all"} onValueChange={(value) => setSiteFilter(value === "all" ? "" : value)}>
-                <CustomSelectTrigger>
-                  <CustomSelectValue />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  <CustomSelectItem value="all">전체 현장</CustomSelectItem>
-                  {availableSites.map(site => (
-                    <CustomSelectItem key={site.id} value={site.id}>
-                      {site.name}
-                    </CustomSelectItem>
-                  ))}
-                </CustomSelectContent>
-              </CustomSelect>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                작업자
-              </label>
-              <CustomSelect value={workerFilter || "all"} onValueChange={(value) => setWorkerFilter(value === "all" ? "" : value)}>
-                <CustomSelectTrigger>
-                  <CustomSelectValue />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  <CustomSelectItem value="all">전체 작업자</CustomSelectItem>
-                  {availableWorkers.map(worker => (
-                    <CustomSelectItem key={worker.id} value={worker.id}>
-                      {worker.name}
-                    </CustomSelectItem>
-                  ))}
-                </CustomSelectContent>
-              </CustomSelect>
-            </div>
-          </div>
-
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">총 작업자 수</div>
-              <div className="text-2xl font-bold text-blue-600">{outputData.length}</div>
-            </div>
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">월 평균 출력일수</div>
-              <div className="text-2xl font-bold text-green-600">
-                {outputData.length > 0 ? (outputData.reduce((sum, item) => sum + item.total_work_days, 0) / outputData.length).toFixed(1) : 0}
+          <div className="mb-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  연도
+                </label>
+                <CustomSelect value={selectedYear.toString()} onValueChange={(value) => setSelectedYear(parseInt(value))}>
+                  <CustomSelectTrigger>
+                    <CustomSelectValue />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    {[2023, 2024, 2025].map(year => (
+                      <CustomSelectItem key={year} value={year.toString()}>{year}년</CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
               </div>
-            </div>
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">총 공수 합계</div>
-              <div className="text-2xl font-bold text-yellow-600">
-                {outputData.reduce((sum, item) => sum + item.total_work_hours, 0).toFixed(1)}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  월
+                </label>
+                <CustomSelect value={selectedMonth.toString()} onValueChange={(value) => setSelectedMonth(parseInt(value))}>
+                  <CustomSelectTrigger>
+                    <CustomSelectValue />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    {Array.from({length: 12}, (_, i) => i + 1).map(month => (
+                      <CustomSelectItem key={month} value={month.toString()}>{month}월</CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
               </div>
-            </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-              <div className="text-sm font-medium text-gray-500 dark:text-gray-400">예상 급여 총액</div>
-              <div className="text-2xl font-bold text-purple-600">
-                {outputData.reduce((sum, item) => sum + item.estimated_salary, 0).toLocaleString()}원
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  현장
+                </label>
+                <CustomSelect value={siteFilter || "all"} onValueChange={(value) => setSiteFilter(value === "all" ? "" : value)}>
+                  <CustomSelectTrigger>
+                    <CustomSelectValue placeholder="현장 선택" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    <CustomSelectItem value="all">모든 현장</CustomSelectItem>
+                    {availableSites.map((site) => (
+                      <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  작업자명 검색
+                </label>
+                <input
+                  type="text"
+                  placeholder="작업자명으로 검색..."
+                  value={searchTerm}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
               </div>
             </div>
           </div>
 
-          {/* Output Summary Table */}
-          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
+          {/* Data Display */}
+          {outputLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">출력 데이터를 불러오는 중...</p>
+            </div>
+          ) : outputError ? (
+            <div className="text-center py-8">
+              <p className="text-red-600 dark:text-red-400">{outputError}</p>
+            </div>
+          ) : outputData.length > 0 ? (
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-100 dark:bg-gray-700">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      작업자명
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      역할
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      현장명
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      총 출력일수
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      총 공수
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      예상 급여
-                    </th>
-                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                      상세보기
-                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">작업자</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">현장</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">공수정보</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">급여정보</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">근무일수</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">달력</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {outputLoading ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center">
-                        <div className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                          <span className="ml-2 text-gray-500">로딩 중...</span>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : outputData.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                        {outputError ? outputError : '출력 정보가 없습니다.'}
-                        <div className="text-sm mt-2">
-                          {selectedYear}년 {selectedMonth}월 기준으로 일일보고서에 등록된 작업자 정보가 표시됩니다.
-                        </div>
-                      </td>
-                    </tr>
-                  ) : (
-                    outputData.map((item) => (
-                      <tr key={`${item.worker_id}-${item.site_name}`} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                  {outputData.map((item, index) => (
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {item.worker_name}
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            item.role === 'site_manager' 
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                              : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                          }`}>
-                            {item.role === 'site_manager' ? '현장관리자' : '작업자'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {item.worker_role}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
                           {item.site_name}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.total_work_days}일
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.total_work_hours}공수
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {item.estimated_salary.toLocaleString()}원
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          <button
-                            onClick={() => {
-                              setSelectedWorkerForCalendar(item.worker_id)
-                              loadWorkerCalendarData(item.worker_id)
-                            }}
-                            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                          >
-                            캘린더 보기
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm">
+                          <div className="text-gray-900 dark:text-gray-100">공수: {item.total_work_hours}</div>
+                          <div className="text-gray-500 dark:text-gray-400">실제: {item.total_actual_hours}h</div>
+                          {item.total_overtime_hours > 0 && (
+                            <div className="text-orange-600">연장: {item.total_overtime_hours}h</div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm">
+                          <div className="font-medium text-gray-900 dark:text-gray-100">
+                            총 ₩{item.total_pay.toLocaleString()}
+                          </div>
+                          <div className="text-gray-500 dark:text-gray-400">
+                            기본 ₩{item.base_pay.toLocaleString()}
+                          </div>
+                          {item.overtime_pay > 0 && (
+                            <div className="text-orange-600">
+                              연장 ₩{item.overtime_pay.toLocaleString()}
+                            </div>
+                          )}
+                          {item.bonus_pay > 0 && (
+                            <div className="text-green-600">
+                              보너스 ₩{item.bonus_pay.toLocaleString()}
+                            </div>
+                          )}
+                          {item.deductions > 0 && (
+                            <div className="text-red-600">
+                              공제 -₩{item.deductions.toLocaleString()}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm">
+                          <div className="text-gray-900 dark:text-gray-100">
+                            {item.work_days_count}일
+                          </div>
+                          {item.last_work_date && (
+                            <div className="text-gray-500 dark:text-gray-400">
+                              최종: {new Date(item.last_work_date).toLocaleDateString('ko-KR')}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <button
+                          onClick={() => {
+                            setSelectedWorkerForCalendar(item.worker_name)
+                            const worker = availableWorkers.find(w => w.name === item.worker_name)
+                            if (worker) {
+                              loadWorkerCalendarData(worker.id)
+                            }
+                          }}
+                          className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          달력 보기
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
-          </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">
+                {selectedYear}년 {selectedMonth}월 출력 데이터가 없습니다.
+              </p>
+            </div>
+          )}
 
           {/* Worker Calendar Modal */}
           {selectedWorkerForCalendar && (
@@ -934,30 +456,25 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
                 <div className="p-6">
                   <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-                      월간 출력 캘린더 - {outputData.find(item => item.worker_id === selectedWorkerForCalendar)?.worker_name}
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                      {selectedWorkerForCalendar} - {selectedYear}년 {selectedMonth}월 근무 달력
                     </h3>
                     <button
-                      onClick={() => setSelectedWorkerForCalendar('')}
-                      className="text-gray-400 hover:text-gray-500"
+                      onClick={() => {
+                        setSelectedWorkerForCalendar('')
+                        setWorkerCalendarData([])
+                      }}
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
                     >
                       <span className="sr-only">닫기</span>
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      ×
                     </button>
                   </div>
                   
                   <WorkerCalendar
-                    calendarData={workerCalendarData}
                     year={selectedYear}
                     month={selectedMonth}
-                    workerName={outputData.find(item => item.worker_id === selectedWorkerForCalendar)?.worker_name || ''}
-                    onMonthChange={(newYear, newMonth) => {
-                      setSelectedYear(newYear)
-                      setSelectedMonth(newMonth)
-                      loadWorkerCalendarData(selectedWorkerForCalendar, newYear, newMonth)
-                    }}
+                    calendarData={workerCalendarData}
                   />
                 </div>
               </div>
@@ -969,41 +486,52 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       {/* Salary Calculation Tab */}
       {activeTab === 'calculate' && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">급여 계산</h3>
-          
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">급여 계산</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                일일 보고서 데이터를 기반으로 급여를 계산합니다.
+              </p>
+            </div>
+            <button
+              onClick={handleCalculateSalaries}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
+            >
+              <Play className="h-4 w-4" />
+              급여 계산 실행
+            </button>
+          </div>
+
+          {/* Calculation filters */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                시작일 *
+                시작일
               </label>
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                required
               />
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                종료일 *
+                종료일
               </label>
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                required
               />
             </div>
-            
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                현장 선택
+                현장 필터
               </label>
               <CustomSelect value={siteFilter || "all"} onValueChange={(value) => setSiteFilter(value === "all" ? "" : value)}>
-                <CustomSelectTrigger className="w-full">
+                <CustomSelectTrigger>
                   <CustomSelectValue placeholder="모든 현장" />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
@@ -1013,488 +541,54 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                   ))}
                 </CustomSelectContent>
               </CustomSelect>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  작업자 선택
-                </label>
-                <CustomSelect value={workerFilter || "all"} onValueChange={(value) => setWorkerFilter(value === "all" ? "" : value)}>
-                  <CustomSelectTrigger className="w-full">
-                    <CustomSelectValue placeholder="모든 작업자" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent>
-                    <CustomSelectItem value="all">모든 작업자</CustomSelectItem>
-                    {availableWorkers.map((worker) => (
-                      <CustomSelectItem key={worker.id} value={worker.id}>{worker.name}</CustomSelectItem>
-                    ))}
-                  </CustomSelectContent>
-                </CustomSelect>
-              </div>
             </div>
-            
-            <div className="flex items-end">
-              <button
-                onClick={handleCalculateSalaries}
-                disabled={!dateFrom || !dateTo}
-                className="w-full flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-              >
-                <Play className="h-4 w-4 mr-2" />
-                급여 계산 실행
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                작업자 필터
+              </label>
+              <CustomSelect value={workerFilter || "all"} onValueChange={(value) => setWorkerFilter(value === "all" ? "" : value)}>
+                <CustomSelectTrigger>
+                  <CustomSelectValue placeholder="모든 작업자" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="all">모든 작업자</CustomSelectItem>
+                  {availableWorkers.map((worker) => (
+                    <CustomSelectItem key={worker.id} value={worker.id}>{worker.name}</CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
             </div>
           </div>
-          
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
-            <p className="text-sm text-blue-800 dark:text-blue-300">
-              선택한 기간의 출근 기록을 바탕으로 급여를 자동 계산합니다. 
-              계산된 급여는 급여 기록 탭에서 확인하고 승인할 수 있습니다.
-            </p>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <Calculator className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="ml-3">
+                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                  급여 계산 안내
+                </h4>
+                <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>일일 보고서의 작업 시간(공수) 데이터를 기반으로 급여를 계산합니다</li>
+                    <li>기본 8시간을 초과한 시간은 연장근무로 처리됩니다</li>
+                    <li>현장관리자: 27,500원/시간, 일반작업자: 16,250원/시간</li>
+                    <li>계산된 급여는 출력정보 탭에서 확인할 수 있습니다</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Salary Statement Tab */}
+      {/* Salary Statements Tab */}
       {activeTab === 'statements' && (
         <SalaryStatement profile={profile} />
       )}
 
-      {/* Header with search and filters */}
-      {activeTab !== 'calculate' && activeTab !== 'statements' && activeTab !== 'output' && (
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder={
-                  activeTab === 'rules' ? '규칙명으로 검색...' : '근로자명으로 검색...'
-                }
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-          </div>
-          
-          <div className="flex flex-row gap-2 flex-shrink-0 flex-wrap lg:flex-nowrap">
-            {activeTab === 'rules' && (
-              <button
-                onClick={() => {
-                  setEditingRule(null)
-                  setRuleFormData({
-                    rule_name: '',
-                    rule_type: 'hourly_rate',
-                    base_amount: 0,
-                    multiplier: 1,
-                    site_id: '',
-                    role: '',
-                    is_active: true
-                  })
-                  setShowRuleModal(true)
-                }}
-                className="flex items-center whitespace-nowrap px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                규칙 추가
-              </button>
-            )}
-            
-            {activeTab === 'records' && (
-              <>
-                <CustomSelect value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
-                  <CustomSelectTrigger className="min-w-[100px]">
-                    <CustomSelectValue placeholder="모든 상태" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent>
-                    <CustomSelectItem value="all">모든 상태</CustomSelectItem>
-                    <CustomSelectItem value="calculated">계산됨</CustomSelectItem>
-                    <CustomSelectItem value="approved">승인됨</CustomSelectItem>
-                    <CustomSelectItem value="paid">지급됨</CustomSelectItem>
-                  </CustomSelectContent>
-                </CustomSelect>
-                
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="min-w-[130px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="시작일"
-                />
-                
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="min-w-[130px] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  placeholder="종료일"
-                />
-              </>
-            )}
-            
-            {activeTab !== 'rules' && (
-              <CustomSelect value={siteFilter || "all"} onValueChange={(value) => setSiteFilter(value === "all" ? "" : value)}>
-                <CustomSelectTrigger className="min-w-[100px]">
-                  <CustomSelectValue placeholder="현장 선택" />
-                </CustomSelectTrigger>
-                <CustomSelectContent>
-                  <CustomSelectItem value="all">모든 현장</CustomSelectItem>
-                  {availableSites.map((site) => (
-                    <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
-                  ))}
-                </CustomSelectContent>
-              </CustomSelect>
-            )}
-          </div>
-        </div>
-      )}
 
-      {/* Data table */}
-      {activeTab !== 'calculate' && activeTab !== 'statements' && activeTab !== 'output' && (
-        <AdminDataTable
-          data={getCurrentData() as any[]}
-          columns={getCurrentColumns() as any[]}
-          loading={getCurrentLoading()}
-          error={getCurrentError()}
-          selectable={true}
-          selectedIds={selectedIds}
-          onSelectionChange={setSelectedIds}
-          getRowId={(item: any) => item.id}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          pageSize={pageSize}
-          totalCount={totalCount}
-          emptyMessage={
-            activeTab === 'rules' ? '급여 규칙이 없습니다' : '급여 기록이 없습니다'
-          }
-          emptyDescription={
-            activeTab === 'rules' 
-              ? '급여 계산을 위한 규칙을 추가하세요.' 
-              : '급여 계산을 실행하면 기록이 생성됩니다.'
-          }
-        />
-      )}
-
-      {/* Bulk action bar */}
-      {activeTab !== 'calculate' && activeTab !== 'statements' && activeTab !== 'output' && (
-        <BulkActionBar
-          selectedIds={selectedIds}
-          totalCount={totalCount}
-          actions={getCurrentBulkActions()}
-          onClearSelection={() => setSelectedIds([])}
-        />
-      )}
-
-      {/* Rule Detail Modal */}
-      {showRuleDetailModal && selectedRuleDetail && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  급여 규칙 상세 정보
-                </h2>
-                <button
-                  onClick={() => {
-                    setShowRuleDetailModal(false)
-                    setSelectedRuleDetail(null)
-                  }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <div className="space-y-6">
-                {/* 기본 정보 */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">기본 정보</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">규칙명</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedRuleDetail.rule_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">규칙 타입</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedRuleDetail.rule_type === 'hourly_rate' && '시급'}
-                        {selectedRuleDetail.rule_type === 'daily_rate' && '일급'}
-                        {selectedRuleDetail.rule_type === 'overtime_multiplier' && '연장근무 배율'}
-                        {selectedRuleDetail.rule_type === 'bonus_calculation' && '보너스 계산'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">상태</p>
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        selectedRuleDetail.is_active 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' 
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
-                      }`}>
-                        {selectedRuleDetail.is_active ? '활성' : '비활성'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">규칙 ID</p>
-                      <p className="text-sm font-mono text-gray-600 dark:text-gray-400">{selectedRuleDetail.id}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 급여 계산 정보 */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3">급여 계산 정보</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">기본 금액</p>
-                      <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                        ₩{selectedRuleDetail.base_amount.toLocaleString()}
-                      </p>
-                    </div>
-                    {selectedRuleDetail.multiplier && selectedRuleDetail.multiplier !== 1 && (
-                      <div>
-                        <p className="text-xs text-blue-600 dark:text-blue-400">배율</p>
-                        <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
-                          {selectedRuleDetail.multiplier}x
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  {selectedRuleDetail.rule_type === 'overtime_multiplier' && (
-                    <div className="mt-3 p-3 bg-blue-100 dark:bg-blue-900/30 rounded">
-                      <p className="text-xs text-blue-800 dark:text-blue-200">
-                        연장근무 시 기본 시급의 {selectedRuleDetail.multiplier}배가 적용됩니다.
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* 적용 범위 */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">적용 범위</h3>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">적용 현장</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedRuleDetail.site_id 
-                          ? availableSites.find(s => s.id === selectedRuleDetail.site_id)?.name || '알 수 없는 현장'
-                          : '전체 현장'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">적용 역할</p>
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {selectedRuleDetail.role || '모든 역할'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* 생성/수정 정보 */}
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">이력 정보</h3>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">생성일시</p>
-                      <p className="text-sm text-gray-900 dark:text-gray-100">
-                        {selectedRuleDetail.created_at ? new Date(selectedRuleDetail.created_at).toLocaleString('ko-KR') : '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">최종 수정일시</p>
-                      <p className="text-sm text-gray-900 dark:text-gray-100">
-                        {selectedRuleDetail.updated_at ? new Date(selectedRuleDetail.updated_at).toLocaleString('ko-KR') : '-'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-600 mt-6">
-                <button
-                  onClick={() => {
-                    setEditingRule(selectedRuleDetail)
-                    setRuleFormData({
-                      rule_name: selectedRuleDetail.rule_name,
-                      rule_type: selectedRuleDetail.rule_type,
-                      base_amount: selectedRuleDetail.base_amount,
-                      multiplier: selectedRuleDetail.multiplier || 1,
-                      site_id: selectedRuleDetail.site_id || '',
-                      role: selectedRuleDetail.role || '',
-                      is_active: selectedRuleDetail.is_active
-                    })
-                    setShowRuleDetailModal(false)
-                    setSelectedRuleDetail(null)
-                    setShowRuleModal(true)
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-700 border border-blue-600 dark:border-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  수정
-                </button>
-                <button
-                  onClick={() => {
-                    if (confirm('이 급여 규칙을 삭제하시겠습니까?')) {
-                      handleBulkDeleteRules([selectedRuleDetail.id])
-                      setShowRuleDetailModal(false)
-                      setSelectedRuleDetail(null)
-                    }
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 border border-red-600 dark:border-red-400 rounded-md hover:bg-red-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  삭제
-                </button>
-                <button
-                  onClick={() => {
-                    setShowRuleDetailModal(false)
-                    setSelectedRuleDetail(null)
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
-                >
-                  닫기
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Rule Modal */}
-      {showRuleModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
-                {editingRule ? '급여 규칙 수정' : '급여 규칙 추가'}
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    규칙명 *
-                  </label>
-                  <input
-                    type="text"
-                    value={ruleFormData.rule_name}
-                    onChange={(e) => setRuleFormData({ ...ruleFormData, rule_name: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    규칙 타입 *
-                  </label>
-                  <CustomSelect value={ruleFormData.rule_type} onValueChange={(value: any) => setRuleFormData({ ...ruleFormData, rule_type: value })}>
-                    <CustomSelectTrigger className="w-full">
-                      <CustomSelectValue placeholder="규칙 타입 선택" />
-                    </CustomSelectTrigger>
-                    <CustomSelectContent>
-                      <CustomSelectItem value="hourly_rate">시급</CustomSelectItem>
-                      <CustomSelectItem value="daily_rate">일급</CustomSelectItem>
-                      <CustomSelectItem value="overtime_multiplier">연장근무 배율</CustomSelectItem>
-                      <CustomSelectItem value="bonus_calculation">보너스 계산</CustomSelectItem>
-                    </CustomSelectContent>
-                  </CustomSelect>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    기본 금액 *
-                  </label>
-                  <input
-                    type="number"
-                    value={ruleFormData.base_amount}
-                    onChange={(e) => setRuleFormData({ ...ruleFormData, base_amount: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    required
-                  />
-                </div>
-
-                {ruleFormData.rule_type === 'overtime_multiplier' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      배율
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={ruleFormData.multiplier}
-                      onChange={(e) => setRuleFormData({ ...ruleFormData, multiplier: Number(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    적용 현장
-                  </label>
-                  <CustomSelect value={ruleFormData.site_id || "all"} onValueChange={(value) => setRuleFormData({ ...ruleFormData, site_id: value === "all" ? "" : value })}>
-                    <CustomSelectTrigger className="w-full">
-                      <CustomSelectValue placeholder="적용 현장 선택" />
-                    </CustomSelectTrigger>
-                    <CustomSelectContent>
-                      <CustomSelectItem value="all">모든 현장</CustomSelectItem>
-                      {availableSites.map((site) => (
-                        <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
-                      ))}
-                    </CustomSelectContent>
-                  </CustomSelect>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    적용 역할
-                  </label>
-                  <input
-                    type="text"
-                    value={ruleFormData.role}
-                    onChange={(e) => setRuleFormData({ ...ruleFormData, role: e.target.value })}
-                    placeholder="예: worker, site_manager (비워두면 모든 역할)"
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                  />
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={ruleFormData.is_active}
-                    onChange={(e) => setRuleFormData({ ...ruleFormData, is_active: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                  />
-                  <label className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                    활성 상태
-                  </label>
-                </div>
-              </div>
-
-              {/* Form actions */}
-              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-600 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowRuleModal(false)
-                    setEditingRule(null)
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-                >
-                  취소
-                </button>
-                <button
-                  type="button"
-                  onClick={handleRuleSubmit}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-                >
-                  {editingRule ? '수정' : '추가'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

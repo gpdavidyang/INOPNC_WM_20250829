@@ -68,24 +68,33 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
     setError(null)
     
     try {
-      const result = await getMarkupDocuments(
-        currentPage,
-        pageSize,
-        searchTerm,
-        locationFilter || undefined,
-        undefined, // site_id
-        creatorFilter || undefined
-      )
-      
-      if (result.success && result.data) {
-        setDocuments(result.data.documents)
-        setTotalCount(result.data.total)
-        setTotalPages(result.data.pages)
+      // 통합뷰와 동일한 API 사용
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+        admin: 'true', // 관리자 모드
+        ...(searchTerm && { search: searchTerm }),
+        ...(locationFilter && { location: locationFilter }),
+        ...(creatorFilter && { creator: creatorFilter })
+      })
+
+      const response = await fetch(`/api/markup-documents?${params}`)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch documents')
+      }
+
+      if (result.success) {
+        setDocuments(result.data || [])
+        setTotalCount(result.pagination.total || 0)
+        setTotalPages(result.pagination.totalPages || 1)
       } else {
         setError(result.error || '마킹 문서 데이터를 불러오는데 실패했습니다.')
       }
     } catch (err) {
-      setError('마킹 문서 데이터를 불러오는데 실패했습니다.')
+      console.error('Error loading documents:', err)
+      setError(err instanceof Error ? err.message : '마킹 문서 데이터를 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
     }
@@ -94,22 +103,36 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
   // Load statistics
   const loadStats = async () => {
     try {
-      const result = await getMarkupDocumentStats()
-      if (result.success && result.data) {
-        setStats(result.data)
+      const response = await fetch(`/api/markup-documents?stats=true`)
+      const result = await response.json()
+      
+      if (response.ok && result.total !== undefined) {
+        setStats({
+          total_documents: result.total || 0,
+          personal_documents: 0, // TODO: Get from API when needed
+          shared_documents: result.total || 0, // 현재는 모두 shared
+          total_permissions: 0, // TODO: Get from API when needed  
+          active_users: 1, // TODO: Get from API when needed
+          storage_used: 0 // TODO: Get from API when needed
+        })
       }
     } catch (err) {
       console.error('Failed to load markup document stats:', err)
     }
   }
 
-  // Load available users
+  // Load available users - 임시로 시스템 관리자만 설정
   const loadAvailableUsers = async () => {
     try {
-      const result = await getAvailableUsersForPermissions()
-      if (result.success && result.data) {
-        setAvailableUsers(result.data)
-      }
+      // TODO: API 구현 후 실제 사용자 목록 가져오기
+      setAvailableUsers([
+        { 
+          id: '671496b3-3988-4d94-89dc-9cc6a078c1b0', 
+          full_name: '시스템 관리자', 
+          email: 'davidswyang@gmail.com',
+          role: 'admin'
+        }
+      ])
     } catch (err) {
       console.error('Failed to load available users:', err)
     }

@@ -35,8 +35,9 @@ export async function getMarkupDocuments(
   site_id?: string,
   created_by?: string
 ): Promise<AdminActionResult<{ documents: MarkupDocumentWithStats[]; total: number; pages: number }>> {
-  return withAdminAuth(async (supabase) => {
+  return withAdminAuth(async (supabase, profile) => {
     try {
+      console.log('Admin auth passed, profile:', { id: profile.id, email: profile.email, role: profile.role })
       let query = supabase
         .from('markup_documents')
         .select(`
