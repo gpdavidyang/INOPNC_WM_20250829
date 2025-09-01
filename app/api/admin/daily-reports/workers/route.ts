@@ -14,6 +14,17 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams
     const reportId = searchParams.get('reportId')
+    const isTest = searchParams.get('test') === 'true'
+    
+    // Test mode - return diagnostic info
+    if (isTest) {
+      return NextResponse.json({
+        test: true,
+        user: user.email,
+        timestamp: new Date().toISOString(),
+        gitCommit: process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7)
+      })
+    }
     
     if (!reportId) {
       return NextResponse.json({ error: 'Report ID is required' }, { status: 400 })
