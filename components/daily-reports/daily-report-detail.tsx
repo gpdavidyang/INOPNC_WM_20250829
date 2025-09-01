@@ -409,12 +409,6 @@ export default function DailyReportDetail({ report, photoGroups = [], canManage 
             <div className="border-t border-gray-200">
               <dl>
                 <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">날씨</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {report.weather || '-'}
-                  </dd>
-                </div>
-                <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                   <dt className="text-sm font-medium text-gray-500">온도</dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                     {report.temperature ? `${report.temperature}°C` : '-'}

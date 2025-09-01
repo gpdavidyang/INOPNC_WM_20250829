@@ -226,9 +226,10 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
               </button>
               <button
                 onClick={() => openTMap(siteInfo.address.full_address, siteInfo.name)}
-                className="px-2 py-1 text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                title="T맵에서 보기"
               >
-                T맵
+                <Navigation className="h-3.5 w-3.5 text-gray-400" />
               </button>
             </div>
             <div className="pl-6 text-sm text-gray-600 dark:text-gray-400">
@@ -252,9 +253,10 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                 </button>
                 <button
                   onClick={() => openTMap(siteInfo.accommodation!.full_address, '숙소')}
-                  className="px-2 py-1 text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                  title="T맵에서 보기"
                 >
-                  T맵
+                  <Navigation className="h-3.5 w-3.5 text-gray-400" />
                 </button>
               </div>
               <div className="pl-6 text-sm text-gray-600 dark:text-gray-400">
@@ -472,19 +474,17 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                         <span>도면 미리보기</span>
                       </div>
                       {siteDocuments?.blueprint_document ? (
-                        <img 
-                          src={siteDocuments.blueprint_document.file_url} 
-                          alt={siteDocuments.blueprint_document.title || "현장 도면"}
-                          className="w-full h-auto rounded border border-gray-200 dark:border-gray-700"
-                          loading="lazy"
+                        <iframe
+                          src={`/api/shared-documents/${siteDocuments.blueprint_document.id}/file`}
+                          className="w-full h-96 rounded border border-gray-200 dark:border-gray-700"
+                          title="현장 공도면"
                           onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = '/docs/샘플도면5.png'; // Fallback image
+                            console.error('Blueprint document load error:', e)
                           }}
                         />
                       ) : (
                         <div className="w-full h-48 bg-gray-100 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                          <p className="text-gray-500 dark:text-gray-400 text-sm">도면이 등록되지 않았습니다</p>
+                          <p className="text-gray-500 dark:text-gray-400 text-sm">현장 공도면이 등록되지 않았습니다</p>
                         </div>
                       )}
                     </div>
@@ -498,8 +498,13 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
               <button
                 onClick={async () => {
                   try {
-                    const fileUrl = siteDocuments?.blueprint_document?.file_url || '/docs/강남A현장_공도면.jpg'
-                    const fileName = siteDocuments?.blueprint_document?.file_name || `강남A현장_공도면_${new Date().toISOString().split('T')[0]}.jpg`
+                    if (!siteDocuments?.blueprint_document) {
+                      toast.error('다운로드할 공도면이 없습니다')
+                      return
+                    }
+                    
+                    const fileUrl = `/api/shared-documents/${siteDocuments.blueprint_document.id}/file`
+                    const fileName = siteDocuments.blueprint_document.filename || `현장공도면_${new Date().toISOString().split('T')[0]}.pdf`
                     
                     // PWA 환경 감지 (더 정확한 방법)
                     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
@@ -768,11 +773,11 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                       {/* Enhanced PDF Viewer - Using browser native PDF support */}
                       <div className="w-full h-96 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-50 dark:bg-gray-900 relative">
                         {/* Primary: Use iframe with browser PDF viewer */}
-                        {!pdfLoadError && (
+                        {siteDocuments?.ptw_document && !pdfLoadError && (
                           <iframe
-                            src={`${siteDocuments?.ptw_document?.file_url || '/documents/PTW-2025-55386936.pdf'}#view=FitH&toolbar=1&navpanes=0&scrollbar=1`}
+                            src={`/api/shared-documents/${siteDocuments.ptw_document.id}/file#view=FitH&toolbar=1&navpanes=0&scrollbar=1`}
                             className="w-full h-full"
-                            title={siteDocuments?.ptw_document?.title || "PTW 작업허가서"}
+                            title={siteDocuments.ptw_document.title || "PTW 작업허가서"}
                             style={{
                               border: 'none',
                               background: '#f9fafb'

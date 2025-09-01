@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { filename: string } }
+  { params }: { params: { id: string } }
 ) {
   try {
     const supabase = createClient()
@@ -13,38 +13,41 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const filename = params.filename
-    if (!filename) {
-      return NextResponse.json({ error: 'Filename is required' }, { status: 400 })
+    // 문서 정보 조회
+    const { data: document, error: docError } = await supabase
+      .from('v_shared_documents_with_permissions')
+      .select('*')
+      .eq('id', params.id)
+      .eq('is_deleted', false)
+      .single()
+
+    if (docError || !document) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Supabase Storage에서 파일 찾기 - 여러 버킷에서 순차적으로 검색
-    const buckets = ['user-documents', 'daily-report-attachments', 'attachments']
-    let fileData = null
-    let foundBucket = null
+    // 권한 확인
+    const hasPermission = await supabase.rpc('check_document_permission', {
+      p_document_id: params.id,
+      p_user_id: user.id,
+      p_permission_type: 'view'
+    })
 
-    for (const bucket of buckets) {
-      try {
-        const { data, error } = await supabase.storage
-          .from(bucket)
-          .download(filename)
-
-        if (!error && data) {
-          fileData = data
-          foundBucket = bucket
-          break
-        }
-      } catch (err) {
-        // 버킷에서 파일을 찾지 못했으면 다음 버킷에서 시도
-        continue
-      }
+    if (!hasPermission.data) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    if (!fileData) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 })
+    // Supabase Storage에서 파일 다운로드
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('user-documents')
+      .download(document.file_path)
+
+    if (downloadError || !fileData) {
+      console.error('Error downloading file:', downloadError)
+      return NextResponse.json({ error: 'File not found in storage' }, { status: 404 })
     }
 
     // MIME 타입 결정
+    const filename = document.filename || document.file_path.split('/').pop() || ''
     const ext = filename.split('.').pop()?.toLowerCase() || ''
     const mimeTypes: { [key: string]: string } = {
       'png': 'image/png',
@@ -69,6 +72,13 @@ export async function GET(
     // 파일을 ArrayBuffer로 변환
     const arrayBuffer = await fileData.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
+
+    // 액세스 로그 남기기
+    await supabase.from('document_access_logs').insert({
+      document_id: params.id,
+      user_id: user.id,
+      action: 'view_file'
+    })
 
     // 응답 생성
     return new NextResponse(buffer, {

@@ -23,13 +23,6 @@ import {
   Share2,
   Edit,
   Trash2,
-  Cloud,
-  Thermometer,
-  Wind,
-  Droplets,
-  Sun,
-  CloudRain,
-  CloudSnow,
   Building2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -83,15 +76,6 @@ export function DailyReportDetailView({
     }
   }
 
-  const getWeatherIcon = (type?: string) => {
-    switch (type) {
-      case 'sunny': return <Sun className="w-5 h-5 text-yellow-500" />
-      case 'cloudy': return <Cloud className="w-5 h-5 text-gray-500" />
-      case 'rainy': return <CloudRain className="w-5 h-5 text-blue-500" />
-      case 'snowy': return <CloudSnow className="w-5 h-5 text-blue-300" />
-      default: return <Sun className="w-5 h-5 text-yellow-500" />
-    }
-  }
 
   const formData = report.formData || {}
 
@@ -349,61 +333,6 @@ export function DailyReportDetailView({
                 )}
               </Card>
 
-              {/* Basic Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-3">날씨 정보</h3>
-                  {(formData as any).weather_conditions ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {getWeatherIcon((formData as any).weather_conditions.weather_type)}
-                        <span className="font-medium">
-                          {(formData as any).weather_conditions.weather_type === 'sunny' && '맑음'}
-                          {(formData as any).weather_conditions.weather_type === 'cloudy' && '흐림'}
-                          {(formData as any).weather_conditions.weather_type === 'rainy' && '비'}
-                          {(formData as any).weather_conditions.weather_type === 'snowy' && '눈'}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        {(formData as any).weather_conditions.temperature && (
-                          <div className="flex items-center gap-1">
-                            <Thermometer className="w-4 h-4 text-gray-500" />
-                            <span>{(formData as any).weather_conditions.temperature}°C</span>
-                          </div>
-                        )}
-                        {(formData as any).weather_conditions.humidity && (
-                          <div className="flex items-center gap-1">
-                            <Droplets className="w-4 h-4 text-gray-500" />
-                            <span>{(formData as any).weather_conditions.humidity}%</span>
-                          </div>
-                        )}
-                        {(formData as any).weather_conditions.wind_speed && (
-                          <div className="flex items-center gap-1">
-                            <Wind className="w-4 h-4 text-gray-500" />
-                            <span>{(formData as any).weather_conditions.wind_speed}m/s</span>
-                          </div>
-                        )}
-                        {(formData as any).weather_conditions.dust_level && (
-                          <div className="flex items-center gap-1">
-                            <span className={cn(
-                              'px-2 py-1 rounded text-xs',
-                              (formData as any).weather_conditions.dust_level === 'good' && 'bg-green-100 text-green-800',
-                              (formData as any).weather_conditions.dust_level === 'moderate' && 'bg-yellow-100 text-yellow-800',
-                              (formData as any).weather_conditions.dust_level === 'bad' && 'bg-orange-100 text-orange-800',
-                              (formData as any).weather_conditions.dust_level === 'very_bad' && 'bg-red-100 text-red-800'
-                            )}>
-                              미세먼지: {(formData as any).weather_conditions.dust_level}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500">날씨 정보가 없습니다</p>
-                  )}
-                </Card>
-              </div>
 
 
               {/* Issues */}

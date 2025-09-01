@@ -217,15 +217,6 @@ export default function DailyReportDetailMobile({ report, currentUser }: DailyRe
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs text-gray-500 dark:text-gray-400 block mb-0.5">
-                  날씨
-                </label>
-                <div className="flex items-center gap-1 text-sm text-gray-900 dark:text-gray-100">
-                  <Cloud className="h-3.5 w-3.5" />
-                  <span>{(report as any).weather || (report as any).weather_morning || '맑음'}</span>
-                </div>
-              </div>
 
               <div>
                 <label className="text-xs text-gray-500 dark:text-gray-400 block mb-0.5">

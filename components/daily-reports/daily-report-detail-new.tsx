@@ -153,29 +153,6 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                   수정
                 </Button>
               )}
-              {canApprove && (
-                <>
-                  <Button
-                    variant="danger"
-                    size="compact"
-                    onClick={() => {
-                      setShowApprovalDialog(true)
-                      setApprovalComments('')
-                    }}
-                  >
-                    <XCircle className="h-4 w-4 mr-1" />
-                    반려
-                  </Button>
-                  <Button
-                    variant="primary"
-                    size="compact"
-                    onClick={() => handleApproval(true)}
-                  >
-                    <CheckCircle className="h-4 w-4 mr-1" />
-                    승인
-                  </Button>
-                </>
-              )}
             </div>
           </div>
         </div>
@@ -233,15 +210,6 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
-                      날씨
-                    </label>
-                    <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
-                      <Cloud className="h-4 w-4" />
-                      <span>{(report as any).weather || (report as any).weather_morning || '맑음'}</span>
-                    </div>
-                  </div>
 
                   <div>
                     <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
@@ -398,7 +366,7 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
           </div>
         )}
 
-        {/* Attendance Records - 컴팩트 접기/펼치기 */}
+        {/* Attendance Records - 작업자명과 공수 정보 */}
         {report.attendance_records && report.attendance_records.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             <button
@@ -406,10 +374,20 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
               className="w-full p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-500 dark:text-blue-400" />
-                  출근 현황 ({report.attendance_records.length}명)
-                </h2>
+                <div className="flex flex-col items-start gap-1">
+                  <h2 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+                    출근 현황
+                  </h2>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    {report.attendance_records.map((record: any, index: number) => (
+                      <span key={record.id}>
+                        {record.worker?.full_name}({record.work_hours ? `${record.work_hours.toFixed(1)}h` : '0h'})
+                        {index < report.attendance_records.length - 1 && ', '}
+                      </span>
+                    ))}
+                  </div>
+                </div>
                 {showAttendanceDetails ? (
                   <ChevronUp className="h-4 w-4 text-gray-500" />
                 ) : (

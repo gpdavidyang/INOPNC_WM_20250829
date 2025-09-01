@@ -115,15 +115,6 @@ export function DailyReportDetailDialog({
                   {format(new Date(report.work_date), 'yyyy년 M월 d일 (EEE)', { locale: ko })}
                 </p>
               </div>
-              <div>
-                <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 mb-1">
-                  <Cloud className="h-4 w-4" />
-                  <span>날씨</span>
-                </div>
-                <p className="font-medium text-gray-900 dark:text-gray-100">
-                  {(report as any).weather || '맑음'}
-                </p>
-              </div>
             </div>
           </div>
 
