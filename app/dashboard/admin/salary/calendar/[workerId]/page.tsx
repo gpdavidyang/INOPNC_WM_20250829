@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { getWorkerCalendarData, WorkerCalendarData } from '@/app/actions/admin/salary'
 import WorkerCalendar from '@/components/admin/WorkerCalendar'
-import PageHeader from '@/components/ui/page-header'
+import { PageHeader } from '@/components/ui/page-header'
 import { ArrowLeft } from 'lucide-react'
 
 export default function WorkerCalendarPage() {

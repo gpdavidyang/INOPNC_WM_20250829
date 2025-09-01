@@ -12,7 +12,7 @@ import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 import PhotosTab from '@/components/admin/daily-reports/PhotosTab'
 import AttachmentsTab from '@/components/admin/daily-reports/AttachmentsTab'
-import WorkersTab from '@/components/admin/daily-reports/WorkersTab'
+import WorkerManagementTab from '@/components/admin/daily-reports/WorkerManagementTab'
 import MarkupTab from '@/components/admin/daily-reports/MarkupTab'
 import ReceiptsTab from '@/components/admin/daily-reports/ReceiptsTab'
 import { getDailyReportById } from '@/app/actions/admin/daily-reports'
@@ -392,7 +392,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'workers' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <WorkersTab reportId={reportId} isEditing={false} />
+              <WorkerManagementTab reportId={reportId} isEditing={false} />
             </div>
           </div>
         )}
