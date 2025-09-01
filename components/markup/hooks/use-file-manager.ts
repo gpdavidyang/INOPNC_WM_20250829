@@ -4,7 +4,6 @@ import type { MarkupDocument } from '@/types'
 
 interface SaveDocumentParams {
   fileName: string
-  location: 'personal' | 'shared'
   description?: string
   blueprintUrl: string
   blueprintFileName: string
@@ -16,7 +15,6 @@ export function useFileManager(
 ) {
   const saveDocument = useCallback(async ({
     fileName,
-    location,
     description,
     blueprintUrl,
     blueprintFileName
@@ -30,7 +28,6 @@ export function useFileManager(
         original_blueprint_url: blueprintUrl,
         original_blueprint_filename: blueprintFileName,
         markup_data: editorState.markupObjects,
-        location,
         preview_image_url: null // TODO: Generate preview image
       }
 

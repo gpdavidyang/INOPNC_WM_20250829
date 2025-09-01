@@ -222,9 +222,7 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
         method,
         body: formData,
         cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache',
-        }
+        // Don't set Content-Type header for FormData - browser will set it with boundary
       })
 
       console.log(`[PhotoGrid] Response status:`, response.status)

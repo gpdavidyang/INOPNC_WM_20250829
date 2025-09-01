@@ -170,12 +170,8 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
                     >
                       <div className="flex items-start justify-between mb-2">
                         <FileText className="h-5 w-5 text-gray-400" />
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          doc.location === 'shared' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                        }`}>
-                          {doc.location === 'shared' ? '공유' : '개인'}
+                        <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                          도면
                         </span>
                       </div>
                       <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate">

@@ -69,6 +69,8 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
 
   // Modal state
   const [showRuleModal, setShowRuleModal] = useState(false)
+  const [showRuleDetailModal, setShowRuleDetailModal] = useState(false)
+  const [selectedRuleDetail, setSelectedRuleDetail] = useState<SalaryCalculationRule | null>(null)
   const [editingRule, setEditingRule] = useState<SalaryCalculationRule | null>(null)
   const [ruleFormData, setRuleFormData] = useState<{
     rule_name: string
@@ -311,10 +313,16 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       sortable: true,
       filterable: true,
       render: (value: string, rule: SalaryCalculationRule) => (
-        <div className="flex items-center">
+        <div 
+          className="flex items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md p-2 -m-2 transition-colors"
+          onClick={() => {
+            setSelectedRuleDetail(rule)
+            setShowRuleDetailModal(true)
+          }}
+        >
           <Settings className="h-8 w-8 text-blue-500 mr-3" />
           <div>
-            <div className="font-medium text-gray-900 dark:text-gray-100">{value}</div>
+            <div className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{value}</div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
               {rule.rule_type.replace('_', ' ').toUpperCase()}
             </div>
@@ -770,6 +778,182 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
           actions={getCurrentBulkActions()}
           onClearSelection={() => setSelectedIds([])}
         />
+      )}
+
+      {/* Rule Detail Modal */}
+      {showRuleDetailModal && selectedRuleDetail && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  급여 규칙 상세 정보
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowRuleDetailModal(false)
+                    setSelectedRuleDetail(null)
+                  }}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                {/* 기본 정보 */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">기본 정보</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">규칙명</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedRuleDetail.rule_name}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">규칙 타입</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedRuleDetail.rule_type === 'hourly_rate' && '시급'}
+                        {selectedRuleDetail.rule_type === 'daily_rate' && '일급'}
+                        {selectedRuleDetail.rule_type === 'overtime_multiplier' && '연장근무 배율'}
+                        {selectedRuleDetail.rule_type === 'bonus_calculation' && '보너스 계산'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">상태</p>
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        selectedRuleDetail.is_active 
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' 
+                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
+                      }`}>
+                        {selectedRuleDetail.is_active ? '활성' : '비활성'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">규칙 ID</p>
+                      <p className="text-sm font-mono text-gray-600 dark:text-gray-400">{selectedRuleDetail.id}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 급여 계산 정보 */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-3">급여 계산 정보</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">기본 금액</p>
+                      <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                        ₩{selectedRuleDetail.base_amount.toLocaleString()}
+                      </p>
+                    </div>
+                    {selectedRuleDetail.multiplier && selectedRuleDetail.multiplier !== 1 && (
+                      <div>
+                        <p className="text-xs text-blue-600 dark:text-blue-400">배율</p>
+                        <p className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                          {selectedRuleDetail.multiplier}x
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {selectedRuleDetail.rule_type === 'overtime_multiplier' && (
+                    <div className="mt-3 p-3 bg-blue-100 dark:bg-blue-900/30 rounded">
+                      <p className="text-xs text-blue-800 dark:text-blue-200">
+                        연장근무 시 기본 시급의 {selectedRuleDetail.multiplier}배가 적용됩니다.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 적용 범위 */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">적용 범위</h3>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">적용 현장</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedRuleDetail.site_id 
+                          ? availableSites.find(s => s.id === selectedRuleDetail.site_id)?.name || '알 수 없는 현장'
+                          : '전체 현장'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">적용 역할</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {selectedRuleDetail.role || '모든 역할'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 생성/수정 정보 */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">이력 정보</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">생성일시</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">
+                        {selectedRuleDetail.created_at ? new Date(selectedRuleDetail.created_at).toLocaleString('ko-KR') : '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">최종 수정일시</p>
+                      <p className="text-sm text-gray-900 dark:text-gray-100">
+                        {selectedRuleDetail.updated_at ? new Date(selectedRuleDetail.updated_at).toLocaleString('ko-KR') : '-'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-6 border-t border-gray-200 dark:border-gray-600 mt-6">
+                <button
+                  onClick={() => {
+                    setEditingRule(selectedRuleDetail)
+                    setRuleFormData({
+                      rule_name: selectedRuleDetail.rule_name,
+                      rule_type: selectedRuleDetail.rule_type,
+                      base_amount: selectedRuleDetail.base_amount,
+                      multiplier: selectedRuleDetail.multiplier || 1,
+                      site_id: selectedRuleDetail.site_id || '',
+                      role: selectedRuleDetail.role || '',
+                      is_active: selectedRuleDetail.is_active,
+                      id: selectedRuleDetail.id
+                    })
+                    setShowRuleDetailModal(false)
+                    setSelectedRuleDetail(null)
+                    setShowRuleModal(true)
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 bg-white dark:bg-gray-700 border border-blue-600 dark:border-blue-400 rounded-md hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  수정
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('이 급여 규칙을 삭제하시겠습니까?')) {
+                      handleBulkDeleteRules([selectedRuleDetail.id])
+                      setShowRuleDetailModal(false)
+                      setSelectedRuleDetail(null)
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-white dark:bg-gray-700 border border-red-600 dark:border-red-400 rounded-md hover:bg-red-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  삭제
+                </button>
+                <button
+                  onClick={() => {
+                    setShowRuleDetailModal(false)
+                    setSelectedRuleDetail(null)
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 rounded-md hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Rule Modal */}

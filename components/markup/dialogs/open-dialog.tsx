@@ -29,12 +29,11 @@ interface OpenDialogProps {
 export function OpenDialog({ open, onOpenChange, onOpen }: OpenDialogProps) {
   const [documents, setDocuments] = useState<MarkupDocument[]>([])
   const [loading, setLoading] = useState(false)
-  const [location, setLocation] = useState<'personal' | 'shared'>('personal')
 
   const fetchDocuments = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/markup-documents?location=${location}&limit=10`)
+      const response = await fetch(`/api/markup-documents?limit=10`)
       const result = await response.json()
       
       if (result.success) {
@@ -53,7 +52,7 @@ export function OpenDialog({ open, onOpenChange, onOpen }: OpenDialogProps) {
     if (open) {
       fetchDocuments()
     }
-  }, [open, location])
+  }, [open])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
@@ -71,25 +70,11 @@ export function OpenDialog({ open, onOpenChange, onOpen }: OpenDialogProps) {
         <DialogHeader>
           <DialogTitle>마킹 도면 열기</DialogTitle>
           <DialogDescription>
-            저장된 마킹 도면을 선택하여 열기
+            도면마킹문서함에서 도면을 선택하여 열기
           </DialogDescription>
         </DialogHeader>
         
         <div className="py-4">
-          <div className="mb-4">
-            <Select 
-              value={location} 
-              onValueChange={(value) => setLocation(value as 'personal' | 'shared')}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="문서함 선택" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="personal">내 문서함</SelectItem>
-                <SelectItem value="shared">공유 문서함</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           <div className="grid gap-2 max-h-64 overflow-y-auto">
             {loading ? (

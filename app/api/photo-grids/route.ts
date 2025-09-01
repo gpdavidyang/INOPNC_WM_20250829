@@ -13,6 +13,11 @@ export async function POST(request: NextRequest) {
   console.log('Request URL:', request.url)
   console.log('Request method:', request.method)
   
+  // Strip query parameters from the URL for proper routing
+  const url = new URL(request.url)
+  console.log('Path:', url.pathname)
+  console.log('Query params:', url.search)
+  
   try {
     // Log request headers for debugging
     console.log('Request headers:', Object.fromEntries(request.headers.entries()))
@@ -193,15 +198,13 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST handler has been moved to /api/photo-grids/create/route.ts to avoid route conflicts
-
 // Handle OPTIONS requests for CORS
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     },
   })

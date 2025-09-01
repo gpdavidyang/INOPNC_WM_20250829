@@ -556,7 +556,6 @@ export interface MarkupDocument {
   original_blueprint_filename: string
   markup_data: any[] // MarkupObject[] from markup types
   preview_image_url?: string
-  location: 'personal' | 'shared'
   created_by: string
   created_at: string
   updated_at: string

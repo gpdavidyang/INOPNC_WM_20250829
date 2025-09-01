@@ -186,7 +186,7 @@ export function MarkupEditor({
     }))
   }
 
-  const handleSave = async (fileName: string, location: 'personal' | 'shared', description?: string) => {
+  const handleSave = async (fileName: string, description?: string) => {
     try {
       if (!blueprintUrl || !blueprintFileName) {
         alert('도면이 업로드되지 않았습니다.')
@@ -195,7 +195,6 @@ export function MarkupEditor({
 
       const savedDocument = await fileManager.saveDocument({
         fileName,
-        location,
         description,
         blueprintUrl,
         blueprintFileName
@@ -203,7 +202,7 @@ export function MarkupEditor({
 
       if (savedDocument) {
         // 성공 메시지 표시
-        alert(`마킹 도면이 성공적으로 저장되었습니다.\n\n파일명: ${fileName}\n위치: ${location === 'personal' ? '내문서함' : '공유문서함'}`)
+        alert(`마킹 도면이 성공적으로 저장되었습니다.\n\n파일명: ${fileName}`)
         
         if (onSave) {
           onSave(savedDocument)

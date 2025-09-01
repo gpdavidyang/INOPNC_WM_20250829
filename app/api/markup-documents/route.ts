@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
     const isAdmin = profile?.role === 'admin'
     
     // 쿼리 파라미터
-    const location = searchParams.get('location') || 'personal'
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const search = searchParams.get('search')
@@ -40,18 +39,9 @@ export async function GET(request: NextRequest) {
         : supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false).eq('created_by', user.id)
       
       const { count: total } = await statsQuery
-      const { count: personal } = await (isAdmin 
-        ? supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false).eq('location', 'personal')
-        : supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false).eq('created_by', user.id).eq('location', 'personal'))
-      
-      const { count: shared } = await (isAdmin 
-        ? supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false).eq('location', 'shared')
-        : supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false).eq('location', 'shared'))
 
       return NextResponse.json({
         total: total || 0,
-        personal: personal || 0,
-        shared: shared || 0,
         total_markups: 0, // TODO: Calculate from markup_data
         total_size: 0, // TODO: Calculate actual size
         last_created: new Date().toISOString()
@@ -79,14 +69,9 @@ export async function GET(request: NextRequest) {
       .eq('is_deleted', false)
       .order('created_at', { ascending: false })
     
-    // 관리자 모드가 아니면 사용자 권한에 따라 필터링
+    // 관리자가 아니면 자신이 생성한 문서만 조회 가능
     if (!admin || !isAdmin) {
-      // location 필터
-      if (location === 'personal') {
-        query = query.eq('created_by', user.id).eq('location', 'personal')
-      } else if (location === 'shared') {
-        query = query.eq('location', 'shared')
-      }
+      query = query.eq('created_by', user.id)
     }
     
     // 검색어 필터
@@ -182,7 +167,6 @@ export async function POST(request: NextRequest) {
       original_blueprint_url,
       original_blueprint_filename,
       markup_data,
-      location = 'personal',
       preview_image_url
     } = body
 
@@ -205,7 +189,6 @@ export async function POST(request: NextRequest) {
         original_blueprint_url,
         original_blueprint_filename,
         markup_data: markup_data || [],
-        location,
         preview_image_url,
         created_by: user.id,
         site_id: (profile as any).site_id,
