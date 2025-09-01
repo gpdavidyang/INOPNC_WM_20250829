@@ -31,7 +31,18 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const supabase = await createClient()
-    const serviceClient = createServiceClient() // For storage operations
+    
+    // Try to create service client for storage operations
+    let serviceClient
+    try {
+      serviceClient = createServiceClient()
+      console.log('Service client created successfully')
+    } catch (serviceError) {
+      console.error('Failed to create service client:', serviceError)
+      // Fall back to regular client if service client fails
+      serviceClient = supabase
+      console.log('Falling back to regular client for storage')
+    }
 
     // Get user profile - profiles.id matches auth.users.id
     const { data: profile, error: profileError } = await supabase
@@ -71,14 +82,24 @@ export async function POST(request: NextRequest) {
 
     if (beforePhoto && beforePhoto.size > 0) {
       const beforePhotoName = `${Date.now()}-before-${beforePhoto.name}`
+      console.log('Uploading before photo:', beforePhotoName, 'Size:', beforePhoto.size)
+      
       // Use service client for storage operations
       const { data: beforeUpload, error: beforeError } = await serviceClient.storage
         .from('photo-grids')
         .upload(beforePhotoName, beforePhoto)
 
       if (beforeError) {
-        console.error('Error uploading before photo:', beforeError)
-        return NextResponse.json({ error: 'Failed to upload before photo' }, { status: 500 })
+        console.error('Error uploading before photo:', {
+          error: beforeError,
+          filename: beforePhotoName,
+          size: beforePhoto.size,
+          type: beforePhoto.type
+        })
+        return NextResponse.json({ 
+          error: 'Failed to upload before photo',
+          details: beforeError.message || beforeError
+        }, { status: 500 })
       }
 
       const { data: { publicUrl } } = serviceClient.storage
@@ -90,14 +111,24 @@ export async function POST(request: NextRequest) {
 
     if (afterPhoto && afterPhoto.size > 0) {
       const afterPhotoName = `${Date.now()}-after-${afterPhoto.name}`
+      console.log('Uploading after photo:', afterPhotoName, 'Size:', afterPhoto.size)
+      
       // Use service client for storage operations
       const { data: afterUpload, error: afterError } = await serviceClient.storage
         .from('photo-grids')
         .upload(afterPhotoName, afterPhoto)
 
       if (afterError) {
-        console.error('Error uploading after photo:', afterError)
-        return NextResponse.json({ error: 'Failed to upload after photo' }, { status: 500 })
+        console.error('Error uploading after photo:', {
+          error: afterError,
+          filename: afterPhotoName,
+          size: afterPhoto.size,
+          type: afterPhoto.type
+        })
+        return NextResponse.json({ 
+          error: 'Failed to upload after photo',
+          details: afterError.message || afterError
+        }, { status: 500 })
       }
 
       const { data: { publicUrl } } = serviceClient.storage
