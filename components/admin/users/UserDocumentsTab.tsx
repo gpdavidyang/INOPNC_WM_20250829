@@ -38,96 +38,66 @@ export default function UserDocumentsTab({ userId, userName }: UserDocumentsTabP
     try {
       setLoading(true)
       
-      // 필수 서류 목록과 사용자가 제출한 서류를 함께 조회
-      const { data: documentsData, error: documentsError } = await supabase
-        .from('unified_documents')
+      // user_documents 테이블에서 해당 사용자의 서류 조회
+      const { data: userDocsData, error: userDocsError } = await supabase
+        .from('user_documents')
         .select(`
           id,
-          document_name,
-          file_name,
-          file_url,
-          status,
-          uploaded_at,
-          approved_at,
-          rejection_reason
+          document_type,
+          original_filename,
+          file_path,
+          file_size,
+          mime_type,
+          upload_date,
+          created_at,
+          updated_at
         `)
-        .eq('uploaded_by', userId)
-        .eq('document_type', 'required')
-        .order('uploaded_at', { ascending: false })
+        .eq('user_id', userId)
+        .order('upload_date', { ascending: false })
 
-      if (documentsError) {
-        console.error('Error fetching documents:', documentsError)
-        // Mock data for demonstration
-        setDocuments([
-          {
-            id: '1',
-            document_name: '신분증 사본',
-            status: 'approved',
-            file_url: 'example.pdf',
-            file_name: '신분증_김작업자.pdf',
-            submitted_at: '2025-08-25T10:00:00Z',
-            reviewed_at: '2025-08-26T14:30:00Z',
-            is_required: true
-          },
-          {
-            id: '2',
-            document_name: '건강진단서',
-            status: 'submitted',
-            file_url: 'health_check.pdf',
-            file_name: '건강진단서_김작업자.pdf',
-            submitted_at: '2025-08-28T09:15:00Z',
-            is_required: true
-          },
-          {
-            id: '3',
-            document_name: '안전교육 이수증',
-            status: 'rejected',
-            file_url: 'safety_cert.pdf',
-            file_name: '안전교육증_김작업자.pdf',
-            submitted_at: '2025-08-20T16:45:00Z',
-            reviewed_at: '2025-08-21T11:20:00Z',
-            rejection_reason: '만료된 증명서입니다. 최신 증명서를 제출해주세요.',
-            is_required: true
-          },
-          {
-            id: '4',
-            document_name: '기본안전보건교육 수료증',
-            status: 'pending',
-            is_required: true
-          },
-          {
-            id: '5',
-            document_name: '자격증 사본',
-            status: 'pending',
-            is_required: false
-          },
-          {
-            id: '6',
-            document_name: '경력증명서',
-            status: 'approved',
-            file_url: 'career_cert.pdf',
-            file_name: '경력증명서_김작업자.pdf',
-            submitted_at: '2025-08-15T14:20:00Z',
-            reviewed_at: '2025-08-16T10:00:00Z',
-            is_required: false
-          }
-        ])
+      if (userDocsError) {
+        console.error('Error fetching user documents:', userDocsError)
+        setDocuments([])
         return
       }
 
-      const formattedDocuments = documentsData?.map(doc => ({
+      // 필수 서류 타입 정의
+      const requiredDocTypes = [
+        '건강진단서',
+        '신분증사본', 
+        '기본안전보건교육수료증',
+        '안전교육이수증',
+        '자격증사본',
+        '경력증명서'
+      ]
+
+      // 제출된 서류들을 필수/선택으로 분류하고 상태 설정
+      const submittedDocs = userDocsData?.map(doc => ({
         id: doc.id,
-        document_name: doc.document_name,
-        status: doc.status as 'pending' | 'submitted' | 'approved' | 'rejected',
-        file_url: doc.file_url,
-        file_name: doc.file_name,
-        submitted_at: doc.uploaded_at,
-        reviewed_at: doc.approved_at,
-        rejection_reason: doc.rejection_reason,
-        is_required: true
+        document_name: doc.document_type,
+        status: 'approved' as const, // 제출된 서류는 승인 상태로 표시
+        file_url: doc.file_path,
+        file_name: doc.original_filename,
+        submitted_at: doc.upload_date,
+        reviewed_at: doc.upload_date, // 임시로 업로드 날짜를 검토일로 설정
+        is_required: requiredDocTypes.includes(doc.document_type)
       })) || []
 
-      setDocuments(formattedDocuments)
+      // 미제출 필수 서류들을 찾아서 추가
+      const submittedDocTypes = new Set(submittedDocs.map(doc => doc.document_name))
+      const missingRequiredDocs = requiredDocTypes
+        .filter(docType => !submittedDocTypes.has(docType))
+        .map((docType, index) => ({
+          id: `missing-${index}`,
+          document_name: docType,
+          status: 'pending' as const,
+          is_required: true
+        }))
+
+      // 전체 서류 목록 = 제출된 서류 + 미제출 필수 서류
+      const allDocuments = [...submittedDocs, ...missingRequiredDocs]
+
+      setDocuments(allDocuments)
     } catch (error) {
       console.error('Error fetching required documents:', error)
     } finally {

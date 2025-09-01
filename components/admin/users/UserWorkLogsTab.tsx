@@ -5,7 +5,7 @@ import { FileText, Calendar, Building2, Users, Package, Eye, Search, ChevronDown
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import DailyReportDetailModal from '@/components/admin/daily-reports/DailyReportDetailModal'
+import DailyReportDetailModalWrapper from '@/components/admin/daily-reports/DailyReportDetailModalWrapper'
 
 interface UserWorkLogsTabProps {
   userId: string
@@ -370,7 +370,7 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
 
       {/* Detail Modal */}
       {isDetailModalOpen && selectedReportId && (
-        <DailyReportDetailModal
+        <DailyReportDetailModalWrapper
           reportId={selectedReportId}
           isOpen={isDetailModalOpen}
           onClose={handleCloseModal}

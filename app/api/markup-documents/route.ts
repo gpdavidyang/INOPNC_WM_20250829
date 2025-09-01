@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single()
     
-    const isAdmin = profile?.role === 'admin'
+    const isAdmin = profile?.role === 'admin' || profile?.role === 'system_admin'
     
     // 쿼리 파라미터
     const page = parseInt(searchParams.get('page') || '1')
