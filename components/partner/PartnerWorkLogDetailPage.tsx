@@ -29,16 +29,27 @@ interface PartnerWorkLogDetailPageProps {
 
 interface WorkLog {
   id: string
-  date: string
-  siteId: string
-  siteName?: string
-  mainWork: string
-  status: 'submitted'
-  author: string
-  weather?: string
-  totalWorkers: number
-  npc1000Used?: number
+  site_id: string
+  work_date: string
+  member_name: string
+  process_type: string
+  total_workers: number
+  npc1000_incoming?: number
+  npc1000_used?: number
+  npc1000_remaining?: number
   issues?: string
+  status: string
+  created_by?: string
+  created_at?: string
+  updated_at?: string
+  component_name?: string
+  work_process?: string
+  work_section?: string
+  markup_document_id?: string
+  // Relations
+  site?: { id: string; name: string; address?: string }
+  created_by_profile?: { id: string; full_name: string; email: string }
+  weather?: string // This might be added later or derived
 }
 
 export default function PartnerWorkLogDetailPage({ 
@@ -62,23 +73,32 @@ export default function PartnerWorkLogDetailPage({
       setLoading(true)
       setError(null)
 
-      // For demo purposes, generate mock data based on the ID
-      // In a real implementation, this would query the database
-      const mockWorkLog: WorkLog = {
-        id: workLogId,
-        date: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        siteId: sites[0]?.id || 'site1',
-        siteName: sites[0]?.name || '강남 A현장',
-        mainWork: '기초 콘크리트 타설 작업 및 철근 배근 작업 진행',
-        status: 'submitted',
-        author: '김작업',
-        weather: '맑음',
-        totalWorkers: 12,
-        npc1000Used: 250,
-        issues: '콘크리트 타설 중 일부 균열 발생하여 보수 작업 완료. 품질 검사 결과 양호함.'
+      // Query the actual database for the work log
+      const { data: workLogData, error: workLogError } = await supabase
+        .from('daily_reports')
+        .select(`
+          *,
+          site:sites(id, name, address),
+          created_by_profile:profiles!created_by(id, full_name, email)
+        `)
+        .eq('id', workLogId)
+        .single()
+
+      if (workLogError) {
+        console.error('Error fetching work log:', workLogError)
+        setError('작업일지를 불러오는데 실패했습니다.')
+        return
       }
 
-      setWorkLog(mockWorkLog)
+      if (!workLogData) {
+        setError('작업일지를 찾을 수 없습니다.')
+        return
+      }
+
+      // Set weather as a fallback - this could be enhanced with actual weather data
+      workLogData.weather = '맑음' // This could be fetched from weather API or stored separately
+
+      setWorkLog(workLogData)
     } catch (err: any) {
       console.error('Error loading work log:', err)
       setError('작업일지를 불러오는데 실패했습니다.')
@@ -143,14 +163,22 @@ export default function PartnerWorkLogDetailPage({
                   작업일지 상세
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {format(new Date(workLog.date), 'yyyy년 MM월 dd일', { locale: ko })}
+                  {format(new Date(workLog.work_date), 'yyyy년 MM월 dd일', { locale: ko })}
                 </p>
               </div>
             </div>
             
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                제출됨
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                workLog.status === 'submitted' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' :
+                workLog.status === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                workLog.status === 'rejected' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+              }`}>
+                {workLog.status === 'submitted' ? '제출됨' :
+                 workLog.status === 'approved' ? '승인됨' :
+                 workLog.status === 'rejected' ? '반려됨' :
+                 workLog.status === 'draft' ? '작성중' : workLog.status}
               </span>
             </div>
           </div>
@@ -177,7 +205,7 @@ export default function PartnerWorkLogDetailPage({
                     </label>
                     <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <Calendar className="h-4 w-4" />
-                      <span>{format(new Date(workLog.date), 'yyyy년 MM월 dd일 (EEE)', { locale: ko })}</span>
+                      <span>{format(new Date(workLog.work_date), 'yyyy년 MM월 dd일 (EEE)', { locale: ko })}</span>
                     </div>
                   </div>
                   
@@ -187,19 +215,53 @@ export default function PartnerWorkLogDetailPage({
                     </label>
                     <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <Building2 className="h-4 w-4" />
-                      <span>{workLog.siteName}</span>
+                      <span>{workLog.site?.name || '미지정'}</span>
                     </div>
                   </div>
 
                   <div>
                     <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
-                      작성자
+                      부재명
                     </label>
                     <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <Eye className="h-4 w-4" />
-                      <span>{workLog.author}</span>
+                      <span>{workLog.member_name}</span>
                     </div>
                   </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                      공정 유형
+                    </label>
+                    <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                      <FileText className="h-4 w-4" />
+                      <span>{workLog.process_type}</span>
+                    </div>
+                  </div>
+
+                  {workLog.component_name && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                        구성요소명
+                      </label>
+                      <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                        <Building2 className="h-4 w-4" />
+                        <span>{workLog.component_name}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {workLog.work_section && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                        작업 구간
+                      </label>
+                      <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                        <MapPin className="h-4 w-4" />
+                        <span>{workLog.work_section}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-4">
@@ -209,7 +271,7 @@ export default function PartnerWorkLogDetailPage({
                     </label>
                     <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <CloudRain className="h-4 w-4" />
-                      <span>{workLog.weather}</span>
+                      <span>{workLog.weather || '미기록'}</span>
                     </div>
                   </div>
 
@@ -219,18 +281,38 @@ export default function PartnerWorkLogDetailPage({
                     </label>
                     <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <Users className="h-4 w-4" />
-                      <span>{workLog.totalWorkers}명</span>
+                      <span>{workLog.total_workers || 0}명</span>
                     </div>
                   </div>
 
-                  {workLog.npc1000Used && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                      작성자
+                    </label>
+                    <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                      <Eye className="h-4 w-4" />
+                      <span>{workLog.created_by_profile?.full_name || '미지정'}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                      작성일시
+                    </label>
+                    <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
+                      <Clock className="h-4 w-4" />
+                      <span>{workLog.created_at ? format(new Date(workLog.created_at), 'yyyy-MM-dd HH:mm', { locale: ko }) : '미기록'}</span>
+                    </div>
+                  </div>
+
+                  {workLog.updated_at && workLog.updated_at !== workLog.created_at && (
                     <div>
                       <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
-                        NPC1000 사용량
+                        최종 수정일시
                       </label>
                       <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                         <Clock className="h-4 w-4" />
-                        <span>{workLog.npc1000Used}L</span>
+                        <span>{format(new Date(workLog.updated_at), 'yyyy-MM-dd HH:mm', { locale: ko })}</span>
                       </div>
                     </div>
                   )}
@@ -238,6 +320,46 @@ export default function PartnerWorkLogDetailPage({
               </div>
             </div>
           </div>
+
+          {/* NPC1000 Usage Details */}
+          {(workLog.npc1000_incoming || workLog.npc1000_used || workLog.npc1000_remaining) && (
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  NPC1000 사용 내역
+                </h2>
+              </div>
+              <div className="px-6 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {workLog.npc1000_incoming || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      반입량 (kg)
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                      {workLog.npc1000_used || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      사용량 (kg)
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {workLog.npc1000_remaining || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      잔여량 (kg)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Work Details */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -248,10 +370,32 @@ export default function PartnerWorkLogDetailPage({
               </h2>
             </div>
             <div className="px-6 py-4">
-              <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
-                <p className="whitespace-pre-wrap leading-relaxed">
-                  {workLog.mainWork}
-                </p>
+              <div className="space-y-4">
+                {workLog.work_process && (
+                  <div>
+                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                      작업 공정
+                    </label>
+                    <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
+                      <p className="whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                        {workLog.work_process}
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                    주요 작업 내용
+                  </label>
+                  <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300">
+                    <p className="whitespace-pre-wrap leading-relaxed bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
+                      {workLog.member_name} - {workLog.process_type}
+                      {workLog.component_name && ` (${workLog.component_name})`}
+                      {workLog.work_section && ` - ${workLog.work_section}`}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

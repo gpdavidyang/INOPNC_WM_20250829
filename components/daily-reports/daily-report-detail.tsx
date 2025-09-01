@@ -125,8 +125,39 @@ export default function DailyReportDetail({ report, photoGroups = [], canManage 
             </div>
             <div className="border-t border-gray-200">
               <div className="px-4 py-5 sm:p-6">
-                <div className="whitespace-pre-wrap text-gray-700">
-                  {report.work_content || '작업 내용이 없습니다.'}
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">부재명</h4>
+                    <div className="text-sm text-gray-900">{report.member_name}</div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">공정 유형</h4>
+                    <div className="text-sm text-gray-900">{report.process_type}</div>
+                  </div>
+                  {report.component_name && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">구성요소명</h4>
+                      <div className="text-sm text-gray-900">{report.component_name}</div>
+                    </div>
+                  )}
+                  {report.work_process && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">작업 공정</h4>
+                      <div className="whitespace-pre-wrap text-sm text-gray-900 bg-gray-50 p-3 rounded">
+                        {report.work_process}
+                      </div>
+                    </div>
+                  )}
+                  {report.work_section && (
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-500 mb-2">작업 구간</h4>
+                      <div className="text-sm text-gray-900">{report.work_section}</div>
+                    </div>
+                  )}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">총 작업자 수</h4>
+                    <div className="text-sm text-gray-900">{report.total_workers || 0}명</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -192,6 +223,48 @@ export default function DailyReportDetail({ report, photoGroups = [], canManage 
                     </li>
                   ))}
                 </ul>
+              </div>
+            </div>
+          )}
+
+          {/* NPC1000 Usage */}
+          {(report.npc1000_incoming || report.npc1000_used || report.npc1000_remaining) && (
+            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+              <div className="px-4 py-5 sm:px-6">
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  <Package className="inline-block mr-2 h-5 w-5 text-gray-400" />
+                  NPC1000 사용 내역
+                </h3>
+              </div>
+              <div className="border-t border-gray-200">
+                <div className="px-4 py-5 sm:px-6">
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {report.npc1000_incoming || 0}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        반입량 (kg)
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-red-50 rounded-lg">
+                      <div className="text-2xl font-bold text-red-600">
+                        {report.npc1000_used || 0}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        사용량 (kg)
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {report.npc1000_remaining || 0}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        잔여량 (kg)
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -350,7 +423,25 @@ export default function DailyReportDetail({ report, photoGroups = [], canManage 
                 <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
                   <dt className="text-sm font-medium text-gray-500">특이사항</dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {report.special_notes || '-'}
+                    {report.issues || report.special_notes || '-'}
+                  </dd>
+                </div>
+                <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">마크업 문서 ID</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {report.markup_document_id || '-'}
+                  </dd>
+                </div>
+                <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">작성일시</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {formatDateTime(report.created_at)}
+                  </dd>
+                </div>
+                <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                  <dt className="text-sm font-medium text-gray-500">수정일시</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {formatDateTime(report.updated_at)}
                   </dd>
                 </div>
               </dl>
