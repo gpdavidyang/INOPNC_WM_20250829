@@ -42,16 +42,7 @@ export async function getMarkupDocuments(
         .select(`
           *,
           creator:profiles!markup_documents_created_by_fkey(full_name, email),
-          site:sites(name),
-          permissions:markup_document_permissions(
-            id,
-            user_id,
-            permission_type,
-            granted_by,
-            granted_at,
-            expires_at,
-            user:profiles!markup_document_permissions_user_id_fkey(full_name)
-          )
+          site:sites(name)
         `, { count: 'exact' })
         .eq('is_deleted', false)
         .order('created_at', { ascending: false })
@@ -93,10 +84,10 @@ export async function getMarkupDocuments(
       // Transform the data to include stats
       const transformedDocuments = documents?.map((doc: any) => ({
         ...doc,
-        shared_count: doc.permissions?.length || 0,
+        shared_count: 0, // TODO: Get from permissions later
         view_count: 0, // TODO: Implement view tracking
         last_accessed: null, // TODO: Implement access tracking
-        permissions: doc.permissions || []
+        permissions: [] // TODO: Get permissions separately if needed
       })) || []
 
       const totalPages = Math.ceil((count || 0) / limit)
@@ -292,15 +283,8 @@ export async function getMarkupDocumentStats(): Promise<AdminActionResult<{
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
-      // Get permission counts
-      const { count: permissionCount, error: permError } = await supabase
-        .from('markup_document_permissions')
-        .select('*', { count: 'exact' })
-
-      if (permError) {
-        console.error('Error fetching permission stats:', permError)
-        return { success: false, error: AdminErrors.DATABASE_ERROR }
-      }
+      // Get permission counts (simplified for now)
+      const permissionCount = 0 // TODO: Implement when needed
 
       const totalDocuments = documents?.length || 0
       const personalDocuments = documents?.filter((d: any) => d.location === 'personal').length || 0
@@ -312,7 +296,7 @@ export async function getMarkupDocumentStats(): Promise<AdminActionResult<{
         total_documents: totalDocuments,
         personal_documents: personalDocuments,
         shared_documents: sharedDocuments,
-        total_permissions: permissionCount || 0,
+        total_permissions: permissionCount,
         active_users: activeUsers,
         storage_used: Math.round(storageUsed / (1024 * 1024) * 100) / 100 // MB
       }

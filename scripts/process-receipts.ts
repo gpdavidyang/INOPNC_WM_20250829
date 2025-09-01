@@ -118,6 +118,11 @@ async function processReceipts(): Promise<void> {
         // Upload file to Supabase storage
         const storagePath = await uploadReceiptFile(filePath, fileName);
         
+        // Generate public URL
+        const { data: urlData } = supabase.storage
+          .from('receipts')
+          .getPublicUrl(storagePath);
+        
         // Generate receipt metadata
         const receiptData = {
           daily_report_id: dailyReport.id,
@@ -125,6 +130,7 @@ async function processReceipts(): Promise<void> {
           file_name: storagePath,
           filename: fileName,
           file_path: `receipts/${storagePath}`,
+          file_url: urlData.publicUrl,
           file_size: readFileSync(filePath).length,
           category: generateRandomCategory(),
           amount: generateRandomAmount(),

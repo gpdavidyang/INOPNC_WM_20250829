@@ -449,7 +449,7 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
                   <Image className="h-8 w-8 text-teal-600" />
                 </div>
                 <div className="ml-4">
-                  <div className="text-sm font-medium text-teal-700 dark:text-teal-300">사진대지함</div>
+                  <div className="text-sm font-medium text-teal-700 dark:text-teal-300">사진대지문서함</div>
                   <div className="text-2xl font-bold text-teal-900 dark:text-teal-100">
                     {integratedDocuments.statistics?.photo_grid_documents || 0}
                   </div>

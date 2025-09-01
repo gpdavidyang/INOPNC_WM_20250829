@@ -101,7 +101,11 @@ export async function GET(request: NextRequest) {
       creator_email: doc.creator?.email || '',
       creator_role: doc.creator?.role || '',
       site_name: doc.site?.name || '',
-      site_address: doc.site?.address || ''
+      site_address: doc.site?.address || '',
+      // 필수 필드 보장
+      location: doc.location || 'shared',
+      file_size: doc.file_size || 0,
+      markup_count: doc.markup_count || 0
     })) || []
     
     const totalPages = Math.ceil((count || 0) / limit)

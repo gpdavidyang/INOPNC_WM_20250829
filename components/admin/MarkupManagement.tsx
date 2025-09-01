@@ -222,23 +222,23 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
 
   // Handle view document (preview)
   const handleViewDocument = (document: MarkupDocumentWithStats) => {
-    window.open(`/dashboard/markup/editor?document=${document.id}`, '_blank')
+    window.open(`/dashboard/markup?document=${document.id}`, '_blank')
   }
 
   // Handle edit document
   const handleEditDocument = (document: MarkupDocumentWithStats) => {
-    window.open(`/dashboard/markup/editor?document=${document.id}&mode=edit`, '_blank')
+    window.open(`/dashboard/markup?document=${document.id}&mode=edit`, '_blank')
   }
 
   // Handle download document
   const handleDownloadDocument = (document: MarkupDocumentWithStats) => {
     if (document.original_blueprint_url) {
-      const link = document.createElement('a')
+      const link = window.document.createElement('a')
       link.href = document.original_blueprint_url
       link.download = document.original_blueprint_filename || 'document'
-      document.body.appendChild(link)
+      window.document.body.appendChild(link)
       link.click()
-      document.body.removeChild(link)
+      window.document.body.removeChild(link)
     } else {
       alert('다운로드할 파일을 찾을 수 없습니다.')
     }

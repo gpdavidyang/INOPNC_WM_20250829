@@ -249,66 +249,90 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
 
           {/* Documents Table */}
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>작성일</TableHead>
-                  <TableHead>현장명</TableHead>
-                  <TableHead>부재명</TableHead>
-                  <TableHead>작업공정</TableHead>
-                  <TableHead>작업구간</TableHead>
-                  <TableHead>작업일자</TableHead>
-                  <TableHead>작성자</TableHead>
-                  <TableHead className="text-right">작업</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    사진
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    현장
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    업로더
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    업로드일
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    크기
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    작업
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
                 {filteredDocuments.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-gray-500">
+                  <tr>
+                    <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
                       사진대지 문서가 없습니다
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ) : (
                   filteredDocuments.map((doc) => {
                     const metadata = doc.metadata || {}
                     return (
-                      <TableRow key={doc.id}>
-                        <TableCell>
-                          {format(new Date(doc.created_at), 'yyyy-MM-dd', { locale: ko })}
-                        </TableCell>
-                        <TableCell>{doc.site?.name || '-'}</TableCell>
-                        <TableCell>{metadata.component_name || '-'}</TableCell>
-                        <TableCell>{metadata.work_process || '-'}</TableCell>
-                        <TableCell>{metadata.work_section || '-'}</TableCell>
-                        <TableCell>{metadata.work_date || '-'}</TableCell>
-                        <TableCell>{doc.uploader?.full_name || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex gap-2 justify-end">
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                      <tr key={doc.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-12 w-12">
+                              <div className="h-12 w-12 rounded-lg bg-gray-200 flex items-center justify-center">
+                                <Camera className="h-6 w-6 text-gray-400" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{doc.title}</div>
+                              <div className="text-sm text-gray-500">{doc.file_name || doc.original_filename}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{doc.sites?.name || doc.site?.name || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{doc.uploader?.full_name || doc.profiles?.full_name || '-'}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {format(new Date(doc.created_at), 'yyyy-MM-dd HH:mm', { locale: ko })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {doc.file_size ? `${(doc.file_size / 1024 / 1024).toFixed(1)} MB` : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center space-x-2 justify-end">
+                            <button
                               onClick={() => handlePreview(doc)}
+                              className="text-blue-600 hover:text-blue-900 p-1 rounded"
                               title="미리보기"
                             >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => handleDownload(doc)}
+                              className="text-green-600 hover:text-green-900 p-1 rounded"
                               title="다운로드"
                             >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                              <Download className="w-4 h-4" />
+                            </button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </td>
+                      </tr>
                     )
                   })
                 )}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>

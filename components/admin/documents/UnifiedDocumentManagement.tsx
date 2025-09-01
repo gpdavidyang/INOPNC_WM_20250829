@@ -54,7 +54,7 @@ const tabs: Tab[] = [
   },
   {
     id: 'photo-grid',
-    label: '사진대지함',
+    label: '사진대지문서함',
     icon: Image,
     component: PhotoGridDocumentsManagement
   }

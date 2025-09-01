@@ -41,13 +41,45 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
   const [workRecords, setWorkRecords] = useState<WorkRecord[]>([])
   const [siteSummaries, setSiteSummaries] = useState<SiteSummary[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 7, 1)) // 8월로 설정 (0-based index)
   const [selectedSite, setSelectedSite] = useState<string>('all')
   const supabase = createClient()
 
   useEffect(() => {
-    fetchWorkData()
+    initializeWithLatestData()
+  }, [userId])
+
+  useEffect(() => {
+    if (userId) { // userId가 있을 때만 fetchWorkData 호출
+      fetchWorkData()
+    }
   }, [userId, currentMonth])
+
+  const initializeWithLatestData = async () => {
+    if (!userId) return
+    
+    try {
+      // 사용자의 가장 최근 데이터를 찾아서 해당 월로 설정
+      const { data: latestRecord, error } = await supabase
+        .from('attendance_records')
+        .select('work_date')
+        .eq('user_id', userId)
+        .order('work_date', { ascending: false })
+        .limit(1)
+        .single()
+
+      if (!error && latestRecord) {
+        const latestDate = new Date(latestRecord.work_date)
+        setCurrentMonth(new Date(latestDate.getFullYear(), latestDate.getMonth(), 1))
+        console.log('📅 [UserSitesPrintsTab] Set month to latest data:', format(latestDate, 'yyyy-MM'))
+      } else {
+        // 기본값으로 현재 월 사용
+        console.log('📅 [UserSitesPrintsTab] No data found, using current month')
+      }
+    } catch (error) {
+      console.error('Error finding latest data:', error)
+    }
+  }
 
   useEffect(() => {
     filterDataBySite()
@@ -60,6 +92,12 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
       // Calculate date range for selected month
       const startDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd')
       const endDate = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
+      
+      console.log('🔍 [UserSitesPrintsTab] Fetching data:', {
+        userId,
+        currentMonth: format(currentMonth, 'yyyy-MM'),
+        dateRange: `${startDate} ~ ${endDate}`
+      })
       
       // Fetch attendance records with site information
       const { data: attendanceData, error } = await supabase
@@ -86,25 +124,47 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
         .lte('work_date', endDate)
         .order('work_date', { ascending: false })
 
+      console.log('📊 [UserSitesPrintsTab] Query result:', {
+        error: error?.message,
+        dataCount: attendanceData?.length || 0,
+        firstRecord: attendanceData?.[0],
+        query: {
+          table: 'attendance_records',
+          user_id: userId,
+          date_filter: `${startDate} ~ ${endDate}`
+        }
+      })
+
       if (error) {
         console.error('Error fetching work data:', error)
         return
       }
 
       // Transform data
-      const transformedRecords = (attendanceData || []).map(record => ({
-        id: record.id,
-        work_date: record.work_date,
-        site_id: record.site_id,
-        site_name: record.sites?.name || '알 수 없음',
-        site_address: record.sites?.address || '',
-        labor_hours: record.labor_hours || 0,
-        work_hours: record.work_hours || 0,
-        overtime_hours: record.overtime_hours || 0,
-        task_description: record.notes || '', // attendance_records uses 'notes' instead of 'task_description'
-        status: record.status || 'present',
-        created_at: record.created_at
-      }))
+      const transformedRecords = (attendanceData || []).map(record => {
+        console.log('🔧 [UserSitesPrintsTab] Transforming record:', {
+          id: record.id,
+          work_date: record.work_date,
+          site_name: record.sites?.name,
+          labor_hours: record.labor_hours
+        })
+        
+        return {
+          id: record.id,
+          work_date: record.work_date,
+          site_id: record.site_id,
+          site_name: record.sites?.name || '알 수 없음',
+          site_address: record.sites?.address || '',
+          labor_hours: record.labor_hours || 0,
+          work_hours: record.work_hours || 0,
+          overtime_hours: record.overtime_hours || 0,
+          task_description: record.notes || '', // attendance_records uses 'notes' instead of 'task_description'
+          status: record.status || 'present',
+          created_at: record.created_at
+        }
+      })
+
+      console.log('✅ [UserSitesPrintsTab] Transformed records:', transformedRecords.length)
 
       setWorkRecords(transformedRecords)
       calculateSiteSummaries(transformedRecords)
@@ -465,9 +525,17 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               작업 기록이 없습니다
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {format(currentMonth, 'yyyy년 MM월', { locale: ko })}에는 작업 기록이 없습니다.
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              {userName}님의 {format(currentMonth, 'yyyy년 MM월', { locale: ko })} 출근 기록이 없습니다.
             </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center items-center text-xs text-gray-400">
+              <span>데이터 확인:</span>
+              <div className="flex gap-4">
+                <span>사용자 ID: {userId}</span>
+                <span>조회 월: {format(currentMonth, 'yyyy-MM')}</span>
+                <span>테이블: attendance_records</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

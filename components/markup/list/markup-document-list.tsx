@@ -72,14 +72,30 @@ export function MarkupDocumentList({
   const [isSelectionMode, setIsSelectionMode] = useState(false)
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null)
 
-  // 현장 목록 (실제로는 Supabase에서 가져와야 함)
-  const sites = [
-    { id: 'all', name: '전체 현장' },
-    { id: 'site1', name: '서울 아파트 신축공사' },
-    { id: 'site2', name: '부산 오피스텔 건설' },
-    { id: 'site3', name: '대구 상가 리모델링' },
-    { id: 'site4', name: '인천 공장 신축' }
-  ]
+  // 현장 목록 상태
+  const [sites, setSites] = useState([
+    { id: 'all', name: '전체 현장' }
+  ])
+
+  const fetchSites = async () => {
+    try {
+      const response = await fetch('/api/sites')
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        const siteOptions = [
+          { id: 'all', name: '전체 현장' },
+          ...result.data.map((site: any) => ({
+            id: site.id,
+            name: site.name
+          }))
+        ]
+        setSites(siteOptions)
+      }
+    } catch (err) {
+      console.error('Error fetching sites:', err)
+    }
+  }
 
   const fetchDocuments = async () => {
     setLoading(true)
@@ -89,6 +105,7 @@ export function MarkupDocumentList({
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '12',
+        admin: 'true', // 관리자 모드로 모든 문서 조회
         ...(searchQuery && { search: searchQuery }),
         ...(selectedSite !== 'all' && { site: selectedSite })
       })
@@ -113,6 +130,7 @@ export function MarkupDocumentList({
   }
 
   useEffect(() => {
+    fetchSites()
     fetchDocuments()
   }, [currentPage, searchQuery, selectedSite])
 

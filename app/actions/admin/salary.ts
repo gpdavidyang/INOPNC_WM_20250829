@@ -517,6 +517,7 @@ export async function calculateSalaries(
       const rules = rulesData || []
       const workers = workersData || []
       const calculatedRecords = []
+      const recordMap = new Map() // To track unique worker+date combinations
 
       // Process daily reports and calculate salaries
       console.log('Processing', dailyReportsData?.length || 0, 'daily reports...')
@@ -536,6 +537,16 @@ export async function calculateSalaries(
 
           const workHours = parseFloat(workerEntry.work_hours) || 0
           if (workHours <= 0) continue
+
+          // Create unique key for worker+date combination
+          const uniqueKey = `${worker.id}_${report.work_date}_${report.site_id}`
+          
+          // If we already have a record for this worker+date+site, aggregate the hours
+          if (recordMap.has(uniqueKey)) {
+            const existingRecord = recordMap.get(uniqueKey)
+            existingRecord.workHours += workHours
+            continue
+          }
 
           // Convert work_hours (공수) to actual hours (1 공수 = 8시간)
           const actualHours = workHours * 8
@@ -560,56 +571,100 @@ export async function calculateSalaries(
             (!r.site_id || r.site_id === report.site_id)
           )
 
-          let basePay = 0
-          let overtimePay = 0
-
-          if (dailyRule) {
-            // Use daily rate calculation (공수 기반)
-            basePay = workHours * dailyRule.base_amount
-          } else if (hourlyRule) {
-            // Use hourly rate calculation
-            const hourlyRate = hourlyRule.base_amount
-            basePay = regularHours * hourlyRate
-            
-            if (overtimeHours > 0) {
-              const overtimeMultiplier = overtimeRule?.multiplier || 1.5
-              overtimePay = overtimeHours * hourlyRate * overtimeMultiplier
-            }
-          } else {
-            // Default calculation - assume 150,000 per day (1 공수)
-            basePay = workHours * 150000
-          }
-
-          const totalPay = basePay + overtimePay
-
-          calculatedRecords.push({
-            id: crypto.randomUUID(),
-            worker_id: worker.id,
+          // Store the record data for aggregation
+          recordMap.set(uniqueKey, {
+            worker,
             site_id: report.site_id,
             work_date: report.work_date,
-            regular_hours: workHours, // Store work_hours (공수) in regular_hours
-            overtime_hours: overtimeHours / 8, // Convert back to 공수 for overtime
-            base_pay: Math.round(basePay),
-            overtime_pay: Math.round(overtimePay),
-            bonus_pay: 0,
-            deductions: 0,
-            total_pay: Math.round(totalPay),
-            status: 'calculated',
-            notes: `공수: ${workHours}`,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            workHours,
+            hourlyRule,
+            dailyRule,
+            overtimeRule
           })
         }
+      }
+
+      // Process aggregated records
+      console.log('Processing', recordMap.size, 'unique worker-date combinations...')
+      for (const [uniqueKey, recordData] of recordMap.entries()) {
+        const { worker, site_id, work_date, workHours, hourlyRule, dailyRule, overtimeRule } = recordData
+        
+        // Convert work_hours (공수) to actual hours (1 공수 = 8시간)
+        const actualHours = workHours * 8
+        const regularHours = Math.min(actualHours, 8)
+        const overtimeHours = Math.max(actualHours - 8, 0)
+
+        let basePay = 0
+        let overtimePay = 0
+
+        if (dailyRule) {
+          // Use daily rate calculation (공수 기반)
+          basePay = workHours * dailyRule.base_amount
+        } else if (hourlyRule) {
+          // Use hourly rate calculation
+          const hourlyRate = hourlyRule.base_amount
+          basePay = regularHours * hourlyRate
+          
+          if (overtimeHours > 0) {
+            const overtimeMultiplier = overtimeRule?.multiplier || 1.5
+            overtimePay = overtimeHours * hourlyRate * overtimeMultiplier
+          }
+        } else {
+          // Default calculation - assume 150,000 per day (1 공수)
+          basePay = workHours * 150000
+        }
+
+        const totalPay = basePay + overtimePay
+
+        calculatedRecords.push({
+          id: crypto.randomUUID(),
+          worker_id: worker.id,
+          site_id,
+          work_date,
+          regular_hours: workHours, // Store work_hours (공수) in regular_hours
+          overtime_hours: overtimeHours / 8, // Convert back to 공수 for overtime
+          base_pay: Math.round(basePay),
+          overtime_pay: Math.round(overtimePay),
+          bonus_pay: 0,
+          deductions: 0,
+          total_pay: Math.round(totalPay),
+          status: 'calculated',
+          notes: `공수: ${workHours}`,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
       }
 
       // Insert calculated records
       console.log('Calculated records to insert:', calculatedRecords.length)
       if (calculatedRecords.length > 0) {
+        // First, delete existing records for the date range to avoid conflicts
+        let deleteQuery = supabase
+          .from('salary_records')
+          .delete()
+          .gte('work_date', date_from || new Date().toISOString().split('T')[0])
+          .lte('work_date', date_to || new Date().toISOString().split('T')[0])
+          .eq('status', 'calculated') // Only delete calculated records, not finalized ones
+
+        // Apply same filters as used for calculation
+        if (site_id) {
+          deleteQuery = deleteQuery.eq('site_id', site_id)
+        }
+        if (worker_id) {
+          deleteQuery = deleteQuery.eq('worker_id', worker_id)
+        }
+
+        const { error: deleteError } = await deleteQuery
+
+        if (deleteError) {
+          console.error('Error deleting existing salary records:', deleteError)
+          return { success: false, error: `Delete Error: ${deleteError.message}` }
+        }
+
+        // Insert new records
         const { error: insertError } = await supabase
           .from('salary_records')
-          .upsert(calculatedRecords, {
-            onConflict: 'worker_id,work_date'
-          })
+          .insert(calculatedRecords)
 
         if (insertError) {
           console.error('Error inserting salary records:', insertError)
