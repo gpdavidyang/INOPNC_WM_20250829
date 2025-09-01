@@ -166,7 +166,7 @@ export default function PartnerWorkLogsTab({ profile, sites }: PartnerWorkLogsTa
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-h-0 flex-1 flex flex-col">
       {/* Compact Filters - Mobile Optimized (Matching Site Manager's Design) */}
       <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
         {/* Filter Header */}
@@ -379,8 +379,8 @@ export default function PartnerWorkLogsTab({ profile, sites }: PartnerWorkLogsTa
           <p className="text-gray-500 dark:text-gray-500 text-xs">선택한 조건에 맞는 작업일지가 없습니다.</p>
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[60vh] overflow-y-auto">
+        <div className="flex-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+          <div className="flex-1 divide-y divide-gray-100 dark:divide-gray-700 overflow-y-auto" style={{maxHeight: '500px'}}>
             {filteredWorkLogs.map((log) => {
               const statusConfig = {
                 submitted: { label: '제출됨', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' }

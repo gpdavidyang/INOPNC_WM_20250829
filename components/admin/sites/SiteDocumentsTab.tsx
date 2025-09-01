@@ -106,6 +106,21 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
     return labels[type as keyof typeof labels] || type
   }
 
+  const getViewableUrl = (document: Document) => {
+    // 로컬 파일 경로인 경우 API를 통해 서빙
+    if (document.file_url.startsWith('file://')) {
+      const fileName = document.file_url.split('/').pop()
+      if (document.category_type === 'markup') {
+        return `/api/files/markup/${fileName}`
+      } else {
+        return `/api/files/documents/${fileName}` // 추후 구현 필요
+      }
+    }
+    
+    // 일반 URL인 경우 그대로 반환
+    return document.file_url
+  }
+
   const filteredDocuments = documents.filter(doc => {
     const matchesSearch = searchTerm === '' || 
       (doc.title || doc.file_name).toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -374,9 +389,18 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
                   {docType === 'photo' && document.file_url && (
                     <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg mb-3 overflow-hidden">
                       <img
-                        src={document.file_url}
+                        src={getViewableUrl(document)}
                         alt={document.title || document.file_name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // 이미지 로딩 실패 시 대체 이미지 표시
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const placeholder = document.createElement('div');
+                          placeholder.className = 'flex items-center justify-center h-full text-gray-400';
+                          placeholder.innerHTML = '<span class="text-sm">미리보기 불가</span>';
+                          target.parentNode?.appendChild(placeholder);
+                        }}
                       />
                     </div>
                   )}
@@ -410,7 +434,7 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
 
                 <div className="flex items-center space-x-2">
                   <a
-                    href={document.file_url}
+                    href={getViewableUrl(document)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex-1 inline-flex items-center justify-center px-3 py-1 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
@@ -419,8 +443,8 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
                     보기
                   </a>
                   <a
-                    href={document.file_url}
-                    download
+                    href={getViewableUrl(document)}
+                    download={document.file_name}
                     className="flex-1 inline-flex items-center justify-center px-3 py-1 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                   >
                     <Download className="h-3 w-3 mr-1" />
