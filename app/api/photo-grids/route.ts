@@ -212,6 +212,45 @@ export async function POST(request: NextRequest) {
       } else {
         console.log('Document created successfully:', documentData.id)
       }
+
+      // Also add to unified_document_system for admin dashboard
+      try {
+        const { data: unifiedDocData, error: unifiedDocError } = await supabase
+          .from('unified_document_system')
+          .insert({
+            title: `사진대지_${component_name}_${work_process}_${work_date}`,
+            file_name: `사진대지_${component_name}_${work_process}_${work_date}.pdf`,
+            original_filename: `사진대지_${component_name}_${work_process}_${work_date}.pdf`,
+            file_url: `/api/photo-grids/${data.id}/download`, // Virtual PDF URL
+            description: `${component_name} - ${work_process} 작업 사진대지`,
+            category_type: 'photo_grid',
+            site_id,
+            uploaded_by: profile.id,
+            status: 'active',
+            is_public: false,
+            file_size: null, // PDF is generated on-demand
+            mime_type: 'application/pdf',
+            metadata: JSON.stringify({
+              photo_grid_id: data.id,
+              component_name,
+              work_process,
+              work_section,
+              work_date,
+              has_before_photo: !!beforePhotoUrl,
+              has_after_photo: !!afterPhotoUrl
+            })
+          })
+          .select()
+          .single()
+
+        if (unifiedDocError) {
+          console.error('Error creating unified document:', unifiedDocError)
+        } else {
+          console.log('Unified document created successfully:', unifiedDocData.id)
+        }
+      } catch (unifiedError) {
+        console.error('Error in unified document creation:', unifiedError)
+      }
     } catch (error) {
       console.error('Error in document creation:', error)
       // Don't fail the entire operation

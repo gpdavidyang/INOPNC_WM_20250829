@@ -481,24 +481,54 @@ export default function EnhancedDocumentsView() {
                   
                   <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 flex justify-between">
                     <span className="text-xs text-gray-500 dark:text-gray-400">
-                      {formatFileSize(doc.file_size)}
+                      {doc.category_type === 'photo_grid' ? 'PDF 문서' : formatFileSize(doc.file_size)}
                     </span>
                     <div className="flex gap-2">
-                      <a
-                        href={doc.file_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </a>
-                      <a
-                        href={doc.file_url}
-                        download
-                        className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
+                      {doc.category_type === 'photo_grid' ? (
+                        // Special handling for photo grid documents
+                        <>
+                          <button
+                            onClick={() => {
+                              const metadata = doc.metadata ? JSON.parse(doc.metadata) : {}
+                              const photoGridId = metadata.photo_grid_id
+                              if (photoGridId) {
+                                window.open(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`, '_blank')
+                              }
+                            }}
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                            title="미리보기"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <a
+                            href={doc.file_url}
+                            download
+                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                            title="다운로드"
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </>
+                      ) : (
+                        // Default handling for other document types
+                        <>
+                          <a
+                            href={doc.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </a>
+                          <a
+                            href={doc.file_url}
+                            download
+                            className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"
+                          >
+                            <Download className="h-4 w-4" />
+                          </a>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -551,7 +581,7 @@ export default function EnhancedDocumentsView() {
                               </div>
                             )}
                             <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {formatFileSize(doc.file_size)}
+                              {doc.category_type === 'photo_grid' ? 'PDF 문서' : formatFileSize(doc.file_size)}
                             </span>
                           </div>
                           {doc.description && (
@@ -563,23 +593,53 @@ export default function EnhancedDocumentsView() {
                       </div>
                       
                       <div className="flex items-center space-x-2">
-                        <a
-                          href={doc.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          보기
-                        </a>
-                        <a
-                          href={doc.file_url}
-                          download
-                          className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          다운로드
-                        </a>
+                        {doc.category_type === 'photo_grid' ? (
+                          // Special handling for photo grid documents
+                          <>
+                            <button
+                              onClick={() => {
+                                const metadata = doc.metadata ? JSON.parse(doc.metadata) : {}
+                                const photoGridId = metadata.photo_grid_id
+                                if (photoGridId) {
+                                  window.open(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`, '_blank')
+                                }
+                              }}
+                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              미리보기
+                            </button>
+                            <a
+                              href={doc.file_url}
+                              download
+                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              다운로드
+                            </a>
+                          </>
+                        ) : (
+                          // Default handling for other document types
+                          <>
+                            <a
+                              href={doc.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              보기
+                            </a>
+                            <a
+                              href={doc.file_url}
+                              download
+                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              다운로드
+                            </a>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
