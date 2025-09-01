@@ -141,17 +141,26 @@ export default function AttachmentsTab({
           throw new Error(`파일 업로드 실패: ${uploadError.message} (${file.name})`)
         }
 
+        // Get public URL for the uploaded file
+        const { data: urlData } = supabase.storage
+          .from('daily-report-attachments')
+          .getPublicUrl(fileName)
+
         // Save metadata
         const { data: fileData, error: dbError } = await supabase
           .from('daily_documents')
           .insert({
             daily_report_id: reportId,
+            document_type: 'attachment', // Required field
+            file_url: urlData.publicUrl, // Required field  
             filename: file.name,
+            file_name: file.name,
             file_path: fileName,
             file_type: 'document',
             file_size: file.size,
             mime_type: file.type,
-            created_by: user.id
+            created_by: user.id,
+            uploaded_by: user.id
           })
           .select()
           .single()

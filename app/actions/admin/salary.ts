@@ -461,7 +461,7 @@ export async function calculateSalaries(
         .from('attendance_records')
         .select(`
           *,
-          worker:profiles!attendance_records_user_id_fkey(id, full_name, role),
+          worker:profiles!attendance_records_worker_id_fkey(id, full_name, role),
           site:sites!attendance_records_site_id_fkey(id, name)
         `)
         .gte('date', date_from || new Date().toISOString().split('T')[0])
