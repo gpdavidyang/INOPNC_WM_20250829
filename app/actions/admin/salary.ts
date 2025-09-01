@@ -1061,14 +1061,15 @@ export async function getOutputSummary(
           workSummary[key].total_actual_hours += workHours
           workSummary[key].total_overtime_hours += overtimeHours
 
-          // Calculate pay based on role
-          const hourlyRate = worker.role === 'site_manager' ? 27500 : 16250
-          const dayBasePay = regularHours * hourlyRate
-          const dayOvertimePay = overtimeHours * hourlyRate * 1.5
+          // Calculate pay based on role (공수 기반)
+          // 현장관리자: 220,000원/일, 작업자: 130,000원/일
+          const dailyRate = worker.role === 'site_manager' ? 220000 : 130000
+          // 공수 기반 계산: 총 공수 × 일당
+          const dayPay = workHours * dailyRate
 
-          workSummary[key].base_pay += Math.round(dayBasePay)
-          workSummary[key].overtime_pay += Math.round(dayOvertimePay)
-          workSummary[key].total_pay += Math.round(dayBasePay + dayOvertimePay)
+          workSummary[key].base_pay += Math.round(dayPay)
+          workSummary[key].overtime_pay += 0 // 공수 기반에서는 연장수당 별도 계산 안함
+          workSummary[key].total_pay += Math.round(dayPay)
         }
       }
 

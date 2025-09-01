@@ -87,14 +87,9 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       '작업자역할': item.worker_role,
       '현장': item.site_name,
       '총 공수': item.total_work_hours,
-      '총 실제공수': item.total_actual_hours,
-      '총 연장공수': item.total_overtime_hours,
-      '기본급': item.base_pay,
-      '연장수당': item.overtime_pay,
-      '보너스': item.bonus_pay,
-      '공제액': item.deductions,
-      '총 지급액': item.total_pay,
       '근무일수': item.work_days_count,
+      '일당': item.total_work_hours > 0 ? Math.round(item.base_pay / item.total_work_hours) : 0,
+      '총 지급액': item.total_pay,
       '마지막근무일': item.last_work_date ? new Date(item.last_work_date).toLocaleDateString('ko-KR') : ''
     }))
 
@@ -356,10 +351,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                       근무일
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      기본급
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      연장수당
+                      일당
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       총 급여
@@ -420,16 +412,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-gray-100">
-                        ₩{(item.base_pay || 0).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap text-right text-sm">
-                        {(item.overtime_pay || 0) > 0 ? (
-                          <span className="text-orange-600 dark:text-orange-400">
-                            ₩{(item.overtime_pay || 0).toLocaleString()}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
+                        ₩{(item.total_work_hours > 0 ? Math.round(item.base_pay / item.total_work_hours) : 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <div className="text-sm font-bold text-green-600 dark:text-green-400">
