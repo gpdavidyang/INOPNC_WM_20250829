@@ -30,7 +30,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import type { QuickAction } from '@/types'
-import { getDashboardStats, formatRelativeTime, type DashboardStats, type RecentActivity } from '@/app/actions/admin/dashboard-stats'
+import { getDashboardStats, type DashboardStats, type RecentActivity } from '@/app/actions/admin/dashboard-stats'
+import { formatRelativeTime } from '@/lib/utils/format-time'
 
 // 아이콘 매핑
 const ICON_MAP = {
