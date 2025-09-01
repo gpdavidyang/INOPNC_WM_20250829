@@ -684,11 +684,16 @@ function CoreFilesSection({
 
     setUploading(type)
     try {
-      // Upload file to Supabase Storage
-      const fileName = `${site.id}/${type}/${Date.now()}_${file.name}`
+      // Sanitize filename to avoid Korean characters and special characters
+      const fileExt = file.name.split('.').pop()?.toLowerCase() || 'unknown'
+      const timestamp = Date.now()
+      const safeFileName = `${type}_${timestamp}.${fileExt}`
+      const filePath = `${site.id}/${type}/${safeFileName}`
+      
+      // Upload file to Supabase Storage with sanitized filename
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('user-documents')
-        .upload(fileName, file)
+        .upload(filePath, file)
 
       if (uploadError) throw uploadError
 
@@ -697,8 +702,8 @@ function CoreFilesSection({
         .from('unified_documents')
         .insert({
           title: type === 'blueprint' ? '현장 공도면' : 'PTW 작업허가서',
-          filename: file.name,
-          file_path: fileName,
+          filename: file.name,  // Keep original filename for display
+          file_path: filePath,  // Use sanitized path for storage
           file_size: file.size,
           mime_type: file.type,
           category_type: 'shared',
