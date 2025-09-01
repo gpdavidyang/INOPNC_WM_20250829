@@ -116,20 +116,88 @@ export async function getSiteBlueprintDocument(siteId: string) {
 }
 
 /**
- * Get both PTW and blueprint documents for a site
+ * Get both PTW and blueprint documents for a site using site's document IDs
  */
 export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
   try {
-    const [ptwResult, blueprintResult] = await Promise.all([
-      getSitePTWDocument(siteId),
-      getSiteBlueprintDocument(siteId)
-    ])
+    const supabase = createClient()
+    
+    // First get the site to find document IDs
+    const { data: siteData, error: siteError } = await supabase
+      .from('sites')
+      .select('blueprint_document_id, ptw_document_id')
+      .eq('id', siteId)
+      .single()
+    
+    if (siteError || !siteData) {
+      console.error('Error fetching site:', siteError)
+      return {
+        success: true,
+        data: {
+          ptw_document: null,
+          blueprint_document: null
+        },
+        error: null
+      }
+    }
+
+    // Fetch documents if IDs exist
+    let ptwDocument = null
+    let blueprintDocument = null
+
+    if (siteData.ptw_document_id) {
+      const { data: ptwData } = await supabase
+        .from('unified_documents')
+        .select('*')
+        .eq('id', siteData.ptw_document_id)
+        .single()
+      
+      if (ptwData) {
+        ptwDocument = {
+          id: ptwData.id,
+          site_id: siteId,
+          document_type: 'ptw' as const,
+          file_name: ptwData.filename,
+          file_url: ptwData.file_path,
+          file_size: ptwData.file_size,
+          mime_type: ptwData.mime_type,
+          is_active: true,
+          created_at: ptwData.created_at,
+          updated_at: ptwData.updated_at || ptwData.created_at,
+          title: ptwData.title
+        }
+      }
+    }
+
+    if (siteData.blueprint_document_id) {
+      const { data: blueprintData } = await supabase
+        .from('unified_documents')
+        .select('*')
+        .eq('id', siteData.blueprint_document_id)
+        .single()
+      
+      if (blueprintData) {
+        blueprintDocument = {
+          id: blueprintData.id,
+          site_id: siteId,
+          document_type: 'blueprint' as const,
+          file_name: blueprintData.filename,
+          file_url: blueprintData.file_path,
+          file_size: blueprintData.file_size,
+          mime_type: blueprintData.mime_type,
+          is_active: true,
+          created_at: blueprintData.created_at,
+          updated_at: blueprintData.updated_at || blueprintData.created_at,
+          title: blueprintData.title
+        }
+      }
+    }
 
     return {
       success: true,
       data: {
-        ptw_document: ptwResult.data,
-        blueprint_document: blueprintResult.data
+        ptw_document: ptwDocument,
+        blueprint_document: blueprintDocument
       },
       error: null
     }

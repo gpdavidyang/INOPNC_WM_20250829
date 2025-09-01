@@ -18,7 +18,12 @@ import {
   AlertCircle,
   ArrowLeft,
   Briefcase,
-  Package
+  Package,
+  Upload,
+  File,
+  Eye,
+  Trash2,
+  Image
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
@@ -45,6 +50,8 @@ interface Site {
   accommodation_name?: string
   accommodation_address?: string
   accommodation_phone?: string
+  blueprint_document_id?: string
+  ptw_document_id?: string
   created_at: string
   updated_at?: string
 }
@@ -586,6 +593,9 @@ export default function SiteDetailPage() {
                 </div>
               </div>
             </div>
+
+            {/* 핵심 파일 섹션 */}
+            <CoreFilesSection site={site} onUpdate={fetchSiteData} />
           </div>
         )}
 
@@ -620,6 +630,326 @@ export default function SiteDetailPage() {
           siteData={data.site}
         />
       )}
+    </div>
+  )
+}
+
+// Core Files Section Component
+function CoreFilesSection({ 
+  site, 
+  onUpdate 
+}: { 
+  site: Site
+  onUpdate: () => void 
+}) {
+  const [blueprintFile, setBlueprintFile] = useState<File | null>(null)
+  const [ptwFile, setPtwFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState<'blueprint' | 'ptw' | null>(null)
+  const [blueprintDoc, setBlueprintDoc] = useState<any>(null)
+  const [ptwDoc, setPtwDoc] = useState<any>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (site.blueprint_document_id || site.ptw_document_id) {
+      fetchDocuments()
+    }
+  }, [site.blueprint_document_id, site.ptw_document_id])
+
+  const fetchDocuments = async () => {
+    try {
+      if (site.blueprint_document_id) {
+        const { data } = await supabase
+          .from('unified_documents')
+          .select('*')
+          .eq('id', site.blueprint_document_id)
+          .single()
+        setBlueprintDoc(data)
+      }
+
+      if (site.ptw_document_id) {
+        const { data } = await supabase
+          .from('unified_documents')
+          .select('*')
+          .eq('id', site.ptw_document_id)
+          .single()
+        setPtwDoc(data)
+      }
+    } catch (error) {
+      console.error('Error fetching documents:', error)
+    }
+  }
+
+  const handleFileUpload = async (type: 'blueprint' | 'ptw', file: File) => {
+    if (!file) return
+
+    setUploading(type)
+    try {
+      // Upload file to Supabase Storage
+      const fileName = `${site.id}/${type}/${Date.now()}_${file.name}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('user-documents')
+        .upload(fileName, file)
+
+      if (uploadError) throw uploadError
+
+      // Create document record
+      const { data: docData, error: docError } = await supabase
+        .from('unified_documents')
+        .insert({
+          title: type === 'blueprint' ? '현장 공도면' : 'PTW 작업허가서',
+          filename: file.name,
+          file_path: fileName,
+          file_size: file.size,
+          mime_type: file.type,
+          category_type: 'shared',
+          site_id: site.id,
+          document_type: type === 'blueprint' ? 'blueprint' : 'ptw',
+          is_public: true
+        })
+        .select()
+        .single()
+
+      if (docError) throw docError
+
+      // Update site with document ID
+      const updateField = type === 'blueprint' ? 'blueprint_document_id' : 'ptw_document_id'
+      const { error: updateError } = await supabase
+        .from('sites')
+        .update({ [updateField]: docData.id })
+        .eq('id', site.id)
+
+      if (updateError) throw updateError
+
+      // Update local state
+      if (type === 'blueprint') {
+        setBlueprintDoc(docData)
+        setBlueprintFile(null)
+      } else {
+        setPtwDoc(docData)
+        setPtwFile(null)
+      }
+
+      // Refresh site data
+      onUpdate()
+      alert(`${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}가 업로드되었습니다.`)
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('파일 업로드에 실패했습니다.')
+    } finally {
+      setUploading(null)
+    }
+  }
+
+  const handleFileDelete = async (type: 'blueprint' | 'ptw') => {
+    if (!confirm(`정말 ${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}를 삭제하시겠습니까?`)) return
+
+    try {
+      const docId = type === 'blueprint' ? site.blueprint_document_id : site.ptw_document_id
+      const doc = type === 'blueprint' ? blueprintDoc : ptwDoc
+
+      if (!docId || !doc) return
+
+      // Delete from storage
+      await supabase.storage
+        .from('user-documents')
+        .remove([doc.file_path])
+
+      // Delete document record
+      await supabase
+        .from('unified_documents')
+        .delete()
+        .eq('id', docId)
+
+      // Update site
+      const updateField = type === 'blueprint' ? 'blueprint_document_id' : 'ptw_document_id'
+      await supabase
+        .from('sites')
+        .update({ [updateField]: null })
+        .eq('id', site.id)
+
+      // Update local state
+      if (type === 'blueprint') {
+        setBlueprintDoc(null)
+      } else {
+        setPtwDoc(null)
+      }
+
+      onUpdate()
+      alert(`${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}가 삭제되었습니다.`)
+    } catch (error) {
+      console.error('Delete error:', error)
+      alert('파일 삭제에 실패했습니다.')
+    }
+  }
+
+  const handlePreview = (doc: any) => {
+    if (!doc) return
+    window.open(`/api/shared-documents/${doc.id}/file`, '_blank')
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mt-6">
+      <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">핵심 파일</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* 현장 공도면 */}
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Image className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">현장 공도면</span>
+            </div>
+          </div>
+
+          {blueprintDoc ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                <div className="flex items-center gap-3">
+                  <File className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {blueprintDoc.filename}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(blueprintDoc.created_at).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePreview(blueprintDoc)}
+                    className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                    title="미리보기"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleFileDelete('blueprint')}
+                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                    title="삭제"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.dwg"
+                onChange={(e) => setBlueprintFile(e.target.files?.[0] || null)}
+                className="hidden"
+                id="blueprint-file"
+              />
+              <label
+                htmlFor="blueprint-file"
+                className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
+              >
+                <Upload className="h-5 w-5 text-gray-400" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  파일 선택
+                </span>
+              </label>
+              
+              {blueprintFile && (
+                <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
+                  <span className="text-sm text-blue-900 dark:text-blue-100">{blueprintFile.name}</span>
+                  <button
+                    onClick={() => handleFileUpload('blueprint', blueprintFile)}
+                    disabled={uploading === 'blueprint'}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                  >
+                    {uploading === 'blueprint' ? '업로드 중...' : '업로드'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* PTW 문서 */}
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">PTW 작업허가서</span>
+            </div>
+          </div>
+
+          {ptwDoc ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+                <div className="flex items-center gap-3">
+                  <File className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {ptwDoc.filename}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(ptwDoc.created_at).toLocaleDateString('ko-KR')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handlePreview(ptwDoc)}
+                    className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                    title="미리보기"
+                  >
+                    <Eye className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleFileDelete('ptw')}
+                    className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                    title="삭제"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <input
+                type="file"
+                accept=".pdf,.doc,.docx"
+                onChange={(e) => setPtwFile(e.target.files?.[0] || null)}
+                className="hidden"
+                id="ptw-file"
+              />
+              <label
+                htmlFor="ptw-file"
+                className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md cursor-pointer hover:border-green-400 dark:hover:border-green-500 transition-colors"
+              >
+                <Upload className="h-5 w-5 text-gray-400" />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  파일 선택
+                </span>
+              </label>
+              
+              {ptwFile && (
+                <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                  <span className="text-sm text-green-900 dark:text-green-100">{ptwFile.name}</span>
+                  <button
+                    onClick={() => handleFileUpload('ptw', ptwFile)}
+                    disabled={uploading === 'ptw'}
+                    className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {uploading === 'ptw' ? '업로드 중...' : '업로드'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+        <p className="text-xs text-blue-800 dark:text-blue-200">
+          ℹ️ 이 파일들은 작업자와 현장관리자가 홈 화면에서 바로 확인할 수 있습니다.
+        </p>
+      </div>
     </div>
   )
 }

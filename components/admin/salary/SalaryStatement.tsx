@@ -17,7 +17,7 @@ import {
   downloadSalaryPDF,
   getSalaryPDFBlob,
   SalaryPDFData
-} from '@/lib/salary/pdf-generator'
+} from '@/lib/salary/pdf-generator-html'
 import { createClient } from '@/lib/supabase/client'
 
 interface Worker {
@@ -330,7 +330,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
         issuedBy: profile.name
       }
       
-      downloadSalaryPDF(pdfData)
+      await downloadSalaryPDF(pdfData)
     } catch (error) {
       console.error('Failed to generate PDF:', error)
       alert('PDF 생성에 실패했습니다.')
