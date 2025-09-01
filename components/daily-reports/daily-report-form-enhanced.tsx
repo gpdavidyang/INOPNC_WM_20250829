@@ -1952,6 +1952,14 @@ export default function DailyReportFormEnhanced({
                 <FolderOpen className="h-6 w-6" />
                 <span className="font-medium text-base">파일 업로드</span>
               </button>
+
+              <button
+                onClick={() => handleDrawingSelection('markup')}
+                className="w-full h-16 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 active:bg-purple-200 dark:active:bg-purple-900/40 border border-purple-200 dark:border-purple-700 rounded-xl flex items-center justify-center gap-3 text-purple-800 dark:text-purple-200 transition-colors touch-manipulation"
+              >
+                <FileText className="h-6 w-6" />
+                <span className="font-medium text-base">도면마킹문서함</span>
+              </button>
             </div>
             
             <button
