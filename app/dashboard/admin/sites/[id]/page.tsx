@@ -714,8 +714,8 @@ function CoreFilesSection({
           mime_type: file.type,
           category_type: 'shared',
           site_id: site.id,
-          document_type: type === 'blueprint' ? 'drawing' : 'document',  // Use valid document types
-          sub_type: type,  // Store actual type in sub_type field
+          document_type: type === 'blueprint' ? 'drawing' : 'certificate',  // Use valid document types
+          sub_type: type === 'blueprint' ? 'technical_drawing' : 'safety_certificate',  // Use valid sub_types
           is_public: true,
           uploaded_by: user.id  // Add user ID
         })
