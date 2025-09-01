@@ -689,27 +689,41 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
                   {salaryRates.map((rate) => {
-                    const isEditing = editingRates[rate.worker_id]
+                    const isEditing = editingRates[rate.role]
                     const currentDailyRate = isEditing?.daily_rate ?? rate.daily_rate
                     const currentHourlyRate = isEditing?.hourly_rate ?? rate.hourly_rate
                     
+                    // Role badge colors
+                    const getRoleBadgeColor = (role: string) => {
+                      switch (role) {
+                        case 'worker':
+                          return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        case 'site_manager':
+                          return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                        case 'customer_manager':
+                          return 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                        default:
+                          return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                      }
+                    }
+                    
                     return (
-                      <tr key={rate.worker_id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <tr key={rate.role} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
-                              {rate.worker_name.charAt(0)}
-                            </div>
-                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {rate.worker_name}
-                            </div>
+                          <span className={`px-3 py-1 inline-flex text-sm leading-5 font-semibold rounded-full ${getRoleBadgeColor(rate.role)}`}>
+                            {rate.role_name}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 dark:text-gray-100">
+                            {rate.description}
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-center">
                           <input
                             type="number"
                             value={currentDailyRate}
-                            onChange={(e) => handleEditRate(rate.worker_id, 'daily_rate', parseInt(e.target.value) || 0)}
+                            onChange={(e) => handleEditRate(rate.role, 'daily_rate', parseInt(e.target.value) || 0)}
                             className="w-24 px-2 py-1 text-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           />
                         </td>
@@ -717,7 +731,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                           <input
                             type="number"
                             value={currentHourlyRate}
-                            onChange={(e) => handleEditRate(rate.worker_id, 'hourly_rate', parseInt(e.target.value) || 0)}
+                            onChange={(e) => handleEditRate(rate.role, 'hourly_rate', parseInt(e.target.value) || 0)}
                             className="w-24 px-2 py-1 text-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                           />
                         </td>

@@ -938,7 +938,7 @@ export async function getOutputSummary(
   year: number,
   month: number,
   site_id?: string,
-  worker_id?: string
+  searchTerm?: string
 ): Promise<AdminActionResult<OutputSummary[]>> {
   return withAdminAuth(async (supabase) => {
     try {
@@ -1031,8 +1031,8 @@ export async function getOutputSummary(
           const worker = workers.find(w => w.full_name === workerEntry.worker_name)
           if (!worker) continue
 
-          // Apply worker filter if specified
-          if (worker_id && worker.id !== worker_id) continue
+          // Apply search filter if specified
+          if (searchTerm && !worker.full_name.toLowerCase().includes(searchTerm.toLowerCase())) continue
 
           const key = `${worker.id}-${site.id}`
           
