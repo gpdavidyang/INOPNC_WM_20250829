@@ -100,22 +100,9 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // First verify the report exists (removed restrictive access check)
-    const { data: report, error: reportError } = await supabase
-      .from('daily_reports')
-      .select('id, reported_by')
-      .eq('id', daily_report_id)
-      .single()
-
-    if (reportError || !report) {
-      console.error('Report not found:', reportError)
-      return NextResponse.json({ 
-        error: '보고서를 찾을 수 없습니다',
-        details: reportError?.message
-      }, { status: 404 })
-    }
-
-    console.log('Report access verified:', { reportId: report.id, reportedBy: report.reported_by })
+    // Skip explicit report existence check - let database foreign key constraint handle it
+    // This avoids RLS policy conflicts while maintaining data integrity
+    console.log('Proceeding with worker insert for report:', daily_report_id)
 
     // Prepare insert data
     const insertData = {
@@ -146,10 +133,18 @@ export async function POST(request: NextRequest) {
       console.error('Error hint:', error.hint)
       console.error('Full error object:', JSON.stringify(error, null, 2))
       
+      // Handle foreign key constraint violation (report doesn't exist)
+      if (error.code === '23503' && error.message.includes('daily_report_id')) {
+        return NextResponse.json({ 
+          error: '보고서를 찾을 수 없습니다',
+          details: '해당 작업일지가 존재하지 않거나 삭제되었습니다.'
+        }, { status: 404 })
+      }
+      
       return NextResponse.json({ 
         error: error.message,
         errorCode: error.code,
-        details: 'Check RLS policies and foreign key constraints',
+        details: 'Database operation failed',
         hint: error.hint
       }, { status: 500 })
     }

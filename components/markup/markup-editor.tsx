@@ -397,6 +397,7 @@ export function MarkupEditor({
             <div className="max-w-lg w-full">
               <BlueprintUpload
                 onImageUpload={handleImageUpload}
+                onBackToList={handleBackToList}
                 currentImage={blueprintUrl}
                 currentFileName={blueprintFileName}
                 isLargeFont={isLargeFont}

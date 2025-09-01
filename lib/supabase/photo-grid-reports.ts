@@ -137,7 +137,54 @@ export async function createPhotoGridReport(
       return { success: false, error: 'PDF 정보 저장에 실패했습니다.' }
     }
     
-    // 4. 공유문서함에도 자동 저장
+    // 4. 통합 문서 시스템에도 저장
+    try {
+      // 현재 사용자 정보 조회
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        // 작업일지에서 site_id 조회
+        const { data: dailyReport } = await supabase
+          .from('daily_reports')
+          .select('site_id')
+          .eq('id', dailyReportId)
+          .single()
+        
+        const siteId = dailyReport?.site_id
+
+        // unified_document_system에 저장
+        await supabase
+          .from('unified_document_system')
+          .insert({
+            title: `${options.title || '사진대지양식'}_${options.reportDate}`,
+            description: `사진대지 PDF - ${options.siteName || '현장'} (${options.reportDate})`,
+            file_name: fileName,
+            file_url: urlData.publicUrl,
+            file_size: file.size,
+            mime_type: 'application/pdf',
+            category_type: 'photo_grid',
+            site_id: siteId,
+            uploaded_by: user.id,
+            status: 'uploaded',
+            is_public: false,
+            metadata: {
+              photo_grid_id: reportData.id,
+              daily_report_id: dailyReportId,
+              generated_at: new Date().toISOString(),
+              document_category: '사진대지PDF',
+              component_types: metadata.componentTypes,
+              process_types: metadata.processTypes,
+              total_photo_groups: metadata.totalPhotoGroups,
+              total_before_photos: metadata.totalBeforePhotos,
+              total_after_photos: metadata.totalAfterPhotos
+            }
+          })
+      }
+    } catch (unifiedError) {
+      console.error('통합 문서 시스템 저장 실패:', unifiedError)
+      // 이 오류는 전체 프로세스를 중단시키지 않음
+    }
+
+    // 5. 공유문서함에도 자동 저장 (기존 호환성 유지)
     try {
       await saveToSharedDocuments({
         title: `${options.title || '사진대지양식'}_${options.reportDate}`,
