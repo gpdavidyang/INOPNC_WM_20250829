@@ -11,7 +11,6 @@ interface MarkupDocument {
   description?: string
   file_url: string
   file_name: string
-  original_filename: string
   file_size?: number
   mime_type?: string
   category_type: string
@@ -21,6 +20,7 @@ interface MarkupDocument {
   uploaded_by: string
   site_id?: string
   metadata?: {
+    original_filename?: string
     markup_data?: any[]
     preview_image_url?: string
     location?: 'personal' | 'shared'
@@ -392,7 +392,7 @@ export default function MarkupDocumentsManagement() {
                             {document.title}
                           </button>
                           <div className="text-sm text-gray-500 mt-1">
-                            {document.original_filename}
+                            {document.metadata?.original_filename || document.file_name}
                           </div>
                           {document.description && (
                             <div className="text-sm text-gray-500 mt-1">
