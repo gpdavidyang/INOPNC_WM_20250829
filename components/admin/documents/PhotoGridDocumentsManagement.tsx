@@ -106,7 +106,7 @@ export default function PhotoGridDocumentsManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className={`${getTypographyClass('heading', 'lg', isLargeFont)} font-bold text-gray-900`}>
-            사진대지함 관리
+            사진대지문서함 관리
           </h2>
           <p className={`${getTypographyClass('body', 'sm', isLargeFont)} text-gray-500 mt-1`}>
             현장 사진 및 이미지 자료를 관리합니다.
