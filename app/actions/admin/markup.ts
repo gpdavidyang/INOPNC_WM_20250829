@@ -31,7 +31,7 @@ export async function getMarkupDocuments(
   page = 1,
   limit = 10,
   search = '',
-  location?: 'personal' | 'shared',
+  _location?: 'personal' | 'shared', // Deprecated: location field removed from schema
   site_id?: string,
   created_by?: string
 ): Promise<AdminActionResult<{ documents: MarkupDocumentWithStats[]; total: number; pages: number }>> {
@@ -53,10 +53,10 @@ export async function getMarkupDocuments(
         query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,original_blueprint_filename.ilike.%${search}%`)
       }
 
-      // Apply location filter
-      if (location) {
-        query = query.eq('location', location)
-      }
+      // Note: location filter removed as location column no longer exists in schema
+      // if (_location) {
+      //   query = query.eq('location', _location)
+      // }
 
       // Apply site filter
       if (site_id) {
@@ -151,7 +151,7 @@ export async function deleteMarkupDocuments(documentIds: string[]): Promise<Admi
 export async function updateMarkupDocumentProperties(
   documentIds: string[],
   updates: { 
-    location?: 'personal' | 'shared'
+    // location?: 'personal' | 'shared' // Deprecated: location field removed from schema
     site_id?: string
     title?: string
     description?: string
@@ -276,7 +276,7 @@ export async function getMarkupDocumentStats(): Promise<AdminActionResult<{
       // Get document counts
       const { data: documents, error: docsError } = await supabase
         .from('markup_documents')
-        .select('location, file_size, created_by')
+        .select('file_size, created_by')
         .eq('is_deleted', false)
 
       if (docsError) {
@@ -288,8 +288,9 @@ export async function getMarkupDocumentStats(): Promise<AdminActionResult<{
       const permissionCount = 0 // TODO: Implement when needed
 
       const totalDocuments = documents?.length || 0
-      const personalDocuments = documents?.filter((d: any) => d.location === 'personal').length || 0
-      const sharedDocuments = documents?.filter((d: any) => d.location === 'shared').length || 0
+      // Note: personal/shared distinction removed from schema
+      const personalDocuments = 0 // No longer applicable
+      const sharedDocuments = totalDocuments // All documents are now unified
       const storageUsed = documents?.reduce((sum: number, doc: any) => sum + (doc.file_size || 0), 0) || 0
       const activeUsers = new Set(documents?.map((d: any) => d.created_by)).size || 0
 

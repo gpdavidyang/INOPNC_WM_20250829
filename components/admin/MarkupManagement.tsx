@@ -32,7 +32,7 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
-  const [locationFilter, setLocationFilter] = useState<'personal' | 'shared' | ''>('')
+  // locationFilter removed as location field no longer exists in schema
   const [creatorFilter, setCreatorFilter] = useState('')
   
   // Selection state
@@ -74,7 +74,7 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
         limit: pageSize.toString(),
         admin: 'true', // 관리자 모드
         ...(searchTerm && { search: searchTerm }),
-        ...(locationFilter && { location: locationFilter }),
+        // locationFilter removed as location field no longer exists
         ...(creatorFilter && { creator: creatorFilter })
       })
 
@@ -141,7 +141,7 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
   // Load data on mount and when filters change
   useEffect(() => {
     loadDocuments()
-  }, [currentPage, searchTerm, locationFilter, creatorFilter])
+  }, [currentPage, searchTerm, creatorFilter])
 
   useEffect(() => {
     loadStats()
@@ -155,11 +155,6 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
   }
 
   // Handle filters
-  const handleLocationFilter = (location: 'personal' | 'shared' | '') => {
-    setLocationFilter(location)
-    setCurrentPage(1)
-  }
-
   const handleCreatorFilter = (creatorId: string) => {
     setCreatorFilter(creatorId)
     setCurrentPage(1)
@@ -185,21 +180,7 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
     }
   }
 
-  // Handle location change
-  const handleLocationChange = (location: 'personal' | 'shared') => async (documentIds: string[]) => {
-    try {
-      const result = await updateMarkupDocumentProperties(documentIds, { location })
-      if (result.success) {
-        await loadDocuments()
-        setSelectedIds([])
-        alert(result.message)
-      } else {
-        alert(result.error)
-      }
-    } catch (error) {
-      alert('위치 변경 중 오류가 발생했습니다.')
-    }
-  }
+  // Note: handleLocationChange removed as location field no longer exists
 
   // Handle permission management
   const handlePermissionManagement = (action: 'grant' | 'revoke') => (documentIds: string[]) => {
@@ -318,26 +299,6 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
       )
     },
     {
-      key: 'location',
-      label: '위치',
-      render: (value: 'personal' | 'shared') => {
-        const locationConfig = {
-          personal: { text: '개인', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: Lock },
-          shared: { text: '공유', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: Share2 }
-        }
-        
-        const config = locationConfig[value]
-        const Icon = config.icon
-        
-        return (
-          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
-            <Icon className="h-3 w-3 mr-1" />
-            {config.text}
-          </span>
-        )
-      }
-    },
-    {
       key: 'shared_count',
       label: '공유 수',
       render: (value: number) => (
@@ -377,23 +338,9 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
     }
   ]
 
-  // Define bulk actions
+  // Define bulk actions (location-based actions removed)
   const bulkActions = [
     commonBulkActions.delete(handleBulkDelete),
-    {
-      id: 'make-personal',
-      label: '개인으로 변경',
-      icon: Lock,
-      variant: 'secondary' as const,
-      onClick: handleLocationChange('personal')
-    },
-    {
-      id: 'make-shared',
-      label: '공유로 변경',
-      icon: Share2,
-      variant: 'secondary' as const,
-      onClick: handleLocationChange('shared')
-    },
     {
       id: 'grant-permission',
       label: '권한 부여',
@@ -528,16 +475,6 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
         </div>
         
         <div className="flex gap-2 flex-wrap">
-          <select
-            value={locationFilter}
-            onChange={(e) => handleLocationFilter(e.target.value as 'personal' | 'shared' | '')}
-            className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-          >
-            <option value="">모든 위치</option>
-            <option value="personal">개인</option>
-            <option value="shared">공유</option>
-          </select>
-          
           <select
             value={creatorFilter}
             onChange={(e) => handleCreatorFilter(e.target.value)}

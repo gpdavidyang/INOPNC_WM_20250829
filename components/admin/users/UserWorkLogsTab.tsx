@@ -5,7 +5,7 @@ import { FileText, Calendar, Building2, Users, Package, Eye, Search, ChevronDown
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import Link from 'next/link'
+import DailyReportDetailModal from '@/components/admin/daily-reports/DailyReportDetailModal'
 
 interface UserWorkLogsTabProps {
   userId: string
@@ -33,6 +33,8 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'submitted'>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null)
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -91,6 +93,16 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleViewReport = (reportId: string) => {
+    setSelectedReportId(reportId)
+    setIsDetailModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsDetailModalOpen(false)
+    setSelectedReportId(null)
   }
 
   const getStatusBadge = (status: string) => {
@@ -340,13 +352,13 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
                       </span>
                     </td>
                     <td className="py-4 px-6 text-right">
-                      <Link
-                        href={`/dashboard/admin/daily-reports/${report.id}`}
+                      <button
+                        onClick={() => handleViewReport(report.id)}
                         className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-300 dark:bg-blue-900/20 dark:hover:bg-blue-900/30"
                       >
                         <Eye className="h-3 w-3 mr-1" />
                         상세보기
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -355,6 +367,16 @@ export default function UserWorkLogsTab({ userId, userName }: UserWorkLogsTabPro
           </div>
         )}
       </div>
+
+      {/* Detail Modal */}
+      {isDetailModalOpen && selectedReportId && (
+        <DailyReportDetailModal
+          reportId={selectedReportId}
+          isOpen={isDetailModalOpen}
+          onClose={handleCloseModal}
+          onReportUpdated={fetchDailyReports}
+        />
+      )}
     </div>
   )
 }

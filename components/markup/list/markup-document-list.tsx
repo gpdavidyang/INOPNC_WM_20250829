@@ -108,6 +108,7 @@ export function MarkupDocumentList({
         admin: 'true', // 관리자 모드로 모든 문서 조회
         ...(searchQuery && { search: searchQuery }),
         ...(selectedSite !== 'all' && { site: selectedSite })
+        // Note: location parameter removed as location field no longer exists
       })
 
       const response = await fetch(`/api/markup-documents?${params}`)

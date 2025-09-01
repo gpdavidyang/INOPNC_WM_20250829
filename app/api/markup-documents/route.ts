@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
     const site = searchParams.get('site')
     const admin = searchParams.get('admin') === 'true'
     const stats = searchParams.get('stats') === 'true'
+    // Note: location parameter removed as location column no longer exists
     const offset = (page - 1) * limit
     
     // 통계 요청 처리
@@ -102,8 +103,7 @@ export async function GET(request: NextRequest) {
       creator_role: doc.creator?.role || '',
       site_name: doc.site?.name || '',
       site_address: doc.site?.address || '',
-      // 필수 필드 보장
-      location: doc.location || 'shared',
+      // 필수 필드 보장 (location field removed from schema)
       file_size: doc.file_size || 0,
       markup_count: doc.markup_count || 0
     })) || []
