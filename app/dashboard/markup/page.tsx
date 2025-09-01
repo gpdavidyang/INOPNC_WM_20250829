@@ -13,6 +13,7 @@ export default function MarkupPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const fileId = searchParams.get('file') || searchParams.get('open')
+  const view = searchParams.get('view')
 
   const supabase = createClient()
 
@@ -91,6 +92,7 @@ export default function MarkupPage() {
       onClose={handleClose}
       initialFile={documentToOpen}
       blueprintUrl={documentToOpen?.original_blueprint_url}
+      initialView={view === 'upload' ? 'editor' : 'list'}
     />
   )
 }

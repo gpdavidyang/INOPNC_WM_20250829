@@ -31,6 +31,7 @@ interface MarkupEditorProps {
   onSave?: (document: MarkupDocument) => void
   onClose?: () => void
   profile?: any
+  initialView?: 'list' | 'editor'
 }
 
 export function MarkupEditor({ 
@@ -38,7 +39,8 @@ export function MarkupEditor({
   blueprintUrl: initialBlueprintUrl,
   onSave,
   onClose,
-  profile
+  profile,
+  initialView = 'list'
 }: MarkupEditorProps) {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
@@ -46,7 +48,7 @@ export function MarkupEditor({
   // 도면 업로드 상태
   const [blueprintUrl, setBlueprintUrl] = useState<string>(initialBlueprintUrl || '')
   const [blueprintFileName, setBlueprintFileName] = useState<string>('')
-  const [currentView, setCurrentView] = useState<'list' | 'editor'>('list')
+  const [currentView, setCurrentView] = useState<'list' | 'editor'>(initialView)
 
   // 상태 관리
   const [editorState, setEditorState] = useState<MarkupEditorState>({

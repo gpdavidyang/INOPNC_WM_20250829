@@ -81,6 +81,30 @@ export default function AttachmentsTab({
     }
   }
 
+  const validateFile = (file: File) => {
+    const maxSize = 50 * 1024 * 1024 // 50MB
+    const allowedTypes = [
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-powerpoint',
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      'text/plain',
+      'application/zip',
+      'application/x-rar-compressed'
+    ]
+
+    if (file.size > maxSize) {
+      throw new Error(`파일 크기가 너무 큽니다. 최대 50MB까지 업로드 가능합니다. (${file.name})`)
+    }
+
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error(`지원하지 않는 파일 형식입니다. (${file.name})`)
+    }
+  }
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -89,8 +113,21 @@ export default function AttachmentsTab({
     setSaveStatus({ type: null, message: '' })
 
     try {
+      // Validate all files first
+      const fileArray = Array.from(files)
+      for (const file of fileArray) {
+        validateFile(file)
+      }
+
       const supabase = createClient()
-      const uploadPromises = Array.from(files).map(async (file) => {
+      
+      // Check authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        throw new Error('인증이 필요합니다. 다시 로그인해주세요.')
+      }
+
+      const uploadPromises = fileArray.map(async (file) => {
         const fileExt = file.name.split('.').pop()
         const fileName = `${reportId}/attachments/${Date.now()}_${file.name}`
 
@@ -99,7 +136,10 @@ export default function AttachmentsTab({
           .from('daily-report-attachments')
           .upload(fileName, file)
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError)
+          throw new Error(`파일 업로드 실패: ${uploadError.message} (${file.name})`)
+        }
 
         // Save metadata
         const { data: fileData, error: dbError } = await supabase
@@ -111,25 +151,36 @@ export default function AttachmentsTab({
             file_type: 'document',
             file_size: file.size,
             mime_type: file.type,
-            created_by: (await supabase.auth.getUser()).data.user?.id
+            created_by: user.id
           })
           .select()
           .single()
 
-        if (dbError) throw dbError
+        if (dbError) {
+          console.error('Database insert error:', dbError)
+          // Try to clean up uploaded file
+          await supabase.storage
+            .from('daily-report-attachments')
+            .remove([fileName])
+          throw new Error(`메타데이터 저장 실패: ${dbError.message} (${file.name})`)
+        }
+
         return fileData
       })
 
       await Promise.all(uploadPromises)
       await fetchFiles()
-      setSaveStatus({ type: 'success', message: '파일이 업로드되었습니다.' })
+      setSaveStatus({ type: 'success', message: `${fileArray.length}개 파일이 업로드되었습니다.` })
       
       if (onSaveComplete) {
         onSaveComplete()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading files:', error)
-      setSaveStatus({ type: 'error', message: '파일 업로드에 실패했습니다.' })
+      setSaveStatus({ 
+        type: 'error', 
+        message: error.message || '파일 업로드에 실패했습니다.' 
+      })
     } finally {
       setUploading(false)
       // Reset file input

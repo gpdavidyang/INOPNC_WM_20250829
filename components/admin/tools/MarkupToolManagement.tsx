@@ -188,11 +188,11 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
         
         <div className="flex gap-3">
           <Button
-            onClick={() => window.open('/dashboard/admin/markup-editor', '_blank')}
+            onClick={() => window.open('/dashboard/markup?view=upload', '_blank')}
             className="flex items-center bg-purple-600 hover:bg-purple-700 text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
-            새 마킹 생성
+            도면 업로드 및 마킹 시작
           </Button>
           
           <Button
