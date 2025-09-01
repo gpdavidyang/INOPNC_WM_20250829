@@ -217,8 +217,11 @@ export default function ReceiptsTab({
         }
 
         // Upload files for this entry
-        const uploadPromises = entry.files.map(async (file) => {
-          const fileName = `${reportId}/receipts/${Date.now()}_${file.name}`
+        const uploadPromises = entry.files.map(async (file, fileIndex) => {
+          const timestamp = Date.now() + fileIndex
+          const fileExt = file.name.split('.').pop()
+          const safeFileName = `${timestamp}.${fileExt}`
+          const fileName = `${reportId}/receipts/${safeFileName}`
 
           // Upload to storage
           const { data: uploadData, error: uploadError } = await supabase.storage
@@ -333,8 +336,11 @@ export default function ReceiptsTab({
         throw new Error('인증이 필요합니다. 다시 로그인해주세요.')
       }
 
-      const uploadPromises = fileArray.map(async (file) => {
-        const fileName = `${reportId}/receipts/${Date.now()}_${file.name}`
+      const uploadPromises = fileArray.map(async (file, index) => {
+        const timestamp = Date.now() + index
+        const fileExt = file.name.split('.').pop()
+        const safeFileName = `${timestamp}.${fileExt}`
+        const fileName = `${reportId}/receipts/${safeFileName}`
 
         // Upload to storage
         const { data: uploadData, error: uploadError } = await supabase.storage

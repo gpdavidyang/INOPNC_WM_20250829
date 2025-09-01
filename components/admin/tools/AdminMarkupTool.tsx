@@ -212,13 +212,13 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
                             </span>
                           </div>
                           <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate">
-                            {doc.title || doc.fileName}
+                            {doc.title || '제목 없음'}
                           </h4>
                           <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                            마킹: {doc.markupObjects?.length || 0}개
+                            {doc.original_blueprint_filename}
                           </p>
                           <p className="text-xs text-gray-400 dark:text-gray-500">
-                            {new Date(doc.updatedAt || doc.createdAt).toLocaleDateString()}
+                            {new Date(doc.updated_at || doc.created_at).toLocaleDateString()}
                           </p>
                         </div>
                       ))}
@@ -236,9 +236,6 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               파일명
-                            </th>
-                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              마킹
                             </th>
                             <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                               수정일
@@ -265,18 +262,13 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                                  {doc.fileName || '-'}
+                                  {doc.original_blueprint_filename || '-'}
                                 </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-center">
-                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                                  {doc.markupObjects?.length || 0}개
-                                </span>
                               </td>
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                                   <Clock className="h-3 w-3 mr-1" />
-                                  {new Date(doc.updatedAt || doc.createdAt).toLocaleDateString('ko-KR', {
+                                  {new Date(doc.updated_at || doc.created_at).toLocaleDateString('ko-KR', {
                                     month: '2-digit',
                                     day: '2-digit',
                                     hour: '2-digit',
@@ -287,7 +279,7 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
                               <td className="px-4 py-3 whitespace-nowrap">
                                 <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                                   <Calendar className="h-3 w-3 mr-1" />
-                                  {new Date(doc.createdAt).toLocaleDateString('ko-KR', {
+                                  {new Date(doc.created_at).toLocaleDateString('ko-KR', {
                                     year: 'numeric',
                                     month: '2-digit',
                                     day: '2-digit'

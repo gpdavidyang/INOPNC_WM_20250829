@@ -12,12 +12,12 @@ interface Document {
   file_url: string
   file_size: number
   mime_type: string
-  document_type: string
-  folder_path: string
+  category_type: string
+  status: string
   is_public: boolean
   created_at: string
   updated_at: string
-  owner_id: string
+  uploaded_by: string
   site_id?: string
   profiles?: {
     id: string
@@ -83,13 +83,13 @@ export default function SharedDocumentsManagement() {
     setLoading(true)
     try {
       let query = supabase
-        .from('documents')
+        .from('unified_document_system')
         .select(`
           *,
-          profiles!owner_id(id, full_name, email),
-          sites!documents_site_id_fkey(id, name, address)
+          profiles:uploaded_by(id, full_name, email),
+          sites(id, name, address)
         `, { count: 'exact' })
-        .eq('is_public', true)
+        .eq('category_type', 'shared')
 
       // 검색 필터 적용
       if (searchTerm) {
@@ -124,7 +124,7 @@ export default function SharedDocumentsManagement() {
 
     try {
       const { error } = await supabase
-        .from('documents')
+        .from('unified_document_system')
         .delete()
         .eq('id', documentId)
 
@@ -210,7 +210,7 @@ export default function SharedDocumentsManagement() {
     setSaving(true)
     try {
       const { error } = await supabase
-        .from('documents')
+        .from('unified_document_system')
         .update({
           title: editFormData.title,
           description: editFormData.description,

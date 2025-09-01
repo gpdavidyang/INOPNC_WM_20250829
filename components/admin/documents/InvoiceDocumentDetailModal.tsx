@@ -12,23 +12,27 @@ interface InvoiceDocument {
   id: string
   title: string
   description?: string
-  document_type: string
+  category_type: string
+  document_type?: string // from metadata
   file_name: string
-  file_path: string
   file_url: string
   file_size: number
   mime_type: string
-  contract_phase: 'pre_contract' | 'in_progress' | 'completed'
-  amount?: number
-  due_date?: string
-  approval_status: 'pending' | 'approved' | 'rejected' | 'revision_required'
-  approved_by?: string
-  approved_at?: string
+  status: string
+  metadata?: {
+    contract_phase?: 'pre_contract' | 'in_progress' | 'completed'
+    amount?: number
+    due_date?: string
+    approval_status?: 'pending' | 'approved' | 'rejected' | 'revision_required'
+    approved_by?: string
+    approved_at?: string
+    partner_company_id?: string
+    document_type?: string
+  }
   created_at: string
   updated_at: string
-  created_by: string
+  uploaded_by: string
   site_id?: string
-  partner_company_id?: string
   profiles?: {
     id: string
     full_name: string
@@ -92,8 +96,8 @@ export default function InvoiceDocumentDetailModal({
       setEditData({
         title: document.title,
         description: document.description || '',
-        amount: document.amount?.toString() || '',
-        due_date: document.due_date || ''
+        amount: document.metadata?.amount?.toString() || '',
+        due_date: document.metadata?.due_date || ''
       })
       setEditing(false)
     }
@@ -107,17 +111,20 @@ export default function InvoiceDocumentDetailModal({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  const getDocumentTypeLabel = (type: string) => {
+  const getDocumentTypeLabel = (document: InvoiceDocument) => {
+    const type = document.metadata?.document_type || document.document_type || ''
     const docType = documentTypes.find(t => t.value === type)
     return docType ? docType.label : type
   }
 
-  const getPhaseLabel = (phase: string) => {
+  const getPhaseLabel = (document: InvoiceDocument) => {
+    const phase = document.metadata?.contract_phase || ''
     const phaseInfo = contractPhases.find(p => p.value === phase)
     return phaseInfo ? phaseInfo.label : phase
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (document: InvoiceDocument) => {
+    const status = document.metadata?.approval_status || 'pending'
     switch (status) {
       case 'approved':
         return (
@@ -150,7 +157,8 @@ export default function InvoiceDocumentDetailModal({
     }
   }
 
-  const getPhaseBadge = (phase: string) => {
+  const getPhaseBadge = (document: InvoiceDocument) => {
+    const phase = document.metadata?.contract_phase || ''
     switch (phase) {
       case 'completed':
         return (
@@ -193,8 +201,8 @@ export default function InvoiceDocumentDetailModal({
     setEditData({
       title: document?.title || '',
       description: document?.description || '',
-      amount: document?.amount?.toString() || '',
-      due_date: document?.due_date || ''
+      amount: document?.metadata?.amount?.toString() || '',
+      due_date: document?.metadata?.due_date || ''
     })
   }
 
@@ -203,21 +211,23 @@ export default function InvoiceDocumentDetailModal({
 
     setLoading(true)
     try {
-      const updateData: any = {
+      // Get current metadata and update it
+      const currentMetadata = document.metadata || {}
+      const updatedMetadata = {
+        ...currentMetadata,
+        amount: editData.amount ? parseFloat(editData.amount) : null,
+        due_date: editData.due_date || null
+      }
+
+      const updateData = {
         title: editData.title.trim(),
         description: editData.description.trim(),
+        metadata: updatedMetadata,
         updated_at: new Date().toISOString()
       }
 
-      if (editData.amount) {
-        updateData.amount = parseFloat(editData.amount)
-      }
-      if (editData.due_date) {
-        updateData.due_date = editData.due_date
-      }
-
       const { error } = await supabase
-        .from('documents')
+        .from('unified_document_system')
         .update(updateData)
         .eq('id', document.id)
 
@@ -240,10 +250,22 @@ export default function InvoiceDocumentDetailModal({
 
     setLoading(true)
     try {
-      const { error } = await supabase.rpc('approve_invoice_document', {
-        document_id: document.id,
-        approver_id: (await supabase.auth.getUser()).data.user?.id
-      })
+      // Update metadata with approval status
+      const currentMetadata = document.metadata || {}
+      const updatedMetadata = {
+        ...currentMetadata,
+        approval_status: 'approved',
+        approved_by: (await supabase.auth.getUser()).data.user?.id,
+        approved_at: new Date().toISOString()
+      }
+
+      const { error } = await supabase
+        .from('unified_document_system')
+        .update({ 
+          metadata: updatedMetadata,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', document.id)
 
       if (error) throw error
 
@@ -265,11 +287,23 @@ export default function InvoiceDocumentDetailModal({
 
     setLoading(true)
     try {
-      const { error } = await supabase.rpc('reject_invoice_document', {
-        document_id: document.id,
-        approver_id: (await supabase.auth.getUser()).data.user?.id,
+      // Update metadata with rejection status
+      const currentMetadata = document.metadata || {}
+      const updatedMetadata = {
+        ...currentMetadata,
+        approval_status: 'rejected',
+        approved_by: (await supabase.auth.getUser()).data.user?.id,
+        approved_at: new Date().toISOString(),
         rejection_reason: reason
-      })
+      }
+
+      const { error } = await supabase
+        .from('unified_document_system')
+        .update({ 
+          metadata: updatedMetadata,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', document.id)
 
       if (error) throw error
 
@@ -297,7 +331,7 @@ export default function InvoiceDocumentDetailModal({
               <DollarSign className="w-6 h-6 mr-3 text-green-600" />
               <div>
                 <h3 className="text-lg font-medium text-gray-900">기성청구 서류 상세</h3>
-                <p className="text-sm text-gray-500">{getDocumentTypeLabel(document.document_type)}</p>
+                <p className="text-sm text-gray-500">{getDocumentTypeLabel(document)}</p>
               </div>
             </div>
             <button
@@ -382,7 +416,7 @@ export default function InvoiceDocumentDetailModal({
                           <p className="text-xs text-gray-600 mt-1">{document.description}</p>
                         )}
                       </div>
-                      {!isAdmin && document.approval_status === 'pending' && (
+                      {!isAdmin && document.metadata?.approval_status === 'pending' && (
                         <button
                           onClick={handleEdit}
                           className="ml-2 text-blue-600 hover:text-blue-800"
@@ -396,11 +430,11 @@ export default function InvoiceDocumentDetailModal({
                     <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
                       <div>
                         <span className="font-medium">금액:</span>{' '}
-                        {document.amount ? `₩${document.amount.toLocaleString()}` : '미지정'}
+                        {document.metadata?.amount ? `₩${document.metadata.amount.toLocaleString()}` : '미지정'}
                       </div>
                       <div>
                         <span className="font-medium">만료일:</span>{' '}
-                        {document.due_date ? new Date(document.due_date).toLocaleDateString('ko-KR') : '미지정'}
+                        {document.metadata?.due_date ? new Date(document.metadata.due_date).toLocaleDateString('ko-KR') : '미지정'}
                       </div>
                     </div>
                   </div>
@@ -459,17 +493,17 @@ export default function InvoiceDocumentDetailModal({
                 <h4 className="text-sm font-medium text-gray-900 mb-3">승인 상태</h4>
                 <div className="space-y-3">
                   <div className="flex items-center justify-center">
-                    {getStatusBadge(document.approval_status)}
+                    {getStatusBadge(document)}
                   </div>
                   
-                  {document.approved_by && document.approved_at && (
+                  {document.metadata?.approved_by && document.metadata?.approved_at && (
                     <div className="text-center text-xs text-gray-500">
                       <p>승인자: {document.profiles?.full_name || '알 수 없음'}</p>
-                      <p>{new Date(document.approved_at).toLocaleString('ko-KR')}</p>
+                      <p>{new Date(document.metadata.approved_at).toLocaleString('ko-KR')}</p>
                     </div>
                   )}
 
-                  {isAdmin && document.approval_status === 'pending' && (
+                  {isAdmin && document.metadata?.approval_status === 'pending' && (
                     <div className="flex space-x-2 pt-2">
                       <button
                         onClick={handleApprove}
@@ -496,7 +530,7 @@ export default function InvoiceDocumentDetailModal({
               <div className="bg-white border rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">계약 단계</h4>
                 <div className="flex justify-center">
-                  {getPhaseBadge(document.contract_phase)}
+                  {getPhaseBadge(document)}
                 </div>
               </div>
 

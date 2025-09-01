@@ -216,30 +216,39 @@ export default function InvoiceDocumentUploadModal({
         .from('documents')
         .getPublicUrl(filePath)
 
-      // Create document record
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error('User not authenticated')
+
+      // Create document record for unified_document_system
       const documentData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         file_url: urlData.publicUrl,
+        file_path: filePath,
         file_name: selectedFile!.name,
+        original_filename: selectedFile!.name,
         file_size: selectedFile!.size,
         mime_type: selectedFile!.type,
-        document_type: formData.document_type,
+        category_type: 'invoice',
+        status: 'active',
         folder_path: '/invoice-documents',
-        owner_id: (await supabase.auth.getUser()).data.user?.id,
+        uploaded_by: user.id,
+        owner_id: user.id,
         is_public: false,
         site_id: formData.site_id,
-        // These fields will be added via migration
-        document_category: 'invoice',
-        contract_phase: formData.contract_phase,
-        partner_company_id: formData.partner_company_id,
-        amount: formData.amount ? parseFloat(formData.amount) : null,
-        due_date: formData.due_date || null,
-        approval_status: 'pending'
+        metadata: {
+          document_type: formData.document_type,
+          contract_phase: formData.contract_phase,
+          partner_company_id: formData.partner_company_id,
+          amount: formData.amount ? parseFloat(formData.amount) : null,
+          due_date: formData.due_date || null,
+          approval_status: 'pending'
+        }
       }
 
       const { error: insertError } = await supabase
-        .from('documents')
+        .from('unified_document_system')
         .insert([documentData])
 
       if (insertError) throw insertError

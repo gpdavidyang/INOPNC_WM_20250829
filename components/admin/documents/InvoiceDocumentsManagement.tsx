@@ -10,18 +10,23 @@ interface InvoiceDocument {
   id: string
   title: string
   description?: string
-  document_type: string
+  category_type: string
+  document_type?: string // from metadata
   file_name: string
-  file_path: string
+  file_url: string
   file_size: number
   mime_type: string
-  contract_phase: 'pre_contract' | 'in_progress' | 'completed'
-  amount?: number
+  status: string
+  metadata?: {
+    contract_phase?: 'pre_contract' | 'in_progress' | 'completed'
+    amount?: number
+    partner_company_id?: string
+    document_type?: string
+  }
   created_at: string
   updated_at: string
-  created_by: string
+  uploaded_by: string
   site_id?: string
-  partner_company_id?: string
   profiles?: {
     id: string
     full_name: string
@@ -103,14 +108,14 @@ export default function InvoiceDocumentsManagement() {
     setLoading(true)
     try {
       let query = supabase
-        .from('documents')
+        .from('unified_document_system')
         .select(`
           *,
-          profiles!documents_created_by_fkey(id, full_name, email),
-          sites(id, name, address),
-          organizations!documents_partner_company_id_fkey(id, name, business_registration_number)
+          profiles!unified_document_system_uploaded_by_fkey(id, full_name, email),
+          sites(id, name, address)
         `, { count: 'exact' })
-        .eq('document_category', 'invoice')
+        .eq('category_type', 'invoice')
+        .eq('status', 'active')
 
       // 검색 필터 적용
       if (searchTerm) {
@@ -124,12 +129,12 @@ export default function InvoiceDocumentsManagement() {
 
       // 계약 단계 필터 적용
       if (phaseFilter) {
-        query = query.eq('contract_phase', phaseFilter)
+        query = query.contains('metadata', { contract_phase: phaseFilter })
       }
 
       // 문서 유형 필터 적용
       if (typeFilter) {
-        query = query.eq('document_type', typeFilter)
+        query = query.contains('metadata', { document_type: typeFilter })
       }
 
       const from = (currentPage - 1) * itemsPerPage
@@ -141,7 +146,24 @@ export default function InvoiceDocumentsManagement() {
 
       if (error) throw error
 
-      setDocuments(data || [])
+      // Process documents to extract metadata and fetch partner companies
+      const processedDocs = await Promise.all((data || []).map(async (doc) => {
+        let organizations = null;
+        if (doc.metadata?.partner_company_id) {
+          const { data: orgData } = await supabase
+            .from('organizations')
+            .select('id, name, business_registration_number')
+            .eq('id', doc.metadata.partner_company_id)
+            .single();
+          organizations = orgData;
+        }
+        return {
+          ...doc,
+          document_type: doc.metadata?.document_type || doc.document_type,
+          organizations
+        };
+      }));
+      setDocuments(processedDocs)
       setTotalCount(count || 0)
     } catch (error) {
       console.error('Error fetching invoice documents:', error)
@@ -155,8 +177,8 @@ export default function InvoiceDocumentsManagement() {
 
     try {
       const { error } = await supabase
-        .from('documents')
-        .delete()
+        .from('unified_document_system')
+        .update({ status: 'deleted' })
         .eq('id', documentId)
 
       if (error) throw error
@@ -172,7 +194,7 @@ export default function InvoiceDocumentsManagement() {
   const handleDownloadDocument = async (document: InvoiceDocument) => {
     try {
       // 실제 구현에서는 Supabase Storage URL을 사용
-      window.open(document.file_path, '_blank')
+      window.open(document.file_url, '_blank')
     } catch (error) {
       console.error('Error downloading document:', error)
       alert('서류 다운로드에 실패했습니다.')
@@ -187,17 +209,20 @@ export default function InvoiceDocumentsManagement() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  const getDocumentTypeLabel = (type: string) => {
+  const getDocumentTypeLabel = (document: InvoiceDocument) => {
+    const type = document.metadata?.document_type || document.document_type || ''
     const docType = documentTypes.find(t => t.value === type)
     return docType ? docType.label : type
   }
 
-  const getPhaseLabel = (phase: string) => {
+  const getPhaseLabel = (document: InvoiceDocument) => {
+    const phase = document.metadata?.contract_phase || ''
     const phaseInfo = contractPhases.find(p => p.value === phase)
     return phaseInfo ? phaseInfo.label : phase
   }
 
-  const getPhaseBadge = (phase: string) => {
+  const getPhaseBadge = (document: InvoiceDocument) => {
+    const phase = document.metadata?.contract_phase || ''
     switch (phase) {
       case 'completed':
         return (
@@ -458,15 +483,15 @@ export default function InvoiceDocumentsManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-900">
-                        {getDocumentTypeLabel(document.document_type)}
+                        {getDocumentTypeLabel(document)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getPhaseBadge(document.contract_phase)}
+                      {getPhaseBadge(document)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {document.amount ? 
-                        `₩${document.amount.toLocaleString()}` : 
+                      {document.metadata?.amount ? 
+                        `₩${document.metadata.amount.toLocaleString()}` : 
                         '-'
                       }
                     </td>

@@ -112,9 +112,12 @@ export default function MarkupTab({
         }
       }
       
-      const uploadPromises = Array.from(files).map(async (file) => {
+      const uploadPromises = Array.from(files).map(async (file, index) => {
         const fileExt = file.name.split('.').pop()
-        const fileName = `${reportId}/markups/${Date.now()}_${file.name}`
+        // Create safe filename - remove Korean characters and spaces
+        const timestamp = Date.now() + index
+        const safeFileName = `${timestamp}.${fileExt}`
+        const fileName = `${reportId}/markups/${safeFileName}`
 
         // Upload to storage
         const { data: uploadData, error: uploadError } = await supabase.storage

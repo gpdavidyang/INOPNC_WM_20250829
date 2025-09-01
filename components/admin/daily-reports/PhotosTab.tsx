@@ -122,9 +122,12 @@ export default function PhotosTab({
         throw new Error('인증이 필요합니다. 다시 로그인해주세요.')
       }
 
-      const uploadPromises = fileArray.map(async (file) => {
+      const uploadPromises = fileArray.map(async (file, index) => {
         const fileExt = file.name.split('.').pop()
-        const fileName = `${reportId}/photos/${photoType}/${Date.now()}_${file.name}`
+        // Create safe filename - remove Korean characters and spaces
+        const timestamp = Date.now() + index // Add index to ensure uniqueness
+        const safeFileName = `${timestamp}.${fileExt}`
+        const fileName = `${reportId}/photos/${photoType}/${safeFileName}`
 
         // Upload to storage
         const { data: uploadData, error: uploadError } = await supabase.storage

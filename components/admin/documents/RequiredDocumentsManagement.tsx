@@ -10,18 +10,16 @@ interface RequiredDocument {
   id: string
   title: string
   description?: string
-  document_type: string
+  category_type: string
   file_name: string
-  file_path: string
+  file_url: string
   file_size: number
   mime_type: string
-  status: 'pending' | 'approved' | 'rejected'
-  submission_date: string
-  review_date?: string
-  review_notes?: string
+  status: string
+  metadata?: any
   created_at: string
-  submitted_by: string
-  reviewed_by?: string
+  uploaded_by: string
+  approved_by?: string
   profiles?: {
     id: string
     full_name: string
@@ -67,17 +65,17 @@ export default function RequiredDocumentsManagement() {
     setLoading(true)
     try {
       let query = supabase
-        .from('documents')
+        .from('unified_document_system')
         .select(`
           *,
-          profiles!documents_submitted_by_fkey(id, full_name, email, role),
-          reviewer_profile:profiles!documents_reviewed_by_fkey(id, full_name, email)
+          profiles:uploaded_by(id, full_name, email, role),
+          reviewer_profile:approved_by(id, full_name, email)
         `, { count: 'exact' })
-        .eq('document_category', 'required')
+        .eq('category_type', 'required')
 
       // 검색 필터 적용
       if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,document_type.ilike.%${searchTerm}%`)
+        query = query.or(`title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
       }
 
       // 사용자 검색 필터 적용 (이름, 이메일, 역할로 검색)
@@ -90,7 +88,7 @@ export default function RequiredDocumentsManagement() {
         
         if (!userError && users && users.length > 0) {
           const userIds = users.map(u => u.id)
-          query = query.in('submitted_by', userIds)
+          query = query.in('uploaded_by', userIds)
         } else {
           // If no users found, return empty result
           setDocuments([])
@@ -131,11 +129,11 @@ export default function RequiredDocumentsManagement() {
   const handleStatusUpdate = async (documentId: string, status: 'approved' | 'rejected', notes?: string) => {
     try {
       const { error } = await supabase
-        .from('documents')
+        .from('unified_document_system')
         .update({ 
           status,
-          review_date: new Date().toISOString(),
-          review_notes: notes
+          metadata: { review_date: new Date().toISOString(), review_notes: notes },
+          updated_at: new Date().toISOString()
         })
         .eq('id', documentId)
 
@@ -154,7 +152,7 @@ export default function RequiredDocumentsManagement() {
 
     try {
       const { error } = await supabase
-        .from('documents')
+        .from('unified_document_system')
         .delete()
         .eq('id', documentId)
 
@@ -171,7 +169,7 @@ export default function RequiredDocumentsManagement() {
   const handleDownloadDocument = async (document: RequiredDocument) => {
     try {
       // 실제 구현에서는 Supabase Storage URL을 사용
-      window.open(document.file_path, '_blank')
+      window.open(document.file_url, '_blank')
     } catch (error) {
       console.error('Error downloading document:', error)
       alert('서류 다운로드에 실패했습니다.')
