@@ -67,9 +67,11 @@ export async function POST(request: NextRequest) {
       }, { status: 403 })
     }
 
-    // Create unique file name
-    const fileExtension = file.name.split('.').pop()
-    const uniqueFileName = `${documentType}_${site.name}_${Date.now()}_${randomUUID()}.${fileExtension}`
+    // Create unique file name (sanitized to avoid Korean characters)
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'unknown'
+    const timestamp = Date.now()
+    const uniqueId = randomUUID().substring(0, 8)
+    const uniqueFileName = `${documentType}_${timestamp}_${uniqueId}.${fileExtension}`
     const storagePath = `site-documents/${siteId}/${documentType}/${uniqueFileName}`
 
     // Upload file to Supabase Storage
