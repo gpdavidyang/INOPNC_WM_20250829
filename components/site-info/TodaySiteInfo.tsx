@@ -110,9 +110,11 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
     try {
       await navigator.clipboard.writeText(text)
       setCopiedField(field)
+      toast.success(`${field}가 복사되었습니다`)
       setTimeout(() => setCopiedField(null), 2000)
     } catch (err) {
       console.error('Failed to copy:', err)
+      toast.error('주소 복사에 실패했습니다')
     }
   }
 
@@ -217,20 +219,40 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
               <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
               <span className="text-sm font-medium text-gray-900 dark:text-gray-100">현장 주소</span>
               <div className="flex-1"></div>
-              <button
-                onClick={() => copyToClipboard(siteInfo.address.full_address, '현장주소')}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                title="주소 복사"
-              >
-                <Copy className="h-3.5 w-3.5 text-gray-400" />
-              </button>
-              <button
-                onClick={() => openTMap(siteInfo.address.full_address, siteInfo.name)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                title="T맵에서 보기"
-              >
-                <Navigation className="h-3.5 w-3.5 text-gray-400" />
-              </button>
+              {/* Action buttons with enhanced visibility */}
+              <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    copyToClipboard(siteInfo.address.full_address, '현장주소')
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-2 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all duration-200 group"
+                  title="주소 복사"
+                >
+                  {copiedField === '현장주소' ? (
+                    <>
+                      <Check className="h-5 w-5 text-green-500 animate-in zoom-in-50 duration-200" />
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium">복사됨</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="h-5 w-5 text-gray-600 dark:text-gray-300 group-hover:text-blue-500 transition-colors" />
+                      <span className="text-xs text-gray-600 dark:text-gray-300 group-hover:text-blue-500 font-medium">복사</span>
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    openTMap(siteInfo.address.full_address, siteInfo.name)
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-2 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all duration-200 group"
+                  title="T맵에서 보기"
+                >
+                  <Navigation className="h-5 w-5 text-blue-500 dark:text-blue-400 group-hover:text-blue-600 transition-colors" />
+                  <span className="text-xs text-blue-500 dark:text-blue-400 group-hover:text-blue-600 font-medium">T맵</span>
+                </button>
+              </div>
             </div>
             <div className="pl-6 text-sm text-gray-600 dark:text-gray-400">
               {siteInfo.address.full_address}
@@ -244,20 +266,40 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                 <Home className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">숙소</span>
                 <div className="flex-1"></div>
-                <button
-                  onClick={() => copyToClipboard(siteInfo.accommodation!.full_address, '숙소주소')}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                  title="주소 복사"
-                >
-                  <Copy className="h-3.5 w-3.5 text-gray-400" />
-                </button>
-                <button
-                  onClick={() => openTMap(siteInfo.accommodation!.full_address, '숙소')}
-                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                  title="T맵에서 보기"
-                >
-                  <Navigation className="h-3.5 w-3.5 text-gray-400" />
-                </button>
+                {/* Action buttons with enhanced visibility */}
+                <div className="flex items-center gap-1 bg-gray-50 dark:bg-gray-800 rounded-lg p-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      copyToClipboard(siteInfo.accommodation!.full_address, '숙소주소')
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-2 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all duration-200 group"
+                    title="주소 복사"
+                  >
+                    {copiedField === '숙소주소' ? (
+                      <>
+                        <Check className="h-5 w-5 text-green-500 animate-in zoom-in-50 duration-200" />
+                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">복사됨</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-5 w-5 text-gray-600 dark:text-gray-300 group-hover:text-blue-500 transition-colors" />
+                        <span className="text-xs text-gray-600 dark:text-gray-300 group-hover:text-blue-500 font-medium">복사</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      openTMap(siteInfo.accommodation!.full_address, '숙소')
+                    }}
+                    className="flex items-center gap-1.5 px-2.5 py-2 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all duration-200 group"
+                    title="T맵에서 보기"
+                  >
+                    <Navigation className="h-5 w-5 text-blue-500 dark:text-blue-400 group-hover:text-blue-600 transition-colors" />
+                    <span className="text-xs text-blue-500 dark:text-blue-400 group-hover:text-blue-600 font-medium">T맵</span>
+                  </button>
+                </div>
               </div>
               <div className="pl-6 text-sm text-gray-600 dark:text-gray-400">
                 {siteInfo.accommodation.full_address}

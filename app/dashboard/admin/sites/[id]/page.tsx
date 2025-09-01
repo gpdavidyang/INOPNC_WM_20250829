@@ -493,47 +493,39 @@ export default function SiteDetailPage() {
                 </div>
               </div>
 
-              {/* 숙소 정보 */}
-              {(site.accommodation_name || site.accommodation_address || site.accommodation_phone) && (
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 lg:col-span-2">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">숙소 정보</h3>
-                  <div className="space-y-4">
-                    {site.accommodation_name && (
-                      <div className="flex items-start gap-3">
-                        <Building2 className="h-5 w-5 text-gray-400 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">숙소명</p>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {site.accommodation_name}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {site.accommodation_address && (
-                      <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">숙소 주소</p>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {site.accommodation_address}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                    {site.accommodation_phone && (
-                      <div className="flex items-start gap-3">
-                        <Phone className="h-5 w-5 text-gray-400 mt-0.5" />
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">숙소 연락처</p>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {site.accommodation_phone}
-                          </p>
-                        </div>
-                      </div>
-                    )}
+              {/* 숙소 정보 - 항상 표시하되, 데이터가 없으면 '미등록' 표시 */}
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 lg:col-span-2">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">숙소 정보</h3>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <Building2 className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">숙소명</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {site.accommodation_name || '미등록'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">숙소 주소</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {site.accommodation_address || '미등록'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Phone className="h-5 w-5 text-gray-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">숙소 연락처</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {site.accommodation_phone || '미등록'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* 통계 정보 */}

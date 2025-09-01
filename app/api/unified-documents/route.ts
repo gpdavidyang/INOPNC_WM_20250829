@@ -234,13 +234,58 @@ export async function POST(request: Request) {
     }
 
     // Check if user is admin or regular user
-    const isRegularUser = ['user', 'admin'].includes(profile.role)
+    const isRegularUser = ['user', 'admin', 'system_admin', 'site_manager', 'worker', 'customer_manager'].includes(profile.role)
     
     if (!isRegularUser) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
-    const body = await request.json()
+    const contentType = request.headers.get('content-type')
+    let body: any
+
+    if (contentType?.includes('multipart/form-data')) {
+      // Handle FormData uploads
+      const formData = await request.formData()
+      const file = formData.get('file') as File
+      
+      if (!file) {
+        return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+      }
+
+      // Upload file to Supabase Storage
+      const fileName = `${Date.now()}-${file.name}`
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError)
+        return NextResponse.json({ error: 'File upload failed' }, { status: 500 })
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('documents')
+        .getPublicUrl(fileName)
+
+      body = {
+        title: formData.get('title') || file.name,
+        description: formData.get('description') || '',
+        file_name: file.name,
+        file_url: publicUrl,
+        file_size: file.size,
+        mime_type: file.type,
+        category_type: formData.get('category_type') || 'shared',
+        site_id: formData.get('site_id') || null,
+        is_public: formData.get('is_public') === 'true'
+      }
+    } else {
+      // Handle JSON uploads
+      body = await request.json()
+    }
     
     // Validate required fields
     const { title, file_name, file_url, category_type } = body

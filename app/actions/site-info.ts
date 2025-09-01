@@ -104,8 +104,6 @@ export async function getCurrentUserSite() {
           component_name,
           manager_name,
           construction_manager_phone,
-          assistant_manager_name,
-          assistant_manager_phone,
           safety_manager_name,
           safety_manager_phone,
           accommodation_name,
@@ -117,7 +115,6 @@ export async function getCurrentUserSite() {
       `)
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .or('unassigned_date.is.null,unassigned_date.gte.' + new Date().toISOString().split('T')[0])
       .order('assigned_date', { ascending: false })
 
     // Get the most recent active assignment
@@ -152,8 +149,6 @@ export async function getCurrentUserSite() {
       component_name: site.component_name,
       manager_name: site.manager_name,
       construction_manager_phone: site.construction_manager_phone,
-      assistant_manager_name: site.assistant_manager_name,
-      assistant_manager_phone: site.assistant_manager_phone,
       safety_manager_name: site.safety_manager_name,
       safety_manager_phone: site.safety_manager_phone,
       accommodation_name: site.accommodation_name,
@@ -245,8 +240,6 @@ export async function getUserSiteHistory() {
           component_name,
           manager_name,
           construction_manager_phone,
-          assistant_manager_name,
-          assistant_manager_phone,
           safety_manager_name,
           safety_manager_phone,
           accommodation_name,
