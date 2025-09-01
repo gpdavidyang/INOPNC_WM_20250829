@@ -1,7 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, FileText, Users, Wrench, Package, Clock, CheckCircle } from 'lucide-react'
+import { 
+  ArrowLeft, 
+  FileText, 
+  Users, 
+  Package, 
+  Clock, 
+  CheckCircle,
+  Camera,
+  Receipt,
+  MessageCircle,
+  AlertTriangle
+} from 'lucide-react'
 import { formatDate, formatDateTime } from '@/lib/utils'
 import Link from 'next/link'
 import { submitDailyReport, approveDailyReport } from '@/lib/supabase/daily-reports'
@@ -115,7 +126,7 @@ export default function DailyReportDetail({ report, photoGroups = [], canManage 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Main content */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Work content */}
+          {/* 1. 작업 내용 - 부재명, 작업공정, 작업구간 */}
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
@@ -128,172 +139,194 @@ export default function DailyReportDetail({ report, photoGroups = [], canManage 
                 <div className="space-y-4">
                   <div>
                     <h4 className="text-sm font-medium text-gray-500 mb-2">부재명</h4>
-                    <div className="text-sm text-gray-900">{report.member_name}</div>
+                    <div className="text-sm text-gray-900">{report.member_name || '해당 데이터 없음'}</div>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-2">공정 유형</h4>
-                    <div className="text-sm text-gray-900">{report.process_type}</div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">작업 공정</h4>
+                    <div className="text-sm text-gray-900">{report.work_process || '해당 데이터 없음'}</div>
                   </div>
-                  {report.component_name && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">구성요소명</h4>
-                      <div className="text-sm text-gray-900">{report.component_name}</div>
-                    </div>
-                  )}
-                  {report.work_process && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">작업 공정</h4>
-                      <div className="whitespace-pre-wrap text-sm text-gray-900 bg-gray-50 p-3 rounded">
-                        {report.work_process}
-                      </div>
-                    </div>
-                  )}
-                  {report.work_section && (
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-500 mb-2">작업 구간</h4>
-                      <div className="text-sm text-gray-900">{report.work_section}</div>
-                    </div>
-                  )}
                   <div>
-                    <h4 className="text-sm font-medium text-gray-500 mb-2">총 작업자 수</h4>
-                    <div className="text-sm text-gray-900">{report.total_workers || 0}명</div>
+                    <h4 className="text-sm font-medium text-gray-500 mb-2">작업 구간</h4>
+                    <div className="text-sm text-gray-900">{report.work_section || '해당 데이터 없음'}</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Workers */}
-          {report.daily_report_workers && report.daily_report_workers.length > 0 && (
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  <Users className="inline-block mr-2 h-5 w-5 text-gray-400" />
-                  작업 인원
-                </h3>
-              </div>
-              <div className="border-t border-gray-200">
+          {/* 4. 작업자 정보 - 작업자명, 공수 */}
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                <Users className="inline-block mr-2 h-5 w-5 text-gray-400" />
+                작업자 정보
+              </h3>
+            </div>
+            <div className="border-t border-gray-200">
+              {report.daily_report_workers && report.daily_report_workers.length > 0 ? (
                 <ul className="divide-y divide-gray-200">
                   {report.daily_report_workers.map((worker: any) => (
                     <li key={worker.id} className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-medium text-gray-900">
-                            {worker.profiles?.full_name}
+                            작업자명: {worker.profiles?.full_name || worker.worker_name || '이름 없음'}
                           </p>
-                          <p className="text-sm text-gray-500">{worker.role}</p>
                         </div>
                         <div className="text-sm text-gray-500">
-                          {worker.start_time} - {worker.end_time}
+                          공수: {worker.work_hours || '8'}시간
                         </div>
                       </div>
                     </li>
                   ))}
                 </ul>
-              </div>
+              ) : (
+                <div className="px-4 py-5 sm:px-6">
+                  <p className="text-sm text-gray-500">해당 데이터 없음</p>
+                </div>
+              )}
             </div>
-          )}
+          </div>
 
-          {/* Additional Photos Section - 추가 사진 섹션 */}
+          {/* 5. 작업 전 사진 */}
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900">
-                <svg className="inline-block mr-2 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                추가 사진
+                <Camera className="inline-block mr-2 h-5 w-5 text-gray-400" />
+                작업 전 사진
               </h3>
             </div>
             <div className="border-t border-gray-200">
               <div className="px-4 py-5 sm:px-6">
-                {report.photos && Array.isArray(report.photos) && report.photos.length > 0 ? (
+                {report.before_photos && Array.isArray(report.before_photos) && report.before_photos.length > 0 ? (
                   <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-                    {report.photos.map((photo: any, index: number) => (
+                    {report.before_photos.map((photo: any, index: number) => (
                       <div key={index} className="relative group">
-                        <div className="aspect-w-1 aspect-h-1 w-full overflow-hidden rounded-lg bg-gray-200">
-                          {photo.url ? (
-                            <img
-                              src={photo.url}
-                              alt={photo.caption || `추가 사진 ${index + 1}`}
-                              className="h-full w-full object-cover object-center group-hover:opacity-75 transition-opacity"
-                              onClick={() => window.open(photo.url, '_blank')}
-                              style={{ cursor: 'pointer' }}
-                            />
-                          ) : (
-                            <div className="flex items-center justify-center h-full bg-gray-100">
-                              <svg className="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                        {photo.caption && (
-                          <p className="mt-2 text-sm text-gray-600">{photo.caption}</p>
-                        )}
-                        {photo.uploaded_at && (
-                          <p className="text-xs text-gray-500">
-                            {new Date(photo.uploaded_at).toLocaleDateString('ko-KR')}
-                          </p>
-                        )}
+                        <img
+                          src={photo.url || photo}
+                          alt={`작업 전 사진 ${index + 1}`}
+                          className="h-32 w-full object-cover rounded-lg cursor-pointer hover:opacity-75"
+                          onClick={() => window.open(photo.url || photo, '_blank')}
+                        />
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-6">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="mt-2 text-sm text-gray-500">해당 데이터 없음</p>
-                  </div>
+                  <p className="text-sm text-gray-500 text-center py-6">해당 데이터 없음</p>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Equipment */}
-          {report.daily_report_equipment && report.daily_report_equipment.length > 0 && (
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          {/* 6. 작업 후 사진 */}
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                <Camera className="inline-block mr-2 h-5 w-5 text-gray-400" />
+                작업 후 사진
+              </h3>
+            </div>
+            <div className="border-t border-gray-200">
               <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  <Wrench className="inline-block mr-2 h-5 w-5 text-gray-400" />
-                  장비 사용
-                </h3>
-              </div>
-              <div className="border-t border-gray-200">
-                <ul className="divide-y divide-gray-200">
-                  {report.daily_report_equipment.map((item: any) => (
-                    <li key={item.id} className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {item.equipment?.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {item.equipment?.type} • {item.equipment?.model}
-                          </p>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          수량: {item.quantity}
-                        </div>
+                {report.after_photos && Array.isArray(report.after_photos) && report.after_photos.length > 0 ? (
+                  <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                    {report.after_photos.map((photo: any, index: number) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={photo.url || photo}
+                          alt={`작업 후 사진 ${index + 1}`}
+                          className="h-32 w-full object-cover rounded-lg cursor-pointer hover:opacity-75"
+                          onClick={() => window.open(photo.url || photo, '_blank')}
+                        />
                       </div>
-                    </li>
-                  ))}
-                </ul>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-6">해당 데이터 없음</p>
+                )}
               </div>
             </div>
-          )}
+          </div>
 
-          {/* NPC1000 Usage */}
-          {(report.npc1000_incoming || report.npc1000_used || report.npc1000_remaining) && (
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          {/* 7. 영수증 정보 */}
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                <Receipt className="inline-block mr-2 h-5 w-5 text-gray-400" />
+                영수증 정보
+              </h3>
+            </div>
+            <div className="border-t border-gray-200">
               <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  <Package className="inline-block mr-2 h-5 w-5 text-gray-400" />
-                  NPC1000 사용 내역
-                </h3>
+                {report.receipts && Array.isArray(report.receipts) && report.receipts.length > 0 ? (
+                  <div className="space-y-3">
+                    {report.receipts.map((receipt: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">
+                              {receipt.store_name || `영수증 ${index + 1}`}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              금액: {receipt.amount ? `${receipt.amount.toLocaleString()}원` : '-'}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {receipt.date || '날짜 없음'}
+                            </p>
+                          </div>
+                          {receipt.image_url && (
+                            <button
+                              onClick={() => window.open(receipt.image_url, '_blank')}
+                              className="text-blue-600 hover:text-blue-800 text-sm"
+                            >
+                              보기
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-6">해당 데이터 없음</p>
+                )}
               </div>
-              <div className="border-t border-gray-200">
-                <div className="px-4 py-5 sm:px-6">
+            </div>
+          </div>
+
+          {/* 8. 본사에게 요청 */}
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                <MessageCircle className="inline-block mr-2 h-5 w-5 text-gray-400" />
+                본사에게 요청
+              </h3>
+            </div>
+            <div className="border-t border-gray-200">
+              <div className="px-4 py-5 sm:px-6">
+                {report.headquarters_request ? (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {report.headquarters_request}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-6">해당 데이터 없음</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 9. NPC-1000 자재관리 */}
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                <Package className="inline-block mr-2 h-5 w-5 text-gray-400" />
+                NPC-1000 자재관리
+              </h3>
+            </div>
+            <div className="border-t border-gray-200">
+              <div className="px-4 py-5 sm:px-6">
+                {(report.npc1000_incoming || report.npc1000_used || report.npc1000_remaining) ? (
                   <div className="grid grid-cols-3 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                       <div className="text-2xl font-bold text-blue-600">
@@ -320,46 +353,35 @@ export default function DailyReportDetail({ report, photoGroups = [], canManage 
                       </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-6">해당 데이터 없음</p>
+                )}
               </div>
             </div>
-          )}
+          </div>
 
-          {/* Materials */}
-          {report.daily_report_materials && report.daily_report_materials.length > 0 && (
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+          {/* 10. 특이 사항 */}
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                <AlertTriangle className="inline-block mr-2 h-5 w-5 text-gray-400" />
+                특이 사항
+              </h3>
+            </div>
+            <div className="border-t border-gray-200">
               <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  <Package className="inline-block mr-2 h-5 w-5 text-gray-400" />
-                  자재 사용
-                </h3>
-              </div>
-              <div className="border-t border-gray-200">
-                <ul className="divide-y divide-gray-200">
-                  {report.daily_report_materials.map((item: any) => (
-                    <li key={item.id} className="px-4 py-4 sm:px-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">
-                            {item.materials?.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {item.materials?.specification}
-                          </p>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          <p>사용: {item.quantity_used} {item.materials?.unit}</p>
-                          {item.quantity_delivered > 0 && (
-                            <p>입고: {item.quantity_delivered} {item.materials?.unit}</p>
-                          )}
-                        </div>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                {report.issues || report.special_notes ? (
+                  <div className="bg-gray-50 rounded-md p-4">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                      {report.issues || report.special_notes}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 text-center py-6">해당 데이터 없음</p>
+                )}
               </div>
             </div>
-          )}
+          </div>
 
           {/* PDF 보고서 관리 섹션 */}
           <PhotoGridReportSection
@@ -468,18 +490,6 @@ export default function DailyReportDetail({ report, photoGroups = [], canManage 
                   <dt className="text-sm font-medium text-gray-500">온도</dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
                     {report.temperature ? `${report.temperature}°C` : '-'}
-                  </dd>
-                </div>
-                <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">특이사항</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {report.issues || report.special_notes || '-'}
-                  </dd>
-                </div>
-                <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">마크업 문서 ID</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {report.markup_document_id || '-'}
                   </dd>
                 </div>
                 <div className="px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

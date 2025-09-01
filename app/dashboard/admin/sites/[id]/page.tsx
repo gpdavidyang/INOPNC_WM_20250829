@@ -684,6 +684,12 @@ function CoreFilesSection({
 
     setUploading(type)
     try {
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw new Error('사용자 정보를 가져올 수 없습니다.')
+      }
+
       // Sanitize filename to avoid Korean characters and special characters
       const fileExt = file.name.split('.').pop()?.toLowerCase() || 'unknown'
       const timestamp = Date.now()
@@ -709,7 +715,8 @@ function CoreFilesSection({
           category_type: 'shared',
           site_id: site.id,
           document_type: type === 'blueprint' ? 'blueprint' : 'ptw',
-          is_public: true
+          is_public: true,
+          uploaded_by: user.id  // Add user ID
         })
         .select()
         .single()

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { approveDailyReport } from '@/app/actions/daily-reports'
 // import { getFileAttachments } from '@/app/actions/documents' // TODO: Implement when table exists
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -45,8 +44,6 @@ interface DailyReportDetailProps {
 export default function DailyReportDetail({ report, currentUser }: DailyReportDetailProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [showApprovalDialog, setShowApprovalDialog] = useState(false)
-  const [approvalComments, setApprovalComments] = useState('')
   const [attachments, setAttachments] = useState<any[]>([])
   const [showDetailedWorkLogs, setShowDetailedWorkLogs] = useState(false)
   const [showAttendanceDetails, setShowAttendanceDetails] = useState(false)
@@ -61,31 +58,9 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
   //   })
   // })
 
-  const canApprove = 
-    ['site_manager', 'admin', 'system_admin'].includes(currentUser.role) &&
-    report.status === 'submitted'
-
   const canEdit = 
     report.created_by === currentUser.id &&
     report.status === 'draft'
-
-  const handleApproval = async (approve: boolean) => {
-    setLoading(true)
-    try {
-      const result = await approveDailyReport(report.id, approve, approvalComments)
-      if (result.success) {
-        toast.success(approve ? '보고서가 승인되었습니다.' : '보고서가 반려되었습니다.')
-        router.refresh()
-        setShowApprovalDialog(false)
-      } else {
-        showErrorNotification(result.error || '처리 중 오류가 발생했습니다', 'handleApproval')
-      }
-    } catch (error) {
-      showErrorNotification(error, 'handleApproval')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     const statusConfig: any = {
@@ -516,8 +491,8 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
         </div>
       </div>
 
-      {/* Approval Dialog */}
-      {showApprovalDialog && (
+      {/* Approval Dialog - 제거됨 */}
+      {false && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
           <Card className="w-full max-w-md p-6">
             <h3 className="text-lg font-semibold mb-4">작업일지 반려</h3>
