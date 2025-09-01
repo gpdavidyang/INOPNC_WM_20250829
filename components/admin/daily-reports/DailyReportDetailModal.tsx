@@ -797,6 +797,38 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
           )}
 
           {activeTab === 'attachments' && (
+            <AttachmentsTab
+              reportId={report.id}
+              isEditing={tabEditStates.attachments}
+              onSaveComplete={handleTabSaveComplete}
+            />
+          )}
+
+          {activeTab === 'photos' && (
+            <PhotosTab
+              reportId={report.id}
+              isEditing={tabEditStates.photos}
+              onSaveComplete={handleTabSaveComplete}
+            />
+          )}
+
+          {activeTab === 'receipts' && (
+            <ReceiptsTab
+              reportId={report.id}
+              isEditing={tabEditStates.receipts}
+              onSaveComplete={handleTabSaveComplete}
+            />
+          )}
+
+          {activeTab === 'markup' && (
+            <MarkupTab
+              reportId={report.id}
+              isEditing={tabEditStates.markup}
+              onSaveComplete={handleTabSaveComplete}
+            />
+          )}
+
+          {false && activeTab === 'old_attachments' && (
             <div className="space-y-6">
               {/* Upload Section */}
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">

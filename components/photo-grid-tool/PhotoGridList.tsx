@@ -130,7 +130,7 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
   }
 
   const handlePreview = (doc: any) => {
-    router.push(`/dashboard/photo-grids/${doc.id}/preview`)
+    router.push(`/dashboard/admin/tools/photo-grids/preview/${doc.id}`)
   }
 
   if (loading) {

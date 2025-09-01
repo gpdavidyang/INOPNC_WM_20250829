@@ -143,7 +143,7 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
   }
 
   const handlePreview = (doc: any) => {
-    router.push(`/dashboard/photo-grids/${doc.id}/preview`)
+    router.push(`/dashboard/admin/tools/photo-grids/preview/${doc.id}`)
   }
 
   if (loading) {

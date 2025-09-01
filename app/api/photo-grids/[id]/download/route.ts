@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { getAuthenticatedUser } from '@/lib/auth/session'
-import { generatePhotoGridPDF } from '@/lib/pdf/photo-grid-generator'
+import { generatePhotoGridPDFKit } from '@/lib/pdf/photo-grid-pdfkit'
 
 export async function GET(
   request: NextRequest,
@@ -31,8 +31,8 @@ export async function GET(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // Generate PDF
-    const pdfBuffer = await generatePhotoGridPDF(photoGrid)
+    // Generate PDF using PDFKit for better Korean font support
+    const pdfBuffer = await generatePhotoGridPDFKit(photoGrid)
 
     // Return PDF as response
     return new NextResponse(pdfBuffer, {
