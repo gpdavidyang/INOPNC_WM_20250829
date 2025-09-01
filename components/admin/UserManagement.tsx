@@ -20,12 +20,14 @@ import {
 import { Plus, Search, User, Phone, Mail, Shield, Key, UserCheck, UserX, FileText, ClipboardCheck, Calendar, Building } from 'lucide-react'
 import { toast } from 'sonner'
 import UserDetailModal from './UserDetailModal'
+import { useRouter } from 'next/navigation'
 
 interface UserManagementProps {
   profile: Profile
 }
 
 export default function UserManagement({ profile }: UserManagementProps) {
+  const router = useRouter()
   const [users, setUsers] = useState<UserWithSites[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -176,8 +178,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
 
   // Handle view user
   const handleViewUser = (user: UserWithSites) => {
-    setDetailUser(user)
-    setShowDetailModal(true)
+    router.push(`/dashboard/admin/users/${user.id}`)
   }
 
   // Handle password reset
@@ -210,7 +211,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
           <User className="h-8 w-8 text-gray-400 mr-3" />
           <div>
             <button
-              onClick={() => handleViewUser(user)}
+              onClick={() => router.push(`/dashboard/admin/users/${user.id}`)}
               className="font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors cursor-pointer text-left"
             >
               {value}

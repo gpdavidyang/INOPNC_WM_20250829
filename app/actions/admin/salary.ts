@@ -42,6 +42,22 @@ export interface SalaryRecord {
   updated_at: string
 }
 
+export interface OutputSummary {
+  worker_id: string
+  worker_name: string
+  role: string
+  site_name: string
+  total_work_days: number
+  total_work_hours: number
+  estimated_salary: number
+}
+
+export interface WorkerCalendarData {
+  date: string
+  work_hours: number
+  site_name: string
+}
+
 export interface SalaryStats {
   total_workers: number
   pending_calculations: number
@@ -835,6 +851,250 @@ export async function getAvailableWorkersForSalary(): Promise<AdminActionResult<
       }
     } catch (error) {
       console.error('Workers fetch error:', error)
+      return {
+        success: false,
+        error: AdminErrors.UNKNOWN_ERROR
+      }
+    }
+  })
+}
+
+/**
+ * Get output summary data for workers by month
+ */
+export async function getOutputSummary(
+  year: number,
+  month: number,
+  site_id?: string,
+  worker_id?: string
+): Promise<AdminActionResult<OutputSummary[]>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      // Calculate date range for the specified month
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`
+      const endDate = new Date(year, month, 0).toISOString().split('T')[0] // Last day of month
+
+      // Get daily reports with worker data for the specified month
+      let dailyReportsQuery = supabase
+        .from('daily_reports')
+        .select(`
+          id,
+          site_id,
+          work_date,
+          daily_report_workers(worker_name, work_hours)
+        `)
+        .gte('work_date', startDate)
+        .lte('work_date', endDate)
+
+      if (site_id) {
+        dailyReportsQuery = dailyReportsQuery.eq('site_id', site_id)
+      }
+
+      const { data: dailyReportsData, error: dailyReportsError } = await dailyReportsQuery
+
+      if (dailyReportsError) {
+        console.error('Error fetching daily reports:', dailyReportsError)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Get all worker profiles
+      const { data: workersData, error: workersError } = await supabase
+        .from('profiles')
+        .select('id, full_name, role')
+        .in('role', ['worker', 'site_manager', 'customer_manager'])
+        .neq('status', 'inactive')
+
+      if (workersError) {
+        console.error('Error fetching workers:', workersError)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Get all sites
+      const { data: sitesData, error: sitesError } = await supabase
+        .from('sites')
+        .select('id, name')
+        .neq('status', 'inactive')
+
+      if (sitesError) {
+        console.error('Error fetching sites:', sitesError)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Get salary calculation rules for estimating pay
+      const { data: rulesData, error: rulesError } = await supabase
+        .from('salary_calculation_rules')
+        .select('*')
+        .eq('is_active', true)
+
+      if (rulesError) {
+        console.error('Error fetching salary rules:', rulesError)
+        // Continue without rules - we'll use default calculations
+      }
+
+      const workers = workersData || []
+      const sites = sitesData || []
+      const rules = rulesData || []
+      const reports = dailyReportsData || []
+
+      // Group work data by worker and site
+      const workSummary: Record<string, {
+        worker: any
+        site: any
+        work_days: Set<string>
+        total_work_hours: number
+      }> = {}
+
+      for (const report of reports) {
+        const site = sites.find(s => s.id === report.site_id)
+        if (!site) continue
+
+        for (const workerEntry of report.daily_report_workers || []) {
+          const worker = workers.find(w => w.full_name === workerEntry.worker_name)
+          if (!worker) continue
+
+          // Apply worker filter if specified
+          if (worker_id && worker.id !== worker_id) continue
+
+          const key = `${worker.id}-${site.id}`
+          
+          if (!workSummary[key]) {
+            workSummary[key] = {
+              worker,
+              site,
+              work_days: new Set(),
+              total_work_hours: 0
+            }
+          }
+
+          workSummary[key].work_days.add(report.work_date)
+          workSummary[key].total_work_hours += parseFloat(workerEntry.work_hours) || 0
+        }
+      }
+
+      // Transform to output format and estimate salaries
+      const outputData: OutputSummary[] = Object.values(workSummary).map(item => {
+        const totalWorkHours = item.total_work_hours
+        
+        // Find applicable salary rules
+        const dailyRule = rules.find(r => 
+          r.rule_type === 'daily_rate' && 
+          (!r.site_id || r.site_id === item.site.id) &&
+          (!r.role || r.role === item.worker.role)
+        )
+
+        let estimatedSalary = 0
+        if (dailyRule) {
+          estimatedSalary = totalWorkHours * dailyRule.base_amount
+        } else {
+          // Default calculation based on role
+          const defaultRate = item.worker.role === 'site_manager' ? 220000 : 130000
+          estimatedSalary = totalWorkHours * defaultRate
+        }
+
+        return {
+          worker_id: item.worker.id,
+          worker_name: item.worker.full_name,
+          role: item.worker.role,
+          site_name: item.site.name,
+          total_work_days: item.work_days.size,
+          total_work_hours: totalWorkHours,
+          estimated_salary: Math.round(estimatedSalary)
+        }
+      })
+
+      return {
+        success: true,
+        data: outputData
+      }
+    } catch (error) {
+      console.error('Output summary fetch error:', error)
+      return {
+        success: false,
+        error: AdminErrors.UNKNOWN_ERROR
+      }
+    }
+  })
+}
+
+/**
+ * Get worker calendar data for a specific month
+ */
+export async function getWorkerCalendarData(
+  worker_id: string,
+  year: number,
+  month: number
+): Promise<AdminActionResult<WorkerCalendarData[]>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      // Calculate date range for the specified month
+      const startDate = `${year}-${month.toString().padStart(2, '0')}-01`
+      const endDate = new Date(year, month, 0).toISOString().split('T')[0] // Last day of month
+
+      // Get worker profile
+      const { data: workerData, error: workerError } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', worker_id)
+        .single()
+
+      if (workerError || !workerData) {
+        console.error('Error fetching worker:', workerError)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Get daily reports with this worker's data
+      const { data: dailyReportsData, error: dailyReportsError } = await supabase
+        .from('daily_reports')
+        .select(`
+          work_date,
+          site_id,
+          daily_report_workers(worker_name, work_hours)
+        `)
+        .gte('work_date', startDate)
+        .lte('work_date', endDate)
+
+      if (dailyReportsError) {
+        console.error('Error fetching daily reports:', dailyReportsError)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Get sites data
+      const { data: sitesData, error: sitesError } = await supabase
+        .from('sites')
+        .select('id, name')
+
+      if (sitesError) {
+        console.error('Error fetching sites:', sitesError)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      const sites = sitesData || []
+      const reports = dailyReportsData || []
+
+      // Filter and transform data for this specific worker
+      const calendarData: WorkerCalendarData[] = []
+
+      for (const report of reports) {
+        const site = sites.find(s => s.id === report.site_id)
+        
+        for (const workerEntry of report.daily_report_workers || []) {
+          if (workerEntry.worker_name === workerData.full_name) {
+            calendarData.push({
+              date: report.work_date,
+              work_hours: parseFloat(workerEntry.work_hours) || 0,
+              site_name: site?.name || '알 수 없는 현장'
+            })
+            break // Only one entry per worker per day
+          }
+        }
+      }
+
+      return {
+        success: true,
+        data: calendarData
+      }
+    } catch (error) {
+      console.error('Worker calendar data fetch error:', error)
       return {
         success: false,
         error: AdminErrors.UNKNOWN_ERROR
