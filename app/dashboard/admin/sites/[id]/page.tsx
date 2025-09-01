@@ -650,32 +650,42 @@ function CoreFilesSection({
   const supabase = createClient()
 
   useEffect(() => {
-    if (site.blueprint_document_id || site.ptw_document_id) {
-      fetchDocuments()
-    }
-  }, [site.blueprint_document_id, site.ptw_document_id])
+    // Always fetch documents for the site
+    fetchDocuments()
+  }, [site.id])
 
   const fetchDocuments = async () => {
     try {
-      if (site.blueprint_document_id) {
-        const { data } = await supabase
-          .from('unified_documents')
-          .select('*')
-          .eq('id', site.blueprint_document_id)
-          .single()
-        setBlueprintDoc(data)
+      // Fetch blueprint document (technical_drawing)
+      const { data: blueprintData } = await supabase
+        .from('unified_documents')
+        .select('*')
+        .eq('site_id', site.id)
+        .eq('sub_type', 'technical_drawing')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      
+      if (blueprintData) {
+        setBlueprintDoc(blueprintData)
       }
 
-      if (site.ptw_document_id) {
-        const { data } = await supabase
-          .from('unified_documents')
-          .select('*')
-          .eq('id', site.ptw_document_id)
-          .single()
-        setPtwDoc(data)
+      // Fetch PTW document (safety_certificate)
+      const { data: ptwData } = await supabase
+        .from('unified_documents')
+        .select('*')
+        .eq('site_id', site.id)
+        .eq('sub_type', 'safety_certificate')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      
+      if (ptwData) {
+        setPtwDoc(ptwData)
       }
     } catch (error) {
-      console.error('Error fetching documents:', error)
+      // Ignore errors if documents don't exist
+      console.log('Documents fetch error:', error)
     }
   }
 
@@ -724,14 +734,8 @@ function CoreFilesSection({
 
       if (docError) throw docError
 
-      // Update site with document ID
-      const updateField = type === 'blueprint' ? 'blueprint_document_id' : 'ptw_document_id'
-      const { error: updateError } = await supabase
-        .from('sites')
-        .update({ [updateField]: docData.id })
-        .eq('id', site.id)
-
-      if (updateError) throw updateError
+      // Note: Not updating sites table as it references 'documents' table, not 'unified_documents'
+      // The document is stored in unified_documents and can be retrieved by site_id and sub_type
 
       // Update local state
       if (type === 'blueprint') {
