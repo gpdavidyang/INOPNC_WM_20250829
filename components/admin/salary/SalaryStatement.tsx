@@ -587,12 +587,12 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 <MapPin className="h-5 w-5 text-blue-600" />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">현장 선택</h2>
               </div>
-              <CustomSelect value={selectedSite?.id || ''} onValueChange={handleSiteChange}>
+              <CustomSelect value={selectedSite?.id || 'none'} onValueChange={(value) => handleSiteChange(value === 'none' ? '' : value)}>
                 <CustomSelectTrigger className="w-full">
                   <CustomSelectValue placeholder="현장을 선택하세요" />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
-                  <CustomSelectItem value="">현장을 선택하세요</CustomSelectItem>
+                  <CustomSelectItem value="none">현장을 선택하세요</CustomSelectItem>
                   {sites.map((site) => (
                     <CustomSelectItem key={site.id} value={site.id}>
                       {site.name}
@@ -630,10 +630,14 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
               
               {/* Worker Select */}
               <CustomSelect 
-                value={selectedWorker?.id || ''} 
+                value={selectedWorker?.id || 'none'} 
                 onValueChange={(value) => {
-                  const worker = filteredWorkers.find(w => w.id === value)
-                  setSelectedWorker(worker || null)
+                  if (value === 'none') {
+                    setSelectedWorker(null)
+                  } else {
+                    const worker = filteredWorkers.find(w => w.id === value)
+                    setSelectedWorker(worker || null)
+                  }
                 }}
                 disabled={filteredWorkers.length === 0}
               >
@@ -642,12 +646,12 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                     placeholder={
                       filteredWorkers.length === 0 
                         ? (selectedSite ? '해당 현장에 할당된 근로자가 없습니다' : '근로자를 검색하거나 현장을 선택하세요')
-                        : '근로자를 선택하세요'
+                        : '궼로자를 선택하세요'
                     } 
                   />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
-                  <CustomSelectItem value="">
+                  <CustomSelectItem value="none">
                     {filteredWorkers.length === 0 
                       ? (selectedSite ? '해당 현장에 할당된 근로자가 없습니다' : '근로자를 검색하거나 현장을 선택하세요')
                       : '근로자를 선택하세요'
@@ -760,7 +764,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       세금계산방식
                     </label>
-                    <CustomSelect value={salaryData.calculationType} onValueChange={(value: any) => setSalaryData(prev => ({ ...prev, calculationType: value }))}>
+                    <CustomSelect value={salaryData.calculationType || 'tax_prepaid'} onValueChange={(value: any) => setSalaryData(prev => ({ ...prev, calculationType: value }))}>
                       <CustomSelectTrigger className="w-full">
                         <CustomSelectValue placeholder="세금계산방식 선택" />
                       </CustomSelectTrigger>

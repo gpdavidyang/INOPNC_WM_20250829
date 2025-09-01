@@ -183,25 +183,20 @@ export async function POST(request: NextRequest) {
 
     // Generate PDF document and save to documents table
     try {
-      // Create document record in documents table
+      // Create document record in documents table (legacy support)
       const { data: documentData, error: docError } = await supabase
         .from('documents')
         .insert({
-          name: `사진대지_${component_name}_${work_process}_${work_date}`,
-          type: 'photo_grid',
-          content: JSON.stringify({
-            photo_grid_id: data.id,
-            site_id,
-            component_name,
-            work_process,
-            work_section,
-            work_date,
-            before_photo_url: beforePhotoUrl,
-            after_photo_url: afterPhotoUrl
-          }),
+          title: `사진대지_${component_name}_${work_process}_${work_date}`,
+          file_name: `사진대지_${component_name}_${work_process}_${work_date}.pdf`,
+          file_url: `/api/photo-grids/${data.id}/download`,
+          description: `${component_name} - ${work_process} 작업 사진대지`,
+          document_type: 'report', // Photo grids are a type of report
+          mime_type: 'application/pdf',
+          is_public: true,
           site_id,
-          created_by: profile.id,
-          status: 'active'
+          owner_id: profile.id, // Fixed: was 'created_by'
+          folder_path: '/photo-grids'
         })
         .select()
         .single()

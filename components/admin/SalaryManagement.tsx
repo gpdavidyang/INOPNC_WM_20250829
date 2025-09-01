@@ -634,12 +634,12 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 현장 선택
               </label>
-              <CustomSelect value={siteFilter} onValueChange={setSiteFilter}>
+              <CustomSelect value={siteFilter || "all"} onValueChange={(value) => setSiteFilter(value === "all" ? "" : value)}>
                 <CustomSelectTrigger className="w-full">
                   <CustomSelectValue placeholder="모든 현장" />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
-                  <CustomSelectItem value="">모든 현장</CustomSelectItem>
+                  <CustomSelectItem value="all">모든 현장</CustomSelectItem>
                   {availableSites.map((site) => (
                     <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
                   ))}
@@ -650,12 +650,12 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   작업자 선택
                 </label>
-                <CustomSelect value={workerFilter} onValueChange={setWorkerFilter}>
+                <CustomSelect value={workerFilter || "all"} onValueChange={(value) => setWorkerFilter(value === "all" ? "" : value)}>
                   <CustomSelectTrigger className="w-full">
                     <CustomSelectValue placeholder="모든 작업자" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
-                    <CustomSelectItem value="">모든 작업자</CustomSelectItem>
+                    <CustomSelectItem value="all">모든 작업자</CustomSelectItem>
                     {availableWorkers.map((worker) => (
                       <CustomSelectItem key={worker.id} value={worker.id}>{worker.name}</CustomSelectItem>
                     ))}
@@ -733,12 +733,12 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             
             {activeTab === 'records' && (
               <>
-                <CustomSelect value={statusFilter} onValueChange={setStatusFilter}>
+                <CustomSelect value={statusFilter || "all"} onValueChange={(value) => setStatusFilter(value === "all" ? "" : value)}>
                   <CustomSelectTrigger className="min-w-[100px]">
                     <CustomSelectValue placeholder="모든 상태" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
-                    <CustomSelectItem value="">모든 상태</CustomSelectItem>
+                    <CustomSelectItem value="all">모든 상태</CustomSelectItem>
                     <CustomSelectItem value="calculated">계산됨</CustomSelectItem>
                     <CustomSelectItem value="approved">승인됨</CustomSelectItem>
                     <CustomSelectItem value="paid">지급됨</CustomSelectItem>
@@ -764,12 +764,12 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             )}
             
             {activeTab !== 'rules' && (
-              <CustomSelect value={siteFilter} onValueChange={setSiteFilter}>
+              <CustomSelect value={siteFilter || "all"} onValueChange={(value) => setSiteFilter(value === "all" ? "" : value)}>
                 <CustomSelectTrigger className="min-w-[100px]">
                   <CustomSelectValue placeholder="현장 선택" />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
-                  <CustomSelectItem value="">모든 현장</CustomSelectItem>
+                  <CustomSelectItem value="all">모든 현장</CustomSelectItem>
                   {availableSites.map((site) => (
                     <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
                   ))}
@@ -1064,12 +1064,12 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     적용 현장
                   </label>
-                  <CustomSelect value={ruleFormData.site_id} onValueChange={(value) => setRuleFormData({ ...ruleFormData, site_id: value })}>
+                  <CustomSelect value={ruleFormData.site_id || "all"} onValueChange={(value) => setRuleFormData({ ...ruleFormData, site_id: value === "all" ? "" : value })}>
                     <CustomSelectTrigger className="w-full">
                       <CustomSelectValue placeholder="적용 현장 선택" />
                     </CustomSelectTrigger>
                     <CustomSelectContent>
-                      <CustomSelectItem value="">모든 현장</CustomSelectItem>
+                      <CustomSelectItem value="all">모든 현장</CustomSelectItem>
                       {availableSites.map((site) => (
                         <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
                       ))}

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Upload, FileImage, X, FolderOpen } from 'lucide-react'
+import { Upload, FileImage, X } from 'lucide-react'
 import { getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 interface BlueprintUploadProps {
@@ -172,7 +172,7 @@ export function BlueprintUpload({ onImageUpload, onBackToList, currentImage, cur
         <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600 dark:text-gray-400 mb-4`}>
           JPG, PNG, PDF 파일을 드래그하거나 클릭하여 선택하세요
         </p>
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center">
           <Button 
             variant="outline" 
             size={touchMode === 'glove' ? 'field' : touchMode === 'precision' ? 'compact' : 'standard'}
@@ -185,21 +185,6 @@ export function BlueprintUpload({ onImageUpload, onBackToList, currentImage, cur
             <FileImage className="h-5 w-5 mr-2 text-gray-600 dark:text-gray-400" />
             파일 선택
           </Button>
-          {onBackToList && (
-            <Button 
-              variant="outline" 
-              size={touchMode === 'glove' ? 'field' : touchMode === 'precision' ? 'compact' : 'standard'}
-              onClick={onBackToList}
-              className={`${
-                touchMode === 'glove' ? 'min-h-[64px]' : 
-                touchMode === 'precision' ? 'min-h-[48px]' : 
-                'min-h-[56px]'
-              } px-6 py-3 font-medium active:scale-95 transition-all duration-200 touch-manipulation focus-visible:ring-4 focus-visible:ring-blue-500/50 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500`}
-            >
-              <FolderOpen className="h-5 w-5 mr-2 text-gray-600 dark:text-gray-400" />
-              도면마킹문서함
-            </Button>
-          )}
         </div>
       </div>
     </div>

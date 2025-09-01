@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
       .from('documents')
       .select(`
         *,
-        site:sites(id, name),
-        creator:profiles(id, full_name)
+        site:sites!documents_site_id_fkey(id, name),
+        creator:profiles!documents_owner_id_fkey(id, full_name)
       `)
-      .eq('type', 'photo_grid')
-      .eq('status', 'active')
+      .eq('document_type', 'report') // Photo grids stored as reports
+      .ilike('title', '%사진대지%') // Filter for photo grid reports
       .order('created_at', { ascending: false })
 
     if (error) {

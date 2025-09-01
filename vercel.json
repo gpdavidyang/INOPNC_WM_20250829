@@ -1,6 +1,5 @@
 {
-  "buildCommand": "next build",
-  "outputDirectory": ".next",
+  "buildCommand": "next build && cp public/sw.js .next/server/app/sw.js && cp public/manifest.json .next/server/app/manifest.json",
   "framework": "nextjs",
   "regions": ["icn1"],
   "headers": [

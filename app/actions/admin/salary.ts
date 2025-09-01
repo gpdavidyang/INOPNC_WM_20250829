@@ -318,17 +318,11 @@ export async function getSalaryRecords(
     try {
       let query = supabase
         .from('salary_records')
-        .select(`
-          *,
-          worker:profiles(full_name, email, role),
-          site:sites(name)
-        `, { count: 'exact' })
+        .select('*', { count: 'exact' })
         .order('work_date', { ascending: false })
 
-      // Apply search filter
-      if (search.trim()) {
-        query = query.or(`worker.full_name.ilike.%${search}%,worker.email.ilike.%${search}%,notes.ilike.%${search}%`)
-      }
+      // Note: Search functionality will be implemented with client-side filtering for now
+      // due to complex join requirements
 
       // Apply status filter
       if (status) {

@@ -64,19 +64,18 @@ export default function PhotoGridDocumentsManagement() {
       if (response.ok) {
         const data = await response.json()
         const formattedDocs = data.map((doc: any) => {
-          const content = JSON.parse(doc.content || '{}')
           return {
             id: doc.id,
-            title: doc.name,
-            fileName: doc.name,
-            fileSize: 0, // Will be updated when we have actual file size
+            title: doc.title,
+            fileName: doc.file_name,
+            fileSize: doc.file_size || 0,
             uploadDate: doc.created_at,
             uploadedBy: doc.creator?.full_name || '알 수 없음',
             siteId: doc.site_id,
             siteName: doc.site?.name || '알 수 없음',
-            status: doc.status || 'active',
-            tags: [content.component_name, content.work_process].filter(Boolean),
-            content: content
+            status: 'active',
+            tags: ['사진대지', doc.document_type].filter(Boolean),
+            fileUrl: doc.file_url
           }
         })
         setDocuments(formattedDocs)
