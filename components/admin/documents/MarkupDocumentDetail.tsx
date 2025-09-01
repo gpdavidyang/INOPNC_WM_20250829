@@ -294,7 +294,7 @@ export default function MarkupDocumentDetail() {
         </div>
       </div>
 
-      <div>
+      <div className="px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left Column - Image Preview and Markup Editor */}
           <div className="lg:col-span-2">
@@ -493,7 +493,6 @@ export default function MarkupDocumentDetail() {
                 </div>
               </dl>
             </div>
-          </div>
           </div>
         </div>
       </div>
