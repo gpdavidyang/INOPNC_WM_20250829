@@ -422,7 +422,7 @@ export default function DailyReportFormEnhanced({
   // 작업 내용별 사진 업로드 함수 - 모바일 PWA 지원 개선
   const handleWorkContentPhotoUpload = async (workId: string, type: 'before' | 'after', files: File[]) => {
     if (!files || files.length === 0) {
-      // console.log('No files selected')
+      console.log('No files selected for upload')
       return
     }
     
@@ -434,6 +434,25 @@ export default function DailyReportFormEnhanced({
       const currentContent = workContents.find(c => c.id === workId)
       if (!currentContent) {
         console.error('Work content not found:', workId)
+        toast.error('작업 내용을 찾을 수 없습니다')
+        return
+      }
+      
+      // 파일 유효성 검사
+      const validFiles = files.filter(file => {
+        if (!file.type.startsWith('image/')) {
+          toast.error(`${file.name}은(는) 이미지 파일이 아닙니다`)
+          return false
+        }
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+          toast.error(`${file.name}은(는) 파일 크기가 너무 큽니다 (최대 10MB)`)
+          return false
+        }
+        return true
+      })
+
+      if (validFiles.length === 0) {
+        toast.error('유효한 이미지 파일이 없습니다')
         return
       }
       
@@ -446,26 +465,34 @@ export default function DailyReportFormEnhanced({
         return
       }
       
-      const filesToAdd = files.slice(0, remaining)
-      // console.log(`Adding ${filesToAdd.length} files to ${type} photos`)
+      const filesToAdd = validFiles.slice(0, remaining)
+      console.log(`Adding ${filesToAdd.length} files to ${type} photos`)
       
       // 먼저 파일 배열 업데이트
       const newPhotos = [...currentPhotos, ...filesToAdd]
       const newPreviews: string[] = [...currentPreviews]
       
       // 미리보기 생성을 Promise로 처리
-      const previewPromises = filesToAdd.map(file => {
+      const previewPromises = filesToAdd.map((file, index) => {
         return new Promise<string>((resolve, reject) => {
-          const reader = new FileReader()
-          reader.onload = () => {
-            const result = reader.result as string
-            resolve(result)
-          }
-          reader.onerror = (error) => {
-            console.error('FileReader error:', error)
+          try {
+            const reader = new FileReader()
+            reader.onload = (event) => {
+              if (event.target?.result) {
+                const result = event.target.result as string
+                resolve(result)
+              } else {
+                reject(new Error(`Failed to read file: ${file.name}`))
+              }
+            }
+            reader.onerror = () => {
+              reject(new Error(`FileReader error for: ${file.name}`))
+            }
+            reader.readAsDataURL(file)
+          } catch (error) {
+            console.error(`Error setting up FileReader for ${file.name}:`, error)
             reject(error)
           }
-          reader.readAsDataURL(file)
         })
       })
       
@@ -504,7 +531,8 @@ export default function DailyReportFormEnhanced({
       }
     } catch (error) {
       console.error('Photo upload error:', error)
-      toast.error('사진 업로드 중 오류가 발생했습니다')
+      const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다'
+      toast.error(`사진 업로드 중 오류가 발생했습니다: ${errorMessage}`)
     }
   }
 
@@ -1147,12 +1175,15 @@ export default function DailyReportFormEnhanced({
                                 try {
                                   const files = e.target.files ? Array.from(e.target.files) : []
                                   if (files.length > 0) {
-                                    // console.log(`Uploading ${files.length} files for work content ${content.id}`)
+                                    console.log(`Uploading ${files.length} files for work content ${content.id}`)
                                     await handleWorkContentPhotoUpload(content.id, 'before', files)
+                                  } else {
+                                    console.log('No files selected')
                                   }
                                 } catch (error) {
                                   console.error('File upload error:', error)
-                                  toast.error('사진 업로드에 실패했습니다')
+                                  const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류'
+                                  toast.error(`사진 업로드에 실패했습니다: ${errorMessage}`)
                                 } finally {
                                   e.target.value = '' // Reset input for re-selection
                                 }
@@ -1213,12 +1244,15 @@ export default function DailyReportFormEnhanced({
                                 try {
                                   const files = e.target.files ? Array.from(e.target.files) : []
                                   if (files.length > 0) {
-                                    // console.log(`Uploading ${files.length} files for work content ${content.id}`)
+                                    console.log(`Uploading ${files.length} files for work content ${content.id}`)
                                     await handleWorkContentPhotoUpload(content.id, 'after', files)
+                                  } else {
+                                    console.log('No files selected')
                                   }
                                 } catch (error) {
                                   console.error('File upload error:', error)
-                                  toast.error('사진 업로드에 실패했습니다')
+                                  const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류'
+                                  toast.error(`사진 업로드에 실패했습니다: ${errorMessage}`)
                                 } finally {
                                   e.target.value = '' // Reset input for re-selection
                                 }

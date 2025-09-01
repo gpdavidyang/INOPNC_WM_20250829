@@ -10,7 +10,7 @@ import {
   AlertCircle
 } from 'lucide-react'
 import { PhotoGroup, PhotoGridPDFOptions } from '@/types'
-// import { generatePDFWithCanvas, generateHTMLBasedPDF } from '@/lib/pdf-generator-korean'
+import { generatePDFWithCanvas, generateHTMLBasedPDF } from '@/lib/pdf-generator-canvas'
 import { createPhotoGridReport } from '@/lib/supabase/photo-grid-reports'
 
 interface PDFReportGeneratorProps {
@@ -73,8 +73,7 @@ export default function PDFReportGenerator({
       }
       
       // Canvas로 PDF 생성
-      // const pdfBlob = await generatePDFWithCanvas(pdfOptions)
-      const pdfBlob = new Blob(['PDF 생성 기능이 임시로 비활성화되었습니다.'], { type: 'application/pdf' })
+      const pdfBlob = await generatePDFWithCanvas(pdfOptions)
       
       // 메타데이터 추출
       const componentTypes = [...new Set(photoGroups.map(g => g.component_type))]
@@ -409,8 +408,7 @@ export default function PDFReportGenerator({
       }
       
       // Canvas를 사용한 PDF 생성 (한글 지원)
-      // const pdfBlob = await generatePDFWithCanvas(pdfOptions)
-      const pdfBlob = new Blob(['PDF 생성 기능이 임시로 비활성화되었습니다.'], { type: 'application/pdf' })
+      const pdfBlob = await generatePDFWithCanvas(pdfOptions)
       return pdfBlob
     } catch (error) {
       console.error('PDF 변환 오류:', error)
@@ -425,8 +423,7 @@ export default function PDFReportGenerator({
           photoGroups: photoGroups
         }
         
-        // const htmlForPrint = generateHTMLBasedPDF(pdfOptions)
-        const htmlForPrint = '<div>PDF 생성 기능이 임시로 비활성화되었습니다.</div>'
+        const htmlForPrint = generateHTMLBasedPDF(pdfOptions)
         
         // 새 창에서 HTML 열고 인쇄
         const printWindow = window.open('', '_blank')
