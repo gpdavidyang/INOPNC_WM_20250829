@@ -104,8 +104,9 @@ export default function SharedDocumentsManagement() {
       if (!response.ok) throw new Error('Failed to fetch documents')
 
       const result = await response.json()
-      setDocuments(result.documents || [])
-      setTotalCount(result.total || 0)
+      console.log('SharedDocumentsManagement - API Response:', result)
+      setDocuments(result.data || result.documents || [])
+      setTotalCount(result.pagination?.total || result.total || 0)
     } catch (error) {
       console.error('Error fetching documents:', error)
     } finally {
@@ -384,20 +385,20 @@ export default function SharedDocumentsManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {document.sites?.name || '미지정'}
+                        {document.site?.name || '미지정'}
                       </div>
-                      {document.sites?.address && (
+                      {document.site?.address && (
                         <div className="text-sm text-gray-500">
-                          {document.sites.address}
+                          {document.site.address}
                         </div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {document.profiles?.full_name || '알 수 없음'}
+                        {document.uploader?.full_name || '알 수 없음'}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {document.profiles?.email}
+                        {document.uploader?.email || '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -578,15 +579,15 @@ export default function SharedDocumentsManagement() {
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">문서 유형</dt>
+                      <dt className="text-sm text-gray-500">카테고리</dt>
                       <dd className="mt-1 text-sm text-gray-900 font-medium">
-                        {selectedDocument.document_type}
+                        {selectedDocument.category_type === 'shared' ? '공유문서' : selectedDocument.category_type}
                       </dd>
                     </div>
                     <div>
-                      <dt className="text-sm text-gray-500">저장 경로</dt>
+                      <dt className="text-sm text-gray-500">상태</dt>
                       <dd className="mt-1 text-sm text-gray-900 font-medium">
-                        {selectedDocument.folder_path}
+                        {selectedDocument.status || '활성'}
                       </dd>
                     </div>
                   </div>
@@ -602,13 +603,13 @@ export default function SharedDocumentsManagement() {
                     <div>
                       <dt className="text-sm text-gray-500">등록자</dt>
                       <dd className="mt-1 text-sm text-gray-900 font-medium">
-                        {selectedDocument.profiles?.full_name || '알 수 없음'}
+                        {selectedDocument.uploader?.full_name || '알 수 없음'}
                       </dd>
                     </div>
                     <div>
                       <dt className="text-sm text-gray-500">이메일</dt>
                       <dd className="mt-1 text-sm text-gray-900 font-medium">
-                        {selectedDocument.profiles?.email || '-'}
+                        {selectedDocument.uploader?.email || '-'}
                       </dd>
                     </div>
                     <div>
@@ -668,18 +669,18 @@ export default function SharedDocumentsManagement() {
                       </select>
                     </div>
                   ) : (
-                    selectedDocument.sites ? (
+                    selectedDocument.site ? (
                       <>
                         <div>
                           <dt className="text-sm text-gray-500">현장명</dt>
                           <dd className="mt-1 text-sm text-gray-900 font-medium">
-                            {selectedDocument.sites.name}
+                            {selectedDocument.site.name}
                           </dd>
                         </div>
                         <div>
                           <dt className="text-sm text-gray-500">현장 주소</dt>
                           <dd className="mt-1 text-sm text-gray-900 font-medium">
-                            {selectedDocument.sites.address}
+                            {selectedDocument.site.address}
                           </dd>
                         </div>
                       </>
@@ -747,10 +748,10 @@ export default function SharedDocumentsManagement() {
                   </div>
                   <button
                     onClick={saveDocumentChanges}
-                    disabled={isSaving}
+                    disabled={saving}
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSaving ? '저장 중...' : '저장'}
+                    {saving ? '저장 중...' : '저장'}
                   </button>
                 </>
               ) : (

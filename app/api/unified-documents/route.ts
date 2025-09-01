@@ -23,8 +23,8 @@ export async function GET(request: Request) {
     }
 
     // Check if user is admin or regular user
-    const isAdmin = profile.role === 'admin'
-    const isRegularUser = ['user', 'admin'].includes(profile.role)
+    const isAdmin = ['admin', 'system_admin'].includes(profile.role)
+    const isRegularUser = ['user', 'admin', 'system_admin', 'site_manager', 'worker', 'customer_manager'].includes(profile.role)
 
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get('site_id')

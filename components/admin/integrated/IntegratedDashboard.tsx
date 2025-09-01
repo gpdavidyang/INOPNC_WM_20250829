@@ -57,9 +57,16 @@ export default function IntegratedDashboard() {
       const usersData = await usersRes.json()
       const docsData = await docsRes.json()
 
+      console.log('IntegratedDashboard - API responses:', {
+        sitesData,
+        reportsData, 
+        usersData,
+        docsData
+      })
+
       // Handle API response structures
       const sites = sitesData.success ? sitesData.data || [] : []
-      const reports = reportsData.success ? reportsData.data || [] : []
+      const reports = reportsData.success ? (reportsData.data?.reports || reportsData.data || []) : []
       const users = usersData.success ? usersData.data || [] : []
       
       setSites(sites.filter(site => site.id !== 'all')) // Remove 'all' option for display
@@ -68,7 +75,7 @@ export default function IntegratedDashboard() {
         total_sites: sites.length || 0,
         total_daily_reports: reports.length || 0,
         total_users: users.length || 0,
-        total_documents: docsData.statistics?.total_documents || 0,
+        total_documents: docsData.statistics?.total_documents || docsData.documents?.length || 0,
         shared_documents: docsData.statistics?.shared_documents || 0,
         markup_documents: docsData.statistics?.markup_documents || 0,
         required_documents: docsData.statistics?.required_documents || 0,

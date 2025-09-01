@@ -115,7 +115,7 @@ export default function EnhancedDocumentsView() {
         const data = await response.json()
         
         // Use documents array from API response
-        const documentsArray = data.documents || []
+        const documentsArray = data.data || data.documents || []
         
         console.log('EnhancedDocumentsView - API Response:', data)
         console.log('EnhancedDocumentsView - Documents Array Length:', documentsArray.length)
