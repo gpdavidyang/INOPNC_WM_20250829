@@ -69,15 +69,30 @@ export function DailyReportsPageClient({ profile, sites }: DailyReportsPageClien
           />
           
           {/* Page Content */}
-          <main className="px-3 sm:px-4 lg:px-6 pb-16 lg:pb-0">
-            <div className="h-full bg-gray-50 dark:bg-gray-900">
-              {/* Mobile View - UI Guidelines에 맞춘 모바일 최적화 */}
-              <div className="lg:hidden pt-3">
+          <main className="px-3 sm:px-4 lg:px-6 pb-20 lg:pb-0">
+            {/* Mobile View - UI Guidelines에 맞춘 모바일 최적화 */}
+            <div className="lg:hidden">
+              <div className="h-[calc(100vh-theme(spacing.16)-theme(spacing.20))] overflow-y-auto pt-3">
                 <DailyReportListMobile 
                   currentUser={profile as any}
                   sites={sites || []}
                 />
               </div>
+            </div>
+            
+            {/* Desktop View - 기존 Enhanced 컴포넌트 유지 */}
+            <div className="hidden lg:block h-full bg-gray-50 dark:bg-gray-900">
+              <div className="bg-white dark:bg-gray-900">
+                <ReportsPageHeader
+                  title="작업일지"
+                  subtitle="일일 작업 보고서 및 현장 상황을 관리합니다"
+                />
+                <DailyReportListEnhanced 
+                  currentUser={profile as any}
+                  sites={sites || []}
+                />
+              </div>
+            </div>
               
               {/* Desktop View - 기존 Enhanced 컴포넌트 유지 */}
               <div className="hidden lg:block bg-white dark:bg-gray-900">
