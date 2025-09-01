@@ -48,7 +48,7 @@ export default function PhotoGridToolMain() {
                 현장별 사진대지 문서를 생성하고 관리합니다
               </p>
             </div>
-            <Button onClick={handleCreate} size="lg">
+            <Button onClick={handleCreate} size="standard">
               <Plus className="mr-2 h-5 w-5" />
               새 문서 생성
             </Button>
