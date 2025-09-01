@@ -151,14 +151,42 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   최근 작업 문서
                 </h3>
-                <Button
-                  onClick={handleViewAllDocuments}
-                  variant="ghost"
-                  size="sm"
-                >
-                  전체 보기
-                  <FolderOpen className="h-4 w-4 ml-2" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {/* View Type Toggle */}
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                    <button
+                      onClick={() => setListViewType('card')}
+                      className={`p-1.5 rounded transition-colors ${
+                        listViewType === 'card'
+                          ? 'bg-white dark:bg-gray-600 text-purple-600 dark:text-purple-400 shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                      title="카드 뷰"
+                    >
+                      <Grid3x3 className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setListViewType('list')}
+                      className={`p-1.5 rounded transition-colors ${
+                        listViewType === 'list'
+                          ? 'bg-white dark:bg-gray-600 text-purple-600 dark:text-purple-400 shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                      }`}
+                      title="리스트 뷰"
+                    >
+                      <List className="h-4 w-4" />
+                    </button>
+                  </div>
+                  
+                  <Button
+                    onClick={handleViewAllDocuments}
+                    variant="ghost"
+                    size="sm"
+                  >
+                    전체 보기
+                    <FolderOpen className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
               </div>
               
               {loading ? (
@@ -166,31 +194,112 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {recentDocuments.map((doc) => (
-                    <div
-                      key={doc.id}
-                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => handleOpenDocument(doc)}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                        <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                          도면
-                        </span>
-                      </div>
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate">
-                        {doc.title || doc.fileName}
-                      </h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                        마킹: {doc.markupObjects?.length || 0}개
-                      </p>
-                      <p className="text-xs text-gray-400 dark:text-gray-500">
-                        {new Date(doc.updatedAt || doc.createdAt).toLocaleDateString()}
-                      </p>
+                <>
+                  {/* Card View */}
+                  {listViewType === 'card' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {recentDocuments.map((doc) => (
+                        <div
+                          key={doc.id}
+                          className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={() => handleOpenDocument(doc)}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <FileText className="h-5 w-5 text-gray-400" />
+                            <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                              도면
+                            </span>
+                          </div>
+                          <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate">
+                            {doc.title || doc.fileName}
+                          </h4>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                            마킹: {doc.markupObjects?.length || 0}개
+                          </p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">
+                            {new Date(doc.updatedAt || doc.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                  
+                  {/* List View */}
+                  {listViewType === 'list' && (
+                    <div className="overflow-hidden border border-gray-200 dark:border-gray-700 rounded-lg">
+                      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead className="bg-gray-50 dark:bg-gray-900">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              문서명
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              파일명
+                            </th>
+                            <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              마킹
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              수정일
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              생성일
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                          {recentDocuments.map((doc) => (
+                            <tr
+                              key={doc.id}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+                              onClick={() => handleOpenDocument(doc)}
+                            >
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <FileText className="h-5 w-5 text-gray-400 mr-2 flex-shrink-0" />
+                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-xs">
+                                    {doc.title || '제목 없음'}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                                  {doc.fileName || '-'}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                                  {doc.markupObjects?.length || 0}개
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  {new Date(doc.updatedAt || doc.createdAt).toLocaleDateString('ko-KR', {
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                                  <Calendar className="h-3 w-3 mr-1" />
+                                  {new Date(doc.createdAt).toLocaleDateString('ko-KR', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit'
+                                  })}
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}
