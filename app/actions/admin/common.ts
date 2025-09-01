@@ -104,7 +104,7 @@ export const AdminErrors = {
  * Validation helpers
  */
 export const validateRequired = (value: any, fieldName: string): string | null => {
-  if (!value || (typeof value === 'string' && value.trim() === '')) {
+  if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
     return `${fieldName}는 필수 입력 항목입니다`
   }
   return null

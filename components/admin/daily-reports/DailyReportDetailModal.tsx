@@ -27,6 +27,10 @@ import {
   CustomSelectValue 
 } from '@/components/ui/custom-select'
 import WorkerManagementTab from './WorkerManagementTab'
+import AttachmentsTab from './AttachmentsTab'
+import PhotosTab from './PhotosTab'
+import ReceiptsTab from './ReceiptsTab'
+import MarkupTab from './MarkupTab'
 
 interface DailyReport {
   id: string

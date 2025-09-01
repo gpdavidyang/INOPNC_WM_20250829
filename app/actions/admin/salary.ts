@@ -189,19 +189,19 @@ export async function upsertSalaryRule(
         return { success: false, error: ruleTypeError }
       }
 
-      const baseAmountError = validateRequired(data.base_amount, '기본 금액')
-      if (baseAmountError) {
-        return { success: false, error: baseAmountError }
+      // Validate base_amount - should be a number and >= 0
+      if (typeof data.base_amount !== 'number' || data.base_amount < 0) {
+        return { success: false, error: '기본 금액은 0 이상의 숫자여야 합니다' }
       }
 
       const ruleData = {
         rule_name: data.rule_name,
         rule_type: data.rule_type,
-        base_amount: data.base_amount,
-        multiplier: data.multiplier,
+        base_amount: Number(data.base_amount), // Ensure it's a proper number
+        multiplier: data.multiplier ? Number(data.multiplier) : null,
         conditions: data.conditions,
-        site_id: data.site_id,
-        role: data.role,
+        site_id: data.site_id || null, // Convert empty string to null
+        role: data.role || null, // Convert empty string to null
         is_active: data.is_active ?? true,
         updated_at: new Date().toISOString()
       }
