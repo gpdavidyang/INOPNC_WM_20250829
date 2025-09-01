@@ -692,7 +692,7 @@ function CoreFilesSection({
       
       // Upload file to Supabase Storage with sanitized filename
       const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('user-documents')
+        .from('documents')
         .upload(filePath, file)
 
       if (uploadError) throw uploadError
@@ -756,7 +756,7 @@ function CoreFilesSection({
 
       // Delete from storage
       await supabase.storage
-        .from('user-documents')
+        .from('documents')
         .remove([doc.file_path])
 
       // Delete document record
