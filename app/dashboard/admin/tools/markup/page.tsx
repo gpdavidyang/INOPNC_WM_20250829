@@ -6,9 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import AdminMarkupTool from '@/components/admin/tools/AdminMarkupTool'
 import type { Profile } from '@/types'
 
-// 캐시 비활성화
+// 캐시 비활성화 - Client component이므로 dynamic만 사용
 export const dynamic = 'force-dynamic'
-export const revalidate = 0
 
 export default function AdminMarkupToolPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
