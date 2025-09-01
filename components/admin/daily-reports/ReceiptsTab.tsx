@@ -5,13 +5,12 @@ import {
   Upload, 
   Download, 
   Trash2, 
-  Receipt,
+  Camera,
   Eye,
   X,
   CheckCircle,
   AlertTriangle,
-  DollarSign,
-  Calendar
+  ZoomIn
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
@@ -21,12 +20,13 @@ interface ReceiptFile {
   id: string
   filename: string
   file_path: string
+  file_type: 'receipt'
   file_size: number
   mime_type: string
+  category: string
+  amount: string
+  receipt_date: string
   description?: string
-  amount?: number
-  receipt_date?: string
-  vendor_name?: string
   created_at: string
   created_by: string
 }
@@ -48,12 +48,10 @@ export default function ReceiptsTab({
   const [error, setError] = useState<string | null>(null)
   const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' })
   const [selectedReceipt, setSelectedReceipt] = useState<ReceiptFile | null>(null)
-  const [showDetailModal, setShowDetailModal] = useState(false)
-  const [receiptDetails, setReceiptDetails] = useState({
-    vendor_name: '',
+  const [newReceipt, setNewReceipt] = useState({
+    category: '',
     amount: '',
-    receipt_date: format(new Date(), 'yyyy-MM-dd'),
-    description: ''
+    receipt_date: new Date().toISOString().split('T')[0]
   })
 
   useEffect(() => {
@@ -92,33 +90,51 @@ export default function ReceiptsTab({
     }
   }
 
+  const validateFile = (file: File) => {
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf']
+
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error(`${file.name}: 지원하지 않는 파일 형식입니다. JPG, PNG, GIF, WebP, PDF만 지원됩니다.`)
+    }
+
+    if (file.size > maxSize) {
+      throw new Error(`${file.name}: 파일 크기가 너무 큽니다. 최대 10MB까지 업로드 가능합니다.`)
+    }
+  }
+
   const handleReceiptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
 
-    // Show detail modal for first file
-    setSelectedReceipt(null)
-    setShowDetailModal(true)
-    
-    // Store files for upload after details are entered
-    const fileList = Array.from(files)
-    ;(window as any).__pendingReceiptFiles = fileList
-  }
-
-  const handleUploadWithDetails = async () => {
-    const files = (window as any).__pendingReceiptFiles as File[]
-    if (!files || files.length === 0) return
+    // Validate receipt form data
+    if (!newReceipt.category || !newReceipt.amount || !newReceipt.receipt_date) {
+      setSaveStatus({ 
+        type: 'error', 
+        message: '카테고리, 금액, 날짜를 모두 입력해주세요.' 
+      })
+      return
+    }
 
     setUploading(true)
     setSaveStatus({ type: null, message: '' })
-    setShowDetailModal(false)
 
     try {
+      // Validate all files first
+      const fileArray = Array.from(files)
+      for (const file of fileArray) {
+        validateFile(file)
+      }
+
       const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
       
-      const uploadPromises = files.map(async (file) => {
-        const fileExt = file.name.split('.').pop()
+      // Check authentication
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        throw new Error('인증이 필요합니다. 다시 로그인해주세요.')
+      }
+
+      const uploadPromises = fileArray.map(async (file) => {
         const fileName = `${reportId}/receipts/${Date.now()}_${file.name}`
 
         // Upload to storage
@@ -126,55 +142,78 @@ export default function ReceiptsTab({
           .from('receipts')
           .upload(fileName, file)
 
-        if (uploadError) throw uploadError
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError)
+          throw new Error(`파일 업로드 실패: ${uploadError.message} (${file.name})`)
+        }
 
-        // Save metadata with receipt details
+        // Get public URL for the uploaded file
+        const { data: urlData } = supabase.storage
+          .from('receipts')
+          .getPublicUrl(fileName)
+
+        // Save metadata
         const { data: fileData, error: dbError } = await supabase
           .from('daily_documents')
           .insert({
             daily_report_id: reportId,
+            document_type: 'receipt',
+            file_url: urlData.publicUrl,
             filename: file.name,
+            file_name: file.name,
             file_path: fileName,
             file_type: 'receipt',
             file_size: file.size,
             mime_type: file.type,
-            description: receiptDetails.description,
-            amount: receiptDetails.amount ? parseFloat(receiptDetails.amount) : null,
-            receipt_date: receiptDetails.receipt_date,
-            vendor_name: receiptDetails.vendor_name,
-            created_by: user?.id
+            category: newReceipt.category,
+            amount: newReceipt.amount,
+            receipt_date: newReceipt.receipt_date,
+            created_by: user.id,
+            uploaded_by: user.id
           })
           .select()
           .single()
 
-        if (dbError) throw dbError
+        if (dbError) {
+          console.error('Database insert error:', dbError)
+          // Try to clean up uploaded file
+          await supabase.storage
+            .from('receipts')
+            .remove([fileName])
+          throw new Error(`메타데이터 저장 실패: ${dbError.message} (${file.name})`)
+        }
+
         return fileData
       })
 
       await Promise.all(uploadPromises)
       await fetchReceipts()
-      setSaveStatus({ type: 'success', message: '영수증이 업로드되었습니다.' })
       
       // Reset form
-      setReceiptDetails({
-        vendor_name: '',
+      setNewReceipt({
+        category: '',
         amount: '',
-        receipt_date: format(new Date(), 'yyyy-MM-dd'),
-        description: ''
+        receipt_date: new Date().toISOString().split('T')[0]
       })
-      delete (window as any).__pendingReceiptFiles
+      
+      setSaveStatus({ 
+        type: 'success', 
+        message: `영수증 ${fileArray.length}개가 업로드되었습니다.` 
+      })
       
       if (onSaveComplete) {
         onSaveComplete()
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading receipts:', error)
-      setSaveStatus({ type: 'error', message: '영수증 업로드에 실패했습니다.' })
+      setSaveStatus({ 
+        type: 'error', 
+        message: error.message || '영수증 업로드에 실패했습니다.' 
+      })
     } finally {
       setUploading(false)
       // Reset file input
-      const input = document.getElementById('receipt-upload') as HTMLInputElement
-      if (input) input.value = ''
+      e.target.value = ''
     }
   }
 
@@ -211,30 +250,6 @@ export default function ReceiptsTab({
     }
   }
 
-  const handleDownload = async (receipt: ReceiptFile) => {
-    try {
-      const supabase = createClient()
-      const { data, error } = await supabase.storage
-        .from('receipts')
-        .download(receipt.file_path)
-
-      if (error) throw error
-
-      // Create download link
-      const url = URL.createObjectURL(data)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = receipt.filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-    } catch (error) {
-      console.error('Error downloading receipt:', error)
-      setSaveStatus({ type: 'error', message: '영수증 다운로드에 실패했습니다.' })
-    }
-  }
-
   const getReceiptUrl = (receipt: ReceiptFile) => {
     const supabase = createClient()
     const { data } = supabase.storage
@@ -250,8 +265,6 @@ export default function ReceiptsTab({
     const i = Math.floor(Math.log(bytes) / Math.log(k))
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
   }
-
-  const totalAmount = receipts.reduce((sum, r) => sum + (r.amount || 0), 0)
 
   if (loading) {
     return (
@@ -284,291 +297,283 @@ export default function ReceiptsTab({
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Receipt className="h-5 w-5 text-blue-600" />
-          영수증정보
+          영수증 정보
           <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-            {receipts.length}개
+            총 {receipts.length}개
           </span>
         </h3>
-        {receipts.length > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 rounded-full">
-            <DollarSign className="h-4 w-4" />
-            <span className="text-sm font-medium">
-              총 {totalAmount.toLocaleString()}원
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Upload Section */}
+      {/* Receipt Form Section */}
       {isEditing && (
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-          <input
-            type="file"
-            id="receipt-upload"
-            className="hidden"
-            onChange={handleReceiptUpload}
-            accept="image/*,.pdf"
-            multiple
-            disabled={uploading}
-          />
-          <label
-            htmlFor="receipt-upload"
-            className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 ${
-              uploading 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            } text-white rounded-lg transition-colors`}
-          >
-            {uploading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                업로드 중...
-              </>
-            ) : (
-              <>
-                <Upload className="h-5 w-5" />
-                영수증 선택
-              </>
-            )}
-          </label>
-          <p className="mt-2 text-sm text-gray-600">
-            이미지 파일 또는 PDF 파일을 업로드할 수 있습니다.
-          </p>
+        <div className="space-y-4">
+          {/* Receipt Information Form */}
+          <div className="bg-white border border-gray-200 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-900 mb-4">영수증 정보 입력</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  카테고리 <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={newReceipt.category}
+                  onChange={(e) => setNewReceipt(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">카테고리 선택</option>
+                  <option value="교통비">교통비</option>
+                  <option value="식비">식비</option>
+                  <option value="숙박비">숙박비</option>
+                  <option value="재료비">재료비</option>
+                  <option value="장비비">장비비</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+
+              {/* Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  금액 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={newReceipt.amount}
+                  onChange={(e) => setNewReceipt(prev => ({ ...prev, amount: e.target.value }))}
+                  placeholder="금액 입력"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  날짜 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  value={newReceipt.receipt_date}
+                  onChange={(e) => setNewReceipt(prev => ({ ...prev, receipt_date: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Upload Area */}
+          <div className="border-2 border-dashed border-yellow-300 bg-yellow-50 rounded-lg p-6">
+            <div className="text-center">
+              <input
+                type="file"
+                id="receipt-upload"
+                className="hidden"
+                onChange={handleReceiptUpload}
+                accept="image/*,application/pdf"
+                multiple
+                disabled={uploading}
+              />
+              <div className="mb-3">
+                <div className="mx-auto h-12 w-12 rounded-full flex items-center justify-center bg-yellow-100 text-yellow-600">
+                  <Receipt className="h-6 w-6" />
+                </div>
+              </div>
+              <label
+                htmlFor="receipt-upload"
+                className={`cursor-pointer inline-flex items-center gap-2 px-6 py-2 rounded-lg text-white font-medium transition-colors ${
+                  uploading 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-yellow-500 hover:bg-yellow-600'
+                }`}
+              >
+                {uploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    업로드 중...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-5 w-5" />
+                    영수증 선택
+                  </>
+                )}
+              </label>
+              <p className="mt-3 text-sm text-gray-600">
+                <strong>영수증 파일</strong>을 업로드합니다
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                JPG, PNG, GIF, PDF 파일 (최대 10MB) • 여러 파일 동시 선택 가능
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Receipts List */}
-      {receipts.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Receipt className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600 mb-2">등록된 영수증이 없습니다.</p>
-          {isEditing && (
-            <p className="text-sm text-gray-500">위의 "영수증 선택" 버튼을 클릭하여 영수증을 업로드하세요.</p>
-          )}
-        </div>
-      ) : (
-        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  파일명
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  업체명
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  금액
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  날짜
-                </th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
-                  작업
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {receipts.map((receipt) => (
-                <tr key={receipt.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Receipt className="h-4 w-4 text-gray-400" />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 truncate max-w-xs" title={receipt.filename}>
-                          {receipt.filename}
-                        </p>
-                        {receipt.description && (
-                          <p className="text-xs text-gray-500">{receipt.description}</p>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {receipt.vendor_name || '-'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {receipt.amount ? `${receipt.amount.toLocaleString()}원` : '-'}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-gray-900">
-                    {receipt.receipt_date 
-                      ? format(new Date(receipt.receipt_date), 'yyyy-MM-dd', { locale: ko })
-                      : '-'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2 justify-center">
-                      <button
-                        onClick={() => setSelectedReceipt(receipt)}
-                        className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
-                        title="보기"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDownload(receipt)}
-                        className="p-2 text-green-600 hover:text-green-900 hover:bg-green-50 rounded-md transition-colors"
-                        title="다운로드"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
-                      {isEditing && (
-                        <button
-                          onClick={() => handleDelete(receipt)}
-                          className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* Receipt Detail Modal for Upload */}
-      {showDetailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">영수증 정보 입력</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  업체명
-                </label>
-                <input
-                  type="text"
-                  value={receiptDetails.vendor_name}
-                  onChange={(e) => setReceiptDetails(prev => ({ ...prev, vendor_name: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                  placeholder="업체명 입력"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  금액
-                </label>
-                <input
-                  type="number"
-                  value={receiptDetails.amount}
-                  onChange={(e) => setReceiptDetails(prev => ({ ...prev, amount: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                  placeholder="금액 입력"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  날짜
-                </label>
-                <input
-                  type="date"
-                  value={receiptDetails.receipt_date}
-                  onChange={(e) => setReceiptDetails(prev => ({ ...prev, receipt_date: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  설명
-                </label>
-                <textarea
-                  value={receiptDetails.description}
-                  onChange={(e) => setReceiptDetails(prev => ({ ...prev, description: e.target.value }))}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                  placeholder="설명 입력 (선택사항)"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={handleUploadWithDetails}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-              >
-                업로드
-              </button>
-              <button
-                onClick={() => {
-                  setShowDetailModal(false)
-                  delete (window as any).__pendingReceiptFiles
-                  const input = document.getElementById('receipt-upload') as HTMLInputElement
-                  if (input) input.value = ''
-                }}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                취소
-              </button>
-            </div>
+      <div>
+        <h4 className="text-md font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          영수증 목록
+        </h4>
+        {receipts.length === 0 ? (
+          <div className="text-center py-8 bg-gray-50 rounded-lg">
+            <Receipt className="h-10 w-10 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-600">영수증이 없습니다.</p>
+            {!isEditing && <p className="text-xs text-gray-500">편집 모드에서 영수증을 추가할 수 있습니다.</p>}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="space-y-4">
+            {receipts.map((receipt) => (
+              <ReceiptCard
+                key={receipt.id}
+                receipt={receipt}
+                onView={() => setSelectedReceipt(receipt)}
+                onDelete={() => handleDelete(receipt)}
+                isEditing={isEditing}
+                getReceiptUrl={getReceiptUrl}
+                formatFileSize={formatFileSize}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
-      {/* Receipt View Modal */}
+      {/* Receipt Modal */}
       {selectedReceipt && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedReceipt(null)}
         >
-          <div className="relative max-w-4xl max-h-[90vh] bg-white rounded-lg overflow-hidden">
+          <div className="relative max-w-4xl max-h-[90vh]">
             <button
               onClick={() => setSelectedReceipt(null)}
-              className="absolute top-2 right-2 z-10 p-2 bg-white rounded-full shadow-lg hover:bg-gray-100"
+              className="absolute -top-10 right-0 text-white hover:text-gray-300"
             >
-              <X className="h-5 w-5" />
+              <X className="h-8 w-8" />
             </button>
-            
-            {selectedReceipt.mime_type.startsWith('image/') ? (
+            {selectedReceipt.mime_type === 'application/pdf' ? (
+              <iframe
+                src={getReceiptUrl(selectedReceipt)}
+                className="w-full h-[85vh] bg-white rounded"
+                title={selectedReceipt.filename}
+              />
+            ) : (
               <img
                 src={getReceiptUrl(selectedReceipt)}
                 alt={selectedReceipt.filename}
-                className="max-w-full max-h-[80vh] object-contain"
-              />
-            ) : (
-              <iframe
-                src={getReceiptUrl(selectedReceipt)}
-                className="w-full h-[80vh]"
-                title={selectedReceipt.filename}
+                className="max-w-full max-h-[85vh] object-contain"
               />
             )}
-            
-            <div className="p-4 bg-gray-50 border-t">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-4">
+              <div className="flex justify-between items-start">
                 <div>
-                  <p className="text-gray-500">파일명</p>
-                  <p className="font-medium">{selectedReceipt.filename}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">업체명</p>
-                  <p className="font-medium">{selectedReceipt.vendor_name || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">금액</p>
-                  <p className="font-medium">
-                    {selectedReceipt.amount ? `${selectedReceipt.amount.toLocaleString()}원` : '-'}
+                  <p className="text-sm font-medium">{selectedReceipt.filename}</p>
+                  <p className="text-xs opacity-75">
+                    {format(new Date(selectedReceipt.created_at), 'yyyy-MM-dd HH:mm', { locale: ko })}
                   </p>
                 </div>
-                <div>
-                  <p className="text-gray-500">날짜</p>
-                  <p className="font-medium">
-                    {selectedReceipt.receipt_date 
-                      ? format(new Date(selectedReceipt.receipt_date), 'yyyy-MM-dd', { locale: ko })
-                      : '-'}
-                  </p>
+                <div className="text-right text-xs">
+                  <p><span className="font-medium">카테고리:</span> {selectedReceipt.category}</p>
+                  <p><span className="font-medium">금액:</span> {parseInt(selectedReceipt.amount).toLocaleString()}원</p>
+                  <p><span className="font-medium">날짜:</span> {selectedReceipt.receipt_date}</p>
                 </div>
               </div>
-              {selectedReceipt.description && (
-                <div className="mt-4 text-sm">
-                  <p className="text-gray-500">설명</p>
-                  <p className="font-medium">{selectedReceipt.description}</p>
-                </div>
-              )}
             </div>
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// Receipt Card Component
+interface ReceiptCardProps {
+  receipt: ReceiptFile
+  onView: () => void
+  onDelete: () => void
+  isEditing: boolean
+  getReceiptUrl: (receipt: ReceiptFile) => string
+  formatFileSize: (bytes: number) => string
+}
+
+function ReceiptCard({ receipt, onView, onDelete, isEditing, getReceiptUrl, formatFileSize }: ReceiptCardProps) {
+  const isPDF = receipt.mime_type === 'application/pdf'
+  
+  return (
+    <div className="relative group border border-gray-200 rounded-lg bg-white hover:shadow-lg transition-shadow p-4">
+      <div className="flex items-start gap-4">
+        {/* File Preview */}
+        <div 
+          className="flex-shrink-0 w-16 h-16 cursor-pointer rounded-lg overflow-hidden border border-gray-200"
+          onClick={onView}
+        >
+          {isPDF ? (
+            <div className="w-full h-full bg-red-50 flex items-center justify-center">
+              <FileText className="h-8 w-8 text-red-600" />
+            </div>
+          ) : (
+            <img
+              src={getReceiptUrl(receipt)}
+              alt={receipt.filename}
+              className="w-full h-full object-cover"
+            />
+          )}
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity flex items-center justify-center">
+            <Eye className="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        </div>
+
+        {/* Receipt Information */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between">
+            <div className="flex-1 min-w-0">
+              <h5 className="text-sm font-medium text-gray-900 truncate" title={receipt.filename}>
+                {receipt.filename}
+              </h5>
+              <div className="mt-1 space-y-1">
+                <div className="flex items-center gap-4 text-xs text-gray-600">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                    {receipt.category}
+                  </span>
+                  <span className="font-medium text-green-600">
+                    {parseInt(receipt.amount).toLocaleString()}원
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <span>{receipt.receipt_date}</span>
+                  <span>{formatFileSize(receipt.file_size)}</span>
+                  <span>{isPDF ? 'PDF' : '이미지'}</span>
+                </div>
+                <p className="text-xs text-gray-500">
+                  {format(new Date(receipt.created_at), 'yyyy-MM-dd HH:mm 업로드', { locale: ko })}
+                </p>
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 ml-2">
+              <button
+                onClick={onView}
+                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                title="미리보기"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+              {isEditing && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDelete()
+                  }}
+                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="삭제"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

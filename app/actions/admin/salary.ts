@@ -320,8 +320,8 @@ export async function getSalaryRecords(
         .from('salary_records')
         .select(`
           *,
-          worker:profiles!salary_records_worker_id_fkey(full_name, email, role),
-          site:sites!salary_records_site_id_fkey(name)
+          worker:profiles(full_name, email, role),
+          site:sites(name)
         `, { count: 'exact' })
         .order('work_date', { ascending: false })
 
@@ -450,6 +450,7 @@ export async function getSalaryRecords(
  */
 export async function calculateSalaries(
   site_id?: string,
+  worker_id?: string,
   date_from?: string,
   date_to?: string
 ): Promise<AdminActionResult<{ calculated_records: number }>> {
@@ -510,6 +511,11 @@ export async function calculateSalaries(
           const worker = workers.find((w: any) => w.full_name === workerEntry.worker_name)
           if (!worker) {
             console.warn(`Worker not found: ${workerEntry.worker_name}`)
+            continue
+          }
+
+          // Apply worker filter if specified
+          if (worker_id && worker.id !== worker_id) {
             continue
           }
 
@@ -657,6 +663,7 @@ export async function approveSalaryRecords(recordIds: string[]): Promise<AdminAc
  */
 export async function getSalaryStats(
   site_id?: string,
+  worker_id?: string,
   date_from?: string,
   date_to?: string
 ): Promise<AdminActionResult<SalaryStats>> {
@@ -668,6 +675,10 @@ export async function getSalaryStats(
 
       if (site_id) {
         query = query.eq('site_id', site_id)
+      }
+
+      if (worker_id) {
+        query = query.eq('worker_id', worker_id)
       }
 
       if (date_from) {

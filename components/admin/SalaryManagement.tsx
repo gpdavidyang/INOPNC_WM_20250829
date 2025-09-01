@@ -157,6 +157,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     try {
       const result = await getSalaryStats(
         siteFilter || undefined,
+        workerFilter || undefined,
         dateFrom || undefined,
         dateTo || undefined
       )
@@ -293,6 +294,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     try {
       const result = await calculateSalaries(
         siteFilter || undefined,
+        workerFilter || undefined,
         dateFrom,
         dateTo
       )
