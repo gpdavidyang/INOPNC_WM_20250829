@@ -75,14 +75,28 @@ export default function WorkerManagementTab({
       setLoading(true)
       setError(null)
       
+      console.log('Fetching workers for reportId:', reportId)
       const response = await fetch(`/api/admin/daily-reports/workers?reportId=${reportId}`)
       const result = await response.json()
+      
+      console.log('Workers fetch response:', {
+        status: response.status,
+        ok: response.ok,
+        data: result
+      })
       
       if (!response.ok) {
         throw new Error(result.error || '작업자 정보를 불러오는데 실패했습니다')
       }
 
-      setWorkers(result.data || [])
+      const workersData = result.data || []
+      console.log('Setting workers state:', workersData)
+      setWorkers(workersData)
+      
+      // Call onWorkersUpdate if we have workers
+      if (onWorkersUpdate && workersData.length > 0) {
+        onWorkersUpdate(workersData.length)
+      }
     } catch (error) {
       console.error('Error fetching workers:', error)
       setError(error instanceof Error ? error.message : '작업자 정보를 불러오는데 실패했습니다.')
@@ -180,29 +194,37 @@ export default function WorkerManagementTab({
 
     try {
       setSaving(true)
+      
+      const payload = {
+        daily_report_id: reportId,
+        worker_name: newWorker.name.trim(),
+        work_hours: newWorker.hours
+      }
+      
+      console.log('Adding worker with payload:', payload)
 
       const response = await fetch('/api/admin/daily-reports/workers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          daily_report_id: reportId,
-          worker_name: newWorker.name.trim(),
-          work_hours: newWorker.hours
-        })
+        body: JSON.stringify(payload)
       })
 
       const result = await response.json()
+      console.log('Add worker response:', {
+        status: response.status,
+        ok: response.ok,
+        result
+      })
       
       if (!response.ok) {
         throw new Error(result.error || '작업자 추가에 실패했습니다')
       }
 
       setNewWorker(null)
-      await fetchWorkers()
       
-      if (onWorkersUpdate) {
-        onWorkersUpdate(workers.length + 1)
-      }
+      // Force refresh workers list
+      console.log('Refreshing workers list after addition...')
+      await fetchWorkers()
 
       alert('작업자가 추가되었습니다.')
     } catch (error) {
