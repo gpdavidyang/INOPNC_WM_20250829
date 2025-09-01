@@ -18,16 +18,6 @@ export default function MarkupPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    loadProfile()
-  }, [loadProfile])
-
-  useEffect(() => {
-    if (fileId && profile) {
-      loadDocument(fileId)
-    }
-  }, [fileId, profile])
-
   const loadProfile = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser()
@@ -56,7 +46,7 @@ export default function MarkupPage() {
     }
   }, [supabase, router])
 
-  const loadDocument = async (documentId: string) => {
+  const loadDocument = useCallback(async (documentId: string) => {
     try {
       const response = await fetch(`/api/markup-documents/${documentId}`)
       const result = await response.json()
@@ -69,7 +59,17 @@ export default function MarkupPage() {
     } catch (error) {
       console.error('Error loading document:', error)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
+
+  useEffect(() => {
+    if (fileId && profile) {
+      loadDocument(fileId)
+    }
+  }, [fileId, profile, loadDocument])
 
   const handleClose = () => {
     router.push('/dashboard')
