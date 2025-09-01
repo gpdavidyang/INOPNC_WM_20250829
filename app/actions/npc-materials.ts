@@ -202,7 +202,7 @@ export async function recordInventoryTransaction(data: {
         material_id: material.id,
         transaction_type: data.transactionType,
         quantity: data.quantity,
-        transaction_date: data.transactionDate,
+        transaction_date: data.transactionDate.split('T')[0], // Extract date part only
         notes: data.notes,
         created_by: user.id
       })

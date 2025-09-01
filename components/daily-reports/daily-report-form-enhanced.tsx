@@ -41,10 +41,8 @@ import {
   CameraIcon,
   Eye
 } from 'lucide-react'
-import { Site, Profile, Material, PhotoGroup, ComponentType, ConstructionProcessType } from '@/types'
+import { Site, Profile, Material, ComponentType, ConstructionProcessType } from '@/types'
 import { AdditionalPhotoData } from '@/types/daily-reports'
-import PhotoGridPreview from './photo-grid-preview'
-import PDFReportGenerator from './pdf-report-generator'
 import AdditionalPhotoUploadSection from './additional-photo-upload-section'
 import { cn } from '@/lib/utils'
 import { showErrorNotification } from '@/lib/error-handling'
@@ -213,8 +211,6 @@ export default function DailyReportFormEnhanced({
   const [currentPhotoType, setCurrentPhotoType] = useState<'before' | 'after'>('before')
   
   // PDF 생성 관련 state
-  const [showPDFModal, setShowPDFModal] = useState(false)
-  const [pdfPhotoGroups, setPDFPhotoGroups] = useState<PhotoGroup[]>([])
   const [showDrawingModal, setShowDrawingModal] = useState(false)
   const [showMarkupListModal, setShowMarkupListModal] = useState(false)
   const [markupDocuments, setMarkupDocuments] = useState<any[]>([])
@@ -1303,59 +1299,6 @@ export default function DailyReportFormEnhanced({
                 </p>
               )}
               
-              {/* PDF 생성 버튼 */}
-              {workContents.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      // PDF 생성 로직
-                      const photoGroupsFromWorkContents = workContents.map(content => ({
-                        id: content.id,
-                        component_name: content.memberName === '기타' 
-                          ? `${content.memberNameOther || '기타'}${content.workSection ? ` (${content.workSection})` : ''}` 
-                          : `${content.memberName}${content.workSection ? ` (${content.workSection})` : ''}`,
-                        component_type: (
-                          content.memberName === '슬라브' ? 'slab' :
-                          content.memberName === '거더' ? 'girder' :
-                          content.memberName === '기둥' ? 'column' : 'other'
-                        ) as ComponentType,
-                        process_type: (
-                          content.processType === '균일' ? 'uniform' :
-                          content.processType === '면' ? 'surface' :
-                          content.processType === '마감' ? 'finishing' : 'other'
-                        ) as ConstructionProcessType,
-                        before_photos: content.beforePhotos.map((file, idx) => ({
-                          id: `before-${content.id}-${idx}`,
-                          file_url: content.beforePhotoPreviews[idx] || '',
-                          stage: 'before' as const
-                        })),
-                        after_photos: content.afterPhotos.map((file, idx) => ({
-                          id: `after-${content.id}-${idx}`,
-                          file_url: content.afterPhotoPreviews[idx] || '',
-                          stage: 'after' as const
-                        })),
-                        progress_status: (
-                          content.beforePhotos.length > 0 && content.afterPhotos.length > 0 ? 'completed' :
-                          content.beforePhotos.length > 0 || content.afterPhotos.length > 0 ? 'in_progress' : 'not_started'
-                        ) as PhotoGroup['progress_status'],
-                        notes: '',
-                        daily_report_id: formData.id || 'temp',
-                        created_at: new Date().toISOString(),
-                        updated_at: new Date().toISOString()
-                      }))
-                      
-                      // PDF 생성 모달 열기
-                      setShowPDFModal(true)
-                      setPDFPhotoGroups(photoGroupsFromWorkContents)
-                    }}
-                    className="w-full h-10 bg-purple-500 hover:bg-purple-600 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-medium transition-colors"
-                  >
-                    <FileText className="h-4 w-4" />
-                    사진대지 PDF 생성
-                  </button>
-                </div>
-              )}
             </div>
           </CollapsibleSection>
 
@@ -2053,44 +1996,6 @@ export default function DailyReportFormEnhanced({
         </div>
       )}
 
-      {/* PDF 생성 모달 */}
-      {showPDFModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowPDFModal(false)}>
-          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">사진대지 PDF 미리보기</h2>
-                <button
-                  onClick={() => setShowPDFModal(false)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                </button>
-              </div>
-            </div>
-            
-            <div className="p-4">
-              <PhotoGridPreview
-                photoGroups={pdfPhotoGroups}
-                siteName={sites.find(s => s.id === formData.site_id)?.name}
-                reportDate={formData.work_date}
-                reporterName={currentUser.full_name}
-              />
-              
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <PDFReportGenerator
-                  photoGroups={pdfPhotoGroups}
-                  siteId={formData.site_id}
-                  siteName={sites.find(s => s.id === formData.site_id)?.name}
-                  reportDate={formData.work_date}
-                  reporterName={currentUser.full_name}
-                  saveToDocumentFolder={true}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Markup Documents List Modal */}
       {showMarkupListModal && (

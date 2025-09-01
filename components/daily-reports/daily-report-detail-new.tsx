@@ -320,6 +320,33 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
           </div>
         </div>
 
+        {/* Additional Photos - 추가 사진 */}
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <Camera className="h-5 w-5" />
+              추가 사진
+            </h2>
+          </div>
+          <div className="px-3 py-3">
+            {(report as any).additional_photos && (report as any).additional_photos.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {(report as any).additional_photos.map((photo: any, index: number) => (
+                  <img 
+                    key={index} 
+                    src={photo.url || photo} 
+                    alt={`추가 사진 ${index + 1}`}
+                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                    onClick={() => window.open(photo.url || photo, '_blank')}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+            )}
+          </div>
+        </div>
+
         {/* Before Work Photos - 작업 전 사진 */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">

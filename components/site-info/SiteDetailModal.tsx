@@ -12,15 +12,13 @@ import {
   Clock,
   Building2,
   FileText,
-  Download,
-  Copy
+  Download
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { UserSiteHistory } from '@/types'
-import { TMap } from '@/lib/external-apps'
 
 interface SiteDetailModalProps {
   isOpen: boolean
@@ -40,7 +38,6 @@ export default function SiteDetailModal({
   const [isDragging, setIsDragging] = useState(false)
   const [startY, setStartY] = useState(0)
   const [currentY, setCurrentY] = useState(0)
-  const [copiedField, setCopiedField] = useState<string | null>(null)
 
   // Handle escape key
   useEffect(() => {
@@ -86,57 +83,6 @@ export default function SiteDetailModal({
     setCurrentY(0)
   }
 
-  // Copy to clipboard function
-  const copyToClipboard = async (text: string, field: string) => {
-    try {
-      // Modern clipboard API (HTTPS/localhost only)
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text)
-        setCopiedField(field)
-        setTimeout(() => setCopiedField(null), 2000)
-      } else {
-        // Fallback method for older browsers or non-secure contexts
-        const textArea = document.createElement('textarea')
-        textArea.value = text
-        textArea.style.position = 'fixed'
-        textArea.style.left = '-999999px'
-        textArea.style.top = '-999999px'
-        document.body.appendChild(textArea)
-        textArea.focus()
-        textArea.select()
-        
-        try {
-          document.execCommand('copy')
-          setCopiedField(field)
-          setTimeout(() => setCopiedField(null), 2000)
-        } catch (fallbackErr) {
-          console.error('Fallback copy failed:', fallbackErr)
-          // Show user feedback even if copy failed
-          setCopiedField(field + '_failed')
-          setTimeout(() => setCopiedField(null), 2000)
-        } finally {
-          document.body.removeChild(textArea)
-        }
-      }
-    } catch (err) {
-      console.error('Failed to copy:', err)
-      // Still show some feedback to user
-      setCopiedField(field + '_failed')
-      setTimeout(() => setCopiedField(null), 2000)
-    }
-  }
-
-  // Open T-Map navigation
-  const openTMap = async (address: string, name: string) => {
-    const result = await TMap.navigate({ 
-      name, 
-      address
-    })
-    
-    if (!result.success && result.fallbackUrl) {
-      console.log('Fallback to web version:', result.fallbackUrl)
-    }
-  }
 
   if (!isOpen || !siteData) return null
 
@@ -268,37 +214,11 @@ export default function SiteDetailModal({
                 bg-gradient-to-br from-gray-50 to-gray-100/50 dark:from-gray-800 dark:to-gray-700/50 
                 border border-gray-200 dark:border-gray-700 rounded-lg col-span-2
               `}>
-                <div className="flex items-center justify-between gap-1.5 mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-                    <span className={`${getFullTypographyClass('body', 'xs', isLargeFont)} font-semibold text-gray-700 dark:text-gray-300`}>
-                      현장 주소
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {/* Copy button */}
-                    <button
-                      onClick={() => copyToClipboard(siteData.site_address, 'address')}
-                      className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
-                      title="주소 복사"
-                    >
-                      {copiedField === 'address' ? (
-                        <span className="text-xs text-green-600 dark:text-green-400 font-medium">복사됨</span>
-                      ) : copiedField === 'address_failed' ? (
-                        <span className="text-xs text-red-600 dark:text-red-400 font-medium">실패</span>
-                      ) : (
-                        <Copy className="h-3.5 w-3.5 text-gray-400" />
-                      )}
-                    </button>
-                    {/* T-Map button */}
-                    <button
-                      onClick={() => openTMap(siteData.site_address, siteData.site_name)}
-                      className="px-2 py-1 text-xs font-medium bg-gray-50 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-500 rounded transition-colors"
-                      title="T맵에서 길찾기"
-                    >
-                      T맵
-                    </button>
-                  </div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <MapPin className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                  <span className={`${getFullTypographyClass('body', 'xs', isLargeFont)} font-semibold text-gray-700 dark:text-gray-300`}>
+                    현장 주소
+                  </span>
                 </div>
                 <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-900 dark:text-gray-100 leading-tight`}>
                   {siteData.site_address}

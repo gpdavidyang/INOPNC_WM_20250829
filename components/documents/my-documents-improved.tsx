@@ -97,18 +97,43 @@ export function MyDocumentsImproved({ profile }: MyDocumentsImprovedProps) {
   }
 
   const handleUploadFiles = async (files: File[]) => {
+    setLoading(true)
+    let uploadedCount = 0
+    let failedCount = 0
+    
     for (const file of files) {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('title', file.name)
-      formData.append('description', file.name)
-      formData.append('document_type', 'personal')
-      formData.append('folder_path', 'personal')
-      formData.append('site_id', profile.site_id || '')
-      formData.append('is_public', 'false')
-      
-      await uploadDocument(formData)
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('title', file.name)
+        formData.append('description', `업로드된 파일: ${file.name}`)
+        formData.append('document_type', 'personal')
+        formData.append('folder_path', 'personal')
+        formData.append('site_id', profile.site_id || '')
+        formData.append('is_public', 'false')
+        
+        const result = await uploadDocument(formData)
+        if (result.success) {
+          uploadedCount++
+        } else {
+          failedCount++
+          console.error(`Failed to upload ${file.name}:`, result.error)
+        }
+      } catch (error) {
+        failedCount++
+        console.error(`Error uploading ${file.name}:`, error)
+      }
     }
+    
+    setLoading(false)
+    
+    if (uploadedCount > 0) {
+      alert(`${uploadedCount}개 파일이 성공적으로 업로드되었습니다.`)
+    }
+    if (failedCount > 0) {
+      alert(`${failedCount}개 파일 업로드에 실패했습니다.`)
+    }
+    
     loadDocuments()
   }
 

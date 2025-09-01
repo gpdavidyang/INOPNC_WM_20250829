@@ -196,7 +196,7 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
             <Camera className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">문서가 없습니다</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {searchTerm ? '검색 조건에 맞는 문서가 없습니다.' : '아직 사진대지 문서가 없습니다.'}
+              {searchTerm ? '검색 조건에 맞는 문서가 없습니다.' : '아직 사진대지 문서가 등록되지 않았습니다.'}
             </p>
           </div>
         ) : (

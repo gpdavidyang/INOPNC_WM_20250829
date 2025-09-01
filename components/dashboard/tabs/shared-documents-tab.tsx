@@ -491,11 +491,31 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
     )
   }
 
-  const handleViewDocument = (document: SharedDocument) => {
-    if (document.type === 'markup-document') {
-      router.push(`/dashboard/markup?open=${document.id}`)
-    } else if (document.url) {
-      window.open(document.url, '_blank')
+  const handleViewDocument = async (document: SharedDocument) => {
+    try {
+      if (document.type === 'markup-document') {
+        router.push(`/dashboard/markup?open=${document.id}`)
+      } else if (document.url) {
+        // Try to open the document URL
+        window.open(document.url, '_blank')
+      } else {
+        // If no URL, try to get from storage
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('documents')
+          .select('file_url')
+          .eq('id', document.id)
+          .single()
+        
+        if (data?.file_url) {
+          window.open(data.file_url, '_blank')
+        } else {
+          alert('문서를 찾을 수 없습니다.')
+        }
+      }
+    } catch (error) {
+      console.error('View document error:', error)
+      alert('문서를 열 수 없습니다.')
     }
   }
 
@@ -505,15 +525,36 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
         alert('마킹 도면 다운로드 기능은 준비 중입니다.')
         return
       }
-
-      if (document.url) {
+      
+      let downloadUrl = document.url
+      
+      // If no URL, get from database
+      if (!downloadUrl) {
+        const supabase = createClient()
+        const { data } = await supabase
+          .from('documents')
+          .select('file_url, file_name')
+          .eq('id', document.id)
+          .single()
+        
+        if (data?.file_url) {
+          downloadUrl = data.file_url
+        }
+      }
+      
+      if (downloadUrl) {
+        // Create a temporary link and trigger download
+        const response = await fetch(downloadUrl)
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
         const link = window.document.createElement('a')
-        link.href = document.url
-        link.download = document.name
+        link.href = url
+        link.download = document.name || 'download'
         link.style.display = 'none'
         window.document.body.appendChild(link)
         link.click()
         window.document.body.removeChild(link)
+        window.URL.revokeObjectURL(url)
       } else {
         alert('다운로드할 수 있는 파일이 없습니다.')
       }
@@ -526,7 +567,25 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
   const deleteDocument = async (documentId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
     
-    setDocuments(prev => prev.filter(d => d.id !== documentId))
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('documents')
+        .delete()
+        .eq('id', documentId)
+      
+      if (error) {
+        console.error('Delete error:', error)
+        alert('삭제 중 오류가 발생했습니다.')
+        return
+      }
+      
+      setDocuments(prev => prev.filter(d => d.id !== documentId))
+      alert('문서가 삭제되었습니다.')
+    } catch (error) {
+      console.error('Delete failed:', error)
+      alert('삭제 중 오류가 발생했습니다.')
+    }
   }
 
   const handleShareDocument = (document: SharedDocument) => {

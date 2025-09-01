@@ -14,7 +14,7 @@ import { ToolPalette } from './toolbar/tool-palette'
 import { TopToolbar } from './toolbar/top-toolbar'
 import { BottomStatusbar } from './toolbar/bottom-statusbar'
 import { MarkupCanvas } from './canvas/markup-canvas'
-import { SaveDialog } from './dialogs/save-dialog'
+import { SavePage } from './pages/save-page'
 import { OpenDialog } from './dialogs/open-dialog'
 import { ShareDialog } from './dialogs/share-dialog'
 import { useMarkupTools } from './hooks/use-markup-tools'
@@ -75,7 +75,7 @@ export function MarkupEditor({
     redoStack: [],
     isLoading: false,
     isSaving: false,
-    showSaveDialog: false,
+    showSavePage: false,
     showOpenDialog: false
   })
 
@@ -145,7 +145,7 @@ export function MarkupEditor({
             break
           case 's':
             e.preventDefault()
-            setEditorState(prev => ({ ...prev, showSaveDialog: true }))
+            setEditorState(prev => ({ ...prev, showSavePage: true }))
             break
           case 'o':
             e.preventDefault()
@@ -371,7 +371,7 @@ export function MarkupEditor({
           fileName={blueprintFileName || (editorState.currentFile as any)?.title || '새 마킹'}
           onHome={handleBackToList}
           onOpen={() => setEditorState(prev => ({ ...prev, showOpenDialog: true }))}
-          onSave={() => setEditorState(prev => ({ ...prev, showSaveDialog: true }))}
+          onSave={() => setEditorState(prev => ({ ...prev, showSavePage: true }))}
           onShare={() => console.log('Share clicked')}
           onClose={onClose}
           isMobile={isMobile}
@@ -469,12 +469,16 @@ export function MarkupEditor({
       {/* 다이얼로그 - embedded 모드에서는 숨김 */}
       {!embedded && (
         <>
-          <SaveDialog
-            open={editorState.showSaveDialog}
-            onOpenChange={(open) => setEditorState(prev => ({ ...prev, showSaveDialog: open }))}
-            onSave={handleSave}
-            defaultFileName={editorState.currentFile?.fileName || ''}
-          />
+          {editorState.showSavePage && (
+            <SavePage
+              onSave={(fileName, description) => {
+                handleSave(fileName, description)
+                setEditorState(prev => ({ ...prev, showSavePage: false }))
+              }}
+              onCancel={() => setEditorState(prev => ({ ...prev, showSavePage: false }))}
+              defaultFileName={editorState.currentFile?.fileName || ''}
+            />
+          )}
 
           <OpenDialog
             open={editorState.showOpenDialog}

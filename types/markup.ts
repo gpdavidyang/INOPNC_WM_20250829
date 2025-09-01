@@ -102,7 +102,7 @@ export interface MarkupEditorState {
   // UI 상태
   isLoading: boolean
   isSaving: boolean
-  showSaveDialog: boolean
+  showSavePage: boolean
   showOpenDialog: boolean
 }
 
