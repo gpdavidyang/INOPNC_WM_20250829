@@ -167,7 +167,7 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
       </div>
 
       {/* 통계 정보 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center">
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -205,20 +205,6 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">작업일지</p>
               <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {statistics?.total_daily_reports || 0}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center">
-            <div className="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-              <ClipboardCheck className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">제출 서류</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {statistics?.total_documents || 0}
               </p>
             </div>
           </div>

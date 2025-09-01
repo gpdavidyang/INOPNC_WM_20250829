@@ -1059,7 +1059,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       )}
 
       {/* Header with search and filters */}
-      {activeTab !== 'calculate' && activeTab !== 'statements' && (
+      {activeTab !== 'calculate' && activeTab !== 'statements' && activeTab !== 'output' && (
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -1149,7 +1149,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       )}
 
       {/* Data table */}
-      {activeTab !== 'calculate' && activeTab !== 'statements' && (
+      {activeTab !== 'calculate' && activeTab !== 'statements' && activeTab !== 'output' && (
         <AdminDataTable
           data={getCurrentData() as any[]}
           columns={getCurrentColumns() as any[]}
@@ -1176,7 +1176,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       )}
 
       {/* Bulk action bar */}
-      {activeTab !== 'calculate' && activeTab !== 'statements' && (
+      {activeTab !== 'calculate' && activeTab !== 'statements' && activeTab !== 'output' && (
         <BulkActionBar
           selectedIds={selectedIds}
           totalCount={totalCount}
