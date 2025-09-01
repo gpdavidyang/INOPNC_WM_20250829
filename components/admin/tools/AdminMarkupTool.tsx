@@ -304,42 +304,48 @@ export default function AdminMarkupTool({ profile }: AdminMarkupToolProps) {
             </div>
           )}
 
-          {/* 안내 섹션 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center mb-2">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">1</span>
+          {/* 간소화된 워크플로우 안내 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="flex items-start mb-4">
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-purple-600 dark:text-purple-400 font-bold text-lg">1</span>
                 </div>
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">도면 업로드</h4>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">도면 업로드 및 마킹</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    JPG, PNG, PDF 형식의 도면을 업로드하고 바로 다양한 마킹 도구를 사용하여 필요한 표시를 추가하세요
+                  </p>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
-                JPG, PNG, PDF 형식의 도면을 업로드하세요
-              </p>
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <FileImage className="h-4 w-4" />
+                <span>지원 형식: JPG, PNG, PDF</span>
+                <span className="mx-2">|</span>
+                <Edit3 className="h-4 w-4" />
+                <span>실시간 마킹 편집</span>
+              </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center mb-2">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">2</span>
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+              <div className="flex items-start mb-4">
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mr-4">
+                  <span className="text-purple-600 dark:text-purple-400 font-bold text-lg">2</span>
                 </div>
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">마킹 작업</h4>
-              </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
-                다양한 도구로 도면에 마킹을 추가하세요
-              </p>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center mb-2">
-                <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mr-3">
-                  <span className="text-blue-600 dark:text-blue-400 font-semibold">3</span>
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">저장 및 활용</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                    완성된 도면마킹을 문서함에 저장하고 작업일지에서 활용하거나 필요시 팀원들과 공유하세요
+                  </p>
                 </div>
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">저장 및 공유</h4>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 ml-11">
-                문서함에 저장하고 필요시 공유하세요
-              </p>
+              <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-lg p-3">
+                <FolderOpen className="h-4 w-4" />
+                <span>자동 저장</span>
+                <span className="mx-2">|</span>
+                <FileText className="h-4 w-4" />
+                <span>작업일지 연동</span>
+              </div>
             </div>
           </div>
         </div>
