@@ -187,17 +187,15 @@ export async function POST(request: NextRequest) {
       .insert([
         {
           title: file.name,
-          filename: fileName,
-          file_path: filePath,
+          file_name: fileName,
           file_url: urlData.publicUrl,
           file_size: file.size,
           mime_type: file.type,
-          category: category || 'personal',
-          document_type: documentType,
-          is_required: isRequired,
+          document_type: documentType || 'general',
+          folder_path: filePath,
           owner_id: user.id,
           is_public: false,
-          status: 'active'
+          description: `업로드된 파일: ${file.name}`
         }
       ])
       .select()
@@ -217,12 +215,13 @@ export async function POST(request: NextRequest) {
         name: documentData.title,
         type: documentData.mime_type,
         size: documentData.file_size,
-        category: documentData.category,
         uploadedAt: documentData.created_at,
         uploadedBy: uploadedBy,
         url: documentData.file_url,
         documentType: documentData.document_type,
-        isRequired: documentData.is_required
+        description: documentData.description,
+        fileName: documentData.file_name,
+        isPublic: documentData.is_public
       }
     })
 

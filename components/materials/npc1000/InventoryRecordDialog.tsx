@@ -5,17 +5,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { createClient } from '@/lib/supabase/client'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Package, ArrowDown, ArrowUp, FileText, AlertCircle } from 'lucide-react'
+import { 
+  Package, 
+  TrendingUp, 
+  TrendingDown, 
+  Calendar,
+  AlertCircle,
+  CheckCircle,
+  Info,
+  Calculator,
+  Warehouse
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { recordInventoryTransaction } from '@/app/actions/npc-materials'
-
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 interface Props {
   open: boolean
@@ -37,13 +47,14 @@ export default function InventoryRecordDialog({
   
   // State
   const [saving, setSaving] = useState(false)
-  const [activeTab, setActiveTab] = useState<'incoming' | 'outgoing'>('incoming')
+  const [transactionType, setTransactionType] = useState<'in' | 'out'>('in')
   const [currentStock, setCurrentStock] = useState<number>(0)
   const [loadingStock, setLoadingStock] = useState(false)
   
   // Form state
   const [quantity, setQuantity] = useState('')
   const [notes, setNotes] = useState('')
+  const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split('T')[0])
 
   // Touch-responsive sizing
   const getButtonSize = () => {
@@ -95,7 +106,8 @@ export default function InventoryRecordDialog({
     if (open) {
       setQuantity('')
       setNotes('')
-      setActiveTab('incoming')
+      setTransactionType('in')
+      setTransactionDate(new Date().toISOString().split('T')[0])
       fetchCurrentStock()
     }
   }, [open, siteId])
@@ -103,7 +115,7 @@ export default function InventoryRecordDialog({
   // Calculate projected stock after transaction
   const calculateProjectedStock = () => {
     const quantityNum = parseFloat(quantity) || 0
-    if (activeTab === 'incoming') {
+    if (transactionType === 'in') {
       return currentStock + quantityNum
     } else {
       return currentStock - quantityNum
@@ -124,9 +136,9 @@ export default function InventoryRecordDialog({
 
     // Check for negative stock warning
     const projectedStock = calculateProjectedStock()
-    if (projectedStock < 0 && activeTab === 'outgoing') {
+    if (projectedStock < 0 && transactionType === 'out') {
       const confirmed = window.confirm(
-        `사용 후 재고가 음수가 됩니다 (${projectedStock}kg).\n계속 진행하시겠습니까?`
+        `⚠️ 주의\n\n사용 후 재고가 부족합니다.\n예상 재고: ${projectedStock.toLocaleString()}kg\n\n계속 진행하시겠습니까?`
       )
       if (!confirmed) return
     }
@@ -150,22 +162,28 @@ export default function InventoryRecordDialog({
         throw new Error('NPC-1000 자재를 찾을 수 없습니다.')
       }
 
-      const actionText = activeTab === 'incoming' ? '입고' : '사용량'
+      const actionText = transactionType === 'in' ? '입고' : '사용'
       
       // Create material transaction using server action
       const transactionResult = await recordInventoryTransaction({
         siteId: siteId,
         materialCode: 'NPC-1000',
-        transactionType: activeTab === 'incoming' ? 'in' : 'out',
+        transactionType: transactionType,
         quantity: quantityNum,
-        transactionDate: new Date().toISOString(),
-        notes: `${actionText} 기록 - NPC-1000 | 계산 후 재고: ${projectedStock}kg${notes ? ' | ' + notes : ''}`
+        transactionDate: new Date(transactionDate).toISOString(),
+        notes: notes || `${actionText} 기록 - ${format(new Date(transactionDate), 'yyyy년 MM월 dd일', { locale: ko })}`
       })
 
       if (!transactionResult.success) {
         throw new Error(transactionResult.error || '거래 기록에 실패했습니다.')
       }
-      toast.success(`${actionText} 기록이 성공적으로 저장되었습니다.`)
+      
+      toast.success(
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <span>{actionText} 기록이 저장되었습니다.</span>
+        </div>
+      )
       
       onSuccess?.()
       onOpenChange(false)
@@ -180,223 +198,302 @@ export default function InventoryRecordDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className={getFullTypographyClass('heading', 'lg', isLargeFont)}>
-            입고사용량 기록
+          <DialogTitle className={`${getFullTypographyClass('heading', 'xl', isLargeFont)} flex items-center gap-3`}>
+            <Package className="h-6 w-6 text-blue-600" />
+            NPC-1000 입고/사용량 기록
           </DialogTitle>
           {siteName && (
-            <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
-              현장: {siteName}
-            </p>
+            <div className="flex items-center gap-2 mt-2">
+              <Warehouse className="h-4 w-4 text-gray-500" />
+              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
+                현장: {siteName}
+              </p>
+            </div>
           )}
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 mt-6">
+          {/* 거래 유형 선택 - 탭 형식으로 개선 */}
+          <div>
+            <Label className={`${getFullTypographyClass('body', 'sm', isLargeFont)} mb-3 block`}>
+              거래 유형 선택
+            </Label>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setTransactionType('in')}
+                className={`
+                  relative p-6 rounded-xl border-2 transition-all
+                  ${transactionType === 'in' 
+                    ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }
+                `}
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className={`
+                    p-3 rounded-full
+                    ${transactionType === 'in' 
+                      ? 'bg-green-100 dark:bg-green-900/50' 
+                      : 'bg-gray-100 dark:bg-gray-800'
+                    }
+                  `}>
+                    <TrendingUp className={`
+                      h-8 w-8
+                      ${transactionType === 'in' 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-gray-400'
+                      }
+                    `} />
+                  </div>
+                  <div>
+                    <h3 className={`
+                      ${getFullTypographyClass('heading', 'md', isLargeFont)} font-semibold
+                      ${transactionType === 'in' 
+                        ? 'text-green-700 dark:text-green-300' 
+                        : 'text-gray-700 dark:text-gray-300'
+                      }
+                    `}>
+                      입고 등록
+                    </h3>
+                    <p className={`
+                      ${getFullTypographyClass('body', 'sm', isLargeFont)} mt-1
+                      ${transactionType === 'in' 
+                        ? 'text-green-600 dark:text-green-400' 
+                        : 'text-gray-500 dark:text-gray-400'
+                      }
+                    `}>
+                      자재 입고 시 선택
+                    </p>
+                  </div>
+                </div>
+                {transactionType === 'in' && (
+                  <div className="absolute top-2 right-2">
+                    <CheckCircle className="h-6 w-6 text-green-500" />
+                  </div>
+                )}
+              </button>
 
-          {/* NPC-1000 Fixed Material Section */}
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Package className={`${getIconSize()} text-blue-600`} />
-              <h3 className={`${getFullTypographyClass('heading', 'sm', isLargeFont)} font-medium`}>
-                NPC-1000
-              </h3>
+              <button
+                type="button"
+                onClick={() => setTransactionType('out')}
+                className={`
+                  relative p-6 rounded-xl border-2 transition-all
+                  ${transactionType === 'out' 
+                    ? 'border-red-500 bg-red-50 dark:bg-red-900/20' 
+                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }
+                `}
+              >
+                <div className="flex flex-col items-center gap-3">
+                  <div className={`
+                    p-3 rounded-full
+                    ${transactionType === 'out' 
+                      ? 'bg-red-100 dark:bg-red-900/50' 
+                      : 'bg-gray-100 dark:bg-gray-800'
+                    }
+                  `}>
+                    <TrendingDown className={`
+                      h-8 w-8
+                      ${transactionType === 'out' 
+                        ? 'text-red-600 dark:text-red-400' 
+                        : 'text-gray-400'
+                      }
+                    `} />
+                  </div>
+                  <div>
+                    <h3 className={`
+                      ${getFullTypographyClass('heading', 'md', isLargeFont)} font-semibold
+                      ${transactionType === 'out' 
+                        ? 'text-red-700 dark:text-red-300' 
+                        : 'text-gray-700 dark:text-gray-300'
+                      }
+                    `}>
+                      사용량 등록
+                    </h3>
+                    <p className={`
+                      ${getFullTypographyClass('body', 'sm', isLargeFont)} mt-1
+                      ${transactionType === 'out' 
+                        ? 'text-red-600 dark:text-red-400' 
+                        : 'text-gray-500 dark:text-gray-400'
+                      }
+                    `}>
+                      자재 사용 시 선택
+                    </p>
+                  </div>
+                </div>
+                {transactionType === 'out' && (
+                  <div className="absolute top-2 right-2">
+                    <CheckCircle className="h-6 w-6 text-red-500" />
+                  </div>
+                )}
+              </button>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label className={getFullTypographyClass('body', 'sm', isLargeFont)}>
-                  구분 *
-                </Label>
-                <Select value={activeTab} onValueChange={(value) => setActiveTab(value as 'incoming' | 'outgoing')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-                    <SelectItem value="incoming">
-                      <div className="flex items-center gap-2">
-                        <ArrowDown className="h-4 w-4 text-green-600" />
-                        <span>입고</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="outgoing">
-                      <div className="flex items-center gap-2">
-                        <ArrowUp className="h-4 w-4 text-red-600" />
-                        <span>사용량</span>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          </div>
 
-              <div>
-                <Label htmlFor="quantity" className={getFullTypographyClass('body', 'sm', isLargeFont)}>
-                  수량 *
-                </Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="quantity"
-                    type="number"
-                    step="1"
-                    min="0"
-                    placeholder="0"
-                    value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
-                    className="flex-1"
-                  />
-                  <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-md">
-                    <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
-                      kg
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <Label className={getFullTypographyClass('body', 'sm', isLargeFont)}>
-                  현재 재고
-                </Label>
-                <div className="flex gap-2">
-                  <div className="flex-1 flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-md">
+          {/* 현재 재고 상태 표시 */}
+          <Card className="p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Warehouse className="h-6 w-6 text-blue-600" />
+                <div>
+                  <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-blue-600 dark:text-blue-400`}>
+                    현재 재고량
+                  </p>
+                  <p className={`${getFullTypographyClass('heading', 'xl', isLargeFont)} font-bold text-blue-800 dark:text-blue-200`}>
                     {loadingStock ? (
-                      <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
-                        조회중...
-                      </span>
+                      <span className="text-gray-400">조회중...</span>
                     ) : (
-                      <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium`}>
-                        {currentStock.toLocaleString()}
-                      </span>
+                      <>{currentStock.toLocaleString()} kg</>
                     )}
-                  </div>
-                  <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-md">
-                    <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
-                      kg
-                    </span>
-                  </div>
+                  </p>
                 </div>
               </div>
+              <Info className="h-5 w-5 text-blue-500" />
             </div>
           </Card>
 
+          {/* 입력 폼 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <Label htmlFor="quantity" className={`${getFullTypographyClass('body', 'sm', isLargeFont)} mb-2 flex items-center gap-2`}>
+                <Calculator className="h-4 w-4" />
+                {transactionType === 'in' ? '입고량' : '사용량'} (kg) *
+              </Label>
+              <div className="relative">
+                <Input
+                  id="quantity"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  placeholder="0"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  className={`
+                    pr-16 text-lg font-semibold
+                    ${transactionType === 'in' 
+                      ? 'focus:ring-green-500 focus:border-green-500' 
+                      : 'focus:ring-red-500 focus:border-red-500'
+                    }
+                  `}
+                />
+                <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                  <span className="text-gray-500 font-medium">kg</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="date" className={`${getFullTypographyClass('body', 'sm', isLargeFont)} mb-2 flex items-center gap-2`}>
+                <Calendar className="h-4 w-4" />
+                거래 일자 *
+              </Label>
+              <Input
+                id="date"
+                type="date"
+                value={transactionDate}
+                onChange={(e) => setTransactionDate(e.target.value)}
+                max={new Date().toISOString().split('T')[0]}
+                className="text-lg"
+              />
+            </div>
+          </div>
+
+          {/* 실시간 재고 계산 표시 */}
+          {quantity && (
+            <Card className={`
+              p-6 border-2
+              ${calculateProjectedStock() < 0 
+                ? 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700' 
+                : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+              }
+            `}>
+              <div className="space-y-4">
+                <h3 className={`${getFullTypographyClass('heading', 'md', isLargeFont)} font-semibold flex items-center gap-2`}>
+                  <Calculator className="h-5 w-5" />
+                  재고 변동 계산
+                </h3>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-1">현재 재고</p>
+                    <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">
+                      {currentStock.toLocaleString()}
+                    </p>
+                    <p className="text-sm text-gray-500">kg</p>
+                  </div>
+                  
+                  <div className="text-center flex items-center justify-center">
+                    <div>
+                      <p className="text-sm text-gray-500 mb-1">
+                        {transactionType === 'in' ? '입고' : '사용'}
+                      </p>
+                      <p className={`text-2xl font-bold ${
+                        transactionType === 'in' ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {transactionType === 'in' ? '+' : '-'}{parseFloat(quantity || '0').toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-500">kg</p>
+                    </div>
+                  </div>
+                  
+                  <div className="text-center">
+                    <p className="text-sm text-gray-500 mb-1">예상 재고</p>
+                    <p className={`text-2xl font-bold ${
+                      calculateProjectedStock() < 0 ? 'text-red-600' : 'text-blue-600'
+                    }`}>
+                      {calculateProjectedStock().toLocaleString()}
+                    </p>
+                    <p className="text-sm text-gray-500">kg</p>
+                  </div>
+                </div>
+
+                {calculateProjectedStock() < 0 && (
+                  <div className="flex items-start gap-2 mt-4 p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                    <AlertCircle className="h-5 w-5 text-red-600 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-red-700 dark:text-red-300">
+                        재고 부족 경고
+                      </p>
+                      <p className="text-sm text-red-600 dark:text-red-400 mt-1">
+                        사용 후 재고가 {Math.abs(calculateProjectedStock()).toLocaleString()}kg 부족합니다.
+                        추가 입고가 필요합니다.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          )}
+
+          {/* 비고 입력 */}
           <div>
-            <Label htmlFor="notes" className={getFullTypographyClass('body', 'sm', isLargeFont)}>
+            <Label htmlFor="notes" className={`${getFullTypographyClass('body', 'sm', isLargeFont)} mb-2`}>
               비고 및 특이사항
             </Label>
             <Textarea
               id="notes"
-              placeholder="관련 특이사항이나 품질 상태, 사용 위치, 담당자 등을 기록하세요"
+              placeholder={transactionType === 'in' 
+                ? "입고 관련 정보 (공급업체, 운송 정보, 품질 상태 등)"
+                : "사용 위치, 작업 내용, 담당자 등을 기록하세요"
+              }
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
               className={getFullTypographyClass('body', 'sm', isLargeFont)}
             />
           </div>
-
-          {/* Stock Calculation Card */}
-          {quantity && (
-            <Card className="p-4 bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800">
-              <div className="flex items-center gap-2 mb-4">
-                <Package className="h-5 w-5 text-green-600" />
-                <h3 className={`${getFullTypographyClass('heading', 'sm', isLargeFont)} font-medium text-green-800 dark:text-green-400`}>
-                  재고 계산
-                </h3>
-              </div>
-              
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-muted-foreground">현재 재고:</span>
-                  <span className="font-medium text-lg">
-                    {currentStock.toLocaleString()} kg
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-t">
-                  <span className="text-muted-foreground">
-                    {activeTab === 'incoming' ? '입고량 (+)' : '사용량 (-)'}:
-                  </span>
-                  <span className={`font-medium text-lg ${
-                    activeTab === 'incoming' ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {activeTab === 'incoming' ? '+' : '-'}{parseFloat(quantity || '0').toLocaleString()} kg
-                  </span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-t bg-gray-50 dark:bg-gray-800 -mx-4 px-4 rounded">
-                  <span className="font-semibold">계산 후 재고:</span>
-                  <span className={`font-bold text-xl ${
-                    calculateProjectedStock() < 0 ? 'text-red-600' : 'text-blue-600'
-                  }`}>
-                    {calculateProjectedStock().toLocaleString()} kg
-                  </span>
-                </div>
-                
-                {calculateProjectedStock() < 0 && (
-                  <div className="flex items-center gap-2 mt-2 p-2 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded">
-                    <AlertCircle className="h-4 w-4 text-red-600" />
-                    <span className="text-sm text-red-600">
-                      재고가 부족합니다. 음수 재고가 발생할 예정입니다.
-                    </span>
-                  </div>
-                )}
-              </div>
-            </Card>
-          )}
-
-          {/* Transaction Summary */}
-          {quantity && (
-            <Card className="p-4 bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-2 mb-3">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <h3 className={`${getFullTypographyClass('heading', 'sm', isLargeFont)} font-medium text-blue-800 dark:text-blue-400`}>
-                  거래 요약
-                </h3>
-              </div>
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">자재:</span>
-                  <span className="font-medium">NPC-1000</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">구분:</span>
-                  <Badge className={activeTab === 'incoming' 
-                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
-                    : 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
-                  }>
-                    {activeTab === 'incoming' ? '입고' : '사용량'}
-                  </Badge>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">수량:</span>
-                  <span className="font-medium">
-                    {parseFloat(quantity).toLocaleString()}kg
-                  </span>
-                </div>
-                {remainingQuantity && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">잔여:</span>
-                    <span className="font-medium text-blue-600">
-                      {parseFloat(remainingQuantity).toLocaleString()}kg
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">일자:</span>
-                  <span className="font-medium">
-                    {new Date().toLocaleDateString('ko-KR')}
-                  </span>
-                </div>
-              </div>
-            </Card>
-          )}
         </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-3 mt-8">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={saving}
             size={getButtonSize()}
+            className="min-w-[100px]"
           >
             취소
           </Button>
@@ -404,12 +501,25 @@ export default function InventoryRecordDialog({
             onClick={submitRecord}
             disabled={saving || !quantity}
             size={getButtonSize()}
-            className={activeTab === 'incoming' 
-              ? 'bg-green-600 hover:bg-green-700' 
-              : 'bg-red-600 hover:bg-red-700'
-            }
+            className={`
+              min-w-[140px] font-semibold
+              ${transactionType === 'in' 
+                ? 'bg-green-600 hover:bg-green-700 text-white' 
+                : 'bg-red-600 hover:bg-red-700 text-white'
+              }
+            `}
           >
-            {saving ? '저장 중...' : '저장'}
+            {saving ? (
+              <span className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                저장 중...
+              </span>
+            ) : (
+              <span className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4" />
+                {transactionType === 'in' ? '입고 등록' : '사용량 등록'}
+              </span>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
