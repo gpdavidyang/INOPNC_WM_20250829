@@ -702,8 +702,8 @@ function CoreFilesSection({
         .from('unified_documents')
         .insert({
           title: type === 'blueprint' ? '현장 공도면' : 'PTW 작업허가서',
-          filename: file.name,  // Keep original filename for display
-          file_path: filePath,  // Use sanitized path for storage
+          file_name: file.name,  // Keep original filename for display
+          file_url: filePath,  // Use sanitized path for storage (stored as URL path)
           file_size: file.size,
           mime_type: file.type,
           category_type: 'shared',
@@ -757,7 +757,7 @@ function CoreFilesSection({
       // Delete from storage
       await supabase.storage
         .from('documents')
-        .remove([doc.file_path])
+        .remove([doc.file_url])
 
       // Delete document record
       await supabase

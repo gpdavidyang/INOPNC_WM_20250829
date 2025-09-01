@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { approveDailyReport } from '@/app/actions/daily-reports'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -56,36 +55,12 @@ interface DailyReportDetailMobileProps {
 export default function DailyReportDetailMobile({ report, currentUser }: DailyReportDetailMobileProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [showRejectDialog, setShowRejectDialog] = useState(false)
-  const [approvalComments, setApprovalComments] = useState('')
   const [showDetailedWorkLogs, setShowDetailedWorkLogs] = useState(false)
   const [showAttendanceDetails, setShowAttendanceDetails] = useState(false)
-
-  const canApprove = 
-    ['site_manager', 'admin', 'system_admin'].includes(currentUser.role) &&
-    report.status === 'submitted'
 
   const canEdit = 
     report.created_by === currentUser.id &&
     report.status === 'draft'
-
-  const handleApproval = async (approve: boolean) => {
-    setLoading(true)
-    try {
-      const result = await approveDailyReport(report.id, approve, approvalComments)
-      if (result.success) {
-        toast.success(approve ? '보고서가 승인되었습니다.' : '보고서가 반려되었습니다.')
-        router.refresh()
-        setShowRejectDialog(false)
-      } else {
-        showErrorNotification(result.error || '처리 중 오류가 발생했습니다', 'handleApproval')
-      }
-    } catch (error) {
-      showErrorNotification(error, 'handleApproval')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -149,26 +124,6 @@ export default function DailyReportDetailMobile({ report, currentUser }: DailyRe
               >
                 <Edit className="h-3.5 w-3.5" />
               </Button>
-            )}
-            {canApprove && (
-              <div className="flex gap-1">
-                <Button
-                  variant="danger"
-                  size="compact"
-                  onClick={() => setShowRejectDialog(true)}
-                  className="touch-manipulation text-xs p-1.5"
-                >
-                  <XCircle className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="primary"
-                  size="compact"
-                  onClick={() => handleApproval(true)}
-                  className="touch-manipulation text-xs p-1.5"
-                >
-                  <CheckCircle className="h-3.5 w-3.5" />
-                </Button>
-              </div>
             )}
           </div>
         </div>
@@ -649,7 +604,7 @@ export default function DailyReportDetailMobile({ report, currentUser }: DailyRe
               수정
             </button>
           )}
-          {!canEdit && !canApprove && (
+          {!canEdit && (
             <button
               className="flex-1 h-12 px-4 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-center gap-2 font-medium"
             >
@@ -660,8 +615,8 @@ export default function DailyReportDetailMobile({ report, currentUser }: DailyRe
         </div>
       </div>
 
-      {/* 반려 다이얼로그 - 모바일 최적화 */}
-      {showRejectDialog && (
+      {/* 반려 다이얼로그 - 제거됨 */}
+      {false && (
         <div className="fixed inset-0 z-50 flex items-end justify-center">
           <div 
             className="absolute inset-0 bg-black bg-opacity-50"
