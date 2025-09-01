@@ -32,6 +32,7 @@ interface MarkupEditorProps {
   onClose?: () => void
   profile?: any
   initialView?: 'list' | 'editor'
+  embedded?: boolean
 }
 
 export function MarkupEditor({ 
@@ -40,7 +41,8 @@ export function MarkupEditor({
   onSave,
   onClose,
   profile,
-  initialView = 'list'
+  initialView = 'list',
+  embedded = false
 }: MarkupEditorProps) {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
@@ -363,18 +365,20 @@ export function MarkupEditor({
         </div>
       )}
       
-      {/* 상단 툴바 */}
-      <TopToolbar
-        fileName={blueprintFileName || (editorState.currentFile as any)?.title || '새 마킹'}
-        onHome={handleBackToList}
-        onOpen={() => setEditorState(prev => ({ ...prev, showOpenDialog: true }))}
-        onSave={() => setEditorState(prev => ({ ...prev, showSaveDialog: true }))}
-        onShare={() => console.log('Share clicked')}
-        onClose={onClose}
-        isMobile={isMobile}
-        isLargeFont={isLargeFont}
-        touchMode={touchMode}
-      />
+      {/* 상단 툴바 - embedded 모드에서는 간소화 */}
+      {!embedded && (
+        <TopToolbar
+          fileName={blueprintFileName || (editorState.currentFile as any)?.title || '새 마킹'}
+          onHome={handleBackToList}
+          onOpen={() => setEditorState(prev => ({ ...prev, showOpenDialog: true }))}
+          onSave={() => setEditorState(prev => ({ ...prev, showSaveDialog: true }))}
+          onShare={() => console.log('Share clicked')}
+          onClose={onClose}
+          isMobile={isMobile}
+          isLargeFont={isLargeFont}
+          touchMode={touchMode}
+        />
+      )}
 
       {/* 메인 영역 */}
       <div className="flex-1 flex overflow-hidden">
@@ -450,8 +454,8 @@ export function MarkupEditor({
         </div>
       )}
 
-      {/* 하단 상태바 (데스크톱만) */}
-      {!isMobile && blueprintUrl && (
+      {/* 하단 상태바 (데스크톱만, embedded 모드 제외) */}
+      {!isMobile && !embedded && blueprintUrl && (
         <BottomStatusbar
           fileName={blueprintFileName || editorState.currentFile?.fileName || '새 마킹'}
           markupCount={editorState.markupObjects.length}
@@ -462,26 +466,30 @@ export function MarkupEditor({
         />
       )}
 
-      {/* 다이얼로그 */}
-      <SaveDialog
-        open={editorState.showSaveDialog}
-        onOpenChange={(open) => setEditorState(prev => ({ ...prev, showSaveDialog: open }))}
-        onSave={handleSave}
-        defaultFileName={editorState.currentFile?.fileName || ''}
-      />
+      {/* 다이얼로그 - embedded 모드에서는 숨김 */}
+      {!embedded && (
+        <>
+          <SaveDialog
+            open={editorState.showSaveDialog}
+            onOpenChange={(open) => setEditorState(prev => ({ ...prev, showSaveDialog: open }))}
+            onSave={handleSave}
+            defaultFileName={editorState.currentFile?.fileName || ''}
+          />
 
-      <OpenDialog
-        open={editorState.showOpenDialog}
-        onOpenChange={(open) => setEditorState(prev => ({ ...prev, showOpenDialog: open }))}
-        onOpen={handleOpenDocument as any}
-      />
+          <OpenDialog
+            open={editorState.showOpenDialog}
+            onOpenChange={(open) => setEditorState(prev => ({ ...prev, showOpenDialog: open }))}
+            onOpen={handleOpenDocument as any}
+          />
 
-      <ShareDialog
-        open={false}
-        onOpenChange={() => {}}
-        onShare={handleShare}
-        currentPermissions={editorState.currentFile?.permissions}
-      />
+          <ShareDialog
+            open={false}
+            onOpenChange={() => {}}
+            onShare={handleShare}
+            currentPermissions={editorState.currentFile?.permissions}
+          />
+        </>
+      )}
     </div>
   )
 }

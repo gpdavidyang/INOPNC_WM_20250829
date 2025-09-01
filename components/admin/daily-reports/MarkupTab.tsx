@@ -27,6 +27,8 @@ interface MarkupFile {
   markup_type?: 'drawing' | 'blueprint' | 'sketch' | 'markup'
   created_at: string
   created_by: string
+  title?: string
+  metadata?: any
 }
 
 interface MarkupTabProps {
@@ -68,15 +70,51 @@ export default function MarkupTab({
       setError(null)
       
       const supabase = createClient()
-      const { data, error } = await supabase
-        .from('daily_documents')
-        .select('*')
-        .eq('daily_report_id', reportId)
-        .eq('file_type', 'markup')
+      
+      // 먼저 작업일지에서 현장 정보를 가져옴
+      const { data: reportData, error: reportError } = await supabase
+        .from('daily_reports')
+        .select('site_id, sites(name)')
+        .eq('id', reportId)
+        .single()
+      
+      if (reportError) throw reportError
+      
+      if (!reportData?.site_id) {
+        setMarkups([])
+        return
+      }
+      
+      // 현장에 할당된 도면마킹 문서들을 가져옴
+      const { data: unifiedDocs, error: unifiedError } = await supabase
+        .from('unified_document_system')
+        .select(`
+          *,
+          profiles!unified_document_system_uploaded_by_fkey(full_name, email)
+        `)
+        .eq('site_id', reportData.site_id)
+        .eq('category_type', 'markup')
+        .eq('status', 'active')
         .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setMarkups(data || [])
+      
+      if (unifiedError) throw unifiedError
+      
+      // 데이터 형식을 기존 MarkupFile 형식으로 변환
+      const formattedMarkups = (unifiedDocs || []).map(doc => ({
+        id: doc.id,
+        filename: doc.file_name,
+        file_path: doc.file_url,
+        file_size: doc.file_size || 0,
+        mime_type: doc.mime_type,
+        description: doc.description,
+        markup_type: 'markup' as const,
+        created_at: doc.created_at,
+        created_by: doc.uploaded_by,
+        title: doc.title,
+        metadata: doc.metadata
+      }))
+      
+      setMarkups(formattedMarkups)
     } catch (error) {
       console.error('Error fetching markups:', error)
       setError('도면마킹을 불러오는데 실패했습니다.')
@@ -209,22 +247,36 @@ export default function MarkupTab({
 
   const handleDownload = async (markup: MarkupFile) => {
     try {
-      const supabase = createClient()
-      const { data, error } = await supabase.storage
-        .from('markup-documents')
-        .download(markup.file_path)
+      let downloadUrl: string
+      
+      if (markup.file_path.startsWith('file://')) {
+        // 로컬 파일인 경우 API를 통해 다운로드
+        const fileName = markup.file_path.split('/').pop()
+        downloadUrl = `/api/files/markup/${fileName}`
+      } else {
+        // Supabase storage 파일인 경우
+        const supabase = createClient()
+        const { data, error } = await supabase.storage
+          .from('markup-documents')
+          .download(markup.file_path)
 
-      if (error) throw error
+        if (error) throw error
+
+        downloadUrl = URL.createObjectURL(data)
+      }
 
       // Create download link
-      const url = URL.createObjectURL(data)
       const a = document.createElement('a')
-      a.href = url
+      a.href = downloadUrl
       a.download = markup.filename
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      
+      // Blob URL인 경우에만 revoke
+      if (downloadUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(downloadUrl)
+      }
     } catch (error) {
       console.error('Error downloading markup:', error)
       setSaveStatus({ type: 'error', message: '도면마킹 다운로드에 실패했습니다.' })
@@ -232,6 +284,15 @@ export default function MarkupTab({
   }
 
   const getMarkupUrl = (markup: MarkupFile) => {
+    // file:// URL을 직접 반환하거나, 웹에서 접근 가능한 URL로 변환
+    if (markup.file_path.startsWith('file://')) {
+      // 로컬 파일 경로를 웹 경로로 변환 
+      // 실제로는 서버에서 파일을 제공하는 API가 필요함
+      const fileName = markup.file_path.split('/').pop()
+      return `/api/files/markup/${fileName}` // 추후 구현 필요
+    }
+    
+    // Supabase storage URL인 경우
     const supabase = createClient()
     const { data } = supabase.storage
       .from('markup-documents')
@@ -303,46 +364,38 @@ export default function MarkupTab({
             {markups.length}개
           </span>
         </h3>
+        
+        {markups.length > 0 && (
+          <div className="text-sm text-gray-600">
+            현장에 할당된 도면들입니다. 클릭하여 마킹을 추가하거나 편집할 수 있습니다.
+          </div>
+        )}
       </div>
 
-      {/* Upload Section */}
-      {isEditing && (
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-          <input
-            type="file"
-            id="markup-upload"
-            className="hidden"
-            onChange={handleMarkupUpload}
-            accept="image/*,.pdf,.dwg,.dxf"
-            multiple
-            disabled={uploading}
-          />
-          <label
-            htmlFor="markup-upload"
-            className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 ${
-              uploading 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-blue-600 hover:bg-blue-700'
-            } text-white rounded-lg transition-colors`}
-          >
-            {uploading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                업로드 중...
-              </>
-            ) : (
-              <>
-                <Upload className="h-5 w-5" />
-                파일 선택
-              </>
-            )}
-          </label>
-          <p className="mt-2 text-sm text-gray-600">
-            이미지, PDF, DWG, DXF 파일을 업로드할 수 있습니다.
-          </p>
-          <p className="text-xs text-gray-500 mt-1">
-            도면, 스케치, 마킹된 이미지 등을 업로드하세요.
-          </p>
+      {/* Info Section */}
+      {markups.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <PenTool className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-blue-900 mb-1">도면 마킹 편집</h4>
+              <p className="text-sm text-blue-700 mb-3">
+                아래 도면들을 클릭하여 마킹을 추가하거나 편집할 수 있습니다. 
+                변경사항은 자동으로 저장됩니다.
+              </p>
+              {isEditing && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => window.open('/dashboard/markup?view=list', '_blank')}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700"
+                  >
+                    <PenTool className="h-4 w-4" />
+                    새 마킹 편집기
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -364,6 +417,7 @@ export default function MarkupTab({
               onView={() => setSelectedMarkup(markup)}
               onDelete={() => handleDelete(markup)}
               onDownload={() => handleDownload(markup)}
+              onEdit={() => window.open(`/dashboard/markup?document=${markup.id}&mode=edit`, '_blank')}
               isEditing={isEditing}
               getMarkupUrl={getMarkupUrl}
               formatFileSize={formatFileSize}
@@ -441,6 +495,7 @@ interface MarkupCardProps {
   onView: () => void
   onDelete: () => void
   onDownload: () => void
+  onEdit: () => void
   isEditing: boolean
   getMarkupUrl: (markup: MarkupFile) => string
   formatFileSize: (bytes: number) => string
@@ -453,6 +508,7 @@ function MarkupCard({
   onView, 
   onDelete, 
   onDownload, 
+  onEdit,
   isEditing, 
   getMarkupUrl, 
   formatFileSize,
@@ -484,8 +540,8 @@ function MarkupCard({
       </div>
       
       <div className="p-4">
-        <h4 className="font-medium text-gray-900 truncate mb-1" title={markup.filename}>
-          {markup.filename}
+        <h4 className="font-medium text-gray-900 truncate mb-1" title={markup.title || markup.filename}>
+          {markup.title || markup.filename}
         </h4>
         {markup.description && (
           <p className="text-sm text-gray-600 mb-2 line-clamp-2">
@@ -500,6 +556,16 @@ function MarkupCard({
 
       <div className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
         <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onEdit()
+            }}
+            className="p-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors"
+            title="마킹 편집"
+          >
+            <PenTool className="h-4 w-4" />
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation()
@@ -520,18 +586,6 @@ function MarkupCard({
           >
             <Download className="h-4 w-4" />
           </button>
-          {isEditing && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                onDelete()
-              }}
-              className="p-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-              title="삭제"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
         </div>
       </div>
     </div>

@@ -4,567 +4,989 @@ import { useState, useEffect } from 'react'
 import { Profile } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import { 
-  Truck, Package, CheckCircle, XCircle, Clock,
-  FileText, CreditCard, DollarSign, Search, Filter,
-  Calendar, Building2, Eye, Edit, Save, X,
-  ChevronUp, ChevronDown, ChevronsUpDown
+  Truck, Package, Calendar, Building2, Search, Filter, 
+  Download, PlusCircle, Edit, Eye, CheckCircle, 
+  XCircle, Clock, AlertTriangle, MapPin, Phone, User
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
+import { formatDate } from '@/lib/utils'
 
 interface ShipmentManagementTabProps {
   profile: Profile
 }
 
-interface ShipmentRecord {
+interface MaterialShipment {
   id: string
-  shipment_date: string
+  shipment_number: string
   site_id: string
-  site_name: string
-  amount: number
-  delivery_status: 'pending' | 'shipped' | 'delivered'
-  delivery_method: 'parcel' | 'freight' | null
-  invoice_confirmed: boolean
-  tax_invoice_issued: boolean
-  payment_confirmed: boolean
-  shipping_cost: number | null
-  tracking_number?: string
-  notes?: string
-  created_by: string
+  request_id: string | null
+  status: 'preparing' | 'shipped' | 'delivered' | 'cancelled'
+  shipment_date: string | null
+  delivery_date: string | null
+  expected_delivery_date: string | null
+  carrier: string | null
+  tracking_number: string | null
+  total_weight: number | null
+  driver_name: string | null
+  driver_phone: string | null
+  shipped_by: string | null
+  received_by: string | null
+  notes: string | null
   created_at: string
   updated_at: string
+  site?: { id: string; name: string }
+  request?: { id: string; request_number: string }
+  shipper?: { id: string; name: string }
+  receiver?: { id: string; name: string }
+  items?: MaterialShipmentItem[]
+}
+
+interface MaterialShipmentItem {
+  id: string
+  shipment_id: string
+  material_id: string
+  shipped_quantity: number
+  received_quantity: number
+  unit_price: number | null
+  batch_number: string | null
+  expiry_date: string | null
+  notes: string | null
+  material?: { id: string; name: string; code: string; unit: string }
+}
+
+interface Site {
+  id: string
+  name: string
+}
+
+interface Material {
+  id: string
+  code: string
+  name: string
+  unit: string
+}
+
+interface MaterialRequest {
+  id: string
+  request_number: string
+  site?: { name: string }
 }
 
 export default function ShipmentManagementTab({ profile }: ShipmentManagementTabProps) {
-  const [shipments, setShipments] = useState<ShipmentRecord[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7)
-  )
-  const [sites, setSites] = useState<Array<{id: string, name: string}>>([])
-  const [selectedSite, setSelectedSite] = useState<string>('')
-  const [statusFilter, setStatusFilter] = useState<string>('')
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [sortField, setSortField] = useState<'shipment_date' | 'site_name' | 'amount' | 'delivery_status' | 'shipping_cost'>('shipment_date')
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-  
-  const [editForm, setEditForm] = useState({
-    delivery_status: 'pending' as 'pending' | 'shipped' | 'delivered',
-    delivery_method: null as 'parcel' | 'freight' | null,
-    invoice_confirmed: false,
-    tax_invoice_issued: false,
-    payment_confirmed: false,
-    shipping_cost: 0,
+  const [shipments, setShipments] = useState<MaterialShipment[]>([])
+  const [sites, setSites] = useState<Site[]>([])
+  const [materials, setMaterials] = useState<Material[]>([])
+  const [requests, setRequests] = useState<MaterialRequest[]>([])
+  const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedSite, setSelectedSite] = useState<string>('all')
+  const [selectedStatus, setSelectedStatus] = useState<string>('all')
+  const [selectedDateRange, setSelectedDateRange] = useState<string>('week')
+
+  // Modal states
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
+  const [selectedShipment, setSelectedShipment] = useState<MaterialShipment | null>(null)
+
+  // Form states
+  const [formData, setFormData] = useState({
+    site_id: '',
+    request_id: '',
+    expected_delivery_date: '',
+    carrier: '',
     tracking_number: '',
-    notes: ''
+    driver_name: '',
+    driver_phone: '',
+    notes: '',
+    items: [] as {
+      material_id: string
+      shipped_quantity: string
+      unit_price: string
+      batch_number: string
+      expiry_date: string
+      notes: string
+    }[]
   })
 
   const supabase = createClient()
 
+  // Fetch data
   useEffect(() => {
-    loadSites()
-  }, [])
+    fetchShipments()
+    fetchSites()
+    fetchMaterials()
+    fetchRequests()
+  }, [selectedSite, selectedStatus, selectedDateRange])
 
-  useEffect(() => {
-    loadShipments()
-  }, [selectedMonth, selectedSite, statusFilter])
-
-  const loadSites = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('sites')
-        .select('id, name')
-        .eq('status', 'active')
-        .order('name')
-
-      if (!error && data) {
-        setSites(data)
-      }
-    } catch (error) {
-      console.error('Failed to load sites:', error)
-    }
-  }
-
-  const loadShipments = async () => {
+  const fetchShipments = async () => {
     setLoading(true)
     try {
       let query = supabase
-        .from('npc_shipments')
+        .from('material_shipments')
         .select(`
           *,
-          sites!site_id(name)
+          site:sites(id, name),
+          request:material_requests(id, request_number),
+          shipper:profiles!material_shipments_shipped_by_fkey(id, name),
+          receiver:profiles!material_shipments_received_by_fkey(id, name),
+          items:material_shipment_items(
+            *,
+            material:materials(id, code, name, unit)
+          )
         `)
-        .gte('shipment_date', `${selectedMonth}-01`)
-        .lte('shipment_date', `${selectedMonth}-31`)
-        .order('shipment_date', { ascending: false })
+        .order('created_at', { ascending: false })
 
-      if (selectedSite) {
+      if (selectedSite !== 'all') {
         query = query.eq('site_id', selectedSite)
       }
 
-      if (statusFilter) {
-        query = query.eq('delivery_status', statusFilter)
+      if (selectedStatus !== 'all') {
+        query = query.eq('status', selectedStatus)
+      }
+
+      // Date range filter
+      const now = new Date()
+      if (selectedDateRange === 'week') {
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        query = query.gte('created_at', weekAgo.toISOString())
+      } else if (selectedDateRange === 'month') {
+        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        query = query.gte('created_at', monthAgo.toISOString())
       }
 
       const { data, error } = await query
 
-      if (!error && data) {
-        const formattedData: ShipmentRecord[] = data.map(item => ({
-          ...item,
-          site_name: (item as any).sites?.name || '알 수 없음'
-        }))
-        setShipments(formattedData)
-      } else if (error) {
-        console.warn('Shipments data table not available:', error.message)
-        // Load mock data when table doesn't exist
-        const { mockShipmentData } = await import('../mockData')
-        let filteredData = mockShipmentData.filter(item => 
-          item.shipment_date.startsWith(selectedMonth)
-        )
-        
-        if (selectedSite) {
-          filteredData = filteredData.filter(item => item.site_id === selectedSite)
-        }
-        
-        if (statusFilter) {
-          filteredData = filteredData.filter(item => item.delivery_status === statusFilter)
-        }
-        
-        setShipments(filteredData)
-      }
+      if (error) throw error
+      setShipments(data || [])
     } catch (error) {
-      console.error('Failed to load shipments:', error)
-      // Fallback to mock data
-      const { mockShipmentData } = await import('../mockData')
-      let filteredData = mockShipmentData.filter(item => 
-        item.shipment_date.startsWith(selectedMonth)
-      )
-      
-      if (selectedSite) {
-        filteredData = filteredData.filter(item => item.site_id === selectedSite)
-      }
-      
-      if (statusFilter) {
-        filteredData = filteredData.filter(item => item.delivery_status === statusFilter)
-      }
-      
-      setShipments(filteredData)
+      console.error('Error fetching shipments:', error)
+      toast.error('출고 기록을 불러오는데 실패했습니다.')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleEdit = (shipment: ShipmentRecord) => {
-    setEditingId(shipment.id)
-    setEditForm({
-      delivery_status: shipment.delivery_status,
-      delivery_method: shipment.delivery_method,
-      invoice_confirmed: shipment.invoice_confirmed,
-      tax_invoice_issued: shipment.tax_invoice_issued,
-      payment_confirmed: shipment.payment_confirmed,
-      shipping_cost: shipment.shipping_cost || 0,
+  const fetchSites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('sites')
+        .select('id, name')
+        .order('name')
+
+      if (error) throw error
+      setSites(data || [])
+    } catch (error) {
+      console.error('Error fetching sites:', error)
+    }
+  }
+
+  const fetchMaterials = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('id, code, name, unit')
+        .eq('is_active', true)
+        .order('name')
+
+      if (error) throw error
+      setMaterials(data || [])
+    } catch (error) {
+      console.error('Error fetching materials:', error)
+    }
+  }
+
+  const fetchRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('material_requests')
+        .select(`
+          id,
+          request_number,
+          site:sites(name)
+        `)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setRequests(data || [])
+    } catch (error) {
+      console.error('Error fetching requests:', error)
+    }
+  }
+
+  const generateShipmentNumber = () => {
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '')
+    const random = Math.random().toString(36).substr(2, 4).toUpperCase()
+    return `SHIP-${today}-${random}`
+  }
+
+  const handleAdd = () => {
+    setFormData({
+      site_id: '',
+      request_id: '',
+      expected_delivery_date: '',
+      carrier: '',
+      tracking_number: '',
+      driver_name: '',
+      driver_phone: '',
+      notes: '',
+      items: []
+    })
+    setShowAddModal(true)
+  }
+
+  const handleEdit = (shipment: MaterialShipment) => {
+    setSelectedShipment(shipment)
+    setFormData({
+      site_id: shipment.site_id,
+      request_id: shipment.request_id || '',
+      expected_delivery_date: shipment.expected_delivery_date || '',
+      carrier: shipment.carrier || '',
       tracking_number: shipment.tracking_number || '',
-      notes: shipment.notes || ''
+      driver_name: shipment.driver_name || '',
+      driver_phone: shipment.driver_phone || '',
+      notes: shipment.notes || '',
+      items: shipment.items?.map(item => ({
+        material_id: item.material_id,
+        shipped_quantity: item.shipped_quantity.toString(),
+        unit_price: item.unit_price?.toString() || '',
+        batch_number: item.batch_number || '',
+        expiry_date: item.expiry_date || '',
+        notes: item.notes || ''
+      })) || []
+    })
+    setShowEditModal(true)
+  }
+
+  const handleDetail = (shipment: MaterialShipment) => {
+    setSelectedShipment(shipment)
+    setShowDetailModal(true)
+  }
+
+  const addItemToForm = () => {
+    setFormData({
+      ...formData,
+      items: [
+        ...formData.items,
+        {
+          material_id: '',
+          shipped_quantity: '',
+          unit_price: '',
+          batch_number: '',
+          expiry_date: '',
+          notes: ''
+        }
+      ]
     })
   }
 
-  const handleSave = async () => {
-    if (!editingId) return
+  const removeItemFromForm = (index: number) => {
+    setFormData({
+      ...formData,
+      items: formData.items.filter((_, i) => i !== index)
+    })
+  }
 
+  const updateFormItem = (index: number, field: string, value: string) => {
+    const updatedItems = [...formData.items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      [field]: value
+    }
+    setFormData({
+      ...formData,
+      items: updatedItems
+    })
+  }
+
+  const submitShipment = async () => {
     try {
-      const { error } = await supabase
-        .from('npc_shipments')
-        .update({
-          ...editForm,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingId)
-
-      if (!error) {
-        setEditingId(null)
-        await loadShipments()
+      if (!formData.site_id || formData.items.length === 0) {
+        toast.error('필수 정보를 모두 입력해주세요.')
+        return
       }
+
+      // Validate items
+      for (const item of formData.items) {
+        if (!item.material_id || !item.shipped_quantity) {
+          toast.error('모든 출고 항목의 자재와 수량을 입력해주세요.')
+          return
+        }
+        
+        const quantity = parseFloat(item.shipped_quantity)
+        if (isNaN(quantity) || quantity <= 0) {
+          toast.error('올바른 출고 수량을 입력해주세요.')
+          return
+        }
+      }
+
+      const shipmentData = {
+        shipment_number: generateShipmentNumber(),
+        site_id: formData.site_id,
+        request_id: formData.request_id || null,
+        status: 'preparing' as const,
+        expected_delivery_date: formData.expected_delivery_date || null,
+        carrier: formData.carrier || null,
+        tracking_number: formData.tracking_number || null,
+        driver_name: formData.driver_name || null,
+        driver_phone: formData.driver_phone || null,
+        shipped_by: profile.id,
+        notes: formData.notes || null,
+        total_weight: formData.items.reduce((sum, item) => sum + parseFloat(item.shipped_quantity || '0'), 0)
+      }
+
+      const { data: shipment, error: shipmentError } = await supabase
+        .from('material_shipments')
+        .insert([shipmentData])
+        .select()
+        .single()
+
+      if (shipmentError) throw shipmentError
+
+      // Insert shipment items
+      const itemsData = formData.items.map(item => ({
+        shipment_id: shipment.id,
+        material_id: item.material_id,
+        shipped_quantity: parseFloat(item.shipped_quantity),
+        received_quantity: 0,
+        unit_price: item.unit_price ? parseFloat(item.unit_price) : null,
+        batch_number: item.batch_number || null,
+        expiry_date: item.expiry_date || null,
+        notes: item.notes || null
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('material_shipment_items')
+        .insert(itemsData)
+
+      if (itemsError) throw itemsError
+
+      toast.success('출고 기록이 추가되었습니다.')
+      setShowAddModal(false)
+      fetchShipments()
     } catch (error) {
-      console.error('Failed to update shipment:', error)
-      alert('출고 정보 업데이트에 실패했습니다.')
+      console.error('Error adding shipment:', error)
+      toast.error('출고 기록 추가에 실패했습니다.')
     }
   }
 
-  const handleCancel = () => {
-    setEditingId(null)
+  const updateShipmentStatus = async (shipmentId: string, newStatus: string) => {
+    try {
+      const updates: any = {
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      }
+
+      if (newStatus === 'shipped' && !selectedShipment?.shipment_date) {
+        updates.shipment_date = new Date().toISOString()
+      }
+
+      if (newStatus === 'delivered' && !selectedShipment?.delivery_date) {
+        updates.delivery_date = new Date().toISOString()
+        updates.received_by = profile.id
+      }
+
+      const { error } = await supabase
+        .from('material_shipments')
+        .update(updates)
+        .eq('id', shipmentId)
+
+      if (error) throw error
+
+      toast.success('출고 상태가 업데이트되었습니다.')
+      fetchShipments()
+      setShowDetailModal(false)
+    } catch (error) {
+      console.error('Error updating shipment status:', error)
+      toast.error('상태 업데이트에 실패했습니다.')
+    }
   }
+
+  const filteredShipments = shipments.filter(shipment =>
+    searchTerm === '' || 
+    shipment.shipment_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    shipment.site?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    shipment.carrier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    shipment.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    shipment.driver_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const getStatusBadge = (status: string) => {
-    const badges = {
-      pending: { bg: 'bg-yellow-100 dark:bg-yellow-900/20', text: 'text-yellow-800 dark:text-yellow-200', label: '대기중' },
-      shipped: { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-800 dark:text-blue-200', label: '배송중' },
-      delivered: { bg: 'bg-green-100 dark:bg-green-900/20', text: 'text-green-800 dark:text-green-200', label: '배송완료' }
-    }
-    const badge = badges[status as keyof typeof badges] || badges.pending
-    
-    return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
-        {badge.label}
-      </span>
-    )
-  }
-
-  const getDeliveryMethodBadge = (method: string | null) => {
-    if (!method) return <span className="text-gray-400">-</span>
-    
-    const badges = {
-      parcel: { icon: Package, label: '택배' },
-      freight: { icon: Truck, label: '화물' }
-    }
-    const badge = badges[method as keyof typeof badges]
-    
-    if (!badge) return <span className="text-gray-400">-</span>
-    
-    const Icon = badge.icon
-    return (
-      <span className="inline-flex items-center text-sm text-gray-700 dark:text-gray-300">
-        <Icon className="h-4 w-4 mr-1" />
-        {badge.label}
-      </span>
-    )
-  }
-
-  const calculateTotals = () => {
-    return {
-      totalShipments: shipments.length,
-      totalAmount: shipments.reduce((sum, s) => sum + s.amount, 0),
-      totalShippingCost: shipments.reduce((sum, s) => sum + (s.shipping_cost || 0), 0),
-      pendingCount: shipments.filter(s => s.delivery_status === 'pending').length,
-      shippedCount: shipments.filter(s => s.delivery_status === 'shipped').length,
-      deliveredCount: shipments.filter(s => s.delivery_status === 'delivered').length
+    switch (status) {
+      case 'delivered':
+        return <Badge variant="default" className="bg-green-100 text-green-800">배송완료</Badge>
+      case 'shipped':
+        return <Badge variant="default" className="bg-blue-100 text-blue-800">배송중</Badge>
+      case 'cancelled':
+        return <Badge variant="destructive">취소됨</Badge>
+      case 'preparing':
+      default:
+        return <Badge variant="secondary">준비중</Badge>
     }
   }
 
-  const totals = calculateTotals()
-
-  const handleSort = (field: typeof sortField) => {
-    if (field === sortField) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'delivered':
+        return <CheckCircle className="h-4 w-4 text-green-600" />
+      case 'shipped':
+        return <Truck className="h-4 w-4 text-blue-600" />
+      case 'cancelled':
+        return <XCircle className="h-4 w-4 text-red-600" />
+      case 'preparing':
+      default:
+        return <Clock className="h-4 w-4 text-yellow-600" />
     }
   }
 
-  const getSortIcon = (field: typeof sortField) => {
-    if (field !== sortField) {
-      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
-    }
-    return sortDirection === 'asc' 
-      ? <ChevronUp className="h-4 w-4 text-blue-500" />
-      : <ChevronDown className="h-4 w-4 text-blue-500" />
-  }
-
-  const sortedShipments = [...shipments].sort((a, b) => {
-    let aValue: any = a[sortField]
-    let bValue: any = b[sortField]
-    
-    if (sortField === 'delivery_status') {
-      const statusOrder = { pending: 0, shipped: 1, delivered: 2 }
-      aValue = statusOrder[aValue as keyof typeof statusOrder]
-      bValue = statusOrder[bValue as keyof typeof statusOrder]
-    }
-    
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
-    return 0
-  })
+  const totalShipments = filteredShipments.length
+  const deliveredCount = filteredShipments.filter(s => s.status === 'delivered').length
+  const shippedCount = filteredShipments.filter(s => s.status === 'shipped').length
+  const preparingCount = filteredShipments.filter(s => s.status === 'preparing').length
 
   return (
-    <div className="p-6">
-      {/* Filters */}
-      <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            조회 월
-          </label>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          />
+    <div className="p-6 space-y-6">
+      {/* Header & Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">총 출고</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalShipments}</p>
+              </div>
+              <Truck className="h-8 w-8 text-gray-600" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">배송완료</p>
+                <p className="text-2xl font-bold text-green-600">{deliveredCount}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">배송중</p>
+                <p className="text-2xl font-bold text-blue-600">{shippedCount}</p>
+              </div>
+              <Truck className="h-8 w-8 text-blue-600" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400">준비중</p>
+                <p className="text-2xl font-bold text-yellow-600">{preparingCount}</p>
+              </div>
+              <Clock className="h-8 w-8 text-yellow-600" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="출고번호, 현장명, 운송업체, 추적번호로 검색..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-80"
+            />
+          </div>
+
+          <Select value={selectedSite} onValueChange={setSelectedSite}>
+            <SelectTrigger className="w-48">
+              <SelectValue placeholder="현장 선택" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 현장</SelectItem>
+              {sites.map((site) => (
+                <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="w-36">
+              <SelectValue placeholder="상태" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">전체 상태</SelectItem>
+              <SelectItem value="preparing">준비중</SelectItem>
+              <SelectItem value="shipped">배송중</SelectItem>
+              <SelectItem value="delivered">배송완료</SelectItem>
+              <SelectItem value="cancelled">취소됨</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedDateRange} onValueChange={setSelectedDateRange}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="기간" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">1주일</SelectItem>
+              <SelectItem value="month">1개월</SelectItem>
+              <SelectItem value="all">전체</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            현장 선택
-          </label>
-          <select
-            value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          >
-            <option value="">전체 현장</option>
-            {sites.map(site => (
-              <option key={site.id} value={site.id}>{site.name}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            배송 상태
-          </label>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          >
-            <option value="">전체 상태</option>
-            <option value="pending">대기중</option>
-            <option value="shipped">배송중</option>
-            <option value="delivered">배송완료</option>
-          </select>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            내보내기
+          </Button>
+          <Button onClick={handleAdd} size="sm">
+            <PlusCircle className="h-4 w-4 mr-2" />
+            출고 추가
+          </Button>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4 mb-6">
-        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
-          <p className="text-xs text-gray-600 dark:text-gray-400">총 출고</p>
-          <p className="text-xl font-bold text-gray-900 dark:text-white">{totals.totalShipments}</p>
-        </div>
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg">
-          <p className="text-xs text-yellow-600 dark:text-yellow-400">대기중</p>
-          <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">{totals.pendingCount}</p>
-        </div>
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-          <p className="text-xs text-blue-600 dark:text-blue-400">배송중</p>
-          <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{totals.shippedCount}</p>
-        </div>
-        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
-          <p className="text-xs text-green-600 dark:text-green-400">완료</p>
-          <p className="text-xl font-bold text-green-900 dark:text-green-100">{totals.deliveredCount}</p>
-        </div>
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
-          <p className="text-xs text-purple-600 dark:text-purple-400">총 출고량</p>
-          <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{totals.totalAmount.toLocaleString()}</p>
-        </div>
-        <div className="bg-orange-50 dark:bg-orange-900/20 p-3 rounded-lg">
-          <p className="text-xs text-orange-600 dark:text-orange-400">운임비용</p>
-          <p className="text-xl font-bold text-orange-900 dark:text-orange-100">₩{totals.totalShippingCost.toLocaleString()}</p>
-        </div>
-      </div>
+      {/* Shipments Table */}
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">출고번호</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">현장</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">상태</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">예정일</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">운송업체</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">추적번호</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">기사명</th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">작업</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">로딩 중...</td>
+                  </tr>
+                ) : filteredShipments.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">출고 기록이 없습니다.</td>
+                  </tr>
+                ) : (
+                  filteredShipments.map((shipment) => (
+                    <tr key={shipment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {shipment.shipment_number}
+                        </div>
+                        {shipment.request && (
+                          <div className="text-xs text-gray-500">
+                            요청: {shipment.request.request_number}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Building2 className="h-4 w-4 text-gray-400 mr-2" />
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            {shipment.site?.name || '-'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {getStatusIcon(shipment.status)}
+                          <span className="ml-2">{getStatusBadge(shipment.status)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                          <span className="text-sm text-gray-900 dark:text-white">
+                            {shipment.expected_delivery_date ? formatDate(shipment.expected_delivery_date) : '-'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {shipment.carrier || '-'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {shipment.tracking_number || '-'}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-white">
+                          {shipment.driver_name || '-'}
+                        </div>
+                        {shipment.driver_phone && (
+                          <div className="text-xs text-gray-500">
+                            {shipment.driver_phone}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center">
+                        <div className="flex items-center justify-center space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDetail(shipment)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(shipment)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Data Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('shipment_date')}
-              >
-                <div className="flex items-center gap-1">
-                  날짜
-                  {getSortIcon('shipment_date')}
+      {/* Add Shipment Modal */}
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>출고 추가</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>현장 *</Label>
+                <Select value={formData.site_id} onValueChange={(value) => setFormData({...formData, site_id: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="현장 선택" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sites.map((site) => (
+                      <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>연결된 요청</Label>
+                <Select value={formData.request_id} onValueChange={(value) => setFormData({...formData, request_id: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="요청 선택 (선택사항)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">없음</SelectItem>
+                    {requests.map((request) => (
+                      <SelectItem key={request.id} value={request.id}>
+                        {request.request_number} - {request.site?.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>예정 배송일</Label>
+                <Input
+                  type="date"
+                  value={formData.expected_delivery_date}
+                  onChange={(e) => setFormData({...formData, expected_delivery_date: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label>운송업체</Label>
+                <Input
+                  value={formData.carrier}
+                  onChange={(e) => setFormData({...formData, carrier: e.target.value})}
+                  placeholder="운송업체명 입력"
+                />
+              </div>
+              <div>
+                <Label>추적번호</Label>
+                <Input
+                  value={formData.tracking_number}
+                  onChange={(e) => setFormData({...formData, tracking_number: e.target.value})}
+                  placeholder="추적번호 입력"
+                />
+              </div>
+              <div>
+                <Label>기사명</Label>
+                <Input
+                  value={formData.driver_name}
+                  onChange={(e) => setFormData({...formData, driver_name: e.target.value})}
+                  placeholder="기사명 입력"
+                />
+              </div>
+              <div>
+                <Label>기사 연락처</Label>
+                <Input
+                  value={formData.driver_phone}
+                  onChange={(e) => setFormData({...formData, driver_phone: e.target.value})}
+                  placeholder="연락처 입력"
+                />
+              </div>
+              <div>
+                <Label>비고</Label>
+                <Textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  placeholder="추가 설명이나 비고사항"
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            {/* Items Section */}
+            <div className="border-t pt-4">
+              <div className="flex justify-between items-center mb-4">
+                <Label className="text-base font-medium">출고 항목</Label>
+                <Button type="button" variant="outline" size="sm" onClick={addItemToForm}>
+                  <PlusCircle className="h-4 w-4 mr-2" />
+                  항목 추가
+                </Button>
+              </div>
+              
+              {formData.items.map((item, index) => (
+                <div key={index} className="grid grid-cols-6 gap-2 mb-3 p-3 border rounded-md">
+                  <div>
+                    <Select 
+                      value={item.material_id} 
+                      onValueChange={(value) => updateFormItem(index, 'material_id', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="자재 선택" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {materials.map((material) => (
+                          <SelectItem key={material.id} value={material.id}>
+                            {material.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="출고량"
+                      value={item.shipped_quantity}
+                      onChange={(e) => updateFormItem(index, 'shipped_quantity', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="단가"
+                      value={item.unit_price}
+                      onChange={(e) => updateFormItem(index, 'unit_price', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      placeholder="배치번호"
+                      value={item.batch_number}
+                      onChange={(e) => updateFormItem(index, 'batch_number', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Input
+                      type="date"
+                      placeholder="유효기간"
+                      value={item.expiry_date}
+                      onChange={(e) => updateFormItem(index, 'expiry_date', e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => removeItemFromForm(index)}
+                      className="text-red-600"
+                    >
+                      삭제
+                    </Button>
+                  </div>
                 </div>
-              </th>
-              <th 
-                className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('site_name')}
-              >
-                <div className="flex items-center gap-1">
-                  현장
-                  {getSortIcon('site_name')}
+              ))}
+              
+              {formData.items.length === 0 && (
+                <div className="text-center text-gray-500 py-4">
+                  출고할 항목을 추가해주세요.
                 </div>
-              </th>
-              <th 
-                className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('amount')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  수량
-                  {getSortIcon('amount')}
-                </div>
-              </th>
-              <th 
-                className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('delivery_status')}
-              >
-                <div className="flex items-center justify-center gap-1">
-                  배송상태
-                  {getSortIcon('delivery_status')}
-                </div>
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">배송방식</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">거래명세</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">세금계산서</th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">입금확인</th>
-              <th 
-                className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
-                onClick={() => handleSort('shipping_cost')}
-              >
-                <div className="flex items-center justify-end gap-1">
-                  운임비용
-                  {getSortIcon('shipping_cost')}
-                </div>
-              </th>
-              <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">작업</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {loading ? (
-              <tr>
-                <td colSpan={10} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
-                  데이터를 불러오는 중...
-                </td>
-              </tr>
-            ) : shipments.length === 0 ? (
-              <tr>
-                <td colSpan={10} className="px-6 py-8 text-center">
-                  <div className="flex flex-col items-center justify-center space-y-3">
-                    <Truck className="h-12 w-12 text-orange-400" />
-                    <div className="space-y-2">
-                      <p className="text-lg font-medium text-gray-900 dark:text-white">
-                        출고관리 데이터베이스가 준비되지 않았습니다
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-                        npc_shipments 테이블이 생성되면 출고 기록, 배송 상태, 세금계산서 등을 관리할 수 있습니다.
-                        <br />현재는 UI 미리보기 모드입니다.
-                      </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>취소</Button>
+            <Button onClick={submitShipment}>추가</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail Modal */}
+      <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>출고 상세</DialogTitle>
+          </DialogHeader>
+          {selectedShipment && (
+            <div className="space-y-6">
+              {/* Basic Info */}
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">출고번호</Label>
+                    <p className="text-lg font-medium">{selectedShipment.shipment_number}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">현장</Label>
+                    <p className="text-lg">{selectedShipment.site?.name}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">상태</Label>
+                    <div className="flex items-center space-x-2">
+                      {getStatusIcon(selectedShipment.status)}
+                      {getStatusBadge(selectedShipment.status)}
                     </div>
                   </div>
-                </td>
-              </tr>
-            ) : (
-              sortedShipments.map((shipment) => (
-                <tr key={shipment.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  {editingId === shipment.id ? (
-                    <>
-                      <td className="px-4 py-3 text-sm">{shipment.shipment_date}</td>
-                      <td className="px-4 py-3 text-sm">{shipment.site_name}</td>
-                      <td className="px-4 py-3 text-sm text-right">{shipment.amount.toLocaleString()}</td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={editForm.delivery_status}
-                          onChange={(e) => setEditForm({ ...editForm, delivery_status: e.target.value as any })}
-                          className="text-xs px-2 py-1 border rounded"
-                        >
-                          <option value="pending">대기중</option>
-                          <option value="shipped">배송중</option>
-                          <option value="delivered">배송완료</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={editForm.delivery_method || ''}
-                          onChange={(e) => setEditForm({ ...editForm, delivery_method: e.target.value as any || null })}
-                          className="text-xs px-2 py-1 border rounded"
-                        >
-                          <option value="">-</option>
-                          <option value="parcel">택배</option>
-                          <option value="freight">화물</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <input
-                          type="checkbox"
-                          checked={editForm.invoice_confirmed}
-                          onChange={(e) => setEditForm({ ...editForm, invoice_confirmed: e.target.checked })}
-                          className="h-4 w-4"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <input
-                          type="checkbox"
-                          checked={editForm.tax_invoice_issued}
-                          onChange={(e) => setEditForm({ ...editForm, tax_invoice_issued: e.target.checked })}
-                          className="h-4 w-4"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <input
-                          type="checkbox"
-                          checked={editForm.payment_confirmed}
-                          onChange={(e) => setEditForm({ ...editForm, payment_confirmed: e.target.checked })}
-                          className="h-4 w-4"
-                        />
-                      </td>
-                      <td className="px-4 py-3">
-                        <input
-                          type="number"
-                          value={editForm.shipping_cost}
-                          onChange={(e) => setEditForm({ ...editForm, shipping_cost: parseInt(e.target.value) || 0 })}
-                          className="w-20 text-xs px-2 py-1 border rounded text-right"
-                        />
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button onClick={handleSave} className="text-green-600 hover:text-green-800 mr-2">
-                          <Save className="h-4 w-4" />
-                        </button>
-                        <button onClick={handleCancel} className="text-red-600 hover:text-red-800">
-                          <X className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1 text-gray-400" />
-                          {shipment.shipment_date}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
-                        <div className="flex items-center">
-                          <Building2 className="h-4 w-4 mr-1 text-gray-400" />
-                          {shipment.site_name}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
-                        {shipment.amount.toLocaleString()}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {getStatusBadge(shipment.delivery_status)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {getDeliveryMethodBadge(shipment.delivery_method)}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {shipment.invoice_confirmed ? (
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-gray-300 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {shipment.tax_invoice_issued ? (
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-gray-300 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {shipment.payment_confirmed ? (
-                          <CheckCircle className="h-4 w-4 text-green-500 mx-auto" />
-                        ) : (
-                          <XCircle className="h-4 w-4 text-gray-300 mx-auto" />
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-right text-gray-900 dark:text-white">
-                        {shipment.shipping_cost ? `₩${shipment.shipping_cost.toLocaleString()}` : '-'}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => handleEdit(shipment)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      </td>
-                    </>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">운송업체</Label>
+                    <p className="text-lg">{selectedShipment.carrier || '-'}</p>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">추적번호</Label>
+                    <p className="text-lg">{selectedShipment.tracking_number || '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">기사정보</Label>
+                    <p className="text-lg">{selectedShipment.driver_name || '-'}</p>
+                    {selectedShipment.driver_phone && (
+                      <p className="text-sm text-gray-600">{selectedShipment.driver_phone}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">예정 배송일</Label>
+                    <p className="text-lg">{selectedShipment.expected_delivery_date ? formatDate(selectedShipment.expected_delivery_date) : '-'}</p>
+                  </div>
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">총 중량</Label>
+                    <p className="text-lg">{selectedShipment.total_weight ? `${selectedShipment.total_weight.toLocaleString()} kg` : '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items */}
+              {selectedShipment.items && selectedShipment.items.length > 0 && (
+                <div>
+                  <Label className="text-base font-medium text-gray-900">출고 항목</Label>
+                  <div className="mt-2 border rounded-md overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-2 text-left">자재</th>
+                          <th className="px-4 py-2 text-right">출고량</th>
+                          <th className="px-4 py-2 text-right">수령량</th>
+                          <th className="px-4 py-2 text-right">단가</th>
+                          <th className="px-4 py-2 text-left">배치번호</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedShipment.items.map((item) => (
+                          <tr key={item.id} className="border-t">
+                            <td className="px-4 py-2">
+                              <div>
+                                <div className="font-medium">{item.material?.name}</div>
+                                <div className="text-gray-500">{item.material?.code}</div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              {item.shipped_quantity.toLocaleString()} {item.material?.unit}
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              {item.received_quantity.toLocaleString()} {item.material?.unit}
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              {item.unit_price ? `₩${item.unit_price.toLocaleString()}` : '-'}
+                            </td>
+                            <td className="px-4 py-2">
+                              {item.batch_number || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Actions */}
+              {selectedShipment.status !== 'delivered' && selectedShipment.status !== 'cancelled' && (
+                <div className="flex gap-2 pt-4 border-t">
+                  {selectedShipment.status === 'preparing' && (
+                    <Button 
+                      onClick={() => updateShipmentStatus(selectedShipment.id, 'shipped')}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      출고 처리
+                    </Button>
                   )}
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+                  {selectedShipment.status === 'shipped' && (
+                    <Button 
+                      onClick={() => updateShipmentStatus(selectedShipment.id, 'delivered')}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      배송 완료 처리
+                    </Button>
+                  )}
+                  <Button 
+                    variant="destructive"
+                    onClick={() => updateShipmentStatus(selectedShipment.id, 'cancelled')}
+                  >
+                    출고 취소
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDetailModal(false)}>닫기</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -15,20 +15,51 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // 먼저 unified_document_system에서 문서 조회
     const { data: document, error } = await supabase
-      .from('markup_documents' as any)
+      .from('unified_document_system')
       .select(`
         *,
-        profiles!markup_documents_created_by_fkey(full_name, email),
+        profiles!unified_document_system_uploaded_by_fkey(full_name, email),
         sites(name)
       `)
       .eq('id', params.id)
-      .eq('is_deleted', false)
+      .eq('category_type', 'markup')
+      .eq('status', 'active')
       .single()
 
     if (error) {
-      console.error('Error fetching markup document:', error)
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+      console.error('Error fetching document from unified_document_system:', error)
+      
+      // 후진적 호환성을 위해 markup_documents 테이블도 확인
+      const { data: legacyDocument, error: legacyError } = await supabase
+        .from('markup_documents' as any)
+        .select(`
+          *,
+          profiles!markup_documents_created_by_fkey(full_name, email),
+          sites(name)
+        `)
+        .eq('id', params.id)
+        .eq('is_deleted', false)
+        .single()
+      
+      if (legacyError) {
+        console.error('Error fetching markup document:', legacyError)
+        return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+      }
+      
+      // legacy document를 새로운 형식으로 변환
+      const transformedDocument = {
+        ...legacyDocument,
+        file_url: legacyDocument.original_blueprint_url || legacyDocument.file_url,
+        original_blueprint_url: legacyDocument.original_blueprint_url,
+        original_blueprint_filename: legacyDocument.original_blueprint_filename
+      }
+      
+      return NextResponse.json({
+        success: true,
+        data: transformedDocument
+      })
     }
 
     return NextResponse.json({

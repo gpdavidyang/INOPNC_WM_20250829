@@ -548,10 +548,10 @@ export async function calculateSalaries(
           const workHours = parseFloat(workerEntry.work_hours) || 0
           if (workHours <= 0) continue
 
-          // Create unique key for worker+date combination
-          const uniqueKey = `${worker.id}_${report.work_date}_${report.site_id}`
+          // Create unique key for worker+date combination (without site_id to aggregate across sites)
+          const uniqueKey = `${worker.id}_${report.work_date}`
           
-          // If we already have a record for this worker+date+site, aggregate the hours
+          // If we already have a record for this worker+date, aggregate the hours
           if (recordMap.has(uniqueKey)) {
             const existingRecord = recordMap.get(uniqueKey)
             existingRecord.workHours += workHours
@@ -581,10 +581,10 @@ export async function calculateSalaries(
             (!r.site_id || r.site_id === report.site_id)
           )
 
-          // Store the record data for aggregation
+          // Store the record data for aggregation (use first site encountered for display)
           recordMap.set(uniqueKey, {
             worker,
-            site_id: report.site_id,
+            site_id: report.site_id, // This will be the first site encountered for this worker on this date
             work_date: report.work_date,
             workHours,
             hourlyRule,

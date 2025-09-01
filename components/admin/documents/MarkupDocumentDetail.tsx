@@ -130,7 +130,7 @@ export default function MarkupDocumentDetail() {
 
   const handleOpenMarkupEditor = () => {
     if (document) {
-      window.location.href = `/dashboard/markup-tool?document=${document.id}`
+      window.location.href = `/dashboard/markup?document=${document.id}&mode=edit`
     }
   }
 
@@ -211,99 +211,97 @@ export default function MarkupDocumentDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="bg-white">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => router.push('/dashboard/admin/documents')}
-                className="text-gray-600 hover:text-gray-900"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">
-                  {isEditMode ? (
-                    <input
-                      type="text"
-                      value={editFormData.title || ''}
-                      onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
-                      className="text-2xl font-bold text-gray-900 bg-white border-b-2 border-blue-500 focus:outline-none"
-                    />
-                  ) : (
-                    document.title
-                  )}
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  {document.metadata?.original_filename || document.file_name}
-                </p>
-              </div>
+      <div className="bg-white border-b border-gray-200 -mx-4 px-4 mb-6">
+        <div className="flex items-center justify-between py-4">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => router.push('/dashboard/admin/documents/markup')}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">
+                {isEditMode ? (
+                  <input
+                    type="text"
+                    value={editFormData.title || ''}
+                    onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                    className="text-xl font-semibold text-gray-900 bg-white border-b-2 border-blue-500 focus:outline-none"
+                  />
+                ) : (
+                  document.title
+                )}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {document.metadata?.original_filename || document.file_name}
+              </p>
             </div>
+          </div>
 
-            <div className="flex items-center space-x-2">
-              {isEditMode ? (
-                <>
-                  <button
-                    onClick={cancelEditMode}
-                    className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
-                  >
-                    취소
-                  </button>
-                  <button
-                    onClick={saveDocumentChanges}
-                    disabled={isSaving}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {isSaving ? '저장 중...' : '저장'}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    onClick={startEditMode}
-                    className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-                    title="수정"
-                  >
-                    <Edit2 className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={handleOpenMarkupEditor}
-                    className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg"
-                    title="도면마킹 편집"
-                  >
-                    <PenTool className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={handleDownloadDocument}
-                    className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
-                    title="다운로드"
-                  >
-                    <Download className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={handleDeleteDocument}
-                    className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
-                    title="삭제"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </>
-              )}
-            </div>
+          <div className="flex items-center space-x-2">
+            {isEditMode ? (
+              <>
+                <button
+                  onClick={cancelEditMode}
+                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+                >
+                  취소
+                </button>
+                <button
+                  onClick={saveDocumentChanges}
+                  disabled={isSaving}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isSaving ? '저장 중...' : '저장'}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={startEditMode}
+                  className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+                  title="수정"
+                >
+                  <Edit2 className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handleOpenMarkupEditor}
+                  className="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg"
+                  title="도면마킹 편집"
+                >
+                  <PenTool className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handleDownloadDocument}
+                  className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
+                  title="다운로드"
+                >
+                  <Download className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handleDeleteDocument}
+                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                  title="삭제"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Image Preview */}
+          {/* Left Column - Image Preview and Markup Editor */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <Eye className="h-5 w-5 mr-2 text-gray-600" />
-                도면 미리보기
+                도면 미리보기 및 마킹 도구
               </h2>
               <div className="bg-gray-100 rounded-lg overflow-hidden">
                 {document.metadata?.preview_image_url || document.file_url ? (
@@ -337,6 +335,32 @@ export default function MarkupDocumentDetail() {
                   </button>
                 </div>
               )}
+
+              {/* Markup Editor Integration */}
+              <div className="mt-6 border-t border-gray-200 pt-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <PenTool className="h-5 w-5 mr-2 text-gray-600" />
+                    마킹 도구
+                  </h3>
+                  <button
+                    onClick={handleOpenMarkupEditor}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
+                  >
+                    <PenTool className="h-4 w-4 mr-2" />
+                    전체화면 편집기 열기
+                  </button>
+                </div>
+                
+                {/* Embedded Markup Tools */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <iframe
+                    src={`/dashboard/markup?document=${document.id}&mode=edit&embedded=true`}
+                    className="w-full h-96 border-0 rounded-md"
+                    title="도면 마킹 도구"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -469,6 +493,7 @@ export default function MarkupDocumentDetail() {
                 </div>
               </dl>
             </div>
+          </div>
           </div>
         </div>
       </div>

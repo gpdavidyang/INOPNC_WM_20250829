@@ -18,6 +18,49 @@ export interface NPC1000Summary {
   low_stock_sites: number
 }
 
+export interface MaterialProduction {
+  id: string
+  site_id: string
+  material_id: string
+  production_number: string
+  produced_quantity: number
+  production_date: string
+  batch_number: string | null
+  quality_status: 'pending' | 'approved' | 'rejected'
+  quality_notes: string | null
+  approved_by: string | null
+  approved_at: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface MaterialShipment {
+  id: string
+  shipment_number: string
+  site_id: string
+  request_id: string | null
+  status: 'preparing' | 'shipped' | 'delivered' | 'cancelled'
+  carrier: string | null
+  tracking_number: string | null
+  estimated_delivery: string | null
+  actual_delivery: string | null
+  total_amount: number
+  shipment_date: string
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ShipmentItem {
+  id: string
+  shipment_id: string
+  material_id: string
+  quantity: number
+  unit_price: number | null
+  total_price: number | null
+}
+
 /**
  * Get all materials with inventory status (admin view)
  */
@@ -436,6 +479,373 @@ export async function updateMaterialInventory(
         success: false,
         error: AdminErrors.UNKNOWN_ERROR
       }
+    }
+  })
+}
+
+/**
+ * Get material production records
+ */
+export async function getMaterialProductions(
+  page = 1,
+  limit = 10,
+  siteId?: string,
+  status?: 'pending' | 'approved' | 'rejected',
+  startDate?: string,
+  endDate?: string
+): Promise<AdminActionResult<{ productions: MaterialProduction[]; total: number; pages: number }>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      let query = supabase
+        .from('material_productions')
+        .select(`
+          *,
+          sites!site_id(name),
+          materials!material_id(name, code),
+          approver:profiles!approved_by(name)
+        `, { count: 'exact' })
+        .order('production_date', { ascending: false })
+
+      if (siteId) {
+        query = query.eq('site_id', siteId)
+      }
+
+      if (status) {
+        query = query.eq('quality_status', status)
+      }
+
+      if (startDate) {
+        query = query.gte('production_date', startDate)
+      }
+
+      if (endDate) {
+        query = query.lte('production_date', endDate)
+      }
+
+      const offset = (page - 1) * limit
+      query = query.range(offset, offset + limit - 1)
+
+      const { data: productions, error, count } = await query
+
+      if (error) {
+        console.error('Error fetching productions:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      const totalPages = Math.ceil((count || 0) / limit)
+
+      return {
+        success: true,
+        data: {
+          productions: productions || [],
+          total: count || 0,
+          pages: totalPages
+        }
+      }
+    } catch (error) {
+      console.error('Productions fetch error:', error)
+      return { success: false, error: AdminErrors.UNKNOWN_ERROR }
+    }
+  })
+}
+
+/**
+ * Create material production record
+ */
+export async function createMaterialProduction(
+  productionData: Omit<MaterialProduction, 'id' | 'created_at' | 'updated_at' | 'created_by'>
+): Promise<AdminActionResult<MaterialProduction>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const { data: production, error } = await supabase
+        .from('material_productions')
+        .insert({
+          ...productionData,
+          created_by: profile.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating production:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return {
+        success: true,
+        data: production,
+        message: '생산 기록이 생성되었습니다.'
+      }
+    } catch (error) {
+      console.error('Production creation error:', error)
+      return { success: false, error: AdminErrors.UNKNOWN_ERROR }
+    }
+  })
+}
+
+/**
+ * Update production quality status
+ */
+export async function updateProductionQuality(
+  productionId: string,
+  qualityStatus: 'approved' | 'rejected',
+  qualityNotes?: string
+): Promise<AdminActionResult<void>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const { error } = await supabase
+        .from('material_productions')
+        .update({
+          quality_status: qualityStatus,
+          quality_notes: qualityNotes,
+          approved_by: profile.id,
+          approved_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', productionId)
+
+      if (error) {
+        console.error('Error updating production quality:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return {
+        success: true,
+        message: `생산품질이 ${qualityStatus === 'approved' ? '승인' : '거절'}되었습니다.`
+      }
+    } catch (error) {
+      console.error('Production quality update error:', error)
+      return { success: false, error: AdminErrors.UNKNOWN_ERROR }
+    }
+  })
+}
+
+/**
+ * Get material shipments
+ */
+export async function getMaterialShipments(
+  page = 1,
+  limit = 10,
+  siteId?: string,
+  status?: 'preparing' | 'shipped' | 'delivered' | 'cancelled',
+  startDate?: string,
+  endDate?: string
+): Promise<AdminActionResult<{ shipments: MaterialShipment[]; total: number; pages: number }>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      let query = supabase
+        .from('material_shipments')
+        .select(`
+          *,
+          sites!site_id(name),
+          creator:profiles!created_by(name),
+          shipment_items(
+            id,
+            material_id,
+            quantity,
+            unit_price,
+            total_price,
+            materials(name, code, unit)
+          )
+        `, { count: 'exact' })
+        .order('shipment_date', { ascending: false })
+
+      if (siteId) {
+        query = query.eq('site_id', siteId)
+      }
+
+      if (status) {
+        query = query.eq('status', status)
+      }
+
+      if (startDate) {
+        query = query.gte('shipment_date', startDate)
+      }
+
+      if (endDate) {
+        query = query.lte('shipment_date', endDate)
+      }
+
+      const offset = (page - 1) * limit
+      query = query.range(offset, offset + limit - 1)
+
+      const { data: shipments, error, count } = await query
+
+      if (error) {
+        console.error('Error fetching shipments:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      const totalPages = Math.ceil((count || 0) / limit)
+
+      return {
+        success: true,
+        data: {
+          shipments: shipments || [],
+          total: count || 0,
+          pages: totalPages
+        }
+      }
+    } catch (error) {
+      console.error('Shipments fetch error:', error)
+      return { success: false, error: AdminErrors.UNKNOWN_ERROR }
+    }
+  })
+}
+
+/**
+ * Create material shipment
+ */
+export async function createMaterialShipment(
+  shipmentData: Omit<MaterialShipment, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'shipment_number'>,
+  items: Omit<ShipmentItem, 'id' | 'shipment_id'>[]
+): Promise<AdminActionResult<MaterialShipment>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      // Generate shipment number
+      const shipmentNumber = `SH${Date.now()}`
+
+      const { data: shipment, error: shipmentError } = await supabase
+        .from('material_shipments')
+        .insert({
+          ...shipmentData,
+          shipment_number: shipmentNumber,
+          created_by: profile.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (shipmentError) {
+        console.error('Error creating shipment:', shipmentError)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Create shipment items
+      if (items.length > 0) {
+        const { error: itemsError } = await supabase
+          .from('shipment_items')
+          .insert(
+            items.map(item => ({
+              ...item,
+              shipment_id: shipment.id
+            }))
+          )
+
+        if (itemsError) {
+          console.error('Error creating shipment items:', itemsError)
+          return { success: false, error: AdminErrors.DATABASE_ERROR }
+        }
+      }
+
+      return {
+        success: true,
+        data: shipment,
+        message: '출고가 생성되었습니다.'
+      }
+    } catch (error) {
+      console.error('Shipment creation error:', error)
+      return { success: false, error: AdminErrors.UNKNOWN_ERROR }
+    }
+  })
+}
+
+/**
+ * Update shipment status
+ */
+export async function updateShipmentStatus(
+  shipmentId: string,
+  status: 'preparing' | 'shipped' | 'delivered' | 'cancelled',
+  trackingNumber?: string,
+  actualDelivery?: string
+): Promise<AdminActionResult<void>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      const updateData: any = {
+        status,
+        updated_at: new Date().toISOString()
+      }
+
+      if (trackingNumber) {
+        updateData.tracking_number = trackingNumber
+      }
+
+      if (actualDelivery) {
+        updateData.actual_delivery = actualDelivery
+      }
+
+      const { error } = await supabase
+        .from('material_shipments')
+        .update(updateData)
+        .eq('id', shipmentId)
+
+      if (error) {
+        console.error('Error updating shipment status:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return {
+        success: true,
+        message: `출고 상태가 ${status}로 업데이트되었습니다.`
+      }
+    } catch (error) {
+      console.error('Shipment status update error:', error)
+      return { success: false, error: AdminErrors.UNKNOWN_ERROR }
+    }
+  })
+}
+
+/**
+ * Process material request (approve/reject with quantity adjustments)
+ */
+export async function processMaterialRequest(
+  requestId: string,
+  action: 'approved' | 'rejected',
+  approvedQuantity?: number,
+  rejectionReason?: string,
+  notes?: string
+): Promise<AdminActionResult<void>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const updateData: any = {
+        status: action,
+        approved_by: profile.id,
+        approved_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      if (action === 'approved' && approvedQuantity !== undefined) {
+        updateData.approved_quantity = approvedQuantity
+      }
+
+      if (action === 'rejected' && rejectionReason) {
+        updateData.rejection_reason = rejectionReason
+      }
+
+      if (notes) {
+        updateData.notes = notes
+      }
+
+      const { error } = await supabase
+        .from('material_requests')
+        .update(updateData)
+        .eq('id', requestId)
+
+      if (error) {
+        console.error('Error processing material request:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return {
+        success: true,
+        message: `자재 요청이 ${action === 'approved' ? '승인' : '거절'}되었습니다.`
+      }
+    } catch (error) {
+      console.error('Material request processing error:', error)
+      return { success: false, error: AdminErrors.UNKNOWN_ERROR }
     }
   })
 }

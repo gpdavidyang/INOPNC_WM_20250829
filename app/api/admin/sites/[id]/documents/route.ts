@@ -33,12 +33,11 @@ export async function GET(
 
     // Build query for site documents
     let query = supabase
-      .from('unified_documents')
+      .from('unified_document_system')
       .select(`
         id,
-        document_type,
-        sub_type,
         category_type,
+        sub_category,
         file_name,
         file_url,
         title,
@@ -46,19 +45,24 @@ export async function GET(
         created_at,
         updated_at,
         uploaded_by,
-        profiles!unified_documents_uploaded_by_fkey(
+        file_size,
+        mime_type,
+        status,
+        profiles!unified_document_system_uploaded_by_fkey(
           full_name,
           role
         )
       `)
       .eq('site_id', siteId)
       .eq('category_type', category)
+      .eq('status', 'active')
+      .eq('is_archived', false)
       .order('created_at', { ascending: false })
       .limit(limit)
 
-    // Apply document type filter
+    // Apply document type filter (using sub_category for filtering in unified_document_system)
     if (type && type !== 'all') {
-      query = query.eq('document_type', type)
+      query = query.eq('sub_category', type)
     }
 
     const { data: documents, error } = await query
@@ -70,15 +74,24 @@ export async function GET(
 
     // Get document statistics for this site and category
     const { data: statsData } = await supabase
-      .from('unified_documents')
-      .select('document_type, category_type')
+      .from('unified_document_system')
+      .select('sub_category, category_type, mime_type')
       .eq('site_id', siteId)
       .eq('category_type', category)
+      .eq('status', 'active')
+      .eq('is_archived', false)
+
+    // Create statistics based on mime types for better categorization
+    const getDocumentType = (mimeType: string) => {
+      if (mimeType?.startsWith('image/')) return 'photo'
+      if (mimeType === 'application/pdf') return 'document'
+      return 'document'
+    }
 
     const statistics = {
       total_documents: statsData?.length || 0,
       by_type: statsData?.reduce((acc, doc) => {
-        const type = doc.document_type || 'unknown'
+        const type = getDocumentType(doc.mime_type || '')
         acc[type] = (acc[type] || 0) + 1
         return acc
       }, {} as Record<string, number>) || {},

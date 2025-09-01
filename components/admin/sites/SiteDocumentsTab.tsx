@@ -20,15 +20,17 @@ import { ko } from 'date-fns/locale'
 
 interface Document {
   id: string
-  document_type: string
-  sub_type?: string
   category_type: string
+  sub_category?: string
   file_name: string
   file_url: string
   title?: string
   description?: string
   created_at: string
   uploaded_by: string
+  file_size?: number
+  mime_type?: string
+  status?: string
   profiles?: {
     full_name: string
     role: string
@@ -77,17 +79,20 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
     }
   }
 
-  const getDocumentIcon = (docType: string) => {
-    switch (docType) {
-      case 'photo':
-        return <Image className="h-5 w-5 text-blue-500" />
-      case 'document':
-        return <FileText className="h-5 w-5 text-green-500" />
-      case 'receipt':
-        return <Package className="h-5 w-5 text-orange-500" />
-      default:
-        return <FileText className="h-5 w-5 text-gray-500" />
+  const getDocumentIcon = (mimeType?: string) => {
+    if (mimeType?.startsWith('image/')) {
+      return <Image className="h-5 w-5 text-blue-500" />
+    } else if (mimeType === 'application/pdf') {
+      return <FileText className="h-5 w-5 text-green-500" />
+    } else {
+      return <FileText className="h-5 w-5 text-gray-500" />
     }
+  }
+
+  const getDocumentType = (mimeType?: string) => {
+    if (mimeType?.startsWith('image/')) return 'photo'
+    if (mimeType === 'application/pdf') return 'document'
+    return 'document'
   }
 
   const getDocumentTypeLabel = (type: string) => {
@@ -145,9 +150,9 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
 
   const documentStats = {
     total: documents.length,
-    photos: documents.filter(d => d.document_type === 'photo').length,
-    documents: documents.filter(d => d.document_type === 'document').length,
-    receipts: documents.filter(d => d.document_type === 'receipt').length,
+    photos: documents.filter(d => getDocumentType(d.mime_type) === 'photo').length,
+    documents: documents.filter(d => getDocumentType(d.mime_type) === 'document').length,
+    receipts: 0, // No receipts in unified system for now
     shared: documents.filter(d => d.category_type === 'shared').length,
     markup: documents.filter(d => d.category_type === 'markup').length,
     invoice: documents.filter(d => d.category_type === 'invoice').length
@@ -352,27 +357,29 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-            {filteredDocuments.map((document) => (
-              <div key={document.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center space-x-2">
-                    {getDocumentIcon(document.document_type)}
-                    <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
-                      {getDocumentTypeLabel(document.document_type)}
-                    </span>
+            {filteredDocuments.map((document) => {
+              const docType = getDocumentType(document.mime_type)
+              return (
+                <div key={document.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center space-x-2">
+                      {getDocumentIcon(document.mime_type)}
+                      <span className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                        {getDocumentTypeLabel(docType)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                
-                {/* 미리보기 (사진의 경우) */}
-                {document.document_type === 'photo' && document.file_url && (
-                  <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg mb-3 overflow-hidden">
-                    <img
-                      src={document.file_url}
-                      alt={document.title || document.file_name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
+                  
+                  {/* 미리보기 (사진의 경우) */}
+                  {docType === 'photo' && document.file_url && (
+                    <div className="w-full h-32 bg-gray-100 dark:bg-gray-700 rounded-lg mb-3 overflow-hidden">
+                      <img
+                        src={document.file_url}
+                        alt={document.title || document.file_name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
                 
                 <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate" title={document.title || document.file_name}>
                   {document.title || document.file_name}
@@ -402,17 +409,27 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <button className="flex-1 inline-flex items-center justify-center px-3 py-1 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                  <a
+                    href={document.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 inline-flex items-center justify-center px-3 py-1 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
                     <Eye className="h-3 w-3 mr-1" />
                     보기
-                  </button>
-                  <button className="flex-1 inline-flex items-center justify-center px-3 py-1 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                  </a>
+                  <a
+                    href={document.file_url}
+                    download
+                    className="flex-1 inline-flex items-center justify-center px-3 py-1 border border-gray-300 dark:border-gray-600 shadow-sm text-xs font-medium rounded text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
                     <Download className="h-3 w-3 mr-1" />
                     다운로드
-                  </button>
+                  </a>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

@@ -83,21 +83,23 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
   const loadRequests = async () => {
     setLoading(true)
     try {
+      // Try using the existing material_requests table instead
       let query = supabase
-        .from('npc_shipment_requests')
+        .from('material_requests')
         .select(`
           *,
           sites!site_id(name),
-          profiles!requester_id(name, email, role)
+          profiles!requester_id(name, role),
+          material_request_items(
+            material_id,
+            requested_quantity,
+            materials(name, code)
+          )
         `)
         .order('created_at', { ascending: false })
 
       if (selectedStatus) {
         query = query.eq('status', selectedStatus)
-      }
-
-      if (selectedUrgency) {
-        query = query.eq('urgency', selectedUrgency)
       }
 
       if (selectedSite) {
@@ -107,56 +109,50 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
       const { data, error } = await query
 
       if (!error && data) {
-        const formattedData: ShipmentRequest[] = data.map(item => ({
-          ...item,
-          site_name: (item as any).sites?.name || '알 수 없음',
-          requester_name: (item as any).profiles?.name || '알 수 없음',
-          requester_role: (item as any).profiles?.role || 'worker'
-        }))
+        const formattedData: ShipmentRequest[] = data
+          .filter(item => {
+            // Filter for NPC-1000 requests
+            const hasNPCItem = (item as any).material_request_items?.some(
+              (mri: any) => mri.materials?.code?.includes('NPC-1000')
+            )
+            return hasNPCItem
+          })
+          .map(item => {
+            const npcItem = (item as any).material_request_items?.find(
+              (mri: any) => mri.materials?.code?.includes('NPC-1000')
+            )
+            
+            return {
+              id: item.id,
+              request_date: item.request_date?.split('T')[0] || item.created_at.split('T')[0],
+              site_id: item.site_id,
+              site_name: (item as any).sites?.name || '알 수 없음',
+              requester_id: item.requester_id,
+              requester_name: (item as any).profiles?.name || '알 수 없음',
+              requester_role: (item as any).profiles?.role || 'worker',
+              requested_amount: npcItem?.requested_quantity || 0,
+              urgency: item.priority === 'high' ? 'urgent' : item.priority === 'critical' ? 'critical' : 'normal',
+              reason: item.notes || '자재 요청',
+              status: item.status,
+              approved_amount: item.approved_quantity,
+              approved_by: item.approved_by,
+              approved_at: item.approved_at,
+              rejection_reason: item.rejection_reason,
+              fulfillment_date: item.fulfillment_date,
+              notes: item.notes,
+              created_at: item.created_at,
+              updated_at: item.updated_at
+            }
+          })
+        
         setRequests(formattedData)
-      } else if (error) {
-        console.warn('Shipment requests table not available:', error.message)
-        // Load mock data when table doesn't exist
-        const { mockRequestData } = await import('../mockData')
-        let filteredData = mockRequestData.filter(item => 
-          item.request_date.startsWith(selectedMonth)
-        )
-        
-        if (selectedSite) {
-          filteredData = filteredData.filter(item => item.site_id === selectedSite)
-        }
-        
-        if (statusFilter) {
-          filteredData = filteredData.filter(item => item.status === statusFilter)
-        }
-        
-        if (urgencyFilter) {
-          filteredData = filteredData.filter(item => item.urgency === urgencyFilter)
-        }
-        
-        setRequests(filteredData)
+      } else {
+        console.warn('Material requests table not accessible:', error?.message)
+        setRequests([])
       }
     } catch (error) {
       console.error('Failed to load requests:', error)
-      // Fallback to mock data
-      const { mockRequestData } = await import('../mockData')
-      let filteredData = mockRequestData.filter(item => 
-        item.request_date.startsWith(selectedMonth)
-      )
-      
-      if (selectedSite) {
-        filteredData = filteredData.filter(item => item.site_id === selectedSite)
-      }
-      
-      if (statusFilter) {
-        filteredData = filteredData.filter(item => item.status === statusFilter)
-      }
-      
-      if (urgencyFilter) {
-        filteredData = filteredData.filter(item => item.urgency === urgencyFilter)
-      }
-      
-      setRequests(filteredData)
+      setRequests([])
     } finally {
       setLoading(false)
     }
@@ -186,13 +182,13 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
       }
 
       if (responseForm.status === 'approved') {
-        updateData.approved_amount = responseForm.approved_amount
+        updateData.approved_quantity = responseForm.approved_amount
       } else if (responseForm.status === 'rejected') {
         updateData.rejection_reason = responseForm.rejection_reason
       }
 
       const { error } = await supabase
-        .from('npc_shipment_requests')
+        .from('material_requests')
         .update(updateData)
         .eq('id', selectedRequest.id)
 

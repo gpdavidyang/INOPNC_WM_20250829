@@ -19,14 +19,18 @@ interface SalaryManagementProps {
 }
 
 export default function SalaryManagement({ profile }: SalaryManagementProps) {
-  const [activeTab, setActiveTab] = useState<'output' | 'calculate' | 'statements'>('output')
+  const [activeTab, setActiveTab] = useState<'output' | 'calculate' | 'statements' | 'rates'>('output')
   
   // Output tab state
   const [outputData, setOutputData] = useState<OutputSummary[]>([])
   const [outputLoading, setOutputLoading] = useState(false)
   const [outputError, setOutputError] = useState<string | null>(null)
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1)
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date()
+    const prevMonth = now.getMonth()
+    return prevMonth === 0 ? 12 : prevMonth
+  })
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
@@ -47,6 +51,11 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   // Available sites and workers
   const [availableSites, setAvailableSites] = useState<Array<{ id: string; name: string }>>([])
   const [availableWorkers, setAvailableWorkers] = useState<Array<{ id: string; name: string }>>([])
+
+  // Salary rates state
+  const [salaryRates, setSalaryRates] = useState<Array<{ worker_id: string; worker_name: string; daily_rate: number; hourly_rate: number }>>([])
+  const [ratesLoading, setRatesLoading] = useState(false)
+  const [editingRates, setEditingRates] = useState<Record<string, { daily_rate: number; hourly_rate: number }>>({})
 
   // Load output data
   const loadOutputData = async () => {
@@ -137,6 +146,52 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     }
   }
 
+  // Load salary rates
+  const loadSalaryRates = async () => {
+    setRatesLoading(true)
+    try {
+      // Mock data for now - in real implementation, this would fetch from database
+      const mockRates = [
+        { worker_id: '1', worker_name: '김철수', daily_rate: 150000, hourly_rate: 18750 },
+        { worker_id: '2', worker_name: '이영희', daily_rate: 130000, hourly_rate: 16250 },
+        { worker_id: '3', worker_name: '박민수', daily_rate: 140000, hourly_rate: 17500 }
+      ]
+      setSalaryRates(mockRates)
+    } catch (err) {
+      console.error('Failed to load salary rates:', err)
+    } finally {
+      setRatesLoading(false)
+    }
+  }
+
+  // Handle edit rate
+  const handleEditRate = (workerId: string, field: 'daily_rate' | 'hourly_rate', value: number) => {
+    setEditingRates(prev => ({
+      ...prev,
+      [workerId]: {
+        ...prev[workerId],
+        [field]: value
+      }
+    }))
+  }
+
+  // Save salary rates
+  const saveSalaryRates = async () => {
+    try {
+      // In real implementation, this would save to database
+      const updatedRates = salaryRates.map(rate => ({
+        ...rate,
+        ...(editingRates[rate.worker_id] || {})
+      }))
+      setSalaryRates(updatedRates)
+      setEditingRates({})
+      alert('급여 기준이 저장되었습니다.')
+    } catch (err) {
+      console.error('Failed to save salary rates:', err)
+      alert('급여 기준 저장에 실패했습니다.')
+    }
+  }
+
   // Load data based on active tab
   useEffect(() => {
     setSelectedIds([])
@@ -144,6 +199,8 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     
     if (activeTab === 'output') {
       loadOutputData()
+    } else if (activeTab === 'rates') {
+      loadSalaryRates()
     }
   }, [activeTab])
 
@@ -159,12 +216,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     loadAvailableWorkers()
   }, [])
 
-  // Set default site filter when sites are loaded
-  useEffect(() => {
-    if (availableSites.length > 0 && !siteFilter) {
-      setSiteFilter(availableSites[0].id)
-    }
-  }, [availableSites])
+  // Set default site filter to "all" - removed auto selection of first site
 
   // Handle search
   const handleSearch = (term: string) => {
@@ -233,6 +285,16 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
           >
             급여명세서
           </button>
+          <button
+            onClick={() => setActiveTab('rates')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'rates'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            급여기준 및 할당
+          </button>
         </nav>
       </div>
 
@@ -289,10 +351,10 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                 </label>
                 <CustomSelect value={siteFilter || "all"} onValueChange={(value) => setSiteFilter(value === "all" ? "" : value)}>
                   <CustomSelectTrigger>
-                    <CustomSelectValue placeholder="현장 선택" />
+                    <CustomSelectValue placeholder="전체" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
-                    <CustomSelectItem value="all">모든 현장</CustomSelectItem>
+                    <CustomSelectItem value="all">전체</CustomSelectItem>
                     {availableSites.map((site) => (
                       <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
                     ))}
@@ -305,7 +367,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                 </label>
                 <input
                   type="text"
-                  placeholder="작업자명으로 검색..."
+                  placeholder=""
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -500,10 +562,10 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               </label>
               <CustomSelect value={siteFilter || "all"} onValueChange={(value) => setSiteFilter(value === "all" ? "" : value)}>
                 <CustomSelectTrigger>
-                  <CustomSelectValue placeholder="모든 현장" />
+                  <CustomSelectValue placeholder="전체" />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
-                  <CustomSelectItem value="all">모든 현장</CustomSelectItem>
+                  <CustomSelectItem value="all">전체</CustomSelectItem>
                   {availableSites.map((site) => (
                     <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
                   ))}
@@ -556,6 +618,135 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
         <SalaryStatement profile={profile} />
       )}
 
+      {/* Salary Rates Tab */}
+      {activeTab === 'rates' && (
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">급여기준 및 할당</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                작업자별 일당 및 시급을 설정합니다.
+              </p>
+            </div>
+            <button
+              onClick={saveSalaryRates}
+              disabled={Object.keys(editingRates).length === 0}
+              className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
+                Object.keys(editingRates).length > 0
+                  ? 'bg-green-600 hover:bg-green-700 text-white'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <DollarSign className="h-4 w-4" />
+              변경사항 저장
+            </button>
+          </div>
+
+          {ratesLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600 dark:text-gray-400">급여 기준을 불러오는 중...</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      작업자
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      일당 (원)
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      시급 (원)
+                    </th>
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      변경 상태
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                  {salaryRates.map((rate) => {
+                    const isEditing = editingRates[rate.worker_id]
+                    const currentDailyRate = isEditing?.daily_rate ?? rate.daily_rate
+                    const currentHourlyRate = isEditing?.hourly_rate ?? rate.hourly_rate
+                    
+                    return (
+                      <tr key={rate.worker_id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xs mr-2">
+                              {rate.worker_name.charAt(0)}
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {rate.worker_name}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <input
+                            type="number"
+                            value={currentDailyRate}
+                            onChange={(e) => handleEditRate(rate.worker_id, 'daily_rate', parseInt(e.target.value) || 0)}
+                            className="w-24 px-2 py-1 text-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                          />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          <input
+                            type="number"
+                            value={currentHourlyRate}
+                            onChange={(e) => handleEditRate(rate.worker_id, 'hourly_rate', parseInt(e.target.value) || 0)}
+                            className="w-24 px-2 py-1 text-center border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                          />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-center">
+                          {isEditing ? (
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                              수정됨
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                              저장됨
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {salaryRates.length === 0 && !ratesLoading && (
+            <div className="text-center py-8">
+              <p className="text-gray-500 dark:text-gray-400">설정된 급여 기준이 없습니다.</p>
+            </div>
+          )}
+
+          <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <DollarSign className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="ml-3">
+                <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                  급여 기준 설정 안내
+                </h4>
+                <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>일당: 하루 8시간 기준 금액입니다 (1공수 = 일당)</li>
+                    <li>시급: 시간당 기준 금액입니다 (연장근무 계산에 사용)</li>
+                    <li>변경 후 반드시 '변경사항 저장' 버튼을 클릭해주세요</li>
+                    <li>설정된 금액은 급여 계산 시 자동으로 적용됩니다</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

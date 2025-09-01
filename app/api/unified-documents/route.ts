@@ -169,7 +169,8 @@ export async function GET(request: Request) {
     }, {} as Record<string, any[]>) || {}
 
     const response = {
-      documents: documents || [],
+      success: true,
+      data: documents || [],
       documents_by_category: documentsByCategory,
       statistics: {
         total_documents: totalCount || 0,
@@ -263,7 +264,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to create document' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, document })
+    return NextResponse.json({ success: true, data: document })
 
   } catch (error) {
     console.error('Error creating document:', error)

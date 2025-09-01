@@ -16,6 +16,7 @@ export default function MarkupPage() {
   const fileId = searchParams.get('file') || searchParams.get('open') || searchParams.get('document')
   const view = searchParams.get('view')
   const mode = searchParams.get('mode')
+  const embedded = searchParams.get('embedded') === 'true'
 
   const supabase = createClient()
 
@@ -106,12 +107,15 @@ export default function MarkupPage() {
   }
 
   return (
-    <MarkupEditor
-      profile={profile}
-      onClose={handleClose}
-      initialFile={documentToOpen}
-      blueprintUrl={documentToOpen?.original_blueprint_url}
-      initialView={mode === 'edit' || (fileId && documentToOpen) || view === 'upload' ? 'editor' : 'list'}
-    />
+    <div className={embedded ? 'h-full' : ''}>
+      <MarkupEditor
+        profile={profile}
+        onClose={embedded ? undefined : handleClose}
+        initialFile={documentToOpen}
+        blueprintUrl={documentToOpen?.original_blueprint_url || documentToOpen?.file_url}
+        initialView={mode === 'edit' || (fileId && documentToOpen) || view === 'upload' ? 'editor' : 'list'}
+        embedded={embedded}
+      />
+    </div>
   )
 }

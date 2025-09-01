@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   Building2, 
   Plus, 
@@ -45,6 +46,7 @@ interface Organization {
 }
 
 export default function OrganizationList() {
+  const router = useRouter()
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -173,10 +175,7 @@ export default function OrganizationList() {
               </button>
             </div>
             <button
-              onClick={() => {
-                setEditingOrg(null)
-                setShowForm(true)
-              }}
+              onClick={() => router.push('/dashboard/admin/organizations/new')}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               <Plus className="h-4 w-4" />

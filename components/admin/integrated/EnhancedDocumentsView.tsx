@@ -5,7 +5,7 @@ import {
   FileText, Package, Shield, Image, Briefcase, 
   Search, Filter, Download, Eye, Calendar, User,
   Building2, ChevronRight, File, FileImage, FileType,
-  FileSpreadsheet, FileArchive, Folder, Grid, List
+  FileSpreadsheet, FileArchive, Folder, Grid, List, Trash2
 } from 'lucide-react'
 import { 
   CustomSelect,
@@ -68,7 +68,7 @@ export default function EnhancedDocumentsView() {
   const [selectedType, setSelectedType] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [statistics, setStatistics] = useState<DocumentStats | null>(null)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
 
   useEffect(() => {
     fetchData()
@@ -537,116 +537,166 @@ export default function EnhancedDocumentsView() {
           })}
         </div>
       ) : (
-        /* List View */
-        <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
-          <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredDocuments.map((doc) => {
-              const FileIcon = getFileIcon(doc.file_name)
-              const categoryConfig = getCategoryConfig(doc.category_type)
-              
-              return (
-                <li key={doc.id}>
-                  <div className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4 flex-1">
-                        <div className="flex-shrink-0">
-                          <div className="h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
-                            <FileIcon className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+        /* Table View - matching sidebar document management style */
+        <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+          <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+              전체 {filteredDocuments.length}개의 공유 문서
+            </h3>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+              {filteredDocuments.length > 0 ? '1 / 0 페이지' : '공유 문서가 없습니다'}
+            </p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead className="bg-gray-50 dark:bg-gray-700">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    문서 정보
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    현장
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    등록자
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    파일 정보
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    생성일
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                    관리
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                {filteredDocuments.map((doc) => {
+                  const FileIcon = getFileIcon(doc.file_name)
+                  const categoryConfig = getCategoryConfig(doc.category_type)
+                  
+                  return (
+                    <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div className="h-8 w-8 bg-gray-100 dark:bg-gray-600 rounded flex items-center justify-center">
+                              <FileIcon className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {doc.title}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {doc.description || doc.file_name}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-3">
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                              {doc.title}
-                            </p>
-                            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-${categoryConfig.color}-100 text-${categoryConfig.color}-800 dark:bg-${categoryConfig.color}-900/20 dark:text-${categoryConfig.color}-300`}>
-                              {categoryConfig.name}
-                            </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          {doc.site?.name || '-'}
+                        </div>
+                        {doc.site?.address && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {doc.site.address}
                           </div>
-                          <div className="flex items-center space-x-4 mt-1">
-                            {doc.site?.name && (
-                              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                <Building2 className="h-4 w-4 mr-1" />
-                                {doc.site.name}
-                              </div>
-                            )}
-                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                              <Calendar className="h-4 w-4 mr-1" />
-                              {format(new Date(doc.created_at), 'yyyy.MM.dd', { locale: ko })}
-                            </div>
-                            {doc.uploader?.full_name && (
-                              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                <User className="h-4 w-4 mr-1" />
-                                {doc.uploader.full_name}
-                              </div>
-                            )}
-                            <span className="text-sm text-gray-500 dark:text-gray-400">
-                              {doc.category_type === 'photo_grid' ? 'PDF 문서' : formatFileSize(doc.file_size)}
-                            </span>
-                          </div>
-                          {doc.description && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              {doc.description}
-                            </p>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          {doc.uploader?.full_name || '알 수 없음'}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {doc.uploader?.role || ''}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 dark:text-gray-100">
+                          {doc.file_name}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {doc.category_type === 'photo_grid' ? 'PDF 문서' : formatFileSize(doc.file_size)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        {format(new Date(doc.created_at), 'yyyy.MM.dd', { locale: ko })}
+                        <div className="text-xs">
+                          {format(new Date(doc.created_at), 'HH:mm', { locale: ko })}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-1">
+                          {doc.category_type === 'photo_grid' ? (
+                            // Special handling for photo grid documents
+                            <>
+                              <button
+                                onClick={() => {
+                                  const metadata = doc.metadata ? JSON.parse(doc.metadata) : {}
+                                  const photoGridId = metadata.photo_grid_id
+                                  if (photoGridId) {
+                                    window.open(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`, '_blank')
+                                  }
+                                }}
+                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                                title="미리보기"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
+                              <a
+                                href={doc.file_url}
+                                download
+                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 ml-2"
+                                title="다운로드"
+                              >
+                                <Download className="h-4 w-4" />
+                              </a>
+                              <button
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 ml-2"
+                                title="삭제"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
+                          ) : (
+                            // Default handling for other document types
+                            <>
+                              <a
+                                href={doc.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                                title="보기"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </a>
+                              <a
+                                href={doc.file_url}
+                                download
+                                className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 ml-2"
+                                title="다운로드"
+                              >
+                                <Download className="h-4 w-4" />
+                              </a>
+                              <button
+                                className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 ml-2"
+                                title="삭제"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </>
                           )}
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        {doc.category_type === 'photo_grid' ? (
-                          // Special handling for photo grid documents
-                          <>
-                            <button
-                              onClick={() => {
-                                const metadata = doc.metadata ? JSON.parse(doc.metadata) : {}
-                                const photoGridId = metadata.photo_grid_id
-                                if (photoGridId) {
-                                  window.open(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`, '_blank')
-                                }
-                              }}
-                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              미리보기
-                            </button>
-                            <a
-                              href={doc.file_url}
-                              download
-                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              다운로드
-                            </a>
-                          </>
-                        ) : (
-                          // Default handling for other document types
-                          <>
-                            <a
-                              href={doc.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              보기
-                            </a>
-                            <a
-                              href={doc.file_url}
-                              download
-                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                              <Download className="h-4 w-4 mr-1" />
-                              다운로드
-                            </a>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
