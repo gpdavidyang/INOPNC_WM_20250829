@@ -379,34 +379,34 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm">
-                          <div className="text-gray-900 dark:text-gray-100">공수: {item.total_work_hours}</div>
-                          <div className="text-gray-500 dark:text-gray-400">실제: {item.total_actual_hours}h</div>
-                          {item.total_overtime_hours > 0 && (
-                            <div className="text-orange-600">연장: {item.total_overtime_hours}h</div>
+                          <div className="text-gray-900 dark:text-gray-100">공수: {item.total_work_hours || 0}</div>
+                          <div className="text-gray-500 dark:text-gray-400">실제: {item.total_actual_hours || 0}h</div>
+                          {(item.total_overtime_hours || 0) > 0 && (
+                            <div className="text-orange-600">연장: {item.total_overtime_hours || 0}h</div>
                           )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm">
                           <div className="font-medium text-gray-900 dark:text-gray-100">
-                            총 ₩{item.total_pay.toLocaleString()}
+                            총 ₩{(item.total_pay || 0).toLocaleString()}
                           </div>
                           <div className="text-gray-500 dark:text-gray-400">
-                            기본 ₩{item.base_pay.toLocaleString()}
+                            기본 ₩{(item.base_pay || 0).toLocaleString()}
                           </div>
-                          {item.overtime_pay > 0 && (
+                          {(item.overtime_pay || 0) > 0 && (
                             <div className="text-orange-600">
-                              연장 ₩{item.overtime_pay.toLocaleString()}
+                              연장 ₩{(item.overtime_pay || 0).toLocaleString()}
                             </div>
                           )}
-                          {item.bonus_pay > 0 && (
+                          {(item.bonus_pay || 0) > 0 && (
                             <div className="text-green-600">
-                              보너스 ₩{item.bonus_pay.toLocaleString()}
+                              보너스 ₩{(item.bonus_pay || 0).toLocaleString()}
                             </div>
                           )}
-                          {item.deductions > 0 && (
+                          {(item.deductions || 0) > 0 && (
                             <div className="text-red-600">
-                              공제 -₩{item.deductions.toLocaleString()}
+                              공제 -₩{(item.deductions || 0).toLocaleString()}
                             </div>
                           )}
                         </div>
