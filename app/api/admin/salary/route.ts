@@ -6,7 +6,8 @@ import {
   getOutputSummary,
   getWorkerCalendarData,
   getAvailableSitesForSalary,
-  getAvailableWorkersForSalary
+  getAvailableWorkersForSalary,
+  calculateSalaries
 } from '@/app/actions/admin/salary'
 
 export async function POST(request: NextRequest) {
@@ -65,6 +66,17 @@ export async function POST(request: NextRequest) {
 
       case 'getAvailableWorkers':
         result = await getAvailableWorkersForSalary()
+        break
+
+      case 'calculateSalaries':
+        const { site_id: calc_site_id, worker_id: calc_worker_id, date_from, date_to } = params
+        if (!date_from || !date_to) {
+          return NextResponse.json(
+            { success: false, error: 'Date range is required for calculateSalaries' },
+            { status: 400 }
+          )
+        }
+        result = await calculateSalaries(calc_site_id, calc_worker_id, date_from, date_to)
         break
 
       default:

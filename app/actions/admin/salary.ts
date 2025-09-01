@@ -471,7 +471,7 @@ export async function calculateSalaries(
           id,
           site_id,
           work_date,
-          daily_report_workers!inner(worker_name, work_hours)
+          daily_report_workers(worker_name, work_hours)
         `)
         .gte('work_date', date_from || new Date().toISOString().split('T')[0])
         .lte('work_date', date_to || new Date().toISOString().split('T')[0])
@@ -484,8 +484,10 @@ export async function calculateSalaries(
 
       if (dailyReportsError) {
         console.error('Error fetching daily reports data:', dailyReportsError)
-        return { success: false, error: AdminErrors.DATABASE_ERROR }
+        return { success: false, error: `Database Error: ${dailyReportsError.message}` }
       }
+
+      console.log('Daily reports fetched:', dailyReportsData?.length || 0)
 
       // Get salary rules
       const { data: rulesData, error: rulesError } = await supabase
@@ -495,8 +497,10 @@ export async function calculateSalaries(
 
       if (rulesError) {
         console.error('Error fetching salary rules:', rulesError)
-        return { success: false, error: AdminErrors.DATABASE_ERROR }
+        return { success: false, error: `Rules Error: ${rulesError.message}` }
       }
+
+      console.log('Salary rules fetched:', rulesData?.length || 0)
 
       // Get worker profiles to match names to IDs
       const { data: workersData, error: workersError } = await supabase
@@ -505,14 +509,17 @@ export async function calculateSalaries(
 
       if (workersError) {
         console.error('Error fetching workers data:', workersError)
-        return { success: false, error: AdminErrors.DATABASE_ERROR }
+        return { success: false, error: `Workers Error: ${workersError.message}` }
       }
+
+      console.log('Workers fetched:', workersData?.length || 0)
 
       const rules = rulesData || []
       const workers = workersData || []
       const calculatedRecords = []
 
       // Process daily reports and calculate salaries
+      console.log('Processing', dailyReportsData?.length || 0, 'daily reports...')
       for (const report of dailyReportsData || []) {
         for (const workerEntry of report.daily_report_workers || []) {
           // Find worker profile by name
@@ -596,6 +603,7 @@ export async function calculateSalaries(
       }
 
       // Insert calculated records
+      console.log('Calculated records to insert:', calculatedRecords.length)
       if (calculatedRecords.length > 0) {
         const { error: insertError } = await supabase
           .from('salary_records')
@@ -605,8 +613,9 @@ export async function calculateSalaries(
 
         if (insertError) {
           console.error('Error inserting salary records:', insertError)
-          return { success: false, error: AdminErrors.DATABASE_ERROR }
+          return { success: false, error: `Insert Error: ${insertError.message}` }
         }
+        console.log('Successfully inserted', calculatedRecords.length, 'salary records')
       }
 
       return {

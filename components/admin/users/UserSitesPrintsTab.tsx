@@ -61,9 +61,9 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
       const startDate = format(startOfMonth(currentMonth), 'yyyy-MM-dd')
       const endDate = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
       
-      // Fetch daily reports with site information
-      const { data: dailyReportsData, error } = await supabase
-        .from('daily_reports')
+      // Fetch attendance records with site information
+      const { data: attendanceData, error } = await supabase
+        .from('attendance_records')
         .select(`
           id,
           work_date,
@@ -71,7 +71,7 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
           labor_hours,
           work_hours,
           overtime_hours,
-          task_description,
+          notes,
           status,
           created_at,
           sites (
@@ -92,7 +92,7 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
       }
 
       // Transform data
-      const transformedRecords = (dailyReportsData || []).map(record => ({
+      const transformedRecords = (attendanceData || []).map(record => ({
         id: record.id,
         work_date: record.work_date,
         site_id: record.site_id,
@@ -101,8 +101,8 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
         labor_hours: record.labor_hours || 0,
         work_hours: record.work_hours || 0,
         overtime_hours: record.overtime_hours || 0,
-        task_description: record.task_description || '',
-        status: record.status || 'draft',
+        task_description: record.notes || '', // attendance_records uses 'notes' instead of 'task_description'
+        status: record.status || 'present',
         created_at: record.created_at
       }))
 
@@ -165,13 +165,13 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      draft: { text: '임시저장', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300', icon: AlertCircle },
-      submitted: { text: '제출완료', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: CheckCircle },
-      approved: { text: '승인완료', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: CheckCircle },
-      rejected: { text: '반려', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: AlertCircle }
+      present: { text: '출근', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: CheckCircle },
+      absent: { text: '결근', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: AlertCircle },
+      late: { text: '지각', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300', icon: AlertCircle },
+      half_day: { text: '반차', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: CheckCircle }
     }
     
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.present
     const Icon = config.icon
     
     return (
