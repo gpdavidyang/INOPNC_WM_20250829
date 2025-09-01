@@ -136,7 +136,7 @@ export function DailyReportListMobile({ currentUser, sites = [] }: DailyReportLi
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 touch-pan-y overscroll-behavior-contain">
       {/* Work Log Creation Button - 홈 화면과 동일한 스타일 */}
       {canCreateReport && (
         <Card 

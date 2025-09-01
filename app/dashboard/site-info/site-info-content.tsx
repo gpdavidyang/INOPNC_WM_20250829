@@ -100,21 +100,34 @@ export default function SiteInfoContent({
     setError(null)
     
     try {
+      console.log('[Site Info] Refreshing site data...')
+      
       const [currentSiteResult, historyResult] = await Promise.all([
         getCurrentUserSite(),
         getUserSiteHistory()
       ])
       
+      console.log('[Site Info] Current site result:', currentSiteResult)
+      console.log('[Site Info] History result:', historyResult)
+      
       if (currentSiteResult.success) {
         setCurrentSite(currentSiteResult.data)
+        if (!currentSiteResult.data) {
+          setError('현재 배정된 현장이 없습니다. 관리자에게 현장 배정을 요청하세요.')
+        }
       } else {
         setCurrentSite(null)
+        setError(currentSiteResult.error || '현장 정보를 불러오는데 실패했습니다.')
       }
 
       if (historyResult.success) {
         setSiteHistory(historyResult.data || [])
       } else {
-        setError('현장 이력을 불러오는데 실패했습니다.')
+        console.error('[Site Info] History error:', historyResult.error)
+        // Don't overwrite site error with history error
+        if (!error) {
+          setError('현장 이력을 불러오는데 실패했습니다.')
+        }
       }
     } catch (error) {
       console.error('Error refreshing site data:', error)

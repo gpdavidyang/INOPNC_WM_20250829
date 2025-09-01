@@ -3,11 +3,8 @@
 import { createClient } from '@/lib/supabase/server'
 
 const log = (...args: any[]) => {
-  // Completely disable logging in production to prevent disk overflow
-  // Only enable for specific debugging needs in development
-  if (process.env.NODE_ENV === 'development' && process.env.DEBUG_SITE_INFO === 'true') {
-    // console.log('[SITE-INFO DEBUG]', ...args)
-  }
+  // Enable logging to debug site info issues
+  console.log('[SITE-INFO DEBUG]', ...args)
 }
 
 // 현재 사용자가 배정된 현장 정보 조회
@@ -120,6 +117,7 @@ export async function getCurrentUserSite() {
       `)
       .eq('user_id', user.id)
       .eq('is_active', true)
+      .or('unassigned_date.is.null,unassigned_date.gte.' + new Date().toISOString().split('T')[0])
       .order('assigned_date', { ascending: false })
 
     // Get the most recent active assignment

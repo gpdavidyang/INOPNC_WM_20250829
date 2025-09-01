@@ -26,6 +26,12 @@ export default async function SiteInfoPage() {
     getUserSiteHistory()
   ])
 
+  console.log('[Site Info Page] Server results:', {
+    currentSiteResult,
+    historyResult,
+    userEmail: user.email
+  })
+
   const currentSite = currentSiteResult.success ? currentSiteResult.data : null
   const siteHistory = historyResult.success ? historyResult.data || [] : []
 
