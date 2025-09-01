@@ -745,7 +745,7 @@ export async function getAvailableSitesForSalary(): Promise<AdminActionResult<Ar
       const { data: sites, error } = await supabase
         .from('sites')
         .select('id, name')
-        .eq('is_active', true)
+        .neq('status', 'inactive')
         .order('name')
 
       if (error) {
@@ -775,6 +775,60 @@ export async function getAvailableSitesForSalary(): Promise<AdminActionResult<Ar
       }
     } catch (error) {
       console.error('Sites fetch error:', error)
+      return {
+        success: false,
+        error: AdminErrors.UNKNOWN_ERROR
+      }
+    }
+  })
+}
+
+/**
+ * Get available workers for salary management
+ */
+export async function getAvailableWorkersForSalary(): Promise<AdminActionResult<Array<{ id: string; name: string }>>> {
+  return withAdminAuth(async (supabase) => {
+    try {
+      const { data: workers, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('role', ['worker', 'site_manager', 'customer_manager'])
+        .neq('status', 'inactive')
+        .order('full_name')
+
+      if (error) {
+        console.error('Error fetching workers for salary:', error)
+        
+        // If table doesn't exist, return mock data for development
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          // console.log('🧪 Using mock data for workers (table not found)')
+          const mockWorkers = [
+            { id: '1', name: '김철수' },
+            { id: '2', name: '이영희' },
+            { id: '3', name: '박민수' }
+          ]
+          
+          return {
+            success: true,
+            data: mockWorkers
+          }
+        }
+        
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Transform data to match expected format
+      const transformedWorkers = (workers || []).map(worker => ({
+        id: worker.id,
+        name: worker.full_name
+      }))
+
+      return {
+        success: true,
+        data: transformedWorkers
+      }
+    } catch (error) {
+      console.error('Workers fetch error:', error)
       return {
         success: false,
         error: AdminErrors.UNKNOWN_ERROR

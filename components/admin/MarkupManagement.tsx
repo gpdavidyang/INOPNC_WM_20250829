@@ -13,7 +13,7 @@ import {
   getAvailableUsersForPermissions,
   MarkupDocumentWithStats
 } from '@/app/actions/admin/markup'
-import { Search, FileImage, Users, Eye, Share2, Lock, Unlock, UserPlus, UserMinus, Palette } from 'lucide-react'
+import { Search, FileImage, Users, Eye, Share2, Lock, Unlock, UserPlus, UserMinus, Palette, Edit, Download, Trash2 } from 'lucide-react'
 
 interface MarkupManagementProps {
   profile: Profile
@@ -220,12 +220,46 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
     }
   }
 
-  // Handle view document
+  // Handle view document (preview)
   const handleViewDocument = (document: MarkupDocumentWithStats) => {
+    window.open(`/dashboard/markup/editor?document=${document.id}`, '_blank')
+  }
+
+  // Handle edit document
+  const handleEditDocument = (document: MarkupDocumentWithStats) => {
+    window.open(`/dashboard/markup/editor?document=${document.id}&mode=edit`, '_blank')
+  }
+
+  // Handle download document
+  const handleDownloadDocument = (document: MarkupDocumentWithStats) => {
     if (document.original_blueprint_url) {
-      window.open(document.original_blueprint_url, '_blank')
+      const link = document.createElement('a')
+      link.href = document.original_blueprint_url
+      link.download = document.original_blueprint_filename || 'document'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     } else {
-      alert('문서 파일을 찾을 수 없습니다.')
+      alert('다운로드할 파일을 찾을 수 없습니다.')
+    }
+  }
+
+  // Handle delete document
+  const handleDeleteDocument = async (document: MarkupDocumentWithStats) => {
+    if (!confirm(`"${document.title}" 문서를 삭제하시겠습니까?`)) {
+      return
+    }
+
+    try {
+      const result = await deleteMarkupDocuments([document.id])
+      if (result.success) {
+        await Promise.all([loadDocuments(), loadStats()])
+        alert('문서가 삭제되었습니다.')
+      } else {
+        alert(result.error)
+      }
+    } catch (error) {
+      alert('삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -358,13 +392,23 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
     {
       icon: Eye,
       label: '미리보기',
-      onClick: (document: MarkupDocumentWithStats) => {
-        if (document.preview_image_url) {
-          window.open(document.preview_image_url, '_blank')
-        } else {
-          alert('미리보기 이미지가 없습니다.')
-        }
-      }
+      onClick: handleViewDocument
+    },
+    {
+      icon: Edit,
+      label: '수정',
+      onClick: handleEditDocument
+    },
+    {
+      icon: Download,
+      label: '다운로드',
+      onClick: handleDownloadDocument
+    },
+    {
+      icon: Trash2,
+      label: '삭제',
+      onClick: handleDeleteDocument,
+      variant: 'destructive' as const
     }
   ]
 
@@ -494,7 +538,6 @@ export default function MarkupManagement({ profile }: MarkupManagementProps) {
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
         getRowId={(document: MarkupDocumentWithStats) => document.id}
-        onView={handleViewDocument}
         customActions={customActions}
         currentPage={currentPage}
         totalPages={totalPages}

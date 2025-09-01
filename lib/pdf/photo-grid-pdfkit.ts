@@ -1,5 +1,4 @@
 import PDFDocument from 'pdfkit'
-import fetch from 'node-fetch'
 import path from 'path'
 import fs from 'fs'
 
@@ -109,7 +108,8 @@ export async function generatePhotoGridPDFKit(data: PhotoGridData): Promise<Buff
         if (data.before_photo_url) {
           const beforeResponse = await fetch(data.before_photo_url)
           if (beforeResponse.ok) {
-            const beforeBuffer = await beforeResponse.buffer()
+            const beforeArrayBuffer = await beforeResponse.arrayBuffer()
+            const beforeBuffer = Buffer.from(beforeArrayBuffer)
             
             // Calculate image dimensions to fit within frame
             doc.image(beforeBuffer, leftPhotoX + 5, photoY + 50, {
@@ -128,7 +128,8 @@ export async function generatePhotoGridPDFKit(data: PhotoGridData): Promise<Buff
         if (data.after_photo_url) {
           const afterResponse = await fetch(data.after_photo_url)
           if (afterResponse.ok) {
-            const afterBuffer = await afterResponse.buffer()
+            const afterArrayBuffer = await afterResponse.arrayBuffer()
+            const afterBuffer = Buffer.from(afterArrayBuffer)
             
             doc.image(afterBuffer, rightPhotoX + 5, photoY + 50, {
               fit: [photoWidth - 10, photoHeight - 10],

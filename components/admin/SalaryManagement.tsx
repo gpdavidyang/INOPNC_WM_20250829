@@ -9,6 +9,7 @@ import {
   getSalaryRecords,
   getSalaryStats,
   getAvailableSitesForSalary,
+  getAvailableWorkersForSalary,
   upsertSalaryRule,
   deleteSalaryRules,
   calculateSalaries,
@@ -18,6 +19,7 @@ import {
   SalaryStats
 } from '@/app/actions/admin/salary'
 import { Search, DollarSign, Calculator, CheckCircle, Clock, Users, TrendingUp, Settings, Plus, Play, FileText } from 'lucide-react'
+import { CustomSelect, CustomSelectContent, CustomSelectItem, CustomSelectTrigger, CustomSelectValue } from '@/components/ui/custom-select'
 import SalaryStatement from './salary/SalaryStatement'
 
 interface SalaryManagementProps {
@@ -45,9 +47,9 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
-  const [ruleTypeFilter, setRuleTypeFilter] = useState<string>('hourly_rate')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [siteFilter, setSiteFilter] = useState('')
+  const [workerFilter, setWorkerFilter] = useState('') // Added worker filter for salary calculation
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   
@@ -64,8 +66,9 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     overtime_percentage: 0
   })
   
-  // Available sites
+  // Available sites and workers
   const [availableSites, setAvailableSites] = useState<Array<{ id: string; name: string }>>([])
+  const [availableWorkers, setAvailableWorkers] = useState<Array<{ id: string; name: string }>>([])
 
   // Modal state
   const [showRuleModal, setShowRuleModal] = useState(false)
@@ -101,8 +104,8 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
         currentPage,
         pageSize,
         searchTerm,
-        ruleTypeFilter || undefined,
-        siteFilter || undefined
+        undefined, // Remove rule type filter
+        undefined  // Remove site filter for rules
       )
       
       if (result.success && result.data) {
@@ -177,6 +180,18 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     }
   }
 
+  // Load available workers
+  const loadAvailableWorkers = async () => {
+    try {
+      const result = await getAvailableWorkersForSalary()
+      if (result.success && result.data) {
+        setAvailableWorkers(result.data)
+      }
+    } catch (err) {
+      console.error('Failed to load available workers:', err)
+    }
+  }
+
   // Load data based on active tab
   useEffect(() => {
     setSelectedIds([])
@@ -196,11 +211,12 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     } else if (activeTab === 'records') {
       loadRecords()
     }
-  }, [currentPage, searchTerm, ruleTypeFilter, statusFilter, siteFilter, dateFrom, dateTo])
+  }, [currentPage, searchTerm, statusFilter, siteFilter, workerFilter, dateFrom, dateTo])
 
   useEffect(() => {
     loadStats()
     loadAvailableSites()
+    loadAvailableWorkers()
   }, [])
 
   // Set default site filter when sites are loaded
@@ -616,16 +632,34 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 현장 선택
               </label>
-              <select
-                value={siteFilter}
-                onChange={(e) => setSiteFilter(e.target.value)}
-                className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              >
-                <option value="">모든 현장</option>
-                {availableSites.map((site) => (
-                  <option key={site.id} value={site.id}>{site.name}</option>
-                ))}
-              </select>
+              <CustomSelect value={siteFilter} onValueChange={setSiteFilter}>
+                <CustomSelectTrigger className="w-full">
+                  <CustomSelectValue placeholder="모든 현장" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="">모든 현장</CustomSelectItem>
+                  {availableSites.map((site) => (
+                    <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  작업자 선택
+                </label>
+                <CustomSelect value={workerFilter} onValueChange={setWorkerFilter}>
+                  <CustomSelectTrigger className="w-full">
+                    <CustomSelectValue placeholder="모든 작업자" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    <CustomSelectItem value="">모든 작업자</CustomSelectItem>
+                    {availableWorkers.map((worker) => (
+                      <CustomSelectItem key={worker.id} value={worker.id}>{worker.name}</CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
+              </div>
             </div>
             
             <div className="flex items-end">
@@ -674,52 +708,40 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
           
           <div className="flex flex-row gap-2 flex-shrink-0 flex-wrap lg:flex-nowrap">
             {activeTab === 'rules' && (
-              <>
-                <select
-                  value={ruleTypeFilter}
-                  onChange={(e) => setRuleTypeFilter(e.target.value)}
-                  className="min-w-[140px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                >
-                  <option value="hourly_rate">시급</option>
-                  <option value="daily_rate">일급</option>
-                  <option value="overtime_multiplier">연장근무 배율</option>
-                  <option value="bonus_calculation">보너스 계산</option>
-                </select>
-                
-                <button
-                  onClick={() => {
-                    setEditingRule(null)
-                    setRuleFormData({
-                      rule_name: '',
-                      rule_type: 'hourly_rate',
-                      base_amount: 0,
-                      multiplier: 1,
-                      site_id: '',
-                      role: '',
-                      is_active: true
-                    })
-                    setShowRuleModal(true)
-                  }}
-                  className="flex items-center whitespace-nowrap px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  규칙 추가
-                </button>
-              </>
+              <button
+                onClick={() => {
+                  setEditingRule(null)
+                  setRuleFormData({
+                    rule_name: '',
+                    rule_type: 'hourly_rate',
+                    base_amount: 0,
+                    multiplier: 1,
+                    site_id: '',
+                    role: '',
+                    is_active: true
+                  })
+                  setShowRuleModal(true)
+                }}
+                className="flex items-center whitespace-nowrap px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                규칙 추가
+              </button>
             )}
             
             {activeTab === 'records' && (
               <>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  className="min-w-[100px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                >
-                  <option value="">모든 상태</option>
-                  <option value="calculated">계산됨</option>
-                  <option value="approved">승인됨</option>
-                  <option value="paid">지급됨</option>
-                </select>
+                <CustomSelect value={statusFilter} onValueChange={setStatusFilter}>
+                  <CustomSelectTrigger className="min-w-[100px]">
+                    <CustomSelectValue placeholder="모든 상태" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    <CustomSelectItem value="">모든 상태</CustomSelectItem>
+                    <CustomSelectItem value="calculated">계산됨</CustomSelectItem>
+                    <CustomSelectItem value="approved">승인됨</CustomSelectItem>
+                    <CustomSelectItem value="paid">지급됨</CustomSelectItem>
+                  </CustomSelectContent>
+                </CustomSelect>
                 
                 <input
                   type="date"
@@ -739,15 +761,19 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               </>
             )}
             
-            <select
-              value={siteFilter}
-              onChange={(e) => setSiteFilter(e.target.value)}
-              className="min-w-[100px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-            >
-              {availableSites.map((site) => (
-                <option key={site.id} value={site.id}>{site.name}</option>
-              ))}
-            </select>
+            {activeTab !== 'rules' && (
+              <CustomSelect value={siteFilter} onValueChange={setSiteFilter}>
+                <CustomSelectTrigger className="min-w-[100px]">
+                  <CustomSelectValue placeholder="현장 선택" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="">모든 현장</CustomSelectItem>
+                  {availableSites.map((site) => (
+                    <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
+            )}
           </div>
         </div>
       )}
@@ -991,16 +1017,17 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     규칙 타입 *
                   </label>
-                  <select
-                    value={ruleFormData.rule_type}
-                    onChange={(e) => setRuleFormData({ ...ruleFormData, rule_type: e.target.value as any })}
-                    className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  >
-                    <option value="hourly_rate">시급</option>
-                    <option value="daily_rate">일급</option>
-                    <option value="overtime_multiplier">연장근무 배율</option>
-                    <option value="bonus_calculation">보너스 계산</option>
-                  </select>
+                  <CustomSelect value={ruleFormData.rule_type} onValueChange={(value: any) => setRuleFormData({ ...ruleFormData, rule_type: value })}>
+                    <CustomSelectTrigger className="w-full">
+                      <CustomSelectValue placeholder="규칙 타입 선택" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      <CustomSelectItem value="hourly_rate">시급</CustomSelectItem>
+                      <CustomSelectItem value="daily_rate">일급</CustomSelectItem>
+                      <CustomSelectItem value="overtime_multiplier">연장근무 배율</CustomSelectItem>
+                      <CustomSelectItem value="bonus_calculation">보너스 계산</CustomSelectItem>
+                    </CustomSelectContent>
+                  </CustomSelect>
                 </div>
 
                 <div>
@@ -1035,16 +1062,17 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     적용 현장
                   </label>
-                  <select
-                    value={ruleFormData.site_id}
-                    onChange={(e) => setRuleFormData({ ...ruleFormData, site_id: e.target.value })}
-                    className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                  >
-                    <option value="">모든 현장</option>
-                    {availableSites.map((site) => (
-                      <option key={site.id} value={site.id}>{site.name}</option>
-                    ))}
-                  </select>
+                  <CustomSelect value={ruleFormData.site_id} onValueChange={(value) => setRuleFormData({ ...ruleFormData, site_id: value })}>
+                    <CustomSelectTrigger className="w-full">
+                      <CustomSelectValue placeholder="적용 현장 선택" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      <CustomSelectItem value="">모든 현장</CustomSelectItem>
+                      {availableSites.map((site) => (
+                        <CustomSelectItem key={site.id} value={site.id}>{site.name}</CustomSelectItem>
+                      ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
                 </div>
 
                 <div>

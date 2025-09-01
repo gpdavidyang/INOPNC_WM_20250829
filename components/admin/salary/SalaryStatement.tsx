@@ -7,6 +7,7 @@ import {
   Printer, Mail, Eye, ArrowLeft, Calculator, Building2,
   CreditCard, Banknote, Receipt
 } from 'lucide-react'
+import { CustomSelect, CustomSelectContent, CustomSelectItem, CustomSelectTrigger, CustomSelectValue } from '@/components/ui/custom-select'
 import { 
   calculateSalary, 
   formatSalary,
@@ -586,18 +587,19 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 <MapPin className="h-5 w-5 text-blue-600" />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">현장 선택</h2>
               </div>
-              <select
-                value={selectedSite?.id || ''}
-                onChange={(e) => handleSiteChange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              >
-                <option value="">현장을 선택하세요</option>
-                {sites.map((site) => (
-                  <option key={site.id} value={site.id}>
-                    {site.name}
-                  </option>
-                ))}
-              </select>
+              <CustomSelect value={selectedSite?.id || ''} onValueChange={handleSiteChange}>
+                <CustomSelectTrigger className="w-full">
+                  <CustomSelectValue placeholder="현장을 선택하세요" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="">현장을 선택하세요</CustomSelectItem>
+                  {sites.map((site) => (
+                    <CustomSelectItem key={site.id} value={site.id}>
+                      {site.name}
+                    </CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
               {selectedSite && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   📍 {selectedSite.address || '주소 정보 없음'}
@@ -627,27 +629,37 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
               </div>
               
               {/* Worker Select */}
-              <select
-                value={selectedWorker?.id || ''}
-                onChange={(e) => {
-                  const worker = filteredWorkers.find(w => w.id === e.target.value)
+              <CustomSelect 
+                value={selectedWorker?.id || ''} 
+                onValueChange={(value) => {
+                  const worker = filteredWorkers.find(w => w.id === value)
                   setSelectedWorker(worker || null)
                 }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 disabled={filteredWorkers.length === 0}
               >
-                <option value="">
-                  {filteredWorkers.length === 0 
-                    ? (selectedSite ? '해당 현장에 할당된 근로자가 없습니다' : '근로자를 검색하거나 현장을 선택하세요')
-                    : '근로자를 선택하세요'
-                  }
-                </option>
-                {filteredWorkers.map((worker) => (
-                  <option key={worker.id} value={worker.id}>
-                    {worker.name} ({worker.position}) - {worker.worker_number}
-                  </option>
-                ))}
-              </select>
+                <CustomSelectTrigger className="w-full">
+                  <CustomSelectValue 
+                    placeholder={
+                      filteredWorkers.length === 0 
+                        ? (selectedSite ? '해당 현장에 할당된 근로자가 없습니다' : '근로자를 검색하거나 현장을 선택하세요')
+                        : '근로자를 선택하세요'
+                    } 
+                  />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="">
+                    {filteredWorkers.length === 0 
+                      ? (selectedSite ? '해당 현장에 할당된 근로자가 없습니다' : '근로자를 검색하거나 현장을 선택하세요')
+                      : '근로자를 선택하세요'
+                    }
+                  </CustomSelectItem>
+                  {filteredWorkers.map((worker) => (
+                    <CustomSelectItem key={worker.id} value={worker.id}>
+                      {worker.name} ({worker.position}) - {worker.worker_number}
+                    </CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
               
               {filteredWorkers.length > 0 && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
@@ -748,14 +760,15 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       세금계산방식
                     </label>
-                    <select
-                      value={salaryData.calculationType}
-                      onChange={(e) => setSalaryData(prev => ({ ...prev, calculationType: e.target.value as any }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="tax_prepaid">3.3% 선취</option>
-                      <option value="normal">일반계산</option>
-                    </select>
+                    <CustomSelect value={salaryData.calculationType} onValueChange={(value: any) => setSalaryData(prev => ({ ...prev, calculationType: value }))}>
+                      <CustomSelectTrigger className="w-full">
+                        <CustomSelectValue placeholder="세금계산방식 선택" />
+                      </CustomSelectTrigger>
+                      <CustomSelectContent>
+                        <CustomSelectItem value="tax_prepaid">3.3% 선취</CustomSelectItem>
+                        <CustomSelectItem value="normal">일반계산</CustomSelectItem>
+                      </CustomSelectContent>
+                    </CustomSelect>
                   </div>
                 </div>
                 
