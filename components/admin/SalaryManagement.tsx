@@ -426,41 +426,41 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                       </div>
 
                       {/* Pay Details */}
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                          <svg className="w-4 h-4 mr-1 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                           </svg>
-                          급여 상세
+                          급여
                         </h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between items-center p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <span className="text-sm text-gray-600 dark:text-gray-300">기본급</span>
-                            <span className="font-medium text-gray-900 dark:text-gray-100">
-                              ₩{(item.base_pay || 0).toLocaleString()}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center px-2 py-1 bg-gray-50 dark:bg-gray-700 rounded">
+                            <span className="text-xs text-gray-600 dark:text-gray-300">기본</span>
+                            <span className="font-medium text-sm text-gray-900 dark:text-gray-100">
+                              {((item.base_pay || 0) / 10000).toFixed(0)}만
                             </span>
                           </div>
                           {(item.overtime_pay || 0) > 0 && (
-                            <div className="flex justify-between items-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                              <span className="text-sm text-orange-600 dark:text-orange-300">연장수당</span>
-                              <span className="font-medium text-orange-700 dark:text-orange-300">
-                                ₩{(item.overtime_pay || 0).toLocaleString()}
+                            <div className="flex justify-between items-center px-2 py-1 bg-orange-50 dark:bg-orange-900/20 rounded">
+                              <span className="text-xs text-orange-600 dark:text-orange-300">연장</span>
+                              <span className="font-medium text-sm text-orange-700 dark:text-orange-300">
+                                {((item.overtime_pay || 0) / 10000).toFixed(0)}만
                               </span>
                             </div>
                           )}
                           {(item.bonus_pay || 0) > 0 && (
-                            <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                              <span className="text-sm text-green-600 dark:text-green-300">보너스</span>
-                              <span className="font-medium text-green-700 dark:text-green-300">
-                                ₩{(item.bonus_pay || 0).toLocaleString()}
+                            <div className="flex justify-between items-center px-2 py-1 bg-green-50 dark:bg-green-900/20 rounded">
+                              <span className="text-xs text-green-600 dark:text-green-300">보너스</span>
+                              <span className="font-medium text-sm text-green-700 dark:text-green-300">
+                                {((item.bonus_pay || 0) / 10000).toFixed(0)}만
                               </span>
                             </div>
                           )}
                           {(item.deductions || 0) > 0 && (
-                            <div className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                              <span className="text-sm text-red-600 dark:text-red-300">공제</span>
-                              <span className="font-medium text-red-700 dark:text-red-300">
-                                -₩{(item.deductions || 0).toLocaleString()}
+                            <div className="flex justify-between items-center px-2 py-1 bg-red-50 dark:bg-red-900/20 rounded">
+                              <span className="text-xs text-red-600 dark:text-red-300">공제</span>
+                              <span className="font-medium text-sm text-red-700 dark:text-red-300">
+                                -{((item.deductions || 0) / 10000).toFixed(0)}만
                               </span>
                             </div>
                           )}
@@ -468,57 +468,48 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                       </div>
 
                       {/* Work Days */}
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                          <svg className="w-4 h-4 mr-1 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          근무 일수
+                          근무일
                         </h4>
-                        <div className="space-y-2">
-                          <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-center">
-                            <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                              {item.work_days_count || 0}
+                        <div className="space-y-1">
+                          <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded text-center">
+                            <div className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                              {item.work_days_count || 0}일
                             </div>
-                            <div className="text-sm text-purple-600 dark:text-purple-300">총 근무일</div>
                           </div>
-                          {item.first_work_date && (
-                            <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                              시작: {new Date(item.first_work_date).toLocaleDateString('ko-KR')}
-                            </div>
-                          )}
                           {item.last_work_date && (
                             <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                              최종: {new Date(item.last_work_date).toLocaleDateString('ko-KR')}
+                              ~{new Date(item.last_work_date).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}
                             </div>
                           )}
                         </div>
                       </div>
 
                       {/* Work Dates */}
-                      <div className="space-y-3">
-                        <h4 className="font-semibold text-gray-900 dark:text-gray-100 flex items-center">
-                          <svg className="w-5 h-5 mr-2 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                          <svg className="w-4 h-4 mr-1 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                           </svg>
-                          근무 날짜
+                          날짜
                         </h4>
-                        <div className="max-h-32 overflow-y-auto">
+                        <div className="max-h-20 overflow-y-auto">
                           <div className="flex flex-wrap gap-1">
-                            {(item.work_dates || []).slice(0, 15).map((date, idx) => (
+                            {(item.work_dates || []).slice(0, 8).map((date, idx) => (
                               <span
                                 key={idx}
-                                className="px-2 py-1 text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 rounded"
+                                className="px-1 py-0.5 text-xs bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 rounded"
                               >
-                                {new Date(date).toLocaleDateString('ko-KR', { 
-                                  month: 'short', 
-                                  day: 'numeric' 
-                                })}
+                                {new Date(date).getDate()}
                               </span>
                             ))}
-                            {(item.work_dates || []).length > 15 && (
-                              <span className="px-2 py-1 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded">
-                                +{(item.work_dates || []).length - 15}
+                            {(item.work_dates || []).length > 8 && (
+                              <span className="px-1 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 rounded">
+                                +{(item.work_dates || []).length - 8}
                               </span>
                             )}
                           </div>
