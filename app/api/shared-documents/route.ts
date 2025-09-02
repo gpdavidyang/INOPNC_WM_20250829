@@ -36,9 +36,9 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
 
     let query = supabase
-      .from('v_shared_documents_with_permissions')
+      .from('photo_grids')
       .select('*', { count: 'exact' })
-      .eq('is_deleted', false)
+      .eq('is_active', true)
 
     // Apply filters
     if (site_id) query = query.eq('site_id', site_id)
@@ -191,8 +191,29 @@ export async function POST(request: NextRequest) {
     }
 
     const { data: document, error: docError } = await supabase
-      .from('shared_documents')
-      .insert(documentData)
+      .from('photo_grids')
+      .insert({
+        title,
+        description: description || null,
+        file_url: urlData.publicUrl,
+        file_name: file.name,
+        file_type: fileExt?.toLowerCase() || 'unknown',
+        file_size: file.size,
+        mime_type: file.type,
+        site_id: site_id || null,
+        organization_id: organization_id || null,
+        category: category || null,
+        tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : null,
+        uploaded_by: user.id,
+        is_active: true,
+        grid_data: null,
+        metadata: {
+          security: securityMetadata,
+          is_secure: validationResult.securityFlags.passedSecurityScan && 
+                     validationResult.securityFlags.hasValidSignature &&
+                     !validationResult.securityFlags.isSuspicious
+        }
+      })
       .select()
       .single()
 
@@ -207,17 +228,17 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    // Log upload action
-    await supabase.from('document_access_logs').insert({
-      document_id: document.id,
-      user_id: user.id,
-      action: 'upload',
-      details: {
-        file_name: file.name,
-        file_size: file.size,
-        file_type: file.type
-      }
-    })
+    // Log upload action (commented out - table doesn't exist)
+    // await supabase.from('document_access_logs').insert({
+    //   document_id: document.id,
+    //   user_id: user.id,
+    //   action: 'upload',
+    //   details: {
+    //     file_name: file.name,
+    //     file_size: file.size,
+    //     file_type: file.type
+    //   }
+    // })
 
     return NextResponse.json({ 
       document,
