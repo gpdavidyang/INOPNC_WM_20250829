@@ -126,6 +126,15 @@ export async function POST(request: NextRequest) {
     }
     console.log('✅ User authenticated:', user.id)
 
+    // Get user's site information
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('site_id')
+      .eq('id', user.id)
+      .single()
+    
+    console.log('📍 User profile site_id:', profile?.site_id)
+
     const formData = await request.formData()
     const file = formData.get('file') as File
     const category = formData.get('category') as string
@@ -214,6 +223,7 @@ export async function POST(request: NextRequest) {
           document_type: documentType || 'general',
           folder_path: filePath,
           owner_id: user.id,
+          site_id: profile?.site_id || null,
           is_public: false,
           description: `업로드된 파일: ${file.name}`
         }
