@@ -25,6 +25,42 @@ import {
 } from '@/lib/notifications/triggers'
 
 // ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+async function createHeadquartersRequest(
+  supabase: any, 
+  requesterId: string, 
+  siteId: string, 
+  content: string, 
+  workDate: string
+) {
+  try {
+    const { error } = await supabase
+      .from('headquarters_requests')
+      .insert({
+        requester_id: requesterId,
+        site_id: siteId,
+        category: 'general',
+        subject: `${workDate} 작업일지 본사 요청사항`,
+        content: content,
+        urgency: 'medium',
+        status: 'pending',
+        request_date: workDate,
+        created_at: new Date().toISOString()
+      })
+    
+    if (error) {
+      console.error('Error creating headquarters request:', error)
+      // Don't throw error to avoid breaking daily report creation
+    }
+  } catch (error) {
+    console.error('Failed to create headquarters request:', error)
+    // Don't throw error to avoid breaking daily report creation
+  }
+}
+
+// ==========================================
 // DAILY REPORT ACTIONS
 // ==========================================
 
@@ -38,6 +74,7 @@ export async function createDailyReport(data: {
   npc1000_used?: number
   npc1000_remaining?: number
   issues?: string
+  hq_request?: string
 }, workerDetails?: Array<{worker_name: string, labor_hours: number, worker_id?: string}>) {
   try {
     const supabase = await createClient()
@@ -102,6 +139,11 @@ export async function createDailyReport(data: {
         }
       }
 
+      // Handle headquarters request if provided
+      if (data.hq_request && data.hq_request.trim() && report) {
+        await createHeadquartersRequest(supabase, user.id, data.site_id, data.hq_request, data.work_date)
+      }
+
       revalidatePath('/dashboard/daily-reports')
       return { success: true, data: report }
     }
@@ -140,6 +182,11 @@ export async function createDailyReport(data: {
           // Don't throw error here to avoid transaction rollback, just log
         }
       }
+    }
+
+    // Handle headquarters request if provided
+    if (data.hq_request && data.hq_request.trim() && report) {
+      await createHeadquartersRequest(supabase, user.id, data.site_id, data.hq_request, data.work_date)
     }
 
     revalidatePath('/dashboard/daily-reports')

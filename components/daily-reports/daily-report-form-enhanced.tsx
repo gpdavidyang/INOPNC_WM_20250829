@@ -864,7 +864,8 @@ export default function DailyReportFormEnhanced({
         npc1000_incoming: parseFloat(materialData.incoming) || 0,
         npc1000_used: parseFloat(materialData.used) || 0,
         npc1000_remaining: parseFloat(materialData.remaining) || 0,
-        issues: specialNotes || ''
+        issues: specialNotes || '',
+        hq_request: requestText || ''
       }, workerEntries.map(w => ({
         worker_name: w.is_direct_input ? w.worker_name : w.worker_id,
         labor_hours: w.labor_hours || 1.0,
