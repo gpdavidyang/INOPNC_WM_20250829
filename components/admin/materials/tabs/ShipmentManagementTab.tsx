@@ -44,8 +44,8 @@ interface MaterialShipment {
   updated_at: string
   site?: { id: string; name: string }
   request?: { id: string; request_number: string }
-  shipper?: { id: string; name: string }
-  receiver?: { id: string; name: string }
+  shipper?: { id: string; full_name: string }
+  receiver?: { id: string; full_name: string }
   items?: MaterialShipmentItem[]
 }
 
@@ -136,8 +136,8 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
           *,
           site:sites(id, name),
           request:material_requests(id, request_number),
-          shipper:profiles!material_shipments_shipped_by_fkey(id, name),
-          receiver:profiles!material_shipments_received_by_fkey(id, name),
+          shipper:profiles!material_shipments_shipped_by_fkey(id, full_name),
+          receiver:profiles!material_shipments_received_by_fkey(id, full_name),
           items:material_shipment_items(
             *,
             material:materials(id, code, name, unit)

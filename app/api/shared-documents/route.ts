@@ -5,6 +5,16 @@ import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/types/shared-documents'
 // Configure API route
 export const runtime = 'nodejs'
 export const maxDuration = 30
+
+// Configure body parser for large file uploads
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '50mb',
+    },
+    responseLimit: '50mb',
+  },
+}
 import { 
   validateFile, 
   generateSecurityMetadata,
