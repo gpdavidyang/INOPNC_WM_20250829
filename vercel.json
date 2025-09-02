@@ -1,15 +1,15 @@
 {
-  "buildCommand": "next build && node copy-public.js",
+  "buildCommand": "next build && node copy-public.js && cp public/manifest.json .next/static/manifest.json && cp public/sw.js .next/static/sw.js",
   "framework": "nextjs",
   "regions": ["icn1"],
   "rewrites": [
     {
       "source": "/manifest.json",
-      "destination": "/manifest.json"
+      "destination": "/_next/static/manifest.json"
     },
     {
       "source": "/sw.js",
-      "destination": "/sw.js"
+      "destination": "/_next/static/sw.js"
     }
   ],
   "headers": [
@@ -46,6 +46,12 @@
   ],
   "functions": {
     "app/api/shared-documents/route.ts": {
+      "maxDuration": 30,
+      "bodyParser": {
+        "sizeLimit": "50mb"
+      }
+    },
+    "app/api/**/*.ts": {
       "maxDuration": 30
     }
   }

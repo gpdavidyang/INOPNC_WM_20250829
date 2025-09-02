@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE } from '@/types/shared-documents'
+
+// Configure API route
+export const runtime = 'nodejs'
+export const maxDuration = 30
 import { 
   validateFile, 
   generateSecurityMetadata,
