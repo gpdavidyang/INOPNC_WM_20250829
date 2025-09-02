@@ -25,7 +25,7 @@ export function EnvironmentStatus({ showInProduction = false }: EnvironmentStatu
     
     const checkEnvironment = async () => {
       try {
-        const response = await fetch('/api/debug/env')
+        const response = await fetch('/api/health/env')
         const data = await response.json()
         
         if (!mounted) return
@@ -76,7 +76,9 @@ export function EnvironmentStatus({ showInProduction = false }: EnvironmentStatu
   }
   
   const { data } = envStatus
-  const hasErrors = data?.data?.envVars && Object.values(data.data.envVars).some((env: any) => !env.isValid)
+  const hasErrors = data?.status === 'unhealthy' || data?.status === 'degraded'
+  const failedChecks = data?.checks?.filter((check: any) => check.status === 'fail') || []
+  const warnChecks = data?.checks?.filter((check: any) => check.status === 'warn') || []
   
   return (
     <div className={`fixed bottom-4 right-4 ${hasErrors ? 'bg-red-100 border-red-300' : 'bg-green-100 border-green-300'} border rounded-lg p-3 text-sm shadow-lg z-50 max-w-md`}>
@@ -90,31 +92,47 @@ export function EnvironmentStatus({ showInProduction = false }: EnvironmentStatu
         </svg>
         <div className="flex-1">
           <p className={`font-medium ${hasErrors ? 'text-red-800' : 'text-green-800'}`}>
-            Environment: {data?.data?.environment || 'unknown'}
+            Environment: {data?.environment || 'unknown'} ({data?.status || 'checking'})
           </p>
-          {data?.data?.vercelEnv && (
-            <p className={`${hasErrors ? 'text-red-700' : 'text-green-700'} mb-2`}>
-              Vercel: {data.data.vercelEnv}
+          {data?.summary && (
+            <p className={`text-xs ${hasErrors ? 'text-red-700' : 'text-green-700'} mb-1`}>
+              Checks: {data.summary.passed}/{data.summary.total} passed
+              {data.summary.warnings > 0 && `, ${data.summary.warnings} warnings`}
+              {data.summary.failed > 0 && `, ${data.summary.failed} failed`}
             </p>
           )}
           
-          {hasErrors && (
+          {(failedChecks.length > 0 || warnChecks.length > 0) && (
             <div className="mt-2">
-              <p className="text-red-700 font-medium mb-1">Issues:</p>
-              <ul className="text-red-600 text-xs list-disc list-inside space-y-1">
-                {Object.entries(data?.data?.envVars || {}).map(([key, env]: [string, any]) => 
-                  !env.isValid && (
-                    <li key={key}>
-                      {key}: {!env.exists ? 'Missing' : `Invalid (${env.length} chars)`}
-                    </li>
-                  )
-                )}
-              </ul>
+              {failedChecks.length > 0 && (
+                <>
+                  <p className="text-red-700 font-medium mb-1">Failed:</p>
+                  <ul className="text-red-600 text-xs list-disc list-inside space-y-1 mb-2">
+                    {failedChecks.map((check: any) => (
+                      <li key={check.name}>
+                        {check.name}: {check.error || 'Failed'}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {warnChecks.length > 0 && (
+                <>
+                  <p className="text-yellow-700 font-medium mb-1">Warnings:</p>
+                  <ul className="text-yellow-600 text-xs list-disc list-inside space-y-1">
+                    {warnChecks.map((check: any) => (
+                      <li key={check.name}>
+                        {check.name}: {check.error || 'Warning'}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
           )}
           
           <div className="mt-2 text-xs text-gray-600">
-            {data?.data?.timestamp && new Date(data.data.timestamp).toLocaleTimeString()}
+            {data?.timestamp && new Date(data.timestamp).toLocaleTimeString()}
           </div>
         </div>
       </div>

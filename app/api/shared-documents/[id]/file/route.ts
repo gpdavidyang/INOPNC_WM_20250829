@@ -13,33 +13,68 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // 문서 정보 조회
-    const { data: document, error: docError } = await supabase
-      .from('v_shared_documents_with_permissions')
+    // First try to find in documents table (for site documents including blueprint/PTW)
+    let document: any = null
+    let storageBucket = 'user-documents'
+    let filePath = ''
+    
+    // Try documents table first (for site documents)
+    const { data: siteDoc, error: siteDocError } = await supabase
+      .from('documents')
       .select('*')
       .eq('id', params.id)
-      .eq('is_deleted', false)
       .single()
+    
+    if (siteDoc && !siteDocError) {
+      // Found in documents table
+      document = siteDoc
+      storageBucket = 'documents' // site documents use 'documents' bucket
+      
+      // Check if file_url is a full URL or storage path
+      if (siteDoc.file_url) {
+        if (siteDoc.file_url.startsWith('http')) {
+          // It's a full URL, redirect to it
+          return NextResponse.redirect(siteDoc.file_url)
+        } else if (siteDoc.file_url.startsWith('/')) {
+          // It's a local path like /docs/PTW.pdf - serve it as a static file
+          const staticUrl = `${request.nextUrl.origin}${siteDoc.file_url}`
+          return NextResponse.redirect(staticUrl)
+        }
+      }
+      filePath = siteDoc.file_url || siteDoc.file_path || ''
+    } else {
+      // Try shared documents system
+      const { data: sharedDoc, error: sharedDocError } = await supabase
+        .from('v_shared_documents_with_permissions')
+        .select('*')
+        .eq('id', params.id)
+        .eq('is_deleted', false)
+        .single()
 
-    if (docError || !document) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
-    }
+      if (sharedDocError || !sharedDoc) {
+        return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+      }
 
-    // 권한 확인
-    const hasPermission = await supabase.rpc('check_document_permission', {
-      p_document_id: params.id,
-      p_user_id: user.id,
-      p_permission_type: 'view'
-    })
+      // Check permissions for shared documents
+      const hasPermission = await supabase.rpc('check_document_permission', {
+        p_document_id: params.id,
+        p_user_id: user.id,
+        p_permission_type: 'view'
+      })
 
-    if (!hasPermission.data) {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+      if (!hasPermission.data) {
+        return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+      }
+      
+      document = sharedDoc
+      storageBucket = 'user-documents'
+      filePath = sharedDoc.file_path
     }
 
     // Supabase Storage에서 파일 다운로드
     const { data: fileData, error: downloadError } = await supabase.storage
-      .from('user-documents')
-      .download(document.file_path)
+      .from(storageBucket)
+      .download(filePath)
 
     if (downloadError || !fileData) {
       console.error('Error downloading file:', downloadError)
@@ -47,7 +82,7 @@ export async function GET(
     }
 
     // MIME 타입 결정
-    const filename = document.filename || document.file_path.split('/').pop() || ''
+    const filename = document.file_name || document.filename || filePath.split('/').pop() || ''
     const ext = filename.split('.').pop()?.toLowerCase() || ''
     const mimeTypes: { [key: string]: string } = {
       'png': 'image/png',

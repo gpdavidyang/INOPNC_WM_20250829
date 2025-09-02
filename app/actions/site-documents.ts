@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 export interface SiteDocument {
   id: string
   site_id: string
-  document_type: 'ptw' | 'blueprint' | 'other'
+  document_type: string
   file_name: string
   file_url: string
   file_size: number | null
@@ -13,6 +13,7 @@ export interface SiteDocument {
   is_active: boolean
   created_at: string
   updated_at: string
+  title?: string
 }
 
 /**
@@ -116,21 +117,23 @@ export async function getSiteBlueprintDocument(siteId: string) {
 }
 
 /**
- * Get both PTW and blueprint documents for a site using site's document IDs
+ * Get both PTW and blueprint documents for a site from documents table
  */
 export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
   try {
     const supabase = createClient()
     
-    // First get the site to find document IDs
-    const { data: siteData, error: siteError } = await supabase
-      .from('sites')
-      .select('blueprint_document_id, ptw_document_id')
-      .eq('id', siteId)
-      .single()
-    
-    if (siteError || !siteData) {
-      console.error('Error fetching site:', siteError)
+    // Fetch PTW and blueprint documents from documents table
+    // Look for documents with title containing 'PTW' or '작업허가서' for PTW
+    // and '도면' or 'blueprint' for blueprints
+    const { data: documents, error } = await supabase
+      .from('documents')
+      .select('*')
+      .eq('site_id', siteId)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching documents:', error)
       return {
         success: true,
         data: {
@@ -141,57 +144,64 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
       }
     }
 
-    // Fetch documents if IDs exist
+    // Find PTW and blueprint documents
     let ptwDocument = null
     let blueprintDocument = null
 
-    if (siteData.ptw_document_id) {
-      const { data: ptwData } = await supabase
-        .from('unified_documents')
-        .select('*')
-        .eq('id', siteData.ptw_document_id)
-        .single()
-      
-      if (ptwData) {
+    if (documents && documents.length > 0) {
+      // Find PTW document (작업허가서 or PTW in title)
+      const ptwDoc = documents.find(doc => 
+        doc.title?.includes('PTW') || 
+        doc.title?.includes('작업허가서') ||
+        doc.document_type === 'ptw'
+      )
+
+      // Find blueprint document (도면 in title or document_type)
+      const blueprintDoc = documents.find(doc => 
+        doc.title?.includes('도면') || 
+        doc.title?.includes('blueprint') ||
+        doc.document_type === 'blueprint' ||
+        doc.document_type === 'drawing'
+      )
+
+      if (ptwDoc) {
         ptwDocument = {
-          id: ptwData.id,
-          site_id: siteId,
-          document_type: 'ptw' as const,
-          file_name: ptwData.filename,
-          file_url: ptwData.file_path,
-          file_size: ptwData.file_size,
-          mime_type: ptwData.mime_type,
+          id: ptwDoc.id,
+          site_id: ptwDoc.site_id,
+          document_type: 'ptw',
+          file_name: ptwDoc.file_name,
+          file_url: ptwDoc.file_url,
+          file_size: ptwDoc.file_size,
+          mime_type: ptwDoc.mime_type,
           is_active: true,
-          created_at: ptwData.created_at,
-          updated_at: ptwData.updated_at || ptwData.created_at,
-          title: ptwData.title
+          created_at: ptwDoc.created_at,
+          updated_at: ptwDoc.updated_at || ptwDoc.created_at,
+          title: ptwDoc.title || ptwDoc.file_name
+        }
+      }
+
+      if (blueprintDoc) {
+        blueprintDocument = {
+          id: blueprintDoc.id,
+          site_id: blueprintDoc.site_id,
+          document_type: 'blueprint',
+          file_name: blueprintDoc.file_name,
+          file_url: blueprintDoc.file_url,
+          file_size: blueprintDoc.file_size,
+          mime_type: blueprintDoc.mime_type,
+          is_active: true,
+          created_at: blueprintDoc.created_at,
+          updated_at: blueprintDoc.updated_at || blueprintDoc.created_at,
+          title: blueprintDoc.title || blueprintDoc.file_name
         }
       }
     }
 
-    if (siteData.blueprint_document_id) {
-      const { data: blueprintData } = await supabase
-        .from('unified_documents')
-        .select('*')
-        .eq('id', siteData.blueprint_document_id)
-        .single()
-      
-      if (blueprintData) {
-        blueprintDocument = {
-          id: blueprintData.id,
-          site_id: siteId,
-          document_type: 'blueprint' as const,
-          file_name: blueprintData.filename,
-          file_url: blueprintData.file_path,
-          file_size: blueprintData.file_size,
-          mime_type: blueprintData.mime_type,
-          is_active: true,
-          created_at: blueprintData.created_at,
-          updated_at: blueprintData.updated_at || blueprintData.created_at,
-          title: blueprintData.title
-        }
-      }
-    }
+    console.log('[Site Documents] Fetched documents for site:', siteId, {
+      hasPTW: !!ptwDocument,
+      hasBlueprint: !!blueprintDocument,
+      totalDocs: documents?.length || 0
+    })
 
     return {
       success: true,
