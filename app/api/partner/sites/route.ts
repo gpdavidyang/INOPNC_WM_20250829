@@ -12,13 +12,14 @@ export async function GET(request: Request) {
     }
 
     // Get user profile to check if they're associated with a partner company
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, organization_id')
       .eq('id', user.id)
       .single()
 
-    if (!profile) {
+    if (profileError || !profile) {
+      console.error('Profile fetch error:', profileError)
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
@@ -55,9 +56,7 @@ export async function GET(request: Request) {
       `)
 
     // Filter by user's organization if they're associated with a partner company
-    if (profile.organization_id) {
-      query = query.eq('partner_company_id', profile.organization_id)
-    } else {
+    if (!profile.organization_id) {
       // If no organization_id, return empty result for now
       // In the future, we might need to handle individual contractors differently
       return NextResponse.json({
@@ -69,9 +68,15 @@ export async function GET(request: Request) {
           total_sites: 0,
           active_sites: 0,
           completed_sites: 0
+        },
+        filters: {
+          period,
+          status
         }
       })
     }
+
+    query = query.eq('partner_company_id', profile.organization_id)
 
     // Apply period filter
     const now = new Date()
@@ -113,28 +118,65 @@ export async function GET(request: Request) {
 
     if (error) {
       console.error('Participations query error:', error)
-      return NextResponse.json({ error: 'Failed to fetch site participations' }, { status: 500 })
+      console.error('Query details:', {
+        organization_id: profile.organization_id,
+        period,
+        status,
+        error_message: error.message,
+        error_code: error.code
+      })
+      
+      // Return empty result instead of 500 error if it's a data issue
+      if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            participations: []
+          },
+          statistics: {
+            total_sites: 0,
+            active_sites: 0,
+            completed_sites: 0
+          },
+          filters: {
+            period,
+            status
+          }
+        })
+      }
+      
+      return NextResponse.json({ 
+        error: 'Failed to fetch site participations',
+        details: error.message 
+      }, { status: 500 })
     }
 
-    // Transform data for frontend consumption
-    const transformedParticipations = (participations || []).map(p => ({
-      id: p.sites.id,
-      site_partner_id: p.id,
-      name: p.sites.name,
-      address: p.sites.address,
-      role: determineRole(p.partner_companies.company_type, p.partner_companies.trade_type),
-      work: determineWorkDescription(p.partner_companies.trade_type, p.sites.name),
-      period: formatPeriod(p.assigned_date, p.sites.end_date),
-      status: mapContractStatus(p.contract_status, p.sites.site_status),
-      startDate: p.assigned_date,
-      endDate: p.sites.end_date,
-      contractValue: p.contract_value,
-      contractStatus: p.contract_status,
-      siteStatus: p.sites.site_status,
-      companyType: p.partner_companies.company_type,
-      tradeType: p.partner_companies.trade_type,
-      notes: p.notes
-    }))
+    // Transform data for frontend consumption - with safe property access
+    const transformedParticipations = (participations || []).map(p => {
+      try {
+        return {
+          id: p.sites?.id || '',
+          site_partner_id: p.id || '',
+          name: p.sites?.name || '알 수 없는 현장',
+          address: p.sites?.address || '',
+          role: determineRole(p.partner_companies?.company_type, p.partner_companies?.trade_type),
+          work: determineWorkDescription(p.partner_companies?.trade_type, p.sites?.name),
+          period: formatPeriod(p.assigned_date, p.sites?.end_date),
+          status: mapContractStatus(p.contract_status, p.sites?.site_status),
+          startDate: p.assigned_date || '',
+          endDate: p.sites?.end_date || null,
+          contractValue: p.contract_value || null,
+          contractStatus: p.contract_status || 'unknown',
+          siteStatus: p.sites?.site_status || 'unknown',
+          companyType: p.partner_companies?.company_type || '',
+          tradeType: p.partner_companies?.trade_type || [],
+          notes: p.notes || null
+        }
+      } catch (transformError) {
+        console.error('Error transforming participation:', transformError, p)
+        return null
+      }
+    }).filter(Boolean) // Remove any null entries
 
     // Calculate statistics
     const totalSites = transformedParticipations.length
