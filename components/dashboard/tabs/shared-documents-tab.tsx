@@ -75,6 +75,22 @@ interface ActivityItem {
   details: string
 }
 
+// Helper function to map document types to categories
+const mapDocumentTypeToCategory = (documentType: string | null): string => {
+  if (!documentType) return 'misc'
+  
+  const typeMap: Record<string, string> = {
+    'report': 'safety',
+    'blueprint': 'drawings',
+    'shared': 'company-regulations',
+    'certificate': 'construction-standards',
+    'invoice': 'construction-standards',
+    'misc': 'education'
+  }
+  
+  return typeMap[documentType] || 'education'
+}
+
 const DOCUMENT_CATEGORIES: DocumentCategory[] = [
   {
     id: 'safety',
@@ -187,7 +203,60 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
   const loadDocuments = async () => {
     setLoading(true)
     try {
-      // Mock data for demo - in real implementation, this would fetch from Supabase
+      const supabase = createClient()
+      
+      // Fetch real documents from database
+      const { data: realDocuments, error } = await supabase
+        .from('documents')
+        .select(`
+          id,
+          file_name,
+          file_url,
+          file_size,
+          mime_type,
+          document_type,
+          created_at,
+          updated_at,
+          is_public,
+          site_id,
+          owner:owner_id(full_name),
+          site:site_id(name)
+        `)
+        .eq('is_public', true)
+        .order('created_at', { ascending: false })
+        .limit(50)
+      
+      if (error) {
+        console.error('Error fetching documents:', error)
+      }
+      
+      // Map database documents to SharedDocument format
+      const mappedDocuments: SharedDocument[] = realDocuments?.map(doc => ({
+        id: doc.id,
+        name: doc.file_name || 'Untitled',
+        type: doc.mime_type || 'application/octet-stream',
+        size: doc.file_size || 0,
+        category: mapDocumentTypeToCategory(doc.document_type),
+        uploadedAt: doc.created_at,
+        uploadedBy: doc.owner?.full_name || 'Unknown',
+        lastModified: doc.updated_at || doc.created_at,
+        version: 1,
+        permissions: 'read' as const,
+        isStarred: false,
+        url: doc.file_url,
+        sharedWith: doc.is_public ? ['전체 사용자'] : [],
+        site_id: doc.site_id,
+        site_name: doc.site?.name || '전체 현장',
+        versionHistory: [{
+          version: 1,
+          uploadedAt: doc.created_at,
+          uploadedBy: doc.owner?.full_name || 'Unknown',
+          changes: '초기 업로드',
+          size: doc.file_size || 0
+        }]
+      })) || []
+      
+      // Also include some mock documents for demo purposes
       const mockDocuments: SharedDocument[] = [
         {
           id: '1',
@@ -330,8 +399,11 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
         }
       ]
 
+      // Combine real and mock documents
+      const allDocuments = [...mappedDocuments, ...mockDocuments]
+      
       // Filter documents based on user role permissions
-      const accessibleDocuments = mockDocuments.filter(doc => {
+      const accessibleDocuments = allDocuments.filter(doc => {
         const category = categories.find(cat => cat.id === doc.category)
         return category?.permissions.view.includes(profile.role) || false
       })
@@ -568,6 +640,16 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
     if (!confirm('정말 삭제하시겠습니까?')) return
     
     try {
+      // Check if this is a mock document (non-UUID format)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(documentId)
+      
+      if (!isUUID) {
+        // For mock data, just remove from state
+        setDocuments(prev => prev.filter(d => d.id !== documentId))
+        alert('문서가 삭제되었습니다.')
+        return
+      }
+      
       const supabase = createClient()
       const { error } = await supabase
         .from('documents')
