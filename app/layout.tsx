@@ -26,7 +26,7 @@ import { EnvironmentStatus } from "@/components/debug/environment-status";
 export const metadata: Metadata = {
   title: "INOPNC Work Management",
   description: "건설 현장 작업 일지 및 자재 관리를 위한 통합 관리 시스템",
-  manifest: "/manifest.json",
+  manifest: "/api/pwa/manifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
