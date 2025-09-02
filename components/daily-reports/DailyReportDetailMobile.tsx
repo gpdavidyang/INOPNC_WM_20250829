@@ -48,6 +48,11 @@ interface DailyReportDetailMobileProps {
     site?: any
     created_by_profile?: any
     approved_by_profile?: any
+    workers?: any[]
+    beforePhotos?: any[]
+    afterPhotos?: any[]
+    receipts?: any[]
+    documents?: any[]
   }
   currentUser: Profile
 }
@@ -55,8 +60,23 @@ interface DailyReportDetailMobileProps {
 export default function DailyReportDetailMobile({ report, currentUser }: DailyReportDetailMobileProps) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-  const [showDetailedWorkLogs, setShowDetailedWorkLogs] = useState(false)
-  const [showAttendanceDetails, setShowAttendanceDetails] = useState(false)
+  const [expandedSections, setExpandedSections] = useState({
+    workContent: true,
+    workers: false,
+    beforePhotos: false,
+    afterPhotos: false,
+    receipts: false,
+    requests: false,
+    npc1000: false,
+    issues: false
+  })
+
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section as keyof typeof prev]
+    }))
+  }
 
   const canEdit = 
     report.created_by === currentUser.id &&

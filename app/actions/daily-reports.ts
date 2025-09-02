@@ -337,11 +337,13 @@ export async function getDailyReportById(id: string) {
   try {
     const supabase = createClient()
     
+    // Get main report with site info
     const { data, error } = await supabase
       .from('daily_reports')
       .select(`
         *,
-        site:sites(*)
+        site:sites(*),
+        created_by_profile:profiles!daily_reports_created_by_fkey(*)
       `)
       .eq('id', id)
       .single()
@@ -351,7 +353,44 @@ export async function getDailyReportById(id: string) {
       throw new AppError('일일보고서를 찾을 수 없습니다.', ErrorType.NOT_FOUND)
     }
 
-    return { success: true, data }
+    // Get workers for this report
+    const { data: workers } = await supabase
+      .from('daily_report_workers')
+      .select('*')
+      .eq('daily_report_id', id)
+      .order('worker_name')
+
+    // Get documents (photos, receipts) for this report
+    const { data: documents } = await supabase
+      .from('daily_documents')
+      .select('*')
+      .eq('daily_report_id', id)
+      .order('created_at')
+
+    // Separate documents by type
+    const beforePhotos = documents?.filter(doc => 
+      doc.document_type === 'before_photo' || doc.category === 'before'
+    ) || []
+    
+    const afterPhotos = documents?.filter(doc => 
+      doc.document_type === 'after_photo' || doc.category === 'after'
+    ) || []
+    
+    const receipts = documents?.filter(doc => 
+      doc.document_type === 'receipt' || doc.file_type === 'receipt'
+    ) || []
+
+    // Combine all data
+    const reportWithDetails = {
+      ...data,
+      workers: workers || [],
+      beforePhotos,
+      afterPhotos,
+      receipts,
+      documents: documents || []
+    }
+
+    return { success: true, data: reportWithDetails }
   } catch (error) {
     logError(error, 'getDailyReportById')
     return { 

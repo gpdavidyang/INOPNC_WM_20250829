@@ -97,10 +97,8 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
             onClick={() => setActiveTab('required')}
             className={`w-full py-3 px-4 rounded-xl font-medium text-sm min-h-[48px] transition-all duration-200 relative ${
               activeTab === 'required'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                : requiredDocsProgress.completed < requiredDocsProgress.total
-                ? 'bg-gradient-to-r from-orange-50 to-red-50 border-2 border-orange-300 text-orange-700 hover:border-orange-400 hover:from-orange-100 hover:to-red-100 shadow-sm dark:from-orange-900/20 dark:to-red-900/20 dark:border-orange-600 dark:text-orange-400 dark:hover:from-orange-900/30 dark:hover:to-red-900/30'
-                : 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 text-green-700 hover:border-green-400 hover:from-green-100 hover:to-emerald-100 shadow-sm dark:from-green-900/20 dark:to-emerald-900/20 dark:border-green-600 dark:text-green-400 dark:hover:from-green-900/30 dark:hover:to-emerald-900/30'
+                ? 'bg-blue-600 text-white shadow-lg'
+                : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500'
             }`}
           >
             <div className="flex items-center justify-center gap-2">

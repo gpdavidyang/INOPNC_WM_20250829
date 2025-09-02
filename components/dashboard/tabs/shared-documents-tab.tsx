@@ -270,6 +270,7 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
           version: 2,
           permissions: 'read',
           isStarred: true,
+          url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
           sharedWith: ['전체 사용자'],
           site_id: 'site1',
           site_name: '서울 아파트 신축공사',
@@ -302,6 +303,7 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
           version: 1,
           permissions: 'read',
           isStarred: false,
+          url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
           sharedWith: ['작업자', '현장관리자'],
           site_id: 'site2',
           site_name: '부산 오피스텔 건설',
@@ -327,6 +329,7 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
           version: 3,
           permissions: 'read',
           isStarred: false,
+          url: 'https://file-examples.com/storage/fe1170c816762d3e0b19a57/2017/02/file-sample_100kB.docx',
           sharedWith: ['전체 사용자'],
           site_id: 'all',
           site_name: '전체 현장',
@@ -359,6 +362,7 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
           version: 1,
           permissions: 'read',
           isStarred: true,
+          url: 'https://scholar.harvard.edu/files/torman_personal/files/samplepptx.pptx',
           sharedWith: ['작업자', '현장관리자'],
           site_id: 'site3',
           site_name: '대구 상가 리모델링',
@@ -571,7 +575,16 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
         // Try to open the document URL
         window.open(document.url, '_blank')
       } else {
-        // If no URL, try to get from storage
+        // Check if this is a valid UUID
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(document.id)
+        
+        if (!isUUID) {
+          // For mock documents, show a message
+          alert('샘플 문서입니다. 실제 문서가 업로드되면 미리보기가 가능합니다.')
+          return
+        }
+        
+        // If valid UUID, try to get from storage
         const supabase = createClient()
         const { data } = await supabase
           .from('documents')
@@ -646,7 +659,7 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
       if (!isUUID) {
         // For mock data, just remove from state
         setDocuments(prev => prev.filter(d => d.id !== documentId))
-        alert('문서가 삭제되었습니다.')
+        alert('샘플 문서가 목록에서 제거되었습니다.')
         return
       }
       
