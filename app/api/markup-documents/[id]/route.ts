@@ -98,6 +98,7 @@ export async function PUT(
     // 마킹 개수 계산
     const markup_count = Array.isArray(markup_data) ? markup_data.length : 0
 
+    // markup_documents 테이블 업데이트
     const { data: document, error } = await supabase
       .from('markup_documents' as any)
       .update({
@@ -115,6 +116,33 @@ export async function PUT(
     if (error) {
       console.error('Error updating markup document:', error)
       return NextResponse.json({ error: 'Failed to update document' }, { status: 500 })
+    }
+
+    // unified_document_system도 함께 업데이트
+    try {
+      const { error: unifiedError } = await supabase
+        .from('unified_document_system')
+        .update({
+          title,
+          description,
+          file_name: `${title}.markup`,
+          updated_at: new Date().toISOString(),
+          metadata: {
+            source_table: 'markup_documents',
+            source_id: document.id,
+            markup_count,
+            original_blueprint_url: document.original_blueprint_url,
+            original_blueprint_filename: document.original_blueprint_filename
+          }
+        })
+        .eq('metadata->>source_table', 'markup_documents')
+        .eq('metadata->>source_id', params.id)
+
+      if (unifiedError) {
+        console.warn('Warning: Failed to sync update to unified document system:', unifiedError)
+      }
+    } catch (syncError) {
+      console.warn('Warning: Error syncing update to unified document system:', syncError)
     }
 
     return NextResponse.json({
@@ -142,6 +170,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // markup_documents 테이블에서 소프트 삭제
     const { error } = await supabase
       .from('markup_documents' as any)
       .update({
@@ -153,6 +182,24 @@ export async function DELETE(
     if (error) {
       console.error('Error deleting markup document:', error)
       return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 })
+    }
+
+    // unified_document_system에서도 아카이브 처리
+    try {
+      const { error: unifiedError } = await supabase
+        .from('unified_document_system')
+        .update({
+          is_archived: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('metadata->>source_table', 'markup_documents')
+        .eq('metadata->>source_id', params.id)
+
+      if (unifiedError) {
+        console.warn('Warning: Failed to sync delete to unified document system:', unifiedError)
+      }
+    } catch (syncError) {
+      console.warn('Warning: Error syncing delete to unified document system:', syncError)
     }
 
     return NextResponse.json({
