@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     
     const documentType = searchParams.get('type') || 'personal'
@@ -114,14 +114,17 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('📤 Document upload API called')
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // 현재 사용자 확인
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
+      console.error('❌ Authentication failed:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    console.log('✅ User authenticated:', user.id)
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -129,8 +132,19 @@ export async function POST(request: NextRequest) {
     const uploadedBy = formData.get('uploadedBy') as string
     const documentType = formData.get('documentType') as string
     const isRequired = formData.get('isRequired') === 'true'
+    
+    console.log('📋 Form data received:', {
+      fileName: file?.name,
+      fileSize: file?.size,
+      fileType: file?.type,
+      category,
+      uploadedBy,
+      documentType,
+      isRequired
+    })
 
     if (!file) {
+      console.error('❌ No file provided in request')
       return NextResponse.json({ error: 'No file provided' }, { status: 400 })
     }
 
@@ -157,12 +171,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 파일을 Buffer로 변환
+    console.log('🔄 Converting file to buffer...')
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
+    console.log('✅ File converted to buffer, size:', buffer.length)
 
     // Supabase Storage에 파일 업로드
     const fileName = `${Date.now()}-${file.name}`
     const filePath = `documents/${user.id}/${fileName}`
+    console.log('📁 Uploading to path:', filePath)
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
@@ -172,8 +189,11 @@ export async function POST(request: NextRequest) {
       })
 
     if (uploadError) {
-      console.error('Upload error:', uploadError)
-      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
+      console.error('Supabase Storage upload error:', uploadError)
+      return NextResponse.json({ 
+        error: 'Failed to upload file to storage', 
+        details: uploadError.message || uploadError 
+      }, { status: 500 })
     }
 
     // 파일 URL 생성
@@ -203,9 +223,20 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       console.error('Database error:', dbError)
+      console.error('Failed to insert document with data:', {
+        title: file.name,
+        file_name: fileName,
+        file_size: file.size,
+        mime_type: file.type,
+        document_type: documentType || 'general',
+        owner_id: user.id
+      })
       // 업로드된 파일 삭제
       await supabase.storage.from('documents').remove([filePath])
-      return NextResponse.json({ error: 'Failed to save document info' }, { status: 500 })
+      return NextResponse.json({ 
+        error: 'Failed to save document info', 
+        details: dbError.message || dbError 
+      }, { status: 500 })
     }
 
     return NextResponse.json({
