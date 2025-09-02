@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function GET(
@@ -30,15 +29,9 @@ export async function GET(
 
     const siteId = params.id
 
-    // Create service client for admin operations (bypasses RLS)
-    const serviceClient = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
     // Get all workers not assigned to this site
     // First, get IDs of workers already assigned to this site
-    const { data: assignedWorkers } = await serviceClient
+    const { data: assignedWorkers } = await supabase
       .from('site_assignments')
       .select('user_id')
       .eq('site_id', siteId)
@@ -47,7 +40,7 @@ export async function GET(
     const assignedUserIds = assignedWorkers?.map(w => w.user_id) || []
 
     // Get ALL profiles (including admins who might work on sites)
-    let profilesQuery = serviceClient
+    let profilesQuery = supabase
       .from('profiles')
       .select('id, full_name, email, phone, role, company')
       .order('full_name')
