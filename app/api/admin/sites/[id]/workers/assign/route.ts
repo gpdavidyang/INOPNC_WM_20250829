@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function POST(
@@ -33,17 +32,16 @@ export async function POST(
       return NextResponse.json({ error: 'Invalid worker IDs' }, { status: 400 })
     }
 
-    // Create service client for admin operations (bypasses RLS)
-    const serviceClient = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-
     // Get the actual roles of the workers from profiles
-    const { data: workerProfiles } = await serviceClient
+    const { data: workerProfiles, error: profileError } = await supabase
       .from('profiles')
       .select('id, role')
       .in('id', worker_ids)
+    
+    if (profileError) {
+      console.error('Error fetching worker profiles:', profileError)
+      return NextResponse.json({ error: 'Failed to fetch worker profiles' }, { status: 500 })
+    }
 
     // Create assignments for each worker with their actual role
     const assignments = worker_ids.map(workerId => {
@@ -58,29 +56,38 @@ export async function POST(
     })
 
     // Insert assignments
-    const { data: insertedAssignments, error: insertError } = await serviceClient
+    const { data: insertedAssignments, error: insertError } = await supabase
       .from('site_assignments')
       .insert(assignments)
       .select()
 
     if (insertError) {
       console.error('Error assigning workers:', insertError)
-      return NextResponse.json({ error: 'Failed to assign workers' }, { status: 500 })
+      console.error('Assignments data:', assignments)
+      return NextResponse.json({ 
+        error: 'Failed to assign workers',
+        details: insertError.message 
+      }, { status: 500 })
     }
 
-    // Log the assignment activity
-    await serviceClient
-      .from('activity_logs')
-      .insert({
-        user_id: user.id,
-        action: 'workers_assigned',
-        entity_type: 'site',
-        entity_id: siteId,
-        details: {
-          worker_count: worker_ids.length,
-          worker_ids: worker_ids
-        }
-      })
+    // Log the assignment activity (optional - don't fail if this errors)
+    try {
+      await supabase
+        .from('activity_logs')
+        .insert({
+          user_id: user.id,
+          action: 'workers_assigned',
+          entity_type: 'site',
+          entity_id: siteId,
+          details: {
+            worker_count: worker_ids.length,
+            worker_ids: worker_ids
+          }
+        })
+    } catch (logError) {
+      console.warn('Failed to log activity:', logError)
+      // Continue even if logging fails
+    }
 
     return NextResponse.json({
       success: true,
