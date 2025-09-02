@@ -40,8 +40,8 @@ interface MaterialProduction {
   updated_at: string
   site?: { id: string; name: string }
   material?: { id: string; name: string; code: string; unit: string }
-  producer?: { id: string; name: string }
-  verifier?: { id: string; name: string }
+  producer?: { id: string; full_name: string }
+  verifier?: { id: string; full_name: string }
 }
 
 interface Site {
@@ -102,8 +102,8 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
           *,
           site:sites(id, name),
           material:materials(id, code, name, unit),
-          producer:profiles!material_productions_produced_by_fkey(id, name),
-          verifier:profiles!material_productions_verified_by_fkey(id, name)
+          producer:profiles!material_productions_produced_by_fkey(id, full_name),
+          verifier:profiles!material_productions_verified_by_fkey(id, full_name)
         `)
         .order('production_date', { ascending: false })
 
