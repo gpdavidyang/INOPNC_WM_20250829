@@ -33,14 +33,30 @@ export async function POST(
     }
 
     // Get the actual roles of the workers from profiles
+    console.log('Fetching profiles for worker IDs:', worker_ids)
     const { data: workerProfiles, error: profileError } = await supabase
       .from('profiles')
       .select('id, role')
       .in('id', worker_ids)
     
+    console.log('Worker profiles query result:', { 
+      data: workerProfiles, 
+      error: profileError,
+      count: workerProfiles?.length 
+    })
+    
     if (profileError) {
       console.error('Error fetching worker profiles:', profileError)
-      return NextResponse.json({ error: 'Failed to fetch worker profiles' }, { status: 500 })
+      console.error('Profile query details:', {
+        worker_ids,
+        error_message: profileError.message,
+        error_code: profileError.code,
+        error_details: profileError.details
+      })
+      return NextResponse.json({ 
+        error: 'Failed to fetch worker profiles',
+        details: profileError.message 
+      }, { status: 500 })
     }
 
     // Create assignments for each worker with their actual role
@@ -56,17 +72,31 @@ export async function POST(
     })
 
     // Insert assignments
+    console.log('Inserting assignments:', assignments)
     const { data: insertedAssignments, error: insertError } = await supabase
       .from('site_assignments')
       .insert(assignments)
       .select()
 
+    console.log('Insert result:', { 
+      data: insertedAssignments, 
+      error: insertError,
+      count: insertedAssignments?.length 
+    })
+
     if (insertError) {
       console.error('Error assigning workers:', insertError)
       console.error('Assignments data:', assignments)
+      console.error('Insert error details:', {
+        error_message: insertError.message,
+        error_code: insertError.code,
+        error_details: insertError.details,
+        error_hint: insertError.hint
+      })
       return NextResponse.json({ 
         error: 'Failed to assign workers',
-        details: insertError.message 
+        details: insertError.message,
+        code: insertError.code
       }, { status: 500 })
     }
 
