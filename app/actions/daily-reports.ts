@@ -40,7 +40,7 @@ export async function createDailyReport(data: {
   issues?: string
 }, workerDetails?: Array<{worker_name: string, labor_hours: number, worker_id?: string}>) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -158,7 +158,7 @@ export async function updateDailyReport(
   data: Partial<DailyReport>
 ) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: report, error } = await supabase
       .from('daily_reports')
@@ -186,7 +186,7 @@ export async function updateDailyReport(
 
 export async function submitDailyReport(id: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -232,7 +232,7 @@ export async function approveDailyReport(
   comments?: string
 ) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
@@ -287,7 +287,7 @@ export async function getDailyReports(filters: {
   offset?: number
 }) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     let query = supabase
       .from('daily_reports')
@@ -335,15 +335,14 @@ export async function getDailyReports(filters: {
 
 export async function getDailyReportById(id: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get main report with site info
     const { data, error } = await supabase
       .from('daily_reports')
       .select(`
         *,
-        site:sites(*),
-        created_by_profile:profiles!daily_reports_created_by_fkey(*)
+        site:sites(*)
       `)
       .eq('id', id)
       .single()
@@ -351,6 +350,17 @@ export async function getDailyReportById(id: string) {
     if (error) {
       logError(error, 'getDailyReportById')
       throw new AppError('일일보고서를 찾을 수 없습니다.', ErrorType.NOT_FOUND)
+    }
+
+    // Get creator profile if created_by exists
+    let createdByProfile = null
+    if (data.created_by) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.created_by)
+        .single()
+      createdByProfile = profile
     }
 
     // Get workers for this report
@@ -387,7 +397,8 @@ export async function getDailyReportById(id: string) {
       beforePhotos,
       afterPhotos,
       receipts,
-      documents: documents || []
+      documents: documents || [],
+      createdByProfile
     }
 
     return { success: true, data: reportWithDetails }
@@ -416,7 +427,7 @@ export async function getDailyReportById(id: string) {
 //   }
 // ) {
 //   try {
-//     const supabase = createClient()
+//     const supabase = await createClient()
     
 //     const { data: { user }, error: userError } = await supabase.auth.getUser()
 //     if (userError || !user) {
@@ -451,7 +462,7 @@ export async function getDailyReportById(id: string) {
 //   data: Partial<WorkLog>
 // ) {
 //   try {
-//     const supabase = createClient()
+//     const supabase = await createClient()
     
 //     const { data: { user }, error: userError } = await supabase.auth.getUser()
 //     if (userError || !user) {
@@ -483,7 +494,7 @@ export async function getDailyReportById(id: string) {
 
 // export async function deleteWorkLog(id: string) {
 //   try {
-//     const supabase = createClient()
+//     const supabase = await createClient()
     
 //     const { error } = await supabase
 //       .from('work_logs')
@@ -516,7 +527,7 @@ export async function getDailyReportById(id: string) {
 //   }>
 // ) {
 //   try {
-//     const supabase = createClient()
+//     const supabase = await createClient()
     
 //     const { data, error } = await supabase
 //       .from('work_log_materials')
@@ -548,7 +559,7 @@ export async function getDailyReportById(id: string) {
 //   }
 // ) {
 //   try {
-//     const supabase = createClient()
+//     const supabase = await createClient()
     
 //     const { data: material, error } = await supabase
 //       .from('work_log_materials')
@@ -574,7 +585,7 @@ export async function getDailyReportById(id: string) {
 
 // export async function deleteWorkLogMaterial(id: string) {
 //   try {
-//     const supabase = createClient()
+//     const supabase = await createClient()
     
 //     const { error } = await supabase
 //       .from('work_log_materials')
@@ -605,7 +616,7 @@ export async function uploadAdditionalPhotos(
   photos: { file: File; type: 'before' | 'after'; description?: string }[]
 ) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -739,7 +750,7 @@ export async function uploadAdditionalPhotos(
  */
 export async function deleteAdditionalPhoto(photoId: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     // Get current user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
@@ -830,7 +841,7 @@ export async function deleteAdditionalPhoto(photoId: string) {
  */
 export async function getAdditionalPhotos(reportId: string) {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
     
     const { data: photos, error } = await supabase
       .from('daily_report_additional_photos')

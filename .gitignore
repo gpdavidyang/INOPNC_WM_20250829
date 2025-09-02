@@ -71,7 +71,7 @@ dist
 
 # Gatsby files
 .cache/
-public
+# public - commented out to allow PWA assets deployment
 
 # Storybook build outputs
 .out
@@ -245,7 +245,11 @@ AGENTS.md
 # Screenshots and test images
 screenshot/
 images_worklog/
+# Allow PWA icons but ignore other images
 *.png
+!public/icons/*.png
+!public/INOPNC_logo*.png
+!public/INOPNC_logo*.jpg
 *.jpg
 *.jpeg
 *.gif

@@ -14,7 +14,7 @@ export default async function DailyReportDetailPage({
 }: {
   params: { id: string }
 }) {
-  const supabase = createClient()
+  const supabase = await createClient()
   
   // Check authentication
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -34,9 +34,11 @@ export default async function DailyReportDetailPage({
   }
 
   // Get daily report with all related data
+  console.log('[DailyReportDetailPage] Fetching report with ID:', params.id)
   const result = await getDailyReportById(params.id)
   
   if (!result.success || !result.data) {
+    console.error('[DailyReportDetailPage] Failed to fetch report:', result.error)
     notFound()
   }
 
