@@ -8,6 +8,43 @@ export async function GET(
 ) {
   try {
     const supabase = createClient();
+    
+    // 인증 확인
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // 사용자 프로필 확인
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, site_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || !['admin', 'site_manager', 'worker'].includes(profile.role)) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+    }
+
+    // 관리자가 아닌 경우 현장 접근 권한 확인
+    if (profile.role !== 'admin') {
+      // site_assignments 또는 프로필의 site_id로 접근 권한 확인
+      const { data: siteAccess } = await supabase
+        .from('site_assignments')
+        .select('id')
+        .eq('site_id', params.id)
+        .eq('user_id', user.id)
+        .eq('is_active', true)
+        .single()
+
+      const hasDirectSiteAccess = profile.site_id === params.id
+      const hasSiteAssignment = !!siteAccess
+
+      if (!hasDirectSiteAccess && !hasSiteAssignment) {
+        return NextResponse.json({ error: 'Site access denied' }, { status: 403 })
+      }
+    }
+    
     const searchParams = request.nextUrl.searchParams;
     
     const activeOnly = searchParams.get('activeOnly') !== 'false';
