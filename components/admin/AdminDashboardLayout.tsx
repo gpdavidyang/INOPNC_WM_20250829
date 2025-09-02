@@ -100,14 +100,15 @@ const menuCategories = [
   },
   {
     id: 'documents-tools',
-    label: '문서함 및 도구',
+    label: '도구',
     collapsible: true,
     items: [
       {
         id: 'documents-management',
         label: '문서함 관리',
         icon: FolderOpen,
-        href: '/dashboard/admin/documents'
+        href: '/dashboard/admin/documents',
+        hidden: true  // 현재 사용하지 않음
       },
       {
         id: 'salary',
