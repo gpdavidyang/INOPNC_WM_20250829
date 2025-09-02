@@ -149,16 +149,18 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
     let blueprintDocument = null
 
     if (documents && documents.length > 0) {
-      // Find PTW document (작업허가서 or PTW in title)
-      const ptwDoc = documents.find(doc => 
+      // Find PTW document (작업허가서 or PTW in title or certificate type with PTW)
+      const ptwDoc = documents.find((doc: any) => 
         doc.title?.includes('PTW') || 
         doc.title?.includes('작업허가서') ||
-        doc.document_type === 'ptw'
+        doc.document_type === 'ptw' ||
+        (doc.document_type === 'certificate' && (doc.title?.includes('PTW') || doc.title?.includes('작업허가서')))
       )
 
       // Find blueprint document (도면 in title or document_type)
-      const blueprintDoc = documents.find(doc => 
+      const blueprintDoc = documents.find((doc: any) => 
         doc.title?.includes('도면') || 
+        doc.title?.includes('공도면') ||
         doc.title?.includes('blueprint') ||
         doc.document_type === 'blueprint' ||
         doc.document_type === 'drawing'

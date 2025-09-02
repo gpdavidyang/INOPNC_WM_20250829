@@ -175,13 +175,18 @@ export async function recordInventoryTransaction(data: {
   notes?: string
 }) {
   try {
+    console.log('[recordInventoryTransaction] Input data:', data)
+    
     const supabase = await createClient()
     
     // Get user info
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     if (userError || !user) {
+      console.error('[recordInventoryTransaction] Authentication error:', userError)
       return { success: false, error: 'Authentication required' }
     }
+    
+    console.log('[recordInventoryTransaction] User ID:', user.id)
     
     // Get material ID from code
     const { data: material, error: materialError } = await supabase
@@ -191,28 +196,37 @@ export async function recordInventoryTransaction(data: {
       .single()
     
     if (materialError || !material) {
-      return { success: false, error: 'Material not found' }
+      console.error('[recordInventoryTransaction] Material error:', materialError)
+      return { success: false, error: `Material not found: ${data.materialCode}` }
     }
     
+    console.log('[recordInventoryTransaction] Material ID:', material.id)
+    
     // Create transaction
+    const transactionData = {
+      site_id: data.siteId,
+      material_id: material.id,
+      transaction_type: data.transactionType,
+      quantity: data.quantity,
+      transaction_date: new Date(data.transactionDate).toISOString().split('T')[0], // Ensure proper date format
+      notes: data.notes,
+      created_by: user.id
+    }
+    
+    console.log('[recordInventoryTransaction] Transaction data:', transactionData)
+    
     const { data: transaction, error: transactionError } = await supabase
       .from('material_transactions')
-      .insert({
-        site_id: data.siteId,
-        material_id: material.id,
-        transaction_type: data.transactionType,
-        quantity: data.quantity,
-        transaction_date: data.transactionDate.split('T')[0], // Extract date part only
-        notes: data.notes,
-        created_by: user.id
-      })
+      .insert(transactionData)
       .select()
       .single()
     
     if (transactionError) {
-      console.error('Error creating transaction:', transactionError)
+      console.error('[recordInventoryTransaction] Transaction error:', transactionError)
       return { success: false, error: transactionError.message }
     }
+    
+    console.log('[recordInventoryTransaction] Transaction created:', transaction.id)
     
     // Update inventory
     const { data: inventory, error: inventoryError } = await supabase
@@ -222,28 +236,41 @@ export async function recordInventoryTransaction(data: {
       .eq('material_id', material.id)
       .single()
     
-    if (inventoryError) {
-      // Create new inventory record if doesn't exist
+    console.log('[recordInventoryTransaction] Existing inventory:', inventory, inventoryError)
+    
+    if (inventoryError && inventoryError.code === 'PGRST116') {
+      // Create new inventory record if doesn't exist (PGRST116 = no rows returned)
+      const newInventoryData = {
+        site_id: data.siteId,
+        material_id: material.id,
+        current_stock: data.transactionType === 'in' ? data.quantity : 0,
+        available_stock: data.transactionType === 'in' ? data.quantity : 0,
+        reserved_stock: 0,
+        last_updated: new Date().toISOString()
+      }
+      
+      console.log('[recordInventoryTransaction] Creating new inventory:', newInventoryData)
+      
       const { error: createError } = await supabase
         .from('material_inventory')
-        .insert({
-          site_id: data.siteId,
-          material_id: material.id,
-          current_stock: data.transactionType === 'in' ? data.quantity : 0,
-          available_stock: data.transactionType === 'in' ? data.quantity : 0,
-          reserved_stock: 0,
-          last_updated: new Date().toISOString()
-        })
+        .insert(newInventoryData)
       
       if (createError) {
-        console.error('Error creating inventory:', createError)
+        console.error('[recordInventoryTransaction] Create inventory error:', createError)
         return { success: false, error: createError.message }
       }
+    } else if (inventoryError) {
+      // Other types of inventory errors
+      console.error('[recordInventoryTransaction] Inventory query error:', inventoryError)
+      return { success: false, error: inventoryError.message }
     } else {
       // Update existing inventory
+      const currentStockValue = parseFloat(inventory.current_stock) || 0
       const newStock = data.transactionType === 'in' 
-        ? (inventory.current_stock || 0) + data.quantity
-        : Math.max(0, (inventory.current_stock || 0) - data.quantity)
+        ? currentStockValue + data.quantity
+        : Math.max(0, currentStockValue - data.quantity)
+      
+      console.log('[recordInventoryTransaction] Updating inventory, current:', currentStockValue, 'new:', newStock)
       
       const { error: updateError } = await supabase
         .from('material_inventory')
@@ -256,7 +283,7 @@ export async function recordInventoryTransaction(data: {
         .eq('material_id', material.id)
       
       if (updateError) {
-        console.error('Error updating inventory:', updateError)
+        console.error('[recordInventoryTransaction] Update inventory error:', updateError)
         return { success: false, error: updateError.message }
       }
     }

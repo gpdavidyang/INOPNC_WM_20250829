@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { Menu } from 'lucide-react'
 import { NotificationDropdown } from '@/components/notifications/notification-dropdown'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { FontSizeToggle } from '@/components/ui/font-size-toggle'
 import { Profile } from '@/types'
 
@@ -57,10 +56,6 @@ export default function PartnerHeader({ profile, onMenuClick, isSidebarOpen = fa
               <FontSizeToggle />
             </div>
 
-            {/* Dark Mode Toggle */}
-            <div role="region" aria-label="다크 모드">
-              <ThemeToggle />
-            </div>
 
             {/* Notifications */}
             <div role="region" aria-label="알림">
