@@ -128,7 +128,7 @@ export async function getCurrentUserSite() {
     }
 
     if (!assignment || !assignment.sites) {
-      log('getCurrentUserSite: No assignment or site data')
+      log('getCurrentUserSite: No assignment or site data - this is expected for some users')
       return { success: true, data: null }
     }
 
@@ -167,12 +167,12 @@ export async function getCurrentUserSite() {
     try {
       log('getCurrentUserSite: Fetching site documents for site_id:', siteData.site_id)
       
+      // Use documents table instead of site_documents
       const { data: documents, error: documentsError } = await supabase
-        .from('site_documents')
-        .select('id, title, file_name, file_url, document_type, description, created_at')
+        .from('documents')
+        .select('id, title, file_name, file_url, document_type, created_at, updated_at')
         .eq('site_id', siteData.site_id)
         .in('document_type', ['ptw', 'blueprint'])
-        .eq('is_active', true)
         .order('created_at', { ascending: false })
 
       if (documentsError) {
@@ -180,17 +180,38 @@ export async function getCurrentUserSite() {
       } else {
         log('getCurrentUserSite: Found documents:', documents?.length || 0)
         
-        // Add documents to site data
-        const ptwDocument = documents?.find(doc => doc.document_type === 'ptw')
-        const blueprintDocument = documents?.find(doc => doc.document_type === 'blueprint')
+        // Add documents to site data using the getSiteDocumentsPTWAndBlueprint logic
+        const ptwDocument = documents?.find(doc => 
+          doc.document_type === 'ptw' ||
+          (doc.title && (doc.title.includes('PTW') || doc.title.includes('작업허가서')))
+        )
+        const blueprintDocument = documents?.find(doc => 
+          doc.document_type === 'blueprint' ||
+          doc.document_type === 'drawing' ||
+          (doc.title && (doc.title.includes('도면') || doc.title.includes('blueprint')))
+        )
         
         if (ptwDocument) {
-          siteData.ptw_document = ptwDocument
+          siteData.ptw_document = {
+            id: ptwDocument.id,
+            title: ptwDocument.title || ptwDocument.file_name,
+            file_name: ptwDocument.file_name,
+            file_url: ptwDocument.file_url,
+            document_type: 'ptw',
+            created_at: ptwDocument.created_at
+          }
           log('getCurrentUserSite: Added PTW document:', ptwDocument.title)
         }
         
         if (blueprintDocument) {
-          siteData.blueprint_document = blueprintDocument
+          siteData.blueprint_document = {
+            id: blueprintDocument.id,
+            title: blueprintDocument.title || blueprintDocument.file_name,
+            file_name: blueprintDocument.file_name,
+            file_url: blueprintDocument.file_url,
+            document_type: 'blueprint',
+            created_at: blueprintDocument.created_at
+          }
           log('getCurrentUserSite: Added blueprint document:', blueprintDocument.title)
         }
       }
@@ -202,7 +223,25 @@ export async function getCurrentUserSite() {
     return { success: true, data: siteData }
   } catch (error) {
     console.error('Error fetching current user site:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch site information'
+    log('getCurrentUserSite: Caught error:', error)
+    
+    // Check if it's a database connectivity issue
+    if (error && typeof error === 'object' && 'code' in error) {
+      log('getCurrentUserSite: Database error code:', error.code)
+    }
+    
+    // Provide more helpful error messages
+    let errorMessage = 'Failed to fetch site information'
+    if (error instanceof Error) {
+      if (error.message.includes('JWT')) {
+        errorMessage = 'Authentication session expired. Please refresh the page.'
+      } else if (error.message.includes('connect') || error.message.includes('network')) {
+        errorMessage = 'Network connection error. Please check your internet connection.'
+      } else {
+        errorMessage = error.message
+      }
+    }
+    
     return { success: false, error: errorMessage }
   }
 }
