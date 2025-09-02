@@ -37,6 +37,15 @@ interface DailyReportDetailProps {
     attendance_records?: any[]
     created_by_profile?: any
     approved_by_profile?: any
+    workers?: any[]
+    beforePhotos?: any[]
+    afterPhotos?: any[]
+    receipts?: any[]
+    documents?: any[]
+    component_name?: string
+    work_process?: string
+    work_section?: string
+    hq_request?: string
   }
   currentUser: Profile
 }
