@@ -1,17 +1,7 @@
 {
-  "buildCommand": "next build && node copy-public.js && cp public/manifest.json .next/static/manifest.json && cp public/sw.js .next/static/sw.js",
+  "buildCommand": "next build",
   "framework": "nextjs",
   "regions": ["icn1"],
-  "rewrites": [
-    {
-      "source": "/manifest.json",
-      "destination": "/_next/static/manifest.json"
-    },
-    {
-      "source": "/sw.js",
-      "destination": "/_next/static/sw.js"
-    }
-  ],
   "headers": [
     {
       "source": "/sw.js",
