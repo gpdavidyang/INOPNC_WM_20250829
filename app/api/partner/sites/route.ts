@@ -7,7 +7,10 @@ export async function GET(request: Request) {
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('Auth debug:', { user: user?.id, email: user?.email, error: authError?.message })
+    
     if (authError || !user) {
+      console.error('Authentication failed:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
