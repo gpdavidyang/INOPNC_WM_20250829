@@ -108,6 +108,30 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
             </div>
 
             <div className="flex items-start gap-3">
+              <Building className="h-5 w-5 text-gray-400 mt-0.5" />
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">소속 조직</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {user.organization?.name || user.organizations?.name || '-'}
+                </p>
+                {(user.organization?.type || user.organizations?.type) && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {(() => {
+                      const type = user.organization?.type || user.organizations?.type
+                      const typeLabels: Record<string, string> = {
+                        'head_office': '본사',
+                        'branch_office': '지사',
+                        'partner': '파트너사',
+                        'contractor': '협력업체'
+                      }
+                      return typeLabels[type] || type
+                    })()}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">가입일</p>
@@ -121,15 +145,27 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
 
         {/* 계정 정보 */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">계정 정보</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">활동 정보</h3>
           <div className="space-y-4">
-            {user.organization && (
+            {user.last_login_at && (
               <div className="flex items-start gap-3">
-                <Building className="h-5 w-5 text-gray-400 mt-0.5" />
+                <Activity className="h-5 w-5 text-gray-400 mt-0.5" />
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">소속 조직</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">최근 로그인</p>
                   <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {user.organization.name}
+                    {format(new Date(user.last_login_at), 'yyyy.MM.dd HH:mm', { locale: ko })}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {user.login_count && (
+              <div className="flex items-start gap-3">
+                <CheckCircle className="h-5 w-5 text-gray-400 mt-0.5" />
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">총 로그인 횟수</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {user.login_count.toLocaleString()}회
                   </p>
                 </div>
               </div>

@@ -371,8 +371,17 @@ function EditUserModal({
     email: userData.email || '',
     phone: userData.phone || '',
     role: userData.role || 'worker',
-    status: userData.status || 'active'
+    status: userData.status || 'active',
+    organization_id: userData.organization_id || ''
   })
+  
+  const [organizations, setOrganizations] = useState<Array<{
+    id: string
+    name: string
+    type: string
+    description: string
+  }>>([])
+  const [organizationsLoading, setOrganizationsLoading] = useState(false)
 
   useEffect(() => {
     setFormData({
@@ -380,9 +389,31 @@ function EditUserModal({
       email: userData.email || '',
       phone: userData.phone || '',
       role: userData.role || 'worker',
-      status: userData.status || 'active'
+      status: userData.status || 'active',
+      organization_id: userData.organization_id || ''
     })
+    
+    // 조직 목록 로드
+    loadOrganizations()
   }, [userData])
+  
+  const loadOrganizations = async () => {
+    setOrganizationsLoading(true)
+    try {
+      const response = await fetch('/api/organizations')
+      const result = await response.json()
+      
+      if (result.success) {
+        setOrganizations(result.data)
+      } else {
+        console.error('Failed to load organizations:', result.error)
+      }
+    } catch (error) {
+      console.error('Error loading organizations:', error)
+    } finally {
+      setOrganizationsLoading(false)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -498,6 +529,42 @@ function EditUserModal({
               <option value="inactive">비활성</option>
               <option value="suspended">정지</option>
             </select>
+          </div>
+          
+          <div>
+            <label htmlFor="organization_id" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              소속 조직
+            </label>
+            <select
+              id="organization_id"
+              name="organization_id"
+              value={formData.organization_id}
+              onChange={handleChange}
+              disabled={organizationsLoading}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-50"
+            >
+              <option value="">조직을 선택하세요</option>
+              {organizations.map((org) => {
+                const getTypeLabel = (type: string) => {
+                  const typeLabels: Record<string, string> = {
+                    'head_office': '본사',
+                    'branch_office': '지사',
+                    'partner': '파트너사',
+                    'contractor': '협력업체'
+                  }
+                  return typeLabels[type] || type
+                }
+                
+                return (
+                  <option key={org.id} value={org.id}>
+                    [{getTypeLabel(org.type)}] {org.name}
+                  </option>
+                )
+              })}
+            </select>
+            {organizationsLoading && (
+              <p className="text-sm text-gray-500 mt-1">조직 목록을 불러오는 중...</p>
+            )}
           </div>
 
           <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-600">

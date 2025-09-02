@@ -345,7 +345,7 @@ export default function DailyReportFormEnhanced({
 
       setWorkersLoading(true)
       try {
-        const response = await fetch(`/api/admin/sites/${formData.site_id}/workers`)
+        const response = await fetch(`/api/sites/${formData.site_id}/workers`)
         const data = await response.json()
         
         if (data.success && data.data) {

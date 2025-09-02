@@ -45,7 +45,15 @@ export async function GET(
 
     // For non-admin users, verify they have access to this site
     if (profile.role !== 'admin') {
-      const { data: siteAccess, error: siteAccessError } = await supabase
+      // Get user's profile to check site_id
+      const { data: userProfile, error: profileFetchError } = await supabase
+        .from('profiles')
+        .select('site_id')
+        .eq('id', user.id)
+        .single()
+
+      // Check access through site_assignments OR direct site assignment
+      const { data: siteAccess } = await supabase
         .from('site_assignments')
         .select('id')
         .eq('site_id', params.id)
@@ -53,7 +61,12 @@ export async function GET(
         .eq('is_active', true)
         .single()
 
-      if (!siteAccess) {
+      // Site manager can access if they are assigned via site_assignments OR if their profile.site_id matches
+      const hasDirectSiteAccess = userProfile?.site_id === params.id && profile.role === 'site_manager'
+      const hasSiteAssignment = !!siteAccess
+
+      if (!hasDirectSiteAccess && !hasSiteAssignment) {
+        console.log(`Access denied for user ${user.id}: site_id=${userProfile?.site_id}, target=${params.id}, role=${profile.role}, assignment=${!!siteAccess}`)
         return NextResponse.json({ error: 'Site access denied' }, { status: 403 })
       }
     }
