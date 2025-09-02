@@ -38,6 +38,17 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   const [workerFilter, setWorkerFilter] = useState('') // Added worker filter for salary calculation
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+
+  // Salary calculation results state
+  const [calculationResults, setCalculationResults] = useState<{
+    calculated_records: number
+    date_from: string
+    date_to: string
+    site_name?: string
+    worker_name?: string
+    timestamp: string
+  } | null>(null)
+  const [calculationLoading, setCalculationLoading] = useState(false)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -249,7 +260,14 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       return
     }
 
+    setCalculationLoading(true)
+    setCalculationResults(null)
+
     try {
+      // Get site and worker names for display
+      const selectedSite = availableSites.find(s => s.id === siteFilter)
+      const selectedWorker = availableWorkers.find(w => w.id === workerFilter)
+
       const result = await calculateSalaries(
         siteFilter || undefined,
         workerFilter || undefined,
@@ -258,13 +276,30 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       )
 
       if (result.success) {
+        // Set calculation results for display
+        setCalculationResults({
+          calculated_records: result.data?.calculated_records || 0,
+          date_from: dateFrom,
+          date_to: dateTo,
+          site_name: selectedSite?.name,
+          worker_name: selectedWorker?.name,
+          timestamp: new Date().toISOString()
+        })
+        
         alert(`급여 계산이 완료되었습니다. ${result.data?.calculated_records || 0}개의 기록이 생성되었습니다.`)
+        
+        // Refresh output data if we're on the output tab and dates match current selection
+        if (activeTab === 'output') {
+          loadOutputData()
+        }
       } else {
         alert(`급여 계산 실패: ${result.error}`)
       }
     } catch (err) {
       console.error('Salary calculation error:', err)
       alert('급여 계산 중 오류가 발생했습니다.')
+    } finally {
+      setCalculationLoading(false)
     }
   }
 
@@ -543,10 +578,24 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             </div>
             <button
               onClick={handleCalculateSalaries}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2"
+              disabled={calculationLoading}
+              className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
+                calculationLoading
+                  ? 'bg-gray-400 cursor-not-allowed text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
             >
-              <Play className="h-4 w-4" />
-              급여 계산 실행
+              {calculationLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  계산 중...
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4" />
+                  급여 계산 실행
+                </>
+              )}
             </button>
           </div>
 
@@ -607,6 +656,99 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               </CustomSelect>
             </div>
           </div>
+
+          {/* Calculation Results */}
+          {calculationResults && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6 mb-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="ml-4 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-semibold text-green-900 dark:text-green-200">
+                      급여 계산이 완료되었습니다!
+                    </h4>
+                    <button
+                      onClick={() => setCalculationResults(null)}
+                      className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-200"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">생성된 기록</div>
+                      <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {calculationResults.calculated_records}개
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">계산 기간</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {new Date(calculationResults.date_from).toLocaleDateString('ko-KR')} ~ {new Date(calculationResults.date_to).toLocaleDateString('ko-KR')}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">대상 현장</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {calculationResults.site_name || '전체 현장'}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-green-200 dark:border-green-700">
+                      <div className="text-sm font-medium text-gray-600 dark:text-gray-400">대상 작업자</div>
+                      <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        {calculationResults.worker_name || '모든 작업자'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => {
+                        setActiveTab('output')
+                        loadOutputData()
+                      }}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <FileText className="h-4 w-4" />
+                      출력정보에서 결과 확인
+                    </button>
+                    <button
+                      onClick={() => {
+                        const params = new URLSearchParams()
+                        if (calculationResults.site_name) {
+                          const site = availableSites.find(s => s.name === calculationResults.site_name)
+                          if (site) params.set('site', site.id)
+                        }
+                        const queryString = params.toString()
+                        const url = `/dashboard/admin/salary${queryString ? '?' + queryString : ''}`
+                        window.location.href = url + '#output'
+                      }}
+                      className="flex-1 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-600 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <Search className="h-4 w-4" />
+                      필터 적용하여 보기
+                    </button>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-green-600 dark:text-green-400">
+                    계산 완료 시각: {new Date(calculationResults.timestamp).toLocaleString('ko-KR')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex items-start">

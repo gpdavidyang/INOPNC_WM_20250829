@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import {
   MapPin, Home, Wrench, Copy, Navigation, User, Phone,
   ChevronDown, ChevronUp, Check, ExternalLink, ShieldCheck, Building2,
-  FileText, Map, Download, X, Eye, Share2
+  FileText, Map, Download, X, Eye, Share2, Calendar
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { SiteInfo, AccommodationAddress, ProcessInfo } from '@/types/site-info'
@@ -441,13 +441,19 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
             <Map className="h-4 w-4 text-gray-400 flex-shrink-0" />
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">현장 공도면</span>
             <div className="flex-1"></div>
-            <button
-              onClick={() => setShowBlueprintModal(true)}
-              className="px-2 py-1 text-sm bg-gray-50 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-              title="도면 보기"
-            >
-              미리보기
-            </button>
+            {documentsLoading ? (
+              <span className="px-2 py-1 text-xs text-gray-500">로딩중...</span>
+            ) : siteDocuments?.blueprint_document ? (
+              <button
+                onClick={() => setShowBlueprintModal(true)}
+                className="px-2 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                title="도면 보기"
+              >
+                미리보기
+              </button>
+            ) : (
+              <span className="px-2 py-1 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded">미등록</span>
+            )}
           </div>
 
           {/* PTW Document Preview */}
@@ -455,13 +461,19 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
             <FileText className="h-4 w-4 text-gray-400 flex-shrink-0" />
             <span className="text-sm font-medium text-gray-900 dark:text-gray-100">PTW (작업허가서)</span>
             <div className="flex-1"></div>
-            <button
-              onClick={() => setShowPTWModal(true)}
-              className="px-2 py-1 text-sm bg-gray-50 text-gray-600 hover:bg-gray-100 rounded transition-colors"
-              title="작업허가서 보기"
-            >
-              미리보기
-            </button>
+            {documentsLoading ? (
+              <span className="px-2 py-1 text-xs text-gray-500">로딩중...</span>
+            ) : siteDocuments?.ptw_document ? (
+              <button
+                onClick={() => setShowPTWModal(true)}
+                className="px-2 py-1 text-sm bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors font-medium"
+                title="작업허가서 보기"
+              >
+                미리보기
+              </button>
+            ) : (
+              <span className="px-2 py-1 text-xs text-gray-500 bg-gray-100 dark:bg-gray-700 rounded">미등록</span>
+            )}
           </div>
         </div>
         </div>
