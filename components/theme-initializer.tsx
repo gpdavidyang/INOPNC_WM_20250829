@@ -9,21 +9,24 @@ export function ThemeInitializer() {
   const { user } = useAuthContext()
 
   useEffect(() => {
-    // Check if user is system_admin and set light mode by default
-    if (user?.email === 'davidswyang@gmail.com') {
+    // Set light mode as default for all users
+    if (user) {
       // Check if theme has been explicitly set by user
       const hasUserPreference = localStorage.getItem('theme-user-preference')
       
       if (!hasUserPreference) {
-        // Set light mode for system_admin on first login
+        // Set light mode for all users on first login
         setTheme('light')
         localStorage.setItem('theme-user-preference', 'auto-set')
-      }
-    } else {
-      // For other users, use saved theme or system default
-      const savedTheme = localStorage.getItem('theme')
-      if (savedTheme && savedTheme !== 'system') {
-        setTheme(savedTheme)
+      } else {
+        // For returning users, use saved theme preference
+        const savedTheme = localStorage.getItem('theme')
+        if (savedTheme && savedTheme !== 'system') {
+          setTheme(savedTheme)
+        } else {
+          // Default to light if no specific preference
+          setTheme('light')
+        }
       }
     }
   }, [user, setTheme])
