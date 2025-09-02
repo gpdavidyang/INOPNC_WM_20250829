@@ -85,12 +85,6 @@ const menuCategories = [
         href: '/dashboard/admin/users'
       },
       {
-        id: 'signup-requests',
-        label: '가입 요청 관리',
-        icon: UserPlus,
-        href: '/dashboard/admin/signup-requests'
-      },
-      {
         id: 'organizations',
         label: '소속업체 관리',
         icon: Shield,
@@ -169,34 +163,10 @@ const systemCategory = {
       href: '/dashboard/admin/system'
     },
     {
-      id: 'account',
-      label: '계정 설정',
-      icon: Key,
-      href: '/dashboard/admin/account'
-    },
-    {
-      id: 'monitoring',
-      label: '시스템 모니터링',
-      icon: Shield,
-      href: '/dashboard/admin/monitoring'
-    },
-    {
       id: 'audit-logs',
       label: '감사 로그',
       icon: FileText,
       href: '/dashboard/admin/audit-logs'
-    },
-    {
-      id: 'backup',
-      label: '백업 관리',
-      icon: Shield,
-      href: '/dashboard/admin/backup'
-    },
-    {
-      id: 'signup-requests',
-      label: '가입 요청 관리',
-      icon: UserPlus,
-      href: '/dashboard/admin/signup-requests'
     }
   ]
 }

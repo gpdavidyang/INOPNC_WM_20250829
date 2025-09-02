@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import fs from 'fs'
 import path from 'path'
 
-export const dynamic = 'force-static'
-export const revalidate = false // Service worker should not be cached
+export const dynamic = 'force-dynamic' // Ensure it works on Vercel
+export const runtime = 'nodejs'
 
 export async function GET() {
   try {

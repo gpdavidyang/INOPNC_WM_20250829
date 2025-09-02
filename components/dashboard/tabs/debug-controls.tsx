@@ -30,28 +30,28 @@ export function DebugControls() {
     // Check session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
     // console.log('Session:', {
-      exists: !!session,
-      user: session?.user?.email,
-      accessToken: session?.access_token ? 'Present' : 'Missing',
-      error: sessionError?.message
-    })
+    //   exists: !!session,
+    //   user: session?.user?.email,
+    //   accessToken: session?.access_token ? 'Present' : 'Missing',
+    //   error: sessionError?.message
+    // })
     
     // Check user
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     // console.log('User:', {
-      exists: !!user,
-      email: user?.email,
-      id: user?.id,
-      error: userError?.message
-    })
+    //   exists: !!user,
+    //   email: user?.email,
+    //   id: user?.id,
+    //   error: userError?.message
+    // })
     
     // Check localStorage
     // console.log('LocalStorage:', {
-      loginSuccess: localStorage.getItem('inopnc-login-success'),
-      currentSite: localStorage.getItem('inopnc-current-site') ? 'Present' : 'Missing',
-      autoLoginDisabled: localStorage.getItem('inopnc-auto-login-disabled'),
-      lastAutoLogin: localStorage.getItem('inopnc-last-auto-login')
-    })
+    //   loginSuccess: localStorage.getItem('inopnc-login-success'),
+    //   currentSite: localStorage.getItem('inopnc-current-site') ? 'Present' : 'Missing',
+    //   autoLoginDisabled: localStorage.getItem('inopnc-auto-login-disabled'),
+    //   lastAutoLogin: localStorage.getItem('inopnc-last-auto-login')
+    // })
   }
   
   const forceSignOut = async () => {
