@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     // 마킹 개수 계산
     const markup_count = Array.isArray(markup_data) ? markup_data.length : 0
 
-    // 문서 생성
+    // markup_documents 테이블에 문서 생성
     const { data: document, error } = await supabase
       .from('markup_documents' as any)
       .insert({
@@ -205,6 +205,39 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Error creating markup document:', error)
       return NextResponse.json({ error: 'Failed to create document' }, { status: 500 })
+    }
+
+    // 동시에 unified_document_system에도 등록하여 통합뷰에 표시되도록 함
+    try {
+      const { error: unifiedError } = await supabase
+        .from('unified_document_system')
+        .insert({
+          title,
+          description,
+          file_name: `${title}.markup`,
+          file_url: `/api/markup-documents/${document.id}/file`, // 마킹 문서 전용 뷰어 URL
+          file_size: 0,
+          mime_type: 'application/markup-document',
+          category_type: 'markup',
+          uploaded_by: user.id,
+          site_id: (profile as any).site_id,
+          status: 'uploaded',
+          is_public: false, // 마킹 문서는 기본적으로 비공개
+          metadata: {
+            source_table: 'markup_documents',
+            source_id: document.id,
+            markup_count,
+            original_blueprint_url,
+            original_blueprint_filename
+          }
+        })
+
+      if (unifiedError) {
+        console.warn('Warning: Failed to sync to unified document system:', unifiedError)
+        // 경고만 로그하고 계속 진행 (마킹 문서 생성은 성공했으므로)
+      }
+    } catch (syncError) {
+      console.warn('Warning: Error syncing to unified document system:', syncError)
     }
 
     return NextResponse.json({
