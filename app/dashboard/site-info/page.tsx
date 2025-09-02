@@ -20,11 +20,19 @@ export default async function SiteInfoPage() {
     redirect('/auth/login')
   }
 
-  // Fetch current site and history on server side
-  const [currentSiteResult, historyResult] = await Promise.all([
-    getCurrentUserSite(),
-    getUserSiteHistory()
-  ])
+  // Fetch current site and history on server side with error handling
+  let currentSiteResult, historyResult
+  try {
+    [currentSiteResult, historyResult] = await Promise.all([
+      getCurrentUserSite(),
+      getUserSiteHistory()
+    ])
+  } catch (error) {
+    console.error('[Site Info Page] Server-side fetch error:', error)
+    // Provide fallback data
+    currentSiteResult = { success: false, error: 'Failed to load site information' }
+    historyResult = { success: false, error: 'Failed to load site history' }
+  }
 
   console.log('[Site Info Page] Server results:', {
     currentSiteResult,
@@ -34,6 +42,12 @@ export default async function SiteInfoPage() {
 
   const currentSite = currentSiteResult.success ? currentSiteResult.data : null
   const siteHistory = historyResult.success ? historyResult.data || [] : []
+  
+  // Pass error information to component for user feedback
+  const errors = {
+    currentSite: !currentSiteResult.success ? currentSiteResult.error : null,
+    siteHistory: !historyResult.success ? historyResult.error : null
+  }
 
   return (
     <DashboardLayout 
@@ -45,6 +59,7 @@ export default async function SiteInfoPage() {
           initialCurrentSite={currentSite}
           initialSiteHistory={siteHistory}
           currentUser={profileResult.data}
+          errors={errors}
         />
       </div>
     </DashboardLayout>
