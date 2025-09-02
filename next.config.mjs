@@ -2,13 +2,6 @@
 const nextConfig = {
   reactStrictMode: process.env.NODE_ENV === 'production',
   
-  // API body size limit
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
-  
   // TypeScript 빌드 최적화
   typescript: {
     ignoreBuildErrors: true,
