@@ -65,9 +65,9 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
         .from('headquarters_requests')
         .select(`
           *,
-          profiles!requester_id(name, email, role),
+          profiles!requester_id(full_name, email, role),
           sites!site_id(name),
-          assigned_profile:profiles!assigned_to(name)
+          assigned_profile:profiles!assigned_to(full_name)
         `)
         .order('created_at', { ascending: false })
 
@@ -88,11 +88,11 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
       if (!error && data) {
         const formattedData: HeadquartersRequest[] = data.map(item => ({
           ...item,
-          requester_name: (item as any).profiles?.name || '알 수 없음',
+          requester_name: (item as any).profiles?.full_name || '알 수 없음',
           requester_email: (item as any).profiles?.email || '',
           requester_role: (item as any).profiles?.role || 'worker',
           site_name: (item as any).sites?.name || '',
-          assigned_to_name: (item as any).assigned_profile?.name || ''
+          assigned_to_name: (item as any).assigned_profile?.full_name || ''
         }))
         setRequests(formattedData)
       }
