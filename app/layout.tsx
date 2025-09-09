@@ -24,6 +24,7 @@ import { ProductionQualityOptimizer } from "@/components/production-quality-opti
 import { EnvironmentStatus } from "@/components/debug/environment-status";
 import { ViewportController } from "@/components/ui/viewport-controller";
 import { UIDebugIndicator } from "@/components/ui/ui-debug-indicator";
+import { AdminViewportMeta } from "@/components/ui/admin-viewport-meta";
 import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
@@ -62,9 +63,9 @@ export const metadata: Metadata = {
 
 export const viewport = {
   width: "device-width",
-  initialScale: 1,
-  maximumScale: 5, // Allow zoom for accessibility
-  minimumScale: 1,
+  initialScale: 0.5, // Start zoomed out on mobile for admin desktop view
+  maximumScale: 10, // Allow more zoom for desktop UI on mobile
+  minimumScale: 0.1, // Allow zoom out to see full desktop UI
   userScalable: true, // Allow user scaling
   viewportFit: "cover",
   themeColor: "#2563eb",
@@ -137,6 +138,7 @@ export default async function RootLayout({
                       <AuthProvider>
                         <PerformanceMonitoringProvider>
                           <ViewportController>
+                            <AdminViewportMeta />
                             <DeepLinkProvider />
                             <UIDebugIndicator />
                             {children}
