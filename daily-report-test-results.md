@@ -1,6 +1,6 @@
 # Daily Report Functionality Test Results
 
-**Test Execution Date:** 2025-09-09T07:32:43.576Z
+**Test Execution Date:** 2025-09-09T14:23:23.902Z
 **Total Tests:** 9
 **Passed:** 6
 **Failed:** 3
@@ -21,47 +21,47 @@ This comprehensive test covers the following areas:
 ### Component Types Query
 - **Status:** PASS
 - **Details:** Found 4 active component types
-- **Timestamp:** 2025-09-09T07:32:42.482Z
+- **Timestamp:** 2025-09-09T14:23:23.175Z
 
 ### Process Types Query
 - **Status:** PASS
 - **Details:** Found 4 active process types
-- **Timestamp:** 2025-09-09T07:32:42.695Z
+- **Timestamp:** 2025-09-09T14:23:23.241Z
 
 ### Typo Fix Verification
 - **Status:** PASS
 - **Details:** 균일 → 균열 typo has been fixed
-- **Timestamp:** 2025-09-09T07:32:42.695Z
+- **Timestamp:** 2025-09-09T14:23:23.241Z
 
 ### Test User Setup
 - **Status:** PASS
-- **Details:** Using user ID: 2a082247-3255-4811-b1d7-38e83c9019e0
-- **Timestamp:** 2025-09-09T07:32:42.781Z
+- **Details:** Using user ID: 950db250-82e4-4c9d-bf4d-75df7244764c
+- **Timestamp:** 2025-09-09T14:23:23.301Z
 
 ### Test Site Setup
 - **Status:** PASS
 - **Details:** Using site: 안산시청
-- **Timestamp:** 2025-09-09T07:32:42.857Z
+- **Timestamp:** 2025-09-09T14:23:23.369Z
 
 ### Daily Report Creation
 - **Status:** FAIL
 - **Details:** Creation error: Could not find the 'overall_notes' column of 'daily_reports' in the schema cache
-- **Timestamp:** 2025-09-09T07:32:43.091Z
+- **Timestamp:** 2025-09-09T14:23:23.603Z
 
 ### Receipt Bucket Exists
 - **Status:** PASS
 - **Details:** Receipts bucket found
-- **Timestamp:** 2025-09-09T07:32:43.277Z
+- **Timestamp:** 2025-09-09T14:23:23.741Z
 
 ### Receipt File Upload
 - **Status:** FAIL
 - **Details:** Upload error: mime type text/plain is not supported
-- **Timestamp:** 2025-09-09T07:32:43.401Z
+- **Timestamp:** 2025-09-09T14:23:23.827Z
 
 ### Daily Reports List Query
 - **Status:** FAIL
 - **Details:** Query error: Could not find a relationship between 'daily_reports' and 'profiles' in the schema cache
-- **Timestamp:** 2025-09-09T07:32:43.576Z
+- **Timestamp:** 2025-09-09T14:23:23.902Z
 
 
 ## Analysis
