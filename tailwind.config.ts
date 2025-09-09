@@ -13,10 +13,21 @@ const config: Config = {
     'force-mobile-ui',
     'desktop-ui-container',
     'mobile-ui-container',
-    // Common responsive utilities that should be preserved
-    { pattern: /^(lg|xl|2xl):(block|flex|hidden|grid|inline-block|inline-flex)$/ },
-    { pattern: /^(lg|xl):(w|h|p|m|pl|pr|pt|pb|ml|mr|mt|mb)-/ },
-    { pattern: /^(lg|xl):(fixed|absolute|relative|sticky|static)$/ },
+    // Responsive classes to preserve
+    'lg:hidden',
+    'lg:block',
+    'lg:flex',
+    'lg:fixed',
+    'lg:w-72',
+    'lg:w-16',
+    'lg:w-0',
+    'lg:pl-72',
+    'lg:pl-16',
+    'lg:pl-0',
+    'lg:inset-y-0',
+    'xl:block',
+    'xl:flex',
+    'xl:hidden',
   ],
   theme: {
     extend: {

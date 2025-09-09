@@ -1043,7 +1043,6 @@ body.force-desktop-ui {
       &.lg\\:grid { display: grid !important; }
     }
   }
-}
 
 /* ============================================== */
 /* ULTRA CRITICAL: ABSOLUTE DESKTOP FORCE MODE   */
