@@ -23,7 +23,7 @@ import UserDetailModal from './UserDetailModal'
 import { useRouter } from 'next/navigation'
 
 interface UserManagementProps {
-  profile: Profile
+  profile?: Profile
 }
 
 export default function UserManagement({ profile }: UserManagementProps) {
@@ -439,7 +439,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
       icon: Key,
       label: '비밀번호 재설정',
       onClick: handlePasswordReset,
-      show: (user: UserWithSites) => user.role !== 'system_admin' || profile.role === 'system_admin'
+      show: (user: UserWithSites) => user.role !== 'system_admin' || profile?.role === 'system_admin'
     }
   ]
   
