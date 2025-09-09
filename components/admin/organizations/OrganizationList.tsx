@@ -144,7 +144,7 @@ export default function OrganizationList() {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            소속(거래처) 관리
+            거래처 관리
           </h2>
           <div className="flex items-center gap-2">
             {/* View Mode Toggle */}

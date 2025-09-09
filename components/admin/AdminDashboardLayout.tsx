@@ -92,7 +92,7 @@ const menuCategories = [
       },
       {
         id: 'organizations',
-        label: '소속업체 관리',
+        label: '거래처 관리',
         icon: Shield,
         href: '/dashboard/admin/organizations'
       },

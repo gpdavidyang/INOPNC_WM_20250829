@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -41,11 +42,15 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="flex items-center justify-center mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-lg">IN</span>
-            </div>
-            <h1 className="ml-3 text-2xl font-bold text-gray-900">INOPNC</h1>
+          <div className="flex flex-col items-center justify-center mb-6">
+            <Image
+              src="/INOPNC_logo.png"
+              alt="INOPNC Logo"
+              width={180}
+              height={60}
+              priority
+              className="mb-2"
+            />
           </div>
           <h2 className="text-xl font-semibold text-gray-700 mb-6 text-center">
             로그인

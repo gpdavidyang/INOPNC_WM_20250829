@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react'
 import { Profile } from '@/types'
 import { 
-  Plus, Search, Filter, MoreHorizontal, Building2, 
+  Plus, Search, Filter, Building2, 
   Calendar, DollarSign, MapPin, Phone, Mail, FileText,
-  Edit, Trash2, Users, Settings, Grid3x3, List
+  Users, Grid3x3, List
 } from 'lucide-react'
 import PartnerForm from './PartnerForm'
 import PartnerDetail from './PartnerDetail'
@@ -47,7 +47,6 @@ export default function PartnerList({ profile }: PartnerListProps) {
   const [showForm, setShowForm] = useState(false)
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
   const [showDetail, setShowDetail] = useState(false)
-  const [showDropdownId, setShowDropdownId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const supabase = createClient()
 
@@ -127,18 +126,6 @@ export default function PartnerList({ profile }: PartnerListProps) {
     loadPartners()
   }, [searchTerm, statusFilter, typeFilter])
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showDropdownId) {
-        setShowDropdownId(null)
-      }
-    }
-
-    document.addEventListener('click', handleClickOutside)
-    return () => {
-      document.removeEventListener('click', handleClickOutside)
-    }
-  }, [showDropdownId])
 
   const handleEdit = (partner: Partner) => {
     setSelectedPartner(partner)
@@ -387,41 +374,26 @@ export default function PartnerList({ profile }: PartnerListProps) {
                 <div className="flex items-center gap-2">
                   {getStatusBadge(partner.status)}
                   <div className="relative">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowDropdownId(showDropdownId === partner.id ? null : partner.id)
-                      }}
-                      className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                    >
-                      <MoreHorizontal className="h-4 w-4 text-gray-400" />
-                    </button>
-                    {showDropdownId === partner.id && (
-                      <div className="absolute right-0 top-8 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg z-10 py-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleEdit(partner)
-                            setShowDropdownId(null)
-                          }}
-                          className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          수정
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleDelete(partner.id)
-                            setShowDropdownId(null)
-                          }}
-                          className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          삭제
-                        </button>
-                      </div>
-                    )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEdit(partner)
+                        }}
+                        className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 rounded"
+                      >
+                        수정
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDelete(partner.id)
+                        }}
+                        className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 rounded"
+                      >
+                        삭제
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -597,42 +569,25 @@ export default function PartnerList({ profile }: PartnerListProps) {
                     
                     {/* 작업 */}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="relative">
+                      <div className="flex gap-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation()
-                            setShowDropdownId(showDropdownId === partner.id ? null : partner.id)
+                            handleEdit(partner)
                           }}
-                          className="p-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded transition-colors"
+                          className="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800 rounded"
                         >
-                          <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                          수정
                         </button>
-                        {showDropdownId === partner.id && (
-                          <div className="absolute right-0 top-8 w-48 bg-white dark:bg-gray-700 rounded-md shadow-lg z-10 py-1">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEdit(partner)
-                                setShowDropdownId(null)
-                              }}
-                              className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              수정
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDelete(partner.id)
-                                setShowDropdownId(null)
-                              }}
-                              className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              삭제
-                            </button>
-                          </div>
-                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDelete(partner.id)
+                          }}
+                          className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800 rounded"
+                        >
+                          삭제
+                        </button>
                       </div>
                     </td>
                   </tr>
