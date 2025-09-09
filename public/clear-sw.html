@@ -179,9 +179,17 @@
                 
                 showStatus('✅ Hard reset complete! Please refresh the page.', 'success');
                 
-                // Redirect to main app after 2 seconds
+                // Set flag to disable SW temporarily
+                localStorage.setItem('disable-service-worker', 'true');
+                
+                // Redirect to login page after 2 seconds
                 setTimeout(() => {
-                    window.location.href = 'http://localhost:3000';
+                    // Re-enable SW after redirect
+                    setTimeout(() => {
+                        localStorage.removeItem('disable-service-worker');
+                    }, 5000);
+                    
+                    window.location.href = '/auth/login';
                 }, 2000);
                 
             } catch (error) {

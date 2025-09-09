@@ -134,7 +134,7 @@ self.addEventListener('fetch', event => {
     return
   }
   
-  // CRITICAL: Never cache auth-related pages - always fetch fresh
+  // CRITICAL: Never cache auth-related pages - always fetch fresh with error handling
   if (url.pathname.includes('/auth/') || 
       url.pathname.includes('/api/auth/') ||
       url.pathname === '/auth' ||
@@ -142,7 +142,24 @@ self.addEventListener('fetch', event => {
       url.pathname.includes('/signup') ||
       url.pathname.includes('/signin')) {
     console.log('[ServiceWorker] Auth page requested, fetching fresh:', url.pathname)
-    event.respondWith(fetch(request))
+    
+    // Fetch with timeout and error handling
+    event.respondWith(
+      fetch(request, {
+        cache: 'no-store',
+        credentials: 'same-origin'
+      }).catch(error => {
+        console.error('[ServiceWorker] Failed to fetch auth page:', url.pathname, error)
+        // Return a network error response
+        return new Response('Network error occurred', {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: new Headers({
+            'Content-Type': 'text/plain'
+          })
+        })
+      })
+    )
     return
   }
   
