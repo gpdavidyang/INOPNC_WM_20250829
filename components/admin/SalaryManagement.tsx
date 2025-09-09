@@ -13,6 +13,7 @@ import {
 import { Search, DollarSign, Calculator, Play, FileText } from 'lucide-react'
 import { CustomSelect, CustomSelectContent, CustomSelectItem, CustomSelectTrigger, CustomSelectValue } from '@/components/ui/custom-select'
 import SalaryStatement from './salary/SalaryStatement'
+import Link from 'next/link'
 
 interface SalaryManagementProps {
   profile: Profile
@@ -595,20 +596,22 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                         </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
-                        <button
-                          onClick={() => {
-                            const worker = availableWorkers.find(w => w.name === item.worker_name)
-                            if (worker) {
-                              window.location.href = `/dashboard/admin/salary/calendar/${worker.id}?name=${encodeURIComponent(item.worker_name)}&year=${selectedYear}&month=${selectedMonth}`
-                            }
-                          }}
-                          className="inline-flex items-center px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors duration-200"
-                        >
-                          <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          캘린더
-                        </button>
+                        {(() => {
+                          const worker = availableWorkers.find(w => w.name === item.worker_name)
+                          if (!worker) return null
+                          
+                          return (
+                            <Link
+                              href={`/dashboard/admin/salary/calendar/${worker.id}?name=${encodeURIComponent(item.worker_name)}&year=${selectedYear}&month=${selectedMonth}`}
+                              className="inline-flex items-center px-2.5 py-1.5 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white text-xs font-medium rounded transition-colors duration-200"
+                            >
+                              <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              캘린더
+                            </Link>
+                          )
+                        })()}
                       </td>
                     </tr>
                   ))}
