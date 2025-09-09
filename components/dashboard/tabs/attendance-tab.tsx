@@ -46,7 +46,8 @@ interface SalaryInfo {
   allowances: number
   deductions: number
   total_pay: number
-  work_days: number
+  work_days: number  // 실제 근무 날짜 수
+  total_labor_hours: number  // 총 공수
   site_name: string
 }
 
@@ -384,6 +385,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
             deductions: 180000, // Fixed deductions (tax, insurance)
             total_pay: 0,
             work_days: 0,
+            total_labor_hours: 0,  // 총 공수
             site_name: record.sites?.name || ''
           })
         }
@@ -391,6 +393,10 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
         const salary = monthlyData.get(month)!
         if (record.work_hours) {
           salary.work_days += 1
+          // 공수 계산 (labor_hours 필드 우선, 없으면 work_hours/8로 계산)
+          const laborHours = record.labor_hours || (record.work_hours / 8)
+          salary.total_labor_hours += laborHours
+          
           // Calculate overtime pay (work_hours > 8 means overtime)
           if (record.overtime_hours && record.overtime_hours > 0) {
             salary.overtime_pay += Math.floor(record.overtime_hours * 15000) // 시간당 15,000원

@@ -48,7 +48,8 @@ export interface OutputSummary {
   worker_role: string
   site_id: string
   site_name: string
-  work_days_count: number
+  work_days_count: number  // 실제 근무한 날짜 수 (참고용)
+  total_labor_hours: number  // 총 공수 (급여 계산 기준)
   total_work_hours: number
   total_actual_hours: number
   total_overtime_hours: number
@@ -1013,6 +1014,7 @@ export async function getOutputSummary(
         worker: any
         site: any
         work_days: Set<string>
+        total_labor_hours: number  // 총 공수
         total_work_hours: number
         total_actual_hours: number
         total_overtime_hours: number
@@ -1041,6 +1043,7 @@ export async function getOutputSummary(
               worker,
               site,
               work_days: new Set(),
+              total_labor_hours: 0,  // 총 공수
               total_work_hours: 0,
               total_actual_hours: 0,
               total_overtime_hours: 0,
@@ -1052,20 +1055,23 @@ export async function getOutputSummary(
             }
           }
 
+          // 공수 데이터 가져오기 (labor_hours 필드 우선, 없으면 work_hours/8로 계산)
+          const laborHours = workerEntry.labor_hours || (parseFloat(workerEntry.work_hours) || 0) / 8
           const workHours = parseFloat(workerEntry.work_hours) || 0
           const regularHours = Math.min(workHours, 8)
           const overtimeHours = Math.max(workHours - 8, 0)
 
           workSummary[key].work_days.add(report.work_date)
+          workSummary[key].total_labor_hours += laborHours  // 총 공수 누적
           workSummary[key].total_work_hours += workHours
           workSummary[key].total_actual_hours += workHours
           workSummary[key].total_overtime_hours += overtimeHours
 
           // Calculate pay based on role (공수 기반)
-          // 현장관리자: 220,000원/일, 작업자: 130,000원/일
+          // 현장관리자: 220,000원/공수, 작업자: 130,000원/공수
           const dailyRate = worker.role === 'site_manager' ? 220000 : 130000
-          // 공수 기반 계산: 총 공수 × 일당
-          const dayPay = workHours * dailyRate
+          // 공수 기반 계산: 공수 × 일당
+          const dayPay = laborHours * dailyRate
 
           workSummary[key].base_pay += Math.round(dayPay)
           workSummary[key].overtime_pay += 0 // 공수 기반에서는 연장수당 별도 계산 안함
@@ -1084,6 +1090,7 @@ export async function getOutputSummary(
           site_id: item.site.id,
           site_name: item.site.name,
           work_days_count: item.work_days.size,
+          total_labor_hours: item.total_labor_hours,  // 총 공수
           total_work_hours: item.total_work_hours,
           total_actual_hours: item.total_actual_hours,
           total_overtime_hours: item.total_overtime_hours,
