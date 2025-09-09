@@ -8,6 +8,7 @@ import type { UserRole } from '@/types'
 
 export async function signIn(email: string, password: string) {
   let shouldRedirect = false
+  let redirectPath = '/dashboard'
   
   try {
     console.log('[SIGN_IN] Starting login process for:', email)
@@ -77,6 +78,15 @@ export async function signIn(email: string, password: string) {
             console.error('[SIGN_IN] Profile update error:', updateError)
           }
           
+          // Determine redirect path based on role
+          if (profile.role === 'admin' || profile.role === 'system_admin') {
+            redirectPath = '/dashboard/admin'
+          } else if (profile.role === 'customer_manager') {
+            redirectPath = '/partner/dashboard'
+          } else {
+            redirectPath = '/dashboard'
+          }
+          
           // Set role cookie for UI mode detection
           try {
             console.log('[SIGN_IN] Setting role cookie:', profile.role)
@@ -109,7 +119,7 @@ export async function signIn(email: string, password: string) {
       }
     }
 
-    console.log('[SIGN_IN] Login process completed successfully')
+    console.log('[SIGN_IN] Login process completed successfully, redirecting to:', redirectPath)
     shouldRedirect = true
     
   } catch (outerError) {
@@ -126,7 +136,7 @@ export async function signIn(email: string, password: string) {
   
   // Redirect outside of try-catch
   if (shouldRedirect) {
-    redirect('/dashboard')
+    redirect(redirectPath)
   }
 }
 
