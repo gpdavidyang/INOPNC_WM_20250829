@@ -60,7 +60,12 @@ export function MarkupEditor({
       activeTool: 'select',
       isDrawing: false,
       selectedObjects: [],
-      clipboard: []
+      clipboard: [],
+      stampSettings: {
+        shape: 'circle',
+        size: 'medium',
+        color: '#FF0000'
+      }
     },
     viewerState: {
       zoom: 1,
@@ -207,6 +212,16 @@ export function MarkupEditor({
       toolState: {
         ...prev.toolState,
         activeTool: tool
+      }
+    }))
+  }
+
+  const handleStampSettingsChange = (settings: any) => {
+    setEditorState(prev => ({
+      ...prev,
+      toolState: {
+        ...prev.toolState,
+        stampSettings: settings
       }
     }))
   }
@@ -402,6 +417,8 @@ export function MarkupEditor({
                     isMobile={false}
                     isLargeFont={isLargeFont}
                     touchMode={touchMode}
+                    stampSettings={editorState.toolState.stampSettings}
+                    onStampSettingsChange={handleStampSettingsChange}
                   />
                 </div>
               </div>
@@ -450,6 +467,8 @@ export function MarkupEditor({
             isMobile={true}
             isLargeFont={isLargeFont}
             touchMode={touchMode}
+            stampSettings={editorState.toolState.stampSettings}
+            onStampSettingsChange={handleStampSettingsChange}
           />
         </div>
       )}

@@ -1,7 +1,7 @@
 // 기본 마킹 객체
 export interface BaseMarkupObject {
   id: string
-  type: 'box' | 'text' | 'drawing'
+  type: 'box' | 'text' | 'drawing' | 'stamp'
   x: number
   y: number
   createdAt: string
@@ -33,8 +33,16 @@ export interface DrawingMarkup extends BaseMarkupObject {
   strokeWidth: number
 }
 
+// 스탬프 마킹
+export interface StampMarkup extends BaseMarkupObject {
+  type: 'stamp'
+  shape: 'circle' | 'triangle' | 'square' | 'star'
+  size: 'small' | 'medium' | 'large'
+  color: string
+}
+
 // 통합 마킹 타입
-export type MarkupObject = BoxMarkup | TextMarkup | DrawingMarkup
+export type MarkupObject = BoxMarkup | TextMarkup | DrawingMarkup | StampMarkup
 
 // 마킹 도면 데이터
 export interface MarkupDocument {
@@ -64,7 +72,14 @@ export interface MarkupMetadata {
 }
 
 // 현재 선택된 도구
-export type ToolType = 'select' | 'box-gray' | 'box-red' | 'box-blue' | 'text' | 'pen' | 'pan' | 'zoom-in' | 'zoom-out'
+export type ToolType = 'select' | 'box-gray' | 'box-red' | 'box-blue' | 'text' | 'pen' | 'stamp' | 'pan' | 'zoom-in' | 'zoom-out'
+
+// 스탬프 도구 상태
+export interface StampToolState {
+  shape: 'circle' | 'triangle' | 'square' | 'star'
+  size: 'small' | 'medium' | 'large'
+  color: string
+}
 
 // 도구 상태
 export interface ToolState {
@@ -72,6 +87,7 @@ export interface ToolState {
   isDrawing: boolean
   selectedObjects: string[]  // 선택된 객체 ID 목록
   clipboard: MarkupObject[]  // 복사된 객체들
+  stampSettings?: StampToolState  // 스탬프 도구 설정
 }
 
 // 뷰어 상태
