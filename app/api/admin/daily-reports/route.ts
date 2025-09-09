@@ -35,7 +35,7 @@ export async function GET(request: Request) {
           name,
           address
         ),
-        profiles!daily_reports_submitted_by_fkey(
+        submitted_by_profile:profiles!daily_reports_submitted_by_fkey(
           id,
           full_name,
           role

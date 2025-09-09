@@ -541,7 +541,10 @@ export async function approveSignupRequest(
     } else {
       // For other roles, organization_id is optional
       profileData.organization_id = organizationId
-      profileData.site_id = siteId
+      // Set site_id only for single-site assignments
+      if (siteIds && siteIds.length === 1) {
+        profileData.site_id = siteIds[0]
+      }
     }
 
     const { error: profileError } = await supabase
@@ -551,7 +554,7 @@ export async function approveSignupRequest(
     if (profileError) {
       console.error('Profile creation error:', profileError)
       // Try to delete the auth user if profile creation fails
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
+      await serviceClient.auth.admin.deleteUser(authData.user.id)
       return { error: '사용자 프로필 생성에 실패했습니다.' }
     }
     // console.log('Profile created successfully')
@@ -568,17 +571,19 @@ export async function approveSignupRequest(
         })
     }
 
-    // Create site_assignments entry
-    if (siteId) {
-      // console.log('Assigning to site...')
+    // Create site_assignments entries
+    if (siteIds && siteIds.length > 0) {
+      // console.log('Assigning to sites...')
+      const assignments = siteIds.map(siteId => ({
+        user_id: authData.user.id,
+        site_id: siteId,
+        assigned_date: new Date().toISOString().split('T')[0],
+        is_active: true
+      }))
+      
       await supabase
         .from('site_assignments')
-        .insert({
-          user_id: authData.user.id,
-          site_id: siteId,
-          assigned_date: new Date().toISOString().split('T')[0],
-          is_active: true
-        })
+        .insert(assignments)
     }
 
     // Update signup request status
