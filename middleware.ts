@@ -52,45 +52,17 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // Optimize auth check - try session first, minimize refresh attempts
+    // CRITICAL FIX: Simplified auth check to prevent infinite loops
+    // Only get session once and trust its user data
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    let user = session?.user || null
+    const user = session?.user || null
     
-    // Only verify user for critical paths and when session exists - avoid unnecessary API calls
-    if (session && !sessionError && !user) {
-      try {
-        const { data: { user: verifiedUser } } = await supabase.auth.getUser()
-        user = verifiedUser
-      } catch (userError) {
-        // Only attempt refresh if we have a valid session but user verification failed
-        // This prevents infinite refresh loops on invalid tokens
-        if (session.refresh_token) {
-          try {
-            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
-            if (refreshedSession?.user && !refreshError) {
-              user = refreshedSession.user
-            } else {
-              // CRITICAL FIX: Handle refresh token errors gracefully
-              if (refreshError?.message?.includes('refresh_token_not_found') || 
-                  refreshError?.message?.includes('Invalid Refresh Token')) {
-                // Clear invalid session cookies and redirect to login
-                response.cookies.delete('sb-access-token')
-                response.cookies.delete('sb-refresh-token')
-                response.cookies.delete('user-role')
-                user = null
-              } else {
-                // Other refresh errors - user remains null but don't clear cookies
-                user = null
-              }
-            }
-          } catch (refreshError) {
-            // Network or other errors during refresh - user remains null
-            user = null
-          }
-        } else {
-          user = null
-        }
-      }
+    // If session error or invalid session, clear cookies
+    if (sessionError || (session && !session.user)) {
+      // Clear potentially invalid cookies
+      response.cookies.delete('sb-access-token')
+      response.cookies.delete('sb-refresh-token')
+      response.cookies.delete('user-role')
     }
 
     // Public routes that don't require authentication

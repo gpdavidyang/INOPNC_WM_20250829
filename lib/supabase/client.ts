@@ -10,12 +10,7 @@ const logger = createLogger('SUPABASE-CLIENT')
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()?.replace(/\\n/g, '')?.replace(/\n/g, '')
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()?.replace(/\\n/g, '')?.replace(/\n/g, '')
 
-// Extend window object for cookie caching
-declare global {
-  interface Window {
-    __supabase_cookies?: Record<string, string>
-  }
-}
+// Removed window.__supabase_cookies caching to prevent stale cookie issues
 
 // Enhanced client-side validation with detailed error information
 function validateClientEnvironmentVars() {
@@ -453,58 +448,12 @@ class EnhancedSupabaseClient {
   }
 }
 
-// CRITICAL FIX: Singleton with fresh cookie handlers
-// The singleton maintains auth state listeners but uses fresh cookie handlers
+// CRITICAL FIX: Singleton instance to prevent multiple client creation
+// Multiple clients can cause session sync issues and performance problems
 let browserClient: ReturnType<typeof createBrowserClient<Database>> | undefined
 
-// Cookie handlers that always read current state
-const createCookieHandlers = () => ({
-  getAll() {
-    const cookies: { name: string; value: string }[] = []
-    if (typeof document !== 'undefined') {
-      const cookieString = document.cookie
-      if (cookieString) {
-        cookieString.split(';').forEach(cookie => {
-          const [name, ...valueParts] = cookie.trim().split('=')
-          if (name) {
-            const value = valueParts.join('=')
-            cookies.push({ 
-              name, 
-              value: value ? decodeURIComponent(value) : '' 
-            })
-          }
-        })
-      }
-    }
-    return cookies
-  },
-  setAll(cookiesToSet: any[]) {
-    if (typeof document !== 'undefined') {
-      cookiesToSet.forEach(({ name, value, options }) => {
-        let cookieString = `${name}=${encodeURIComponent(value || '')}`
-        if (options?.maxAge) {
-          cookieString += `; max-age=${options.maxAge}`
-        }
-        if (options?.expires) {
-          cookieString += `; expires=${options.expires.toUTCString()}`
-        }
-        cookieString += `; path=${options?.path || '/'}`
-        if (options?.domain) {
-          cookieString += `; domain=${options.domain}`
-        }
-        if (options?.secure) {
-          cookieString += '; secure'
-        }
-        cookieString += `; samesite=${options?.sameSite || 'lax'}`
-        document.cookie = cookieString
-      })
-    }
-  }
-})
-
 export function createClient(config?: ClientConfig) {
-  // CRITICAL FIX: Always create fresh cookie handlers to avoid caching issues
-  // Supabase caches the handlers, so we need to bypass the singleton for cookies
+  // CRITICAL FIX: Use singleton to prevent multiple clients and infinite loops
   if (!browserClient) {
     try {
       const { SUPABASE_URL: validatedUrl, SUPABASE_ANON_KEY: validatedKey } = validateClientEnvironmentVars()
@@ -512,121 +461,56 @@ export function createClient(config?: ClientConfig) {
       browserClient = createBrowserClient<Database>(
         validatedUrl,
         validatedKey,
-      {
-        realtime: {
-          // Enhanced WebSocket connection settings for better reliability
-          heartbeatIntervalMs: 30000,      // 30 seconds heartbeat
-          reconnectAfterMs: (attempt) => Math.min(attempt * 1000, 30000), // Exponential backoff
-          timeout: 10000,                  // 10 seconds timeout
-          logger: (level, message, ...args) => {
-            // Use centralized logger - only log errors to reduce noise
-            if (level === 'error') {
-              logger.error(`REALTIME-${level.toUpperCase()}`, message, ...args)
-            }
-            // Suppress all other realtime logs unless explicitly debugging
-            else if (process.env.DEBUG_REALTIME === 'true') {
-              if (level === 'warn') {
-                logger.warn(`REALTIME-${level.toUpperCase()}`, message, ...args)
-              } else {
-                logger.debug(`REALTIME-${level.toUpperCase()}`, message, ...args)
-              }
-            }
-          }
-        },
-        cookies: {
-          getAll() {
-            const cookies: { name: string; value: string }[] = []
-            if (typeof document !== 'undefined') {
-              // First, try to get from locally cached cookies (for immediate access)
-              const localCookies = window.__supabase_cookies || {}
-              Object.entries(localCookies).forEach(([name, value]) => {
-                cookies.push({ name, value: value as string })
-              })
-              
-              // Then also read from document.cookie (for persistence)
-              const cookieString = document.cookie
-              // Debug cookie reading only in development
-              if (process.env.NODE_ENV === 'development') {
-                logger.debug('[SUPABASE-CLIENT] Reading cookies, raw string:', cookieString)
-              }
-              if (cookieString) {
-                cookieString.split(';').forEach(cookie => {
-                  const [name, ...valueParts] = cookie.trim().split('=')
-                  if (name) {
-                    const value = valueParts.join('=')
-                    // Only add if not already in local cache
-                    if (!cookies.find(c => c.name === name)) {
+        {
+          // SIMPLIFIED: Minimal configuration to prevent issues
+          cookies: {
+            getAll() {
+              const cookies: { name: string; value: string }[] = []
+              if (typeof document !== 'undefined') {
+                const cookieString = document.cookie
+                if (cookieString) {
+                  cookieString.split(';').forEach(cookie => {
+                    const [name, ...valueParts] = cookie.trim().split('=')
+                    if (name) {
+                      const value = valueParts.join('=')
                       cookies.push({ 
                         name, 
                         value: value ? decodeURIComponent(value) : '' 
                       })
                     }
+                  })
+                }
+              }
+              return cookies
+            },
+            setAll(cookiesToSet) {
+              if (typeof document !== 'undefined') {
+                cookiesToSet.forEach(({ name, value, options }) => {
+                  let cookieString = `${name}=${encodeURIComponent(value || '')}`
+                  if (options?.maxAge) {
+                    cookieString += `; max-age=${options.maxAge}`
                   }
+                  if (options?.expires) {
+                    cookieString += `; expires=${options.expires.toUTCString()}`
+                  }
+                  cookieString += `; path=${options?.path || '/'}`
+                  if (options?.secure) {
+                    cookieString += '; secure'
+                  }
+                  cookieString += `; samesite=${options?.sameSite || 'lax'}`
+                  
+                  // Set max-age for refresh tokens to prevent expiry issues
+                  if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
+                    cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days
+                  }
+                  
+                  document.cookie = cookieString
                 })
               }
-              
-              const sbCookies = cookies.filter(c => c.name.startsWith('sb-'))
-              // Debug cookie info only in development
-              if (process.env.NODE_ENV === 'development') {
-                logger.debug('[SUPABASE-CLIENT] Found Supabase cookies:', sbCookies.map(c => c.name))
-                logger.debug('[SUPABASE-CLIENT] Local cache cookies:', Object.keys(localCookies))
-              }
-            }
-            return cookies
-          },
-          setAll(cookiesToSet: any[]) {
-            if (typeof document !== 'undefined') {
-              // Debug cookie setting only in development
-              if (process.env.NODE_ENV === 'development') {
-                logger.debug('[SUPABASE-CLIENT] Setting cookies:', cookiesToSet.map(c => c.name))
-              }
-              cookiesToSet.forEach(({ name, value, options }) => {
-                let cookieString = `${name}=${encodeURIComponent(value || '')}`
-                if (options?.maxAge) {
-                  cookieString += `; max-age=${options.maxAge}`
-                }
-                if (options?.expires) {
-                  cookieString += `; expires=${options.expires.toUTCString()}`
-                }
-                cookieString += `; path=${options?.path || '/'}`
-                if (options?.domain) {
-                  cookieString += `; domain=${options.domain}`
-                }
-                if (options?.secure) {
-                  cookieString += '; secure'
-                }
-                cookieString += `; samesite=${options?.sameSite || 'lax'}`
-                
-                // CRITICAL FIX: Set max-age for refresh tokens to prevent expiry issues
-                if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
-                  cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
-                }
-                
-                if (process.env.NODE_ENV === 'development') {
-                  logger.debug('[SUPABASE-CLIENT] Setting cookie string:', cookieString)
-                }
-                document.cookie = cookieString
-                
-                // CRITICAL: Store cookies locally for immediate access
-                // Browser may not make cookies available instantly via document.cookie
-                if (!window.__supabase_cookies) {
-                  window.__supabase_cookies = {}
-                }
-                window.__supabase_cookies[name] = value || ''
-                if (process.env.NODE_ENV === 'development') {
-                  logger.debug('[SUPABASE-CLIENT] ✅ Cookie cached locally:', name)
-                }
-              })
             }
           }
         }
-      }
-    )
-    
-    // Only log client creation in development
-    if (process.env.NODE_ENV === 'development') {
-      logger.debug('[SUPABASE-CLIENT] Created new browser client instance')
-    }
+      )
     } catch (error) {
       logger.error('[SUPABASE-CLIENT] Failed to create browser client:', error)
       throw error
