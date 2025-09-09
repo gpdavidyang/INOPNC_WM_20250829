@@ -71,7 +71,10 @@ export default function SalaryStatementManager() {
       }
 
       if (data) {
+        console.log('Fetched workers:', data.length)
         setWorkers(data.map(w => ({ value: w.id, label: w.full_name || '이름 없음' })))
+      } else {
+        console.log('No workers data received')
       }
     } catch (error) {
       console.error('Unexpected error fetching workers:', error)
