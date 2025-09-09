@@ -96,6 +96,7 @@ export class MonitoringManager {
   private alertQueue: MonitoringAlert[] = []
   private isMonitoring = false
   private metricsCache = new Map<string, any>()
+  private intervalIds: NodeJS.Timeout[] = [] // 모든 interval ID를 저장
   
   // Performance thresholds
   private readonly THRESHOLDS = {
@@ -181,19 +182,22 @@ export class MonitoringManager {
    */
   private startPerformanceMonitoring(): void {
     // Monitor every 30 seconds
-    setInterval(async () => {
+    const perfInterval = setInterval(async () => {
       await this.checkPerformanceMetrics()
     }, 30000)
+    this.intervalIds.push(perfInterval)
 
     // Detailed performance analysis every 5 minutes
-    setInterval(async () => {
+    const trendsInterval = setInterval(async () => {
       await this.analyzePerformanceTrends()
     }, 5 * 60 * 1000)
+    this.intervalIds.push(trendsInterval)
 
     // Memory usage monitoring every 2 minutes
-    setInterval(async () => {
+    const memoryInterval = setInterval(async () => {
       await this.checkMemoryUsage()
     }, 2 * 60 * 1000)
+    this.intervalIds.push(memoryInterval)
   }
 
   /**
@@ -201,19 +205,22 @@ export class MonitoringManager {
    */
   private startHealthChecks(): void {
     // System health check every minute
-    setInterval(async () => {
+    const healthInterval = setInterval(async () => {
       await this.performHealthCheck()
     }, 60000)
+    this.intervalIds.push(healthInterval)
 
     // Database health check every 5 minutes
-    setInterval(async () => {
+    const dbHealthInterval = setInterval(async () => {
       await this.checkDatabaseHealth()
     }, 5 * 60 * 1000)
+    this.intervalIds.push(dbHealthInterval)
 
     // API health check every 30 seconds
-    setInterval(async () => {
+    const apiHealthInterval = setInterval(async () => {
       await this.checkApiHealth()
     }, 30000)
+    this.intervalIds.push(apiHealthInterval)
   }
 
   /**
@@ -221,19 +228,22 @@ export class MonitoringManager {
    */
   private startConstructionMetricsCollection(): void {
     // Construction metrics every 2 minutes
-    setInterval(async () => {
+    const constructionInterval = setInterval(async () => {
       await this.collectConstructionMetrics()
     }, 2 * 60 * 1000)
+    this.intervalIds.push(constructionInterval)
 
     // User activity analysis every 10 minutes
-    setInterval(async () => {
+    const userActivityInterval = setInterval(async () => {
       await this.analyzeUserActivity()
     }, 10 * 60 * 1000)
+    this.intervalIds.push(userActivityInterval)
 
     // Site performance analysis every 15 minutes
-    setInterval(async () => {
+    const sitePerformanceInterval = setInterval(async () => {
       await this.analyzeSitePerformance()
     }, 15 * 60 * 1000)
+    this.intervalIds.push(sitePerformanceInterval)
   }
 
   /**
@@ -241,9 +251,10 @@ export class MonitoringManager {
    */
   private integrateWithSecurityManager(): void {
     // Monitor security alerts and correlate with performance
-    setInterval(async () => {
+    const securityInterval = setInterval(async () => {
       await this.correlateSecurityAndPerformance()
     }, 5 * 60 * 1000)
+    this.intervalIds.push(securityInterval)
   }
 
   /**
@@ -813,6 +824,22 @@ export class MonitoringManager {
       alert.resolved = true
       alert.resolved_at = new Date().toISOString()
     }
+  }
+
+  /**
+   * Stop all monitoring intervals - CRITICAL for preventing memory leaks
+   */
+  stopMonitoring(): void {
+    console.log('🛑 [MONITORING-MANAGER] Stopping all monitoring intervals...')
+    this.isMonitoring = false
+    
+    // Clear all intervals
+    this.intervalIds.forEach(intervalId => {
+      clearInterval(intervalId)
+    })
+    this.intervalIds = []
+    
+    console.log('✅ [MONITORING-MANAGER] All monitoring intervals stopped')
   }
 }
 

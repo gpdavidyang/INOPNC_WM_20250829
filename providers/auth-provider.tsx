@@ -110,9 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (newSession) {
             setSession(newSession)
             setUser(newSession.user)
-            // CRITICAL FIX: Don't auto-refresh during login to prevent infinite loops
-            // router.refresh() causes remount of components which triggers auto-login again
-            // SIGNED_IN event handled, skipping router refresh
+            // CRITICAL FIX: Don't refresh on SIGNED_IN to prevent infinite loops
+            // Only refresh on explicit user updates, not automatic sign-ins
+            console.log('✅ [AUTH-PROVIDER] User signed in:', newSession.user?.email)
           }
           break
           

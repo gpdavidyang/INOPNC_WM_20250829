@@ -30,11 +30,11 @@ export default function IntegratedDashboard() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Update active view when URL param changes
+    // Update active view when URL param changes (only when viewParam changes)
     if (viewParam && viewParam !== activeView) {
       setActiveView(viewParam)
     }
-  }, [viewParam, activeView]) // activeView를 dependency에 포함하되 조건문으로 무한루프 방지
+  }, [viewParam]) // activeView 제거로 무한루프 방지
 
   useEffect(() => {
     loadDashboardData()
