@@ -7,6 +7,8 @@ import { ProfileManager } from '@/lib/auth/profile-manager'
 import type { UserRole } from '@/types'
 
 export async function signIn(email: string, password: string) {
+  let shouldRedirect = false
+  
   try {
     console.log('[SIGN_IN] Starting login process for:', email)
     
@@ -103,9 +105,8 @@ export async function signIn(email: string, password: string) {
       }
     }
 
-    console.log('[SIGN_IN] Login process completed successfully, redirecting to dashboard')
-    // Redirect to dashboard after successful login
-    redirect('/dashboard')
+    console.log('[SIGN_IN] Login process completed successfully')
+    shouldRedirect = true
     
   } catch (outerError) {
     console.error('[SIGN_IN] Outer catch - unexpected error during signIn:', outerError)
@@ -117,6 +118,11 @@ export async function signIn(email: string, password: string) {
         ? 'Login failed due to a server error. Please try again.' 
         : `Login error: ${outerError instanceof Error ? outerError.message : 'Unknown error'}`
     }
+  }
+  
+  // Redirect outside of try-catch
+  if (shouldRedirect) {
+    redirect('/dashboard')
   }
 }
 
