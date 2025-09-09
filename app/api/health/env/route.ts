@@ -122,11 +122,10 @@ export async function GET(request: NextRequest) {
     try {
       const supabase = createClient()
       
-      // Simple query to test database connection
+      // Simple query to test database connection - use a known table
       const { data, error } = await supabase
-        .from('information_schema.tables')
-        .select('table_name')
-        .eq('table_schema', 'public')
+        .from('profiles')
+        .select('id')
         .limit(1)
       
       if (error) {
@@ -166,12 +165,11 @@ export async function GET(request: NextRequest) {
       
       for (const tableName of criticalTables) {
         try {
+          // Test table access by trying to query it directly
           const { data, error } = await supabase
-            .from('information_schema.tables')
-            .select('table_name')
-            .eq('table_schema', 'public')
-            .eq('table_name', tableName)
-            .maybeSingle()
+            .from(tableName)
+            .select('*')
+            .limit(1)
           
           if (error) {
             checks.push({
