@@ -999,11 +999,11 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
                           </th>
                           <th 
                             className="px-1 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-300 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 select-none whitespace-nowrap"
-                            onClick={() => handleSalarySort('work_days')}
+                            onClick={() => handleSalarySort('total_labor_hours')}
                           >
                             <div className="flex items-center justify-center space-x-1">
-                              <span>근무</span>
-                              {getSalaryIcon('work_days')}
+                              <span>총 공수</span>
+                              {getSalaryIcon('total_labor_hours')}
                             </div>
                           </th>
                           <th 
@@ -1056,7 +1056,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
                               {salary.site_name.replace(/\s*[A-Z]?현장$/g, '')}
                             </td>
                             <td className="px-1 py-2 whitespace-nowrap text-xs text-center text-gray-900 dark:text-gray-100">
-                              {salary.work_days}일
+                              {salary.total_labor_hours?.toFixed(1) || '0.0'}
                             </td>
                             <td className="px-1 py-2 whitespace-nowrap text-xs text-right text-gray-900 dark:text-gray-100">
                               {(salary.basic_salary / 10000).toFixed(0)}만
@@ -1184,24 +1184,28 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
                                 </div>
                               </div>
                               
-                              {/* 근무일 기준 계산 */}
+                              {/* 공수 기준 계산 */}
                               <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded p-2 text-xs">
-                                <div className="text-yellow-700 dark:text-yellow-300 mb-1 font-medium">근무일 기준:</div>
+                                <div className="text-yellow-700 dark:text-yellow-300 mb-1 font-medium">공수 기준:</div>
                                 <div className="space-y-1">
                                   <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">총 근무일</span>
+                                    <span className="text-gray-600 dark:text-gray-400">총 공수</span>
+                                    <span className="text-gray-900 dark:text-gray-100">{selectedSalary.total_labor_hours?.toFixed(1) || '0.0'}공수</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600 dark:text-gray-400">근무 날짜수</span>
                                     <span className="text-gray-900 dark:text-gray-100">{selectedSalary.work_days}일</span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">일당 평균</span>
+                                    <span className="text-gray-600 dark:text-gray-400">공수당 단가</span>
                                     <span className="text-gray-900 dark:text-gray-100">
-                                      {Math.round(selectedSalary.total_pay / selectedSalary.work_days / 1000)}천원
+                                      {selectedSalary.total_labor_hours > 0 ? Math.round(selectedSalary.total_pay / selectedSalary.total_labor_hours / 1000) : 0}천원
                                     </span>
                                   </div>
                                   <div className="flex justify-between">
-                                    <span className="text-gray-600 dark:text-gray-400">시급 평균 (8시간 기준)</span>
+                                    <span className="text-gray-600 dark:text-gray-400">시급 평균 (8시간=1공수)</span>
                                     <span className="text-gray-900 dark:text-gray-100">
-                                      {Math.round(selectedSalary.total_pay / selectedSalary.work_days / 8 / 100)}백원
+                                      {selectedSalary.total_labor_hours > 0 ? Math.round(selectedSalary.total_pay / selectedSalary.total_labor_hours / 8 / 100) : 0}백원
                                     </span>
                                   </div>
                                 </div>

@@ -191,6 +191,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
             month: monthStr,
             site: siteName,
             workDays: data.work_days,
+            totalLaborHours: data.total_labor_hours,
             basicPay: data.base_salary,
             overtimePay: data.overtime_pay,
             allowance: data.bonus_pay,
@@ -388,7 +389,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
           <div className="grid grid-cols-7 gap-1 font-medium text-gray-700 dark:text-gray-300 text-xs">
             <div className="whitespace-nowrap">월</div>
             <div className="whitespace-nowrap">현장</div>
-            <div className="text-center whitespace-nowrap">근무일</div>
+            <div className="text-center whitespace-nowrap">총 공수</div>
             <div className="text-right whitespace-nowrap">기본</div>
             <div className="text-right whitespace-nowrap">연장</div>
             <div className="text-right whitespace-nowrap">실지급</div>
@@ -420,7 +421,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
                 <div className="grid grid-cols-7 gap-1 items-center text-xs">
                   <div className="font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{salary.month}</div>
                   <div className="text-gray-600 dark:text-gray-400 whitespace-nowrap truncate">{salary.site}</div>
-                  <div className="text-center whitespace-nowrap">{salary.workDays}일</div>
+                  <div className="text-center whitespace-nowrap">{salary.totalLaborHours?.toFixed(1) || '0.0'}</div>
                   <div className="text-right whitespace-nowrap">{Math.floor(salary.basicPay / 10000)}만</div>
                   <div className="text-right whitespace-nowrap">{Math.floor(salary.overtimePay / 10000)}만</div>
                   <div className="text-right font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
@@ -559,24 +560,28 @@ export function SalaryView({ profile }: SalaryViewProps) {
             </div>
           </div>
 
-          {/* Work Days Info */}
+          {/* 공수 기준 정보 */}
           <div className="border-t pt-3">
-            <div className="text-sm font-medium text-orange-600 mb-2">근무일 기준:</div>
+            <div className="text-sm font-medium text-orange-600 mb-2">공수 기준:</div>
             <div className="space-y-1">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-700 dark:text-gray-300">총 근무일</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">총 공수</span>
+                <span className="text-sm font-medium">{selectedMonthDetails.total_labor_hours?.toFixed(1) || '0.0'}공수</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-700 dark:text-gray-300">근무 날짜수</span>
                 <span className="text-sm font-medium">{selectedMonthDetails.work_days}일</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-700 dark:text-gray-300">일당 평균</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">공수당 단가</span>
                 <span className="text-sm font-medium">
-                  {selectedMonthDetails.work_days > 0 ? Math.floor((selectedMonthDetails.net_pay / selectedMonthDetails.work_days) / 1000) : 0}천원
+                  {selectedMonthDetails.total_labor_hours > 0 ? Math.floor((selectedMonthDetails.net_pay / selectedMonthDetails.total_labor_hours) / 1000) : 0}천원
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-700 dark:text-gray-300">시급 평균 (8시간 기준)</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">시급 평균 (8시간=1공수)</span>
                 <span className="text-sm font-medium">
-                  {selectedMonthDetails.total_work_hours > 0 ? Math.floor((selectedMonthDetails.net_pay / selectedMonthDetails.total_work_hours) / 100) : 0}백원
+                  {selectedMonthDetails.total_labor_hours > 0 ? Math.floor((selectedMonthDetails.net_pay / selectedMonthDetails.total_labor_hours / 8) / 100) : 0}백원
                 </span>
               </div>
             </div>

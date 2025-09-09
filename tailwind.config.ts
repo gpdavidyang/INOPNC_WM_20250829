@@ -7,6 +7,17 @@ const config: Config = {
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist: [
+    // Force Desktop UI classes - NEVER purge these
+    'force-desktop-ui',
+    'force-mobile-ui',
+    'desktop-ui-container',
+    'mobile-ui-container',
+    // Common responsive utilities that should be preserved
+    { pattern: /^(lg|xl|2xl):(block|flex|hidden|grid|inline-block|inline-flex)$/ },
+    { pattern: /^(lg|xl):(w|h|p|m|pl|pr|pt|pb|ml|mr|mt|mb)-/ },
+    { pattern: /^(lg|xl):(fixed|absolute|relative|sticky|static)$/ },
+  ],
   theme: {
     extend: {
       screens: {
