@@ -58,12 +58,13 @@ export default function SalaryStatementManager() {
 
   const fetchWorkers = async () => {
     const { data } = await supabase
-      .from('workers')
-      .select('id, name')
-      .order('name')
+      .from('profiles')
+      .select('id, full_name')
+      .not('role', 'is', null)
+      .order('full_name')
 
     if (data) {
-      setWorkers(data.map(w => ({ value: w.id, label: w.name })))
+      setWorkers(data.map(w => ({ value: w.id, label: w.full_name })))
     }
   }
 
@@ -108,25 +109,25 @@ export default function SalaryStatementManager() {
       const { data: salaryData } = await supabase
         .from('worker_assignments')
         .select(`
-          worker_id,
+          profile_id,
           labor_hours,
           daily_reports!inner(
-            date,
+            work_date,
             site_id,
             sites(name)
           ),
-          workers!inner(
+          profiles!inner(
             id,
-            name,
+            full_name,
             phone,
             daily_wage,
             meal_allowance,
             transportation_allowance
           )
         `)
-        .in('worker_id', selectedWorkers)
-        .gte('daily_reports.date', startDate)
-        .lte('daily_reports.date', endDate)
+        .in('profile_id', selectedWorkers)
+        .gte('daily_reports.work_date', startDate)
+        .lte('daily_reports.work_date', endDate)
 
       if (!salaryData) {
         throw new Error('급여 데이터를 불러올 수 없습니다.')
@@ -135,15 +136,15 @@ export default function SalaryStatementManager() {
       // Process data by worker
       const workerMap = new Map()
       salaryData.forEach(assignment => {
-        const workerId = assignment.worker_id
-        const worker = assignment.workers
+        const workerId = assignment.profile_id
+        const worker = assignment.profiles
         const report = assignment.daily_reports
         const site = report.sites
 
         if (!workerMap.has(workerId)) {
           workerMap.set(workerId, {
             worker_id: workerId,
-            worker_name: worker.name,
+            worker_name: worker.full_name,
             worker_phone: worker.phone || '',
             total_days: 0,
             total_manhours: 0,
