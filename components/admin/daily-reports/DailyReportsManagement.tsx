@@ -152,20 +152,21 @@ export default function DailyReportsManagement() {
     fetchSites()
   }, [])
 
-  // Debounce search specifically
+  // Load reports when component mounts or pagination/sort changes
+  useEffect(() => {
+    fetchReports()
+  }, [currentPage, sortState])
+
+  // Debounce search and filter changes separately
   useEffect(() => {
     const handler = setTimeout(() => {
-      if (filters.search) {
-        fetchReports(true)
-      } else {
-        fetchReports()
-      }
-    }, filters.search ? 500 : 0)
+      fetchReports(true)
+    }, 500) // Always debounce for filters to prevent rapid API calls
 
     return () => {
       clearTimeout(handler)
     }
-  }, [currentPage, filters, sortState])
+  }, [filters.site, filters.status, filters.dateFrom, filters.dateTo, filters.search, filters.component_name, filters.work_process, filters.work_section])
 
   const fetchSites = async () => {
     try {

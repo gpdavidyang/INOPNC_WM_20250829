@@ -31,10 +31,10 @@ export default function IntegratedDashboard() {
 
   useEffect(() => {
     // Update active view when URL param changes
-    if (viewParam) {
+    if (viewParam && viewParam !== activeView) {
       setActiveView(viewParam)
     }
-  }, [viewParam])
+  }, [viewParam]) // activeView를 dependency에서 제외하여 무한 루프 방지
 
   useEffect(() => {
     loadDashboardData()
