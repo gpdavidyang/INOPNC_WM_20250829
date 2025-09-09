@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect, useContext } from 'react'
-import { AuthContext } from '@/providers/auth-provider'
+import { useState, useEffect } from 'react'
 import { UserRole } from '@/types'
 
 export type UIMode = 'auto' | 'mobile' | 'desktop'
@@ -18,28 +17,18 @@ interface RoleBasedUIReturn {
 /**
  * Hook for managing role-based UI modes
  * Forces mobile or desktop UI based on user role, regardless of device
+ * NOTE: Currently disabled due to auth context issues in production
  */
 export function useRoleBasedUI(): RoleBasedUIReturn {
   const [uiModeOverride, setUiModeOverride] = useState<UIMode>('auto')
   
-  // Try to get auth context, but don't fail if not available
-  const authContext = useContext(AuthContext)
-  const profile = authContext?.profile
-  
   // Check if the feature is enabled
-  const isEnabled = process.env.NEXT_PUBLIC_ENABLE_FIXED_UI_MODE === 'true'
+  const isEnabled = false // Temporarily disabled due to production issues
   
-  // Define role-based UI preferences
-  const mobileRoles: UserRole[] = ['worker', 'site_manager', 'customer_manager']
-  const desktopRoles: UserRole[] = ['admin', 'system_admin']
-  
-  // Determine UI mode based on role
-  const roleBasedMobileUI = isEnabled && profile?.role && mobileRoles.includes(profile.role)
-  const roleBasedDesktopUI = isEnabled && profile?.role && desktopRoles.includes(profile.role)
-  
-  // Apply override if set
-  const isMobileUI = uiModeOverride === 'mobile' || (uiModeOverride === 'auto' && roleBasedMobileUI)
-  const isDesktopUI = uiModeOverride === 'desktop' || (uiModeOverride === 'auto' && roleBasedDesktopUI)
+  // For now, return default values without auth dependency
+  // This prevents errors while maintaining the API contract
+  const isMobileUI = false
+  const isDesktopUI = false
   
   // Load saved preference from localStorage
   useEffect(() => {
@@ -60,11 +49,11 @@ export function useRoleBasedUI(): RoleBasedUIReturn {
   }
   
   return {
-    isMobileUI: Boolean(isMobileUI),
-    isDesktopUI: Boolean(isDesktopUI),
+    isMobileUI,
+    isDesktopUI,
     uiMode: uiModeOverride,
     setUiModeOverride: handleSetUiModeOverride,
     isEnabled,
-    userRole: profile?.role
+    userRole: undefined
   }
 }
