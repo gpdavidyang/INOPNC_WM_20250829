@@ -275,98 +275,104 @@ export function ToolPalette({
     )
   }
 
-  // 데스크톱 세로 레이아웃 - 스크롤 가능하도록 수정
+  // 데스크톱 2열 그리드 레이아웃
   return (
     <div className="flex flex-col h-full overflow-y-auto overflow-x-hidden">
       <div className="flex flex-col gap-1 p-1">
-        {/* 도구 그룹 */}
-        {tools.map(tool => (
-          <Button
-            key={tool.id}
-            variant={activeTool === tool.id ? 'primary' : 'ghost'}
-            size="compact"
-            onClick={() => {
-              console.log('Tool clicked (desktop):', tool.id, tool.label) // 디버깅용
-              handleToolClick(tool.id)
-            }}
-            className={cn(
-              "w-full flex items-center justify-center gap-1",
-              "p-1.5 min-h-[44px]",
-              "active:scale-95 transition-all duration-200 touch-manipulation",
-              "focus-visible:ring-4 focus-visible:ring-blue-500/50",
-              activeTool === tool.id ? "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
-            )}
-            title={tool.label}
-          >
-            {tool.id.startsWith('box-') && tool.bgColor ? (
-              <div className={cn("w-6 h-6 rounded-sm flex-shrink-0", tool.bgColor)} />
-            ) : (
-              <tool.icon className={cn("h-5 w-5 flex-shrink-0", tool.color, activeTool === tool.id && "text-white")} strokeWidth={2.5} />
-            )}
-            {(!touchMode || touchMode === 'normal') && (
-              <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium truncate`}>{tool.label}</span>
-            )}
-          </Button>
-        ))}
+        {/* 도구 그룹 - 2열 그리드 */}
+        <div className="grid grid-cols-2 gap-1">
+          {tools.map(tool => (
+            <Button
+              key={tool.id}
+              variant={activeTool === tool.id ? 'primary' : 'ghost'}
+              size="compact"
+              onClick={() => {
+                console.log('Tool clicked (desktop):', tool.id, tool.label) // 디버깅용
+                handleToolClick(tool.id)
+              }}
+              className={cn(
+                "flex items-center justify-center gap-0.5",
+                "p-1 min-h-[36px]",
+                "active:scale-95 transition-all duration-200 touch-manipulation",
+                "focus-visible:ring-2 focus-visible:ring-blue-500/50",
+                activeTool === tool.id ? "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+              )}
+              title={tool.label}
+            >
+              {tool.id.startsWith('box-') && tool.bgColor ? (
+                <div className={cn("w-5 h-5 rounded-sm flex-shrink-0", tool.bgColor)} />
+              ) : (
+                <tool.icon className={cn("h-4 w-4 flex-shrink-0", tool.color, activeTool === tool.id && "text-white")} strokeWidth={2.5} />
+              )}
+              {(!touchMode || touchMode === 'normal') && (
+                <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium truncate text-xs`}>{tool.label}</span>
+              )}
+            </Button>
+          ))}
+        </div>
 
         {/* 구분선 */}
         <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
 
-        {/* 액션 그룹 */}
-        {actions.map(action => (
-          <Button
-            key={action.id}
-            variant="ghost"
-            size="compact"
-            onClick={() => {
-              console.log('Action clicked (desktop):', action.id, action.label) // 디버깅용
-              action.onClick()
-            }}
-            disabled={action.disabled}
-            className={cn(
-              "w-full flex items-center justify-center gap-1",
-              "p-1.5 min-h-[44px]",
-              "active:scale-95 transition-all duration-200 touch-manipulation",
-              "focus-visible:ring-4 focus-visible:ring-blue-500/50",
-              action.disabled ? "opacity-40 bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
-            )}
-            title={action.label}
-          >
-            <action.icon className={cn("h-5 w-5 flex-shrink-0", action.disabled ? "text-gray-400 dark:text-gray-600" : "text-gray-900 dark:text-gray-100")} strokeWidth={2.5} />
-            {(!touchMode || touchMode === 'normal') && (
-              <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium truncate`}>{action.label}</span>
-            )}
-          </Button>
-        ))}
+        {/* 액션 그룹 - 3열 그리드 */}
+        <div className="grid grid-cols-3 gap-1">
+          {actions.map(action => (
+            <Button
+              key={action.id}
+              variant="ghost"
+              size="compact"
+              onClick={() => {
+                console.log('Action clicked (desktop):', action.id, action.label) // 디버깅용
+                action.onClick()
+              }}
+              disabled={action.disabled}
+              className={cn(
+                "flex flex-col items-center justify-center",
+                "p-1 min-h-[36px]",
+                "active:scale-95 transition-all duration-200 touch-manipulation",
+                "focus-visible:ring-2 focus-visible:ring-blue-500/50",
+                action.disabled ? "opacity-40 bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+              )}
+              title={action.label}
+            >
+              <action.icon className={cn("h-4 w-4", action.disabled ? "text-gray-400 dark:text-gray-600" : "text-gray-900 dark:text-gray-100")} strokeWidth={2.5} />
+              {(!touchMode || touchMode === 'normal') && (
+                <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-xs mt-0.5`}>{action.label.slice(0, 4)}</span>
+              )}
+            </Button>
+          ))}
+        </div>
 
         {/* 구분선 */}
         <div className="h-px bg-gray-200 dark:bg-gray-600 my-1" />
 
-        {/* 뷰 도구 그룹 */}
-        {viewTools.map(tool => (
-          <Button
-            key={tool.id}
-            variant={activeTool === tool.id ? 'primary' : 'ghost'}
-            size="compact"
-            onClick={() => {
-              console.log('View tool clicked:', tool.id, tool.label) // 디버깅용
-              onToolChange(tool.id)
-            }}
-            className={cn(
-              "w-full flex items-center justify-center gap-1",
-              "p-1.5 min-h-[44px]",
-              "active:scale-95 transition-all duration-200 touch-manipulation",
-              "focus-visible:ring-4 focus-visible:ring-blue-500/50",
-              activeTool === tool.id ? "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
-            )}
-            title={tool.label}
-          >
-            <tool.icon className={cn("h-5 w-5 flex-shrink-0", tool.color || "text-gray-900 dark:text-gray-100", activeTool === tool.id && "text-white")} strokeWidth={2.5} />
-            {(!touchMode || touchMode === 'normal') && (
-              <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium truncate`}>{tool.label}</span>
-            )}
-          </Button>
-        ))}
+        {/* 뷰 도구 그룹 - 3열 그리드 */}
+        <div className="grid grid-cols-3 gap-1">
+          {viewTools.map(tool => (
+            <Button
+              key={tool.id}
+              variant={activeTool === tool.id ? 'primary' : 'ghost'}
+              size="compact"
+              onClick={() => {
+                console.log('View tool clicked:', tool.id, tool.label) // 디버깅용
+                onToolChange(tool.id)
+              }}
+              className={cn(
+                "flex flex-col items-center justify-center",
+                "p-1 min-h-[36px]",
+                "active:scale-95 transition-all duration-200 touch-manipulation",
+                "focus-visible:ring-2 focus-visible:ring-blue-500/50",
+                activeTool === tool.id ? "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+              )}
+              title={tool.label}
+            >
+              <tool.icon className={cn("h-4 w-4", tool.color || "text-gray-900 dark:text-gray-100", activeTool === tool.id && "text-white")} strokeWidth={2.5} />
+              {(!touchMode || touchMode === 'normal') && (
+                <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-xs mt-0.5`}>{tool.label}</span>
+              )}
+            </Button>
+          ))}
+        </div>
         
         {/* 스탬프 옵션 패널 */}
         {showStampOptions && activeTool === 'stamp' && (

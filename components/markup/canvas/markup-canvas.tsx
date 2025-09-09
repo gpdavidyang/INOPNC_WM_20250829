@@ -389,7 +389,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         ctx.fillStyle = stamp.color
         ctx.strokeStyle = stamp.color
         ctx.lineWidth = 3
-        ctx.globalAlpha = 0.8
+        ctx.globalAlpha = 0.4  // 반투명으로 변경 (0.8 -> 0.4)
         
         const x = stamp.x || 0
         const y = stamp.y || 0

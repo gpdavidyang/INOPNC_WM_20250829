@@ -1,69 +1,75 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import PartnerDashboard from '@/components/partner/PartnerDashboard'
-import { getAuthenticatedUser } from '@/lib/auth/session'
+import PartnerDashboardClient from './partner-dashboard-client'
 
 export default async function PartnerDashboardPage() {
   const supabase = createClient()
   
-  // Get authenticated user
-  const user = await getAuthenticatedUser()
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
   
-  if (!user) {
-    console.error('No user in partner dashboard page - redirecting to login')
+  if (userError || !user) {
     redirect('/auth/login')
   }
 
-  // Get user profile
+  // Get user profile with partner company details
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
-    .select('*')
+    .select(`
+      *,
+      partner_companies(*)
+    `)
     .eq('id', user.id)
     .single()
 
-  if (profileError || !profile) {
-    console.error('Profile fetch error:', profileError)
-    redirect('/auth/login')
+  if (profileError || !profile || profile.role !== 'customer_manager') {
+    redirect('/dashboard')
   }
 
-  // Verify user is a partner (customer_manager)
-  if (profile?.role !== 'customer_manager') {
-    console.log('User is not a partner, redirecting to appropriate dashboard')
-    if (profile?.role === 'admin' || profile?.role === 'system_admin') {
-      redirect('/dashboard/admin')
-    } else {
-      redirect('/dashboard')
-    }
+  // Get partner's sites through site_partners
+  const { data: sitePartnerships } = await supabase
+    .from('site_partners')
+    .select(`
+      *,
+      sites(*)
+    `)
+    .eq('partner_company_id', profile.partner_company_id)
+    .order('assigned_date', { ascending: false })
+
+  // Get recent daily reports from partner's sites
+  const siteIds = sitePartnerships?.map(sp => sp.site_id) || []
+  const { data: recentReports } = await supabase
+    .from('daily_reports')
+    .select(`
+      *,
+      sites(name),
+      profiles!daily_reports_created_by_fkey(full_name)
+    `)
+    .in('site_id', siteIds)
+    .order('report_date', { ascending: false })
+    .limit(10)
+
+  // Get workers from partner company
+  const { data: workers } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('partner_company_id', profile.partner_company_id)
+    .in('role', ['worker', 'site_manager'])
+
+  // Calculate statistics
+  const statistics = {
+    totalSites: sitePartnerships?.length || 0,
+    activeSites: sitePartnerships?.filter(sp => sp.sites?.status === 'active').length || 0,
+    totalWorkers: workers?.length || 0,
+    recentReports: recentReports?.length || 0
   }
-
-  // Get partner's assigned sites from current assignments view
-  const { data: siteAssignments } = await supabase
-    .from('current_site_assignments')
-    .select('*')
-    .eq('user_id', user.id)
-  
-  // Transform the assignments to site format
-  const sites = siteAssignments?.map(assignment => ({
-    id: assignment.site_id,
-    name: assignment.site_name,
-    address: assignment.site_address,
-    manager_name: assignment.manager_name,
-    manager_phone: assignment.construction_manager_phone
-  })) || []
-
-  // Get partner's organization info
-  const { data: organization } = await supabase
-    .from('organizations')
-    .select('*')
-    .eq('id', profile.organization_id)
-    .single()
 
   return (
-    <PartnerDashboard 
-      user={user} 
+    <PartnerDashboardClient 
       profile={profile}
-      sites={sites}
-      organization={organization}
+      statistics={statistics}
+      sitePartnerships={sitePartnerships || []}
+      recentReports={recentReports || []}
+      workers={workers || []}
     />
   )
 }

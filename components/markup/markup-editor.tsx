@@ -402,7 +402,7 @@ export function MarkupEditor({
             {/* 데스크톱: 좌측 도구 패널 */}
             {!isMobile && (
               <div className={`${
-                touchMode === 'glove' ? 'w-28' : touchMode === 'precision' ? 'w-20' : 'w-24'
+                touchMode === 'glove' ? 'w-40' : touchMode === 'precision' ? 'w-32' : 'w-36'
               } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col`}>
                 <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
                   <ToolPalette

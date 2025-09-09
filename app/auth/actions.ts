@@ -467,24 +467,34 @@ export async function approveSignupRequest(
       siteNames = sites?.map(s => s.name) || []
     }
 
-    // Create profile
+    // Create profile with proper partner_company_id for customer_manager
     // console.log('Creating user profile...')
+    const profileData: any = {
+      id: authData.user.id,
+      email: request.email,
+      full_name: request.full_name,
+      phone: request.phone,
+      role: role,
+      status: 'active',
+      company: request.company,
+      job_title: request.job_title,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
+    // Set partner_company_id for customer_manager role
+    if (role === 'customer_manager' && organizationId) {
+      profileData.partner_company_id = organizationId
+      // Don't set organization_id for customer_manager
+    } else {
+      // For other roles, organization_id is optional
+      profileData.organization_id = organizationId
+      profileData.site_id = siteId
+    }
+
     const { error: profileError } = await supabase
       .from('profiles')
-      .insert({
-        id: authData.user.id,
-        email: request.email,
-        full_name: request.full_name,
-        phone: request.phone,
-        role: role,
-        organization_id: organizationId,
-        site_id: siteId,
-        status: 'active',
-        company: request.company,
-        job_title: request.job_title,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .insert(profileData)
 
     if (profileError) {
       console.error('Profile creation error:', profileError)

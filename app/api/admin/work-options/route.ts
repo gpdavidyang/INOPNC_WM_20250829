@@ -36,8 +36,8 @@ export async function GET(request: NextRequest) {
         .eq('id', user.id)
         .single()
       
-      // Only show inactive options to system admins
-      if (profile?.role !== 'system_admin') {
+      // Only show inactive options to system admins and admins
+      if (profile?.role !== 'system_admin' && profile?.role !== 'admin') {
         query = query.eq('is_active', true)
       }
     }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
     
-    if (profile?.role !== 'system_admin') {
+    if (profile?.role !== 'system_admin' && profile?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
@@ -148,7 +148,7 @@ export async function PUT(request: NextRequest) {
       .eq('id', user.id)
       .single()
     
-    if (profile?.role !== 'system_admin') {
+    if (profile?.role !== 'system_admin' && profile?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
@@ -212,7 +212,7 @@ export async function DELETE(request: NextRequest) {
       .eq('id', user.id)
       .single()
     
-    if (profile?.role !== 'system_admin') {
+    if (profile?.role !== 'system_admin' && profile?.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
