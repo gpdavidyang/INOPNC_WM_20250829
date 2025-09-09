@@ -47,7 +47,7 @@ export function ViewportController({ children }: ViewportControllerProps) {
           @media all and (max-width: 9999px) {
             body.force-desktop-ui,
             html.force-desktop-ui body {
-              min-width: 1280px !important;
+              min-width: 1366px !important;
               overflow-x: auto !important;
             }
             
@@ -57,13 +57,21 @@ export function ViewportController({ children }: ViewportControllerProps) {
             .force-desktop-ui .hidden.lg\\:inline-block { display: inline-block !important; }
             .force-desktop-ui .hidden.lg\\:inline-flex { display: inline-flex !important; }
             
-            /* Hide mobile navigation */
-            .force-desktop-ui [class*="mobile-menu"],
-            .force-desktop-ui [class*="hamburger"],
+            /* Hide mobile navigation but keep admin hamburger menu */
             .force-desktop-ui .mobile-nav,
             .force-desktop-ui .bottom-navigation { 
               display: none !important; 
             }
+            
+            /* Ensure admin sidebar transitions work properly */
+            .force-desktop-ui .lg\\:w-72 { width: 18rem !important; }
+            .force-desktop-ui .lg\\:w-16 { width: 4rem !important; }
+            .force-desktop-ui .lg\\:w-0 { width: 0 !important; }
+            .force-desktop-ui .lg\\:pl-72 { padding-left: 18rem !important; }
+            .force-desktop-ui .lg\\:pl-16 { padding-left: 4rem !important; }
+            .force-desktop-ui .lg\\:pl-0 { padding-left: 0 !important; }
+            .force-desktop-ui .lg\\:fixed { position: fixed !important; }
+            .force-desktop-ui .lg\\:flex { display: flex !important; }
           }
         `
         document.head.appendChild(style)
@@ -110,12 +118,12 @@ export function ViewportController({ children }: ViewportControllerProps) {
         // Use a smaller initial scale on mobile to show more of the desktop layout
         const isMobileDevice = window.innerWidth < 768
         const initialScale = isMobileDevice ? '0.3' : '1'
-        viewport.setAttribute('content', `width=1280, initial-scale=${initialScale}, minimum-scale=0.1, maximum-scale=10, user-scalable=yes`)
+        viewport.setAttribute('content', `width=1366, initial-scale=${initialScale}, minimum-scale=0.1, maximum-scale=10, user-scalable=yes`)
       }
       
       // Force minimum width on html and body for better scrolling
-      document.documentElement.style.minWidth = '1280px'
-      document.body.style.minWidth = '1280px'
+      document.documentElement.style.minWidth = '1366px'
+      document.body.style.minWidth = '1366px'
     }
     
     // Cleanup on unmount

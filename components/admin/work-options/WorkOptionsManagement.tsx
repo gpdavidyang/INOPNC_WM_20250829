@@ -8,12 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { 
-  Plus, 
-  Trash2, 
-  Save,
-  Edit2,
-  X,
-  Check,
   ArrowUp,
   ArrowDown,
   Settings,
@@ -251,46 +245,50 @@ export function WorkOptionsManagement() {
               <>
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => handleUpdate(option.id)}
+                  className="text-xs min-w-[40px] h-8 px-2 py-1 text-green-600 hover:bg-green-50 border-green-200 dark:text-green-400 dark:hover:bg-green-900/20"
                 >
-                  <Check className="h-4 w-4" />
+                  확인
                 </Button>
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => {
                     setEditingId(null)
                     setEditingValue('')
                   }}
+                  className="text-xs min-w-[40px] h-8 px-2 py-1"
                 >
-                  <X className="h-4 w-4" />
+                  취소
                 </Button>
               </>
             ) : (
               <>
                 <Button
                   size="sm"
-                  variant="ghost"
+                  variant="outline"
                   onClick={() => {
                     setEditingId(option.id)
                     setEditingValue(option.option_label)
                   }}
                   disabled={option.option_value === 'other'}
+                  className="text-xs min-w-[40px] h-8 px-2 py-1 text-blue-600 hover:bg-blue-50 border-blue-200 dark:text-blue-400 dark:hover:bg-blue-900/20"
                 >
-                  <Edit2 className="h-4 w-4" />
+                  수정
                 </Button>
                 <Button
                   size="sm"
-                  variant={option.is_active ? 'ghost' : 'secondary'}
+                  variant="outline"
                   onClick={() => handleToggleActive(option.id, option.is_active)}
                   disabled={option.option_value === 'other'}
+                  className={`text-xs min-w-[40px] h-8 px-2 py-1 ${
+                    option.is_active 
+                      ? 'text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20'
+                      : 'text-green-600 hover:bg-green-50 border-green-200 dark:text-green-400 dark:hover:bg-green-900/20'
+                  }`}
                 >
-                  {option.is_active ? (
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  ) : (
-                    <Check className="h-4 w-4 text-green-500" />
-                  )}
+                  {option.is_active ? '삭제' : '활성'}
                 </Button>
               </>
             )}
@@ -316,8 +314,8 @@ export function WorkOptionsManagement() {
         />
         <Button
           onClick={() => handleAdd(type, type === 'component_type' ? newComponentLabel : newProcessLabel)}
+          className="text-sm"
         >
-          <Plus className="h-4 w-4 mr-2" />
           추가
         </Button>
       </div>

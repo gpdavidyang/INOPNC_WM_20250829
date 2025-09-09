@@ -13,10 +13,12 @@ import Link from 'next/link'
 interface AdminHeaderProps {
   profile?: Profile | null
   onMenuClick?: () => void
+  onDesktopMenuClick?: () => void
   isSidebarOpen?: boolean
+  isSidebarCollapsed?: boolean
 }
 
-export default function AdminHeader({ profile, onMenuClick, isSidebarOpen }: AdminHeaderProps) {
+export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, isSidebarOpen, isSidebarCollapsed }: AdminHeaderProps) {
   const { isLargeFont, toggleFontSize } = useFontSize()
   const { touchMode } = useTouchMode()
   const { theme, setTheme } = useTheme()
@@ -60,11 +62,20 @@ export default function AdminHeader({ profile, onMenuClick, isSidebarOpen }: Adm
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           {/* Left Section */}
           <div className="flex items-center gap-4">
-            {/* Mobile Menu Toggle */}
+            {/* Hamburger Menu Toggle - Always visible for both mobile and desktop */}
             <button
-              onClick={onMenuClick}
-              className="lg:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label="메뉴 열기"
+              onClick={() => {
+                // On mobile (< lg), toggle mobile sidebar
+                // On desktop (>= lg), toggle desktop sidebar collapse
+                const isDesktop = window.innerWidth >= 1024
+                if (isDesktop && onDesktopMenuClick) {
+                  onDesktopMenuClick()
+                } else if (onMenuClick) {
+                  onMenuClick()
+                }
+              }}
+              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              aria-label={isSidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
             >
               <Menu className="h-5 w-5 text-gray-600 dark:text-gray-400" />
             </button>

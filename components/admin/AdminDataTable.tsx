@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { ChevronUp, ChevronDown, Search, Filter, MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react'
+import { ChevronUp, ChevronDown, Search, Filter, MoreHorizontal } from 'lucide-react'
 import { useFontSize,  getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
+import { Button } from '@/components/ui/button'
 
 interface Column<T> {
   key: keyof T | string
@@ -321,60 +322,71 @@ export default function AdminDataTable<T extends Record<string, any>>({
                       <td className={`${
                         touchMode === 'glove' ? 'px-7 py-5' : touchMode === 'precision' ? 'px-5 py-3' : 'px-6 py-4'
                       } whitespace-nowrap text-center ${getFullTypographyClass('body', 'sm', isLargeFont)}`}>
-                        <div className="flex items-center justify-center gap-2">
+                        <div className="flex items-center justify-center gap-1">
                           {onView && (
-                            <button
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => onView(row)}
-                              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-700 rounded ${
-                                touchMode === 'glove' ? 'p-2' : touchMode === 'precision' ? 'p-0.5' : 'p-1'
-                              } transition-colors`}
-                              title="보기"
+                              className={`text-xs ${
+                                touchMode === 'glove' ? 'min-w-[50px] h-9 px-3 py-2' : 
+                                touchMode === 'precision' ? 'min-w-[35px] h-7 px-1.5 py-0.5' : 
+                                'min-w-[40px] h-8 px-2 py-1'
+                              }`}
                             >
-                              <Eye className="h-4 w-4" />
-                            </button>
+                              보기
+                            </Button>
                           )}
                           {onEdit && (
-                            <button
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => onEdit(row)}
-                              className={`text-blue-600 hover:text-blue-900 hover:bg-blue-50 dark:text-blue-400 dark:hover:text-blue-100 dark:hover:bg-blue-900/20 rounded ${
-                                touchMode === 'glove' ? 'p-2' : touchMode === 'precision' ? 'p-0.5' : 'p-1'
-                              } transition-colors`}
-                              title="편집"
+                              className={`text-xs text-blue-600 hover:bg-blue-50 border-blue-200 dark:text-blue-400 dark:hover:bg-blue-900/20 ${
+                                touchMode === 'glove' ? 'min-w-[50px] h-9 px-3 py-2' : 
+                                touchMode === 'precision' ? 'min-w-[35px] h-7 px-1.5 py-0.5' : 
+                                'min-w-[40px] h-8 px-2 py-1'
+                              }`}
                             >
-                              <Edit className="h-4 w-4" />
-                            </button>
+                              수정
+                            </Button>
                           )}
                           {customActions.map((action, index) => {
                             if (action.show && !action.show(row)) return null
                             
-                            const Icon = action.icon
                             return (
-                              <button
+                              <Button
                                 key={index}
+                                size="sm"
+                                variant="outline"
                                 onClick={() => action.onClick(row)}
-                                className={`${
+                                className={`text-xs ${
                                   action.variant === 'destructive'
-                                    ? 'text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-100'
-                                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
+                                    ? 'text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20'
+                                    : ''
                                 } ${
-                                  touchMode === 'glove' ? 'p-2' : touchMode === 'precision' ? 'p-0.5' : 'p-1'
+                                  touchMode === 'glove' ? 'min-w-[50px] h-9 px-3 py-2' : 
+                                  touchMode === 'precision' ? 'min-w-[35px] h-7 px-1.5 py-0.5' : 
+                                  'min-w-[40px] h-8 px-2 py-1'
                                 }`}
-                                title={action.label}
                               >
-                                <Icon className="h-4 w-4" />
-                              </button>
+                                {action.label}
+                              </Button>
                             )
                           })}
                           {onDelete && (
-                            <button
+                            <Button
+                              size="sm"
+                              variant="outline"
                               onClick={() => onDelete(row)}
-                              className={`text-red-600 hover:text-red-900 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-100 dark:hover:bg-red-900/20 rounded ${
-                                touchMode === 'glove' ? 'p-2' : touchMode === 'precision' ? 'p-0.5' : 'p-1'
-                              } transition-colors`}
-                              title="삭제"
+                              className={`text-xs text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20 ${
+                                touchMode === 'glove' ? 'min-w-[50px] h-9 px-3 py-2' : 
+                                touchMode === 'precision' ? 'min-w-[35px] h-7 px-1.5 py-0.5' : 
+                                'min-w-[40px] h-8 px-2 py-1'
+                              }`}
                             >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                              삭제
+                            </Button>
                           )}
                         </div>
                       </td>
