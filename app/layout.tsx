@@ -24,6 +24,7 @@ import { ProductionQualityOptimizer } from "@/components/production-quality-opti
 import { EnvironmentStatus } from "@/components/debug/environment-status";
 import { ViewportController } from "@/components/ui/viewport-controller";
 import { UIDebugIndicator } from "@/components/ui/ui-debug-indicator";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
   title: "INOPNC Work Management",
@@ -76,16 +77,32 @@ export const viewport = {
   orientation: "portrait"
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Server-side role detection for CSS-based UI enforcement
+  const cookieStore = cookies();
+  const userRole = cookieStore.get('user-role')?.value;
+  
+  // Determine body classes based on role
+  let bodyClasses = "antialiased";
+  if (userRole) {
+    const roleClass = `role-${userRole.replace(/_/g, '-')}`;
+    bodyClasses += ` ${roleClass}`;
+    
+    // Add specific classes for admin/field roles
+    if (userRole === 'admin' || userRole === 'system_admin') {
+      bodyClasses += " admin-role desktop-ui";
+    } else if (userRole === 'worker' || userRole === 'site_manager' || userRole === 'customer_manager') {
+      bodyClasses += " field-role mobile-ui";
+    }
+  }
+  
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
-        {/* Force Desktop UI initialization - MUST run before React hydration */}
-        <script src="/force-desktop-init.js" />
         <script dangerouslySetInnerHTML={{
           __html: `
             // Suppress Chrome extension console errors in development
@@ -106,7 +123,7 @@ export default function RootLayout({
           `
         }} />
       </head>
-      <body className="antialiased">
+      <body className={bodyClasses}>
         <ErrorBoundary>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
             <FontSizeProvider>
