@@ -219,11 +219,15 @@ export default function SalaryStatementManager() {
         }
       })
 
+      // Get current user ID first
+      const { data: userData } = await supabase.auth.getUser()
+      const userId = userData?.user?.id
+
       const { error: insertError } = await supabase
         .from('salary_statements')
         .upsert(statementsToInsert.map(statement => ({
           ...statement,
-          created_by: (await supabase.auth.getUser()).data.user?.id
+          created_by: userId
         })), {
           onConflict: 'worker_id,year,month'
         })
