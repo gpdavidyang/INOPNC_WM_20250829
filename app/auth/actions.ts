@@ -13,6 +13,10 @@ export async function signIn(email: string, password: string) {
     console.log('[SIGN_IN] Starting login process for:', email)
     
     const supabase = createClient()
+    if (!supabase) {
+      console.error('[SIGN_IN] Failed to create Supabase client')
+      return { error: 'Configuration error. Please try again later.' }
+    }
     console.log('[SIGN_IN] Supabase client created successfully')
 
     const { data, error } = await supabase.auth.signInWithPassword({

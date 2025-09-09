@@ -22,31 +22,35 @@ function validateClientEnvironmentVars() {
     try {
       new URL(SUPABASE_URL)
       if (!SUPABASE_URL.includes('supabase.co')) {
-        errors.push(`NEXT_PUBLIC_SUPABASE_URL does not appear to be a Supabase URL: ${SUPABASE_URL}`)
+        errors.push(`NEXT_PUBLIC_SUPABASE_URL does not appear to be a Supabase URL`)
       }
     } catch {
-      errors.push(`NEXT_PUBLIC_SUPABASE_URL is not a valid URL: ${SUPABASE_URL}`)
+      errors.push(`NEXT_PUBLIC_SUPABASE_URL is not a valid URL`)
     }
   }
   
   if (!SUPABASE_ANON_KEY) {
     errors.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is missing or empty')
   } else if (SUPABASE_ANON_KEY.length < 30) {
-    errors.push(`NEXT_PUBLIC_SUPABASE_ANON_KEY appears invalid (too short: ${SUPABASE_ANON_KEY.length} chars)`)
+    errors.push(`NEXT_PUBLIC_SUPABASE_ANON_KEY appears invalid`)
   }
   
   if (errors.length > 0) {
+    // In production, return dummy values to prevent crash
+    if (process.env.NODE_ENV === 'production') {
+      console.error('Supabase configuration error. Please check environment variables.')
+      // Return dummy values to prevent complete failure
+      return { 
+        SUPABASE_URL: 'https://placeholder.supabase.co',
+        SUPABASE_ANON_KEY: 'placeholder-key-for-error-handling-only'
+      }
+    }
+    
     const errorMessage = `Supabase client environment validation failed: ${errors.join(', ')}`
     logger.error('Client environment validation failed:', {
       errors,
       environment: typeof window !== 'undefined' ? 'browser' : 'ssr',
-      nodeEnv: process.env.NODE_ENV,
-      hasUrl: !!SUPABASE_URL,
-      hasKey: !!SUPABASE_ANON_KEY,
-      urlLength: SUPABASE_URL?.length || 0,
-      keyLength: SUPABASE_ANON_KEY?.length || 0,
-      urlPreview: SUPABASE_URL?.substring(0, 30) + '...',
-      keyPreview: SUPABASE_ANON_KEY?.substring(0, 20) + '...'
+      nodeEnv: process.env.NODE_ENV
     })
     throw new Error(errorMessage)
   }
@@ -54,16 +58,19 @@ function validateClientEnvironmentVars() {
   return { SUPABASE_URL, SUPABASE_ANON_KEY }
 }
 
-// Client-side validation
+// Client-side validation - don't crash the app
+let isConfigValid = true
 try {
   validateClientEnvironmentVars()
   if (process.env.NODE_ENV === 'development') {
     logger.debug('✅ Client environment variables validated successfully')
   }
 } catch (error) {
-  logger.error('❌ Client environment validation failed:', error)
+  isConfigValid = false
+  if (process.env.NODE_ENV === 'development') {
+    logger.error('❌ Client environment validation failed:', error)
+  }
   if (typeof window !== 'undefined') {
-    // Show user-friendly error in browser
     console.error('Supabase configuration error. Please check environment variables.')
   }
 }
@@ -456,7 +463,24 @@ export function createClient(config?: ClientConfig) {
   // CRITICAL FIX: Use singleton to prevent multiple clients and infinite loops
   if (!browserClient) {
     try {
-      const { SUPABASE_URL: validatedUrl, SUPABASE_ANON_KEY: validatedKey } = validateClientEnvironmentVars()
+      // Use fallback values if validation fails in production
+      let validatedUrl = SUPABASE_URL || ''
+      let validatedKey = SUPABASE_ANON_KEY || ''
+      
+      try {
+        const validated = validateClientEnvironmentVars()
+        validatedUrl = validated.SUPABASE_URL
+        validatedKey = validated.SUPABASE_ANON_KEY
+      } catch (error) {
+        // In production, use placeholder values to prevent crash
+        if (process.env.NODE_ENV === 'production') {
+          console.error('Using fallback Supabase configuration')
+          validatedUrl = 'https://placeholder.supabase.co'
+          validatedKey = 'placeholder-key-for-error-handling-only'
+        } else {
+          throw error
+        }
+      }
       
       browserClient = createBrowserClient<Database>(
         validatedUrl,
@@ -467,53 +491,62 @@ export function createClient(config?: ClientConfig) {
             getAll() {
               const cookies: { name: string; value: string }[] = []
               if (typeof document !== 'undefined') {
-                const cookieString = document.cookie
-                if (cookieString) {
-                  cookieString.split(';').forEach(cookie => {
-                    const [name, ...valueParts] = cookie.trim().split('=')
-                    if (name) {
-                      const value = valueParts.join('=')
-                      cookies.push({ 
-                        name, 
-                        value: value ? decodeURIComponent(value) : '' 
-                      })
-                    }
-                  })
+                try {
+                  const cookieString = document.cookie
+                  if (cookieString) {
+                    cookieString.split(';').forEach(cookie => {
+                      const [name, ...valueParts] = cookie.trim().split('=')
+                      if (name) {
+                        const value = valueParts.join('=')
+                        cookies.push({ 
+                          name, 
+                          value: value ? decodeURIComponent(value) : '' 
+                        })
+                      }
+                    })
+                  }
+                } catch (e) {
+                  console.error('Error reading cookies:', e)
                 }
               }
               return cookies
             },
             setAll(cookiesToSet) {
               if (typeof document !== 'undefined') {
-                cookiesToSet.forEach(({ name, value, options }) => {
-                  let cookieString = `${name}=${encodeURIComponent(value || '')}`
-                  if (options?.maxAge) {
-                    cookieString += `; max-age=${options.maxAge}`
-                  }
-                  if (options?.expires) {
-                    cookieString += `; expires=${options.expires.toUTCString()}`
-                  }
-                  cookieString += `; path=${options?.path || '/'}`
-                  if (options?.secure) {
-                    cookieString += '; secure'
-                  }
-                  cookieString += `; samesite=${options?.sameSite || 'lax'}`
-                  
-                  // Set max-age for refresh tokens to prevent expiry issues
-                  if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
-                    cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days
-                  }
-                  
-                  document.cookie = cookieString
-                })
+                try {
+                  cookiesToSet.forEach(({ name, value, options }) => {
+                    let cookieString = `${name}=${encodeURIComponent(value || '')}`
+                    if (options?.maxAge) {
+                      cookieString += `; max-age=${options.maxAge}`
+                    }
+                    if (options?.expires) {
+                      cookieString += `; expires=${options.expires.toUTCString()}`
+                    }
+                    cookieString += `; path=${options?.path || '/'}`
+                    if (options?.secure) {
+                      cookieString += '; secure'
+                    }
+                    cookieString += `; samesite=${options?.sameSite || 'lax'}`
+                    
+                    // Set max-age for refresh tokens to prevent expiry issues
+                    if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
+                      cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days
+                    }
+                    
+                    document.cookie = cookieString
+                  })
+                } catch (e) {
+                  console.error('Error setting cookies:', e)
+                }
               }
             }
           }
         }
       )
     } catch (error) {
-      logger.error('[SUPABASE-CLIENT] Failed to create browser client:', error)
-      throw error
+      console.error('[SUPABASE-CLIENT] Failed to create browser client:', error)
+      // Return a dummy client to prevent crash
+      return null as any
     }
   }
   
