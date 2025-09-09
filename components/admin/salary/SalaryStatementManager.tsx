@@ -81,26 +81,32 @@ export default function SalaryStatementManager() {
   const fetchStatements = async () => {
     setLoading(true)
     
-    let query = supabase
-      .from('salary_statements')
-      .select('*')
-      .eq('year', year)
-      .eq('month', month)
-      .order('created_at', { ascending: false })
+    try {
+      let query = supabase
+        .from('salary_statements')
+        .select('*')
+        .eq('year', year)
+        .eq('month', month)
+        .order('created_at', { ascending: false })
 
-    if (selectedWorkers.length > 0) {
-      query = query.in('worker_id', selectedWorkers)
+      if (selectedWorkers.length > 0) {
+        query = query.in('worker_id', selectedWorkers)
+      }
+
+      const { data, error } = await query
+
+      if (error) {
+        console.error('Error fetching statements:', error)
+        setStatements([])
+      } else {
+        setStatements(data || [])
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching statements:', error)
+      setStatements([])
+    } finally {
+      setLoading(false)
     }
-
-    const { data, error } = await query
-
-    if (error) {
-      console.error('Error fetching statements:', error)
-    } else {
-      setStatements(data || [])
-    }
-    
-    setLoading(false)
   }
 
   const generateStatements = async () => {
@@ -177,10 +183,11 @@ export default function SalaryStatementManager() {
         workerData.allowances += mealAllowance + transportAllowance
 
         // Track site work
-        if (!workerData.sites.has(site.name)) {
-          workerData.sites.set(site.name, { days: 0, manhours: 0 })
+        const siteName = site?.name || '현장 미지정'
+        if (!workerData.sites.has(siteName)) {
+          workerData.sites.set(siteName, { days: 0, manhours: 0 })
         }
-        const siteData = workerData.sites.get(site.name)
+        const siteData = workerData.sites.get(siteName)
         siteData.days += 1
         siteData.manhours += laborHours
       })
@@ -214,11 +221,15 @@ export default function SalaryStatementManager() {
 
       const { error: insertError } = await supabase
         .from('salary_statements')
-        .upsert(statementsToInsert, {
+        .upsert(statementsToInsert.map(statement => ({
+          ...statement,
+          created_by: (await supabase.auth.getUser()).data.user?.id
+        })), {
           onConflict: 'worker_id,year,month'
         })
 
       if (insertError) {
+        console.error('Insert error details:', insertError)
         throw insertError
       }
 
