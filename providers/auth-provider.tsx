@@ -50,8 +50,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Get initial session with session bridging
     const initializeAuth = async () => {
       try {
-        // Silent initialization in production
-        
         // First attempt to get session normally
         const { data: { session: initialSession } } = await supabase.auth.getSession()
         
@@ -68,11 +66,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else {
           // If no session, try to bridge from server cookies only if there's evidence of authentication
-          console.log('🔄 [AUTH-PROVIDER] No client session found, checking for server session...')
+          // Only in development mode
+          if (process.env.NODE_ENV === 'development') {
+            console.log('🔄 [AUTH-PROVIDER] No client session found, checking for server session...')
+          }
+          
           const bridgeResult = await ensureClientSession()
           
           if (bridgeResult.success && bridgeResult.session) {
-            console.log('✅ [AUTH-PROVIDER] Session bridged successfully for:', bridgeResult.session.user?.email)
+            if (process.env.NODE_ENV === 'development') {
+              console.log('✅ [AUTH-PROVIDER] Session bridged successfully for:', bridgeResult.session.user?.email)
+            }
             setSession(bridgeResult.session)
             setUser(bridgeResult.session.user)
             
@@ -92,6 +96,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         // Error initializing auth
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[AUTH-PROVIDER] Init error:', error)
+        }
       } finally {
         setLoading(false)
       }
@@ -112,7 +119,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(newSession.user)
             // CRITICAL FIX: Don't refresh on SIGNED_IN to prevent infinite loops
             // Only refresh on explicit user updates, not automatic sign-ins
-            console.log('✅ [AUTH-PROVIDER] User signed in:', newSession.user?.email)
+            if (process.env.NODE_ENV === 'development') {
+              console.log('✅ [AUTH-PROVIDER] User signed in:', newSession.user?.email)
+            }
           }
           break
           

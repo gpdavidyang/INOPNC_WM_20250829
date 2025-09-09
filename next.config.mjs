@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: process.env.NODE_ENV === 'production',
+  reactStrictMode: false, // Disable strict mode to prevent double rendering
   
   // TypeScript 빌드 최적화
   typescript: {

@@ -9,9 +9,9 @@ interface ViewportControllerProps {
 }
 
 // Enhanced debugging for development
-const DEBUG = process.env.NODE_ENV === 'development'
+const DEBUG = false // Disable all logging in production
 function log(...args: any[]) {
-  if (DEBUG && typeof console !== 'undefined') {
+  if (DEBUG && typeof console !== 'undefined' && process.env.NODE_ENV === 'development') {
     console.log('[ViewportController]', new Date().toISOString(), ...args)
   }
 }
@@ -301,45 +301,9 @@ export function ViewportController({ children }: ViewportControllerProps) {
       
       log('Inline styles applied')
       
-      // Set up MutationObserver to protect our changes
-      if (!mutationObserverRef.current) {
-        mutationObserverRef.current = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-            if (mutation.type === 'attributes') {
-              const target = mutation.target as HTMLElement
-              
-              // Protect class changes on html/body
-              if ((target === html || target === body) && mutation.attributeName === 'class') {
-                if (!target.classList.contains('force-desktop-ui')) {
-                  target.classList.add('force-desktop-ui', 'desktop-enforced', 'react-controlled')
-                  log('MutationObserver: Re-added desktop classes to', target.tagName)
-                }
-              }
-              
-              // Protect viewport changes
-              if (target.tagName === 'META' && target.getAttribute('name') === 'viewport') {
-                const currentContent = target.getAttribute('content')
-                if (!currentContent?.includes('width=1536')) {
-                  if (isMobileDevice) {
-                    target.setAttribute('content', 'width=1536, initial-scale=0.2, minimum-scale=0.1, maximum-scale=10, user-scalable=yes')
-                  } else {
-                    target.setAttribute('content', 'width=1536, initial-scale=1, minimum-scale=0.5, maximum-scale=10, user-scalable=yes')
-                  }
-                  log('MutationObserver: Viewport corrected')
-                }
-              }
-            }
-          })
-        })
-        
-        mutationObserverRef.current.observe(document.documentElement, {
-          attributes: true,
-          attributeOldValue: true,
-          subtree: true
-        })
-        
-        log('MutationObserver set up for protection')
-      }
+      // DISABLED: MutationObserver can cause infinite loops in production
+      // The initial setup is sufficient for most cases
+      log('MutationObserver disabled to prevent infinite loops')
       
       // Periodic enforcement DISABLED to prevent infinite loops
       // MutationObserver is sufficient for protection
