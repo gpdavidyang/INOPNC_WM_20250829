@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/use-toast'
 import Image from 'next/image'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
+import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface PhotoGridCreatorProps {
   document?: any
@@ -53,21 +54,17 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
     afterPreview: document?.after_photo_url || null,
   })
 
-  // Component type options (부재명)
-  const componentTypes = [
-    '슬라브',
-    '거더',
-    '기둥',
-    '기타',
-  ]
+  // Load work options from database
+  const { componentTypes: dbComponentTypes, processTypes: dbProcessTypes, loading: optionsLoading } = useWorkOptions()
 
-  // Process type options (작업공정)
-  const processTypes = [
-    '균열',
-    '면',
-    '마감',
-    '기타',
-  ]
+  // Use database options or fallback to defaults
+  const componentTypes = dbComponentTypes.length > 0 
+    ? dbComponentTypes.map(type => type.option_label)
+    : ['슬라브', '거더', '기둥', '기타']
+  
+  const processTypes = dbProcessTypes.length > 0
+    ? dbProcessTypes.map(type => type.option_label)
+    : ['균열', '면', '마감', '기타']
 
   useEffect(() => {
     fetchSites()
