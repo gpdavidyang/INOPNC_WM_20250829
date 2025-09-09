@@ -759,46 +759,93 @@ select:focus {
   }
 }
 
-/* Desktop UI Force Mode */
+/* Desktop UI Force Mode - Fixed layout for admin/system_admin */
 .force-desktop-ui {
+  /* Force minimum width for entire body */
+  min-width: 1280px !important;
+  overflow-x: auto !important;
+  
   & .desktop-ui-container {
     min-width: 1280px !important;
-    width: 100%;
+    width: 1280px !important;
+    margin: 0 auto;
     
-    /* Scale down on smaller screens while maintaining desktop layout */
+    /* No automatic scaling - let users pinch zoom on mobile */
+    /* Remove all zoom/transform to maintain original desktop layout */
     @media (max-width: 1280px) {
-      zoom: 0.9;
-      -moz-transform: scale(0.9);
-      -moz-transform-origin: 0 0;
+      /* Keep original size - users can pinch zoom */
+      min-width: 1280px !important;
+      width: 1280px !important;
     }
     
     @media (max-width: 1024px) {
-      zoom: 0.8;
-      -moz-transform: scale(0.8);
-      -moz-transform-origin: 0 0;
+      /* Keep original size - users can pinch zoom */
+      min-width: 1280px !important;
+      width: 1280px !important;
     }
     
     @media (max-width: 768px) {
-      zoom: 0.7;
-      -moz-transform: scale(0.7);
-      -moz-transform-origin: 0 0;
-      overflow-x: auto;
+      /* Keep original size - users can pinch zoom */
+      min-width: 1280px !important;
+      width: 1280px !important;
     }
     
     @media (max-width: 640px) {
-      zoom: 0.6;
-      -moz-transform: scale(0.6);
-      -moz-transform-origin: 0 0;
+      /* Keep original size - users can pinch zoom */
+      min-width: 1280px !important;
+      width: 1280px !important;
     }
   }
   
-  /* Override Tailwind responsive classes to force desktop */
-  & .md\:hidden { display: none !important; }
-  & .md\:block { display: block !important; }
-  & .md\:flex { display: flex !important; }
-  & .lg\:hidden { display: none !important; }
-  & .lg\:block { display: block !important; }
-  & .lg\:flex { display: flex !important; }
+  /* Override ALL Tailwind responsive classes to force desktop behavior */
+  /* Hide mobile-only elements */
+  & .sm\:hidden,
+  & .md\:hidden,
+  & .lg\:hidden { 
+    display: none !important; 
+  }
+  
+  /* Show desktop-only elements */
+  & .sm\:block,
+  & .md\:block,
+  & .lg\:block { 
+    display: block !important; 
+  }
+  
+  & .sm\:flex,
+  & .md\:flex,
+  & .lg\:flex { 
+    display: flex !important; 
+  }
+  
+  & .sm\:inline-block,
+  & .md\:inline-block,
+  & .lg\:inline-block { 
+    display: inline-block !important; 
+  }
+  
+  /* Force desktop widths and paddings */
+  & .lg\:pl-72 {
+    padding-left: 18rem !important; /* 72 * 0.25rem */
+  }
+  
+  & .lg\:ml-72 {
+    margin-left: 18rem !important;
+  }
+  
+  /* Ensure sidebar is always visible in desktop mode */
+  & .lg\:fixed {
+    position: fixed !important;
+  }
+  
+  & .lg\:inset-y-0 {
+    top: 0 !important;
+    bottom: 0 !important;
+  }
+  
+  & .lg\:w-72 {
+    width: 18rem !important;
+  }
   
   /* Force desktop grid layouts */
   & .grid {
