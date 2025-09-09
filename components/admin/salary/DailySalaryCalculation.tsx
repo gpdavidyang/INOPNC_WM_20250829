@@ -170,7 +170,14 @@ export default function DailySalaryCalculation() {
       }
 
       // Transform data to match DailySalaryData interface
-      const transformedData: DailySalaryData[] = (assignmentsData || []).map(assignment => {
+      const transformedData: DailySalaryData[] = (assignmentsData || [])
+        .sort((a, b) => {
+          // Sort by work_date descending
+          const dateA = new Date(a.daily_reports.work_date).getTime()
+          const dateB = new Date(b.daily_reports.work_date).getTime()
+          return dateB - dateA
+        })
+        .map(assignment => {
         const profile = assignment.profiles
         const report = assignment.daily_reports
         const site = report.sites
