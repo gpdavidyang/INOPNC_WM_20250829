@@ -62,11 +62,20 @@ export async function POST(
     // Create assignments for each worker with their actual role
     const assignments = worker_ids.map(workerId => {
       const workerProfile = workerProfiles?.find(p => p.id === workerId)
+      // Map the user's role to a valid site assignment role
+      let assignmentRole = 'worker'
+      if (workerProfile?.role === 'site_manager') {
+        assignmentRole = 'site_manager'
+      } else if (workerProfile?.role === 'supervisor') {
+        assignmentRole = 'supervisor'
+      }
+      // All other roles (admin, worker, partner, etc.) default to 'worker' role in site_assignments
+      
       return {
         site_id: siteId,
         user_id: workerId,
         assigned_date: new Date().toISOString().split('T')[0], // Date only format
-        role: workerProfile?.role || 'worker', // Use actual role from profile
+        role: assignmentRole, // Use mapped role that's valid for site_assignments
         is_active: true
       }
     })
