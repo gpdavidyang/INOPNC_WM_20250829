@@ -2,6 +2,8 @@ import { getCurrentUserSite, forceAssignCurrentUserToTestSite } from '@/app/acti
 import { createClient } from '@/lib/supabase/server'
 import DebugUserClient from './debug-client'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DebugUserPage() {
   const supabase = createClient()
   
