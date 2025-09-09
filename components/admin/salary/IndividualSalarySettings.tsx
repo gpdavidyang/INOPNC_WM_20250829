@@ -116,32 +116,40 @@ export default function IndividualSalarySettings() {
     }
   }
 
-  const saveTaxSettings = () => {
+  const saveTaxSettings = async () => {
     setSavingSettings(true)
     // Save to localStorage
     localStorage.setItem('taxSettings', JSON.stringify(taxSettings))
     
-    // Update all workers with new tax rates based on their salary type
-    workers.forEach(async (worker) => {
-      const settings = taxSettings[worker.salary_type]
-      await supabase
-        .from('profiles')
-        .update({
-          tax_rate: settings.tax_rate,
-          national_pension_rate: settings.national_pension_rate,
-          health_insurance_rate: settings.health_insurance_rate,
-          employment_insurance_rate: settings.employment_insurance_rate,
-          long_term_care_rate: settings.long_term_care_rate
+    try {
+      // Use API route to update all workers with new tax rates
+      const response = await fetch('/api/admin/workers/bulk-update-tax', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          taxSettings
         })
-        .eq('id', worker.id)
-    })
-    
-    setTimeout(() => {
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('Error updating tax settings:', result.error)
+        alert(`세율 설정 저장 중 오류가 발생했습니다: ${result.error}`)
+      } else {
+        console.log('Tax settings updated:', result)
+        alert(`세율 설정이 저장되었습니다. (${result.updatedCount}명 업데이트)`)
+        await fetchWorkers()
+        setShowTaxSettings(false)
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      alert('세율 설정 저장 중 예기치 않은 오류가 발생했습니다.')
+    } finally {
       setSavingSettings(false)
-      setShowTaxSettings(false)
-      fetchWorkers()
-      alert('세율 설정이 저장되었습니다.')
-    }, 1000)
+    }
   }
 
   const startEditing = (worker: Worker) => {

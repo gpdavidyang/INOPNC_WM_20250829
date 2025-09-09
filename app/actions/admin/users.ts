@@ -509,10 +509,10 @@ export async function updateUser(data: UpdateUserData): Promise<AdminActionResul
 export async function deleteUsers(userIds: string[]): Promise<AdminActionResult<void>> {
   return withAdminAuth(async (supabase) => {
     try {
-      // Don't allow deleting admin/system_admin users
+      // Check for protected admin/system_admin users (excluding test accounts)
       const { data: adminUsers, error: checkError } = await supabase
         .from('profiles')
-        .select('id, role')
+        .select('id, role, full_name, email')
         .in('id', userIds)
         .in('role', ['admin', 'system_admin'])
 
@@ -521,22 +521,45 @@ export async function deleteUsers(userIds: string[]): Promise<AdminActionResult<
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
-      if (adminUsers && adminUsers.length > 0) {
+      // Filter out test accounts from protection
+      const protectedAdmins = adminUsers?.filter(user => {
+        const isTestAccount = 
+          user.full_name?.toLowerCase().includes('테스트') ||
+          user.full_name?.toLowerCase().includes('test') ||
+          user.email?.includes('@test.com')
+        return !isTestAccount
+      }) || []
+
+      if (protectedAdmins.length > 0) {
         return {
           success: false,
           error: '관리자 계정은 삭제할 수 없습니다.'
         }
       }
 
-      // Delete profiles (this will cascade to auth users via RLS)
-      const { error } = await supabase
+      // First delete from profiles table
+      const { error: profileError } = await supabase
         .from('profiles')
         .delete()
         .in('id', userIds)
 
-      if (error) {
-        console.error('Error deleting users:', error)
+      if (profileError) {
+        console.error('Error deleting profiles:', profileError)
         return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      // Also delete from auth.users to ensure complete removal
+      try {
+        for (const userId of userIds) {
+          const { error: authError } = await supabase.auth.admin.deleteUser(userId)
+          if (authError) {
+            console.error(`Error deleting auth user ${userId}:`, authError)
+            // Continue with other deletions even if one fails
+          }
+        }
+      } catch (error) {
+        console.error('Error deleting auth users:', error)
+        // Don't fail the entire operation if auth deletion fails
       }
 
       return {
