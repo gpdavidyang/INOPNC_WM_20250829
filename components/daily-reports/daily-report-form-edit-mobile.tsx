@@ -43,6 +43,7 @@ import { AdditionalPhotoData } from '@/types/daily-reports'
 import { cn } from '@/lib/utils'
 import { showErrorNotification } from '@/lib/error-handling'
 import { toast } from 'sonner'
+import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface DailyReportFormEditMobileProps {
   report: DailyReport & {
@@ -171,6 +172,9 @@ export default function DailyReportFormEditMobile({
     materials: false,
     specialNotes: false
   })
+
+  // Load work options from database
+  const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
 
   // Form state
   const [formData, setFormData] = useState({
@@ -618,10 +622,11 @@ export default function DailyReportFormEditMobile({
                         <CustomSelectValue placeholder="선택" />
                       </CustomSelectTrigger>
                       <CustomSelectContent>
-                        <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
-                        <CustomSelectItem value="거더">거더</CustomSelectItem>
-                        <CustomSelectItem value="기둥">기둥</CustomSelectItem>
-                        <CustomSelectItem value="기타">기타</CustomSelectItem>
+                        {componentTypes.map((type) => (
+                          <CustomSelectItem key={type.id} value={type.option_label}>
+                            {type.option_label}
+                          </CustomSelectItem>
+                        ))}
                       </CustomSelectContent>
                     </CustomSelect>
                     {workContent.memberName === '기타' && (
@@ -643,10 +648,11 @@ export default function DailyReportFormEditMobile({
                         <CustomSelectValue placeholder="선택" />
                       </CustomSelectTrigger>
                       <CustomSelectContent>
-                        <CustomSelectItem value="균열">균열</CustomSelectItem>
-                        <CustomSelectItem value="면">면</CustomSelectItem>
-                        <CustomSelectItem value="마감">마감</CustomSelectItem>
-                        <CustomSelectItem value="기타">기타</CustomSelectItem>
+                        {processTypes.map((type) => (
+                          <CustomSelectItem key={type.id} value={type.option_label}>
+                            {type.option_label}
+                          </CustomSelectItem>
+                        ))}
                       </CustomSelectContent>
                     </CustomSelect>
                     {workContent.processType === '기타' && (
