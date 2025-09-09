@@ -106,9 +106,9 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       '작업자명': item.worker_name,
       '작업자역할': item.worker_role,
       '현장': item.site_name,
-      '총 공수': item.total_work_hours,
-      '근무일수': item.work_days_count,
-      '일당': item.total_work_hours > 0 ? Math.round(item.base_pay / item.total_work_hours) : 0,
+      '총 공수': item.total_labor_hours,
+      '근무 날짜수': item.work_days_count,
+      '공수당 단가': item.total_labor_hours > 0 ? Math.round(item.base_pay / item.total_labor_hours) : 0,
       '총 지급액': item.total_pay,
       '마지막근무일': item.last_work_date ? new Date(item.last_work_date).toLocaleDateString('ko-KR') : ''
     }))
@@ -457,16 +457,16 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                       총 공수
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      실제
+                      작업시간
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       연장
                     </th>
                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      근무일
+                      근무날짜
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      일당
+                      공수단가
                     </th>
                     <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                       총 급여
@@ -502,10 +502,12 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                         {item.site_name}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
-                        {item.total_work_hours || 0}
+                        <div className="font-semibold text-blue-600 dark:text-blue-400">
+                          {(item.total_labor_hours || 0).toFixed(1)}
+                        </div>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-900 dark:text-gray-100">
-                        {item.total_actual_hours || 0}
+                        {item.total_work_hours || 0}시간
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center text-sm">
                         {(item.total_overtime_hours || 0) > 0 ? (
@@ -527,7 +529,7 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                         )}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right text-sm text-gray-900 dark:text-gray-100">
-                        ₩{(item.total_work_hours > 0 ? Math.round(item.base_pay / item.total_work_hours) : 0).toLocaleString()}
+                        ₩{(item.total_labor_hours > 0 ? Math.round(item.base_pay / item.total_labor_hours) : 0).toLocaleString()}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-right">
                         <div className="text-sm font-bold text-green-600 dark:text-green-400">
