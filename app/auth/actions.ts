@@ -103,9 +103,9 @@ export async function signIn(email: string, password: string) {
       }
     }
 
-    console.log('[SIGN_IN] Login process completed successfully')
-    // Return success without redirect - let client handle navigation
-    return { success: true }
+    console.log('[SIGN_IN] Login process completed successfully, redirecting to dashboard')
+    // Redirect to dashboard after successful login
+    redirect('/dashboard')
     
   } catch (outerError) {
     console.error('[SIGN_IN] Outer catch - unexpected error during signIn:', outerError)

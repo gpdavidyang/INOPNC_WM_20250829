@@ -76,13 +76,9 @@ export default function LoginPage() {
           
           setError(userFriendlyMessage)
         } else if (result?.success) {
-          console.log('[LOGIN] Login successful, redirecting to:', redirectTo)
-          
-          // Small delay to ensure auth state is properly updated
-          setTimeout(() => {
-            // Use window.location for a full page refresh to ensure auth state is updated
-            window.location.href = redirectTo
-          }, 100)
+          console.log('[LOGIN] Login successful')
+          // Server action will handle redirect via redirect() call
+          // No client-side redirect needed
         } else {
           console.error('[LOGIN] Unexpected result:', result)
           setError('로그인 응답이 올바르지 않습니다. 다시 시도해주세요.')

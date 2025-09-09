@@ -80,7 +80,9 @@ export function createClient() {
                   sameSite: 'lax' as const,
                   secure: process.env.NODE_ENV === 'production',
                   httpOnly: false, // CRITICAL FIX: Allow client-side access to auth cookies
-                  path: '/'
+                  path: '/',
+                  // CRITICAL: Ensure proper max-age for refresh tokens
+                  maxAge: options?.maxAge || 60 * 60 * 24 * 30 // 30 days default
                 }
                 cookieStore.set(name, value, cookieOptions)
               })

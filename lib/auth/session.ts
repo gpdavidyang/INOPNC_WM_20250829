@@ -15,7 +15,7 @@ export async function getAuthenticatedUser(): Promise<User | null> {
     // If that fails, try to get and refresh the session
     const { data: { session } } = await supabase.auth.getSession()
     
-    if (session) {
+    if (session && session.refresh_token) {
       // Try to refresh the session
       const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
       
@@ -23,6 +23,15 @@ export async function getAuthenticatedUser(): Promise<User | null> {
         // Get user after refresh
         const { data: { user: refreshedUser } } = await supabase.auth.getUser()
         return refreshedUser
+      } else if (refreshError) {
+        // CRITICAL FIX: Handle refresh token errors
+        if (refreshError.message?.includes('refresh_token_not_found') || 
+            refreshError.message?.includes('Invalid Refresh Token')) {
+          console.error('Invalid refresh token detected, session will be cleared')
+          // Let the calling code handle clearing invalid sessions
+          return null
+        }
+        console.error('Session refresh failed:', refreshError.message)
       }
     }
     
