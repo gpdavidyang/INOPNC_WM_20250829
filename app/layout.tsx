@@ -116,8 +116,8 @@ export default function RootLayout({
                       <ProductionQualityOptimizer />
                       <SkipNavigation />
                       <AuthProvider>
-                        <ViewportController>
-                          <PerformanceMonitoringProvider>
+                        <PerformanceMonitoringProvider>
+                          <ViewportController>
                             <DeepLinkProvider />
                             <UIDebugIndicator />
                             {children}
@@ -125,8 +125,8 @@ export default function RootLayout({
                             <InstallPrompt />
                             <ServiceWorkerRegistration />
                             <NotificationPermission />
-                          </PerformanceMonitoringProvider>
-                        </ViewportController>
+                          </ViewportController>
+                        </PerformanceMonitoringProvider>
                       </AuthProvider>
                       <EnvironmentStatus />
                       <Toaster 
