@@ -434,22 +434,38 @@ export async function approveSignupRequest(
     }
     // console.log('Auth user created successfully:', authData.user.id)
 
-    // Determine organization and site assignment
-    let organizationId = null
-    let siteId = null
-    let organizationName = ''
-    let siteName = ''
+    // Get partner company name for the response message
+    let partnerCompanyName = ''
+    let siteNames: string[] = []
     
-    if (request.job_type === 'construction') {
-      organizationId = '11111111-1111-1111-1111-111111111111' // INOPNC
-      siteId = '33333333-3333-3333-3333-333333333333' // Default site
-      organizationName = 'INOPNC'
-      siteName = '본사'
-    } else {
-      organizationId = '22222222-2222-2222-2222-222222222222' // Customer
-      organizationName = 'Customer Organization'
+    if (organizationId) {
+      // Try to get partner company name first
+      const { data: partner } = await supabase
+        .from('partner_companies')
+        .select('company_name')
+        .eq('id', organizationId)
+        .single()
+      
+      if (partner) {
+        partnerCompanyName = partner.company_name
+      } else {
+        // Fallback to organizations table if not found in partner_companies
+        const { data: org } = await supabase
+          .from('organizations')
+          .select('name')
+          .eq('id', organizationId)
+          .single()
+        partnerCompanyName = org?.name || ''
+      }
     }
-    // console.log(`조직 할당: ${organizationName}${siteName ? `, 현장: ${siteName}` : ''}`)
+    
+    if (siteIds && siteIds.length > 0) {
+      const { data: sites } = await supabase
+        .from('sites')
+        .select('name')
+        .in('id', siteIds)
+      siteNames = sites?.map(s => s.name) || []
+    }
 
     // Create profile
     // console.log('Creating user profile...')
@@ -521,11 +537,21 @@ export async function approveSignupRequest(
     }
 
     // console.log('Approval completed successfully')
+    
+    // Build success message
+    let message = `승인 완료: ${request.full_name} (${request.email})\n임시 비밀번호: ${tempPassword}`
+    if (partnerCompanyName) {
+      message += `\n파트너사: ${partnerCompanyName}`
+    }
+    if (siteNames.length > 0) {
+      message += `\n배정 현장: ${siteNames.join(', ')}`
+    }
+    
     return { 
       success: true, 
       temporaryPassword: tempPassword,
       userEmail: request.email,
-      message: `승인 완료: ${request.full_name} (${request.email})\n조직: ${organizationName}${siteName ? `\n현장: ${siteName}` : ''}\n임시 비밀번호: ${tempPassword}`
+      message
     }
   } catch (error) {
     console.error('Approve signup request error:', error)

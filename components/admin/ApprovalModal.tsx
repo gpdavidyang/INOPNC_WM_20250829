@@ -74,18 +74,19 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
   }, [isOpen, request])
 
   const fetchOrganizations = async () => {
-    // console.log('🔍 조직 데이터 가져오기 시작...')
+    // console.log('🔍 파트너사 데이터 가져오기 시작...')
     
     try {
       // Check if user is authenticated
       const { data: session } = await supabase.auth.getSession()
       // console.log('현재 세션 상태:', session?.session ? '인증됨' : '미인증')
       
-      // First try without any filter to get all organizations
+      // Fetch partner companies instead of organizations
       const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .order('name')
+        .from('partner_companies')
+        .select('id, company_name, business_number, company_type, status')
+        .eq('status', 'active')
+        .order('company_name')
 
       // console.log('📊 조회 결과:')
       // console.log('- 데이터 개수:', data?.length || 0)
@@ -96,42 +97,48 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
       }
 
       if (error) {
-        console.error('❌ 조직 조회 오류:', error)
+        console.error('❌ 파트너사 조회 오류:', error)
         // console.log('🔧 Mock 데이터로 대체...')
         const mockData = [
-          { id: 'mock-1', name: 'ABC 건설', type: 'head_office', business_registration_number: '123-45-67890', is_active: true },
-          { id: 'mock-2', name: 'XYZ 파트너사', type: 'branch_office', business_registration_number: '987-65-43210', is_active: true },
-          { id: 'mock-3', name: '테스트 부서', type: 'department', business_registration_number: '456-78-90123', is_active: true }
+          { id: 'mock-1', name: 'ABC 건설', company_name: 'ABC 건설', type: 'construction', business_number: '123-45-67890', status: 'active' },
+          { id: 'mock-2', name: 'XYZ 파트너사', company_name: 'XYZ 파트너사', type: 'supplier', business_number: '987-65-43210', status: 'active' },
+          { id: 'mock-3', name: '테스트 업체', company_name: '테스트 업체', type: 'subcontractor', business_number: '456-78-90123', status: 'active' }
         ]
         setOrganizations(mockData)
         // console.log('✅ Mock 데이터 설정 완료:', mockData.length, '개')
       } else {
-        // Filter active organizations if is_active field exists
-        const activeOrgs = data?.filter(org => 
-          org.is_active !== false && org.status !== 'inactive'
-        ) || data || []
+        // Map partner_companies data to organization format
+        const mappedOrgs = data?.map(partner => ({
+          id: partner.id,
+          name: partner.company_name,
+          company_name: partner.company_name,
+          type: partner.company_type,
+          business_number: partner.business_number,
+          business_registration_number: partner.business_number,
+          status: partner.status,
+          is_active: partner.status === 'active'
+        })) || []
         
-        // console.log('🔍 활성 조직 필터링:')
+        // console.log('🔍 파트너사 데이터 매핑:')
         // console.log('- 전체:', data?.length || 0)
-        // console.log('- 활성:', activeOrgs.length)
+        // console.log('- 매핑 완료:', mappedOrgs.length)
         
-        const finalOrgs = activeOrgs.length > 0 ? activeOrgs : data || []
-        setOrganizations(finalOrgs)
-        // console.log('✅ 조직 데이터 설정 완료:', finalOrgs.length, '개')
+        setOrganizations(mappedOrgs)
+        // console.log('✅ 파트너사 데이터 설정 완료:', mappedOrgs.length, '개')
         
-        if (finalOrgs.length > 0) {
-          // console.log('- 설정된 조직들:', finalOrgs.map(org => org.name))
+        if (mappedOrgs.length > 0) {
+          // console.log('- 설정된 파트너사들:', mappedOrgs.map(org => org.name))
         }
       }
     } catch (error) {
-      console.error('❌ 조직 조회 예외:', error)
+      console.error('❌ 파트너사 조회 예외:', error)
       // console.log('🔧 예외 처리로 Mock 데이터 설정...')
       
       // Set mock data as fallback
       const mockData = [
-        { id: 'catch-1', name: 'ABC 건설 (예외처리)', type: 'head_office', business_registration_number: '123-45-67890', is_active: true },
-        { id: 'catch-2', name: 'XYZ 파트너사 (예외처리)', type: 'branch_office', business_registration_number: '987-65-43210', is_active: true },
-        { id: 'catch-3', name: '테스트 부서 (예외처리)', type: 'department', business_registration_number: '456-78-90123', is_active: true }
+        { id: 'catch-1', name: 'ABC 건설 (예외처리)', company_name: 'ABC 건설 (예외처리)', type: 'construction', business_number: '123-45-67890', status: 'active' },
+        { id: 'catch-2', name: 'XYZ 파트너사 (예외처리)', company_name: 'XYZ 파트너사 (예외처리)', type: 'supplier', business_number: '987-65-43210', status: 'active' },
+        { id: 'catch-3', name: '테스트 업체 (예외처리)', company_name: '테스트 업체 (예외처리)', type: 'subcontractor', business_number: '456-78-90123', status: 'active' }
       ]
       setOrganizations(mockData)
       // console.log('✅ 예외처리 Mock 데이터 설정:', mockData.length, '개')
@@ -165,9 +172,9 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
   const handleApprove = async () => {
     if (!request) return
 
-    // 작업자와 현장관리자는 소속이 필수
+    // 작업자와 현장관리자는 파트너사 필수
     if ((request.requested_role === 'worker' || request.requested_role === 'site_manager') && !selectedOrganization) {
-      alert('작업자와 현장관리자는 소속 업체를 선택해야 합니다.')
+      alert('작업자와 현장관리자는 파트너사를 선택해야 합니다.')
       return
     }
 
@@ -296,7 +303,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                     <Building className="h-4 w-4 text-gray-500" />
-                    소속 업체 선택
+                    파트너사 선택
                     <span className="text-red-500 ml-1">*필수</span>
                   </label>
                   {selectedOrganization && (
@@ -315,19 +322,19 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                       : 'border-gray-300 bg-white focus:border-blue-500'
                   } focus:ring-2 focus:ring-blue-200 focus:outline-none`}
                 >
-                  <option value="">-- 소속 업체를 선택하세요 --</option>
+                  <option value="">-- 파트너사를 선택하세요 --</option>
                   {organizations.length > 0 ? (
                     organizations.map((org) => (
                       <option key={org.id} value={org.id}>
-                        {org.name} {org.business_registration_number && `(${org.business_registration_number})`}
+                        {org.name} {org.business_number && `(사업자번호: ${org.business_number})`}
                       </option>
                     ))
                   ) : (
-                    <option value="" disabled>조직 데이터를 불러오는 중...</option>
+                    <option value="" disabled>파트너사 데이터를 불러오는 중...</option>
                   )}
                 </select>
                 <p className="mt-2 text-xs text-gray-500">
-                  조직 데이터를 불러오는 중입니다. 여러 현장에서 근무하는 경우 복수 선택이 가능합니다.
+                  작업자가 소속될 파트너사를 선택해주세요. 파트너사 등록이 필요한 경우 먼저 파트너사 관리에서 등록해주세요.
                 </p>
               </div>
             )}
@@ -419,7 +426,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
               <ul className="text-xs text-blue-700 space-y-1">
                 <li>• 임시 비밀번호가 자동 생성됩니다</li>
                 <li>• 사용자 계정이 생성되고 프로필이 설정됩니다</li>
-                <li>• 선택한 소속 업체에 배정됩니다</li>
+                <li>• 선택한 파트너사에 소속으로 등록됩니다</li>
                 {needsSite && <li>• 선택한 현장에 작업자/관리자로 배정됩니다</li>}
                 <li>• 승인 이메일이 발송됩니다 (준비중)</li>
               </ul>
