@@ -47,6 +47,7 @@ import AdditionalPhotoUploadSection from './additional-photo-upload-section'
 import { cn } from '@/lib/utils'
 import { showErrorNotification } from '@/lib/error-handling'
 import { toast } from 'sonner'
+import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface DailyReportFormProps {
   sites: Site[]
@@ -225,6 +226,9 @@ export default function DailyReportFormEnhanced({
   
   // Section 6: Drawings
   const [drawings, setDrawings] = useState<File[]>([])
+  
+  // Load work options from database
+  const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
   
   // Section 8: Requests
   const [requestText, setRequestText] = useState<string>('')
@@ -1097,10 +1101,11 @@ export default function DailyReportFormEnhanced({
                             <CustomSelectValue placeholder="선택" />
                           </CustomSelectTrigger>
                           <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700" sideOffset={5} align="start">
-                            <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
-                            <CustomSelectItem value="거더">거더</CustomSelectItem>
-                            <CustomSelectItem value="기둥">기둥</CustomSelectItem>
-                            <CustomSelectItem value="기타">기타</CustomSelectItem>
+                            {componentTypes.map((type) => (
+                              <CustomSelectItem key={type.id} value={type.option_label}>
+                                {type.option_label}
+                              </CustomSelectItem>
+                            ))}
                           </CustomSelectContent>
                         </CustomSelect>
                         {content.memberName === '기타' && (
@@ -1123,10 +1128,11 @@ export default function DailyReportFormEnhanced({
                             <CustomSelectValue placeholder="선택" />
                           </CustomSelectTrigger>
                           <CustomSelectContent className="bg-white dark:bg-gray-800 border dark:border-gray-700" sideOffset={5} align="start">
-                            <CustomSelectItem value="균일">균일</CustomSelectItem>
-                            <CustomSelectItem value="면">면</CustomSelectItem>
-                            <CustomSelectItem value="마감">마감</CustomSelectItem>
-                            <CustomSelectItem value="기타">기타</CustomSelectItem>
+                            {processTypes.map((type) => (
+                              <CustomSelectItem key={type.id} value={type.option_label}>
+                                {type.option_label}
+                              </CustomSelectItem>
+                            ))}
                           </CustomSelectContent>
                         </CustomSelect>
                         {content.processType === '기타' && (

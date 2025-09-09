@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { ProfileManager } from '@/lib/auth/profile-manager'
 import type { UserRole } from '@/types'
 
@@ -33,7 +34,7 @@ export async function signIn(email: string, password: string) {
     try {
       const { data: profile } = await supabase
         .from('profiles')
-        .select('login_count')
+        .select('login_count, role')
         .eq('id', data.user.id)
         .single()
       
@@ -45,6 +46,16 @@ export async function signIn(email: string, password: string) {
             login_count: (profile.login_count || 0) + 1
           })
           .eq('id', data.user.id)
+        
+        // Set role cookie for UI mode detection
+        const cookieStore = cookies()
+        cookieStore.set('user-role', profile.role, {
+          httpOnly: false, // Allow client-side access for UI detection
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 60 * 60 * 24 * 7, // 7 days
+          path: '/'
+        })
       }
 
       // TODO: Log successful login when log_auth_event function is created
@@ -179,6 +190,10 @@ export async function signOut() {
   if (error) {
     return { error: error.message }
   }
+  
+  // Delete role cookie on sign out
+  const cookieStore = cookies()
+  cookieStore.delete('user-role')
   
   // Return success and let the client handle the redirect
   return { success: true }
@@ -349,9 +364,15 @@ export async function requestSignupApproval(formData: {
   }
 }
 
-export async function approveSignupRequest(requestId: string, adminUserId: string) {
+export async function approveSignupRequest(
+  requestId: string, 
+  adminUserId: string,
+  organizationId?: string,
+  siteIds?: string[]
+) {
   const supabase = createClient()
-  const { supabaseAdmin } = await import('@/lib/supabase/admin')
+  const { createServiceRoleClient } = await import('@/lib/supabase/service-role')
+  const serviceClient = createServiceRoleClient()
 
   try {
     // console.log('Starting approval process for request:', requestId)
@@ -382,10 +403,19 @@ export async function approveSignupRequest(requestId: string, adminUserId: strin
     if (request.job_type === 'office') {
       role = 'customer_manager'
     }
+    
+    // Validate required assignments based on role
+    if ((role === 'worker' || role === 'site_manager') && !organizationId) {
+      return { error: '작업자와 현장관리자는 소속 업체가 필요합니다.' }
+    }
+    
+    if (role === 'worker' && (!siteIds || siteIds.length === 0)) {
+      return { error: '작업자는 최소 1개 이상의 현장 배정이 필요합니다.' }
+    }
 
-    // Create user in Supabase Auth using admin client
+    // Create user in Supabase Auth using service role client
     // console.log('Creating auth user for:', request.email)
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authData, error: authError } = await serviceClient.auth.admin.createUser({
       email: request.email,
       password: tempPassword,
       email_confirm: true,
