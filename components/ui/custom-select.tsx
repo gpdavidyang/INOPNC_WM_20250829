@@ -83,11 +83,12 @@ const CustomSelectContent = React.forwardRef<
     <SelectPrimitive.Content
       ref={ref}
       className={cn(
-        "relative z-[9999] max-h-96 min-w-[8rem] overflow-hidden rounded-md border",
-        "bg-white dark:bg-gray-800",
+        "relative z-[100000] max-h-96 min-w-[8rem] overflow-hidden rounded-md border",
+        "!bg-white dark:!bg-gray-800",
         "border-gray-200 dark:border-gray-700",
         "text-gray-900 dark:text-gray-100",
-        "shadow-lg",
+        "shadow-xl",
+        "backdrop-blur-sm",
         "data-[state=open]:animate-in data-[state=closed]:animate-out",
         "data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
@@ -103,12 +104,14 @@ const CustomSelectContent = React.forwardRef<
       sideOffset={sideOffset}
       align={align}
       collisionPadding={10}
+      style={{ backgroundColor: 'white' }}
       {...props}
     >
       <CustomSelectScrollUpButton />
       <SelectPrimitive.Viewport
         className={cn(
           "p-1",
+          "!bg-white dark:!bg-gray-800",
           position === "popper" &&
             "h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]"
         )}

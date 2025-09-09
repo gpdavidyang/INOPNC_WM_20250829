@@ -118,7 +118,7 @@ export default function MultiSelectFilter({
       </button>
       
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-auto">
+        <div className="absolute z-[100000] mt-1 w-full !bg-white dark:!bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl max-h-60 overflow-auto" style={{ backgroundColor: 'white' }}>
           {/* Search */}
           <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-2">
             <input

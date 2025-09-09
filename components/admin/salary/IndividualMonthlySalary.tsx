@@ -80,8 +80,9 @@ export default function IndividualMonthlySalary() {
     setCalculating(true)
     setLoading(true)
     
-    const startDate = `${year}-${String(month).padStart(2, '0')}-01`
-    const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+    try {
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`
+      const endDate = new Date(year, month, 0).toISOString().split('T')[0]
 
     let query = supabase
       .from('worker_assignments')
@@ -116,7 +117,16 @@ export default function IndividualMonthlySalary() {
 
     if (error) {
       console.error('Error fetching salary data:', error)
+      alert(`급여 데이터를 불러오는 중 오류가 발생했습니다: ${error.message}`)
       setLoading(false)
+      setCalculating(false)
+      return
+    }
+
+    if (!data || data.length === 0) {
+      alert('선택한 기간에 해당하는 급여 데이터가 없습니다.')
+      setLoading(false)
+      setCalculating(false)
       return
     }
 
@@ -132,7 +142,7 @@ export default function IndividualMonthlySalary() {
       if (!workerMap.has(workerId)) {
         workerMap.set(workerId, {
           worker_id: workerId,
-          worker_name: worker.full_name,
+          worker_name: worker.full_name || '이름 없음',
           worker_phone: worker.phone || '',
           total_days: 0,
           total_manhours: 0,
@@ -157,13 +167,14 @@ export default function IndividualMonthlySalary() {
       workerData.allowances += mealAllowance + transportAllowance
 
       // Track sites
-      const siteIndex = workerData.sites.findIndex(s => s.site_name === site.name)
+      const siteName = site?.name || '현장 미지정'
+      const siteIndex = workerData.sites.findIndex(s => s.site_name === siteName)
       if (siteIndex >= 0) {
         workerData.sites[siteIndex].days += 1
         workerData.sites[siteIndex].manhours += Number(assignment.labor_hours) || 0
       } else {
         workerData.sites.push({
-          site_name: site.name,
+          site_name: siteName,
           days: 1,
           manhours: Number(assignment.labor_hours) || 0
         })
@@ -176,9 +187,15 @@ export default function IndividualMonthlySalary() {
       worker.net_salary = worker.base_salary + worker.allowances - worker.deductions
     })
 
-    setSalaryData(Array.from(workerMap.values()))
-    setLoading(false)
-    setCalculating(false)
+      setSalaryData(Array.from(workerMap.values()))
+      setLoading(false)
+      setCalculating(false)
+    } catch (error) {
+      console.error('Unexpected error in fetchSalaryData:', error)
+      alert('급여 계산 중 예기치 않은 오류가 발생했습니다.')
+      setLoading(false)
+      setCalculating(false)
+    }
   }
 
   const filteredData = salaryData.filter(worker =>
