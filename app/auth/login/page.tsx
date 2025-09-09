@@ -5,6 +5,7 @@ import { signIn } from '@/app/auth/actions'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { ProductionLoginDebug } from '@/components/debug/ProductionLoginDebug'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -109,6 +110,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 px-4 sm:px-6 relative overflow-hidden">
+      {/* Production Debug Component */}
+      <ProductionLoginDebug />
+      
       {/* Subtle background pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_70%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_49%,rgba(59,130,246,0.02)_50%,transparent_51%)] bg-[length:20px_20px]" />

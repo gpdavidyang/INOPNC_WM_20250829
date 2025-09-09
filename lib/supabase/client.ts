@@ -6,9 +6,9 @@ import { createLogger } from '@/lib/utils/logger'
 
 const logger = createLogger('SUPABASE-CLIENT')
 
-// Direct access to environment variables for client-side with trim to remove any whitespace/newlines
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+// Direct access to environment variables for client-side with aggressive cleaning for production
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()?.replace(/\\n/g, '')?.replace(/\n/g, '')
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()?.replace(/\\n/g, '')?.replace(/\n/g, '')
 
 // Extend window object for cookie caching
 declare global {
