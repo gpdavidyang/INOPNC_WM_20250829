@@ -190,10 +190,11 @@ function getTypographyClass(type: string, size: string = 'base', isLargeFont: bo
 }
 
 // Sidebar component
-function Sidebar({ profile, pathname, onItemClick }: {
+function Sidebar({ profile, pathname, onItemClick, isCollapsed }: {
   profile?: Profile | null
   pathname: string
   onItemClick?: () => void
+  isCollapsed?: boolean
 }) {
   const router = useRouter()
   const { isLargeFont } = useFontSize()
@@ -234,6 +235,66 @@ function Sidebar({ profile, pathname, onItemClick }: {
     ? [...menuCategories, systemCategory]
     : menuCategories
 
+  // If collapsed, show mini sidebar with just icons
+  if (isCollapsed) {
+    return (
+      <div className="flex flex-col h-full bg-white shadow-xl w-16">
+        {/* Mini Logo */}
+        <div className="p-3 border-b border-gray-200 flex justify-center">
+          <Shield className="h-8 w-8 text-red-600" />
+        </div>
+
+        {/* Mini Navigation - Icons only */}
+        <div className="flex-1 overflow-y-auto py-3">
+          <nav className="space-y-1 px-2">
+            {allCategories.map((category: any) => {
+              return (
+                <div key={category.id}>
+                  {category.items.filter((item: any) => !item.hidden).map((item: any) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.href
+                    
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        onClick={onItemClick}
+                        className={`flex items-center justify-center p-2 rounded-md transition-colors group relative ${
+                          isActive
+                            ? 'bg-red-50 text-red-700'
+                            : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                        }`}
+                        title={item.label}
+                      >
+                        <Icon className="h-5 w-5" />
+                        {/* Tooltip on hover */}
+                        <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+                          {item.label}
+                        </div>
+                      </Link>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </nav>
+        </div>
+
+        {/* Mini Logout button */}
+        <div className="p-3 border-t border-gray-200">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center p-2 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+            title="로그아웃"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Full sidebar (default)
   return (
     <div className="flex flex-col h-full bg-white shadow-xl">
       {/* Logo and user info */}
@@ -356,12 +417,25 @@ export default function AdminDashboardLayout({ children, profile: propProfile }:
   const router = useRouter()
   const pathname = usePathname()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    // Load collapsed state from localStorage
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('admin-sidebar-collapsed')
+      return saved === 'true'
+    }
+    return false
+  })
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(propProfile || null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
+
+  // Save sidebar collapsed state to localStorage
+  useEffect(() => {
+    localStorage.setItem('admin-sidebar-collapsed', isSidebarCollapsed.toString())
+  }, [isSidebarCollapsed])
 
   // Initialize theme - Always use light mode for admin
   useEffect(() => {
@@ -412,13 +486,25 @@ export default function AdminDashboardLayout({ children, profile: propProfile }:
     }
   }
 
+  // Toggle desktop sidebar collapse
+  const toggleDesktopSidebar = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed)
+  }
+
+  // Toggle mobile sidebar
+  const toggleMobileSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       {/* Admin Header with integrated search */}
       <AdminHeader 
         profile={profile}
-        onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        onMenuClick={toggleMobileSidebar}
+        onDesktopMenuClick={toggleDesktopSidebar}
         isSidebarOpen={isSidebarOpen}
+        isSidebarCollapsed={isSidebarCollapsed}
       />
       
       {/* Mobile sidebar */}
@@ -428,7 +514,8 @@ export default function AdminDashboardLayout({ children, profile: propProfile }:
         <Sidebar 
           profile={profile} 
           pathname={pathname} 
-          onItemClick={() => setIsSidebarOpen(false)} 
+          onItemClick={() => setIsSidebarOpen(false)}
+          isCollapsed={false} 
         />
       </div>
 
@@ -441,14 +528,23 @@ export default function AdminDashboardLayout({ children, profile: propProfile }:
         />
       )}
 
-      {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-72 lg:flex-col" style={{ top: '64px', height: 'calc(100vh - 64px)' }}>
-        <Sidebar profile={profile} pathname={pathname} />
+      {/* Desktop sidebar with collapse animation */}
+      <div 
+        className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:flex-col transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'lg:w-16' : 'lg:w-72'
+        }`} 
+        style={{ top: '64px', height: 'calc(100vh - 64px)' }}
+      >
+        <Sidebar profile={profile} pathname={pathname} isCollapsed={isSidebarCollapsed} />
       </div>
 
-      {/* Main content area - lg:pl-72로 사이드바 너비만큼 패딩 */}
-      <div className="lg:pl-72" style={{ paddingTop: '64px' }}>
-
+      {/* Main content area - adjusts based on sidebar state */}
+      <div 
+        className={`transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'lg:pl-16' : 'lg:pl-72'
+        }`} 
+        style={{ paddingTop: '64px' }}
+      >
         {/* Page content */}
         <main className="py-6">
           <div className="mx-auto max-w-none px-4 sm:px-6 lg:px-8">

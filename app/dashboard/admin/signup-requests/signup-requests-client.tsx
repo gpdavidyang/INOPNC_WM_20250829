@@ -11,9 +11,6 @@ import {
   CheckCircle, 
   XCircle, 
   Clock, 
-  Copy,
-  ChevronDown,
-  ChevronUp,
   Filter
 } from 'lucide-react'
 
@@ -353,16 +350,14 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                           )}
                         </td>
                         <td className="px-2 py-2">
-                          <button
+                          <Button
+                            size="sm"
+                            variant="ghost"
                             onClick={() => toggleRowExpansion(request.id)}
-                            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                            className="text-xs min-w-[40px] h-7 px-2 py-1"
                           >
-                            {isExpanded ? (
-                              <ChevronUp className="w-3 h-3 text-gray-400" />
-                            ) : (
-                              <ChevronDown className="w-3 h-3 text-gray-400" />
-                            )}
-                          </button>
+                            {isExpanded ? '접기' : '펼침'}
+                          </Button>
                         </td>
                       </tr>
                       {isExpanded && (
@@ -385,9 +380,9 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                                         variant="ghost"
                                         size="compact"
                                         onClick={() => copyToClipboard(request.temporary_password!)}
-                                        className="h-5 w-5 p-0"
+                                        className="text-xs min-w-[35px] h-6 px-1 py-0.5"
                                       >
-                                        <Copy className="w-3 h-3" />
+                                        복사
                                       </Button>
                                     </div>
                                   )}

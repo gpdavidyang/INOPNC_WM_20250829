@@ -73,6 +73,21 @@
   }
 }
 
+/* Admin Dashboard Sidebar Collapse Styles */
+.admin-sidebar-collapsed {
+  transform: translateX(-100%);
+}
+
+/* Smooth transitions for sidebar toggle */
+.sidebar-transition {
+  transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+}
+
+/* Ensure content area transitions smoothly when sidebar toggles */
+.content-transition {
+  transition: padding-left 0.3s ease-in-out, margin-left 0.3s ease-in-out;
+}
+
 /* WCAG 2.1 Color and Contrast System */
 
 /* 
@@ -763,32 +778,32 @@ select:focus {
 .force-desktop-ui {
   /* Force desktop layout on body */
   position: relative !important;
-  min-width: 1280px !important;
+  min-width: 1366px !important;
   width: auto !important;
   height: auto !important;
   overflow-x: auto !important;
   overflow-y: auto !important;
   
   & .desktop-ui-container {
-    min-width: 1280px !important;
-    width: 1280px !important;
+    min-width: 1366px !important;
+    width: 1366px !important;
     margin: 0 auto;
   }
   
   /* Override ALL media queries to maintain desktop layout */
-  @media all and (max-width: 1280px),
+  @media all and (max-width: 1366px),
          all and (max-width: 1024px),
          all and (max-width: 768px),
          all and (max-width: 640px),
          all and (max-width: 480px),
          all and (max-width: 320px) {
     /* Force desktop dimensions regardless of actual screen size */
-    min-width: 1280px !important;
+    min-width: 1366px !important;
     width: auto !important;
     
     & .desktop-ui-container {
-      min-width: 1280px !important;
-      width: 1280px !important;
+      min-width: 1366px !important;
+      width: 1366px !important;
     }
   }
   
@@ -923,7 +938,7 @@ select:focus {
   
   /* Desktop-optimized spacing */
   & .container {
-    max-width: 1280px !important;
+    max-width: 1366px !important;
     padding-left: 2rem !important;
     padding-right: 2rem !important;
   }
@@ -958,7 +973,7 @@ select:focus {
 body.force-desktop-ui {
   /* Override ALL responsive media queries */
   @media all and (max-width: 1920px),
-         all and (max-width: 1280px),
+         all and (max-width: 1366px),
          all and (max-width: 1024px),
          all and (max-width: 768px),
          all and (max-width: 640px),
@@ -967,7 +982,7 @@ body.force-desktop-ui {
     
     /* Force desktop viewport behavior */
     position: relative !important;
-    min-width: 1280px !important;
+    min-width: 1366px !important;
     width: auto !important;
     height: auto !important;
     overflow-x: auto !important;

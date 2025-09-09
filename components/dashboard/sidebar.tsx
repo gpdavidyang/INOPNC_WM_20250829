@@ -373,7 +373,9 @@ function SidebarContent({
     // })
     
     // 모바일에서는 무조건 사이드바 닫기 (React state를 통해)
-    if (window.innerWidth < 1024 && typeof onClose === 'function') {
+    // But NOT if force-desktop-ui is active
+    const isForceDesktop = document.body.classList.contains('force-desktop-ui')
+    if (!isForceDesktop && window.innerWidth < 1024 && typeof onClose === 'function') {
       // console.log('[Sidebar] Mobile detected, closing sidebar via React state')
       onClose()
     }
@@ -546,7 +548,9 @@ function SidebarContent({
             e.stopPropagation()
             // console.log('[Sidebar] Logout clicked')
             // 모바일에서는 먼저 사이드바 닫기 (React state를 통해)
-            if (window.innerWidth < 1024 && typeof onClose === 'function') {
+            // But NOT if force-desktop-ui is active
+            const isForceDesktop = document.body.classList.contains('force-desktop-ui')
+            if (!isForceDesktop && window.innerWidth < 1024 && typeof onClose === 'function') {
               onClose()
             }
             handleLogout()

@@ -158,7 +158,9 @@ function SidebarContent({
   const handleMenuClick = React.useCallback((item: MenuItem) => {
     onTabChange(item.id)
     // 모바일에서만 사이드바 닫기
-    if (window.innerWidth < 1024) {
+    // But NOT if force-desktop-ui is active
+    const isForceDesktop = document.body.classList.contains('force-desktop-ui')
+    if (!isForceDesktop && window.innerWidth < 1024) {
       onClose()
     }
   }, [onTabChange, onClose])
