@@ -85,24 +85,34 @@ export default function SalaryStatementManager() {
     setLoading(true)
     
     try {
-      let query = supabase
-        .from('salary_statements')
-        .select('*')
-        .eq('year', year)
-        .eq('month', month)
-        .order('created_at', { ascending: false })
-
+      // Build query parameters
+      const params = new URLSearchParams({
+        year: year.toString(),
+        month: month.toString()
+      })
+      
       if (selectedWorkers.length > 0) {
-        query = query.in('worker_id', selectedWorkers)
+        // For now, fetch all and filter client-side
+        // In production, you might want to handle multiple worker IDs in the API
       }
 
-      const { data, error } = await query
+      const response = await fetch(`/api/admin/salary/statements/generate?${params}`)
+      const result = await response.json()
 
-      if (error) {
-        console.error('Error fetching statements:', error)
+      if (!response.ok) {
+        console.error('Error fetching statements:', result.error)
         setStatements([])
       } else {
-        setStatements(data || [])
+        let statements = result.data || []
+        
+        // Filter by selected workers if needed
+        if (selectedWorkers.length > 0) {
+          statements = statements.filter((s: SalaryStatement) => 
+            selectedWorkers.includes(s.worker_id)
+          )
+        }
+        
+        setStatements(statements)
       }
     } catch (error) {
       console.error('Unexpected error fetching statements:', error)
@@ -242,22 +252,22 @@ export default function SalaryStatementManager() {
         }
       })
 
-      // Get current user ID first
-      const { data: userData } = await supabase.auth.getUser()
-      const userId = userData?.user?.id
-
-      const { error: insertError } = await supabase
-        .from('salary_statements')
-        .upsert(statementsToInsert.map(statement => ({
-          ...statement,
-          created_by: userId
-        })), {
-          onConflict: 'worker_id,year,month'
+      // Use API route to insert statements
+      const response = await fetch('/api/admin/salary/statements/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          statements: statementsToInsert
         })
+      })
 
-      if (insertError) {
-        console.error('Insert error details:', insertError)
-        throw insertError
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('Insert error details:', result.error)
+        throw new Error(result.error)
       }
 
       alert(`${statementsToInsert.length}개의 급여명세서가 생성되었습니다.`)
