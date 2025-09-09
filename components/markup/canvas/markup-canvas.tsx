@@ -382,6 +382,60 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
           })
           ctx.stroke()
         }
+      } else if (obj.type === 'stamp') {
+        const stamp = obj as any // StampMarkup
+        const size = stamp.size === 'small' ? 20 : stamp.size === 'large' ? 60 : 40
+        
+        ctx.fillStyle = stamp.color
+        ctx.strokeStyle = stamp.color
+        ctx.lineWidth = 3
+        ctx.globalAlpha = 0.8
+        
+        const x = stamp.x || 0
+        const y = stamp.y || 0
+        
+        if (stamp.shape === 'circle') {
+          ctx.beginPath()
+          ctx.arc(x, y, size / 2, 0, Math.PI * 2)
+          ctx.fill()
+        } else if (stamp.shape === 'triangle') {
+          ctx.beginPath()
+          ctx.moveTo(x, y - size / 2)
+          ctx.lineTo(x - size / 2, y + size / 2)
+          ctx.lineTo(x + size / 2, y + size / 2)
+          ctx.closePath()
+          ctx.fill()
+        } else if (stamp.shape === 'square') {
+          ctx.fillRect(x - size / 2, y - size / 2, size, size)
+        } else if (stamp.shape === 'star') {
+          // 별 그리기
+          const spikes = 5
+          const outerRadius = size / 2
+          const innerRadius = size / 4
+          
+          ctx.beginPath()
+          for (let i = 0; i < spikes * 2; i++) {
+            const radius = i % 2 === 0 ? outerRadius : innerRadius
+            const angle = (Math.PI / spikes) * i - Math.PI / 2
+            const px = x + Math.cos(angle) * radius
+            const py = y + Math.sin(angle) * radius
+            
+            if (i === 0) {
+              ctx.moveTo(px, py)
+            } else {
+              ctx.lineTo(px, py)
+            }
+          }
+          ctx.closePath()
+          ctx.fill()
+        }
+        
+        if (isSelected) {
+          ctx.strokeStyle = '#1F2937'
+          ctx.lineWidth = 2
+          ctx.globalAlpha = 1
+          ctx.strokeRect(x - size / 2 - 5, y - size / 2 - 5, size + 10, size + 10)
+        }
       }
 
       ctx.restore()
@@ -473,6 +527,36 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
           createdAt: new Date().toISOString(),
           modifiedAt: new Date().toISOString()
         } as DrawingMarkup)
+      } else if (activeTool === 'stamp') {
+        // 스탬프 도구 - 클릭 즉시 스탬프 추가
+        const stampSettings = editorState.toolState.stampSettings || {
+          shape: 'circle',
+          size: 'medium',
+          color: '#FF0000'
+        }
+        
+        const newStamp = {
+          id: `markup-${Date.now()}`,
+          type: 'stamp' as const,
+          x: coords.x,
+          y: coords.y,
+          shape: stampSettings.shape,
+          size: stampSettings.size,
+          color: stampSettings.color,
+          createdAt: new Date().toISOString(),
+          modifiedAt: new Date().toISOString()
+        }
+        
+        // 즉시 스탬프를 마킹 객체에 추가
+        onStateChange(prev => ({
+          ...prev,
+          markupObjects: [...prev.markupObjects, newStamp],
+          undoStack: [...prev.undoStack, prev.markupObjects],
+          redoStack: []
+        }))
+        
+        // 마우스 다운 상태를 false로 유지하여 드래그 방지
+        setIsMouseDown(false)
       }
     }
 

@@ -1,14 +1,19 @@
 'use client'
 
+import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import type { ToolType } from '@/types/markup'
+import type { ToolType, StampToolState } from '@/types/markup'
 import { getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
 import {
   MousePointer,
   Square,
   Type,
   Pencil,
+  Stamp,
+  Circle,
+  Triangle,
+  Star,
   Undo2,
   Redo2,
   Trash2,
@@ -29,6 +34,8 @@ interface ToolPaletteProps {
   isMobile: boolean
   isLargeFont?: boolean
   touchMode?: string
+  stampSettings?: StampToolState
+  onStampSettingsChange?: (settings: StampToolState) => void
 }
 
 export function ToolPalette({
@@ -42,8 +49,11 @@ export function ToolPalette({
   hasSelection,
   isMobile,
   isLargeFont = false,
-  touchMode = 'normal'
+  touchMode = 'normal',
+  stampSettings = { shape: 'circle', size: 'medium', color: '#FF0000' },
+  onStampSettingsChange
 }: ToolPaletteProps) {
+  const [showStampOptions, setShowStampOptions] = useState(false)
   // 모바일에서는 필수 도구만 표시
   const tools = isMobile ? [
     { id: 'select' as ToolType, icon: MousePointer, label: '선택', color: 'text-blue-600 dark:text-blue-400', bgColor: '' },
@@ -52,6 +62,7 @@ export function ToolPalette({
     { id: 'box-blue' as ToolType, icon: Square, label: '작업완료', color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-500 dark:bg-blue-500' },
     { id: 'text' as ToolType, icon: Type, label: '텍스트', color: 'text-indigo-600 dark:text-indigo-400', bgColor: '' },
     { id: 'pen' as ToolType, icon: Pencil, label: '펜', color: 'text-pink-600 dark:text-pink-400', bgColor: '' },
+    { id: 'stamp' as ToolType, icon: Stamp, label: '스탬프', color: 'text-orange-600 dark:text-orange-400', bgColor: '' },
   ] : [
     { id: 'select' as ToolType, icon: MousePointer, label: '선택', color: 'text-blue-600 dark:text-blue-400', bgColor: '' },
     { id: 'box-gray' as ToolType, icon: Square, label: '자재구간', color: 'text-gray-700 dark:text-gray-300', bgColor: 'bg-gray-500 dark:bg-gray-500' },
@@ -59,6 +70,7 @@ export function ToolPalette({
     { id: 'box-blue' as ToolType, icon: Square, label: '작업완료', color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-500 dark:bg-blue-500' },
     { id: 'text' as ToolType, icon: Type, label: '텍스트', color: 'text-indigo-600 dark:text-indigo-400', bgColor: '' },
     { id: 'pen' as ToolType, icon: Pencil, label: '펜', color: 'text-pink-600 dark:text-pink-400', bgColor: '' },
+    { id: 'stamp' as ToolType, icon: Stamp, label: '스탬프', color: 'text-orange-600 dark:text-orange-400', bgColor: '' },
   ]
 
   const actions = [
@@ -72,6 +84,38 @@ export function ToolPalette({
     { id: 'zoom-in' as ToolType, icon: ZoomIn, label: '확대', color: 'text-green-600 dark:text-green-400' },
     { id: 'zoom-out' as ToolType, icon: ZoomOut, label: '축소', color: 'text-green-600 dark:text-green-400' },
   ]
+
+  // 스탬프 옵션들
+  const stampShapes = [
+    { value: 'circle' as const, icon: Circle, label: '원' },
+    { value: 'triangle' as const, icon: Triangle, label: '삼각형' },
+    { value: 'square' as const, icon: Square, label: '사각형' },
+    { value: 'star' as const, icon: Star, label: '별' },
+  ]
+  
+  const stampColors = [
+    { value: '#FF0000', label: '빨강' },
+    { value: '#0000FF', label: '파랑' },
+    { value: '#FFFF00', label: '노랑' },
+    { value: '#00FF00', label: '초록' },
+    { value: '#000000', label: '검정' },
+  ]
+  
+  const stampSizes = [
+    { value: 'small' as const, label: 'S', size: 20 },
+    { value: 'medium' as const, label: 'M', size: 40 },
+    { value: 'large' as const, label: 'L', size: 60 },
+  ]
+
+  const handleToolClick = (toolId: ToolType) => {
+    console.log('Tool clicked:', toolId)
+    if (toolId === 'stamp') {
+      setShowStampOptions(!showStampOptions)
+    } else {
+      setShowStampOptions(false)
+    }
+    onToolChange(toolId)
+  }
 
   if (isMobile) {
     // 모바일 2행 레이아웃 - 더 예쁘고 선명한 디자인
@@ -87,7 +131,7 @@ export function ToolPalette({
                 size="compact"
                 onClick={() => {
                   console.log('Tool clicked:', tool.id, tool.label)
-                  onToolChange(tool.id)
+                  handleToolClick(tool.id)
                 }}
                 className={cn(
                   "min-w-[48px] min-h-[48px] p-2 rounded-xl",
@@ -161,7 +205,7 @@ export function ToolPalette({
                 size="compact"
                 onClick={() => {
                   console.log('Tool clicked:', tool.id, tool.label)
-                  onToolChange(tool.id)
+                  handleToolClick(tool.id)
                 }}
                 className={cn(
                   "min-w-[48px] min-h-[48px] p-2 rounded-xl",
@@ -243,7 +287,7 @@ export function ToolPalette({
             size="compact"
             onClick={() => {
               console.log('Tool clicked (desktop):', tool.id, tool.label) // 디버깅용
-              onToolChange(tool.id)
+              handleToolClick(tool.id)
             }}
             className={cn(
               "w-full flex items-center justify-center gap-1",
@@ -323,6 +367,57 @@ export function ToolPalette({
             )}
           </Button>
         ))}
+        
+        {/* 스탬프 옵션 패널 */}
+        {showStampOptions && activeTool === 'stamp' && (
+          <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">모양</div>
+            <div className="flex gap-1 mb-3">
+              {stampShapes.map(shape => (
+                <Button
+                  key={shape.value}
+                  variant={stampSettings.shape === shape.value ? 'primary' : 'ghost'}
+                  size="compact"
+                  onClick={() => onStampSettingsChange?.({ ...stampSettings, shape: shape.value })}
+                  className="p-1 w-8 h-8"
+                  title={shape.label}
+                >
+                  <shape.icon className="h-4 w-4" />
+                </Button>
+              ))}
+            </div>
+            
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">색상</div>
+            <div className="flex gap-1 mb-3">
+              {stampColors.map(color => (
+                <Button
+                  key={color.value}
+                  variant={stampSettings.color === color.value ? 'primary' : 'ghost'}
+                  size="compact"
+                  onClick={() => onStampSettingsChange?.({ ...stampSettings, color: color.value })}
+                  className="p-1 w-8 h-8"
+                  style={{ backgroundColor: color.value }}
+                  title={color.label}
+                />
+              ))}
+            </div>
+            
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">크기</div>
+            <div className="flex gap-1">
+              {stampSizes.map(size => (
+                <Button
+                  key={size.value}
+                  variant={stampSettings.size === size.value ? 'primary' : 'ghost'}
+                  size="compact"
+                  onClick={() => onStampSettingsChange?.({ ...stampSettings, size: size.value })}
+                  className="p-1 px-2"
+                >
+                  {size.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
