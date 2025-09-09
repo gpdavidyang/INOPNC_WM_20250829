@@ -15,7 +15,7 @@ export default function SiteManagementList() {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
-  const [sortField, setSortField] = useState<'name' | 'address' | 'status' | 'start_date' | 'manager_name' | 'assigned_users' | 'total_reports'>('name')
+  const [sortField, setSortField] = useState<'name' | 'address' | 'status' | 'start_date' | 'manager_name' | 'total_manhours' | 'total_reports'>('name')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createLoading, setCreateLoading] = useState(false)
@@ -51,27 +51,44 @@ export default function SiteManagementList() {
       setSites(sitesData || [])
       setLoading(false)
       
-      // Then fetch counts in background
+      // Then fetch counts and manhours in background
       if (sitesData && sitesData.length > 0) {
-        // Fetch counts for both card and list views
+        // Fetch counts and manhours for both card and list views
         const sitesWithCounts = await Promise.all(
           sitesData.map(async (site) => {
             try {
-              const [userCount, reportCount] = await Promise.all([
-                supabase.from('site_assignments').select('id', { count: 'exact', head: true }).eq('site_id', site.id).eq('is_active', true),
-                supabase.from('daily_reports').select('id', { count: 'exact', head: true }).eq('site_id', site.id)
-              ])
+              // Fetch daily reports for this site
+              const { data: dailyReports } = await supabase
+                .from('daily_reports')
+                .select('id')
+                .eq('site_id', site.id)
+              
+              // Calculate total manhours from worker assignments
+              let totalManhours = 0
+              if (dailyReports && dailyReports.length > 0) {
+                const reportIds = dailyReports.map(r => r.id)
+                const { data: assignments } = await supabase
+                  .from('worker_assignments')
+                  .select('labor_hours')
+                  .in('daily_report_id', reportIds)
+                
+                if (assignments) {
+                  totalManhours = assignments.reduce((sum, a) => sum + (Number(a.labor_hours) || 0), 0)
+                }
+              }
+              
+              const reportCount = dailyReports?.length || 0
               
               return {
                 ...site,
-                assigned_users: userCount.count || 0,
-                total_reports: reportCount.count || 0
+                total_manhours: totalManhours,
+                total_reports: reportCount
               }
             } catch (error) {
               console.warn(`Failed to fetch counts for site ${site.id}:`, error)
               return {
                 ...site,
-                assigned_users: 0,
+                total_manhours: 0,
                 total_reports: 0
               }
             }
@@ -261,11 +278,11 @@ export default function SiteManagementList() {
             <th 
               scope="col" 
               className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
-              onClick={() => handleSort('assigned_users')}
+              onClick={() => handleSort('total_manhours')}
             >
               <div className="flex items-center justify-center gap-1">
-                작업자수
-                {getSortIcon('assigned_users')}
+                공수
+                {getSortIcon('total_manhours')}
               </div>
             </th>
             <th 
@@ -350,7 +367,7 @@ export default function SiteManagementList() {
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-center">
                 <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">
-                  {site.assigned_users || 0}
+                  {site.total_manhours ? site.total_manhours.toFixed(1) : 0}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -551,9 +568,9 @@ export default function SiteManagementList() {
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center">
                         <svg className="h-4 w-4 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{site.assigned_users || 0}</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{site.total_manhours ? site.total_manhours.toFixed(1) : 0}</span>
                       </div>
                       <div className="flex items-center">
                         <svg className="h-4 w-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
