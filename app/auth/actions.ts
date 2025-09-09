@@ -7,75 +7,117 @@ import { ProfileManager } from '@/lib/auth/profile-manager'
 import type { UserRole } from '@/types'
 
 export async function signIn(email: string, password: string) {
-  const supabase = createClient()
-
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-
-  if (error) {
-    // TODO: Log failed login attempt when log_auth_event function is created
-    // try {
-    //   await supabase.rpc('log_auth_event', {
-    //     user_id: email,
-    //     event_type: 'login_failed',
-    //     details: { error: error.message }
-    //   })
-    // } catch (logError) {
-    //   console.error('Failed to log auth event:', logError)
-    // }
+  try {
+    console.log('[SIGN_IN] Starting login process for:', email)
     
-    return { error: error.message }
-  }
+    const supabase = createClient()
+    console.log('[SIGN_IN] Supabase client created successfully')
 
-  // Update login stats using ProfileManager
-  if (data.user) {
-    try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('login_count, role')
-        .eq('id', data.user.id)
-        .single()
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    console.log('[SIGN_IN] Auth response received:', { 
+      hasData: !!data, 
+      hasUser: !!data?.user,
+      hasSession: !!data?.session,
+      error: error?.message 
+    })
+
+    if (error) {
+      console.error('[SIGN_IN] Authentication failed:', error.message)
+      // TODO: Log failed login attempt when log_auth_event function is created
+      // try {
+      //   await supabase.rpc('log_auth_event', {
+      //     user_id: email,
+      //     event_type: 'login_failed',
+      //     details: { error: error.message }
+      //   })
+      // } catch (logError) {
+      //   console.error('Failed to log auth event:', logError)
+      // }
       
-      if (profile) {
-        await supabase
-          .from('profiles')
-          .update({ 
-            last_login_at: new Date().toISOString(),
-            login_count: (profile.login_count || 0) + 1
-          })
-          .eq('id', data.user.id)
-        
-        // Set role cookie for UI mode detection
-        try {
-          const cookieStore = cookies()
-          cookieStore.set('user-role', profile.role, {
-            httpOnly: false, // Allow client-side access for UI detection
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
-            maxAge: 60 * 60 * 24 * 7, // 7 days
-            path: '/'
-          })
-        } catch (cookieError) {
-          console.error('Failed to set role cookie:', cookieError)
-          // Continue execution - cookie setting is non-critical for login success
-        }
-      }
+      return { error: error.message }
+    }
 
-      // TODO: Log successful login when log_auth_event function is created
-      // await supabase.rpc('log_auth_event', {
-      //   user_id: data.user.id,
-      //   event_type: 'login',
-      //   details: { email }
-      // })
-    } catch (updateError) {
-      console.error('Failed to update login stats:', updateError)
+    // Update login stats using ProfileManager
+    if (data.user) {
+      try {
+        console.log('[SIGN_IN] Updating user profile and login stats')
+        
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('login_count, role')
+          .eq('id', data.user.id)
+          .single()
+        
+        if (profileError) {
+          console.error('[SIGN_IN] Profile fetch error:', profileError)
+        }
+        
+        if (profile) {
+          console.log('[SIGN_IN] Profile found, updating stats')
+          
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ 
+              last_login_at: new Date().toISOString(),
+              login_count: (profile.login_count || 0) + 1
+            })
+            .eq('id', data.user.id)
+          
+          if (updateError) {
+            console.error('[SIGN_IN] Profile update error:', updateError)
+          }
+          
+          // Set role cookie for UI mode detection
+          try {
+            console.log('[SIGN_IN] Setting role cookie:', profile.role)
+            const cookieStore = cookies()
+            cookieStore.set('user-role', profile.role, {
+              httpOnly: false, // Allow client-side access for UI detection
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7, // 7 days
+              path: '/'
+            })
+            console.log('[SIGN_IN] Role cookie set successfully')
+          } catch (cookieError) {
+            console.error('[SIGN_IN] Failed to set role cookie:', cookieError)
+            // Continue execution - cookie setting is non-critical for login success
+          }
+        } else {
+          console.warn('[SIGN_IN] No profile found for user:', data.user.id)
+        }
+
+        // TODO: Log successful login when log_auth_event function is created
+        // await supabase.rpc('log_auth_event', {
+        //   user_id: data.user.id,
+        //   event_type: 'login',
+        //   details: { email }
+        // })
+      } catch (updateError) {
+        console.error('[SIGN_IN] Failed to update login stats:', updateError)
+        // Don't fail login for stats update errors
+      }
+    }
+
+    console.log('[SIGN_IN] Login process completed successfully')
+    // Return success without redirect - let client handle navigation
+    return { success: true }
+    
+  } catch (outerError) {
+    console.error('[SIGN_IN] Outer catch - unexpected error during signIn:', outerError)
+    console.error('[SIGN_IN] Stack trace:', outerError instanceof Error ? outerError.stack : 'No stack trace')
+    
+    // Return user-friendly error message
+    return { 
+      error: process.env.NODE_ENV === 'production' 
+        ? 'Login failed due to a server error. Please try again.' 
+        : `Login error: ${outerError instanceof Error ? outerError.message : 'Unknown error'}`
     }
   }
-
-  // Return success without redirect - let client handle navigation
-  return { success: true }
 }
 
 export async function signUp(

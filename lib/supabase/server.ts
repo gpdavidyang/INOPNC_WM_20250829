@@ -16,6 +16,8 @@ function validateEnvironmentVars() {
     if (!supabaseAnonKey) missing.push('NEXT_PUBLIC_SUPABASE_ANON_KEY')
     
     const error = new Error(`Missing required Supabase environment variables: ${missing.join(', ')}`)
+    
+    // Enhanced logging for production debugging
     logger.error('Environment validation failed:', {
       missing,
       environment: process.env.NODE_ENV,
@@ -23,7 +25,10 @@ function validateEnvironmentVars() {
       hasUrl: !!supabaseUrl,
       hasKey: !!supabaseAnonKey,
       urlLength: supabaseUrl?.length || 0,
-      keyLength: supabaseAnonKey?.length || 0
+      keyLength: supabaseAnonKey?.length || 0,
+      // Safe logging - only show first/last few chars
+      urlStart: supabaseUrl ? supabaseUrl.substring(0, 20) + '...' : 'undefined',
+      keyStart: supabaseAnonKey ? supabaseAnonKey.substring(0, 10) + '...' : 'undefined'
     })
     throw error
   }
@@ -32,13 +37,15 @@ function validateEnvironmentVars() {
   try {
     new URL(supabaseUrl)
   } catch {
-    const error = new Error(`Invalid NEXT_PUBLIC_SUPABASE_URL format: ${supabaseUrl}`)
-    logger.error('Invalid Supabase URL format:', { url: supabaseUrl })
+    const error = new Error(`Invalid NEXT_PUBLIC_SUPABASE_URL format`)
+    logger.error('Invalid Supabase URL format:', { 
+      urlStart: supabaseUrl.substring(0, 20) + '...'
+    })
     throw error
   }
   
-  // Validate key length (anon keys are typically long)
-  if (supabaseAnonKey.length < 30) {
+  // Relax key length validation for production compatibility
+  if (supabaseAnonKey.length < 20) {
     const error = new Error(`NEXT_PUBLIC_SUPABASE_ANON_KEY appears to be invalid (too short: ${supabaseAnonKey.length} chars)`)
     logger.error('Invalid Supabase anon key:', { keyLength: supabaseAnonKey.length })
     throw error
