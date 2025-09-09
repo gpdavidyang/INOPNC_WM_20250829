@@ -85,9 +85,7 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <head>
         {/* Force Desktop UI initialization - MUST run before React hydration */}
-        {process.env.NEXT_PUBLIC_ENABLE_FIXED_UI_MODE === 'true' && (
-          <script src="/force-desktop-init.js" />
-        )}
+        <script src="/force-desktop-init.js" />
         <script dangerouslySetInnerHTML={{
           __html: `
             // Suppress Chrome extension console errors in development

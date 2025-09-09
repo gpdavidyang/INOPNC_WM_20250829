@@ -237,9 +237,12 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
 
   if (!isOpen || !request) return null
 
+  // customer_manager must have partner_company_id
+  const needsPartnerCompany = request.requested_role === 'customer_manager'
+  
+  // Optional organization for workers and site_managers (backward compatibility)
   const needsOrganization = request.requested_role === 'worker' || 
-                           request.requested_role === 'site_manager' ||
-                           request.requested_role === 'customer_manager'
+                           request.requested_role === 'site_manager'
   
   const needsSite = request.requested_role === 'worker' || 
                     request.requested_role === 'site_manager'
@@ -297,14 +300,56 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
 
           {/* Assignment Section */}
           <div className="space-y-6">
-            {/* Organization Selection */}
+            {/* Partner Company Selection for customer_manager */}
+            {needsPartnerCompany && (
+              <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
+                    <Building className="h-4 w-4 text-gray-500" />
+                    소속 파트너사 선택
+                    <span className="text-red-500 ml-1">*필수</span>
+                  </label>
+                  {selectedOrganization && (
+                    <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      선택완료
+                    </span>
+                  )}
+                </div>
+                <select
+                  value={selectedOrganization}
+                  onChange={(e) => setSelectedOrganization(e.target.value)}
+                  className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
+                    selectedOrganization 
+                      ? 'border-green-300 bg-green-50 focus:border-green-500' 
+                      : 'border-gray-300 bg-white focus:border-blue-500'
+                  } focus:ring-2 focus:ring-blue-200 focus:outline-none`}
+                >
+                  <option value="">-- 파트너사를 선택하세요 --</option>
+                  {organizations.length > 0 ? (
+                    organizations.map((org) => (
+                      <option key={org.id} value={org.id}>
+                        {org.name} {org.business_number && `(사업자번호: ${org.business_number})`}
+                      </option>
+                    ))
+                  ) : (
+                    <option value="" disabled>파트너사 데이터를 불러오는 중...</option>
+                  )}
+                </select>
+                <p className="mt-2 text-xs text-gray-500">
+                  파트너사 관리자가 소속될 파트너사를 선택해주세요. 이 사용자는 선택된 파트너사의 데이터만 접근할 수 있습니다.
+                </p>
+              </div>
+            )}
+
+            {/* Organization Selection for workers/site_managers (optional) */}
             {needsOrganization && (
               <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                     <Building className="h-4 w-4 text-gray-500" />
                     파트너사 선택
-                    <span className="text-red-500 ml-1">*필수</span>
+                    <span className="text-gray-500 ml-1">(선택사항)</span>
                   </label>
                   {selectedOrganization && (
                     <span className="text-xs text-green-600 font-medium flex items-center gap-1">
