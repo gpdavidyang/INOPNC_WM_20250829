@@ -2,10 +2,10 @@
 // Provides offline functionality and intelligent caching for construction sites
 
 // Updated cache version to force refresh in PWA
-const CACHE_NAME = 'inopnc-wm-v1.3.1'
-const STATIC_CACHE = 'inopnc-static-v1.3.1'
-const API_CACHE = 'inopnc-api-v1.3.1'
-const IMAGES_CACHE = 'inopnc-images-v1.1.2'
+const CACHE_NAME = 'inopnc-wm-v1.5.0'
+const STATIC_CACHE = 'inopnc-static-v1.5.0'
+const API_CACHE = 'inopnc-api-v1.5.0'
+const IMAGES_CACHE = 'inopnc-images-v1.2.0'
 const OFFLINE_PAGE = '/offline'
 
 // Cache size limits for mobile devices
@@ -14,6 +14,7 @@ const MAX_IMAGE_CACHE_SIZE = 200 * 1024 * 1024 // 200MB for images
 const MAX_API_CACHE_SIZE = 50 * 1024 * 1024 // 50MB for API responses
 
 // Critical pages that should always be cached
+// NOTE: Auth pages removed to prevent login issues
 const CRITICAL_PAGES = [
   '/',
   '/dashboard',
@@ -21,7 +22,6 @@ const CRITICAL_PAGES = [
   '/dashboard/attendance',
   '/dashboard/materials',
   '/dashboard/site-info',
-  '/auth/login',
   '/offline'
 ]
 
@@ -94,6 +94,22 @@ self.addEventListener('activate', event => {
           })
         )
       }),
+      // Clear any cached auth pages from current caches
+      caches.open(CACHE_NAME).then(cache => {
+        return cache.keys().then(requests => {
+          const authRequests = requests.filter(request => {
+            const url = new URL(request.url)
+            return url.pathname.includes('/auth/') || 
+                   url.pathname === '/auth' ||
+                   url.pathname.includes('/login') ||
+                   url.pathname.includes('/signup')
+          })
+          return Promise.all(authRequests.map(request => {
+            console.log('[ServiceWorker] Removing cached auth page:', request.url)
+            return cache.delete(request)
+          }))
+        })
+      }),
       // Take control of all pages
       self.clients.claim()
     ]).then(() => {
@@ -115,6 +131,18 @@ self.addEventListener('fetch', event => {
   // Suppress Chrome extension errors by explicitly ignoring them
   if (url.href.includes('chrome-extension://pejdijmoenmkgeppbflobdenhhabjlaj')) {
     console.warn('[ServiceWorker] Ignoring Chrome extension resource request:', url.href)
+    return
+  }
+  
+  // CRITICAL: Never cache auth-related pages - always fetch fresh
+  if (url.pathname.includes('/auth/') || 
+      url.pathname.includes('/api/auth/') ||
+      url.pathname === '/auth' ||
+      url.pathname.includes('/login') ||
+      url.pathname.includes('/signup') ||
+      url.pathname.includes('/signin')) {
+    console.log('[ServiceWorker] Auth page requested, fetching fresh:', url.pathname)
+    event.respondWith(fetch(request))
     return
   }
   
