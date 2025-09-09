@@ -537,7 +537,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                           report.process_type
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">작업인원</td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-700 bg-gray-50">공수</td>
                       <td className="px-4 py-3 text-sm text-gray-900">
                         {loadingWorkers ? (
                           <div className="flex items-center">
@@ -548,11 +548,11 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                           <div className="flex items-center gap-3">
                             <div>
                               <div className="text-sm font-medium text-gray-900">
-                                실제: {actualWorkersCount}명
+                                {actualWorkersCount}명
                               </div>
                               {actualWorkersCount !== report.total_workers && (
                                 <div className="text-xs text-gray-500">
-                                  기록: {report.total_workers}명
+                                  기록된 공수: {report.total_workers}명
                                   <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs">
                                     불일치
                                   </span>
@@ -561,7 +561,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                             </div>
                             {actualWorkersCount === 0 && (
                               <div className="text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded">
-                                작업자 상세 정보 없음
+                                작업자 정보 없음
                               </div>
                             )}
                           </div>
