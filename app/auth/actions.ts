@@ -48,14 +48,19 @@ export async function signIn(email: string, password: string) {
           .eq('id', data.user.id)
         
         // Set role cookie for UI mode detection
-        const cookieStore = cookies()
-        cookieStore.set('user-role', profile.role, {
-          httpOnly: false, // Allow client-side access for UI detection
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-          maxAge: 60 * 60 * 24 * 7, // 7 days
-          path: '/'
-        })
+        try {
+          const cookieStore = cookies()
+          cookieStore.set('user-role', profile.role, {
+            httpOnly: false, // Allow client-side access for UI detection
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7, // 7 days
+            path: '/'
+          })
+        } catch (cookieError) {
+          console.error('Failed to set role cookie:', cookieError)
+          // Continue execution - cookie setting is non-critical for login success
+        }
       }
 
       // TODO: Log successful login when log_auth_event function is created
@@ -192,8 +197,13 @@ export async function signOut() {
   }
   
   // Delete role cookie on sign out
-  const cookieStore = cookies()
-  cookieStore.delete('user-role')
+  try {
+    const cookieStore = cookies()
+    cookieStore.delete('user-role')
+  } catch (cookieError) {
+    console.error('Failed to delete role cookie:', cookieError)
+    // Continue execution - cookie deletion is non-critical
+  }
   
   // Return success and let the client handle the redirect
   return { success: true }

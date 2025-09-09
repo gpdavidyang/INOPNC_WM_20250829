@@ -21,9 +21,18 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const handleLogin = async (formData: FormData) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    
+    const formData = new FormData(e.currentTarget)
     const email = formData.get('email') as string
     const password = formData.get('password') as string
+    
+    // Basic client-side validation
+    if (!email || !password) {
+      setError('이메일과 비밀번호를 입력해주세요.')
+      return
+    }
     
     setError(null)
     
@@ -101,7 +110,7 @@ export default function LoginPage() {
         <div className="bg-white/98 backdrop-blur-xl rounded-[2rem] shadow-[0_24px_48px_rgba(0,0,0,0.12),_0_8px_16px_rgba(0,0,0,0.04)] border border-white/60 p-8 sm:p-12 ring-1 ring-gray-100/30 before:absolute before:inset-0 before:rounded-[2rem] before:bg-gradient-to-br before:from-white/80 before:to-white/40 before:opacity-60 before:-z-10 relative">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6 sm:mb-8 text-center tracking-tight">로그인</h2>
           
-          <form action={handleLogin} className="space-y-3 sm:space-y-6">
+          <form onSubmit={handleLogin} className="space-y-3 sm:space-y-6">
             <div className="space-y-1 sm:space-y-2">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 이메일
