@@ -22,25 +22,25 @@ export default function SummaryCards({
   const cards = [
     {
       title: '총 작업자',
-      value: `${totalWorkers}명`,
+      value: `${totalWorkers || 0}명`,
       icon: Users,
       color: 'bg-blue-500'
     },
     {
       title: '총 공수',
-      value: `${totalManhours.toFixed(1)}`,
+      value: `${(totalManhours || 0).toFixed(1)}`,
       icon: Calculator,
       color: 'bg-green-500'
     },
     {
       title: '총 급여',
-      value: `₩${formatNumber(totalSalary)}`,
+      value: `₩${formatNumber(totalSalary || 0)}`,
       icon: DollarSign,
       color: 'bg-purple-500'
     },
     {
       title: '평균 급여',
-      value: `₩${formatNumber(Math.round(averageSalary))}`,
+      value: `₩${formatNumber(Math.round(averageSalary || 0))}`,
       icon: Calendar,
       color: 'bg-orange-500'
     }

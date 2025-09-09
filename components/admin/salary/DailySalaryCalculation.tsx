@@ -148,8 +148,8 @@ export default function DailySalaryCalculation() {
   
   const calculateSummary = (data: DailySalaryData[]) => {
     const uniqueWorkers = new Set(data.map(d => d.worker_id)).size
-    const totalManhours = data.reduce((sum, d) => sum + d.labor_hours, 0)
-    const totalSalary = data.reduce((sum, d) => sum + d.total_pay, 0)
+    const totalManhours = data.reduce((sum, d) => sum + (d.labor_hours || 0), 0)
+    const totalSalary = data.reduce((sum, d) => sum + (d.total_pay || 0), 0)
     const averageHourlyRate = totalManhours > 0 ? totalSalary / totalManhours : 0
     
     setSummaryStats({
@@ -181,12 +181,12 @@ export default function DailySalaryCalculation() {
       '작업자': item.worker_name,
       '역할': item.worker_role === 'site_manager' ? '현장관리자' : '작업자',
       '현장': item.site_name,
-      '총공수': item.labor_hours,
-      '시급': item.hourly_rate,
-      '일당': item.daily_rate,
-      '연장근무': item.overtime_hours,
-      '연장수당': item.overtime_pay,
-      '총급여': item.total_pay
+      '총공수': item.labor_hours || 0,
+      '시급': item.hourly_rate || 0,
+      '일당': item.daily_rate || 0,
+      '연장근무': item.overtime_hours || 0,
+      '연장수당': item.overtime_pay || 0,
+      '총급여': item.total_pay || 0
     }))
     
     const ws = XLSX.utils.json_to_sheet(excelData)
@@ -210,8 +210,8 @@ export default function DailySalaryCalculation() {
       }
     }
     acc[item.worker_id].records.push(item)
-    acc[item.worker_id].totalManhours += item.labor_hours
-    acc[item.worker_id].totalSalary += item.total_pay
+    acc[item.worker_id].totalManhours += (item.labor_hours || 0)
+    acc[item.worker_id].totalSalary += (item.total_pay || 0)
     return acc
   }, {} as Record<string, any>)
   
@@ -350,15 +350,15 @@ export default function DailySalaryCalculation() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                          {worker.totalManhours.toFixed(1)}
+                          {(worker.totalManhours || 0).toFixed(1)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-gray-100">
-                        ₩{Math.round(worker.totalSalary / worker.totalManhours).toLocaleString()}
+                        ₩{Math.round((worker.totalSalary || 0) / (worker.totalManhours || 1)).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="text-sm font-bold text-green-600 dark:text-green-400">
-                          ₩{worker.totalSalary.toLocaleString()}
+                          ₩{(worker.totalSalary || 0).toLocaleString()}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -398,11 +398,11 @@ export default function DailySalaryCalculation() {
                                     </div>
                                     <div className="text-right">
                                       <p className="text-sm font-semibold text-green-600 dark:text-green-400">
-                                        ₩{record.total_pay.toLocaleString()}
+                                        ₩{(record.total_pay || 0).toLocaleString()}
                                       </p>
                                       <p className="text-xs text-gray-600 dark:text-gray-400">
-                                        {record.labor_hours}시간
-                                        {record.overtime_hours > 0 && ` (+${record.overtime_hours})`}
+                                        {record.labor_hours || 0}시간
+                                        {(record.overtime_hours || 0) > 0 && ` (+${record.overtime_hours || 0})`}
                                       </p>
                                     </div>
                                   </div>

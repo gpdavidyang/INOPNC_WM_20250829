@@ -227,10 +227,10 @@ export default function SalaryStatementManager() {
 총공수: ${statement.statement_data.total_manhours}시간
 
 급여 내역:
-- 기본급: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.base_salary)}
-- 수당: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.allowances)}
-- 공제: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.deductions)}
-- 실수령액: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.net_salary)}
+- 기본급: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.base_salary || 0)}
+- 수당: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.allowances || 0)}
+- 공제: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.deductions || 0)}
+- 실수령액: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.net_salary || 0)}
 
 현장별 근무내역:
 ${statement.statement_data.site_details.map(site => 
@@ -402,10 +402,10 @@ ${statement.statement_data.site_details.map(site =>
                       {statement.statement_data.work_days}일
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
-                      {statement.statement_data.total_manhours.toFixed(1)}
+                      {(statement.statement_data.total_manhours || 0).toFixed(1)}
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium text-gray-900 dark:text-gray-100">
-                      ₩{new Intl.NumberFormat('ko-KR').format(statement.statement_data.net_salary)}
+                      ₩{new Intl.NumberFormat('ko-KR').format(statement.statement_data.net_salary || 0)}
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
                       {formatDate(statement.created_at)}
