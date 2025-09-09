@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import DailyReportFormEdit from '@/components/daily-reports/daily-report-form-edit'
+import DailyReportForm from '@/components/daily-reports/daily-report-form'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
@@ -99,14 +99,18 @@ export default async function AdminEditDailyReportPage({ params }: PageProps) {
       </div>
 
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <DailyReportFormEdit
-          report={report}
+        <DailyReportForm
+          mode="edit"
+          reportData={{
+            ...report,
+            worker_entries: workerDetails,
+            receipts: dailyDocuments?.filter(doc => doc.file_type === 'receipt'),
+            additional_photos: dailyDocuments?.filter(doc => doc.file_type === 'photo')
+          }}
           sites={sites || []}
           currentUser={profile as any}
           materials={materials || []}
           workers={workers || []}
-          workerDetails={workerDetails || []}
-          dailyDocuments={dailyDocuments || []}
         />
       </div>
     </div>

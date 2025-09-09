@@ -13,12 +13,13 @@ interface User {
 
 interface DocumentRequirement {
   id: string
-  requirement_name: string
-  document_type: string
+  code: string
+  name_ko: string
+  name_en?: string
   description?: string
-  file_format_allowed: string[]
-  max_file_size_mb: number
-  instructions?: string
+  file_types: string[]
+  max_file_size: number
+  sort_order: number
 }
 
 interface RequiredDocumentUploadModalProps {
@@ -79,10 +80,10 @@ export default function RequiredDocumentUploadModal({
   const fetchRequirements = async () => {
     try {
       const { data, error } = await supabase
-        .from('document_requirements')
+        .from('required_document_types')
         .select('*')
         .eq('is_active', true)
-        .order('requirement_name')
+        .order('sort_order')
 
       if (error) throw error
       setRequirements(data || [])
@@ -116,15 +117,16 @@ export default function RequiredDocumentUploadModal({
 
     // Validate file type
     const fileExtension = file.name.split('.').pop()?.toLowerCase()
-    if (fileExtension && !selectedReq.file_format_allowed.includes(fileExtension)) {
-      setError(`지원되지 않는 파일 형식입니다. 허용된 형식: ${selectedReq.file_format_allowed.join(', ').toUpperCase()}`)
+    if (fileExtension && !selectedReq.file_types.includes(fileExtension)) {
+      setError(`지원되지 않는 파일 형식입니다. 허용된 형식: ${selectedReq.file_types.join(', ').toUpperCase()}`)
       return
     }
 
     // Validate file size
-    const fileSizeMB = file.size / (1024 * 1024)
-    if (fileSizeMB > selectedReq.max_file_size_mb) {
-      setError(`파일 크기는 ${selectedReq.max_file_size_mb}MB를 초과할 수 없습니다.`)
+    const fileSizeBytes = file.size
+    if (fileSizeBytes > selectedReq.max_file_size) {
+      const maxSizeMB = (selectedReq.max_file_size / 1048576).toFixed(1)
+      setError(`파일 크기는 ${maxSizeMB}MB를 초과할 수 없습니다.`)
       return
     }
 
@@ -135,7 +137,7 @@ export default function RequiredDocumentUploadModal({
     if (!formData.title) {
       setFormData(prev => ({
         ...prev,
-        title: `${selectedReq.requirement_name} - ${users.find(u => u.id === formData.user_id)?.full_name || ''}`
+        title: `${selectedReq.name_ko} - ${users.find(u => u.id === formData.user_id)?.full_name || ''}`
       }))
     }
   }
@@ -220,7 +222,7 @@ export default function RequiredDocumentUploadModal({
         file_name: selectedFile!.name,
         file_size: selectedFile!.size,
         mime_type: selectedFile!.type,
-        document_type: getSelectedRequirement()?.document_type,
+        document_type: getSelectedRequirement()?.code,
         folder_path: '/required-documents',
         owner_id: (await supabase.auth.getUser()).data.user?.id,
         is_public: false,
@@ -312,7 +314,7 @@ export default function RequiredDocumentUploadModal({
                       const user = users.find(u => u.id === e.target.value)
                       setFormData(prev => ({
                         ...prev,
-                        title: `${selectedRequirement.requirement_name} - ${user?.full_name || ''}`
+                        title: `${selectedRequirement.name_ko} - ${user?.full_name || ''}`
                       }))
                     }
                   }}
@@ -343,7 +345,7 @@ export default function RequiredDocumentUploadModal({
                       const req = requirements.find(r => r.id === e.target.value)
                       setFormData(prev => ({
                         ...prev,
-                        title: `${req?.requirement_name} - ${selectedUser.full_name}`
+                        title: `${req?.name_ko} - ${selectedUser.full_name}`
                       }))
                     }
                   }}
@@ -353,23 +355,25 @@ export default function RequiredDocumentUploadModal({
                   <option value="">서류 유형을 선택하세요</option>
                   {requirements.map((req) => (
                     <option key={req.id} value={req.id}>
-                      {req.requirement_name}
+                      {req.name_ko}
                     </option>
                   ))}
                 </select>
                 {selectedRequirement && (
                   <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                    <p className="text-sm text-blue-800">
-                      <strong>설명:</strong> {selectedRequirement.description}
-                    </p>
-                    {selectedRequirement.instructions && (
+                    {selectedRequirement.description && (
+                      <p className="text-sm text-blue-800">
+                        <strong>설명:</strong> {selectedRequirement.description}
+                      </p>
+                    )}
+                    {selectedRequirement.name_en && (
                       <p className="text-sm text-blue-700 mt-1">
-                        <strong>안내사항:</strong> {selectedRequirement.instructions}
+                        <strong>영문명:</strong> {selectedRequirement.name_en}
                       </p>
                     )}
                     <p className="text-xs text-blue-600 mt-1">
-                      허용 파일 형식: {selectedRequirement.file_format_allowed.join(', ').toUpperCase()} | 
-                      최대 크기: {selectedRequirement.max_file_size_mb}MB
+                      허용 파일 형식: {selectedRequirement.file_types.join(', ').toUpperCase()} | 
+                      최대 크기: {(selectedRequirement.max_file_size / 1048576).toFixed(1)}MB
                     </p>
                   </div>
                 )}
@@ -437,7 +441,7 @@ export default function RequiredDocumentUploadModal({
                     type="file"
                     ref={fileInputRef}
                     onChange={handleFileInputChange}
-                    accept={selectedRequirement?.file_format_allowed.map(ext => `.${ext}`).join(',')}
+                    accept={selectedRequirement?.file_types.map(ext => `.${ext}`).join(',')}
                     className="hidden"
                   />
                   
@@ -459,8 +463,8 @@ export default function RequiredDocumentUploadModal({
                       </p>
                       {selectedRequirement && (
                         <p className="text-xs text-gray-500 mt-1">
-                          {selectedRequirement.file_format_allowed.join(', ').toUpperCase()} 
-                          (최대 {selectedRequirement.max_file_size_mb}MB)
+                          {selectedRequirement.file_types.join(', ').toUpperCase()} 
+                          (최대 {(selectedRequirement.max_file_size / 1048576).toFixed(1)}MB)
                         </p>
                       )}
                     </div>

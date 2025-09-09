@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Share2, Edit3, FileCheck, FileText, Image, BarChart3 } from 'lucide-react'
+import { Share2, Edit3, FileCheck, FileText, Image, BarChart3, Settings } from 'lucide-react'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 
@@ -12,6 +12,7 @@ import MarkupDocumentsManagement from './MarkupDocumentsManagement'
 import RealRequiredDocumentsManagement from './RealRequiredDocumentsManagement'
 import InvoiceDocumentsManagement from './InvoiceDocumentsManagement'
 import PhotoGridDocumentsManagement from './PhotoGridDocumentsManagement'
+import RequiredDocumentTypesAdmin from './RequiredDocumentTypesAdmin'
 
 interface Tab {
   id: string
@@ -57,6 +58,12 @@ const tabs: Tab[] = [
     label: '사진대지문서함',
     icon: Image,
     component: PhotoGridDocumentsManagement
+  },
+  {
+    id: 'document-types',
+    label: '서류 유형 관리',
+    icon: Settings,
+    component: RequiredDocumentTypesAdmin
   }
 ]
 

@@ -22,6 +22,7 @@ import WorkerSalarySettings from './WorkerSalarySettings'
 
 export default function SalaryManagement({ profile }: SalaryManagementProps) {
   const [activeTab, setActiveTab] = useState<'output' | 'calculate' | 'statements' | 'rates' | 'personal'>('output')
+  const [calculationMode, setCalculationMode] = useState<'site_based' | 'individual'>('site_based')
   
   // Output tab state
   const [outputData, setOutputData] = useState<OutputSummary[]>([])
@@ -40,6 +41,12 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
   const [workerFilter, setWorkerFilter] = useState('') // Added worker filter for salary calculation
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  
+  // Individual calculation state
+  const [selectedWorker, setSelectedWorker] = useState('')
+  const [laborHours, setLaborHours] = useState('')
+  const [workDate, setWorkDate] = useState(new Date().toISOString().split('T')[0])
+  const [individualResult, setIndividualResult] = useState<any>(null)
 
   // Salary calculation results state
   const [calculationResults, setCalculationResults] = useState<{
@@ -133,6 +140,45 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
     
     // Save file
     XLSX.writeFile(wb, filename)
+  }
+
+  // Individual salary calculation
+  const handleIndividualCalculation = async () => {
+    if (!selectedWorker || !laborHours || !workDate) {
+      alert('직원, 공수, 작업일을 모두 입력해주세요.')
+      return
+    }
+
+    const hours = parseFloat(laborHours)
+    if (hours <= 0) {
+      alert('공수는 0보다 커야 합니다.')
+      return
+    }
+
+    try {
+      setCalculationLoading(true)
+      
+      // Import the server action
+      const { calculatePersonalSalary } = await import('@/app/actions/admin/worker-salary-settings')
+      
+      const result = await calculatePersonalSalary({
+        worker_id: selectedWorker,
+        work_date: workDate,
+        labor_hours: hours
+      })
+
+      if (result.success && result.data) {
+        setIndividualResult(result.data)
+        setCalculationResults(null) // Clear site-based results
+      } else {
+        alert(result.error || '개인별 급여 계산에 실패했습니다.')
+      }
+    } catch (error) {
+      console.error('Individual calculation error:', error)
+      alert('개인별 급여 계산 중 오류가 발생했습니다.')
+    } finally {
+      setCalculationLoading(false)
+    }
   }
 
   // Load available sites
@@ -587,34 +633,67 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             <div>
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">급여 계산</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                일일 보고서 데이터를 기반으로 급여를 계산합니다.
+                {calculationMode === 'site_based' ? '일일 보고서 데이터를 기반으로 급여를 계산합니다.' : '개인별 공수 입력으로 급여를 계산합니다.'}
               </p>
             </div>
-            <button
-              onClick={handleCalculateSalaries}
-              disabled={calculationLoading}
-              className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
-                calculationLoading
-                  ? 'bg-gray-400 cursor-not-allowed text-white'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
-            >
-              {calculationLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  계산 중...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4" />
-                  급여 계산 실행
-                </>
-              )}
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Mode Toggle */}
+              <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                <button
+                  onClick={() => {
+                    setCalculationMode('site_based')
+                    setIndividualResult(null)
+                  }}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    calculationMode === 'site_based'
+                      ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                  }`}
+                >
+                  현장기반
+                </button>
+                <button
+                  onClick={() => {
+                    setCalculationMode('individual')
+                    setCalculationResults(null)
+                  }}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    calculationMode === 'individual'
+                      ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
+                  }`}
+                >
+                  개인별
+                </button>
+              </div>
+              
+              <button
+                onClick={calculationMode === 'site_based' ? handleCalculateSalaries : handleIndividualCalculation}
+                disabled={calculationLoading}
+                className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
+                  calculationLoading
+                    ? 'bg-gray-400 cursor-not-allowed text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {calculationLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    계산 중...
+                  </>
+                ) : (
+                  <>
+                    <Calculator className="h-4 w-4" />
+                    {calculationMode === 'site_based' ? '급여 계산 실행' : '개인별 계산'}
+                  </>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Calculation filters */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {calculationMode === 'site_based' ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 시작일
@@ -670,6 +749,52 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
               </CustomSelect>
             </div>
           </div>
+          ) : (
+            /* Individual Calculation Form */
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  직원 선택 *
+                </label>
+                <CustomSelect value={selectedWorker} onValueChange={setSelectedWorker}>
+                  <CustomSelectTrigger>
+                    <CustomSelectValue placeholder="직원을 선택하세요" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    {availableWorkers.map((worker) => (
+                      <CustomSelectItem key={worker.id} value={worker.id}>{worker.name}</CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  공수 *
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={laborHours}
+                  onChange={(e) => setLaborHours(e.target.value)}
+                  placeholder="예: 1.5"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">1.0 = 8시간 (1일)</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  작업일 *
+                </label>
+                <input
+                  type="date"
+                  value={workDate}
+                  onChange={(e) => setWorkDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Calculation Results */}
           {calculationResults && (
@@ -764,6 +889,139 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             </div>
           )}
 
+          {/* Individual Calculation Results */}
+          {individualResult && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
+              <div className="flex items-start">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <Calculator className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+                <div className="ml-4 flex-1">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                      개인별 급여 계산 결과
+                    </h4>
+                    <button
+                      onClick={() => setIndividualResult(null)}
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  
+                  {/* Worker Info */}
+                  <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-sm font-medium text-gray-600 dark:text-gray-400">고용형태</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          {individualResult.employment_type === 'regular_employee' ? '4대보험 직원' : 
+                           individualResult.employment_type === 'freelancer' ? '프리랜서' : '일용직'}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-600 dark:text-gray-400">일급</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          ₩{individualResult.daily_rate.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Calculation Details */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="bg-green-100 dark:bg-green-900/30 rounded-lg p-4">
+                      <div className="text-sm font-medium text-green-600 dark:text-green-400">총 급여</div>
+                      <div className="text-2xl font-bold text-green-900 dark:text-green-200">
+                        ₩{individualResult.gross_pay.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                        기본급 ₩{individualResult.base_pay.toLocaleString()} + 초과근무 ₩{individualResult.overtime_pay.toLocaleString()}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-red-100 dark:bg-red-900/30 rounded-lg p-4">
+                      <div className="text-sm font-medium text-red-600 dark:text-red-400">총 공제액</div>
+                      <div className="text-2xl font-bold text-red-900 dark:text-red-200">
+                        ₩{individualResult.total_tax.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                        세율 {((individualResult.total_tax / individualResult.gross_pay) * 100).toFixed(2)}%
+                      </div>
+                    </div>
+                    
+                    <div className="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-4">
+                      <div className="text-sm font-medium text-blue-600 dark:text-blue-400">실수령액</div>
+                      <div className="text-2xl font-bold text-blue-900 dark:text-blue-200">
+                        ₩{individualResult.net_pay.toLocaleString()}
+                      </div>
+                      <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        {laborHours}공수 계산 결과
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Tax Breakdown */}
+                  <div className="mt-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+                    <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">세부 공제 내역</h5>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
+                      <div>
+                        <div className="text-gray-500">소득세</div>
+                        <div className="font-semibold">₩{individualResult.deductions.income_tax.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-gray-500">주민세</div>
+                        <div className="font-semibold">₩{individualResult.deductions.resident_tax.toLocaleString()}</div>
+                      </div>
+                      {individualResult.employment_type === 'regular_employee' && (
+                        <>
+                          <div>
+                            <div className="text-gray-500">국민연금</div>
+                            <div className="font-semibold">₩{individualResult.deductions.national_pension.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">건강보험</div>
+                            <div className="font-semibold">₩{individualResult.deductions.health_insurance.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-500">고용보험</div>
+                            <div className="font-semibold">₩{individualResult.deductions.employment_insurance.toLocaleString()}</div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Actions */}
+                  <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={async () => {
+                        try {
+                          // Generate PDF (placeholder for now)
+                          alert('PDF 급여명세서 생성 기능은 개발 중입니다.')
+                        } catch (error) {
+                          alert('PDF 생성 중 오류가 발생했습니다.')
+                        }
+                      }}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center justify-center gap-2 transition-colors"
+                    >
+                      <FileText className="h-4 w-4" />
+                      PDF 급여명세서 생성
+                    </button>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-blue-600 dark:text-blue-400">
+                    계산 일시: {workDate} ({laborHours}공수)
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex items-start">
               <div className="flex-shrink-0">
@@ -774,12 +1032,21 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
                   급여 계산 안내
                 </h4>
                 <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>일일 보고서의 작업 시간(공수) 데이터를 기반으로 급여를 계산합니다</li>
-                    <li>기본 8시간을 초과한 시간은 연장근무로 처리됩니다</li>
-                    <li>현장관리자: 27,500원/시간, 일반작업자: 16,250원/시간</li>
-                    <li>계산된 급여는 출력정보 탭에서 확인할 수 있습니다</li>
-                  </ul>
+                  {calculationMode === 'site_based' ? (
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>일일 보고서의 작업 시간(공수) 데이터를 기반으로 급여를 계산합니다</li>
+                      <li>기본 8시간을 초과한 시간은 연장근무로 처리됩니다</li>
+                      <li>현장관리자: 27,500원/시간, 일반작업자: 16,250원/시간</li>
+                      <li>계산된 급여는 출력정보 탭에서 확인할 수 있습니다</li>
+                    </ul>
+                  ) : (
+                    <ul className="list-disc list-inside space-y-1">
+                      <li>개인별 급여 설정에 따라 고용형태별 세율이 적용됩니다</li>
+                      <li>4대보험 직원: 소득세+주민세+4대보험, 프리랜서/일용직: 소득세+주민세만</li>
+                      <li>1.0 공수 = 8시간(1일), 초과 공수는 1.5배 수당 적용됩니다</li>
+                      <li>미리 "개인별 설정" 탭에서 직원의 급여 설정을 등록해야 합니다</li>
+                    </ul>
+                  )}
                 </div>
               </div>
             </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Profile } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
@@ -9,6 +9,8 @@ import {
   X, Check, GripVertical, ArrowUp, ArrowDown, Plus
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import PartnerLaborHoursSummary from '../cards/PartnerLaborHoursSummary'
+import PartnerSiteLaborCard from '../cards/PartnerSiteLaborCard'
 
 interface PartnerHomeTabProps {
   profile: Profile
@@ -45,6 +47,12 @@ export default function PartnerHomeTab({ profile, sites, organization, onTabChan
   ])
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const [dragOverItem, setDragOverItem] = useState<string | null>(null)
+  
+  // Labor data states
+  const [laborStats, setLaborStats] = useState<any>({})
+  const [laborSites, setLaborSites] = useState<any[]>([])
+  const [laborPeriod, setLaborPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly')
+  const [laborLoading, setLaborLoading] = useState(true)
 
   // 빠른메뉴 사용 가능한 모든 항목들
   const availableQuickMenuItems: QuickMenuItem[] = [
@@ -202,18 +210,102 @@ export default function PartnerHomeTab({ profile, sites, organization, onTabChan
     setDragOverItem(null)
   }
 
+  // Fetch labor data
+  useEffect(() => {
+    fetchLaborData()
+  }, [laborPeriod])
+
+  const fetchLaborData = async () => {
+    try {
+      setLaborLoading(true)
+
+      const [summaryRes, sitesRes] = await Promise.all([
+        fetch(`/api/partner/labor/summary?period=${laborPeriod}`, { cache: 'no-store' }),
+        fetch(`/api/partner/labor/by-site?period=${laborPeriod}`, { cache: 'no-store' })
+      ])
+
+      if (summaryRes.ok) {
+        const summaryData = await summaryRes.json()
+        setLaborStats(summaryData)
+      }
+
+      if (sitesRes.ok) {
+        const sitesData = await sitesRes.json()
+        setLaborSites(sitesData.sites || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch labor data:', error)
+    } finally {
+      setLaborLoading(false)
+    }
+  }
+
+  const handlePeriodChange = (period: 'daily' | 'weekly' | 'monthly') => {
+    setLaborPeriod(period)
+  }
+
+  const handleSiteClick = (siteId: string) => {
+    router.push(`/partner/sites/${siteId}`)
+  }
+
   return (
     <div className="space-y-4">
-      {/* 작업일지 조회 버튼 섹션 - Premium Gradient Design */}
+      {/* Labor Hours Summary */}
+      <div className="mb-6">
+        {laborLoading ? (
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8 text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-2"></div>
+            <p className="text-gray-500 dark:text-gray-400">공수 데이터 로딩 중...</p>
+          </div>
+        ) : (
+          <PartnerLaborHoursSummary 
+            stats={laborStats}
+            period={laborPeriod}
+            onPeriodChange={handlePeriodChange}
+          />
+        )}
+      </div>
+
+      {/* Site Labor Cards */}
+      <div className="space-y-4 mb-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          🏗️ 현장별 공수 현황
+        </h3>
+        
+        {laborLoading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-500 dark:text-gray-400">현장 공수 정보를 불러오는 중...</p>
+          </div>
+        ) : laborSites.length > 0 ? (
+          <div className="grid grid-cols-1 gap-4">
+            {laborSites.map((site) => (
+              <PartnerSiteLaborCard 
+                key={site.id} 
+                site={site} 
+                onClick={() => handleSiteClick(site.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-8">
+            <div className="text-gray-400 text-6xl mb-4">📊</div>
+            <p className="text-gray-500 dark:text-gray-400 mb-2">공수 데이터가 없습니다</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">현장에서 작업이 시작되면 데이터가 표시됩니다</p>
+          </div>
+        )}
+      </div>
+
+      {/* 작업일지 조회 버튼 섹션 */}
       <Card 
-        className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 border-0 shadow-lg hover:shadow-xl transition-all duration-200"
+        className="bg-gradient-to-r from-green-500 to-green-600 dark:from-green-600 dark:to-green-700 border-0 shadow-lg hover:shadow-xl transition-all duration-200 mb-6"
         aria-labelledby="work-log-section"
       >
         <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div className="flex-1 min-w-0">
               <h2 id="work-log-section" className="text-white font-semibold text-sm whitespace-nowrap">
-                파트너사 포털
+                📋 작업일지 포털
               </h2>
               <p className="text-white/90 text-xs mt-0.5 whitespace-nowrap">
                 작업일지를 조회해 보세요
@@ -221,7 +313,7 @@ export default function PartnerHomeTab({ profile, sites, organization, onTabChan
             </div>
             <button
               onClick={() => onTabChange?.('work-logs')}
-              className="flex items-center gap-1 px-3 py-1.5 bg-white/95 hover:bg-white text-blue-600 text-xs font-medium rounded-lg transition-colors touch-manipulation focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-600 shadow-sm ml-2"
+              className="flex items-center gap-1 px-3 py-1.5 bg-white/95 hover:bg-white text-green-600 text-xs font-medium rounded-lg transition-colors touch-manipulation focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-green-600 shadow-sm ml-2"
               aria-label="작업일지 조회하기"
             >
               <FileText className="h-3.5 w-3.5" aria-hidden="true" />

@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getDailyReportById } from '@/app/actions/daily-reports'
-import DailyReportFormEditMobile from '@/components/daily-reports/daily-report-form-edit-mobile'
+import DailyReportForm from '@/components/daily-reports/daily-report-form'
 import Sidebar from '@/components/dashboard/sidebar'
 import Header from '@/components/dashboard/header'
 import { BottomNavigation, BottomNavItem } from '@/components/ui/bottom-navigation'
@@ -138,8 +138,9 @@ export default async function EditDailyReportPage({
       <div className="lg:hidden">
         <Header />
         <div className="pb-16">
-          <DailyReportFormEditMobile
-            report={report as any}
+          <DailyReportForm
+            mode="edit"
+            reportData={report as any}
             currentUser={profile as any}
             sites={sites || []}
             materials={materials || []}
@@ -156,8 +157,9 @@ export default async function EditDailyReportPage({
           <Header />
           <main className="p-6">
             <div className="max-w-4xl mx-auto">
-              <DailyReportFormEditMobile
-                report={report as any}
+              <DailyReportForm
+                mode="edit"
+                reportData={report as any}
                 currentUser={profile as any}
                 sites={sites || []}
                 materials={materials || []}

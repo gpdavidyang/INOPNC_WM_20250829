@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import DashboardLayout from '@/components/dashboard/dashboard-layout'
-import DailyReportFormEnhanced from '@/components/daily-reports/daily-report-form-enhanced'
+import DailyReportForm from '@/components/daily-reports/daily-report-form'
 
 // 개발용 페이지 - SERVICE ROLE KEY 사용으로 RLS 우회
 export default async function NewDailyReportDevPage() {
@@ -67,7 +67,8 @@ export default async function NewDailyReportDevPage() {
       <div className="mb-4 p-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 rounded">
         ⚠️ 개발 모드: RLS 우회 중
       </div>
-      <DailyReportFormEnhanced
+      <DailyReportForm
+        mode="create"
         sites={sites || []}
         currentUser={profile as any}
         materials={materials || []}
