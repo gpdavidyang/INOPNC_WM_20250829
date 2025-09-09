@@ -103,6 +103,11 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       case 'total_workers':
         query = query.order('total_workers', { ascending })
         break
+      case 'total_manhours':
+        // Since total_manhours is calculated after query, we'll sort manually in the client
+        // For now, sort by total_workers as a fallback
+        query = query.order('total_workers', { ascending })
+        break
       case 'status':
         query = query.order('status', { ascending })
         break
@@ -153,6 +158,16 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
             .select('id', { count: 'exact', head: true })
             .eq('daily_report_id', report.id)
           
+          // Get total manhours from worker_assignments
+          const { data: workerAssignments } = await supabase
+            .from('worker_assignments')
+            .select('labor_hours')
+            .eq('daily_report_id', report.id)
+          
+          const totalManhours = workerAssignments 
+            ? workerAssignments.reduce((sum, w) => sum + (Number(w.labor_hours) || 0), 0)
+            : 0
+          
           // Get documents count for that day
           const { count: documentCount } = await supabase
             .from('documents')
@@ -165,7 +180,8 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
             ...report,
             profiles: profile,
             worker_details_count: workerCount || 0,
-            daily_documents_count: documentCount || 0
+            daily_documents_count: documentCount || 0,
+            total_manhours: totalManhours
           }
         } catch (err) {
           // If profile not found, continue without it
@@ -173,16 +189,26 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
             ...report,
             profiles: null,
             worker_details_count: 0,
-            daily_documents_count: 0
+            daily_documents_count: 0,
+            total_manhours: 0
           }
         }
       })
     )
 
+    // Sort by total_manhours if needed (since it's calculated after the query)
+    const finalReports = sortField === 'total_manhours' 
+      ? enrichedReports.sort((a, b) => {
+          const aValue = a.total_manhours || 0
+          const bValue = b.total_manhours || 0
+          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
+        })
+      : enrichedReports
+
     return {
       success: true,
       data: {
-        reports: enrichedReports,
+        reports: finalReports,
         totalCount: count || 0,
         totalPages: Math.ceil((count || 0) / itemsPerPage),
         currentPage: page

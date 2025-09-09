@@ -44,6 +44,7 @@ interface DailyReport {
   work_process?: string     // 작업공정
   work_section?: string     // 작업구간
   total_workers: number
+  total_manhours?: number  // 공수
   npc1000_incoming: number
   npc1000_used: number
   npc1000_remaining: number
@@ -89,7 +90,7 @@ interface FilterState {
   work_section: string    // 작업구간 필터
 }
 
-type SortField = 'work_date' | 'site_name' | 'member_name' | 'total_workers' | 'status' | 'created_at' | 'component_name' | 'work_process' | 'work_section'
+type SortField = 'work_date' | 'site_name' | 'member_name' | 'total_manhours' | 'status' | 'created_at' | 'component_name' | 'work_process' | 'work_section'
 type SortDirection = 'asc' | 'desc'
 
 interface SortState {
@@ -628,11 +629,11 @@ export default function DailyReportsManagement() {
                   </th>
                   <th 
                     className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={() => handleSort('total_workers')}
+                    onClick={() => handleSort('total_manhours')}
                   >
                     <div className="flex items-center justify-center gap-1">
-                      인원
-                      {getSortIcon('total_workers')}
+                      공수
+                      {getSortIcon('total_manhours')}
                     </div>
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -727,11 +728,11 @@ export default function DailyReportsManagement() {
                     <td className="px-4 py-3 text-center">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {report.total_workers}명
+                          {report.total_manhours ? report.total_manhours.toFixed(1) : '0'}
                         </div>
-                        {report.worker_details_count > 0 && (
-                          <div className="text-xs text-blue-600">
-                            상세: {report.worker_details_count}명
+                        {report.total_workers > 0 && (
+                          <div className="text-xs text-gray-500">
+                            ({report.total_workers}명)
                           </div>
                         )}
                       </div>
