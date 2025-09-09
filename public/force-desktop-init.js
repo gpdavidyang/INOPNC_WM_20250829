@@ -7,7 +7,7 @@
   'use strict';
   
   // Debug flag - set to true for extensive logging
-  const DEBUG = true;
+  const DEBUG = false; // Disabled to prevent console spam and infinite loops
   const LOG_PREFIX = '[FORCE-DESKTOP-INIT]';
   
   function log(...args) {

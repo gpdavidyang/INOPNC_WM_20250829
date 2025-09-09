@@ -321,38 +321,9 @@ export function ViewportController({ children }: ViewportControllerProps) {
         log('MutationObserver set up for protection')
       }
       
-      // Set up periodic enforcement (belt and suspenders approach)
-      if (!protectionIntervalRef.current) {
-        let checkCount = 0
-        protectionIntervalRef.current = setInterval(() => {
-          if (checkCount < 20) { // Check 20 times over 10 seconds
-            // Ensure classes are still present
-            if (!html.classList.contains('force-desktop-ui')) {
-              html.classList.add('force-desktop-ui', 'desktop-enforced', 'react-controlled')
-              log('Periodic check: Re-added classes to html')
-            }
-            if (!body.classList.contains('force-desktop-ui')) {
-              body.classList.add('force-desktop-ui', 'desktop-enforced', 'react-controlled')
-              log('Periodic check: Re-added classes to body')
-            }
-            
-            // Ensure styles are still applied
-            if (!document.documentElement.style.minWidth || document.documentElement.style.minWidth !== '1536px') {
-              document.documentElement.style.cssText = criticalStyles
-              document.body.style.cssText = criticalStyles
-              log('Periodic check: Re-applied inline styles')
-            }
-            
-            checkCount++
-          } else {
-            if (protectionIntervalRef.current) {
-              clearInterval(protectionIntervalRef.current)
-              protectionIntervalRef.current = null
-              log('Periodic protection complete')
-            }
-          }
-        }, 500)
-      }
+      // Periodic enforcement DISABLED to prevent infinite loops
+      // MutationObserver is sufficient for protection
+      log('Periodic enforcement disabled - using MutationObserver only')
     }
     
     // Cleanup on unmount
