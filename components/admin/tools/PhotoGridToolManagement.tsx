@@ -75,8 +75,20 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
   })
 
   useEffect(() => {
-    loadData()
-    checkSystemHealth()
+    let isActive = true
+    
+    const init = async () => {
+      if (isActive) {
+        await loadData()
+        checkSystemHealth()
+      }
+    }
+    
+    init()
+    
+    return () => {
+      isActive = false
+    }
   }, [])
 
   const loadData = async () => {

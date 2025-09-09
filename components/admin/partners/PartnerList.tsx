@@ -123,7 +123,11 @@ export default function PartnerList({ profile }: PartnerListProps) {
   }
 
   useEffect(() => {
-    loadPartners()
+    const handler = setTimeout(() => {
+      loadPartners()
+    }, 300) // Debounce to prevent excessive API calls
+
+    return () => clearTimeout(handler)
   }, [searchTerm, statusFilter, typeFilter])
 
 

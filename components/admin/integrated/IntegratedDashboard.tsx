@@ -34,7 +34,7 @@ export default function IntegratedDashboard() {
     if (viewParam && viewParam !== activeView) {
       setActiveView(viewParam)
     }
-  }, [viewParam]) // activeView를 dependency에서 제외하여 무한 루프 방지
+  }, [viewParam, activeView]) // activeView를 dependency에 포함하되 조건문으로 무한루프 방지
 
   useEffect(() => {
     loadDashboardData()

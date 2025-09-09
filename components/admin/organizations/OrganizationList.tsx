@@ -57,7 +57,19 @@ export default function OrganizationList() {
   const supabase = createClient()
 
   useEffect(() => {
-    fetchOrganizations()
+    let isMounted = true
+    
+    const fetchData = async () => {
+      if (isMounted) {
+        await fetchOrganizations()
+      }
+    }
+    
+    fetchData()
+    
+    return () => {
+      isMounted = false
+    }
   }, [])
 
   const fetchOrganizations = async () => {
