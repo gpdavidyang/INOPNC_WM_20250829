@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
+
 
 // GET /api/photo-grid-reports/stats - PDF 보고서 통계 조회
 export async function GET(request: NextRequest) {
