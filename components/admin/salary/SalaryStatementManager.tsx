@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { FileText, Download, Trash2, Eye, Plus, Calendar } from 'lucide-react'
+import { 
+  CustomSelect, 
+  CustomSelectContent, 
+  CustomSelectItem, 
+  CustomSelectTrigger, 
+  CustomSelectValue 
+} from '@/components/ui/custom-select'
 import MultiSelectFilter from './components/MultiSelectFilter'
 
 interface SalaryStatement {
@@ -287,30 +294,36 @@ ${statement.statement_data.site_details.map(site =>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               연도
             </label>
-            <select
-              value={year}
-              onChange={(e) => setYear(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              {[2023, 2024, 2025].map(y => (
-                <option key={y} value={y}>{y}년</option>
-              ))}
-            </select>
+            <CustomSelect value={year.toString()} onValueChange={(value) => setYear(Number(value))}>
+              <CustomSelectTrigger>
+                <CustomSelectValue placeholder="연도 선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                {[2023, 2024, 2025].map(y => (
+                  <CustomSelectItem key={y} value={y.toString()}>
+                    {y}년
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               월
             </label>
-            <select
-              value={month}
-              onChange={(e) => setMonth(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-                <option key={m} value={m}>{m}월</option>
-              ))}
-            </select>
+            <CustomSelect value={month.toString()} onValueChange={(value) => setMonth(Number(value))}>
+              <CustomSelectTrigger>
+                <CustomSelectValue placeholder="월 선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                  <CustomSelectItem key={m} value={m.toString()}>
+                    {m}월
+                  </CustomSelectItem>
+                ))}
+              </CustomSelectContent>
+            </CustomSelect>
           </div>
 
           <MultiSelectFilter
