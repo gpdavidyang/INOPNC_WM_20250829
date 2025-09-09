@@ -1032,11 +1032,33 @@ export default function DailyReportForm({
             >
               <div className="space-y-4">
                 <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                  <h4 className="font-medium text-purple-800 mb-2">관리자 권한</h4>
-                  <p className="text-sm text-purple-600">
-                    이 섹션은 관리자만 볼 수 있습니다. 추후 관리자 전용 기능들이 추가될 예정입니다.
-                  </p>
+                  <h4 className="font-medium text-purple-800 mb-3">관리자 권한 기능</h4>
+                  <div className="space-y-2 text-sm text-purple-600">
+                    <p className="font-medium">이 섹션은 관리자(admin/system_admin)만 사용 가능합니다.</p>
+                    
+                    <div className="mt-2 space-y-1">
+                      <p className="font-medium text-purple-700">📋 주요 기능:</p>
+                      <ul className="ml-4 space-y-1 list-disc">
+                        <li><strong>작성자 이름 수정:</strong> 다른 사람을 대신하여 작업일지 작성 가능</li>
+                        <li><strong>총 작업자 수:</strong> 전체 현장 인원 수를 수동으로 조정 (급여 계산에 반영)</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="mt-2 space-y-1">
+                      <p className="font-medium text-purple-700">🎯 사용 목적:</p>
+                      <ul className="ml-4 space-y-1 list-disc">
+                        <li>현장 작업자가 직접 작성하지 못한 경우 대리 작성</li>
+                        <li>잘못 입력된 정보의 수정 및 보정</li>
+                        <li>특수 상황에서의 유연한 대처</li>
+                      </ul>
+                    </div>
+                    
+                    <p className="mt-2 text-xs text-purple-500 italic">
+                      ※ 추후 승인 프로세스, 일괄 처리 등 추가 기능이 확장될 예정입니다.
+                    </p>
+                  </div>
                 </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>작성자 (수정 가능)</Label>
@@ -1044,7 +1066,9 @@ export default function DailyReportForm({
                       value={formData.created_by || ''}
                       onChange={(e) => setFormData(prev => ({...prev, created_by: e.target.value}))}
                       placeholder="작성자 이름"
+                      className="border-purple-200 focus:border-purple-400"
                     />
+                    <p className="text-xs text-gray-500 mt-1">다른 작업자를 대신하여 작성 시 사용</p>
                   </div>
                   <div>
                     <Label>총 작업자 수</Label>
@@ -1053,7 +1077,9 @@ export default function DailyReportForm({
                       value={formData.total_workers || 0}
                       onChange={(e) => setFormData(prev => ({...prev, total_workers: Number(e.target.value)}))}
                       placeholder="총 작업자 수"
+                      className="border-purple-200 focus:border-purple-400"
                     />
+                    <p className="text-xs text-gray-500 mt-1">현장 전체 인원 수 (급여 계산 기준)</p>
                   </div>
                 </div>
               </div>
