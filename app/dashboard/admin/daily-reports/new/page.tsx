@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import DailyReportFormEnhanced from '@/components/daily-reports/daily-report-form-enhanced'
+import DailyReportForm from '@/components/daily-reports/daily-report-form'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
@@ -64,7 +64,8 @@ export default async function AdminNewDailyReportPage() {
       </div>
 
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <DailyReportFormEnhanced
+        <DailyReportForm
+          mode="create"
           sites={sites || []}
           currentUser={profile as any}
           materials={materials || []}

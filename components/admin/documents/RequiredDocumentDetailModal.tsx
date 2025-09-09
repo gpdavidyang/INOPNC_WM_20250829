@@ -13,9 +13,12 @@ interface User {
 
 interface DocumentRequirement {
   id: string
-  requirement_name: string
-  document_type: string
+  code: string
+  name_ko: string
+  name_en?: string
   description?: string
+  file_types: string[]
+  max_file_size: number
 }
 
 interface RequiredDocument {
@@ -93,18 +96,18 @@ export default function RequiredDocumentDetailModal({
     try {
       // Fetch document details
       const { data: docData, error: docError } = await supabase
-        .from('documents')
+        .from('unified_document_system')
         .select(`
           *,
-          document_requirements (
-            id, requirement_name, document_type, description
+          profiles:uploaded_by (
+            id, full_name, email, role
           ),
-          submitted_by_profile:profiles!documents_submitted_by_fkey (
+          approver_profile:approved_by (
             id, full_name, email, role
           )
         `)
         .eq('id', documentId)
-        .eq('document_category', 'required')
+        .eq('category_type', 'required')
         .single()
 
       if (docError) throw docError
