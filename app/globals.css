@@ -55,6 +55,8 @@ body.role-admin,
 body.role-system-admin {
   min-width: 1536px !important;
   overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important; /* Enable smooth scrolling on iOS */
+  overflow-y: auto !important; /* Allow vertical scrolling */
 }
 
 /* Ensure containers maintain desktop width */
@@ -69,6 +71,24 @@ body.role-system-admin {
 .role-system-admin #__next {
   min-width: 1536px !important;
   width: 100% !important;
+}
+
+/* Enable scrolling on mobile devices for admin */
+@media (max-width: 768px) {
+  html.admin-role,
+  html.role-admin,
+  html.role-system-admin {
+    overflow: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  body.admin-role,
+  body.role-admin,
+  body.role-system-admin {
+    position: relative !important;
+    height: auto !important;
+    min-height: 100vh !important;
+  }
 }
 
 /* Override Tailwind responsive utilities for admin */

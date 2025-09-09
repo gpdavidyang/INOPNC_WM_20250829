@@ -146,7 +146,6 @@ export default function DailySalaryCalculation() {
         `)
         .gte('daily_reports.work_date', startDate)
         .lte('daily_reports.work_date', endDate)
-        .order('daily_reports.work_date', { ascending: false })
 
       // Apply site filter
       if (selectedSites.length > 0) {

@@ -422,6 +422,11 @@ export default function AdminDashboardLayout({ children, profile: propProfile }:
     // Load collapsed state from localStorage
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('admin-sidebar-collapsed')
+      // Default to collapsed on mobile, expanded on desktop
+      if (saved === null) {
+        const isMobile = window.innerWidth < 768
+        return isMobile
+      }
       return saved === 'true'
     }
     return false
@@ -508,7 +513,7 @@ export default function AdminDashboardLayout({ children, profile: propProfile }:
       {/* Desktop sidebar - Always visible */}
       <div 
         className={`fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'w-16' : 'w-72'
+          isSidebarCollapsed ? 'w-16' : 'w-72 lg:w-72 md:w-64 sm:w-56'
         }`} 
         style={{ top: '64px', height: 'calc(100vh - 64px)' }}
       >
@@ -518,7 +523,7 @@ export default function AdminDashboardLayout({ children, profile: propProfile }:
       {/* Main content area - Desktop layout */}
       <div 
         className={`transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'pl-16' : 'pl-72'
+          isSidebarCollapsed ? 'pl-16' : 'pl-72 lg:pl-72 md:pl-64 sm:pl-56'
         }`} 
         style={{ paddingTop: '64px', minWidth: '1536px' }}
       >

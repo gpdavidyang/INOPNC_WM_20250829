@@ -61,14 +61,14 @@ export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, 
       <header className="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           {/* Left Section */}
-          <div className="flex items-center gap-4">
-            {/* Desktop Sidebar Toggle - Desktop only */}
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Sidebar Toggle - Enhanced for mobile */}
             <button
               onClick={onDesktopMenuClick}
-              className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              className="p-2 sm:p-2 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
               aria-label={isSidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
             >
-              <Menu className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              <Menu className="h-6 w-6 sm:h-5 sm:w-5 text-gray-700 dark:text-gray-300" />
             </button>
 
             {/* Logo/Title */}
