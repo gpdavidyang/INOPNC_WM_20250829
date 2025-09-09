@@ -46,24 +46,24 @@
 
 /* Force mobile navigation to stay at bottom */
 @media (max-width: 768px) {
-  /* Ensure body doesn't overflow */
-  body {
+  /* Only apply mobile-specific styles when NOT in force-desktop-ui mode */
+  body:not(.force-desktop-ui) {
     position: fixed;
     width: 100%;
     height: 100vh;
     overflow: hidden;
   }
   
-  /* Make root container scrollable */
-  #__next {
+  /* Make root container scrollable - but not for desktop UI */
+  body:not(.force-desktop-ui) #__next {
     height: 100vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
   }
   
-  /* Force bottom nav to stay visible */
-  nav[class*="fixed bottom-0"] {
+  /* Force bottom nav to stay visible - but not for desktop UI */
+  body:not(.force-desktop-ui) nav[class*="fixed bottom-0"] {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
@@ -761,67 +761,94 @@ select:focus {
 
 /* Desktop UI Force Mode - Fixed layout for admin/system_admin */
 .force-desktop-ui {
-  /* Force minimum width for entire body */
+  /* Force desktop layout on body */
+  position: relative !important;
   min-width: 1280px !important;
+  width: auto !important;
+  height: auto !important;
   overflow-x: auto !important;
+  overflow-y: auto !important;
   
   & .desktop-ui-container {
     min-width: 1280px !important;
     width: 1280px !important;
     margin: 0 auto;
+  }
+  
+  /* Override ALL media queries to maintain desktop layout */
+  @media all and (max-width: 1280px),
+         all and (max-width: 1024px),
+         all and (max-width: 768px),
+         all and (max-width: 640px),
+         all and (max-width: 480px),
+         all and (max-width: 320px) {
+    /* Force desktop dimensions regardless of actual screen size */
+    min-width: 1280px !important;
+    width: auto !important;
     
-    /* No automatic scaling - let users pinch zoom on mobile */
-    /* Remove all zoom/transform to maintain original desktop layout */
-    @media (max-width: 1280px) {
-      /* Keep original size - users can pinch zoom */
-      min-width: 1280px !important;
-      width: 1280px !important;
-    }
-    
-    @media (max-width: 1024px) {
-      /* Keep original size - users can pinch zoom */
-      min-width: 1280px !important;
-      width: 1280px !important;
-    }
-    
-    @media (max-width: 768px) {
-      /* Keep original size - users can pinch zoom */
-      min-width: 1280px !important;
-      width: 1280px !important;
-    }
-    
-    @media (max-width: 640px) {
-      /* Keep original size - users can pinch zoom */
+    & .desktop-ui-container {
       min-width: 1280px !important;
       width: 1280px !important;
     }
   }
   
   /* Override ALL Tailwind responsive classes to force desktop behavior */
-  /* Hide mobile-only elements */
-  & .sm\:hidden,
-  & .md\:hidden,
-  & .lg\:hidden { 
-    display: none !important; 
-  }
-  
-  /* Show desktop-only elements */
-  & .sm\:block,
-  & .md\:block,
-  & .lg\:block { 
-    display: block !important; 
-  }
-  
-  & .sm\:flex,
-  & .md\:flex,
-  & .lg\:flex { 
-    display: flex !important; 
-  }
-  
-  & .sm\:inline-block,
-  & .md\:inline-block,
-  & .lg\:inline-block { 
-    display: inline-block !important; 
+  /* CRITICAL: Override mobile-specific hiding/showing regardless of screen size */
+  @media all {
+    /* Elements hidden on desktop should stay hidden */
+    & .lg\:hidden,
+    & .xl\:hidden { 
+      display: none !important; 
+    }
+    
+    /* Elements visible on desktop should stay visible */
+    & .lg\:block,
+    & .xl\:block { 
+      display: block !important; 
+    }
+    
+    & .lg\:flex,
+    & .xl\:flex { 
+      display: flex !important; 
+    }
+    
+    & .lg\:inline-block,
+    & .xl\:inline-block { 
+      display: inline-block !important; 
+    }
+    
+    & .lg\:inline-flex,
+    & .xl\:inline-flex { 
+      display: inline-flex !important; 
+    }
+    
+    /* Hide elements that should only show on mobile/tablet */
+    & .block.lg\:hidden,
+    & .flex.lg\:hidden,
+    & .inline-block.lg\:hidden,
+    & .inline-flex.lg\:hidden {
+      display: none !important;
+    }
+    
+    /* Show elements that should be visible on desktop */
+    & .hidden.lg\:block,
+    & .hidden.lg\:flex,
+    & .hidden.lg\:inline-block,
+    & .hidden.lg\:inline-flex {
+      display: block !important;
+    }
+    
+    & .hidden.lg\:flex {
+      display: flex !important;
+    }
+    
+    & .hidden.lg\:inline-block {
+      display: inline-block !important;
+    }
+    
+    & .hidden.lg\:inline-flex {
+      display: inline-flex !important;
+    }
   }
   
   /* Force desktop widths and paddings */
@@ -847,35 +874,51 @@ select:focus {
     width: 18rem !important;
   }
   
-  /* Force desktop grid layouts */
-  & .grid {
-    @media (max-width: 768px) {
-      &.md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-      &.lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-      &.lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  /* Force desktop grid layouts regardless of screen size */
+  @media all {
+    & .grid {
+      &.md\:grid-cols-2,
+      &.lg\:grid-cols-2 { 
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important; 
+      }
+      &.md\:grid-cols-3,
+      &.lg\:grid-cols-3 { 
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important; 
+      }
+      &.md\:grid-cols-4,
+      &.lg\:grid-cols-4 { 
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important; 
+      }
     }
-  }
-  
-  /* Force desktop flex layouts */
-  & .flex-col {
-    @media (min-width: 768px) {
-      &.md\:flex-row { flex-direction: row !important; }
-      &.lg\:flex-row { flex-direction: row !important; }
+    
+    /* Force desktop flex layouts */
+    & .flex-col {
+      &.md\:flex-row,
+      &.lg\:flex-row { 
+        flex-direction: row !important; 
+      }
     }
   }
   
   /* Desktop sidebar always visible */
-  & aside,
-  & .desktop-sidebar {
-    display: block !important;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-  }
-  
-  /* Hide mobile-only elements */
-  & .mobile-only {
-    display: none !important;
+  @media all {
+    & aside,
+    & .desktop-sidebar,
+    & [class*="sidebar"] {
+      display: block !important;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    
+    /* Hide mobile-only elements including navigation */
+    & .mobile-only,
+    & .mobile-nav,
+    & .bottom-navigation,
+    & [class*="mobile-menu"],
+    & [class*="hamburger"] {
+      display: none !important;
+    }
   }
   
   /* Desktop-optimized spacing */
@@ -908,5 +951,79 @@ select:focus {
 .mobile-ui-container,
 .desktop-ui-container {
   transition: all 0.3s ease-in-out;
+}
+
+/* CRITICAL: Force Desktop UI - Complete Override System */
+/* This ensures admin/system_admin users ALWAYS see desktop layout */
+body.force-desktop-ui {
+  /* Override ALL responsive media queries */
+  @media all and (max-width: 1920px),
+         all and (max-width: 1280px),
+         all and (max-width: 1024px),
+         all and (max-width: 768px),
+         all and (max-width: 640px),
+         all and (max-width: 480px),
+         all and (max-width: 320px) {
+    
+    /* Force desktop viewport behavior */
+    position: relative !important;
+    min-width: 1280px !important;
+    width: auto !important;
+    height: auto !important;
+    overflow-x: auto !important;
+    overflow-y: auto !important;
+    
+    /* Override Tailwind's responsive utilities */
+    * {
+      /* Elements that should be hidden on desktop remain hidden */
+      &.lg\\:hidden { display: none !important; }
+      &.xl\\:hidden { display: none !important; }
+      
+      /* Elements visible on desktop remain visible */
+      &.lg\\:block { display: block !important; }
+      &.xl\\:block { display: block !important; }
+      &.lg\\:flex { display: flex !important; }
+      &.xl\\:flex { display: flex !important; }
+      &.lg\\:inline-block { display: inline-block !important; }
+      &.xl\\:inline-block { display: inline-block !important; }
+      &.lg\\:inline-flex { display: inline-flex !important; }
+      &.xl\\:inline-flex { display: inline-flex !important; }
+      &.lg\\:grid { display: grid !important; }
+      &.xl\\:grid { display: grid !important; }
+      
+      /* Force desktop layout values */
+      &.lg\\:w-72 { width: 18rem !important; }
+      &.lg\\:pl-72 { padding-left: 18rem !important; }
+      &.lg\\:ml-72 { margin-left: 18rem !important; }
+      &.lg\\:fixed { position: fixed !important; }
+      &.lg\\:sticky { position: sticky !important; }
+      &.lg\\:relative { position: relative !important; }
+      &.lg\\:absolute { position: absolute !important; }
+      
+      /* Force desktop grid columns */
+      &.lg\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      &.lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+      &.lg\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+      
+      /* Force desktop flex directions */
+      &.lg\\:flex-row { flex-direction: row !important; }
+      &.lg\\:flex-col { flex-direction: column !important; }
+    }
+    
+    /* Hide ALL mobile-specific elements */
+    .block:not(.lg\\:block):not(.xl\\:block),
+    .flex:not(.lg\\:flex):not(.xl\\:flex) {
+      &.lg\\:hidden { display: none !important; }
+    }
+    
+    /* Force show desktop-only elements */
+    .hidden {
+      &.lg\\:block { display: block !important; }
+      &.lg\\:flex { display: flex !important; }
+      &.lg\\:inline-block { display: inline-block !important; }
+      &.lg\\:inline-flex { display: inline-flex !important; }
+      &.lg\\:grid { display: grid !important; }
+    }
+  }
 }
 

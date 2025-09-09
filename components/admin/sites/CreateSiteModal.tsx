@@ -10,6 +10,7 @@ import {
   CustomSelectTrigger, 
   CustomSelectValue 
 } from '@/components/ui/custom-select'
+import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface CreateSiteModalProps {
   onClose: () => void
@@ -18,6 +19,10 @@ interface CreateSiteModalProps {
 
 export default function CreateSiteModal({ onClose, onSuccess }: CreateSiteModalProps) {
   const [loading, setLoading] = useState(false)
+  
+  // Load work options from database
+  const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
+  
   const [formData, setFormData] = useState<CreateSiteData>({
     name: '',
     address: '',
@@ -297,10 +302,11 @@ export default function CreateSiteModal({ onClose, onSuccess }: CreateSiteModalP
                         <CustomSelectValue placeholder="선택하세요" />
                       </CustomSelectTrigger>
                       <CustomSelectContent className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600">
-                        <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
-                        <CustomSelectItem value="거더">거더</CustomSelectItem>
-                        <CustomSelectItem value="기둥">기둥</CustomSelectItem>
-                        <CustomSelectItem value="기타">기타</CustomSelectItem>
+                        {componentTypes.map((type) => (
+                          <CustomSelectItem key={type.id} value={type.option_label}>
+                            {type.option_label}
+                          </CustomSelectItem>
+                        ))}
                       </CustomSelectContent>
                     </CustomSelect>
                     {formData.component_name?.startsWith('기타') && (
@@ -334,10 +340,11 @@ export default function CreateSiteModal({ onClose, onSuccess }: CreateSiteModalP
                         <CustomSelectValue placeholder="선택하세요" />
                       </CustomSelectTrigger>
                       <CustomSelectContent className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600">
-                        <CustomSelectItem value="균일">균일</CustomSelectItem>
-                        <CustomSelectItem value="면">면</CustomSelectItem>
-                        <CustomSelectItem value="마감">마감</CustomSelectItem>
-                        <CustomSelectItem value="기타">기타</CustomSelectItem>
+                        {processTypes.map((type) => (
+                          <CustomSelectItem key={type.id} value={type.option_label}>
+                            {type.option_label}
+                          </CustomSelectItem>
+                        ))}
                       </CustomSelectContent>
                     </CustomSelect>
                     {formData.work_process?.startsWith('기타') && (
