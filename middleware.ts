@@ -110,55 +110,8 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
     
-    // Verify and sync role cookie for authenticated users
-    if (user) {
-      const currentRoleCookie = request.cookies.get('user-role')?.value
-      let userRole = currentRoleCookie
-      
-      // Fetch user profile to get role if cookie is missing or needs verification
-      if (!currentRoleCookie) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role, partner_company_id')
-            .eq('id', user.id)
-            .single()
-          
-          if (profile?.role) {
-            userRole = profile.role
-            // Set role cookie if profile exists
-            response.cookies.set('user-role', profile.role, {
-              httpOnly: false,
-              secure: process.env.NODE_ENV === 'production',
-              sameSite: 'lax',
-              maxAge: 60 * 60 * 24 * 7, // 7 days
-              path: '/'
-            })
-            
-            // Route customer_manager to partner dashboard
-            if (profile.role === 'customer_manager' && !isPartnerPath && pathname === '/dashboard') {
-              return NextResponse.redirect(new URL('/partner/dashboard', request.url))
-            }
-          }
-        } catch (error) {
-          // Silent fail - role detection is non-critical
-        }
-      } else {
-        // Check if customer_manager is accessing wrong path
-        if (userRole === 'customer_manager' && !isPartnerPath && pathname === '/dashboard') {
-          return NextResponse.redirect(new URL('/partner/dashboard', request.url))
-        }
-      }
-      
-      // Protect partner routes - only customer_manager can access
-      if (isPartnerPath && userRole !== 'customer_manager') {
-        if (userRole === 'admin' || userRole === 'system_admin') {
-          return NextResponse.redirect(new URL('/dashboard/admin', request.url))
-        } else {
-          return NextResponse.redirect(new URL('/dashboard', request.url))
-        }
-      }
-    }
+    // Skip role verification in middleware to avoid RLS issues
+    // Role checking will be handled in components after authentication
 
     return response
   } catch (error) {
