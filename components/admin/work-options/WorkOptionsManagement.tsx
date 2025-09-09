@@ -150,6 +150,32 @@ export function WorkOptionsManagement() {
     }
   }
 
+  // Delete option (soft delete by setting is_active to false)
+  const handleDelete = async (id: string) => {
+    if (!confirm('정말로 이 옵션을 삭제하시겠습니까?')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/work-options', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          is_active: false
+        })
+      })
+
+      if (!response.ok) throw new Error('Failed to delete option')
+
+      toast.success('옵션이 삭제되었습니다')
+      await fetchOptions()
+    } catch (error) {
+      console.error('Error deleting option:', error)
+      toast.error('옵션 삭제에 실패했습니다')
+    }
+  }
+
   // Update display order
   const handleOrderChange = async (id: string, direction: 'up' | 'down', options: WorkOptionSetting[]) => {
     const index = options.findIndex(opt => opt.id === id)
@@ -277,19 +303,27 @@ export function WorkOptionsManagement() {
                 >
                   수정
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleToggleActive(option.id, option.is_active)}
-                  disabled={option.option_value === 'other'}
-                  className={`text-xs min-w-[40px] h-8 px-2 py-1 ${
-                    option.is_active 
-                      ? 'text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20'
-                      : 'text-green-600 hover:bg-green-50 border-green-200 dark:text-green-400 dark:hover:bg-green-900/20'
-                  }`}
-                >
-                  {option.is_active ? '삭제' : '활성'}
-                </Button>
+                {option.is_active ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDelete(option.id)}
+                    disabled={option.option_value === 'other'}
+                    className="text-xs min-w-[40px] h-8 px-2 py-1 text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20"
+                  >
+                    삭제
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleToggleActive(option.id, option.is_active)}
+                    disabled={option.option_value === 'other'}
+                    className="text-xs min-w-[40px] h-8 px-2 py-1 text-green-600 hover:bg-green-50 border-green-200 dark:text-green-400 dark:hover:bg-green-900/20"
+                  >
+                    활성
+                  </Button>
+                )}
               </>
             )}
           </div>
