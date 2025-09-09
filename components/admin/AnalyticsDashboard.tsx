@@ -338,7 +338,7 @@ export default function AnalyticsDashboard({ profile }: AnalyticsDashboardProps)
                 총 공수
               </p>
               <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>
-                {kpiData.total_labor_hours.toFixed(1)}
+                {(kpiData.total_labor_hours || 0).toFixed(1)}
               </p>
               <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-red-600 flex items-center`}>
                 <TrendingDown className="h-3 w-3 mr-1" />
@@ -417,7 +417,7 @@ export default function AnalyticsDashboard({ profile }: AnalyticsDashboardProps)
                 {workerPerformance.map((worker, idx) => (
                   <tr key={idx} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-4">{worker.worker_name}</td>
-                    <td className="text-right py-2 px-4">{worker.total_hours.toFixed(1)}</td>
+                    <td className="text-right py-2 px-4">{(worker.total_hours || 0).toFixed(1)}</td>
                     <td className="text-right py-2 px-4">{worker.reports_submitted}</td>
                     <td className="text-right py-2 px-4">{worker.attendance_rate}%</td>
                     <td className="text-right py-2 px-4">
@@ -426,7 +426,7 @@ export default function AnalyticsDashboard({ profile }: AnalyticsDashboardProps)
                         worker.productivity_score >= 60 ? 'bg-yellow-100 text-yellow-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {worker.productivity_score.toFixed(0)}
+                        {(worker.productivity_score || 0).toFixed(0)}
                       </span>
                     </td>
                   </tr>
