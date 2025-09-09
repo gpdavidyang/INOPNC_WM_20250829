@@ -66,15 +66,25 @@ export async function middleware(request: NextRequest) {
         // This prevents infinite refresh loops on invalid tokens
         if (session.refresh_token) {
           try {
-            const { data: { session: refreshedSession } } = await supabase.auth.refreshSession()
-            if (refreshedSession?.user) {
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession()
+            if (refreshedSession?.user && !refreshError) {
               user = refreshedSession.user
             } else {
-              // If refresh fails, user is null (don't log in production to avoid spam)
-              user = null
+              // CRITICAL FIX: Handle refresh token errors gracefully
+              if (refreshError?.message?.includes('refresh_token_not_found') || 
+                  refreshError?.message?.includes('Invalid Refresh Token')) {
+                // Clear invalid session cookies and redirect to login
+                response.cookies.delete('sb-access-token')
+                response.cookies.delete('sb-refresh-token')
+                response.cookies.delete('user-role')
+                user = null
+              } else {
+                // Other refresh errors - user remains null but don't clear cookies
+                user = null
+              }
             }
           } catch (refreshError) {
-            // Refresh failed - user remains null
+            // Network or other errors during refresh - user remains null
             user = null
           }
         } else {

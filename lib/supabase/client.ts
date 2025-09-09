@@ -176,6 +176,11 @@ class EnhancedSupabaseClient {
                 // Use 'lax' for better compatibility with server-side sessions
                 cookieString += `; samesite=${options?.sameSite || 'lax'}`
                 
+                // CRITICAL FIX: Set max-age for refresh tokens to prevent expiry issues
+                if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
+                  cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
+                }
+                
                 document.cookie = cookieString
                 // Debug cookie setting only in development
                 if (process.env.NODE_ENV === 'development') {
@@ -592,6 +597,11 @@ export function createClient(config?: ClientConfig) {
                 }
                 cookieString += `; samesite=${options?.sameSite || 'lax'}`
                 
+                // CRITICAL FIX: Set max-age for refresh tokens to prevent expiry issues
+                if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
+                  cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
+                }
+                
                 if (process.env.NODE_ENV === 'development') {
                   logger.debug('[SUPABASE-CLIENT] Setting cookie string:', cookieString)
                 }
@@ -727,6 +737,12 @@ export function createRawClient() {
                 cookieString += '; secure'
               }
               cookieString += `; samesite=${options?.sameSite || 'lax'}`
+              
+              // CRITICAL FIX: Set max-age for refresh tokens to prevent expiry issues
+              if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
+                cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
+              }
+              
               document.cookie = cookieString
             })
           }
