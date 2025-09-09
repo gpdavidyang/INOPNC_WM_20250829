@@ -177,23 +177,30 @@ export default function IndividualSalarySettings() {
         national_pension_rate: settings.national_pension_rate,
         health_insurance_rate: settings.health_insurance_rate,
         employment_insurance_rate: settings.employment_insurance_rate,
-        long_term_care_rate: settings.long_term_care_rate,
-        updated_at: new Date().toISOString()
+        long_term_care_rate: settings.long_term_care_rate
       }
       
       console.log('Update data:', updateData)
       
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', workerId)
-        .select()
+      // Use API route to bypass RLS
+      const response = await fetch('/api/admin/workers/update-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          workerId,
+          updateData
+        })
+      })
 
-      if (error) {
-        console.error('Error updating worker:', error)
-        alert(`저장 중 오류가 발생했습니다: ${error.message}`)
+      const result = await response.json()
+
+      if (!response.ok) {
+        console.error('Error updating worker:', result.error)
+        alert(`저장 중 오류가 발생했습니다: ${result.error}`)
       } else {
-        console.log('Worker updated successfully:', data)
+        console.log('Worker updated successfully:', result.data)
         alert('저장되었습니다.')
         await fetchWorkers()
         setEditingWorker(null)
