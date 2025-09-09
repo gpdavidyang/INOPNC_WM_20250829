@@ -207,36 +207,36 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
                     <TableCell className="text-right">
                       <div className="flex gap-2 justify-end">
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handlePreview(doc)}
-                          title="미리보기"
+                          className="text-xs px-2 py-1"
                         >
-                          <Eye className="h-4 w-4" />
+                          보기
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleDownload(doc.id)}
-                          title="다운로드"
+                          className="text-xs px-2 py-1"
                         >
-                          <Download className="h-4 w-4" />
+                          다운로드
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => onEdit(doc)}
-                          title="수정"
+                          className="text-xs px-2 py-1"
                         >
-                          <Edit className="h-4 w-4" />
+                          수정
                         </Button>
                         <Button
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
                           onClick={() => handleDelete(doc.id)}
-                          title="삭제"
+                          className="text-xs px-2 py-1 text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          삭제
                         </Button>
                       </div>
                     </TableCell>
