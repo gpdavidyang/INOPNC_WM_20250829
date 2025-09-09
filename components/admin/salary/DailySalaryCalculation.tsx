@@ -97,16 +97,17 @@ export default function DailySalaryCalculation() {
         })))
       }
       
-      // Load workers from Supabase
+      // Load workers from profiles table (not workers table)
       const { data: workersData } = await supabase
-        .from('workers')
-        .select('id, name, role')
-        .order('name')
+        .from('profiles')
+        .select('id, full_name, role')
+        .not('role', 'is', null)
+        .order('full_name')
       
       if (workersData) {
         setAvailableWorkers(workersData.map(worker => ({
           value: worker.id,
-          label: worker.name,
+          label: worker.full_name,
           role: worker.role || 'worker'
         })))
       }
@@ -121,29 +122,31 @@ export default function DailySalaryCalculation() {
     
     try {
       // Build Supabase query for worker assignments with related data
+      // Using the actual database schema: worker_assignments with profile_id, daily_reports with work_date
       let query = supabase
         .from('worker_assignments')
         .select(`
           id,
-          worker_id,
+          profile_id,
           labor_hours,
+          hourly_rate,
+          role_type,
           daily_reports!inner(
             id,
-            date,
+            work_date,
             site_id,
             sites(id, name)
           ),
-          workers!inner(
+          profiles!inner(
             id,
-            name,
+            full_name,
             role,
-            daily_wage,
-            hourly_wage
+            daily_wage
           )
         `)
-        .gte('daily_reports.date', startDate)
-        .lte('daily_reports.date', endDate)
-        .order('daily_reports.date', { ascending: false })
+        .gte('daily_reports.work_date', startDate)
+        .lte('daily_reports.work_date', endDate)
+        .order('daily_reports.work_date', { ascending: false })
 
       // Apply site filter
       if (selectedSites.length > 0) {
@@ -152,27 +155,28 @@ export default function DailySalaryCalculation() {
       
       // Apply worker filter  
       if (selectedWorkers.length > 0) {
-        query = query.in('worker_id', selectedWorkers)
+        query = query.in('profile_id', selectedWorkers)
       }
       
       // Apply name search filter
       if (searchTerm) {
-        query = query.ilike('workers.name', `%${searchTerm}%`)
+        query = query.ilike('profiles.full_name', `%${searchTerm}%`)
       }
 
       const { data: assignmentsData, error } = await query
 
       if (error) {
+        console.error('Supabase query error:', error)
         throw error
       }
 
       // Transform data to match DailySalaryData interface
       const transformedData: DailySalaryData[] = (assignmentsData || []).map(assignment => {
-        const worker = assignment.workers
+        const profile = assignment.profiles
         const report = assignment.daily_reports
         const site = report.sites
         const laborHours = Number(assignment.labor_hours) || 0
-        const hourlyRate = Number(worker.hourly_wage) || Number(worker.daily_wage) || 0
+        const hourlyRate = Number(assignment.hourly_rate) || Number(profile.daily_wage) || 0
         const overtimeHours = Math.max(0, laborHours - 8) // overtime after 8 hours
         const regularPay = Math.min(laborHours, 8) * hourlyRate
         const overtimePay = overtimeHours * hourlyRate * 1.5 // 1.5x rate for overtime
@@ -180,12 +184,12 @@ export default function DailySalaryCalculation() {
 
         return {
           id: assignment.id,
-          worker_id: assignment.worker_id,
-          worker_name: worker.name,
-          worker_role: worker.role || 'worker',
+          worker_id: assignment.profile_id,
+          worker_name: profile.full_name,
+          worker_role: assignment.role_type || profile.role || 'worker',
           site_id: report.site_id,
           site_name: site.name,
-          work_date: report.date,
+          work_date: report.work_date,
           labor_hours: laborHours,
           hourly_rate: hourlyRate,
           daily_rate: regularPay,

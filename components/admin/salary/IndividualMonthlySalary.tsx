@@ -60,14 +60,14 @@ export default function IndividualMonthlySalary() {
   const fetchFilters = async () => {
     const [sitesRes, workersRes] = await Promise.all([
       supabase.from('sites').select('id, name').order('name'),
-      supabase.from('workers').select('id, name').order('name')
+      supabase.from('profiles').select('id, full_name').not('role', 'is', null).order('full_name')
     ])
 
     if (sitesRes.data) {
       setSites(sitesRes.data.map(s => ({ value: s.id, label: s.name })))
     }
     if (workersRes.data) {
-      setWorkers(workersRes.data.map(w => ({ value: w.id, label: w.name })))
+      setWorkers(workersRes.data.map(w => ({ value: w.id, label: w.full_name })))
     }
   }
 
@@ -86,30 +86,30 @@ export default function IndividualMonthlySalary() {
     let query = supabase
       .from('worker_assignments')
       .select(`
-        worker_id,
+        profile_id,
         labor_hours,
         daily_reports!inner(
-          date,
+          work_date,
           site_id,
           sites(name)
         ),
-        workers!inner(
+        profiles!inner(
           id,
-          name,
+          full_name,
           phone,
           daily_wage,
           meal_allowance,
           transportation_allowance
         )
       `)
-      .gte('daily_reports.date', startDate)
-      .lte('daily_reports.date', endDate)
+      .gte('daily_reports.work_date', startDate)
+      .lte('daily_reports.work_date', endDate)
 
     if (selectedSites.length > 0) {
       query = query.in('daily_reports.site_id', selectedSites)
     }
     if (selectedWorkers.length > 0) {
-      query = query.in('worker_id', selectedWorkers)
+      query = query.in('profile_id', selectedWorkers)
     }
 
     const { data, error } = await query
@@ -124,15 +124,15 @@ export default function IndividualMonthlySalary() {
     const workerMap = new Map<string, WorkerMonthlySalary>()
 
     data?.forEach(assignment => {
-      const workerId = assignment.worker_id
-      const worker = assignment.workers
+      const workerId = assignment.profile_id
+      const worker = assignment.profiles
       const report = assignment.daily_reports
       const site = report.sites
 
       if (!workerMap.has(workerId)) {
         workerMap.set(workerId, {
           worker_id: workerId,
-          worker_name: worker.name,
+          worker_name: worker.full_name,
           worker_phone: worker.phone || '',
           total_days: 0,
           total_manhours: 0,

@@ -153,14 +153,25 @@ export default function IndividualSalarySettings() {
   const fetchWorkers = async () => {
     setLoading(true)
     const { data, error } = await supabase
-      .from('workers')
+      .from('profiles')
       .select('*')
-      .order('name')
+      .not('role', 'is', null)
+      .order('full_name')
 
     if (error) {
       console.error('Error fetching workers:', error)
     } else {
-      setWorkers(data || [])
+      setWorkers((data || []).map(profile => ({
+        ...profile,
+        name: profile.full_name, // Add name field for compatibility
+        // Set default values for new fields if they don't exist
+        salary_type: profile.salary_type || '4대보험직원',
+        tax_rate: profile.tax_rate || 3.3,
+        national_pension_rate: profile.national_pension_rate || 4.5,
+        health_insurance_rate: profile.health_insurance_rate || 3.545,
+        employment_insurance_rate: profile.employment_insurance_rate || 0.9,
+        long_term_care_rate: profile.long_term_care_rate || 0.4591
+      })))
     }
     setLoading(false)
   }
