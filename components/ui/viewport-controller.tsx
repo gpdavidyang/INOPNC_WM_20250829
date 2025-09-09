@@ -41,97 +41,117 @@ if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_ENABLE_FIXED_UI_MOD
       style.id = styleId
       style.setAttribute('data-priority', 'maximum')
       style.innerHTML = `
-        /* CRITICAL: Force Desktop UI Override - Applied IMMEDIATELY */
+        /* CRITICAL: Force Desktop UI Override - Maximum Priority */
         html.force-desktop-ui,
         body.force-desktop-ui {
           min-width: 1536px !important;
-          width: auto !important;
+          width: max-content !important;
           overflow-x: auto !important;
           overflow-y: visible !important;
           position: relative !important;
           height: auto !important;
         }
         
-        /* Override ALL responsive breakpoints */
+        /* Disable ALL Tailwind responsive utilities */
         @media all {
+          /* Force desktop layout at all screen sizes */
+          .force-desktop-ui,
           .force-desktop-ui * {
-            /* Reset any mobile-specific transforms or positions */
-            transform: none !important;
+            /* Remove ALL responsive prefixes */
           }
           
-          /* Force show desktop elements */
-          .force-desktop-ui .lg\\:block,
-          .force-desktop-ui .xl\\:block,
-          .force-desktop-ui .2xl\\:block { display: block !important; }
-          .force-desktop-ui .lg\\:flex,
-          .force-desktop-ui .xl\\:flex,
-          .force-desktop-ui .2xl\\:flex { display: flex !important; }
-          .force-desktop-ui .lg\\:inline-block,
-          .force-desktop-ui .xl\\:inline-block,
-          .force-desktop-ui .2xl\\:inline-block { display: inline-block !important; }
-          .force-desktop-ui .lg\\:inline-flex,
-          .force-desktop-ui .xl\\:inline-flex,
-          .force-desktop-ui .2xl\\:inline-flex { display: inline-flex !important; }
-          .force-desktop-ui .lg\\:grid,
-          .force-desktop-ui .xl\\:grid,
-          .force-desktop-ui .2xl\\:grid { display: grid !important; }
-          
-          /* Hide mobile elements */
-          .force-desktop-ui .lg\\:hidden,
-          .force-desktop-ui .xl\\:hidden,
-          .force-desktop-ui .2xl\\:hidden { display: none !important; }
-          .force-desktop-ui .block.lg\\:hidden,
-          .force-desktop-ui .flex.lg\\:hidden { display: none !important; }
-          .force-desktop-ui .mobile-nav,
-          .force-desktop-ui .bottom-navigation,
-          .force-desktop-ui [class*="mobile-only"] { display: none !important; }
-          
-          /* Force desktop widths */
-          .force-desktop-ui .lg\\:w-72 { width: 18rem !important; }
-          .force-desktop-ui .lg\\:w-64 { width: 16rem !important; }
-          .force-desktop-ui .lg\\:w-16 { width: 4rem !important; }
-          .force-desktop-ui .lg\\:w-0 { width: 0 !important; }
-          .force-desktop-ui .lg\\:pl-72 { padding-left: 18rem !important; }
-          .force-desktop-ui .lg\\:pl-64 { padding-left: 16rem !important; }
-          .force-desktop-ui .lg\\:pl-16 { padding-left: 4rem !important; }
-          .force-desktop-ui .lg\\:pl-0 { padding-left: 0 !important; }
-          
-          /* Force desktop positions */
+          /* Show desktop elements always */
+          .force-desktop-ui .lg\\:block { display: block !important; }
+          .force-desktop-ui .lg\\:flex { display: flex !important; }
+          .force-desktop-ui .lg\\:inline-block { display: inline-block !important; }
+          .force-desktop-ui .lg\\:inline-flex { display: inline-flex !important; }
+          .force-desktop-ui .lg\\:grid { display: grid !important; }
+          .force-desktop-ui .lg\\:table { display: table !important; }
           .force-desktop-ui .lg\\:fixed { position: fixed !important; }
           .force-desktop-ui .lg\\:absolute { position: absolute !important; }
           .force-desktop-ui .lg\\:relative { position: relative !important; }
           .force-desktop-ui .lg\\:sticky { position: sticky !important; }
           
-          /* Override all small/medium breakpoint styles */
-          .force-desktop-ui .sm\\:hidden,
-          .force-desktop-ui .md\\:hidden { display: initial !important; }
-          .force-desktop-ui .sm\\:block,
-          .force-desktop-ui .md\\:block { display: block !important; }
-          
-          /* Container and layout overrides */
-          .force-desktop-ui .container { 
-            max-width: 1536px !important;
-            width: 100% !important;
-            padding-left: 2rem !important;
-            padding-right: 2rem !important;
+          /* Hide mobile elements always */
+          .force-desktop-ui .lg\\:hidden { display: none !important; }
+          .force-desktop-ui [class*="sm\\:"], 
+          .force-desktop-ui [class*="md\\:"]:not([class*="lg\\:"]) {
+            /* Reset mobile-only styles */
           }
           
-          /* Ensure content doesn't collapse */
+          /* Force specific desktop widths */
+          .force-desktop-ui .lg\\:w-72 { width: 18rem !important; }
+          .force-desktop-ui .lg\\:w-64 { width: 16rem !important; }
+          .force-desktop-ui .lg\\:w-16 { width: 4rem !important; }
+          .force-desktop-ui .lg\\:pl-72 { padding-left: 18rem !important; }
+          .force-desktop-ui .lg\\:pl-64 { padding-left: 16rem !important; }
+          .force-desktop-ui .lg\\:pl-16 { padding-left: 4rem !important; }
+          .force-desktop-ui .lg\\:ml-72 { margin-left: 18rem !important; }
+          .force-desktop-ui .lg\\:ml-64 { margin-left: 16rem !important; }
+          .force-desktop-ui .lg\\:ml-16 { margin-left: 4rem !important; }
+          .force-desktop-ui .lg\\:left-0 { left: 0 !important; }
+          .force-desktop-ui .lg\\:inset-y-0 { top: 0 !important; bottom: 0 !important; }
+          
+          /* Admin specific overrides */
+          .force-desktop-ui .admin-sidebar-mobile,
+          .force-desktop-ui .mobile-menu-button,
+          .force-desktop-ui .mobile-backdrop,
+          .force-desktop-ui [class*="mobile-only"] { 
+            display: none !important; 
+          }
+          
+          /* Container overrides */
+          .force-desktop-ui .container,
+          .force-desktop-ui .max-w-7xl,
+          .force-desktop-ui .max-w-6xl,
+          .force-desktop-ui .max-w-5xl { 
+            max-width: none !important;
+            width: 100% !important;
+          }
+          
+          /* Main content area */
           .force-desktop-ui main,
           .force-desktop-ui .main-content,
           .force-desktop-ui [role="main"] {
             min-width: 1536px !important;
-            width: auto !important;
+            width: 100% !important;
+          }
+          
+          /* Table overrides - prevent responsive tables */
+          .force-desktop-ui table {
+            display: table !important;
+            width: 100% !important;
+          }
+          .force-desktop-ui thead { display: table-header-group !important; }
+          .force-desktop-ui tbody { display: table-row-group !important; }
+          .force-desktop-ui tr { display: table-row !important; }
+          .force-desktop-ui th,
+          .force-desktop-ui td { display: table-cell !important; }
+          
+          /* Prevent any flex wrapping on mobile */
+          .force-desktop-ui .flex-wrap { flex-wrap: nowrap !important; }
+          .force-desktop-ui .flex-col { flex-direction: row !important; }
+        }
+        
+        /* Override ALL media queries - force desktop at every breakpoint */
+        @media (max-width: 9999px) {
+          html.force-desktop-ui,
+          body.force-desktop-ui {
+            min-width: 1536px !important;
           }
         }
         
-        /* Disable ALL mobile-specific media queries */
-        @media (max-width: 1920px), (max-width: 1536px), (max-width: 1280px), 
-               (max-width: 1024px), (max-width: 768px), (max-width: 640px), 
-               (max-width: 480px), (max-width: 320px) {
-          .force-desktop-ui,
-          .force-desktop-ui body {
+        @media (max-width: 1536px), (max-width: 1280px), (max-width: 1024px), 
+               (max-width: 768px), (max-width: 640px), (max-width: 480px) {
+          .force-desktop-ui {
+            /* Apply desktop styles at ALL breakpoints */
             min-width: 1536px !important;
+          }
+          
+          /* Remove ALL mobile transforms */
+          .force-desktop-ui .translate-x-0,
+          .force-desktop-ui .-translate-x-full {
+            transform: none !important;
           }
         }
       `

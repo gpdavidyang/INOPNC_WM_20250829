@@ -416,7 +416,8 @@ function Sidebar({ profile, pathname, onItemClick, isCollapsed }: {
 export default function AdminDashboardLayout({ children, profile: propProfile }: AdminDashboardLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  // Remove mobile sidebar state - desktop only
+  // const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     // Load collapsed state from localStorage
     if (typeof window !== 'undefined') {
@@ -491,63 +492,39 @@ export default function AdminDashboardLayout({ children, profile: propProfile }:
     setIsSidebarCollapsed(!isSidebarCollapsed)
   }
 
-  // Toggle mobile sidebar
-  const toggleMobileSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen)
-  }
+  // Mobile sidebar removed - desktop only layout
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      {/* Admin Header with integrated search */}
+      {/* Admin Header - Desktop only */}
       <AdminHeader 
         profile={profile}
-        onMenuClick={toggleMobileSidebar}
+        onMenuClick={undefined}  // Remove mobile menu
         onDesktopMenuClick={toggleDesktopSidebar}
-        isSidebarOpen={isSidebarOpen}
+        isSidebarOpen={false}  // Always false for desktop
         isSidebarCollapsed={isSidebarCollapsed}
       />
-      
-      {/* Mobile sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-200 ease-in-out lg:hidden ${
-        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      }`} style={{ top: '64px' }}>
-        <Sidebar 
-          profile={profile} 
-          pathname={pathname} 
-          onItemClick={() => setIsSidebarOpen(false)}
-          isCollapsed={false} 
-        />
-      </div>
 
-      {/* Mobile sidebar backdrop */}
-      {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-black bg-opacity-50 lg:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-          style={{ top: '64px' }}
-        />
-      )}
-
-      {/* Desktop sidebar with collapse animation */}
+      {/* Desktop sidebar - Always visible */}
       <div 
-        className={`hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:flex-col transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'lg:w-16' : 'lg:w-72'
+        className={`fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out ${
+          isSidebarCollapsed ? 'w-16' : 'w-72'
         }`} 
         style={{ top: '64px', height: 'calc(100vh - 64px)' }}
       >
         <Sidebar profile={profile} pathname={pathname} isCollapsed={isSidebarCollapsed} />
       </div>
 
-      {/* Main content area - adjusts based on sidebar state */}
+      {/* Main content area - Desktop layout */}
       <div 
         className={`transition-all duration-300 ease-in-out ${
-          isSidebarCollapsed ? 'lg:pl-16' : 'lg:pl-72'
+          isSidebarCollapsed ? 'pl-16' : 'pl-72'
         }`} 
-        style={{ paddingTop: '64px' }}
+        style={{ paddingTop: '64px', minWidth: '1536px' }}
       >
         {/* Page content */}
         <main className="py-6">
-          <div className="mx-auto max-w-none px-4 sm:px-6 lg:px-8">
+          <div className="px-8" style={{ width: '100%' }}>
             {children}
           </div>
         </main>

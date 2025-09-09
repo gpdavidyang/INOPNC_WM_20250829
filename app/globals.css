@@ -1196,3 +1196,60 @@ body.force-desktop-ui * {
   }
 }
 
+/* ============================================== */
+/* ADMIN DASHBOARD SPECIFIC DESKTOP OVERRIDES    */
+/* ============================================== */
+.force-desktop-ui {
+  /* Remove ALL responsive breakpoint behaviors */
+  [class*="sm:"], [class*="md:"]:not([class*="lg:"]):not([class*="xl:"]) {
+    all: unset !important;
+  }
+  
+  /* Admin layout specific fixes */
+  .admin-dashboard-layout {
+    min-width: 1536px !important;
+    display: flex !important;
+  }
+  
+  /* Remove container max-width restrictions */
+  .container,
+  [class*="max-w-"] {
+    max-width: none !important;
+    width: 100% !important;
+  }
+  
+  /* Tables must stay as tables */
+  table { display: table !important; }
+  thead { display: table-header-group !important; }
+  tbody { display: table-row-group !important; }
+  tr { display: table-row !important; }
+  th, td { 
+    display: table-cell !important;
+    white-space: nowrap !important;
+  }
+  
+  /* Prevent ANY responsive grid changes */
+  [class*="grid-cols-"] {
+    grid-template-columns: inherit !important;
+  }
+  .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
+  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  
+  /* Admin sidebar must always be visible */
+  .admin-sidebar {
+    display: flex !important;
+    position: fixed !important;
+    transform: translateX(0) !important;
+  }
+  
+  /* Remove ALL mobile menu related elements */
+  [aria-label*="mobile"],
+  [aria-label*="Mobile"],
+  .mobile-menu-trigger,
+  .mobile-backdrop {
+    display: none !important;
+  }
+}
+

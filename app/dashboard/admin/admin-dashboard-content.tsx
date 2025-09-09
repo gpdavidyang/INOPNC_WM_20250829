@@ -162,7 +162,7 @@ export function AdminDashboardContent() {
       
       <div className="space-y-6">
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <Card className={`${
           touchMode === 'glove' ? 'p-5' : touchMode === 'precision' ? 'p-3' : 'p-4'
         }`}>
@@ -234,7 +234,7 @@ export function AdminDashboardContent() {
         </div>
         
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             {[...Array(6)].map((_, index) => (
               <div
                 key={index}
@@ -245,7 +245,7 @@ export function AdminDashboardContent() {
             ))}
           </div>
         ) : quickActions.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="grid grid-cols-6 gap-2">
             {quickActions.map((action) => {
               const IconComponent = ICON_MAP[action.icon_name as keyof typeof ICON_MAP] || Home
               
@@ -278,7 +278,7 @@ export function AdminDashboardContent() {
       </Card>
 
       {/* Recent Activities */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 gap-6">
         <Card className={`${
           touchMode === 'glove' ? 'p-8' : touchMode === 'precision' ? 'p-4' : 'p-6'
         }`}>
