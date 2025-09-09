@@ -216,10 +216,10 @@ export default function IndividualMonthlySalary() {
 
   const totals = {
     workers: filteredData.length,
-    manhours: filteredData.reduce((sum, w) => sum + w.total_manhours, 0),
-    salary: filteredData.reduce((sum, w) => sum + w.net_salary, 0),
+    manhours: filteredData.reduce((sum, w) => sum + (w.total_manhours || 0), 0),
+    salary: filteredData.reduce((sum, w) => sum + (w.net_salary || 0), 0),
     average: filteredData.length > 0 
-      ? filteredData.reduce((sum, w) => sum + w.net_salary, 0) / filteredData.length 
+      ? filteredData.reduce((sum, w) => sum + (w.net_salary || 0), 0) / filteredData.length 
       : 0
   }
 
@@ -369,19 +369,19 @@ export default function IndividualMonthlySalary() {
                         {worker.total_days}일
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-900 dark:text-gray-100">
-                        {worker.total_manhours.toFixed(1)}
+                        {(worker.total_manhours || 0).toFixed(1)}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-gray-100">
-                        ₩{new Intl.NumberFormat('ko-KR').format(worker.base_salary)}
+                        ₩{new Intl.NumberFormat('ko-KR').format(worker.base_salary || 0)}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-gray-100">
-                        ₩{new Intl.NumberFormat('ko-KR').format(worker.allowances)}
+                        ₩{new Intl.NumberFormat('ko-KR').format(worker.allowances || 0)}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-gray-100">
-                        ₩{new Intl.NumberFormat('ko-KR').format(worker.deductions)}
+                        ₩{new Intl.NumberFormat('ko-KR').format(worker.deductions || 0)}
                       </td>
                       <td className="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-gray-100">
-                        ₩{new Intl.NumberFormat('ko-KR').format(worker.net_salary)}
+                        ₩{new Intl.NumberFormat('ko-KR').format(worker.net_salary || 0)}
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button
@@ -407,7 +407,7 @@ export default function IndividualMonthlySalary() {
                               {worker.sites.map((site, index) => (
                                 <div key={index} className="flex justify-between text-gray-600 dark:text-gray-400">
                                   <span>{site.site_name}</span>
-                                  <span>{site.days}일 / {site.manhours.toFixed(1)}공수</span>
+                                  <span>{site.days}일 / {(site.manhours || 0).toFixed(1)}공수</span>
                                 </div>
                               ))}
                             </div>
