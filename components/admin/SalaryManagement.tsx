@@ -18,8 +18,10 @@ interface SalaryManagementProps {
   profile: Profile
 }
 
+import WorkerSalarySettings from './WorkerSalarySettings'
+
 export default function SalaryManagement({ profile }: SalaryManagementProps) {
-  const [activeTab, setActiveTab] = useState<'output' | 'calculate' | 'statements' | 'rates'>('output')
+  const [activeTab, setActiveTab] = useState<'output' | 'calculate' | 'statements' | 'rates' | 'personal'>('output')
   
   // Output tab state
   const [outputData, setOutputData] = useState<OutputSummary[]>([])
@@ -347,6 +349,16 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             }`}
           >
             급여기준 및 할당
+          </button>
+          <button
+            onClick={() => setActiveTab('personal')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'personal'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            개인별 설정
           </button>
         </nav>
       </div>
@@ -925,6 +937,11 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Personal Settings Tab */}
+      {activeTab === 'personal' && (
+        <WorkerSalarySettings profile={profile} />
       )}
 
     </div>
