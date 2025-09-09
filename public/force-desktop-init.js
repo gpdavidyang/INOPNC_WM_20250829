@@ -409,23 +409,9 @@
       log('Hidden', mobileElements.length, 'mobile elements');
     });
     
-    // 8. Periodic enforcement (nuclear option)
-    let enforcementCount = 0;
-    const enforceDesktop = setInterval(function() {
-      if (enforcementCount < 10) { // Run 10 times over 5 seconds
-        if (!document.documentElement.classList.contains('force-desktop-ui')) {
-          document.documentElement.classList.add('force-desktop-ui', 'desktop-enforced');
-          log('Periodic enforcement: re-added classes');
-        }
-        if (document.body && !document.body.classList.contains('force-desktop-ui')) {
-          document.body.classList.add('force-desktop-ui', 'desktop-enforced');
-        }
-        enforcementCount++;
-      } else {
-        clearInterval(enforceDesktop);
-        log('Periodic enforcement complete');
-      }
-    }, 500);
+    // 8. Periodic enforcement DISABLED to prevent infinite loops
+    // MutationObserver above is sufficient for protection
+    log('Periodic enforcement disabled - using MutationObserver only');
     
     log('Desktop UI enforcement complete');
   } else {
