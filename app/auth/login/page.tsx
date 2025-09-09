@@ -35,11 +35,23 @@ export default function LoginPage() {
     }
     
     setError(null)
+    setSuccessMessage(null)
     
     startTransition(async () => {
       try {
+        console.log('[LOGIN] Starting login attempt for:', email)
+        
         const result = await signIn(email, password)
+        
+        console.log('[LOGIN] Login result received:', { 
+          hasResult: !!result,
+          hasError: !!result?.error,
+          hasSuccess: !!result?.success
+        })
+        
         if (result?.error) {
+          console.error('[LOGIN] Login failed with error:', result.error)
+          
           // Enhanced error handling for production environment
           let userFriendlyMessage = '로그인 중 오류가 발생했습니다.'
           
@@ -53,6 +65,8 @@ export default function LoginPage() {
             userFriendlyMessage = '네트워크 연결을 확인하고 다시 시도해주세요.'
           } else if (result.error.includes('timeout')) {
             userFriendlyMessage = '요청 시간이 초과되었습니다. 다시 시도해주세요.'
+          } else if (result.error.includes('server error')) {
+            userFriendlyMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
           } else {
             // For other specific errors, show them directly in development
             if (process.env.NODE_ENV === 'development') {
@@ -62,19 +76,30 @@ export default function LoginPage() {
           
           setError(userFriendlyMessage)
         } else if (result?.success) {
-          // Use window.location for a full page refresh to ensure auth state is updated
-          window.location.href = redirectTo
+          console.log('[LOGIN] Login successful, redirecting to:', redirectTo)
+          
+          // Small delay to ensure auth state is properly updated
+          setTimeout(() => {
+            // Use window.location for a full page refresh to ensure auth state is updated
+            window.location.href = redirectTo
+          }, 100)
+        } else {
+          console.error('[LOGIN] Unexpected result:', result)
+          setError('로그인 응답이 올바르지 않습니다. 다시 시도해주세요.')
         }
       } catch (error) {
-        console.error('Login error:', error)
+        console.error('[LOGIN] Unexpected client error:', error)
+        console.error('[LOGIN] Error stack:', error instanceof Error ? error.stack : 'No stack')
         
         // Enhanced client-side error handling
-        let errorMessage = '로그인 중 오류가 발생했습니다. 다시 시도해주세요.'
+        let errorMessage = '로그인 중 예상치 못한 오류가 발생했습니다. 다시 시도해주세요.'
         
         if (error instanceof Error) {
           if (error.message.includes('environment variables') || error.message.includes('API key')) {
             errorMessage = '일시적인 서버 문제가 발생했습니다. 잠시 후 다시 시도해주세요.'
             console.error('[LOGIN] Client environment error:', error)
+          } else if (error.message.includes('fetch')) {
+            errorMessage = '네트워크 연결을 확인하고 다시 시도해주세요.'
           } else if (process.env.NODE_ENV === 'development') {
             errorMessage = error.message
           }
