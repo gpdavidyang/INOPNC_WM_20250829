@@ -29,19 +29,15 @@ export function ViewportController({ children }: ViewportControllerProps) {
     // Get role from cookie
     const role = getClientUserRole()
     
-    // Check actual device width
-    const isMobileDevice = window.innerWidth < 768
-    
-    // For admin/system_admin roles on mobile devices, 
-    // don't force desktop UI to prevent layout issues
-    if (isRoleDesktopUI(role) && isMobileDevice) {
-      // Let responsive design handle it naturally
-      setUiMode(null)
-    } else if (isRoleMobileUI(role)) {
+    // Determine UI mode based on role only (ignore device width)
+    if (isRoleMobileUI(role)) {
+      // worker, site_manager, customer_manager → force mobile UI
       setUiMode('mobile')
-    } else if (isRoleDesktopUI(role) && !isMobileDevice) {
+    } else if (isRoleDesktopUI(role)) {
+      // admin, system_admin → ALWAYS force desktop UI (even on mobile devices)
       setUiMode('desktop')
     } else {
+      // Other roles → use responsive design
       setUiMode(null)
     }
   }, [])
@@ -69,10 +65,11 @@ export function ViewportController({ children }: ViewportControllerProps) {
       body.classList.add('force-desktop-ui')
       body.classList.remove('force-mobile-ui')
       
-      // Update viewport meta tag for desktop (only on actual desktop devices)
+      // Force desktop viewport for admin/system_admin roles (even on mobile devices)
+      // This ensures the full desktop layout is rendered at 1280px width
       const viewport = document.querySelector('meta[name="viewport"]')
       if (viewport) {
-        viewport.setAttribute('content', 'width=1280, initial-scale=1, user-scalable=yes')
+        viewport.setAttribute('content', 'width=1280, initial-scale=0.5, user-scalable=yes')
       }
     }
     
