@@ -124,8 +124,16 @@ export default function SalaryStatementManager() {
       // Fetch salary data for selected workers
       const startDate = `${year}-${String(month).padStart(2, '0')}-01`
       const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+      
+      console.log('Generating statements for:', {
+        year,
+        month,
+        startDate,
+        endDate,
+        selectedWorkers
+      })
 
-      const { data: salaryData } = await supabase
+      const { data: salaryData, error: fetchError } = await supabase
         .from('worker_assignments')
         .select(`
           profile_id,
@@ -148,17 +156,29 @@ export default function SalaryStatementManager() {
         .gte('daily_reports.work_date', startDate)
         .lte('daily_reports.work_date', endDate)
 
-      if (!salaryData) {
-        throw new Error('급여 데이터를 불러올 수 없습니다.')
+      if (fetchError) {
+        console.error('Error fetching salary data:', fetchError)
+        throw new Error(`급여 데이터를 불러올 수 없습니다: ${fetchError.message}`)
+      }
+
+      if (!salaryData || salaryData.length === 0) {
+        alert('선택한 기간에 해당하는 급여 데이터가 없습니다.')
+        setGenerating(false)
+        return
       }
 
       // Process data by worker
       const workerMap = new Map()
       salaryData.forEach(assignment => {
+        if (!assignment || !assignment.profiles || !assignment.daily_reports) {
+          console.warn('Skipping invalid assignment:', assignment)
+          return
+        }
+
         const workerId = assignment.profile_id
         const worker = assignment.profiles
         const report = assignment.daily_reports
-        const site = report.sites
+        const site = report?.sites
 
         if (!workerMap.has(workerId)) {
           workerMap.set(workerId, {
@@ -242,9 +262,10 @@ export default function SalaryStatementManager() {
 
       alert(`${statementsToInsert.length}개의 급여명세서가 생성되었습니다.`)
       fetchStatements()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating statements:', error)
-      alert('급여명세서 생성 중 오류가 발생했습니다.')
+      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.'
+      alert(`급여명세서 생성 중 오류가 발생했습니다: ${errorMessage}`)
     } finally {
       setGenerating(false)
     }
