@@ -1,11 +1,11 @@
 // INOPNC Work Management System Service Worker
 // Provides offline functionality and intelligent caching for construction sites
 
-// Updated cache version to force refresh in PWA
-const CACHE_NAME = 'inopnc-wm-v1.5.0'
-const STATIC_CACHE = 'inopnc-static-v1.5.0'
-const API_CACHE = 'inopnc-api-v1.5.0'
-const IMAGES_CACHE = 'inopnc-images-v1.2.0'
+// Updated cache version to force refresh in PWA - Critical Auth Fix
+const CACHE_NAME = 'inopnc-wm-v1.6.0'
+const STATIC_CACHE = 'inopnc-static-v1.6.0'
+const API_CACHE = 'inopnc-api-v1.6.0'
+const IMAGES_CACHE = 'inopnc-images-v1.3.0'
 const OFFLINE_PAGE = '/offline'
 
 // Cache size limits for mobile devices
@@ -123,44 +123,43 @@ self.addEventListener('fetch', event => {
   const { request } = event
   const url = new URL(request.url)
   
+  // CRITICAL FIX: Complete bypass for auth pages and their resources
+  // Check if this is an auth-related request (page, API, or resources)
+  const isAuthRelated = 
+    url.pathname.includes('/auth') || 
+    url.pathname.includes('/login') ||
+    url.pathname.includes('/signup') ||
+    url.pathname.includes('/signin') ||
+    url.pathname.includes('/api/auth') ||
+    url.pathname.includes('/reset-password') ||
+    url.pathname.includes('/update-password') ||
+    // Also bypass Next.js internal routes for auth pages
+    (url.pathname.includes('/_next/') && request.referrer && 
+     (request.referrer.includes('/auth') || 
+      request.referrer.includes('/login') ||
+      request.referrer.includes('/signup')))
+  
+  if (isAuthRelated) {
+    // COMPLETELY BYPASS Service Worker for auth-related requests
+    // Let the browser handle it normally without ANY intervention
+    console.log('[ServiceWorker] Bypassing SW for auth-related request:', url.pathname)
+    return // Early return - no event.respondWith() means browser handles it normally
+  }
+  
   // Skip non-GET requests and chrome-extension requests
   if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
     return
   }
   
   // Suppress Chrome extension errors by explicitly ignoring them
-  if (url.href.includes('chrome-extension://pejdijmoenmkgeppbflobdenhhabjlaj')) {
-    console.warn('[ServiceWorker] Ignoring Chrome extension resource request:', url.href)
-    return
+  if (url.href.includes('chrome-extension://')) {
+    return // Silently ignore all chrome extension requests
   }
   
-  // CRITICAL: Never cache auth-related pages - always fetch fresh with error handling
-  if (url.pathname.includes('/auth/') || 
-      url.pathname.includes('/api/auth/') ||
-      url.pathname === '/auth' ||
-      url.pathname.includes('/login') ||
-      url.pathname.includes('/signup') ||
-      url.pathname.includes('/signin')) {
-    console.log('[ServiceWorker] Auth page requested, fetching fresh:', url.pathname)
-    
-    // Fetch with timeout and error handling
-    event.respondWith(
-      fetch(request, {
-        cache: 'no-store',
-        credentials: 'same-origin'
-      }).catch(error => {
-        console.error('[ServiceWorker] Failed to fetch auth page:', url.pathname, error)
-        // Return a network error response
-        return new Response('Network error occurred', {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: new Headers({
-            'Content-Type': 'text/plain'
-          })
-        })
-      })
-    )
-    return
+  // Additional safety check - if we somehow got here with auth content, bypass
+  if (request.mode === 'navigate' && 
+      (url.pathname.includes('/auth') || url.pathname.includes('/login'))) {
+    return // Let browser handle it
   }
   
   // Handle different types of requests with appropriate strategies
@@ -469,10 +468,13 @@ function isAPIRequest(request) {
 }
 
 function isPageRequest(request) {
-  // Skip caching for auth-related pages
-  if (request.url.includes('/auth/') || 
-      request.url.includes('/api/auth/') ||
-      request.url.includes('/dashboard')) {
+  // Skip caching for auth-related pages and dashboard
+  const url = new URL(request.url)
+  if (url.pathname.includes('/auth') || 
+      url.pathname.includes('/login') ||
+      url.pathname.includes('/signup') ||
+      url.pathname.includes('/api/auth') ||
+      url.pathname.includes('/dashboard')) {
     return false
   }
   
@@ -601,9 +603,12 @@ async function networkFirstWithCache(request) {
 async function pageNetworkFirst(request) {
   try {
     // Don't cache auth-related requests
-    const isAuthRelated = request.url.includes('/auth/') || 
-                         request.url.includes('/api/auth/') ||
-                         request.url.includes('/dashboard')
+    const url = new URL(request.url)
+    const isAuthRelated = url.pathname.includes('/auth') || 
+                         url.pathname.includes('/login') ||
+                         url.pathname.includes('/signup') ||
+                         url.pathname.includes('/api/auth') ||
+                         url.pathname.includes('/dashboard')
     
     const response = await fetch(request)
     
@@ -618,9 +623,12 @@ async function pageNetworkFirst(request) {
     console.log('[ServiceWorker] Page network failed, trying cache:', error)
     
     // Don't use cache for auth-related pages
-    const isAuthRelated = request.url.includes('/auth/') || 
-                         request.url.includes('/api/auth/') ||
-                         request.url.includes('/dashboard')
+    const url = new URL(request.url)
+    const isAuthRelated = url.pathname.includes('/auth') || 
+                         url.pathname.includes('/login') ||
+                         url.pathname.includes('/signup') ||
+                         url.pathname.includes('/api/auth') ||
+                         url.pathname.includes('/dashboard')
     
     if (isAuthRelated) {
       // For auth pages, always fail if network is down
