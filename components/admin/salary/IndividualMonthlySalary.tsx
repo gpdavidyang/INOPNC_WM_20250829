@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileDown, Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { FileDown, Search, ChevronDown, ChevronUp, Calculator } from 'lucide-react'
 import * as XLSX from 'xlsx'
 import { 
   CustomSelect, 
@@ -40,6 +40,7 @@ export default function IndividualMonthlySalary() {
   const [workers, setWorkers] = useState<Array<{ value: string; label: string }>>([])
   const [salaryData, setSalaryData] = useState<WorkerMonthlySalary[]>([])
   const [loading, setLoading] = useState(false)
+  const [calculating, setCalculating] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
 
@@ -49,11 +50,12 @@ export default function IndividualMonthlySalary() {
     fetchFilters()
   }, [])
 
-  useEffect(() => {
-    if (selectedSites.length > 0 || selectedWorkers.length > 0) {
-      fetchSalaryData()
-    }
-  }, [year, month, selectedSites, selectedWorkers])
+  // Remove automatic calculation - now manual with button
+  // useEffect(() => {
+  //   if (selectedSites.length > 0 || selectedWorkers.length > 0) {
+  //     fetchSalaryData()
+  //   }
+  // }, [year, month, selectedSites, selectedWorkers])
 
   const fetchFilters = async () => {
     const [sitesRes, workersRes] = await Promise.all([
@@ -70,6 +72,12 @@ export default function IndividualMonthlySalary() {
   }
 
   const fetchSalaryData = async () => {
+    if (selectedSites.length === 0 && selectedWorkers.length === 0) {
+      alert('급여를 계산할 현장 또는 작업자를 선택해주세요.')
+      return
+    }
+
+    setCalculating(true)
     setLoading(true)
     
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`
@@ -170,6 +178,7 @@ export default function IndividualMonthlySalary() {
 
     setSalaryData(Array.from(workerMap.values()))
     setLoading(false)
+    setCalculating(false)
   }
 
   const filteredData = salaryData.filter(worker =>
@@ -234,7 +243,7 @@ export default function IndividualMonthlySalary() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               연도
@@ -286,6 +295,26 @@ export default function IndividualMonthlySalary() {
             onChange={setSelectedWorkers}
             placeholder="작업자 선택"
           />
+
+          <div className="flex items-end">
+            <button
+              onClick={fetchSalaryData}
+              disabled={calculating}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+            >
+              {calculating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  계산 중...
+                </>
+              ) : (
+                <>
+                  <Calculator className="h-4 w-4" />
+                  급여 계산
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
