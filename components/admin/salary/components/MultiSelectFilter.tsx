@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Check, ChevronDown, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 interface Option {
   value: string
@@ -28,11 +29,14 @@ export default function MultiSelectFilter({
 }: MultiSelectFilterProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node) &&
+          buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setIsOpen(false)
       }
     }
@@ -40,6 +44,17 @@ export default function MultiSelectFilter({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect()
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      })
+    }
+  }, [isOpen])
   
   const filteredOptions = options.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase())
@@ -80,12 +95,13 @@ export default function MultiSelectFilter({
     .filter(Boolean)
   
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative z-50" ref={dropdownRef}>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
         {label}
       </label>
       
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-left flex items-center justify-between hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
@@ -117,8 +133,17 @@ export default function MultiSelectFilter({
         </div>
       </button>
       
-      {isOpen && (
-        <div className="absolute z-[100000] mt-1 w-full !bg-white dark:!bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl max-h-60 overflow-auto" style={{ backgroundColor: 'white' }}>
+      {isOpen && typeof window !== 'undefined' && createPortal(
+        <div 
+          ref={dropdownRef}
+          className="fixed !bg-white dark:!bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl max-h-60 overflow-auto" 
+          style={{ 
+            backgroundColor: 'white', 
+            zIndex: 100000,
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`
+          }}>
           {/* Search */}
           <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-2">
             <input
@@ -193,7 +218,8 @@ export default function MultiSelectFilter({
               검색 결과가 없습니다
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
