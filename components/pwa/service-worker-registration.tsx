@@ -19,6 +19,22 @@ export function ServiceWorkerRegistration() {
   })
 
   useEffect(() => {
+    // Check if Service Worker is disabled via localStorage (for debugging)
+    const swDisabled = localStorage.getItem('disable-service-worker') === 'true'
+    
+    if (swDisabled) {
+      console.log('[ServiceWorker] Registration disabled by user preference')
+      return
+    }
+    
+    // Check if we're on auth pages - don't register SW on auth pages
+    if (typeof window !== 'undefined' && 
+        (window.location.pathname.includes('/auth/') || 
+         window.location.pathname === '/clear-sw.html')) {
+      console.log('[ServiceWorker] Skipping registration on auth/utility pages')
+      return
+    }
+    
     if ('serviceWorker' in navigator) {
       registerServiceWorker()
     }
