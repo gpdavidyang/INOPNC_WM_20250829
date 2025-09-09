@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
 import { ArrowLeft, Save, Upload, X, Image as ImageIcon } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import Image from 'next/image'
@@ -271,18 +271,18 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="site">현장 선택 *</Label>
-              <Select value={selectedSite} onValueChange={setSelectedSite}>
-                <SelectTrigger id="site">
-                  <SelectValue placeholder="현장을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
+              <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
+                <CustomSelectTrigger id="site">
+                  <CustomSelectValue placeholder="현장을 선택하세요" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
                   {sites.map(site => (
-                    <SelectItem key={site.id} value={site.id}>
+                    <CustomSelectItem key={site.id} value={site.id}>
                       {site.name}
-                    </SelectItem>
+                    </CustomSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </CustomSelectContent>
+              </CustomSelect>
             </div>
 
             <div>
@@ -297,23 +297,23 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
 
             <div>
               <Label htmlFor="component">부재명 *</Label>
-              <Select value={componentName} onValueChange={(value) => {
+              <CustomSelect value={componentName} onValueChange={(value) => {
                 setComponentName(value)
                 if (value !== '기타') {
                   setCustomComponentName('')
                 }
               }}>
-                <SelectTrigger id="component">
-                  <SelectValue placeholder="부재명을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
+                <CustomSelectTrigger id="component">
+                  <CustomSelectValue placeholder="부재명을 선택하세요" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
                   {componentTypes.map(type => (
-                    <SelectItem key={type} value={type}>
+                    <CustomSelectItem key={type} value={type}>
                       {type}
-                    </SelectItem>
+                    </CustomSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </CustomSelectContent>
+              </CustomSelect>
               {componentName === '기타' && (
                 <Input
                   className="mt-2"
@@ -326,23 +326,23 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
 
             <div>
               <Label htmlFor="process">작업공정 *</Label>
-              <Select value={workProcess} onValueChange={(value) => {
+              <CustomSelect value={workProcess} onValueChange={(value) => {
                 setWorkProcess(value)
                 if (value !== '기타') {
                   setCustomWorkProcess('')
                 }
               }}>
-                <SelectTrigger id="process">
-                  <SelectValue placeholder="작업공정을 선택하세요" />
-                </SelectTrigger>
-                <SelectContent>
+                <CustomSelectTrigger id="process">
+                  <CustomSelectValue placeholder="작업공정을 선택하세요" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
                   {processTypes.map(type => (
-                    <SelectItem key={type} value={type}>
+                    <CustomSelectItem key={type} value={type}>
                       {type}
-                    </SelectItem>
+                    </CustomSelectItem>
                   ))}
-                </SelectContent>
-              </Select>
+                </CustomSelectContent>
+              </CustomSelect>
               {workProcess === '기타' && (
                 <Input
                   className="mt-2"
