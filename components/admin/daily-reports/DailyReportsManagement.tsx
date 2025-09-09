@@ -662,8 +662,8 @@ export default function DailyReportsManagement() {
                       {getSortIcon('created_at')}
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
-                    작업
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+                    관리
                   </th>
                 </tr>
               </thead>
@@ -801,24 +801,24 @@ export default function DailyReportsManagement() {
                       <div className="flex justify-center gap-1">
                         <button
                           onClick={() => router.push(`/dashboard/admin/daily-reports/${report.id}`)}
-                          className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors"
+                          className="px-2 py-1 text-xs text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded transition-colors font-medium"
                           title="상세보기"
                         >
-                          <Eye className="h-4 w-4" />
+                          보기
                         </button>
                         <button
                           onClick={() => router.push(`/dashboard/admin/daily-reports/${report.id}/edit`)}
-                          className="p-1 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors"
+                          className="px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors font-medium"
                           title="편집"
                         >
-                          <Edit className="h-4 w-4" />
+                          수정
                         </button>
                         <button
                           onClick={() => handleDeleteReport(report.id)}
-                          className="p-1 text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors"
+                          className="px-2 py-1 text-xs text-red-600 hover:text-red-900 hover:bg-red-50 rounded transition-colors font-medium"
                           title="삭제"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          삭제
                         </button>
                       </div>
                     </td>
