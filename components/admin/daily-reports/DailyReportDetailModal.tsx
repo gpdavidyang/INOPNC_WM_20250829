@@ -31,6 +31,7 @@ import AttachmentsTab from './AttachmentsTab'
 import PhotosTab from './PhotosTab'
 import ReceiptsTab from './ReceiptsTab'
 import MarkupTab from './MarkupTab'
+import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface DailyReport {
   id: string
@@ -107,6 +108,9 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
     markup: false
   })
   
+  // Load work options from database
+  const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
+
   const [editData, setEditData] = useState({
     work_date: report.work_date,
     member_name: report.member_name,
@@ -590,10 +594,11 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                                 <CustomSelectValue placeholder="선택하세요" />
                               </CustomSelectTrigger>
                               <CustomSelectContent className="bg-white border border-gray-300">
-                                <CustomSelectItem value="슬라브">슬라브</CustomSelectItem>
-                                <CustomSelectItem value="거더">거더</CustomSelectItem>
-                                <CustomSelectItem value="기둥">기둥</CustomSelectItem>
-                                <CustomSelectItem value="기타">기타</CustomSelectItem>
+                                {componentTypes.map((type) => (
+                                  <CustomSelectItem key={type.id} value={type.option_label}>
+                                    {type.option_label}
+                                  </CustomSelectItem>
+                                ))}
                               </CustomSelectContent>
                             </CustomSelect>
                             {editData.component_name?.startsWith('기타') && (
@@ -628,10 +633,11 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                                 <CustomSelectValue placeholder="선택하세요" />
                               </CustomSelectTrigger>
                               <CustomSelectContent className="bg-white border border-gray-300">
-                                <CustomSelectItem value="균일">균일</CustomSelectItem>
-                                <CustomSelectItem value="면">면</CustomSelectItem>
-                                <CustomSelectItem value="마감">마감</CustomSelectItem>
-                                <CustomSelectItem value="기타">기타</CustomSelectItem>
+                                {processTypes.map((type) => (
+                                  <CustomSelectItem key={type.id} value={type.option_label}>
+                                    {type.option_label}
+                                  </CustomSelectItem>
+                                ))}
                               </CustomSelectContent>
                             </CustomSelect>
                             {editData.work_process?.startsWith('기타') && (
