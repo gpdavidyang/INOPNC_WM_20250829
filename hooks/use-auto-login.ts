@@ -27,9 +27,10 @@ export function useAutoLogin(
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [user, setUser] = useState<any | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [hasRunOnce, setHasRunOnce] = useState(false) // 한 번만 실행되도록 보장
   
   useEffect(() => {
-    if (!enabled) {
+    if (!enabled || hasRunOnce) {
       setIsLoading(false)
       return
     }
@@ -173,6 +174,7 @@ export function useAutoLogin(
         setError(err instanceof Error ? err.message : 'Unknown error')
       } finally {
         setIsLoading(false)
+        setHasRunOnce(true) // 실행 완료 표시
       }
     }
     
