@@ -117,7 +117,13 @@ export default function IndividualMonthlySalary() {
 
     if (error) {
       console.error('Error fetching salary data:', error)
-      alert(`급여 데이터를 불러오는 중 오류가 발생했습니다: ${error.message}`)
+      console.error('Query details:', {
+        startDate,
+        endDate,
+        selectedSites,
+        selectedWorkers
+      })
+      alert(`급여 데이터를 불러오는 중 오류가 발생했습니다: ${error.message || JSON.stringify(error)}`)
       setLoading(false)
       setCalculating(false)
       return
@@ -134,10 +140,15 @@ export default function IndividualMonthlySalary() {
     const workerMap = new Map<string, WorkerMonthlySalary>()
 
     data?.forEach(assignment => {
+      if (!assignment || !assignment.profiles || !assignment.daily_reports) {
+        console.warn('Skipping invalid assignment:', assignment)
+        return
+      }
+      
       const workerId = assignment.profile_id
       const worker = assignment.profiles
       const report = assignment.daily_reports
-      const site = report.sites
+      const site = report?.sites
 
       if (!workerMap.has(workerId)) {
         workerMap.set(workerId, {
