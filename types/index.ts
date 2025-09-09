@@ -55,6 +55,19 @@ export type ComponentType =
   | 'column'           // 기둥
   | 'other'            // 기타
 
+// 작업 옵션 설정 타입
+export interface WorkOptionSetting {
+  id: string
+  option_type: 'component_type' | 'process_type'
+  option_value: string
+  option_label: string
+  display_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  created_by?: string
+}
+
 // 건설 사진 데이터
 export interface ConstructionPhoto {
   id: string

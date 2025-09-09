@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { approveSignupRequest, rejectSignupRequest } from '@/app/auth/actions'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import ApprovalModal from '@/components/admin/ApprovalModal'
 import { 
   CheckCircle, 
   XCircle, 
@@ -50,6 +51,8 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   const [sortField, setSortField] = useState<'requested_at' | 'full_name' | 'company'>('requested_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [showApprovalModal, setShowApprovalModal] = useState(false)
+  const [approvalRequest, setApprovalRequest] = useState<SignupRequest | null>(null)
 
   const filteredRequests = requests.filter(request => {
     if (filter === 'all') return true
@@ -65,14 +68,28 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
     }
   })
 
-  const handleApprove = (requestId: string) => {
-    performApproval(requestId)
+  const handleApproveClick = (request: SignupRequest) => {
+    // Convert request to format expected by ApprovalModal
+    const modalRequest = {
+      id: request.id,
+      full_name: request.full_name,
+      email: request.email,
+      phone: request.phone,
+      company_name: request.company,
+      requested_role: request.job_type === 'construction' ? 'worker' : 'site_manager'
+    }
+    setApprovalRequest(modalRequest as any)
+    setShowApprovalModal(true)
   }
 
-  const performApproval = async (requestId: string) => {
-    setLoading(requestId)
+  const handleApprove = async (data: {
+    requestId: string
+    organizationId?: string
+    siteIds?: string[]
+  }) => {
+    setLoading(data.requestId)
     try {
-      const result = await approveSignupRequest(requestId, currentUser.id)
+      const result = await approveSignupRequest(data.requestId, currentUser.id, data.organizationId, data.siteIds)
       if (result.success) {
         // Show detailed success message with organization, site, and temporary password info
         if (result.message) {
@@ -83,6 +100,8 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
         } else {
           toast.success('승인이 완료되었습니다.')
         }
+        setShowApprovalModal(false)
+        setApprovalRequest(null)
         router.refresh()
       } else {
         toast.error(result.error || '승인 처리에 실패했습니다.')
@@ -311,7 +330,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                                 type="button"
                                 onClick={(e) => {
                                   e.preventDefault()
-                                  handleApprove(request.id)
+                                  handleApproveClick(request)
                                 }}
                                 disabled={loading === request.id}
                                 size="compact"
@@ -437,6 +456,17 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
           </div>
         </div>
       )}
+
+      {/* Approval Modal */}
+      <ApprovalModal
+        isOpen={showApprovalModal}
+        onClose={() => {
+          setShowApprovalModal(false)
+          setApprovalRequest(null)
+        }}
+        request={approvalRequest}
+        onApprove={handleApprove}
+      />
     </div>
   )
 }

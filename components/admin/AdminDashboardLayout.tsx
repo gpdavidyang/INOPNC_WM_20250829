@@ -79,6 +79,12 @@ const menuCategories = [
     collapsible: true,
     items: [
       {
+        id: 'signup-requests',
+        label: '가입 요청 관리',
+        icon: UserPlus,
+        href: '/dashboard/admin/signup-requests'
+      },
+      {
         id: 'users',
         label: '사용자 관리',
         icon: Users,
@@ -162,6 +168,12 @@ const systemCategory = {
       label: '시스템 설정',
       icon: Settings,
       href: '/dashboard/admin/system'
+    },
+    {
+      id: 'work-options',
+      label: '작업 옵션 관리',
+      icon: Settings,
+      href: '/dashboard/admin/work-options'
     },
     {
       id: 'audit-logs',

@@ -112,6 +112,8 @@ export async function middleware(request: NextRequest) {
 
     // If user is not signed in and tries to access protected route
     if (!user && !isPublicPath) {
+      // Clear role cookie if user is not authenticated
+      response.cookies.delete('user-role')
       const redirectUrl = new URL('/auth/login', request.url)
       redirectUrl.searchParams.set('redirectTo', pathname)
       return NextResponse.redirect(redirectUrl)
@@ -120,6 +122,35 @@ export async function middleware(request: NextRequest) {
     // If user is signed in and tries to access auth pages
     if (user && isPublicPath) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    
+    // Verify and sync role cookie for authenticated users
+    if (user) {
+      const currentRoleCookie = request.cookies.get('user-role')?.value
+      
+      // Fetch user profile to get role if cookie is missing or needs verification
+      if (!currentRoleCookie) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+          
+          if (profile?.role) {
+            // Set role cookie if profile exists
+            response.cookies.set('user-role', profile.role, {
+              httpOnly: false,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: 'lax',
+              maxAge: 60 * 60 * 24 * 7, // 7 days
+              path: '/'
+            })
+          }
+        } catch (error) {
+          // Silent fail - role detection is non-critical
+        }
+      }
     }
 
     return response

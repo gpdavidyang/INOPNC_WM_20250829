@@ -1,6 +1,7 @@
 'use client'
 
-import { useRoleBasedUI } from '@/hooks/use-role-based-ui'
+import { useEffect, useState } from 'react'
+import { getClientUserRole, isRoleMobileUI, isRoleDesktopUI } from '@/lib/auth/role-detection'
 import { Monitor, Smartphone, Settings } from 'lucide-react'
 
 /**
@@ -8,17 +9,29 @@ import { Monitor, Smartphone, Settings } from 'lucide-react'
  * Only visible when NEXT_PUBLIC_UI_MODE_DEBUG is true
  */
 export function UIDebugIndicator() {
-  const { isMobileUI, isDesktopUI, uiMode, setUiModeOverride, isEnabled, userRole } = useRoleBasedUI()
+  const [userRole, setUserRole] = useState<string | undefined>()
+  const [uiMode, setUiMode] = useState<'mobile' | 'desktop' | 'auto'>('auto')
+  
+  useEffect(() => {
+    const role = getClientUserRole()
+    setUserRole(role)
+    
+    if (isRoleMobileUI(role)) {
+      setUiMode('mobile')
+    } else if (isRoleDesktopUI(role)) {
+      setUiMode('desktop')
+    } else {
+      setUiMode('auto')
+    }
+  }, [])
   
   // Only show in debug mode
   if (process.env.NEXT_PUBLIC_UI_MODE_DEBUG !== 'true') {
     return null
   }
   
-  // Don't show if feature is disabled
-  if (!isEnabled) {
-    return null
-  }
+  const isMobileUI = uiMode === 'mobile'
+  const isDesktopUI = uiMode === 'desktop'
   
   return (
     <div className="ui-mode-debug fixed top-2 right-2 z-[9999] bg-black/80 text-white p-2 rounded-lg text-xs space-y-1">
@@ -40,35 +53,7 @@ export function UIDebugIndicator() {
       </div>
       
       <div className="text-[10px] opacity-80">
-        Override: {uiMode}
-      </div>
-      
-      {/* Quick toggle buttons */}
-      <div className="flex gap-1 mt-1 pt-1 border-t border-white/20">
-        <button
-          onClick={() => setUiModeOverride('auto')}
-          className={`px-2 py-0.5 rounded text-[10px] ${
-            uiMode === 'auto' ? 'bg-blue-500' : 'bg-gray-600 hover:bg-gray-500'
-          }`}
-        >
-          Auto
-        </button>
-        <button
-          onClick={() => setUiModeOverride('mobile')}
-          className={`px-2 py-0.5 rounded text-[10px] ${
-            uiMode === 'mobile' ? 'bg-blue-500' : 'bg-gray-600 hover:bg-gray-500'
-          }`}
-        >
-          Mobile
-        </button>
-        <button
-          onClick={() => setUiModeOverride('desktop')}
-          className={`px-2 py-0.5 rounded text-[10px] ${
-            uiMode === 'desktop' ? 'bg-blue-500' : 'bg-gray-600 hover:bg-gray-500'
-          }`}
-        >
-          Desktop
-        </button>
+        Current: {uiMode}
       </div>
     </div>
   )
