@@ -62,31 +62,22 @@ export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, 
         <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           {/* Left Section */}
           <div className="flex items-center gap-4">
-            {/* Hamburger Menu Toggle - Always visible for both mobile and desktop */}
+            {/* Desktop Sidebar Toggle - Desktop only */}
             <button
-              onClick={() => {
-                // On mobile (< lg), toggle mobile sidebar
-                // On desktop (>= lg), toggle desktop sidebar collapse
-                const isDesktop = window.innerWidth >= 1024
-                if (isDesktop && onDesktopMenuClick) {
-                  onDesktopMenuClick()
-                } else if (onMenuClick) {
-                  onMenuClick()
-                }
-              }}
+              onClick={onDesktopMenuClick}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               aria-label={isSidebarCollapsed ? '사이드바 펼치기' : '사이드바 접기'}
             >
               <Menu className="h-5 w-5 text-gray-600 dark:text-gray-400" />
             </button>
 
-            {/* Logo/Title - Hidden on mobile when sidebar is open */}
-            <div className={`flex items-center ${isSidebarOpen ? 'hidden lg:flex' : 'flex'}`}>
+            {/* Logo/Title */}
+            <div className="flex items-center">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">A</span>
                 </div>
-                <div className="hidden sm:block">
+                <div>
                   <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     관리자 대시보드
                   </h1>
@@ -95,8 +86,8 @@ export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, 
             </div>
           </div>
 
-          {/* Center Section - Search Bar (Desktop) */}
-          <div className="hidden md:flex flex-1 max-w-2xl mx-4 lg:mx-8">
+          {/* Center Section - Search Bar */}
+          <div className="flex flex-1 max-w-2xl mx-8">
             <button
               onClick={() => setIsSearchOpen(true)}
               className="w-full max-w-md mx-auto flex items-center gap-3 px-4 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors group"
