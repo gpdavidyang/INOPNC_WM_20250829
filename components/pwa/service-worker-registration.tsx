@@ -19,50 +19,68 @@ export function ServiceWorkerRegistration() {
   })
 
   useEffect(() => {
-    // CRITICAL: Complete bypass for auth pages
-    // Check if we're on ANY auth-related page
-    if (typeof window !== 'undefined') {
-      const pathname = window.location.pathname
-      const isAuthPage = 
-        pathname.includes('/auth') || 
-        pathname.includes('/login') ||
-        pathname.includes('/signup') ||
-        pathname.includes('/signin') ||
-        pathname.includes('/reset-password') ||
-        pathname.includes('/update-password') ||
-        pathname === '/clear-sw.html'
-      
-      if (isAuthPage) {
-        console.log('[ServiceWorker] BYPASSED - Auth page detected:', pathname)
-        
-        // Additionally, if a service worker is already registered, unregister it for auth pages
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.getRegistrations().then(registrations => {
-            registrations.forEach(registration => {
-              registration.unregister().then(() => {
-                console.log('[ServiceWorker] Unregistered for auth page')
-              })
-            })
-          })
-        }
-        return
-      }
-    }
+    // TEMPORARY PRODUCTION FIX: Completely disable Service Worker registration
+    // This prevents deployment loading issues while we fix the underlying problems
+    console.log('[ServiceWorker] Registration temporarily disabled for production stability')
     
-    // Check if Service Worker is disabled via localStorage (for debugging)
-    const swDisabled = localStorage.getItem('disable-service-worker') === 'true'
-    
-    if (swDisabled) {
-      console.log('[ServiceWorker] Registration disabled by user preference')
-      return
-    }
-    
+    // Unregister any existing service workers to prevent conflicts
     if ('serviceWorker' in navigator) {
-      // Delay registration slightly to ensure page loads first
-      setTimeout(() => {
-        registerServiceWorker()
-      }, 1000)
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister().then(() => {
+            console.log('[ServiceWorker] Existing service worker unregistered')
+          })
+        })
+      })
     }
+    
+    return
+    
+    // ORIGINAL CODE - TEMPORARILY DISABLED
+    // // CRITICAL: Complete bypass for auth pages
+    // // Check if we're on ANY auth-related page
+    // if (typeof window !== 'undefined') {
+    //   const pathname = window.location.pathname
+    //   const isAuthPage = 
+    //     pathname.includes('/auth') || 
+    //     pathname.includes('/login') ||
+    //     pathname.includes('/signup') ||
+    //     pathname.includes('/signin') ||
+    //     pathname.includes('/reset-password') ||
+    //     pathname.includes('/update-password') ||
+    //     pathname === '/clear-sw.html'
+    //   
+    //   if (isAuthPage) {
+    //     console.log('[ServiceWorker] BYPASSED - Auth page detected:', pathname)
+    //     
+    //     // Additionally, if a service worker is already registered, unregister it for auth pages
+    //     if ('serviceWorker' in navigator) {
+    //       navigator.serviceWorker.getRegistrations().then(registrations => {
+    //         registrations.forEach(registration => {
+    //           registration.unregister().then(() => {
+    //             console.log('[ServiceWorker] Unregistered for auth page')
+    //           })
+    //         })
+    //       })
+    //     }
+    //     return
+    //   }
+    // }
+    // 
+    // // Check if Service Worker is disabled via localStorage (for debugging)
+    // const swDisabled = localStorage.getItem('disable-service-worker') === 'true'
+    // 
+    // if (swDisabled) {
+    //   console.log('[ServiceWorker] Registration disabled by user preference')
+    //   return
+    // }
+    // 
+    // if ('serviceWorker' in navigator) {
+    //   // Delay registration slightly to ensure page loads first
+    //   setTimeout(() => {
+    //     registerServiceWorker()
+    //   }, 1000)
+    // }
   }, [])
 
   const registerServiceWorker = async () => {

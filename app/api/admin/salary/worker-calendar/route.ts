@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+
+// Force dynamic rendering for this API route
+export const dynamic = 'force-dynamic'
 import { getWorkerCalendarData } from '@/app/actions/admin/salary'
+
 
 export async function POST(request: NextRequest) {
   try {
