@@ -286,30 +286,27 @@ export default function OrganizationList() {
                       </button>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <button
                           onClick={() => setViewingOrg(org)}
-                          className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-                          title="상세보기"
+                          className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
-                          <Eye className="h-4 w-4" />
+                          상세
                         </button>
                         <button
                           onClick={() => {
                             setEditingOrg(org)
                             setShowForm(true)
                           }}
-                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                          title="수정"
+                          className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                         >
-                          <Edit className="h-4 w-4" />
+                          수정
                         </button>
                         <button
                           onClick={() => handleDelete(org.id)}
-                          className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                          title="삭제"
+                          className="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          삭제
                         </button>
                       </div>
                     </td>
@@ -411,30 +408,27 @@ export default function OrganizationList() {
               )}
 
               {/* Actions */}
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end items-center gap-2">
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end items-center gap-1">
                 <button
                   onClick={() => setViewingOrg(org)}
-                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                  title="상세보기"
+                  className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
-                  <Eye className="h-4 w-4 text-gray-400" />
+                  상세
                 </button>
                 <button
                   onClick={() => {
                     setEditingOrg(org)
                     setShowForm(true)
                   }}
-                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                  title="수정"
+                  className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
-                  <Edit className="h-4 w-4 text-gray-400" />
+                  수정
                 </button>
                 <button
                   onClick={() => handleDelete(org.id)}
-                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-                  title="삭제"
+                  className="px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 border border-red-300 dark:border-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                 >
-                  <Trash2 className="h-4 w-4 text-gray-400" />
+                  삭제
                 </button>
               </div>
             </div>
