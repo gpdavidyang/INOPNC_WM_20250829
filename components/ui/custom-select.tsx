@@ -104,7 +104,7 @@ const CustomSelectContent = React.forwardRef<
       sideOffset={sideOffset}
       align={align}
       collisionPadding={10}
-      style={{ backgroundColor: 'white' }}
+      style={{ backgroundColor: 'white', zIndex: 999999 }}
       {...props}
     >
       <CustomSelectScrollUpButton />
