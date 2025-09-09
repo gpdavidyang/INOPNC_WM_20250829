@@ -310,7 +310,7 @@ export default function IndividualSalarySettings() {
                   적용세율
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  월 총급여 (20공수)
+                  월 총급여
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   공제액
