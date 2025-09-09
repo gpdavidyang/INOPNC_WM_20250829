@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { 
   Search, 
   Download, 
@@ -11,7 +12,9 @@ import {
   Filter,
   ChevronDown,
   ChevronRight,
-  FileText
+  FileText,
+  Calculator,
+  PlayCircle
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
@@ -45,24 +48,21 @@ interface DailySalaryData {
 
 export default function DailySalaryCalculation() {
   const [loading, setLoading] = useState(false)
+  const [calculating, setCalculating] = useState(false)
   const [data, setData] = useState<DailySalaryData[]>([])
   
   // Filter states
-  const [dateRange, setDateRange] = useState<{ from: Date | null; to: Date | null }>({
-    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-    to: new Date()
-  })
+  const [startDate, setStartDate] = useState(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
+  )
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedSites, setSelectedSites] = useState<string[]>([])
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   
   // Available options
-  const [availableSites, setAvailableSites] = useState<Array<{ id: string; name: string }>>([])
-  const [availableWorkers, setAvailableWorkers] = useState<Array<{ 
-    id: string; 
-    name: string; 
-    role: string 
-  }>>([])
+  const [availableSites, setAvailableSites] = useState<Array<{ value: string; label: string }>>([])
+  const [availableWorkers, setAvailableWorkers] = useState<Array<{ value: string; label: string }>>([])
   
   // Summary stats
   const [summaryStats, setSummaryStats] = useState({
@@ -75,34 +75,39 @@ export default function DailySalaryCalculation() {
   // Expanded rows
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
   
+  const supabase = createClient()
+  
   // Load available sites and workers
   useEffect(() => {
     loadOptions()
   }, [])
   
-  // Load data when filters change
-  useEffect(() => {
-    loadDailySalaryData()
-  }, [dateRange, selectedSites, selectedWorkers, searchTerm])
-  
   const loadOptions = async () => {
     try {
-      // Load sites
-      const sitesResponse = await fetch('/api/admin/sites')
-      if (sitesResponse.ok) {
-        const sitesData = await sitesResponse.json()
-        setAvailableSites(sitesData.success ? sitesData.data || [] : [])
+      // Load sites from Supabase
+      const { data: sitesData } = await supabase
+        .from('sites')
+        .select('id, name')
+        .order('name')
+      
+      if (sitesData) {
+        setAvailableSites(sitesData.map(site => ({
+          value: site.id,
+          label: site.name
+        })))
       }
       
-      // Load workers
-      const workersResponse = await fetch('/api/admin/users?role=worker,site_manager')
-      if (workersResponse.ok) {
-        const workersData = await workersResponse.json()
-        const workers = workersData.success ? workersData.data || [] : []
-        setAvailableWorkers(workers.map((w: any) => ({
-          id: w.id,
-          name: w.full_name || w.name,
-          role: w.role
+      // Load workers from Supabase
+      const { data: workersData } = await supabase
+        .from('workers')
+        .select('id, name, role')
+        .order('name')
+      
+      if (workersData) {
+        setAvailableWorkers(workersData.map(worker => ({
+          value: worker.id,
+          label: worker.name,
+          role: worker.role || 'worker'
         })))
       }
     } catch (error) {
@@ -111,38 +116,93 @@ export default function DailySalaryCalculation() {
   }
   
   const loadDailySalaryData = async () => {
+    setCalculating(true)
     setLoading(true)
+    
     try {
-      const params = new URLSearchParams()
-      
-      if (dateRange.from) {
-        params.append('date_from', format(dateRange.from, 'yyyy-MM-dd'))
-      }
-      if (dateRange.to) {
-        params.append('date_to', format(dateRange.to, 'yyyy-MM-dd'))
-      }
+      // Build Supabase query for worker assignments with related data
+      let query = supabase
+        .from('worker_assignments')
+        .select(`
+          id,
+          worker_id,
+          labor_hours,
+          daily_reports!inner(
+            id,
+            date,
+            site_id,
+            sites(id, name)
+          ),
+          workers!inner(
+            id,
+            name,
+            role,
+            daily_wage,
+            hourly_wage
+          )
+        `)
+        .gte('daily_reports.date', startDate)
+        .lte('daily_reports.date', endDate)
+        .order('daily_reports.date', { ascending: false })
+
+      // Apply site filter
       if (selectedSites.length > 0) {
-        params.append('sites', selectedSites.join(','))
-      }
-      if (selectedWorkers.length > 0) {
-        params.append('workers', selectedWorkers.join(','))
-      }
-      if (searchTerm) {
-        params.append('search', searchTerm)
+        query = query.in('daily_reports.site_id', selectedSites)
       }
       
-      const response = await fetch(`/api/admin/salary/daily-calculation?${params.toString()}`)
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setData(result.data || [])
-          calculateSummary(result.data || [])
-        }
+      // Apply worker filter  
+      if (selectedWorkers.length > 0) {
+        query = query.in('worker_id', selectedWorkers)
       }
+      
+      // Apply name search filter
+      if (searchTerm) {
+        query = query.ilike('workers.name', `%${searchTerm}%`)
+      }
+
+      const { data: assignmentsData, error } = await query
+
+      if (error) {
+        throw error
+      }
+
+      // Transform data to match DailySalaryData interface
+      const transformedData: DailySalaryData[] = (assignmentsData || []).map(assignment => {
+        const worker = assignment.workers
+        const report = assignment.daily_reports
+        const site = report.sites
+        const laborHours = Number(assignment.labor_hours) || 0
+        const hourlyRate = Number(worker.hourly_wage) || Number(worker.daily_wage) || 0
+        const overtimeHours = Math.max(0, laborHours - 8) // overtime after 8 hours
+        const regularPay = Math.min(laborHours, 8) * hourlyRate
+        const overtimePay = overtimeHours * hourlyRate * 1.5 // 1.5x rate for overtime
+        const totalPay = regularPay + overtimePay
+
+        return {
+          id: assignment.id,
+          worker_id: assignment.worker_id,
+          worker_name: worker.name,
+          worker_role: worker.role || 'worker',
+          site_id: report.site_id,
+          site_name: site.name,
+          work_date: report.date,
+          labor_hours: laborHours,
+          hourly_rate: hourlyRate,
+          daily_rate: regularPay,
+          overtime_hours: overtimeHours,
+          overtime_pay: overtimePay,
+          total_pay: totalPay
+        }
+      })
+
+      setData(transformedData)
+      calculateSummary(transformedData)
     } catch (error) {
       console.error('Failed to load daily salary data:', error)
+      alert('급여 데이터를 불러오는 중 오류가 발생했습니다.')
     } finally {
       setLoading(false)
+      setCalculating(false)
     }
   }
   
@@ -240,15 +300,35 @@ export default function DailySalaryCalculation() {
       
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <DateRangeSelector
-            dateRange={dateRange}
-            onChange={setDateRange}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                시작일
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                종료일
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              />
+            </div>
+          </div>
           
           <MultiSelectFilter
             label="현장 선택"
-            options={availableSites.map(s => ({ value: s.id, label: s.name }))}
+            options={availableSites}
             selected={selectedSites}
             onChange={setSelectedSites}
             placeholder="전체 현장"
@@ -257,8 +337,8 @@ export default function DailySalaryCalculation() {
           <MultiSelectFilter
             label="작업자 선택"
             options={availableWorkers.map(w => ({ 
-              value: w.id, 
-              label: w.name,
+              value: w.value, 
+              label: w.label,
               group: w.role === 'site_manager' ? '현장관리자' : '작업자'
             }))}
             selected={selectedWorkers}
@@ -281,6 +361,26 @@ export default function DailySalaryCalculation() {
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
+          </div>
+          
+          <div className="flex items-end">
+            <button
+              onClick={loadDailySalaryData}
+              disabled={calculating}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+            >
+              {calculating ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  계산 중...
+                </>
+              ) : (
+                <>
+                  <Calculator className="h-4 w-4" />
+                  급여 계산
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
