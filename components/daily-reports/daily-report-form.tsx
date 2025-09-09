@@ -463,10 +463,12 @@ export default function DailyReportForm({
       const submitData = {
         ...formData,
         status: isDraft ? 'draft' : 'submitted',
+        npc1000_incoming: Number(npc1000Materials.incoming) || 0,
+        npc1000_used: Number(npc1000Materials.used) || 0,
+        npc1000_remaining: Number(npc1000Materials.remaining) || 0,
         work_entries: workEntries,
         worker_entries: permissions.canManageWorkers ? workerEntries : [],
         receipt_entries: receiptEntries.filter(r => r.file || (mode === 'edit')),
-        npc1000_materials,
         additional_photos: additionalPhotos
       }
 
@@ -840,7 +842,16 @@ export default function DailyReportForm({
                   <Input
                     type="number"
                     value={npc1000Materials.incoming}
-                    onChange={(e) => setNpc1000Materials(prev => ({...prev, incoming: e.target.value}))}
+                    onChange={(e) => {
+                      const incoming = e.target.value
+                      const used = npc1000Materials.used || '0'
+                      const remaining = incoming && used ? String(Number(incoming) - Number(used)) : ''
+                      setNpc1000Materials({
+                        incoming,
+                        used,
+                        remaining
+                      })
+                    }}
                     placeholder="반입량"
                   />
                 </div>
@@ -849,18 +860,30 @@ export default function DailyReportForm({
                   <Input
                     type="number"
                     value={npc1000Materials.used}
-                    onChange={(e) => setNpc1000Materials(prev => ({...prev, used: e.target.value}))}
+                    onChange={(e) => {
+                      const used = e.target.value
+                      const incoming = npc1000Materials.incoming || '0'
+                      const remaining = incoming && used ? String(Number(incoming) - Number(used)) : ''
+                      setNpc1000Materials({
+                        incoming: npc1000Materials.incoming,
+                        used,
+                        remaining
+                      })
+                    }}
                     placeholder="사용량"
                   />
                 </div>
                 <div>
-                  <Label>잔량</Label>
+                  <Label>잔량 (자동계산)</Label>
                   <Input
                     type="number"
                     value={npc1000Materials.remaining}
                     onChange={(e) => setNpc1000Materials(prev => ({...prev, remaining: e.target.value}))}
-                    placeholder="잔량"
+                    placeholder="잔량 (반입량 - 사용량)"
+                    className="bg-gray-50"
+                    title="반입량과 사용량을 입력하면 자동으로 계산됩니다. 필요시 수동 입력도 가능합니다."
                   />
+                  <p className="text-xs text-gray-500 mt-1">반입량 - 사용량 = 잔량 (자동계산, 수동입력 가능)</p>
                 </div>
               </div>
             </CollapsibleSection>
