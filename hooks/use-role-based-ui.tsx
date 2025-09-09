@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useAuth } from '@/hooks/use-auth'
+import { useState, useEffect, useContext } from 'react'
+import { AuthContext } from '@/providers/auth-provider'
 import { UserRole } from '@/types'
 
 export type UIMode = 'auto' | 'mobile' | 'desktop'
@@ -20,8 +20,11 @@ interface RoleBasedUIReturn {
  * Forces mobile or desktop UI based on user role, regardless of device
  */
 export function useRoleBasedUI(): RoleBasedUIReturn {
-  const { profile } = useAuth()
   const [uiModeOverride, setUiModeOverride] = useState<UIMode>('auto')
+  
+  // Try to get auth context, but don't fail if not available
+  const authContext = useContext(AuthContext)
+  const profile = authContext?.profile
   
   // Check if the feature is enabled
   const isEnabled = process.env.NEXT_PUBLIC_ENABLE_FIXED_UI_MODE === 'true'
