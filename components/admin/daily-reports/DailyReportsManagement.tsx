@@ -741,7 +741,7 @@ export default function DailyReportsManagement() {
                     <td className="px-4 py-3 text-center">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {report.total_manhours ? report.total_manhours.toFixed(1) : '0'}
+                          {report.total_manhours ? (report.total_manhours || 0).toFixed(1) : '0'}
                         </div>
                         {report.total_workers > 0 && (
                           <div className="text-xs text-gray-500">

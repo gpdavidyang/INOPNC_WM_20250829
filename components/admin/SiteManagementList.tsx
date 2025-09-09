@@ -367,7 +367,7 @@ export default function SiteManagementList() {
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-center">
                 <span className="inline-flex items-center justify-center px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">
-                  {site.total_manhours ? site.total_manhours.toFixed(1) : 0}
+                  {site.total_manhours ? (site.total_manhours || 0).toFixed(1) : 0}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -570,7 +570,7 @@ export default function SiteManagementList() {
                         <svg className="h-4 w-4 text-blue-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{site.total_manhours ? site.total_manhours.toFixed(1) : 0}</span>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{site.total_manhours ? (site.total_manhours || 0).toFixed(1) : 0}</span>
                       </div>
                       <div className="flex items-center">
                         <svg className="h-4 w-4 text-purple-500 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
