@@ -430,6 +430,123 @@ export interface DocumentWithPermissions extends Document {
   can_share?: boolean
 }
 
+// 고용형태 타입
+export type EmploymentType = 'regular_employee' | 'freelancer' | 'daily_worker'
+
+// 세율 설정 인터페이스
+export interface TaxRate {
+  id: string
+  employment_type: EmploymentType
+  tax_name: string
+  rate: number
+  calculation_method: 'percentage' | 'fixed_amount' | 'tiered'
+  description?: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  created_by?: string
+}
+
+// 개인별 급여 설정
+export interface WorkerSalarySetting {
+  id: string
+  worker_id: string
+  employment_type: EmploymentType
+  daily_rate: number
+  hourly_rate: number
+  custom_tax_rates?: Record<string, number>
+  bank_account_info?: {
+    bank_name: string
+    account_number: string
+    account_holder: string
+  }
+  effective_date: string
+  end_date?: string
+  is_active: boolean
+  notes?: string
+  created_at: string
+  updated_at: string
+  created_by?: string
+}
+
+// 급여 계산 결과 (확장)
+export interface EnhancedSalaryCalculationResult {
+  worker_id: string
+  employment_type: EmploymentType
+  daily_rate: number
+  gross_pay: number
+  base_pay: number
+  overtime_pay: number
+  deductions: {
+    income_tax: number
+    resident_tax: number
+    national_pension: number
+    health_insurance: number
+    employment_insurance: number
+    other_deductions: number
+  }
+  total_tax: number
+  net_pay: number
+  tax_details: Record<string, any>
+}
+
+// 급여 기록 (확장된 인터페이스)
+export interface EnhancedSalaryRecord {
+  id: string
+  worker_id: string
+  worker?: {
+    full_name: string
+    email: string
+    role: string
+  }
+  site_id: string
+  site?: {
+    name: string
+  }
+  work_date: string
+  employment_type?: EmploymentType
+  regular_hours: number
+  overtime_hours: number
+  labor_hours?: number
+  base_pay: number
+  overtime_pay: number
+  bonus_pay: number
+  deductions: number
+  income_tax?: number
+  resident_tax?: number
+  national_pension?: number
+  health_insurance?: number
+  employment_insurance?: number
+  tax_amount?: number
+  total_pay: number
+  status: 'calculated' | 'approved' | 'paid'
+  tax_details?: Record<string, any>
+  notes?: string
+  created_at: string
+  updated_at: string
+}
+
+// 고용형태별 급여 요약
+export interface EmploymentTypeSalarySummary {
+  employment_type: EmploymentType
+  worker_count: number
+  total_gross_pay: number
+  total_tax: number
+  total_net_pay: number
+  average_daily_rate: number
+  total_labor_hours: number
+}
+
+// 개인별 급여 계산 파라미터
+export interface PersonalSalaryCalculationParams {
+  worker_id: string
+  work_date: string
+  labor_hours: number
+  bonus_pay?: number
+  additional_deductions?: number
+  override_rates?: Record<string, number>
+}
+
 // 알림 타입
 export type NotificationType = 'info' | 'warning' | 'error' | 'success'
 
