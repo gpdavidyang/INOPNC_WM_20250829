@@ -2,7 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Search, Save, Edit, X, Check, History, Plus } from 'lucide-react'
+import { Search, Save, Edit, X, Check, History, Plus, Info, Calculator, AlertCircle } from 'lucide-react'
+import { 
+  CustomSelect, 
+  CustomSelectContent, 
+  CustomSelectItem, 
+  CustomSelectTrigger, 
+  CustomSelectValue 
+} from '@/components/ui/custom-select'
+
+type SalaryType = '4대보험직원' | '프리랜서' | '일용직'
 
 interface Worker {
   id: string
@@ -13,6 +22,12 @@ interface Worker {
   meal_allowance: number
   transportation_allowance: number
   overtime_rate: number
+  salary_type: SalaryType
+  tax_rate: number
+  national_pension_rate: number
+  health_insurance_rate: number
+  employment_insurance_rate: number
+  long_term_care_rate: number
   created_at: string
   updated_at: string
 }
@@ -24,10 +39,84 @@ interface SalaryHistory {
   meal_allowance: number
   transportation_allowance: number
   overtime_rate: number
+  salary_type: SalaryType
+  tax_rate: number
+  national_pension_rate: number
+  health_insurance_rate: number
+  employment_insurance_rate: number
+  long_term_care_rate: number
   effective_date: string
   notes: string
   created_at: string
 }
+
+interface SalaryTypeInfo {
+  type: SalaryType
+  description: string
+  defaultRates: {
+    tax_rate: number
+    national_pension_rate: number
+    health_insurance_rate: number
+    employment_insurance_rate: number
+    long_term_care_rate: number
+  }
+  guidance: string[]
+}
+
+const salaryTypeInfo: SalaryTypeInfo[] = [
+  {
+    type: '4대보험직원',
+    description: '정규직 직원으로 4대보험 가입대상',
+    defaultRates: {
+      tax_rate: 3.3,
+      national_pension_rate: 4.5,
+      health_insurance_rate: 3.545,
+      employment_insurance_rate: 0.9,
+      long_term_care_rate: 0.4591
+    },
+    guidance: [
+      '국민연금: 4.5% (사업자 4.5% 매칭)',
+      '건강보험: 3.545% (사업자 3.545% 매칭)',
+      '고용보험: 0.9% (사업자 1.05% 부담)',
+      '장기요양보험: 건강보험료의 12.95%',
+      '소득세: 3.3% (간이세액표 적용)'
+    ]
+  },
+  {
+    type: '프리랜서',
+    description: '프리랜서 (사업소득세 적용)',
+    defaultRates: {
+      tax_rate: 3.3,
+      national_pension_rate: 0,
+      health_insurance_rate: 0,
+      employment_insurance_rate: 0,
+      long_term_care_rate: 0
+    },
+    guidance: [
+      '사업소득세: 3.3% (소득세 3% + 지방소득세 0.3%)',
+      '4대보험 미적용 (개인적으로 지역보험 가입)',
+      '매월 사업소득세만 원천징수',
+      '연말정산 대상 아님 (종합소득세 신고)'
+    ]
+  },
+  {
+    type: '일용직',
+    description: '일용직 근로자 (일용근로소득세 적용)',
+    defaultRates: {
+      tax_rate: 6.0,
+      national_pension_rate: 0,
+      health_insurance_rate: 0,
+      employment_insurance_rate: 0,
+      long_term_care_rate: 0
+    },
+    guidance: [
+      '일용근로소득세: 6% (소득세 5.5% + 지방소득세 0.5%)',
+      '일 15만원 이하 비과세',
+      '4대보험 미적용',
+      '연말정산 대상 아님'
+    ]
+  }
+]
 
 export default function IndividualSalarySettings() {
   const [workers, setWorkers] = useState<Worker[]>([])
@@ -38,6 +127,7 @@ export default function IndividualSalarySettings() {
   const [showHistory, setShowHistory] = useState<string | null>(null)
   const [salaryHistory, setSalaryHistory] = useState<SalaryHistory[]>([])
   const [showAddWorker, setShowAddWorker] = useState(false)
+  const [showTaxInfo, setShowTaxInfo] = useState<SalaryType | null>(null)
   const [newWorkerForm, setNewWorkerForm] = useState({
     name: '',
     phone: '',
@@ -45,7 +135,13 @@ export default function IndividualSalarySettings() {
     daily_wage: 0,
     meal_allowance: 0,
     transportation_allowance: 0,
-    overtime_rate: 1.5
+    overtime_rate: 1.5,
+    salary_type: '4대보험직원' as SalaryType,
+    tax_rate: 3.3,
+    national_pension_rate: 4.5,
+    health_insurance_rate: 3.545,
+    employment_insurance_rate: 0.9,
+    long_term_care_rate: 0.4591
   })
 
   const supabase = createClient()
@@ -83,13 +179,48 @@ export default function IndividualSalarySettings() {
     }
   }
 
+  const handleSalaryTypeChange = (salaryType: SalaryType, isEditForm: boolean = false) => {
+    const typeInfo = salaryTypeInfo.find(info => info.type === salaryType)
+    if (!typeInfo) return
+
+    const defaultRates = typeInfo.defaultRates
+    
+    if (isEditForm) {
+      setEditForm(prev => ({
+        ...prev,
+        salary_type: salaryType,
+        tax_rate: defaultRates.tax_rate,
+        national_pension_rate: defaultRates.national_pension_rate,
+        health_insurance_rate: defaultRates.health_insurance_rate,
+        employment_insurance_rate: defaultRates.employment_insurance_rate,
+        long_term_care_rate: defaultRates.long_term_care_rate
+      }))
+    } else {
+      setNewWorkerForm(prev => ({
+        ...prev,
+        salary_type: salaryType,
+        tax_rate: defaultRates.tax_rate,
+        national_pension_rate: defaultRates.national_pension_rate,
+        health_insurance_rate: defaultRates.health_insurance_rate,
+        employment_insurance_rate: defaultRates.employment_insurance_rate,
+        long_term_care_rate: defaultRates.long_term_care_rate
+      }))
+    }
+  }
+
   const startEditing = (worker: Worker) => {
     setEditingWorker(worker.id)
     setEditForm({
-      daily_wage: worker.daily_wage,
-      meal_allowance: worker.meal_allowance,
-      transportation_allowance: worker.transportation_allowance,
-      overtime_rate: worker.overtime_rate
+      daily_wage: worker.daily_wage || 0,
+      meal_allowance: worker.meal_allowance || 0,
+      transportation_allowance: worker.transportation_allowance || 0,
+      overtime_rate: worker.overtime_rate || 1.5,
+      salary_type: worker.salary_type || '4대보험직원',
+      tax_rate: worker.tax_rate || 3.3,
+      national_pension_rate: worker.national_pension_rate || 4.5,
+      health_insurance_rate: worker.health_insurance_rate || 3.545,
+      employment_insurance_rate: worker.employment_insurance_rate || 0.9,
+      long_term_care_rate: worker.long_term_care_rate || 0.4591
     })
   }
 
