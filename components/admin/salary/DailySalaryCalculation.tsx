@@ -122,7 +122,7 @@ export default function DailySalaryCalculation() {
     
     try {
       // Build Supabase query for worker assignments with related data
-      // Using the actual database schema: worker_assignments with profile_id, daily_reports with work_date
+      // First, get the worker assignments with daily reports
       let query = supabase
         .from('worker_assignments')
         .select(`
@@ -131,17 +131,12 @@ export default function DailySalaryCalculation() {
           labor_hours,
           hourly_rate,
           role_type,
+          daily_report_id,
           daily_reports!inner(
             id,
             work_date,
             site_id,
             sites(id, name)
-          ),
-          profiles!inner(
-            id,
-            full_name,
-            role,
-            daily_wage
           )
         `)
         .gte('daily_reports.work_date', startDate)
