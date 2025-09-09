@@ -65,7 +65,11 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
   }, [])
 
   useEffect(() => {
-    filterDocuments()
+    const handler = setTimeout(() => {
+      filterDocuments()
+    }, 200) // Debounce filtering to prevent excessive computation
+
+    return () => clearTimeout(handler)
   }, [documents, searchTerm, filterLocation, filterUser, filterSite])
 
   const loadData = async () => {

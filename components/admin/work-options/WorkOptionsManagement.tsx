@@ -53,7 +53,19 @@ export function WorkOptionsManagement() {
   }
 
   useEffect(() => {
-    fetchOptions()
+    let isCancelled = false
+    
+    const loadData = async () => {
+      if (!isCancelled) {
+        await fetchOptions()
+      }
+    }
+    
+    loadData()
+    
+    return () => {
+      isCancelled = true
+    }
   }, [])
 
   // Add new option

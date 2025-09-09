@@ -10,19 +10,30 @@ export default function UnifiedUserListView() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isCancelled = false
+    
     const loadProfile = async () => {
       try {
         const result = await getProfile()
-        if (result.success && result.data) {
+        if (!isCancelled && result.success && result.data) {
           setProfile(result.data)
         }
       } catch (error) {
-        console.error('Failed to load profile:', error)
+        if (!isCancelled) {
+          console.error('Failed to load profile:', error)
+        }
       } finally {
-        setLoading(false)
+        if (!isCancelled) {
+          setLoading(false)
+        }
       }
     }
+    
     loadProfile()
+    
+    return () => {
+      isCancelled = true
+    }
   }, [])
 
   if (loading) {

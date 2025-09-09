@@ -94,9 +94,13 @@ export default function UserManagement({ profile }: UserManagementProps) {
     }
   }
 
-  // Load data on mount and when filters change
+  // Load data on mount and when filters change with debouncing
   useEffect(() => {
-    loadUsers()
+    const handler = setTimeout(() => {
+      loadUsers()
+    }, searchTerm ? 300 : 0) // Only debounce search, not pagination/filters
+
+    return () => clearTimeout(handler)
   }, [currentPage, searchTerm, roleFilter, statusFilter])
 
   // Handle search

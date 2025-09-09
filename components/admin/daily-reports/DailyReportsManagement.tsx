@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { 
   CustomSelect as Select,
@@ -112,8 +112,14 @@ const statusColors = {
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
   let timeout: NodeJS.Timeout | null = null
   return ((...args: any[]) => {
-    if (timeout) clearTimeout(timeout)
-    timeout = setTimeout(() => func(...args), wait)
+    if (timeout) {
+      clearTimeout(timeout)
+      timeout = null
+    }
+    timeout = setTimeout(() => {
+      func(...args)
+      timeout = null
+    }, wait)
   }) as T
 }
 
@@ -157,16 +163,22 @@ export default function DailyReportsManagement() {
     fetchReports()
   }, [currentPage, sortState])
 
-  // Debounce search and filter changes separately
+  // Debounce search and filter changes with ref to prevent stale closures
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
+
   useEffect(() => {
     const handler = setTimeout(() => {
-      fetchReports(true)
+      // Only fetch if filters haven't changed since timeout started
+      if (JSON.stringify(filtersRef.current) === JSON.stringify(filters)) {
+        fetchReports(true)
+      }
     }, 500) // Always debounce for filters to prevent rapid API calls
 
     return () => {
       clearTimeout(handler)
     }
-  }, [filters.site, filters.status, filters.dateFrom, filters.dateTo, filters.search, filters.component_name, filters.work_process, filters.work_section])
+  }, [filters])
 
   const fetchSites = async () => {
     try {
