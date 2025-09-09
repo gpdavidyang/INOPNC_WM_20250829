@@ -22,6 +22,8 @@ import { PerformanceMonitoringProvider } from "@/components/providers/performanc
 import { ThemeProvider } from "next-themes";
 import { ProductionQualityOptimizer } from "@/components/production-quality-optimizer";
 import { EnvironmentStatus } from "@/components/debug/environment-status";
+import { ViewportController } from "@/components/ui/viewport-controller";
+import { UIDebugIndicator } from "@/components/ui/ui-debug-indicator";
 
 export const metadata: Metadata = {
   title: "INOPNC Work Management",
@@ -114,14 +116,17 @@ export default function RootLayout({
                       <ProductionQualityOptimizer />
                       <SkipNavigation />
                       <AuthProvider>
-                        <PerformanceMonitoringProvider>
-                          <DeepLinkProvider />
-                          {children}
-                          <OfflineIndicator />
-                          <InstallPrompt />
-                          <ServiceWorkerRegistration />
-                          <NotificationPermission />
-                        </PerformanceMonitoringProvider>
+                        <ViewportController>
+                          <PerformanceMonitoringProvider>
+                            <DeepLinkProvider />
+                            <UIDebugIndicator />
+                            {children}
+                            <OfflineIndicator />
+                            <InstallPrompt />
+                            <ServiceWorkerRegistration />
+                            <NotificationPermission />
+                          </PerformanceMonitoringProvider>
+                        </ViewportController>
                       </AuthProvider>
                       <EnvironmentStatus />
                       <Toaster 
