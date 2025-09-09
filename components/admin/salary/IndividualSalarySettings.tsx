@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Search, Save, Edit, X, Check, Calculator, Info, Settings } from 'lucide-react'
+import { Search, Calculator, Info, Settings } from 'lucide-react'
 import { 
   CustomSelect, 
   CustomSelectContent, 
@@ -410,31 +410,28 @@ export default function IndividualSalarySettings() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-2">
                           {editingWorker === worker.id ? (
                             <>
                               <button
                                 onClick={() => saveWorkerSettings(worker.id)}
-                                className="p-2 text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                                title="저장"
+                                className="px-3 py-1 text-sm font-medium text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 bg-green-50 hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30 rounded-md transition-colors"
                               >
-                                <Check className="h-4 w-4" />
+                                저장
                               </button>
                               <button
                                 onClick={cancelEditing}
-                                className="p-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                                title="취소"
+                                className="px-3 py-1 text-sm font-medium text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300 bg-gray-50 hover:bg-gray-100 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-md transition-colors"
                               >
-                                <X className="h-4 w-4" />
+                                취소
                               </button>
                             </>
                           ) : (
                             <button
                               onClick={() => startEditing(worker)}
-                              className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                              title="수정"
+                              className="px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 rounded-md transition-colors"
                             >
-                              <Edit className="h-4 w-4" />
+                              수정
                             </button>
                           )}
                         </div>
