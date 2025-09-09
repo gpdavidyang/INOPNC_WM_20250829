@@ -123,7 +123,7 @@ export function NPC1000RequestForm({ siteId, currentUser, onClose, onSuccess }: 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="requested_quantity" className="required">
-                요청 수량 (kg)
+                요청 수량 (말)
               </Label>
               <Input
                 id="requested_quantity"
@@ -237,7 +237,7 @@ export function NPC1000RequestForm({ siteId, currentUser, onClose, onSuccess }: 
               <div className="flex justify-between">
                 <span className="text-gray-600">요청 수량:</span>
                 <span className="font-medium">
-                  {formData.requested_quantity || '0'} kg
+                  {formData.requested_quantity || '0'} 말
                 </span>
               </div>
               <div className="flex justify-between">

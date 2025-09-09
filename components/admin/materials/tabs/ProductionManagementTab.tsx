@@ -494,7 +494,7 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900 dark:text-white">
-                          {production.produced_quantity.toLocaleString()} {production.material?.unit || 'kg'}
+                          {production.produced_quantity.toLocaleString()} {production.material?.code?.includes('NPC-1000') ? '말' : (production.material?.unit || 'kg')}
                         </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap">

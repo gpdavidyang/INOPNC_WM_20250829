@@ -127,7 +127,7 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
           <div className="flex items-start justify-between">
             <div>
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>현재 재고량</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>{stats.totalStock.toLocaleString()} kg</p>
+              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>{stats.totalStock.toLocaleString()} 말</p>
               <div className={cn('flex items-center gap-1 mt-2', stockStatus.color)}>
                 <Badge className={cn(getFullTypographyClass('caption', 'xs', isLargeFont), stockStatus.bg, stockStatus.color)}>
                   {stockStatus.label}
@@ -147,10 +147,10 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
           <div className="flex items-start justify-between">
             <div>
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>월간 사용량</p>
-              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>{stats.monthlyUsage.toLocaleString()} kg</p>
+              <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>{stats.monthlyUsage.toLocaleString()} 말</p>
               <div className="flex items-center gap-1 mt-2 text-blue-600">
                 <Activity className="w-4 h-4" />
-                <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>일평균 {stats.averageDailyUsage} kg</span>
+                <span className={getFullTypographyClass('caption', 'xs', isLargeFont)}>일평균 {stats.averageDailyUsage} 말</span>
               </div>
             </div>
             <div className="p-3 bg-blue-50 rounded-lg">

@@ -125,7 +125,7 @@ export default function InventoryRecordPage() {
     const projectedStock = calculateProjectedStock()
     if (projectedStock < 0 && activeTab === 'outgoing') {
       const confirmed = window.confirm(
-        `사용 후 재고가 음수가 됩니다 (${projectedStock}kg).\n계속 진행하시겠습니까?`
+        `사용 후 재고가 음수가 됩니다 (${projectedStock}말).\n계속 진행하시겠습니까?`
       )
       if (!confirmed) return
     }
@@ -162,8 +162,8 @@ export default function InventoryRecordPage() {
       if (result.success) {
         toast.success(
           activeTab === 'incoming' 
-            ? `입고 ${quantityNum}kg 기록되었습니다.`
-            : `사용 ${quantityNum}kg 기록되었습니다.`
+            ? `입고 ${quantityNum}말 기록되었습니다.`
+            : `사용 ${quantityNum}말 기록되었습니다.`
         )
         router.back()
       } else {
@@ -221,7 +221,7 @@ export default function InventoryRecordPage() {
                 </p>
               ) : (
                 <p className={`${getFullTypographyClass('heading', 'xl', isLargeFont)} font-bold text-blue-600`}>
-                  {currentStock.toLocaleString()} kg
+                  {currentStock.toLocaleString()} 말
                 </p>
               )}
             </div>
@@ -270,7 +270,7 @@ export default function InventoryRecordPage() {
                 />
                 <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-md">
                   <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
-                    kg
+                    말
                   </span>
                 </div>
               </div>
@@ -302,7 +302,7 @@ export default function InventoryRecordPage() {
                     isNegativeStock ? 'text-red-700 dark:text-red-300' : 'text-blue-700 dark:text-blue-300'
                   }`}>
                     {activeTab === 'incoming' ? '입고 후' : '사용 후'} 예상 재고: 
-                    <span className="font-bold ml-2">{projectedStock.toLocaleString()} kg</span>
+                    <span className="font-bold ml-2">{projectedStock.toLocaleString()} 말</span>
                   </p>
                 </div>
                 {isNegativeStock && (

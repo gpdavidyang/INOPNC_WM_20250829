@@ -213,7 +213,7 @@ export function NPC1000Analytics({ siteId }: NPC1000AnalyticsProps) {
             <div>
               <p className="text-sm text-gray-600">총 사용량</p>
               <p className="text-xl font-bold mt-1">
-                {stats.totalUsage.toLocaleString()} kg
+                {stats.totalUsage.toLocaleString()} 말
               </p>
             </div>
             <BarChart3 className="w-8 h-8 text-blue-600" />
@@ -225,7 +225,7 @@ export function NPC1000Analytics({ siteId }: NPC1000AnalyticsProps) {
             <div>
               <p className="text-sm text-gray-600">일평균 사용량</p>
               <p className="text-xl font-bold mt-1">
-                {stats.averageDailyUsage} kg
+                {stats.averageDailyUsage} 말
               </p>
             </div>
             <Activity className="w-8 h-8 text-green-600" />
@@ -237,7 +237,7 @@ export function NPC1000Analytics({ siteId }: NPC1000AnalyticsProps) {
             <div>
               <p className="text-sm text-gray-600">최대 사용일</p>
               <p className="text-xl font-bold mt-1">
-                {stats.peakUsage} kg
+                {stats.peakUsage} 말
               </p>
               <p className="text-xs text-gray-500">
                 {format(new Date(stats.peakDate), 'MM.dd')}
@@ -279,7 +279,7 @@ export function NPC1000Analytics({ siteId }: NPC1000AnalyticsProps) {
               style={{ height: `${(day.usage / stats.peakUsage) * 100}%` }}
             >
               <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                {format(new Date(day.date), 'MM.dd')}: {day.usage}kg
+                {format(new Date(day.date), 'MM.dd')}: {day.usage}말
               </div>
             </div>
           ))}
@@ -304,7 +304,7 @@ export function NPC1000Analytics({ siteId }: NPC1000AnalyticsProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold">
-                      {site.total_usage.toLocaleString()} kg
+                      {site.total_usage.toLocaleString()} 말
                     </span>
                     <Badge variant="outline" className="text-xs">
                       {site.percentage}%

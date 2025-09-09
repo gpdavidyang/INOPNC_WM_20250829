@@ -202,7 +202,7 @@ export default function MaterialRequestDialog({
                   />
                   <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-md">
                     <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
-                      kg
+                      말
                     </span>
                   </div>
                 </div>

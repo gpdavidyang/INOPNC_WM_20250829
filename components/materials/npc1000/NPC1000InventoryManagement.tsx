@@ -231,7 +231,7 @@ export function NPC1000InventoryManagement({ siteId, currentUser }: NPC1000Inven
                   <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <p className="text-sm text-gray-600">현재 재고</p>
-                      <p className="text-xl font-bold">{item.current_stock.toLocaleString()} kg</p>
+                      <p className="text-xl font-bold">{item.current_stock.toLocaleString()} 말</p>
                       <div className="mt-1">
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
@@ -256,7 +256,7 @@ export function NPC1000InventoryManagement({ siteId, currentUser }: NPC1000Inven
                     <div>
                       <p className="text-sm text-gray-600">월간 사용량</p>
                       <p className="text-lg font-semibold flex items-center gap-2">
-                        {item.monthly_usage.toLocaleString()} kg
+                        {item.monthly_usage.toLocaleString()} 말
                         {getTrendIcon(item.usage_trend)}
                       </p>
                     </div>
@@ -280,7 +280,7 @@ export function NPC1000InventoryManagement({ siteId, currentUser }: NPC1000Inven
                         {format(new Date(item.last_purchase_date), 'MM.dd')}
                       </p>
                       <p className="text-xs text-gray-500">
-                        ₩{item.last_purchase_price.toLocaleString()}/kg
+                        ₩{item.last_purchase_price.toLocaleString()}/말
                       </p>
                     </div>
                   </div>
@@ -318,10 +318,10 @@ export function NPC1000InventoryManagement({ siteId, currentUser }: NPC1000Inven
               <div className="mt-4 pt-4 border-t">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">
-                    최소 재고: {item.minimum_stock.toLocaleString()} kg
+                    최소 재고: {item.minimum_stock.toLocaleString()} 말
                   </span>
                   <span className="text-gray-600">
-                    최대 재고: {item.maximum_stock.toLocaleString()} kg
+                    최대 재고: {item.maximum_stock.toLocaleString()} 말
                   </span>
                 </div>
               </div>

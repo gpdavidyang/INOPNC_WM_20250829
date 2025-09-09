@@ -313,7 +313,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
                         'text-gray-900'
                       )}>
                         {transaction.transaction_type === 'in' ? '+' : '-'}
-                        {transaction.quantity.toLocaleString()} kg
+                        {transaction.quantity.toLocaleString()} 말
                       </p>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -324,7 +324,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
                           </p>
                           {transaction.unit_price && (
                             <p className="text-gray-500 text-xs">
-                              @{transaction.unit_price.toLocaleString()}/kg
+                              @{transaction.unit_price.toLocaleString()}/말
                             </p>
                           )}
                         </div>
@@ -358,7 +358,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <p className="font-medium">
-                        {transaction.running_balance?.toLocaleString()} kg
+                        {transaction.running_balance?.toLocaleString()} 말
                       </p>
                     </td>
                     <td className="px-6 py-4 text-sm">
