@@ -57,14 +57,24 @@ export default function SalaryStatementManager() {
   }, [year, month, selectedWorkers])
 
   const fetchWorkers = async () => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name')
-      .not('role', 'is', null)
-      .order('full_name')
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .not('role', 'is', null)
+        .not('full_name', 'is', null)
+        .order('full_name')
 
-    if (data) {
-      setWorkers(data.map(w => ({ value: w.id, label: w.full_name })))
+      if (error) {
+        console.error('Error fetching workers:', error)
+        return
+      }
+
+      if (data) {
+        setWorkers(data.map(w => ({ value: w.id, label: w.full_name || '이름 없음' })))
+      }
+    } catch (error) {
+      console.error('Unexpected error fetching workers:', error)
     }
   }
 
