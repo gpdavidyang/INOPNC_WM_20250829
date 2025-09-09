@@ -47,13 +47,13 @@ export default function SummaryCards({
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-0">
       {cards.map((card, index) => {
         const Icon = card.icon
         return (
           <div
             key={index}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 relative z-0"
           >
             <div className="flex items-center justify-between">
               <div>
