@@ -2,10 +2,10 @@
 // Provides offline functionality and intelligent caching for construction sites
 
 // Updated cache version to force refresh in PWA
-const CACHE_NAME = 'inopnc-wm-v1.3.0'
-const STATIC_CACHE = 'inopnc-static-v1.3.0'
-const API_CACHE = 'inopnc-api-v1.3.0'
-const IMAGES_CACHE = 'inopnc-images-v1.1.1'
+const CACHE_NAME = 'inopnc-wm-v1.3.1'
+const STATIC_CACHE = 'inopnc-static-v1.3.1'
+const API_CACHE = 'inopnc-api-v1.3.1'
+const IMAGES_CACHE = 'inopnc-images-v1.1.2'
 const OFFLINE_PAGE = '/offline'
 
 // Cache size limits for mobile devices
@@ -424,6 +424,13 @@ function isAPIRequest(request) {
 }
 
 function isPageRequest(request) {
+  // Skip caching for auth-related pages
+  if (request.url.includes('/auth/') || 
+      request.url.includes('/api/auth/') ||
+      request.url.includes('/dashboard')) {
+    return false
+  }
+  
   return request.mode === 'navigate' ||
          request.destination === 'document'
 }
@@ -548,9 +555,15 @@ async function networkFirstWithCache(request) {
 
 async function pageNetworkFirst(request) {
   try {
+    // Don't cache auth-related requests
+    const isAuthRelated = request.url.includes('/auth/') || 
+                         request.url.includes('/api/auth/') ||
+                         request.url.includes('/dashboard')
+    
     const response = await fetch(request)
     
-    if (response.status === 200) {
+    // Only cache successful non-auth pages
+    if (response.status === 200 && !isAuthRelated) {
       const cache = await caches.open(CACHE_NAME)
       cache.put(request, response.clone())
     }
@@ -558,6 +571,16 @@ async function pageNetworkFirst(request) {
     return response
   } catch (error) {
     console.log('[ServiceWorker] Page network failed, trying cache:', error)
+    
+    // Don't use cache for auth-related pages
+    const isAuthRelated = request.url.includes('/auth/') || 
+                         request.url.includes('/api/auth/') ||
+                         request.url.includes('/dashboard')
+    
+    if (isAuthRelated) {
+      // For auth pages, always fail if network is down
+      return new Response('Network error', { status: 503 })
+    }
     
     const cache = await caches.open(CACHE_NAME)
     const cached = await cache.match(request)
