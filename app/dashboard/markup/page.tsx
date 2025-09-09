@@ -20,63 +20,91 @@ export default function MarkupPage() {
 
   const supabase = createClient()
 
-  const loadProfile = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        router.push('/auth/login')
-        return
-      }
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error || !profile) {
-        console.error('Error loading profile:', error)
-        return
-      }
-
-      setProfile(profile as any)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [supabase, router])
-
-  const loadDocument = useCallback(async (documentId: string) => {
-    try {
-      setDocumentLoading(true)
-      console.log('Loading document:', documentId)
-      const response = await fetch(`/api/markup-documents/${documentId}`)
-      const result = await response.json()
-
-      if (result.success && result.data) {
-        console.log('Document loaded:', result.data)
-        setDocumentToOpen(result.data)
-      } else {
-        console.error('Failed to load document:', result.error)
-      }
-    } catch (error) {
-      console.error('Error loading document:', error)
-    } finally {
-      setDocumentLoading(false)
-    }
-  }, [])
 
   useEffect(() => {
-    loadProfile()
-  }, [loadProfile])
+    let isCancelled = false
+    
+    const loadData = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (isCancelled) return
+        
+        if (!user) {
+          router.push('/auth/login')
+          return
+        }
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single()
+
+        if (isCancelled) return
+
+        if (error || !profile) {
+          console.error('Error loading profile:', error)
+          return
+        }
+
+        setProfile(profile as any)
+      } catch (error) {
+        if (!isCancelled) {
+          console.error('Error loading profile:', error)
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false)
+        }
+      }
+    }
+    
+    loadData()
+    
+    return () => {
+      isCancelled = true
+    }
+  }, []) // Only run once on mount
 
   useEffect(() => {
+    let isCancelled = false
+    
     if (fileId && profile) {
-      loadDocument(fileId)
+      const loadDoc = async () => {
+        try {
+          if (isCancelled) return
+          setDocumentLoading(true)
+          console.log('Loading document:', fileId)
+          const response = await fetch(`/api/markup-documents/${fileId}`)
+          const result = await response.json()
+
+          if (isCancelled) return
+
+          if (result.success && result.data) {
+            console.log('Document loaded:', result.data)
+            setDocumentToOpen(result.data)
+          } else {
+            console.error('Failed to load document:', result.error)
+          }
+        } catch (error) {
+          if (!isCancelled) {
+            console.error('Error loading document:', error)
+          }
+        } finally {
+          if (!isCancelled) {
+            setDocumentLoading(false)
+          }
+        }
+      }
+      
+      loadDoc()
     }
-  }, [fileId, profile, loadDocument])
+    
+    return () => {
+      isCancelled = true
+    }
+  }, [fileId, profile])
 
   const handleClose = () => {
     router.push('/dashboard')
