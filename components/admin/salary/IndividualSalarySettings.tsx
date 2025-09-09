@@ -145,6 +145,7 @@ export default function IndividualSalarySettings() {
   }
 
   const startEditing = (worker: Worker) => {
+    console.log('Starting edit for worker:', worker)
     setEditingWorker(worker.id)
     setEditForm({
       daily_wage: worker.daily_wage || 0,
@@ -158,29 +159,49 @@ export default function IndividualSalarySettings() {
   }
 
   const saveWorkerSettings = async (workerId: string) => {
-    const settings = taxSettings[editForm.salary_type as SalaryType]
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        daily_wage: editForm.daily_wage,
-        salary_type: editForm.salary_type,
+    try {
+      const salaryType = editForm.salary_type || '4대보험직원'
+      const settings = taxSettings[salaryType as SalaryType]
+      
+      console.log('Saving worker settings:', {
+        workerId,
+        editForm,
+        salaryType,
+        settings
+      })
+      
+      const updateData = {
+        daily_wage: Number(editForm.daily_wage) || 0,
+        salary_type: salaryType,
         tax_rate: settings.tax_rate,
         national_pension_rate: settings.national_pension_rate,
         health_insurance_rate: settings.health_insurance_rate,
         employment_insurance_rate: settings.employment_insurance_rate,
         long_term_care_rate: settings.long_term_care_rate,
         updated_at: new Date().toISOString()
-      })
-      .eq('id', workerId)
+      }
+      
+      console.log('Update data:', updateData)
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', workerId)
+        .select()
 
-    if (error) {
-      console.error('Error updating worker:', error)
-      alert('저장 중 오류가 발생했습니다.')
-    } else {
-      fetchWorkers()
-      setEditingWorker(null)
-      setEditForm({})
+      if (error) {
+        console.error('Error updating worker:', error)
+        alert(`저장 중 오류가 발생했습니다: ${error.message}`)
+      } else {
+        console.log('Worker updated successfully:', data)
+        alert('저장되었습니다.')
+        await fetchWorkers()
+        setEditingWorker(null)
+        setEditForm({})
+      }
+    } catch (err) {
+      console.error('Unexpected error:', err)
+      alert('저장 중 예기치 않은 오류가 발생했습니다.')
     }
   }
 
@@ -338,7 +359,11 @@ export default function IndividualSalarySettings() {
                 </tr>
               ) : (
                 filteredWorkers.map(worker => {
-                  const calculation = calculateNetSalary(worker, exampleManhours)
+                  // Use edited values if currently editing this worker
+                  const workerData = editingWorker === worker.id 
+                    ? { ...worker, ...editForm }
+                    : worker
+                  const calculation = calculateNetSalary(workerData, exampleManhours)
                   return (
                     <tr key={worker.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                       <td className="px-6 py-4">
@@ -368,7 +393,7 @@ export default function IndividualSalarySettings() {
                       <td className="px-6 py-4 text-center">
                         {editingWorker === worker.id ? (
                           <CustomSelect
-                            value={editForm.salary_type}
+                            value={editForm.salary_type || '4대보험직원'}
                             onValueChange={(value) => setEditForm(prev => ({ ...prev, salary_type: value as SalaryType }))}
                           >
                             <CustomSelectTrigger className="w-32 h-8">
@@ -388,13 +413,13 @@ export default function IndividualSalarySettings() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <div className="text-sm text-gray-900 dark:text-gray-100">
-                          {worker.salary_type === '4대보험직원' ? (
+                          {workerData.salary_type === '4대보험직원' ? (
                             <div className="space-y-0.5 text-xs">
-                              <div>소득세: {worker.tax_rate}%</div>
-                              <div>4대보험: {(worker.national_pension_rate + worker.health_insurance_rate + worker.employment_insurance_rate).toFixed(1)}%</div>
+                              <div>소득세: {workerData.tax_rate || worker.tax_rate}%</div>
+                              <div>4대보험: {((workerData.national_pension_rate || worker.national_pension_rate || 0) + (workerData.health_insurance_rate || worker.health_insurance_rate || 0) + (workerData.employment_insurance_rate || worker.employment_insurance_rate || 0)).toFixed(1)}%</div>
                             </div>
                           ) : (
-                            <div>{worker.tax_rate}%</div>
+                            <div>{workerData.tax_rate || worker.tax_rate}%</div>
                           )}
                         </div>
                       </td>
