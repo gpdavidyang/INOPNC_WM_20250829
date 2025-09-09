@@ -143,7 +143,7 @@ export default function SalaryStatementManager() {
             site_id,
             sites(name)
           ),
-          profiles!inner(
+          profiles:profile_id(
             id,
             full_name,
             phone,
