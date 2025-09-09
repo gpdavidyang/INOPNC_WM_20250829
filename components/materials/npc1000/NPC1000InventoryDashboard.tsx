@@ -188,7 +188,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
                   전체 재고량
                 </p>
                 <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>
-                  {stats.totalStock.toLocaleString()} kg
+                  {stats.totalStock.toLocaleString()} 말
                 </p>
                 <div className="flex items-center gap-2 mt-2">
                   <Badge className={cn(stockStatus.bg, stockStatus.color)}>
@@ -219,7 +219,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
                   월간 입고량
                 </p>
                 <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>
-                  {stats.monthlyIncoming.toLocaleString()} kg
+                  {stats.monthlyIncoming.toLocaleString()} 말
                 </p>
                 <div className="flex items-center gap-1 mt-2">
                   <TrendingUp className="h-4 w-4 text-green-600" />
@@ -248,11 +248,11 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
                   월간 사용량
                 </p>
                 <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold mt-1`}>
-                  {stats.monthlyUsage.toLocaleString()} kg
+                  {stats.monthlyUsage.toLocaleString()} 말
                 </p>
                 <div className="flex items-center gap-1 mt-2">
                   <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                    일평균 {Math.round(stats.averageDailyUsage)}kg
+                    일평균 {Math.round(stats.averageDailyUsage)}말
                   </span>
                 </div>
               </div>
@@ -368,7 +368,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
                           'px-4 py-3',
                           getFullTypographyClass('body', 'base', isLargeFont)
                         )}>
-                          {item.current_stock.toLocaleString()} kg
+                          {item.current_stock.toLocaleString()} 말
                         </td>
                         <td className={cn(
                           "text-right text-gray-600",
@@ -377,7 +377,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
                           'px-4 py-3',
                           getFullTypographyClass('body', 'base', isLargeFont)
                         )}>
-                          {(item.minimum_stock || 1000).toLocaleString()} kg
+                          {(item.minimum_stock || 1000).toLocaleString()} 말
                         </td>
                         <td className={cn(
                           "text-center",
@@ -450,7 +450,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
                     transaction.transaction_type === 'out' ? 'text-red-600' : 
                     'text-gray-900'
                   )}>
-                    {transaction.transaction_type === 'out' ? '-' : '+'}{transaction.quantity.toLocaleString()} kg
+                    {transaction.transaction_type === 'out' ? '-' : '+'}{transaction.quantity.toLocaleString()} 말
                   </p>
                   {transaction.notes && (
                     <p className={cn(

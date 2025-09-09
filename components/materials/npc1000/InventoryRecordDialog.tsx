@@ -69,10 +69,10 @@ export default function InventoryRecordDialog({
 
   // Quick quantity presets for common construction use
   const quantityPresets = [
-    { label: '50kg', value: 50 },
-    { label: '100kg', value: 100 },
-    { label: '200kg', value: 200 },
-    { label: '500kg', value: 500 },
+    { label: '50말', value: 50 },
+    { label: '100말', value: 100 },
+    { label: '200말', value: 200 },
+    { label: '500말', value: 500 },
   ]
 
   // Touch-responsive sizing
@@ -180,7 +180,7 @@ export default function InventoryRecordDialog({
     const projectedStock = calculateProjectedStock()
     if (projectedStock < 0 && transactionType === 'out') {
       const confirmed = window.confirm(
-        `⚠️ 주의\n\n사용 후 재고가 부족합니다.\n예상 재고: ${projectedStock.toLocaleString()}kg\n\n계속 진행하시겠습니까?`
+        `⚠️ 주의\n\n사용 후 재고가 부족합니다.\n예상 재고: ${projectedStock.toLocaleString()}말\n\n계속 진행하시겠습니까?`
       )
       if (!confirmed) return
     }
@@ -437,7 +437,7 @@ export default function InventoryRecordDialog({
                         {loadingStock ? (
                           <span className="text-gray-400">조회중...</span>
                         ) : (
-                          <>{currentStock.toLocaleString()} kg</>
+                          <>{currentStock.toLocaleString()} 말</>
                         )}
                       </p>
                     </div>
@@ -498,7 +498,7 @@ export default function InventoryRecordDialog({
                     inputMode="decimal"
                   />
                   <div className="absolute inset-y-0 right-6 flex items-center pointer-events-none">
-                    <span className="text-xl font-semibold text-gray-500">kg</span>
+                    <span className="text-xl font-semibold text-gray-500">말</span>
                   </div>
                 </div>
 
@@ -550,20 +550,20 @@ export default function InventoryRecordDialog({
                       
                       <div className="flex items-center justify-center gap-4 text-lg">
                         <span className="font-semibold">
-                          {currentStock.toLocaleString()}kg
+                          {currentStock.toLocaleString()}말
                         </span>
                         <span className={`
                           font-bold text-xl
                           ${transactionType === 'in' ? 'text-green-600' : 'text-red-600'}
                         `}>
-                          {transactionType === 'in' ? '+' : '-'}{parseFloat(quantity).toLocaleString()}kg
+                          {transactionType === 'in' ? '+' : '-'}{parseFloat(quantity).toLocaleString()}말
                         </span>
                         <span className="font-semibold">=</span>
                         <span className={`
                           font-bold text-xl
                           ${calculateProjectedStock() < 0 ? 'text-red-600' : 'text-blue-600'}
                         `}>
-                          {calculateProjectedStock().toLocaleString()}kg
+                          {calculateProjectedStock().toLocaleString()}말
                         </span>
                       </div>
 
@@ -575,7 +575,7 @@ export default function InventoryRecordDialog({
                               재고 부족 경고
                             </p>
                             <p className="text-sm text-red-600 dark:text-red-400 mt-1">
-                              {Math.abs(calculateProjectedStock()).toLocaleString()}kg 부족 예상
+                              {Math.abs(calculateProjectedStock()).toLocaleString()}말 부족 예상
                             </p>
                           </div>
                         </div>
