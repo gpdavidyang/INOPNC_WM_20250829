@@ -119,15 +119,9 @@ export default async function DashboardPage() {
     }
   }
 
-  // Redirect based on role
-  if (profile) {
-    // admin@inopnc.com은 관리자 대시보드로 리다이렉트
-    if (profile?.role === 'admin' || profile?.role === 'system_admin') {
-      redirect('/dashboard/admin')
-    } else if (profile?.role === 'customer_manager') {
-      redirect('/partner/dashboard')
-    }
-  }
+  // Redirect based on role - removed to prevent redirect loops
+  // Role-based redirects are now handled in the signIn function
+  // This page should only be accessed by worker and site_manager roles
 
   // Pre-fetch site data on server side to avoid client authentication issues
   // 성능 최적화: 병렬로 사이트 정보 가져오기
