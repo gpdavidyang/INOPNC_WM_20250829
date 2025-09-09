@@ -44,6 +44,134 @@
   }
 }
 
+/* ========================================
+   ADMIN DESKTOP UI ENFORCEMENT
+   Pure CSS solution - No JavaScript needed
+   ======================================== */
+
+/* Force desktop UI for admin roles */
+body.admin-role,
+body.role-admin,
+body.role-system-admin {
+  min-width: 1536px !important;
+  overflow-x: auto !important;
+}
+
+/* Ensure containers maintain desktop width */
+.admin-role .container,
+.admin-role main,
+.admin-role #__next,
+.role-admin .container,
+.role-admin main,
+.role-admin #__next,
+.role-system-admin .container,
+.role-system-admin main,
+.role-system-admin #__next {
+  min-width: 1536px !important;
+  width: 100% !important;
+}
+
+/* Override Tailwind responsive utilities for admin */
+@media (max-width: 1536px) {
+  /* Desktop visibility for admin */
+  .admin-role .lg\:block,
+  .admin-role .xl\:block,
+  .admin-role .2xl\:block,
+  .role-admin .lg\:block,
+  .role-admin .xl\:block,
+  .role-admin .2xl\:block,
+  .role-system-admin .lg\:block,
+  .role-system-admin .xl\:block,
+  .role-system-admin .2xl\:block {
+    display: block !important;
+  }
+  
+  .admin-role .lg\:flex,
+  .admin-role .xl\:flex,
+  .admin-role .2xl\:flex,
+  .role-admin .lg\:flex,
+  .role-admin .xl\:flex,
+  .role-admin .2xl\:flex,
+  .role-system-admin .lg\:flex,
+  .role-system-admin .xl\:flex,
+  .role-system-admin .2xl\:flex {
+    display: flex !important;
+  }
+  
+  /* Hide mobile elements for admin */
+  .admin-role .lg\:hidden,
+  .admin-role .xl\:hidden,
+  .admin-role .2xl\:hidden,
+  .role-admin .lg\:hidden,
+  .role-admin .xl\:hidden,
+  .role-admin .2xl\:hidden,
+  .role-system-admin .lg\:hidden,
+  .role-system-admin .xl\:hidden,
+  .role-system-admin .2xl\:hidden {
+    display: none !important;
+  }
+  
+  /* Force desktop widths */
+  .admin-role .lg\:w-72,
+  .role-admin .lg\:w-72,
+  .role-system-admin .lg\:w-72 {
+    width: 18rem !important;
+  }
+  
+  .admin-role .lg\:w-64,
+  .role-admin .lg\:w-64,
+  .role-system-admin .lg\:w-64 {
+    width: 16rem !important;
+  }
+  
+  .admin-role .lg\:pl-72,
+  .role-admin .lg\:pl-72,
+  .role-system-admin .lg\:pl-72 {
+    padding-left: 18rem !important;
+  }
+  
+  .admin-role .lg\:pl-64,
+  .role-admin .lg\:pl-64,
+  .role-system-admin .lg\:pl-64 {
+    padding-left: 16rem !important;
+  }
+  
+  /* Force tables to remain as tables */
+  .admin-role table,
+  .role-admin table,
+  .role-system-admin table {
+    display: table !important;
+    width: 100% !important;
+  }
+  
+  .admin-role thead,
+  .role-admin thead,
+  .role-system-admin thead {
+    display: table-header-group !important;
+  }
+  
+  .admin-role tbody,
+  .role-admin tbody,
+  .role-system-admin tbody {
+    display: table-row-group !important;
+  }
+  
+  .admin-role tr,
+  .role-admin tr,
+  .role-system-admin tr {
+    display: table-row !important;
+  }
+  
+  .admin-role th,
+  .admin-role td,
+  .role-admin th,
+  .role-admin td,
+  .role-system-admin th,
+  .role-system-admin td {
+    display: table-cell !important;
+  }
+}
+
 /* Force mobile navigation to stay at bottom */
 @media (max-width: 768px) {
   /* Only apply mobile-specific styles when NOT in force-desktop-ui mode */
