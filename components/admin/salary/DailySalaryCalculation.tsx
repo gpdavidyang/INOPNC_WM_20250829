@@ -151,21 +151,51 @@ export default function DailySalaryCalculation() {
       if (selectedWorkers.length > 0) {
         query = query.in('profile_id', selectedWorkers)
       }
-      
-      // Apply name search filter
-      if (searchTerm) {
-        query = query.ilike('profiles.full_name', `%${searchTerm}%`)
-      }
 
       const { data: assignmentsData, error } = await query
 
       if (error) {
         console.error('Supabase query error:', error)
-        throw error
+        console.error('Query details:', {
+          startDate,
+          endDate,
+          selectedSites,
+          selectedWorkers
+        })
+        throw new Error(`Database query failed: ${error.message || JSON.stringify(error)}`)
       }
 
-      // Transform data to match DailySalaryData interface
-      const transformedData: DailySalaryData[] = (assignmentsData || [])
+      if (!assignmentsData || assignmentsData.length === 0) {
+        setData([])
+        calculateSummary([])
+        return
+      }
+
+      // Get worker profiles separately
+      const workerIds = [...new Set(assignmentsData.map(a => a.profile_id))]
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, role, daily_wage')
+        .in('id', workerIds)
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError)
+        throw new Error(`Failed to fetch worker profiles: ${profilesError.message}`)
+      }
+
+      // Create profiles map
+      const profilesMap = new Map()
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.id, profile)
+      })
+
+      // Apply name search filter on transformed data
+      let transformedData: DailySalaryData[] = (assignmentsData || [])
+        .filter(assignment => {
+          if (!searchTerm) return true
+          const profile = profilesMap.get(assignment.profile_id)
+          return profile?.full_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        })
         .sort((a, b) => {
           // Sort by work_date descending
           const dateA = new Date(a.daily_reports.work_date).getTime()
@@ -173,38 +203,40 @@ export default function DailySalaryCalculation() {
           return dateB - dateA
         })
         .map(assignment => {
-        const profile = assignment.profiles
-        const report = assignment.daily_reports
-        const site = report.sites
-        const laborHours = Number(assignment.labor_hours) || 0
-        const hourlyRate = Number(assignment.hourly_rate) || Number(profile.daily_wage) || 0
-        const overtimeHours = Math.max(0, laborHours - 8) // overtime after 8 hours
-        const regularPay = Math.min(laborHours, 8) * hourlyRate
-        const overtimePay = overtimeHours * hourlyRate * 1.5 // 1.5x rate for overtime
-        const totalPay = regularPay + overtimePay
+          const profile = profilesMap.get(assignment.profile_id) || { full_name: 'Unknown', role: 'worker', daily_wage: 0 }
+          const report = assignment.daily_reports
+          const site = report.sites
+          const laborHours = Number(assignment.labor_hours) || 0
+          const dailyWage = Number(profile.daily_wage) || 0
+          const hourlyRate = laborHours > 0 ? dailyWage / 8 : 0 // Calculate hourly from daily wage
+          const overtimeHours = Math.max(0, laborHours - 8) // overtime after 8 hours
+          const regularPay = Math.min(laborHours, 8) * hourlyRate
+          const overtimePay = overtimeHours * hourlyRate * 1.5 // 1.5x rate for overtime
+          const totalPay = regularPay + overtimePay
 
-        return {
-          id: assignment.id,
-          worker_id: assignment.profile_id,
-          worker_name: profile.full_name,
-          worker_role: assignment.role_type || profile.role || 'worker',
-          site_id: report.site_id,
-          site_name: site.name,
-          work_date: report.work_date,
-          labor_hours: laborHours,
-          hourly_rate: hourlyRate,
-          daily_rate: regularPay,
-          overtime_hours: overtimeHours,
-          overtime_pay: overtimePay,
-          total_pay: totalPay
-        }
-      })
+          return {
+            id: assignment.id,
+            worker_id: assignment.profile_id,
+            worker_name: profile.full_name || 'Unknown',
+            worker_role: assignment.role_type || profile.role || 'worker',
+            site_id: report.site_id,
+            site_name: site?.name || 'Unknown Site',
+            work_date: report.work_date,
+            labor_hours: laborHours,
+            hourly_rate: hourlyRate,
+            daily_rate: regularPay,
+            overtime_hours: overtimeHours,
+            overtime_pay: overtimePay,
+            total_pay: totalPay
+          }
+        })
 
       setData(transformedData)
       calculateSummary(transformedData)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load daily salary data:', error)
-      alert('급여 데이터를 불러오는 중 오류가 발생했습니다.')
+      const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.'
+      alert(`급여 데이터를 불러오는 중 오류가 발생했습니다: ${errorMessage}`)
     } finally {
       setLoading(false)
       setCalculating(false)
