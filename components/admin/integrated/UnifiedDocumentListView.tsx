@@ -82,8 +82,8 @@ export default function UnifiedDocumentListView() {
       name: '도면마킹문서함', 
       icon: Image, 
       color: 'purple', 
-      description: '도면 및 마킹 자료 - 현장별 접근 권한',
-      permission: '현장별 접근'
+      description: '도면 및 마킹 자료 - 모든 사용자 공개',
+      permission: '전체 공개'
     },
     required: { 
       name: '필수제출서류함', 

@@ -33,17 +33,11 @@ interface RequiredDocument {
   }
 }
 
-// 필수 제출 서류 유형
-const documentTypes = [
-  { value: 'safety_certificate', label: '안전교육이수증' },
-  { value: 'health_certificate', label: '건강진단서' },
-  { value: 'insurance_certificate', label: '보험증서' },
-  { value: 'id_copy', label: '신분증 사본' },
-  { value: 'license', label: '자격증' },
-  { value: 'employment_contract', label: '근로계약서' },
-  { value: 'bank_account', label: '통장사본' },
-  { value: 'other', label: '기타 서류' }
-]
+interface DocumentType {
+  code: string
+  name_ko: string
+  name_en?: string
+}
 
 export default function RequiredDocumentsManagement() {
   const [documents, setDocuments] = useState<RequiredDocument[]>([])
@@ -57,9 +51,22 @@ export default function RequiredDocumentsManagement() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
+  const [documentTypes, setDocumentTypes] = useState<DocumentType[]>([])
   const itemsPerPage = 20
 
   const supabase = createClient()
+
+  const fetchDocumentTypes = async () => {
+    try {
+      const response = await fetch('/api/admin/required-document-types')
+      if (response.ok) {
+        const data = await response.json()
+        setDocumentTypes(data.document_types || [])
+      }
+    } catch (error) {
+      console.error('Error fetching document types:', error)
+    }
+  }
 
   const fetchDocuments = async () => {
     setLoading(true)
@@ -219,9 +226,13 @@ export default function RequiredDocumentsManagement() {
   }
 
   const getDocumentTypeLabel = (type: string) => {
-    const docType = documentTypes.find(t => t.value === type)
-    return docType ? docType.label : type
+    const docType = documentTypes.find(t => t.code === type)
+    return docType ? docType.name_ko : type
   }
+
+  useEffect(() => {
+    fetchDocumentTypes()
+  }, [])
 
   useEffect(() => {
     fetchDocuments()
@@ -291,8 +302,8 @@ export default function RequiredDocumentsManagement() {
             >
               <option value="">모든 서류 유형</option>
               {documentTypes.map((type) => (
-                <option key={type.value} value={type.value}>
-                  {type.label}
+                <option key={type.code} value={type.code}>
+                  {type.name_ko}
                 </option>
               ))}
             </select>

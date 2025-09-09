@@ -489,6 +489,38 @@ export default function ReceiptsTab({
     return data.publicUrl
   }
 
+  const handleDownload = async (receipt: ReceiptFile) => {
+    try {
+      const supabase = createClient()
+      
+      // Download file from storage
+      const { data, error } = await supabase.storage
+        .from('receipts')
+        .download(receipt.file_path)
+      
+      if (error) {
+        console.error('Download error:', error)
+        setSaveStatus({ type: 'error', message: '파일 다운로드에 실패했습니다.' })
+        return
+      }
+      
+      // Create blob URL and trigger download
+      const url = URL.createObjectURL(data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = receipt.filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      setSaveStatus({ type: 'success', message: '파일이 다운로드되었습니다.' })
+    } catch (error) {
+      console.error('Unexpected error during download:', error)
+      setSaveStatus({ type: 'error', message: '파일 다운로드 중 오류가 발생했습니다.' })
+    }
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes'
     const k = 1024
@@ -724,6 +756,7 @@ export default function ReceiptsTab({
                 receipt={receipt}
                 onView={() => setSelectedReceipt(receipt)}
                 onDelete={() => handleDelete(receipt)}
+                onDownload={() => handleDownload(receipt)}
                 isEditing={isEditing}
                 getReceiptUrl={getReceiptUrl}
                 formatFileSize={formatFileSize}
@@ -786,12 +819,13 @@ interface ReceiptCardProps {
   receipt: ReceiptFile
   onView: () => void
   onDelete: () => void
+  onDownload: () => void
   isEditing: boolean
   getReceiptUrl: (receipt: ReceiptFile) => string
   formatFileSize: (bytes: number) => string
 }
 
-function ReceiptCard({ receipt, onView, onDelete, isEditing, getReceiptUrl, formatFileSize }: ReceiptCardProps) {
+function ReceiptCard({ receipt, onView, onDelete, onDownload, isEditing, getReceiptUrl, formatFileSize }: ReceiptCardProps) {
   const isPDF = receipt.mime_type === 'application/pdf'
   
   return (
@@ -854,6 +888,16 @@ function ReceiptCard({ receipt, onView, onDelete, isEditing, getReceiptUrl, form
                 title="미리보기"
               >
                 <Eye className="h-4 w-4" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDownload()
+                }}
+                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                title="다운로드"
+              >
+                <Download className="h-4 w-4" />
               </button>
               {isEditing && (
                 <button
