@@ -10,19 +10,36 @@ interface ViewportControllerProps {
 
 /**
  * Controls viewport and applies role-based UI classes
- * Forces mobile or desktop UI based on user role
+ * Optionally forces mobile or desktop UI based on user role and feature flag
  */
 export function ViewportController({ children }: ViewportControllerProps) {
   const [uiMode, setUiMode] = useState<'mobile' | 'desktop' | null>(null)
+  const [isEnabled, setIsEnabled] = useState(false)
   
   useEffect(() => {
+    // Check if feature is enabled
+    const enabled = process.env.NEXT_PUBLIC_ENABLE_FIXED_UI_MODE === 'true'
+    setIsEnabled(enabled)
+    
+    if (!enabled) {
+      setUiMode(null)
+      return
+    }
+    
     // Get role from cookie
     const role = getClientUserRole()
     
-    // Determine UI mode based on role
-    if (isRoleMobileUI(role)) {
+    // Check actual device width
+    const isMobileDevice = window.innerWidth < 768
+    
+    // For admin/system_admin roles on mobile devices, 
+    // don't force desktop UI to prevent layout issues
+    if (isRoleDesktopUI(role) && isMobileDevice) {
+      // Let responsive design handle it naturally
+      setUiMode(null)
+    } else if (isRoleMobileUI(role)) {
       setUiMode('mobile')
-    } else if (isRoleDesktopUI(role)) {
+    } else if (isRoleDesktopUI(role) && !isMobileDevice) {
       setUiMode('desktop')
     } else {
       setUiMode(null)
@@ -30,7 +47,11 @@ export function ViewportController({ children }: ViewportControllerProps) {
   }, [])
   
   useEffect(() => {
-    if (!uiMode) return
+    if (!isEnabled || !uiMode) {
+      // Clean up any previously applied classes
+      document.body.classList.remove('force-mobile-ui', 'force-desktop-ui')
+      return
+    }
     
     // Apply body classes for global CSS overrides
     const body = document.body
@@ -48,7 +69,7 @@ export function ViewportController({ children }: ViewportControllerProps) {
       body.classList.add('force-desktop-ui')
       body.classList.remove('force-mobile-ui')
       
-      // Update viewport meta tag for desktop
+      // Update viewport meta tag for desktop (only on actual desktop devices)
       const viewport = document.querySelector('meta[name="viewport"]')
       if (viewport) {
         viewport.setAttribute('content', 'width=1280, initial-scale=1, user-scalable=yes')
@@ -63,14 +84,14 @@ export function ViewportController({ children }: ViewportControllerProps) {
         viewport.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes')
       }
     }
-  }, [uiMode])
+  }, [uiMode, isEnabled])
   
   return (
     <div 
       className={cn(
         'min-h-screen',
-        uiMode === 'mobile' && 'mobile-ui-container',
-        uiMode === 'desktop' && 'desktop-ui-container'
+        isEnabled && uiMode === 'mobile' && 'mobile-ui-container',
+        isEnabled && uiMode === 'desktop' && 'desktop-ui-container'
       )}
     >
       {children}
