@@ -4,17 +4,12 @@ import { useState, useEffect } from 'react'
 import { 
   Camera, 
   FileImage, 
-  Download, 
   Settings, 
   Archive,
   Trash2,
   RefreshCw,
-  HardDrive,
   Activity,
   TrendingUp,
-  Users,
-  Calendar,
-  Clock,
   AlertCircle,
   CheckCircle,
   XCircle,
@@ -49,15 +44,6 @@ interface SystemHealth {
 
 export default function PhotoGridToolManagement({ profile }: PhotoGridToolManagementProps) {
   const [loading, setLoading] = useState(true)
-  const [stats, setStats] = useState<ToolStats>({
-    totalReports: 0,
-    activeReports: 0,
-    archivedReports: 0,
-    totalSize: 0,
-    totalDownloads: 0,
-    averageSize: 0,
-    storageUsagePercent: 0
-  })
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
     canvasSupport: true,
     storageAvailable: true,
@@ -95,23 +81,6 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
     try {
       setLoading(true)
       
-      // Load statistics from API
-      const response = await fetch('/api/photo-grid-reports/stats')
-      if (response.ok) {
-        const data = await response.json()
-        setStats({
-          totalReports: data.total_reports || 0,
-          activeReports: data.active_reports || 0,
-          archivedReports: data.archived_reports || 0,
-          totalSize: data.total_file_size || 0,
-          totalDownloads: data.total_downloads || 0,
-          averageSize: data.average_file_size || 0,
-          lastGenerated: data.last_generated,
-          mostActiveUser: data.most_active_user,
-          storageUsagePercent: (data.total_file_size / (1024 * 1024 * 1024 * 10)) * 100 // Assuming 10GB limit
-        })
-      }
-
       // Load recent activity
       const activityResponse = await fetch('/api/photo-grid-reports?limit=5&sort=created_at:desc')
       if (activityResponse.ok) {
@@ -173,7 +142,7 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
 
       if (response.ok) {
         const result = await response.json()
-        alert(`저장소 최적화 완료: ${formatBytes(result.spaceSaved)} 절약`)
+        alert(`저장소 최적화 완료: ${result.spaceSaved} 절약`)
         await loadData()
       }
     } catch (error) {
@@ -285,74 +254,6 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
         </p>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">총 보고서</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalReports}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                활성: {stats.activeReports} / 보관: {stats.archivedReports}
-              </p>
-            </div>
-            <FileImage className="h-8 w-8 text-blue-600 opacity-20" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">저장소 사용량</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {formatBytes(stats.totalSize)}
-              </p>
-              <div className="mt-2">
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min(stats.storageUsagePercent, 100)}%` }}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {stats.storageUsagePercent.toFixed(1)}% 사용 중
-                </p>
-              </div>
-            </div>
-            <HardDrive className="h-8 w-8 text-green-600 opacity-20" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">총 다운로드</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.totalDownloads}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                평균 크기: {formatBytes(stats.averageSize)}
-              </p>
-            </div>
-            <Download className="h-8 w-8 text-purple-600 opacity-20" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">최근 활동</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                {recentActivity.length}건
-              </p>
-              {stats.lastGenerated && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  마지막: {formatDateTime(stats.lastGenerated)}
-                </p>
-              )}
-            </div>
-            <Clock className="h-8 w-8 text-orange-600 opacity-20" />
-          </div>
-        </div>
-      </div>
 
       {/* Tool Settings */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">

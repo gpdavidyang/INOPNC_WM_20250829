@@ -28,20 +28,20 @@ export function WorkOptionsManagement() {
   const fetchOptions = async () => {
     try {
       setLoading(true)
-      const response = await fetch('/api/admin/work-options?include_inactive=true')
+      const response = await fetch('/api/admin/work-options')
       if (!response.ok) throw new Error('Failed to fetch options')
       
       const data: WorkOptionSetting[] = await response.json()
       
       setComponentTypes(
         data
-          .filter(opt => opt.option_type === 'component_type')
+          .filter(opt => opt.option_type === 'component_type' && opt.is_active)
           .sort((a, b) => a.display_order - b.display_order)
       )
       
       setProcessTypes(
         data
-          .filter(opt => opt.option_type === 'process_type')
+          .filter(opt => opt.option_type === 'process_type' && opt.is_active)
           .sort((a, b) => a.display_order - b.display_order)
       )
     } catch (error) {
@@ -140,27 +140,6 @@ export function WorkOptionsManagement() {
     }
   }
 
-  // Toggle active status
-  const handleToggleActive = async (id: string, currentStatus: boolean) => {
-    try {
-      const response = await fetch('/api/admin/work-options', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          is_active: !currentStatus
-        })
-      })
-
-      if (!response.ok) throw new Error('Failed to update option')
-
-      toast.success(currentStatus ? '옵션이 비활성화되었습니다' : '옵션이 활성화되었습니다')
-      await fetchOptions()
-    } catch (error) {
-      console.error('Error toggling option:', error)
-      toast.error('옵션 상태 변경에 실패했습니다')
-    }
-  }
 
   // Delete option (soft delete by setting is_active to false)
   const handleDelete = async (id: string) => {
@@ -232,11 +211,7 @@ export function WorkOptionsManagement() {
       {options.map((option, index) => (
         <div
           key={option.id}
-          className={`flex items-center justify-between p-3 rounded-lg border ${
-            option.is_active 
-              ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700' 
-              : 'bg-gray-50 dark:bg-gray-900 border-gray-300 dark:border-gray-600 opacity-60'
-          }`}
+          className="flex items-center justify-between p-3 rounded-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
         >
           <div className="flex items-center gap-3 flex-1">
             <div className="flex flex-col gap-1">
@@ -313,27 +288,15 @@ export function WorkOptionsManagement() {
                 >
                   수정
                 </Button>
-                {option.is_active ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(option.id)}
-                    disabled={option.option_value === 'other'}
-                    className="text-xs min-w-[40px] h-8 px-2 py-1 text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20"
-                  >
-                    삭제
-                  </Button>
-                ) : (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleToggleActive(option.id, option.is_active)}
-                    disabled={option.option_value === 'other'}
-                    className="text-xs min-w-[40px] h-8 px-2 py-1 text-green-600 hover:bg-green-50 border-green-200 dark:text-green-400 dark:hover:bg-green-900/20"
-                  >
-                    활성
-                  </Button>
-                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleDelete(option.id)}
+                  disabled={option.option_value === 'other'}
+                  className="text-xs min-w-[40px] h-8 px-2 py-1 text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20"
+                >
+                  삭제
+                </Button>
               </>
             )}
           </div>

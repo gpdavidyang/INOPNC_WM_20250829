@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import SimpleSiteInfo from '@/components/site-info/SimpleSiteInfo'
 import { useFontSize, getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
+import { useNotifications } from '@/hooks/use-notifications'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
   Calendar, FileText, MapPin, FolderOpen, 
@@ -61,7 +62,18 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
   
   // Simplified states
   const [siteHistory, setSiteHistory] = useState<UserSiteHistory[]>(initialSiteHistory || [])
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  
+  // 알림 관리 훅 사용
+  const { 
+    notifications, 
+    loading: notificationsLoading, 
+    markAsRead, 
+    getUnreadCount 
+  } = useNotifications({
+    limit: 5,
+    showReadNotifications: true,
+    userId: profile.id
+  })
   
   // 빠른메뉴 사용 가능한 모든 항목들
   const availableQuickMenuItems: QuickMenuItem[] = [
@@ -122,39 +134,15 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
   ]
 
   const router = useRouter()
-  const supabase = useMemo(() => createClient(), [])
 
-  // Load announcements
-  const loadAnnouncements = useCallback(async () => {
-    try {
-      const { data: notifications, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5)
-      
-      if (error) throw error
-      
-      const transformedAnnouncements = (notifications || []).map(notification => ({
-        id: notification.id,
-        title: notification.title || '',
-        content: notification.message || '',
-        priority: notification.type === 'error' ? 'high' : 
-                 notification.type === 'warning' ? 'medium' : 'low',
-        createdAt: notification.created_at?.split('T')[0] || new Date().toISOString().split('T')[0],
-        isRead: notification.read || false
-      }))
-      
-      setAnnouncements(transformedAnnouncements)
-    } catch (error) {
-      console.error('Error loading announcements:', error)
-      setAnnouncements([])
+  // 공지사항 클릭 핸들러
+  const handleAnnouncementClick = async (notification: any) => {
+    if (!notification.is_read) {
+      await markAsRead(notification.id)
     }
-  }, [supabase])
+  }
 
   useEffect(() => {
-    loadAnnouncements()
-    
     // Load saved quick menu settings
     const savedItems = localStorage.getItem('quickMenuItems')
     if (savedItems) {
@@ -164,7 +152,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
         console.error('Error loading quick menu settings:', e)
       }
     }
-  }, [loadAnnouncements])
+  }, [])
 
   // Quick menu management functions
   const toggleQuickMenuItem = (itemId: string) => {
@@ -413,7 +401,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       />
 
       {/* Announcements Section */}
-      {announcements.length > 0 && (
+      {notifications.length > 0 && (
         <Card>
           <button
             onClick={() => setAnnouncementExpanded(!announcementExpanded)}
@@ -426,7 +414,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
                   공지사항
                 </h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {announcements.filter(a => !a.isRead).length}개 미읽음
+                  {getUnreadCount()}개 미읽음
                 </span>
               </div>
               {announcementExpanded ? (
@@ -438,36 +426,46 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
           </button>
           {announcementExpanded && (
             <CardContent className="pt-0 space-y-2">
-              {announcements.map((announcement) => (
-                <div
-                  key={announcement.id}
-                  className={`p-3 rounded-lg border ${
-                    announcement.isRead 
-                      ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700' 
-                      : 'bg-white dark:bg-gray-900 border-blue-200 dark:border-blue-800'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h4 className={getTypographyClass('sm', isLargeFont, 'font-medium')}>
-                          {announcement.title}
-                        </h4>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(announcement.priority)}`}>
-                          {announcement.priority === 'high' ? '긴급' : 
-                           announcement.priority === 'medium' ? '중요' : '일반'}
-                        </span>
-                      </div>
-                      <p className={getTypographyClass('xs', isLargeFont, 'text-gray-600 dark:text-gray-400 mt-1')}>
-                        {announcement.content}
-                      </p>
-                      <p className={getTypographyClass('xs', isLargeFont, 'text-gray-500 dark:text-gray-500 mt-1')}>
-                        {announcement.createdAt}
-                      </p>
-                    </div>
-                  </div>
+              {notificationsLoading ? (
+                <div className="text-center py-4">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">로딩 중...</span>
                 </div>
-              ))}
+              ) : (
+                notifications.map((notification) => (
+                  <button
+                    key={notification.id}
+                    onClick={() => handleAnnouncementClick(notification)}
+                    className={`w-full p-3 rounded-lg border text-left transition-all hover:scale-[1.01] ${
+                      notification.is_read 
+                        ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 opacity-60' 
+                        : 'bg-white dark:bg-gray-900 border-blue-200 dark:border-blue-800 hover:bg-blue-50 dark:hover:bg-blue-900/10'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className={getTypographyClass('sm', isLargeFont, `font-medium ${!notification.is_read ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`)}>
+                            {notification.title}
+                          </h4>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(notification.priority)}`}>
+                            {notification.priority === 'high' ? '긴급' : 
+                             notification.priority === 'medium' ? '중요' : '일반'}
+                          </span>
+                          {!notification.is_read && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          )}
+                        </div>
+                        <p className={getTypographyClass('xs', isLargeFont, 'text-gray-600 dark:text-gray-400 mt-1')}>
+                          {notification.message}
+                        </p>
+                        <p className={getTypographyClass('xs', isLargeFont, 'text-gray-500 dark:text-gray-500 mt-1')}>
+                          {notification.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
             </CardContent>
           )}
         </Card>
