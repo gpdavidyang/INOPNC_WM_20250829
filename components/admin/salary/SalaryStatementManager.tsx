@@ -144,16 +144,14 @@ export default function SalaryStatementManager() {
       })
 
       const { data: salaryData, error: fetchError } = await supabase
-        .from('worker_assignments')
+        .from('attendance_records')
         .select(`
-          profile_id,
+          user_id,
           labor_hours,
-          daily_reports(
-            work_date,
-            site_id,
-            sites(name)
-          ),
-          profiles!worker_assignments_profile_id_fkey(
+          work_date,
+          site_id,
+          sites(name),
+          profiles!attendance_records_user_id_fkey(
             id,
             full_name,
             phone,
@@ -162,9 +160,9 @@ export default function SalaryStatementManager() {
             transportation_allowance
           )
         `)
-        .in('profile_id', selectedWorkers)
-        .gte('daily_reports.work_date', startDate)
-        .lte('daily_reports.work_date', endDate)
+        .in('user_id', selectedWorkers)
+        .gte('work_date', startDate)
+        .lte('work_date', endDate)
 
       if (fetchError) {
         console.error('Error fetching salary data:', fetchError)
@@ -179,16 +177,15 @@ export default function SalaryStatementManager() {
 
       // Process data by worker
       const workerMap = new Map()
-      salaryData.forEach(assignment => {
-        if (!assignment || !assignment.profiles || !assignment.daily_reports) {
-          console.warn('Skipping invalid assignment:', assignment)
+      salaryData.forEach(record => {
+        if (!record || !record.profiles) {
+          console.warn('Skipping invalid record:', record)
           return
         }
 
-        const workerId = assignment.profile_id
-        const worker = assignment.profiles
-        const report = assignment.daily_reports
-        const site = report?.sites
+        const workerId = record.user_id
+        const worker = record.profiles
+        const site = record.sites
 
         if (!workerMap.has(workerId)) {
           workerMap.set(workerId, {
@@ -206,7 +203,7 @@ export default function SalaryStatementManager() {
         }
 
         const workerData = workerMap.get(workerId)
-        const laborHours = Number(assignment.labor_hours) || 0
+        const laborHours = Number(record.labor_hours) || 0
         const dailyWage = Number(worker.daily_wage) || 0
         const mealAllowance = Number(worker.meal_allowance) || 0
         const transportAllowance = Number(worker.transportation_allowance) || 0
@@ -474,7 +471,7 @@ export default function SalaryStatementManager() {
                       {statement.statement_data.work_days}일
                     </td>
                     <td className="px-6 py-4 text-center text-sm text-gray-900 dark:text-gray-100">
-                      {(statement.statement_data.total_manhours || 0).toFixed(1)}
+                      {(statement.statement_data.total_manhours || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-medium text-gray-900 dark:text-gray-100">
                       ₩{new Intl.NumberFormat('ko-KR').format(statement.statement_data.net_salary || 0)}

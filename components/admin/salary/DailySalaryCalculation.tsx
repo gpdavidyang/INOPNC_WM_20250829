@@ -516,7 +516,7 @@ export default function DailySalaryCalculation() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                          {(worker.totalManhours || 0).toFixed(1)}
+                          {(worker.totalManhours || 0).toFixed(2)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-gray-100">

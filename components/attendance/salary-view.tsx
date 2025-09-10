@@ -385,7 +385,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
                 <div className="grid grid-cols-6 gap-1 items-center text-xs">
                   <div className="font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{salary.month}</div>
                   <div className="text-gray-600 dark:text-gray-400 whitespace-nowrap truncate">{salary.site}</div>
-                  <div className="text-center whitespace-nowrap">{salary.totalLaborHours?.toFixed(1) || '0.0'}</div>
+                  <div className="text-center whitespace-nowrap">{salary.totalLaborHours?.toFixed(2) || '0.00'}</div>
                   <div className="text-right whitespace-nowrap">{Math.floor(salary.basicPay / 10000)}만</div>
                   <div className="text-right font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                     {Math.floor(salary.netPay / 10000)}만
@@ -533,7 +533,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
             <div className="space-y-1">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-700 dark:text-gray-300">총 공수</span>
-                <span className="text-sm font-medium">{selectedMonthDetails.total_labor_hours?.toFixed(1) || '0.0'}공수</span>
+                <span className="text-sm font-medium">{selectedMonthDetails.total_labor_hours?.toFixed(2) || '0.00'}공수</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-sm text-gray-700 dark:text-gray-300">근무 날짜수</span>
