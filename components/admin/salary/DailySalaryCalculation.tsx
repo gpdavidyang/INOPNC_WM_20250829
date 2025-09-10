@@ -29,6 +29,7 @@ import {
 import MultiSelectFilter from './components/MultiSelectFilter'
 import DateRangeSelector from './components/DateRangeSelector'
 import SummaryCards from './components/SummaryCards'
+import { WorkerSalaryChart, SiteSalaryChart } from './SalaryChart'
 
 interface DailySalaryData {
   id: string
@@ -424,6 +425,34 @@ export default function DailySalaryCalculation() {
       
       {/* Summary Cards */}
       <SummaryCards stats={summaryStats} />
+      
+      {/* Charts */}
+      {!loading && data.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* 작업자별 급여 차트 */}
+          <WorkerSalaryChart 
+            data={Object.values(groupedData).slice(0, 10).map(worker => ({
+              name: worker.worker_name,
+              value: worker.totalSalary || 0,
+              hours: worker.totalManhours || 0
+            }))}
+          />
+          
+          {/* 현장별 급여 분포 차트 */}
+          <SiteSalaryChart 
+            data={Array.from(new Set(data.map(d => d.site_name)))
+              .map(siteName => ({
+                name: siteName,
+                value: data
+                  .filter(d => d.site_name === siteName)
+                  .reduce((sum, d) => sum + (d.total_pay || 0), 0),
+                count: data.filter(d => d.site_name === siteName).length
+              }))
+              .slice(0, 5)
+            }
+          />
+        </div>
+      )}
       
       {/* Data Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">

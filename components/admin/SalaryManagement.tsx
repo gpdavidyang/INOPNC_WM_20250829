@@ -6,13 +6,14 @@ import DailySalaryCalculation from './salary/DailySalaryCalculation'
 import IndividualMonthlySalary from './salary/IndividualMonthlySalary'
 import SalaryStatementManager from './salary/SalaryStatementManager'
 import IndividualSalarySettings from './salary/IndividualSalarySettings'
+import SalaryStatsDashboard from './salary/SalaryStatsDashboard'
 
 interface SalaryManagementProps {
   profile: Profile
 }
 
 export default function SalaryManagement({ profile }: SalaryManagementProps) {
-  const [activeTab, setActiveTab] = useState<'daily' | 'monthly' | 'statements' | 'settings'>('daily')
+  const [activeTab, setActiveTab] = useState<'daily' | 'monthly' | 'statements' | 'settings' | 'stats'>('daily')
 
   return (
     <div className="space-y-4">
@@ -59,6 +60,16 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
           >
             개인별 급여기준 설정
           </button>
+          <button
+            onClick={() => setActiveTab('stats')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'stats'
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+            }`}
+          >
+            급여 통계 대시보드
+          </button>
         </nav>
       </div>
 
@@ -80,6 +91,11 @@ export default function SalaryManagement({ profile }: SalaryManagementProps) {
       {/* Individual Salary Settings Tab */}
       {activeTab === 'settings' && (
         <IndividualSalarySettings />
+      )}
+
+      {/* Salary Stats Dashboard Tab */}
+      {activeTab === 'stats' && (
+        <SalaryStatsDashboard />
       )}
 
     </div>
