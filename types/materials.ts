@@ -117,3 +117,89 @@ export interface MaterialSupplierInfo {
   delivery_lead_time?: number | null
   is_preferred?: boolean | null
 }
+
+// 생산 기록 타입
+export interface ProductionRecord {
+  id: string
+  production_date: string
+  quantity_produced: number
+  unit_cost: number
+  total_cost: number
+  notes?: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+// 출고 기록 타입
+export interface ShipmentRecord {
+  id: string
+  shipment_date: string
+  site_id: string
+  material_request_id?: string | null
+  quantity_shipped: number
+  planned_delivery_date?: string | null
+  actual_delivery_date?: string | null
+  status: 'preparing' | 'shipped' | 'in_transit' | 'delivered' | 'cancelled'
+  tracking_number?: string | null
+  carrier?: string | null
+  notes?: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+  site?: {
+    name: string
+  }
+}
+
+// 확장된 재고 정보 타입
+export interface MaterialInventoryExtended {
+  id: string
+  site_id: string
+  material_id: string
+  current_stock: number
+  reserved_stock: number
+  available_stock: number
+  minimum_threshold: number
+  last_updated: string
+  site?: {
+    name: string
+  }
+  material?: {
+    code: string
+    name: string
+    unit: string
+  }
+  status?: 'normal' | 'low' | 'out_of_stock'
+}
+
+// 생산 분석 데이터 타입
+export interface ProductionAnalytics {
+  month: string
+  total_produced: number
+  avg_unit_cost: number
+  total_cost: number
+  production_days: number
+}
+
+// 출고 분석 데이터 타입
+export interface ShipmentAnalytics {
+  site_name: string
+  month: string
+  total_shipped: number
+  shipment_count: number
+  delivered_count: number
+}
+
+// 재고 상태 뷰 타입
+export interface InventoryStatus {
+  location: string
+  current_stock: number
+  reserved_stock: number
+  available_stock: number
+  minimum_threshold: number
+  status: 'normal' | 'low' | 'out_of_stock'
+  last_updated: string
+  site_id: string
+  material_id: string
+}

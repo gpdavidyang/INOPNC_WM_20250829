@@ -7,12 +7,14 @@ import {
   Package, TrendingUp, TrendingDown, AlertTriangle, 
   Calendar, Building2, Search, Filter, Download,
   Truck, CheckCircle, XCircle, Clock, FileText,
-  BarChart3, PlusCircle, Edit, Eye, RefreshCw
+  BarChart3, PlusCircle, Edit, Eye, RefreshCw,
+  Database
 } from 'lucide-react'
 import InventoryUsageTab from './tabs/InventoryUsageTab'
 import ProductionManagementTab from './tabs/ProductionManagementTab'
 import ShipmentManagementTab from './tabs/ShipmentManagementTab'
 import ShipmentRequestsTab from './tabs/ShipmentRequestsTab'
+import IntegratedInventoryStatus from './IntegratedInventoryStatus'
 
 interface NPCMaterialManagementProps {
   profile?: Profile
@@ -31,11 +33,17 @@ export default function NPCMaterialManagement({ profile }: NPCMaterialManagement
   }
   
   const currentProfile = profile || defaultProfile
-  const [activeTab, setActiveTab] = useState<'inventory' | 'production' | 'shipment' | 'requests'>('inventory')
+  const [activeTab, setActiveTab] = useState<'inventory' | 'production' | 'shipment' | 'requests' | 'integrated'>('integrated')
   const [loading, setLoading] = useState(false)
   const supabase = createClient()
 
   const tabs = [
+    {
+      key: 'integrated',
+      label: '통합재고현황',
+      icon: Database,
+      description: '전체 재고 현황 및 실시간 모니터링'
+    },
     {
       key: 'inventory',
       label: '사용재고관리',
@@ -125,6 +133,7 @@ export default function NPCMaterialManagement({ profile }: NPCMaterialManagement
 
       {/* Tab Content */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        {activeTab === 'integrated' && <IntegratedInventoryStatus profile={currentProfile} />}
         {activeTab === 'inventory' && <InventoryUsageTab profile={currentProfile} />}
         {activeTab === 'production' && <ProductionManagementTab profile={currentProfile} />}
         {activeTab === 'shipment' && <ShipmentManagementTab profile={currentProfile} />}
