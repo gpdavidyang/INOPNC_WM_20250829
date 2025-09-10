@@ -8,18 +8,18 @@ import {
   updateShipmentStatus,
   updateShipmentInfo,
   getShipmentHistory,
-  getPendingShipmentRequests,
-  trackDelivery
+  getPendingShipmentRequests
 } from '@/app/actions/admin/shipments'
+import { createClient } from '@/lib/supabase/client'
 import { 
-  Truck, Package, Calendar, Building2, Search, Filter, 
-  Download, PlusCircle, Edit, Eye, CheckCircle, 
-  XCircle, Clock, AlertTriangle, MapPin, Phone, User,
-  Zap, BarChart3, Target
+  Truck, Package, Calendar, Building2, Search, 
+  Download, PlusCircle, CheckCircle, 
+  XCircle, Clock, AlertTriangle, ChevronUp, ChevronDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CustomSelect, CustomSelectTrigger, CustomSelectValue, CustomSelectContent, CustomSelectItem } from '@/components/ui/custom-select'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
@@ -62,8 +62,11 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
-  const [showTrackModal, setShowTrackModal] = useState(false)
   const [selectedShipment, setSelectedShipment] = useState<ExtendedShipmentRecord | null>(null)
+
+  // Sort states
+  const [sortField, setSortField] = useState<string>('shipment_date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
   // Form states
   const [formData, setFormData] = useState({
@@ -73,12 +76,9 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     planned_delivery_date: '',
     tracking_number: '',
     carrier: '',
+    shipment_method: 'parcel',
     notes: ''
   })
-
-  // Track form state
-  const [trackingNumber, setTrackingNumber] = useState('')
-  const [trackingInfo, setTrackingInfo] = useState<any>(null)
 
   // Pending requests
   const [pendingRequests, setPendingRequests] = useState({
@@ -176,6 +176,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       planned_delivery_date: '',
       tracking_number: '',
       carrier: '',
+      shipment_method: 'parcel',
       notes: ''
     })
     setShowAddModal(true)
@@ -190,6 +191,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       planned_delivery_date: shipment.planned_delivery_date || '',
       tracking_number: shipment.tracking_number || '',
       carrier: shipment.carrier || '',
+      shipment_method: 'parcel',
       notes: shipment.notes || ''
     })
     setShowEditModal(true)
@@ -200,16 +202,11 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     setShowDetailModal(true)
   }
 
-  const handleTrack = () => {
-    setTrackingNumber('')
-    setTrackingInfo(null)
-    setShowTrackModal(true)
-  }
-
   const handleDelete = async (shipmentId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
     
     try {
+      const supabase = createClient()
       const { error } = await supabase
         .from('shipments')
         .delete()
@@ -310,25 +307,6 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     }
   }
 
-  const handleTrackDelivery = async () => {
-    if (!trackingNumber.trim()) {
-      toast.error('추적번호를 입력해주세요.')
-      return
-    }
-
-    try {
-      const result = await trackDelivery(trackingNumber.trim())
-      if (result.success) {
-        setTrackingInfo(result.data)
-      } else {
-        toast.error(result.error || '추적 정보를 찾을 수 없습니다.')
-      }
-    } catch (error) {
-      console.error('Error tracking delivery:', error)
-      toast.error('추적에 실패했습니다.')
-    }
-  }
-
   const filteredShipments = shipments.filter(shipment =>
     searchTerm === '' || 
     shipment.shipment_date.includes(searchTerm) ||
@@ -337,6 +315,44 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     shipment.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     shipment.notes?.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  // Sort shipments
+  const sortedShipments = [...filteredShipments].sort((a, b) => {
+    let aVal: any = a[sortField as keyof ExtendedShipmentRecord]
+    let bVal: any = b[sortField as keyof ExtendedShipmentRecord]
+    
+    if (aVal === null || aVal === undefined) aVal = ''
+    if (bVal === null || bVal === undefined) bVal = ''
+    
+    if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase()
+      bVal = bVal.toLowerCase()
+    }
+    
+    if (sortDirection === 'asc') {
+      return aVal > bVal ? 1 : -1
+    } else {
+      return aVal < bVal ? 1 : -1
+    }
+  })
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('desc')
+    }
+  }
+
+  const SortIcon = ({ field }: { field: string }) => {
+    if (sortField !== field) {
+      return <div className="w-4 h-4" />
+    }
+    return sortDirection === 'asc' ? 
+      <ChevronUp className="h-4 w-4" /> : 
+      <ChevronDown className="h-4 w-4" />
+  }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -347,7 +363,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       case 'shipped':
         return <Badge variant="default" className="bg-indigo-100 text-indigo-800">출고완료</Badge>
       case 'cancelled':
-        return <Badge variant="destructive">취소됨</Badge>
+        return <Badge variant="secondary" className="bg-red-100 text-red-800">취소됨</Badge>
       case 'preparing':
       default:
         return <Badge variant="secondary">준비중</Badge>
@@ -373,7 +389,6 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
   const totalShipments = filteredShipments.length
   const deliveredCount = filteredShipments.filter(s => s.status === 'delivered').length
   const inTransitCount = filteredShipments.filter(s => s.status === 'in_transit' || s.status === 'shipped').length
-  const preparingCount = filteredShipments.filter(s => s.status === 'preparing').length
   const totalQuantity = filteredShipments.reduce((sum, s) => sum + s.quantity_shipped, 0)
 
   return (
@@ -437,7 +452,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="출고일, 현장명, 운송업체, 추적번호로 검색..."
+              placeholder="출고일, 현장명, 운송업체, 송장번호로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-80"
@@ -483,15 +498,11 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleTrack}>
-            <Search className="h-4 w-4 mr-2" />
-            배송 추적
-          </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="standard">
             <Download className="h-4 w-4 mr-2" />
             내보내기
           </Button>
-          <Button onClick={handleAdd} size="sm">
+          <Button onClick={handleAdd} size="standard">
             <PlusCircle className="h-4 w-4 mr-2" />
             출고 추가
           </Button>
@@ -505,13 +516,61 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">출고일</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">현장</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">출고량</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">상태</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">예정일</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">운송업체</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">추적번호</th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleSort('shipment_date')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>출고일</span>
+                      <SortIcon field="shipment_date" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleSort('site_name')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>현장</span>
+                      <SortIcon field="site_name" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleSort('quantity_shipped')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>출고량</span>
+                      <SortIcon field="quantity_shipped" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>상태</span>
+                      <SortIcon field="status" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleSort('planned_delivery_date')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>예정일</span>
+                      <SortIcon field="planned_delivery_date" />
+                    </div>
+                  </th>
+                  <th 
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                    onClick={() => handleSort('carrier')}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span>운송업체</span>
+                      <SortIcon field="carrier" />
+                    </div>
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">송장번호</th>
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">작업</th>
                 </tr>
               </thead>
@@ -525,7 +584,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                     <td colSpan={8} className="px-4 py-8 text-center text-gray-500">출고 기록이 없습니다.</td>
                   </tr>
                 ) : (
-                  filteredShipments.map((shipment) => (
+                  sortedShipments.map((shipment) => (
                     <tr key={shipment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -578,22 +637,24 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                       <td className="px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center space-x-1">
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="compact"
                             onClick={() => handleDetail(shipment)}
+                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                           >
                             보기
                           </Button>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="compact"
                             onClick={() => handleEdit(shipment)}
+                            className="text-green-600 hover:text-green-800 hover:bg-green-50"
                           >
                             수정
                           </Button>
                           <Button
-                            variant="outline"
-                            size="sm"
+                            variant="ghost"
+                            size="compact"
                             onClick={() => handleDelete(shipment.id)}
                             className="text-red-600 hover:text-red-800 hover:bg-red-50"
                           >
@@ -612,11 +673,11 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
 
       {/* Add Shipment Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>출고 추가</DialogTitle>
+        <DialogContent className="max-w-2xl p-8">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-xl font-bold">출고 추가</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 px-2">
             <div>
               <Label>현장 *</Label>
               <Select value={formData.site_id} onValueChange={(value) => setFormData({...formData, site_id: value})}>
@@ -629,6 +690,19 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>출고방식 *</Label>
+              <CustomSelect value={formData.shipment_method} onValueChange={(value) => setFormData({...formData, shipment_method: value})}>
+                <CustomSelectTrigger>
+                  <CustomSelectValue placeholder="출고방식 선택" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="parcel">택배</CustomSelectItem>
+                  <CustomSelectItem value="freight">화물</CustomSelectItem>
+                  <CustomSelectItem value="other">기타</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
             </div>
             <div>
               <Label>출고량 (말) *</Label>
@@ -657,11 +731,11 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               />
             </div>
             <div>
-              <Label>추적번호</Label>
+              <Label>송장번호</Label>
               <Input
                 value={formData.tracking_number}
                 onChange={(e) => setFormData({...formData, tracking_number: e.target.value})}
-                placeholder="추적번호"
+                placeholder="송장번호"
               />
             </div>
             <div>
@@ -674,7 +748,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setShowAddModal(false)}>취소</Button>
             <Button onClick={submitShipment}>추가</Button>
           </DialogFooter>
@@ -705,11 +779,11 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               />
             </div>
             <div>
-              <Label>추적번호</Label>
+              <Label>송장번호</Label>
               <Input
                 value={formData.tracking_number}
                 onChange={(e) => setFormData({...formData, tracking_number: e.target.value})}
-                placeholder="추적번호"
+                placeholder="송장번호"
               />
             </div>
             <div>
@@ -773,7 +847,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                     <p className="text-lg">{selectedShipment.carrier || '-'}</p>
                   </div>
                   <div>
-                    <Label className="text-sm font-medium text-gray-500">추적번호</Label>
+                    <Label className="text-sm font-medium text-gray-500">송장번호</Label>
                     <p className="text-lg">{selectedShipment.tracking_number || '-'}</p>
                   </div>
                 </div>
@@ -816,7 +890,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                     </Button>
                   )}
                   <Button 
-                    variant="destructive"
+                    variant="danger"
                     onClick={() => handleStatusUpdate(selectedShipment.id, 'cancelled')}
                   >
                     출고 취소
@@ -838,67 +912,6 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDetailModal(false)}>닫기</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Track Delivery Modal */}
-      <Dialog open={showTrackModal} onOpenChange={setShowTrackModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>배송 추적</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>추적번호</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
-                  placeholder="추적번호를 입력하세요"
-                />
-                <Button onClick={handleTrackDelivery}>추적</Button>
-              </div>
-            </div>
-            
-            {trackingInfo && (
-              <div className="border rounded-md p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">상태</Label>
-                  <div className="flex items-center space-x-2">
-                    {getStatusIcon(trackingInfo.status)}
-                    {getStatusBadge(trackingInfo.status)}
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <Label className="text-xs text-gray-500">현장</Label>
-                    <p>{trackingInfo.site_name}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-gray-500">출고량</Label>
-                    <p>{trackingInfo.quantity_shipped} 말</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-gray-500">출고일</Label>
-                    <p>{formatDate(trackingInfo.shipment_date)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-xs text-gray-500">예정일</Label>
-                    <p>{trackingInfo.planned_delivery_date ? formatDate(trackingInfo.planned_delivery_date) : '-'}</p>
-                  </div>
-                </div>
-                {trackingInfo.carrier && (
-                  <div>
-                    <Label className="text-xs text-gray-500">운송업체</Label>
-                    <p className="text-sm">{trackingInfo.carrier}</p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTrackModal(false)}>닫기</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
