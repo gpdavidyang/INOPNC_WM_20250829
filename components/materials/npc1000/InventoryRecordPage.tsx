@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createClient } from '@/lib/supabase/client'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Package, ArrowDown, ArrowUp, ArrowLeft, AlertCircle } from 'lucide-react'
+import { Package, ArrowDown, ArrowUp, ArrowLeft, AlertCircle, Building } from 'lucide-react'
 import { toast } from 'sonner'
 import { recordInventoryTransaction } from '@/app/actions/npc-materials'
 import { getCurrentUserSite } from '@/app/actions/site-info'
@@ -28,6 +29,9 @@ export default function InventoryRecordPage() {
   const [loadingStock, setLoadingStock] = useState(false)
   const [siteId, setSiteId] = useState<string>('')
   const [siteName, setSiteName] = useState<string>('')
+  const [sites, setSites] = useState<Array<{id: string, name: string}>>([])
+  const [loadingSites, setLoadingSites] = useState(true)
+  const [userSiteId, setUserSiteId] = useState<string>('')  // 사용자의 기본 현장
   
   // Form state
   const [quantity, setQuantity] = useState('')
@@ -46,16 +50,65 @@ export default function InventoryRecordPage() {
     return 'h-4 w-4'
   }
 
-  // Load current site info
+  // Load available sites and user's default site
   useEffect(() => {
-    const loadSiteInfo = async () => {
-      const result = await getCurrentUserSite()
-      if (result.success && result.data) {
-        setSiteId(result.data.site_id)
-        setSiteName(result.data.site_name)
+    const loadData = async () => {
+      setLoadingSites(true)
+      try {
+        const supabase = createClient()
+        
+        // Get user info to check role
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        
+        // Get user profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, site_id')
+          .eq('id', user.id)
+          .single()
+        
+        // Load sites based on user role
+        let sitesQuery = supabase
+          .from('sites')
+          .select('id, name')
+          .eq('status', 'active')
+          .order('name')
+        
+        // If user is site_manager, show only their site
+        if (profile?.role === 'site_manager' && profile.site_id) {
+          sitesQuery = sitesQuery.eq('id', profile.site_id)
+        }
+        
+        const { data: sitesData } = await sitesQuery
+        
+        if (sitesData && sitesData.length > 0) {
+          setSites(sitesData)
+          
+          // Set default site
+          if (profile?.site_id) {
+            // Use user's assigned site as default
+            setUserSiteId(profile.site_id)
+            setSiteId(profile.site_id)
+            const defaultSite = sitesData.find(s => s.id === profile.site_id)
+            if (defaultSite) {
+              setSiteName(defaultSite.name)
+            }
+          } else if (sitesData.length === 1) {
+            // If only one site available, select it
+            setSiteId(sitesData[0].id)
+            setSiteName(sitesData[0].name)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading sites:', error)
+        toast.error('현장 정보를 불러오는데 실패했습니다.')
+      } finally {
+        setLoadingSites(false)
       }
     }
-    loadSiteInfo()
+    
+    loadData()
   }, [])
 
   // Fetch current stock for the site
@@ -92,12 +145,19 @@ export default function InventoryRecordPage() {
     }
   }
 
-  // Load stock when site ID is available
+  // Load stock when site ID changes
   useEffect(() => {
     if (siteId) {
       fetchCurrentStock()
+      // Update site name when site changes
+      const selectedSite = sites.find(s => s.id === siteId)
+      if (selectedSite) {
+        setSiteName(selectedSite.name)
+      }
+    } else {
+      setCurrentStock(0)
     }
-  }, [siteId])
+  }, [siteId, sites])
 
   // Calculate projected stock after transaction
   const calculateProjectedStock = () => {
@@ -110,6 +170,11 @@ export default function InventoryRecordPage() {
   }
 
   const submitRecord = async () => {
+    if (!siteId) {
+      toast.error('현장을 선택해주세요.')
+      return
+    }
+
     if (!quantity) {
       toast.error('수량을 입력해주세요.')
       return
@@ -198,22 +263,55 @@ export default function InventoryRecordPage() {
             <h1 className={getFullTypographyClass('heading', 'xl', isLargeFont)}>
               NPC-1000 입고/사용량 기록
             </h1>
-            {siteName && (
-              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
-                현장: {siteName}
-              </p>
-            )}
           </div>
         </div>
       </div>
 
       <div className="space-y-6">
-        {/* Current Stock Display */}
+        {/* Site Selection */}
         <Card className="p-6">
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Building className={getIconSize()} />
+              <Label className={getFullTypographyClass('body', 'base', isLargeFont)}>
+                현장 선택
+              </Label>
+            </div>
+            <Select 
+              value={siteId} 
+              onValueChange={setSiteId}
+              disabled={loadingSites || saving}
+            >
+              <SelectTrigger className={`w-full ${getFullTypographyClass('body', 'base', isLargeFont)}`}>
+                <SelectValue placeholder="현장을 선택하세요" />
+              </SelectTrigger>
+              <SelectContent>
+                {sites.map((site) => (
+                  <SelectItem 
+                    key={site.id} 
+                    value={site.id}
+                    className={getFullTypographyClass('body', 'base', isLargeFont)}
+                  >
+                    {site.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!siteId && (
+              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-yellow-600 flex items-center gap-2`}>
+                <AlertCircle className="h-4 w-4" />
+                현장을 선택해야 재고를 기록할 수 있습니다.
+              </p>
+            )}
+          </div>
+        </Card>
+
+        {/* Current Stock Display */}
+        <Card className={`p-6 ${!siteId ? 'opacity-50' : ''}`}>
           <div className="flex items-center justify-between">
             <div>
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
-                현재 재고
+                현재 재고 {siteName && `(${siteName})`}
               </p>
               {loadingStock ? (
                 <p className={`${getFullTypographyClass('heading', 'xl', isLargeFont)} font-bold text-gray-400`}>
@@ -230,13 +328,14 @@ export default function InventoryRecordPage() {
         </Card>
 
         {/* Transaction Type Tabs */}
-        <Card className="p-6">
+        <Card className={`p-6 ${!siteId ? 'opacity-50' : ''}`}>
           <div className="flex gap-2 mb-6">
             <Button
               variant={activeTab === 'incoming' ? 'default' : 'outline'}
               onClick={() => setActiveTab('incoming')}
               className="flex-1"
               size={getButtonSize()}
+              disabled={!siteId || saving}
             >
               <ArrowDown className={`${getIconSize()} mr-2`} />
               입고
@@ -246,6 +345,7 @@ export default function InventoryRecordPage() {
               onClick={() => setActiveTab('outgoing')}
               className="flex-1"
               size={getButtonSize()}
+              disabled={!siteId || saving}
             >
               <ArrowUp className={`${getIconSize()} mr-2`} />
               사용
@@ -267,6 +367,7 @@ export default function InventoryRecordPage() {
                   value={quantity}
                   onChange={(e) => setQuantity(e.target.value)}
                   className="flex-1"
+                  disabled={!siteId || saving}
                 />
                 <div className="flex items-center px-3 py-2 bg-gray-50 dark:bg-gray-800 border rounded-md">
                   <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-muted-foreground`}>
@@ -286,6 +387,7 @@ export default function InventoryRecordPage() {
                 onChange={(e) => setNotes(e.target.value)}
                 rows={3}
                 className={`mt-1 ${getFullTypographyClass('body', 'sm', isLargeFont)}`}
+                disabled={!siteId || saving}
               />
             </div>
 
@@ -327,7 +429,7 @@ export default function InventoryRecordPage() {
           </Button>
           <Button
             onClick={submitRecord}
-            disabled={saving || !quantity}
+            disabled={saving || !quantity || !siteId}
             size={getButtonSize()}
           >
             {saving ? '저장 중...' : activeTab === 'incoming' ? '입고 기록' : '사용 기록'}
