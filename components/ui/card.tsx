@@ -10,7 +10,7 @@ const Card = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & { 
     elevation?: 'sm' | 'md' | 'lg' | 'xl'
     premium?: boolean
-    variant?: 'default' | 'elevated' | 'prominent' | 'section-header'
+    variant?: 'default' | 'elevated' | 'prominent' | 'section-header' | 'work-card'
   }
 >(({ className, elevation = 'sm', premium = false, variant = 'default', ...props }, ref) => {
   const { touchMode } = useTouchMode()
@@ -32,7 +32,8 @@ const Card = React.forwardRef<
     default: "bg-white dark:bg-slate-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm",
     elevated: "bg-white dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-xl shadow-md ring-1 ring-gray-100 dark:ring-slate-700",
     prominent: "bg-white dark:bg-slate-800 border-2 border-gray-400 dark:border-slate-500 rounded-xl shadow-lg",
-    'section-header': "bg-gradient-to-r from-gray-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm"
+    'section-header': "bg-gradient-to-r from-gray-50 to-blue-50 dark:from-slate-800 dark:to-slate-700 border border-gray-300 dark:border-slate-600 rounded-xl shadow-sm",
+    'work-card': "work-card bg-[var(--work-card-bg)] dark:bg-[var(--work-card-bg)] border border-[var(--work-card-border)] dark:border-[var(--work-card-border)] transition-all duration-200 hover:shadow-lg hover:border-[var(--accent)] hover:scale-[1.02]"
   }
   
   return (

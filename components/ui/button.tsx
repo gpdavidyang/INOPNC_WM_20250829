@@ -11,7 +11,9 @@ const buttonVariants = cva(
         secondary: "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 focus:ring-gray-500",
         danger: "bg-red-600 hover:bg-red-700 focus:ring-red-500 text-white shadow-md hover:shadow-lg",
         ghost: "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 focus:ring-gray-500",
-        outline: "border-2 bg-transparent border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-200 focus:ring-gray-500"
+        outline: "border-2 bg-transparent border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-200 focus:ring-gray-500",
+        "work-action": "bg-gradient-to-r from-[var(--brand)] to-[var(--brand-light)] hover:from-[var(--brand-dark)] hover:to-[var(--brand)] text-white font-semibold shadow-sm hover:shadow-md transition-all duration-200 rounded-xl",
+        "photo-upload": "bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/30 border-2 border-dashed border-blue-300 dark:border-blue-700 text-[var(--num)] font-medium transition-colors duration-200 rounded-xl flex flex-col items-center gap-2"
       },
       size: {
         compact: "px-3 py-1.5 text-sm min-h-[40px]", // Dense interfaces, secondary actions
