@@ -84,7 +84,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       id: 'attendance',
       name: '출력현황',
       icon: newDesign ? 
-        <Image src="/images/brand/출력현황.png" alt="출력현황" width={20} height={20} className="h-5 w-5" /> :
+        <Image src="/images/brand/출력현황.png" alt="출력현황" width={40} height={40} className="h-10 w-10" /> :
         <Calendar className="h-5 w-5" />,
       path: '/dashboard/attendance',
       color: 'text-blue-600 dark:text-blue-400',
@@ -95,7 +95,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       id: 'daily-reports',
       name: '작업일지',
       icon: newDesign ? 
-        <Image src="/images/brand/작업일지.png" alt="작업일지" width={20} height={20} className="h-5 w-5" /> :
+        <Image src="/images/brand/작업일지.png" alt="작업일지" width={40} height={40} className="h-10 w-10" /> :
         <FileText className="h-5 w-5" />,
       path: '/dashboard/daily-reports',
       color: 'text-green-600 dark:text-green-400',
@@ -106,7 +106,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       id: 'site-info',
       name: '현장정보',
       icon: newDesign ? 
-        <Image src="/images/brand/현장정보.png" alt="현장정보" width={20} height={20} className="h-5 w-5" /> :
+        <Image src="/images/brand/현장정보.png" alt="현장정보" width={40} height={40} className="h-10 w-10" /> :
         <MapPin className="h-5 w-5" />,
       path: '/dashboard/site-info',
       color: 'text-purple-600 dark:text-purple-400',
@@ -117,7 +117,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       id: 'documents',
       name: '문서함',
       icon: newDesign ? 
-        <Image src="/images/brand/문서함.png" alt="문서함" width={20} height={20} className="h-5 w-5" /> :
+        <Image src="/images/brand/문서함.png" alt="문서함" width={40} height={40} className="h-10 w-10" /> :
         <FolderOpen className="h-5 w-5" />,
       path: '/dashboard/documents',
       color: 'text-orange-600 dark:text-orange-400',
@@ -128,7 +128,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       id: 'materials',
       name: '자재관리',
       icon: newDesign ? 
-        <Image src="/images/brand/재고관리.png" alt="재고관리" width={20} height={20} className="h-5 w-5" /> :
+        <Image src="/images/brand/재고관리.png" alt="재고관리" width={40} height={40} className="h-10 w-10" /> :
         <ClipboardList className="h-5 w-5" />,
       path: '/dashboard/materials',
       color: 'text-indigo-600 dark:text-indigo-400',
@@ -139,7 +139,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       id: 'notifications',
       name: '알림',
       icon: newDesign ? 
-        <Image src="/images/brand/bell.png" alt="알림" width={20} height={20} className="h-5 w-5" /> :
+        <Image src="/images/brand/bell.png" alt="알림" width={40} height={40} className="h-10 w-10" /> :
         <Bell className="h-5 w-5" />,
       path: '/dashboard/notifications',
       color: 'text-red-600 dark:text-red-400',
@@ -398,7 +398,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
                     ${touchMode === 'glove' ? 'min-h-[100px]' : touchMode === 'precision' ? 'min-h-[70px]' : 'min-h-[80px]'}
                   `}
                 >
-                  <div className={item.color}>{item.icon}</div>
+                  <div className={`${item.color} ${newDesign ? 'w-10 h-10' : ''}`}>{item.icon}</div>
                   <span className={getTypographyClass('sm', isLargeFont, `font-medium mt-2 ${item.color}`)}>
                     {item.name}
                   </span>
