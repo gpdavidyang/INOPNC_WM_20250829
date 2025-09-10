@@ -46,7 +46,9 @@ export interface SalaryInfo {
 }
 
 export class SalaryCalculationService {
-  private supabase = createClient()
+  private getSupabaseClient() {
+    return createClient()
+  }
 
   /**
    * 일일 급여 계산 (labor_hours 기준 통일)
@@ -103,7 +105,8 @@ export class SalaryCalculationService {
       const period_end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd')
 
       // 출근 기록 조회
-      let query = this.supabase
+      const supabase = this.getSupabaseClient()
+      let query = supabase
         .from('attendance_records')
         .select('*')
         .eq('user_id', userId)
@@ -198,7 +201,8 @@ export class SalaryCalculationService {
   }> {
     try {
       // 고용형태별 세율 조회
-      const { data: taxRates, error } = await this.supabase
+      const supabase = this.getSupabaseClient()
+      const { data: taxRates, error } = await supabase
         .from('employment_tax_rates')
         .select('*')
         .eq('employment_type', employmentType)
@@ -266,7 +270,8 @@ export class SalaryCalculationService {
    */
   private async getSalaryInfo(userId: string, date: string): Promise<SalaryInfo | null> {
     try {
-      const { data, error } = await this.supabase
+      const supabase = this.getSupabaseClient()
+      const { data, error } = await supabase
         .from('salary_info')
         .select('*')
         .eq('user_id', userId)
@@ -287,7 +292,7 @@ export class SalaryCalculationService {
       }
 
       // employment_type 조회
-      const { data: profile } = await this.supabase
+      const { data: profile } = await supabase
         .from('profiles')
         .select('employment_type')
         .eq('id', userId)
