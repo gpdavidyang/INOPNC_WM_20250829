@@ -141,6 +141,7 @@ export async function POST(request: NextRequest) {
     const uploadedBy = formData.get('uploadedBy') as string
     const documentType = formData.get('documentType') as string
     const isRequired = formData.get('isRequired') === 'true'
+    const requirementId = formData.get('requirementId') as string
     
     console.log('📋 Form data received:', {
       fileName: file?.name,
@@ -149,7 +150,8 @@ export async function POST(request: NextRequest) {
       category,
       uploadedBy,
       documentType,
-      isRequired
+      isRequired,
+      requirementId
     })
 
     if (!file) {
@@ -247,6 +249,48 @@ export async function POST(request: NextRequest) {
         error: 'Failed to save document info', 
         details: dbError.message || dbError 
       }, { status: 500 })
+    }
+
+    // If this is a required document, also save to unified_document_system
+    if (isRequired && requirementId && documentData) {
+      console.log('📝 Saving to unified_document_system for required document')
+      
+      // Get requirement details
+      const { data: requirement } = await supabase
+        .from('document_requirements')
+        .select('requirement_name, document_type')
+        .eq('id', requirementId)
+        .single()
+
+      if (requirement) {
+        const { error: unifiedError } = await supabase
+          .from('unified_document_system')
+          .insert([
+            {
+              title: requirement.requirement_name || file.name,
+              description: `필수 제출 서류: ${requirement.requirement_name}`,
+              file_name: fileName,
+              file_size: file.size,
+              file_url: urlData.publicUrl,
+              file_type: file.type,
+              category_type: 'required_user_docs',
+              sub_category: requirement.document_type,
+              tags: [requirement.document_type],
+              uploaded_by: user.id,
+              site_id: profile?.site_id || null,
+              status: 'uploaded',
+              requirement_id: requirementId,
+              original_document_id: documentData.id
+            }
+          ])
+
+        if (unifiedError) {
+          console.error('Failed to save to unified_document_system:', unifiedError)
+          // Don't fail the whole request - just log the error
+        } else {
+          console.log('✅ Successfully saved to unified_document_system')
+        }
+      }
     }
 
     return NextResponse.json({

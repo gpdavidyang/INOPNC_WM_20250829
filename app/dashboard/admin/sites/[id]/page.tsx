@@ -761,28 +761,33 @@ function CoreFilesSection({
     if (!confirm(`정말 ${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}를 삭제하시겠습니까?`)) return
 
     try {
-      const docId = type === 'blueprint' ? site.blueprint_document_id : site.ptw_document_id
       const doc = type === 'blueprint' ? blueprintDoc : ptwDoc
 
-      if (!docId || !doc) return
+      if (!doc) return
 
-      // Delete from storage
-      await supabase.storage
-        .from('documents')
-        .remove([doc.file_url])
+      console.log('Deleting document:', doc)
 
-      // Delete document record
-      await supabase
+      // Delete from storage first
+      if (doc.file_url) {
+        const { error: storageError } = await supabase.storage
+          .from('documents')
+          .remove([doc.file_url])
+
+        if (storageError) {
+          console.error('Storage delete error:', storageError)
+          // Continue with database deletion even if storage fails
+        }
+      }
+
+      // Delete document record from unified_documents
+      const { error: deleteError } = await supabase
         .from('unified_documents')
         .delete()
-        .eq('id', docId)
+        .eq('id', doc.id)
 
-      // Update site
-      const updateField = type === 'blueprint' ? 'blueprint_document_id' : 'ptw_document_id'
-      await supabase
-        .from('sites')
-        .update({ [updateField]: null })
-        .eq('id', site.id)
+      if (deleteError) {
+        throw deleteError
+      }
 
       // Update local state
       if (type === 'blueprint') {
@@ -795,13 +800,14 @@ function CoreFilesSection({
       alert(`${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}가 삭제되었습니다.`)
     } catch (error) {
       console.error('Delete error:', error)
-      alert('파일 삭제에 실패했습니다.')
+      alert(`파일 삭제에 실패했습니다: ${error.message}`)
     }
   }
 
   const handlePreview = (doc: any) => {
     if (!doc) return
-    window.open(`/api/shared-documents/${doc.id}/file`, '_blank')
+    console.log('Previewing document:', doc)
+    window.open(`/api/unified-documents/${doc.id}/file`, '_blank')
   }
 
   return (
@@ -825,7 +831,7 @@ function CoreFilesSection({
                   <File className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {blueprintDoc.filename}
+                      {blueprintDoc.file_name || blueprintDoc.filename || '현장 공도면'}
                     </p>
                     <p className="text-xs text-gray-500">
                       {new Date(blueprintDoc.created_at).toLocaleDateString('ko-KR')}
@@ -901,7 +907,7 @@ function CoreFilesSection({
                   <File className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {ptwDoc.filename}
+                      {ptwDoc.file_name || ptwDoc.filename || 'PTW 작업허가서'}
                     </p>
                     <p className="text-xs text-gray-500">
                       {new Date(ptwDoc.created_at).toLocaleDateString('ko-KR')}

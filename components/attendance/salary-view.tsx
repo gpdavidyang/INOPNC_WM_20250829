@@ -21,7 +21,8 @@ import {
   Download,
   Calendar,
   Clock,
-  CheckCircle
+  CheckCircle,
+  ExternalLink
 } from 'lucide-react'
 import { getSalaryInfo, calculateMonthlySalary } from '@/app/actions/salary'
 import { getUserSiteHistory } from '@/app/actions/site-info'
@@ -274,81 +275,16 @@ export function SalaryView({ profile }: SalaryViewProps) {
     setSelectedMonthDetails(salaryItem.fullData)
   }
 
-  const handleDownloadPDF = async (salaryItem: any) => {
-    try {
-      // 급여명세서가 생성 가능한지 확인
-      if (!salaryItem.fullData || !salaryItem.year || !salaryItem.monthNum) {
-        alert('급여명세서가 아직 생성되지 않았습니다. 급여 처리가 완료된 후 다시 시도해주세요.');
-        return;
-      }
-
-      // 통합 PDF 생성 서비스 사용
-      // 월의 마지막 날 계산
-      const lastDayOfMonth = new Date(salaryItem.year, salaryItem.monthNum, 0).getDate();
-      
-      const payslipData = {
-        employee: {
-          id: profile.id,
-          name: profile.full_name || '',
-          email: profile.email || '',
-          role: profile.role || 'worker'
-        },
-        company: {
-          name: 'INOPNC',
-          address: '서울특별시 강남구',
-          phone: '02-1234-5678',
-          registrationNumber: '123-45-67890'
-        },
-        site: {
-          id: salaryItem.siteId || '',
-          name: salaryItem.site || ''
-        },
-        salary: {
-          // fullData가 있으면 사용, 없으면 기본값 사용
-          ...(salaryItem.fullData ? salaryItem.fullData : {
-            base_pay: salaryItem.basicPay || 0,
-            base_salary: salaryItem.basicPay || 0,
-            overtime_pay: salaryItem.overtimePay || 0,
-            bonus_pay: salaryItem.allowance || 0,
-            total_gross_pay: (salaryItem.basicPay || 0) + (salaryItem.overtimePay || 0) + (salaryItem.allowance || 0),
-            total_deductions: salaryItem.deductions || 0,
-            net_pay: salaryItem.netPay || 0,
-            work_days: salaryItem.workDays || 0,
-            total_labor_hours: salaryItem.totalLaborHours || 0,
-            total_work_hours: salaryItem.totalLaborHours || 0,
-            total_overtime_hours: 0,
-            tax_deduction: 0,
-            national_pension: 0,
-            health_insurance: 0,
-            employment_insurance: 0,
-            hourly_rate: 0,
-            overtime_rate: 0,
-            regular_pay: salaryItem.basicPay || 0
-          }),
-          // period_start와 period_end는 항상 올바른 형식으로 생성
-          period_start: salaryItem.fullData?.period_start || 
-                        `${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}-01`,
-          period_end: salaryItem.fullData?.period_end || 
-                      `${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
-        },
-        paymentDate: new Date(),
-        paymentMethod: '계좌이체'
-      }
-
-      const pdfBlob = await payslipGenerator.generatePDF(payslipData)
-      
-      // Blob을 다운로드
-      const url = URL.createObjectURL(pdfBlob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `급여명세서_${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}.pdf`
-      link.click()
-      URL.revokeObjectURL(url)
-      
-    } catch (error) {
-      console.error('PDF download error:', error)
-      alert('PDF 다운로드 중 오류가 발생했습니다.')
+  const handleViewPayslip = (salaryItem: any) => {
+    // 급여명세서가 생성 가능한지 확인
+    if (!salaryItem.fullData || !salaryItem.year || !salaryItem.monthNum) {
+      alert('급여명세서가 아직 생성되지 않았습니다. 급여 처리가 완료된 후 다시 시도해주세요.');
+      return;
     }
+
+    // 새 탭에서 급여명세서 HTML 페이지 열기
+    const payslipUrl = `/payslip/${profile.id}/${salaryItem.year}/${salaryItem.monthNum}`
+    window.open(payslipUrl, '_blank', 'width=800,height=1000,scrollbars=yes,resizable=yes')
   }
 
   return (
@@ -462,11 +398,11 @@ export function SalaryView({ profile }: SalaryViewProps) {
                         className="p-1 h-6 w-6 rounded hover:bg-blue-100 relative group"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDownloadPDF(salary);
+                          handleViewPayslip(salary);
                         }}
-                        title="급여명세서 다운로드 가능"
+                        title="급여명세서 보기"
                       >
-                        <Download className="h-3 w-3 text-blue-600" />
+                        <ExternalLink className="h-3 w-3 text-blue-600" />
                       </Button>
                     ) : (
                       <div 
@@ -495,7 +431,8 @@ export function SalaryView({ profile }: SalaryViewProps) {
           <div className="text-xs text-blue-800 dark:text-blue-200">
             <p className="font-medium mb-1">💡 사용 안내</p>
             <p>• 각 월을 클릭하시면 상세 급여내역과 계산과정을 확인할 수 있습니다</p>
-            <p>• PDF 버튼을 클릭하면 급여명세서를 다운로드할 수 있습니다</p>
+            <p>• <ExternalLink className="inline w-3 h-3" /> 버튼을 클릭하면 급여명세서를 새 창에서 볼 수 있습니다</p>
+            <p>• 급여명세서 화면에서 Cmd+P(또는 Ctrl+P)를 눌러 PDF로 저장하세요</p>
           </div>
         </div>
       </div>

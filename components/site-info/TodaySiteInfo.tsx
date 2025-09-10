@@ -291,7 +291,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      openTMap(siteInfo.accommodation!.full_address, '숙소')
+                      openTMap(siteInfo.accommodation!.full_address, siteInfo.accommodation!.accommodation_name || '숙소')
                     }}
                     className="flex items-center gap-1.5 px-2.5 py-2 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all duration-200 group"
                     title="T맵에서 보기"
@@ -529,7 +529,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                       </div>
                       {siteDocuments?.blueprint_document ? (
                         <iframe
-                          src={`/api/shared-documents/${siteDocuments.blueprint_document.id}/file`}
+                          src={`/api/unified-documents/${siteDocuments.blueprint_document.id}/file`}
                           className="w-full h-96 rounded border border-gray-200 dark:border-gray-700"
                           title="현장 공도면"
                           onError={(e) => {
@@ -557,7 +557,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                       return
                     }
                     
-                    const fileUrl = `/api/shared-documents/${siteDocuments.blueprint_document.id}/file`
+                    const fileUrl = `/api/unified-documents/${siteDocuments.blueprint_document.id}/file`
                     const fileName = siteDocuments.blueprint_document.filename || `현장공도면_${new Date().toISOString().split('T')[0]}.pdf`
                     
                     // PWA 환경 감지 (더 정확한 방법)
@@ -829,7 +829,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                         {/* Primary: Use iframe with browser PDF viewer */}
                         {siteDocuments?.ptw_document && !pdfLoadError && (
                           <iframe
-                            src={`/api/shared-documents/${siteDocuments.ptw_document.id}/file#view=FitH&toolbar=1&navpanes=0&scrollbar=1`}
+                            src={`/api/unified-documents/${siteDocuments.ptw_document.id}/file#view=FitH&toolbar=1&navpanes=0&scrollbar=1`}
                             className="w-full h-full"
                             title={siteDocuments.ptw_document.title || "PTW 작업허가서"}
                             style={{
