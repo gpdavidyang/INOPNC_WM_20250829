@@ -26,7 +26,7 @@ export function useSalaryRealtime({
   siteId, 
   enabled = true 
 }: UseSalaryRealtimeProps) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient ? useQueryClient() : null
   const supabase = createClient()
 
   const handleSalaryUpdate = useCallback((payload: any) => {
@@ -153,7 +153,7 @@ export function useSalaryRealtime({
  * 관리자가 급여 규칙을 변경하면 모든 사용자에게 실시간 반영
  */
 export function useSalaryRulesRealtime(enabled = true) {
-  const queryClient = useQueryClient()
+  const queryClient = useQueryClient ? useQueryClient() : null
   const supabase = createClient()
 
   useEffect(() => {
