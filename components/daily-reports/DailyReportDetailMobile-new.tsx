@@ -28,7 +28,8 @@ import {
   Camera,
   Package,
   User,
-  X
+  X,
+  Share
 } from 'lucide-react'
 import { DailyReport, Profile } from '@/types'
 import { showErrorNotification } from '@/lib/error-handling'

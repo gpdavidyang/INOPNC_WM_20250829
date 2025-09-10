@@ -9,6 +9,7 @@ import { useFontSize, getTypographyClass, getFullTypographyClass } from '@/conte
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { useNotifications } from '@/hooks/use-notifications'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useNewDesign, FeatureFlag } from '@/lib/feature-flags'
 import { 
   Calendar, FileText, MapPin, FolderOpen, 
   Edit3, ChevronDown, ChevronUp, Phone, Copy, Navigation,
@@ -16,6 +17,7 @@ import {
   ClipboardList, Bell, MessageSquare, DollarSign, HardHat, Plus, GripVertical,
   ArrowUp, ArrowDown
 } from 'lucide-react'
+import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 
 interface HomeTabProps {
@@ -48,6 +50,7 @@ interface QuickMenuItem {
 function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, initialSiteHistory }: HomeTabProps) {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
+  const newDesign = useNewDesign()
   const [siteInfoExpanded, setSiteInfoExpanded] = useState(false)
   const [announcementExpanded, setAnnouncementExpanded] = useState(false)
   const [siteHistoryExpanded, setSiteHistoryExpanded] = useState(false)
@@ -80,7 +83,9 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
     {
       id: 'attendance',
       name: '출력현황',
-      icon: <Calendar className="h-5 w-5" />,
+      icon: newDesign ? 
+        <Image src="/images/brand/출력현황.png" alt="출력현황" width={20} height={20} className="h-5 w-5" /> :
+        <Calendar className="h-5 w-5" />,
       path: '/dashboard/attendance',
       color: 'text-blue-600 dark:text-blue-400',
       backgroundColor: 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 border-blue-200 dark:border-blue-800',
@@ -89,7 +94,9 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
     {
       id: 'daily-reports',
       name: '작업일지',
-      icon: <FileText className="h-5 w-5" />,
+      icon: newDesign ? 
+        <Image src="/images/brand/작업일지.png" alt="작업일지" width={20} height={20} className="h-5 w-5" /> :
+        <FileText className="h-5 w-5" />,
       path: '/dashboard/daily-reports',
       color: 'text-green-600 dark:text-green-400',
       backgroundColor: 'bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 border-green-200 dark:border-green-800',
@@ -98,7 +105,9 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
     {
       id: 'site-info',
       name: '현장정보',
-      icon: <MapPin className="h-5 w-5" />,
+      icon: newDesign ? 
+        <Image src="/images/brand/현장정보.png" alt="현장정보" width={20} height={20} className="h-5 w-5" /> :
+        <MapPin className="h-5 w-5" />,
       path: '/dashboard/site-info',
       color: 'text-purple-600 dark:text-purple-400',
       backgroundColor: 'bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 border-purple-200 dark:border-purple-800',
@@ -107,7 +116,9 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
     {
       id: 'documents',
       name: '문서함',
-      icon: <FolderOpen className="h-5 w-5" />,
+      icon: newDesign ? 
+        <Image src="/images/brand/문서함.png" alt="문서함" width={20} height={20} className="h-5 w-5" /> :
+        <FolderOpen className="h-5 w-5" />,
       path: '/dashboard/documents',
       color: 'text-orange-600 dark:text-orange-400',
       backgroundColor: 'bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border-orange-200 dark:border-orange-800',
@@ -116,7 +127,9 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
     {
       id: 'materials',
       name: '자재관리',
-      icon: <ClipboardList className="h-5 w-5" />,
+      icon: newDesign ? 
+        <Image src="/images/brand/재고관리.png" alt="재고관리" width={20} height={20} className="h-5 w-5" /> :
+        <ClipboardList className="h-5 w-5" />,
       path: '/dashboard/materials',
       color: 'text-indigo-600 dark:text-indigo-400',
       backgroundColor: 'bg-indigo-50 dark:bg-indigo-900/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 border-indigo-200 dark:border-indigo-800',
@@ -125,7 +138,9 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
     {
       id: 'notifications',
       name: '알림',
-      icon: <Bell className="h-5 w-5" />,
+      icon: newDesign ? 
+        <Image src="/images/brand/bell.png" alt="알림" width={20} height={20} className="h-5 w-5" /> :
+        <Bell className="h-5 w-5" />,
       path: '/dashboard/notifications',
       color: 'text-red-600 dark:text-red-400',
       backgroundColor: 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-red-200 dark:border-red-800',
@@ -268,7 +283,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       )}
 
       {/* Quick Menu Section */}
-      <Card variant="elevated" elevation="md">
+      <Card variant={newDesign ? "work-card" : "elevated"} elevation="md">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-lg font-semibold">빠른메뉴</CardTitle>
@@ -378,7 +393,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
                     onDocumentsSearch('') : router.push(item.path)}
                   className={`
                     flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-200
-                    ${item.backgroundColor}
+                    ${newDesign ? 'border-[var(--work-card-border)] hover:border-[var(--accent)] hover:bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-700' : item.backgroundColor}
                     hover:scale-105 hover:shadow-md
                     ${touchMode === 'glove' ? 'min-h-[100px]' : touchMode === 'precision' ? 'min-h-[70px]' : 'min-h-[80px]'}
                   `}
