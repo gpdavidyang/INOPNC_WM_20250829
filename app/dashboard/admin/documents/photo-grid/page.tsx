@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessDocumentCategory } from '@/lib/document-permissions'
-import MarkupDocumentsManagement from '@/components/admin/documents/MarkupDocumentsManagement'
+import PhotoGridDocumentsManagement from '@/components/admin/documents/PhotoGridDocumentsManagement'
 
-export default async function AdminMarkupDocumentsPage() {
+export default async function AdminPhotoGridDocumentsPage() {
   const supabase = createClient()
   
   try {
@@ -23,23 +23,28 @@ export default async function AdminMarkupDocumentsPage() {
       redirect('/auth/login')
     }
 
-    // 도면마킹문서함 접근 권한 확인
-    if (!canAccessDocumentCategory(profile.role as any, 'markup')) {
+    // 사진대지문서함 접근 권한 확인
+    if (!canAccessDocumentCategory(profile.role as any, 'photo_grid')) {
       redirect('/dashboard')
     }
 
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">도면마킹 관리</h1>
-          <p className="text-gray-600 mt-1">현장별 도면마킹 문서를 관리합니다.</p>
+          <h1 className="text-2xl font-bold text-gray-900">사진대지 관리</h1>
+          <p className="text-gray-600 mt-1">
+            {profile.role === 'customer_manager' 
+              ? '자사 현장의 사진대지 문서를 관리합니다.'
+              : '현장별 사진대지 문서를 관리합니다.'
+            }
+          </p>
         </div>
         
-        <MarkupDocumentsManagement />
+        <PhotoGridDocumentsManagement />
       </div>
     )
   } catch (error) {
-    console.error('Error loading markup documents page:', error)
+    console.error('Error loading photo grid documents page:', error)
     redirect('/auth/login')
   }
 }

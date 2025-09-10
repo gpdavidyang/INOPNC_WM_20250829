@@ -138,17 +138,31 @@ export async function createMaterialRequest(data: {
       return { success: false, error: 'Authentication required' }
     }
     
+    // Get material ID from code
+    const { data: material, error: materialError } = await supabase
+      .from('materials')
+      .select('id')
+      .eq('code', data.materialCode)
+      .single()
+    
+    if (materialError || !material) {
+      console.error('Error finding material:', materialError)
+      return { success: false, error: 'Material not found' }
+    }
+    
+    // Generate request number
+    const timestamp = Date.now().toString().slice(-6)
+    const request_number = `MR-${new Date().getFullYear()}-${timestamp}`
+    
     // Create material request
     const { data: request, error } = await supabase
       .from('material_requests')
       .insert({
+        request_number,
         site_id: data.siteId,
-        material_code: data.materialCode,
-        requested_quantity: data.requestedQuantity,
-        request_date: data.requestDate,
-        notes: data.notes,
         requested_by: user.id,
-        status: 'pending'
+        status: 'pending',
+        notes: data.notes
       })
       .select()
       .single()
@@ -156,6 +170,21 @@ export async function createMaterialRequest(data: {
     if (error) {
       console.error('Error creating material request:', error)
       return { success: false, error: error.message }
+    }
+    
+    // Create material request item
+    const { error: itemError } = await supabase
+      .from('material_request_items')
+      .insert({
+        request_id: request.id,
+        material_id: material.id,
+        requested_quantity: data.requestedQuantity,
+        notes: data.notes
+      })
+    
+    if (itemError) {
+      console.error('Error creating material request item:', itemError)
+      return { success: false, error: itemError.message }
     }
     
     return { success: true, data: request }
