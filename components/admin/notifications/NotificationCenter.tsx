@@ -157,7 +157,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
       
       setNotifications(transformedNotifications)
     } catch (error) {
-      console.error('Error fetching notifications:', error)
+      console.error('Error fetching notifications:', error);
       
       // 에러 시 기본 목 데이터
       const mockNotifications: SystemNotification[] = [
@@ -242,8 +242,6 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
       ];
       
       setNotifications(mockNotifications);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
     } finally {
       setLoading(false);
     }
