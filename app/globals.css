@@ -45,7 +45,7 @@
 }
 
 /* ========================================
-   ADMIN DESKTOP UI ENFORCEMENT
+   ROLE-BASED UI OPTIMIZATION
    Pure CSS solution - No JavaScript needed
    ======================================== */
 
@@ -59,7 +59,17 @@ body.role-system-admin {
   overflow-y: auto !important; /* Allow vertical scrolling */
 }
 
-/* Ensure containers maintain desktop width */
+/* Mobile optimization for field roles */
+body.field-role,
+body.role-worker,
+body.role-site-manager,
+body.role-customer-manager {
+  min-width: unset !important;
+  width: 100% !important;
+  overflow-x: hidden !important; /* Prevent horizontal scroll on mobile */
+}
+
+/* Ensure containers maintain desktop width for admin */
 .admin-role .container,
 .admin-role main,
 .admin-role #__next,
@@ -71,6 +81,24 @@ body.role-system-admin {
 .role-system-admin #__next {
   min-width: 1536px !important;
   width: 100% !important;
+}
+
+/* Mobile-optimized containers for field roles */
+.field-role .container,
+.field-role main,
+.field-role #__next,
+.role-worker .container,
+.role-worker main,
+.role-worker #__next,
+.role-site-manager .container,
+.role-site-manager main,
+.role-site-manager #__next,
+.role-customer-manager .container,
+.role-customer-manager main,
+.role-customer-manager #__next {
+  min-width: unset !important;
+  width: 100% !important;
+  max-width: 100vw !important;
 }
 
 /* Enable scrolling on mobile devices for admin */
@@ -88,6 +116,23 @@ body.role-system-admin {
     position: relative !important;
     height: auto !important;
     min-height: 100vh !important;
+  }
+  
+  /* Ensure field roles have proper mobile layout */
+  html.field-role,
+  html.role-worker,
+  html.role-site-manager,
+  html.role-customer-manager {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+  
+  body.field-role,
+  body.role-worker,
+  body.role-site-manager,
+  body.role-customer-manager {
+    font-size: 16px !important; /* Prevent iOS zoom on input focus */
+    -webkit-text-size-adjust: 100% !important;
   }
 }
 

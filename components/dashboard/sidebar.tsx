@@ -47,6 +47,13 @@ const generalUserMenuItems: MenuItem[] = [
     href: '/dashboard/attendance'
   },
   {
+    id: 'salary',
+    label: '급여정보',
+    icon: DollarSign,
+    roles: ['worker', 'site_manager'],
+    href: '/dashboard/salary'
+  },
+  {
     id: 'daily-reports',
     label: '작업일지',
     icon: FileText,

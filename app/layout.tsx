@@ -63,9 +63,9 @@ export const metadata: Metadata = {
 
 export const viewport = {
   width: "device-width",
-  initialScale: 0.5, // Start zoomed out on mobile for admin desktop view
-  maximumScale: 10, // Allow more zoom for desktop UI on mobile
-  minimumScale: 0.1, // Allow zoom out to see full desktop UI
+  initialScale: 1.0, // Default to normal scale for mobile-optimized roles
+  maximumScale: 5, // Allow reasonable zoom
+  minimumScale: 0.5, // Allow some zoom out
   userScalable: true, // Allow user scaling
   viewportFit: "cover",
   themeColor: "#2563eb",

@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
 
 interface SalaryInfo {
   id: string
@@ -66,82 +67,47 @@ export async function getSalaryInfo(params: { user_id: string; date?: string }) 
   }
 }
 
-export async function calculateMonthlySalary(params: { user_id: string; year: number; month: number }) {
+export async function calculateMonthlySalary(params: { user_id: string; year: number; month: number; site_id?: string }) {
   try {
-    const supabase = createClient()
+    // 통합 급여 계산 서비스 사용
+    const result = await salaryCalculationService.calculateMonthlySalary(
+      params.user_id,
+      params.year,
+      params.month,
+      params.site_id
+    )
 
-    // Get salary info for the month
+    // 기존 인터페이스에 맞게 변환
+    const calculation: MonthlySalaryCalculation = {
+      base_salary: 0, // 서비스에서 직접 계산
+      hourly_rate: 0, // 서비스에서 직접 계산
+      overtime_rate: 0, // 서비스에서 직접 계산
+      total_work_hours: result.total_work_hours,
+      total_overtime_hours: result.total_overtime_hours,
+      total_labor_hours: result.total_labor_hours,
+      regular_pay: result.base_pay,
+      overtime_pay: result.overtime_pay,
+      bonus_pay: result.bonus_pay,
+      total_gross_pay: result.total_gross_pay,
+      tax_deduction: result.tax_deduction,
+      national_pension: result.national_pension,
+      health_insurance: result.health_insurance,
+      employment_insurance: result.employment_insurance,
+      total_deductions: result.total_deductions,
+      net_pay: result.net_pay,
+      work_days: result.work_days
+    }
+
+    // salary_info 조회하여 rate 정보 추가
     const salaryResult = await getSalaryInfo({ 
       user_id: params.user_id, 
       date: `${params.year}-${params.month.toString().padStart(2, '0')}-01` 
     })
 
-    if (!salaryResult.success || !salaryResult.data) {
-      return { success: false, error: 'Salary information not found' }
-    }
-
-    const salaryInfo = salaryResult.data
-
-    // Get attendance records for the month
-    const startDate = `${params.year}-${params.month.toString().padStart(2, '0')}-01`
-    const endDate = new Date(params.year, params.month, 0).toISOString().split('T')[0] // Last day of month
-
-    const { data: attendanceData, error: attendanceError } = await supabase
-      .from('attendance_records')
-      .select('work_hours, overtime_hours, labor_hours, work_date, status')
-      .eq('user_id', params.user_id)
-      .gte('work_date', startDate)
-      .lte('work_date', endDate)
-
-    if (attendanceError) {
-      console.error('❌ Error fetching attendance:', attendanceError)
-      return { success: false, error: attendanceError.message }
-    }
-
-    // Calculate totals
-    const workDays = attendanceData?.filter(record => record.status === 'present' || (record.labor_hours && record.labor_hours > 0)).length || 0
-    const totalWorkHours = attendanceData?.reduce((sum, record) => sum + (record.work_hours || 0), 0) || 0
-    const totalOvertimeHours = attendanceData?.reduce((sum, record) => sum + (record.overtime_hours || 0), 0) || 0
-    const totalLaborHours = attendanceData?.reduce((sum, record) => sum + (record.labor_hours || 0), 0) || 0
-
-    // Calculate pay components
-    const regularPay = totalWorkHours * salaryInfo.hourly_rate
-    const overtimePay = totalOvertimeHours * salaryInfo.overtime_rate
-    const bonusPay = 0 // TODO: Implement bonus calculation logic
-    const totalGrossPay = regularPay + overtimePay + bonusPay
-
-    // Calculate deductions (Korean standard rates)
-    const taxRate = 0.08 // 8% income tax (simplified)
-    const pensionRate = 0.045 // 4.5% national pension
-    const healthInsuranceRate = 0.034 // 3.4% health insurance
-    const employmentInsuranceRate = 0.009 // 0.9% employment insurance
-
-    const taxDeduction = Math.floor(totalGrossPay * taxRate)
-    const nationalPension = Math.floor(totalGrossPay * pensionRate)
-    const healthInsurance = Math.floor(totalGrossPay * healthInsuranceRate)
-    const employmentInsurance = Math.floor(totalGrossPay * employmentInsuranceRate)
-    
-    const totalDeductions = taxDeduction + nationalPension + healthInsurance + employmentInsurance
-    const netPay = totalGrossPay - totalDeductions
-
-    const calculation: MonthlySalaryCalculation = {
-      base_salary: salaryInfo.base_salary,
-      hourly_rate: salaryInfo.hourly_rate,
-      overtime_rate: salaryInfo.overtime_rate,
-      total_work_hours: totalWorkHours,
-      total_overtime_hours: totalOvertimeHours,
-      total_labor_hours: totalLaborHours,
-      regular_pay: regularPay,
-      overtime_pay: overtimePay,
-      bonus_pay: bonusPay,
-      total_gross_pay: totalGrossPay,
-      tax_deduction: taxDeduction,
-      national_pension: nationalPension,
-      health_insurance: healthInsurance,
-      employment_insurance: employmentInsurance,
-      total_deductions: totalDeductions,
-      net_pay: netPay,
-      work_days: workDays
+    if (salaryResult.success && salaryResult.data) {
+      calculation.base_salary = salaryResult.data.base_salary
+      calculation.hourly_rate = salaryResult.data.hourly_rate
+      calculation.overtime_rate = salaryResult.data.overtime_rate
     }
 
     return { success: true, data: calculation }
