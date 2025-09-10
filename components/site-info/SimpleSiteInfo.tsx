@@ -463,7 +463,7 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
           </div>
           <div className="flex-1 overflow-hidden p-4">
             <iframe
-              src={`/api/shared-documents/${siteDocuments.blueprint_document.id}/file`}
+              src={`/api/unified-documents/${siteDocuments.blueprint_document.id}/file`}
               className="w-full h-full rounded-lg border border-gray-200 dark:border-gray-700"
               title="현장 공도면"
             />
@@ -492,7 +492,7 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
           </div>
           <div className="flex-1 overflow-hidden p-4">
             <iframe
-              src={`/api/shared-documents/${siteDocuments.ptw_document.id}/file`}
+              src={`/api/unified-documents/${siteDocuments.ptw_document.id}/file`}
               className="w-full h-full rounded-lg border border-gray-200 dark:border-gray-700"
               title="PTW 문서"
             />
