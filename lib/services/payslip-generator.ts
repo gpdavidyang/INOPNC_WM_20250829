@@ -89,8 +89,28 @@ export class PayslipGenerator {
     doc.setFont('helvetica', 'bold')
     doc.text('급여명세서', 105, 25, { align: 'center' })
     
-    // 급여 지급 월
-    const periodText = `${format(new Date(salary.period_start), 'yyyy년 MM월', { locale: ko })}`
+    // 급여 지급 월 - 날짜 검증 추가
+    let periodText = ''
+    try {
+      if (salary.period_start) {
+        const periodDate = new Date(salary.period_start)
+        // 날짜 유효성 검증
+        if (!isNaN(periodDate.getTime())) {
+          periodText = format(periodDate, 'yyyy년 MM월', { locale: ko })
+        } else {
+          // 날짜가 유효하지 않으면 현재 월 사용
+          periodText = format(new Date(), 'yyyy년 MM월', { locale: ko })
+        }
+      } else {
+        // period_start가 없으면 현재 월 사용
+        periodText = format(new Date(), 'yyyy년 MM월', { locale: ko })
+      }
+    } catch (error) {
+      console.error('날짜 포맷 오류:', error)
+      // 오류 발생 시 현재 월 사용
+      periodText = format(new Date(), 'yyyy년 MM월', { locale: ko })
+    }
+    
     doc.setFontSize(14)
     doc.setFont('helvetica', 'normal')
     doc.text(periodText, 105, 35, { align: 'center' })

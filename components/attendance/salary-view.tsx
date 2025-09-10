@@ -275,6 +275,9 @@ export function SalaryView({ profile }: SalaryViewProps) {
   const handleDownloadPDF = async (salaryItem: any) => {
     try {
       // 통합 PDF 생성 서비스 사용
+      // 월의 마지막 날 계산
+      const lastDayOfMonth = new Date(salaryItem.year, salaryItem.monthNum, 0).getDate();
+      
       const payslipData = {
         employee: {
           id: profile.id,
@@ -292,23 +295,33 @@ export function SalaryView({ profile }: SalaryViewProps) {
           id: salaryItem.siteId || '',
           name: salaryItem.site || ''
         },
-        salary: salaryItem.fullData || {
-          base_pay: salaryItem.basicPay,
-          overtime_pay: salaryItem.overtimePay,
-          bonus_pay: salaryItem.allowance,
-          total_gross_pay: salaryItem.basicPay + salaryItem.overtimePay + salaryItem.allowance,
-          total_deductions: salaryItem.deductions,
-          net_pay: salaryItem.netPay,
-          work_days: salaryItem.workDays,
-          total_labor_hours: salaryItem.totalLaborHours,
-          total_work_hours: 0,
-          total_overtime_hours: 0,
-          tax_deduction: 0,
-          national_pension: 0,
-          health_insurance: 0,
-          employment_insurance: 0,
-          period_start: `${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}-01`,
-          period_end: `${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}-31`
+        salary: {
+          // fullData가 있으면 사용, 없으면 기본값 사용
+          ...(salaryItem.fullData ? salaryItem.fullData : {
+            base_pay: salaryItem.basicPay || 0,
+            base_salary: salaryItem.basicPay || 0,
+            overtime_pay: salaryItem.overtimePay || 0,
+            bonus_pay: salaryItem.allowance || 0,
+            total_gross_pay: (salaryItem.basicPay || 0) + (salaryItem.overtimePay || 0) + (salaryItem.allowance || 0),
+            total_deductions: salaryItem.deductions || 0,
+            net_pay: salaryItem.netPay || 0,
+            work_days: salaryItem.workDays || 0,
+            total_labor_hours: salaryItem.totalLaborHours || 0,
+            total_work_hours: salaryItem.totalLaborHours || 0,
+            total_overtime_hours: 0,
+            tax_deduction: 0,
+            national_pension: 0,
+            health_insurance: 0,
+            employment_insurance: 0,
+            hourly_rate: 0,
+            overtime_rate: 0,
+            regular_pay: salaryItem.basicPay || 0
+          }),
+          // period_start와 period_end는 항상 올바른 형식으로 생성
+          period_start: salaryItem.fullData?.period_start || 
+                        `${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}-01`,
+          period_end: salaryItem.fullData?.period_end || 
+                      `${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}-${lastDayOfMonth.toString().padStart(2, '0')}`
         },
         paymentDate: new Date(),
         paymentMethod: '계좌이체'

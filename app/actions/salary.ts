@@ -77,8 +77,8 @@ export async function calculateMonthlySalary(params: { user_id: string; year: nu
       params.site_id
     )
 
-    // 기존 인터페이스에 맞게 변환
-    const calculation: MonthlySalaryCalculation = {
+    // 기존 인터페이스에 맞게 변환 - result의 모든 필드 포함
+    const calculation: any = {
       base_salary: 0, // 서비스에서 직접 계산
       hourly_rate: 0, // 서비스에서 직접 계산
       overtime_rate: 0, // 서비스에서 직접 계산
@@ -86,6 +86,7 @@ export async function calculateMonthlySalary(params: { user_id: string; year: nu
       total_overtime_hours: result.total_overtime_hours,
       total_labor_hours: result.total_labor_hours,
       regular_pay: result.base_pay,
+      base_pay: result.base_pay, // PDF 생성에 필요
       overtime_pay: result.overtime_pay,
       bonus_pay: result.bonus_pay,
       total_gross_pay: result.total_gross_pay,
@@ -95,7 +96,9 @@ export async function calculateMonthlySalary(params: { user_id: string; year: nu
       employment_insurance: result.employment_insurance,
       total_deductions: result.total_deductions,
       net_pay: result.net_pay,
-      work_days: result.work_days
+      work_days: result.work_days,
+      period_start: result.period_start, // 추가
+      period_end: result.period_end // 추가
     }
 
     // salary_info 조회하여 rate 정보 추가
