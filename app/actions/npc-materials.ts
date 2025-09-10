@@ -273,7 +273,6 @@ export async function recordInventoryTransaction(data: {
         site_id: data.siteId,
         material_id: material.id,
         current_stock: data.transactionType === 'in' ? data.quantity : 0,
-        available_stock: data.transactionType === 'in' ? data.quantity : 0,
         reserved_stock: 0,
         last_updated: new Date().toISOString()
       }
@@ -305,7 +304,6 @@ export async function recordInventoryTransaction(data: {
         .from('material_inventory')
         .update({
           current_stock: newStock,
-          available_stock: newStock,
           last_updated: new Date().toISOString()
         })
         .eq('site_id', data.siteId)
