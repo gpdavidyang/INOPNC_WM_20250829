@@ -11,6 +11,9 @@ import {
   Building2, MoreHorizontal, Download, Copy
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { useNewDesign } from '@/lib/feature-flags'
 
 interface WorkLogsTabProps {
   profile: Profile
@@ -39,6 +42,7 @@ interface SortConfig {
 }
 
 export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
+  const newDesign = useNewDesign()
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [loading, setLoading] = useState(true)
@@ -408,8 +412,9 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
     <div className="space-y-6">
 
       {/* Header Section - Updated */}
-      <section 
-        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-3"
+      <Card 
+        variant={newDesign ? "work-card" : "default"}
+        className="p-3"
         aria-labelledby="work-logs-heading"
       >
         <header className="flex items-center justify-between mb-3">
@@ -557,10 +562,10 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
           </div>
         )}
 
-      </section>
+      </Card>
 
       {/* Work Log Table - Mobile Optimized */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <Card variant={newDesign ? "work-card" : "default"} className="overflow-hidden">
         {/* Mobile Card View */}
         <div className="block sm:hidden">
           {paginatedLogs.map((log: any) => (
@@ -840,7 +845,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
             </div>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }

@@ -4,7 +4,9 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, Calendar, FileText, FolderOpen, User as UserIcon, MapPin } from 'lucide-react'
+import { Home, Calendar, FileText, FolderOpen, User as UserIcon, MapPin, DollarSign } from 'lucide-react'
+import Image from 'next/image'
+import { useNewDesign } from '@/lib/feature-flags'
 
 export interface NavItem {
   id: string
@@ -21,51 +23,64 @@ interface UnifiedMobileNavProps {
   onTabChange?: (tabId: string) => void
 }
 
-const NAV_ITEMS: NavItem[] = [
+// Create nav items dynamically based on feature flags
+const createNavItems = (newDesign: boolean): NavItem[] => [
   {
     id: "home",
     label: "빠른메뉴",
     href: "/dashboard",
-    icon: <Home className="h-6 w-6" />,
+    icon: newDesign ? 
+      <Image src="/images/brand/memo.png" alt="홈" width={24} height={24} className="h-6 w-6" /> :
+      <Home className="h-6 w-6" />,
     roles: ['worker', 'site_manager', 'customer_manager', 'admin', 'system_admin']
   },
   {
     id: "attendance",
     label: "출근현황",
     href: "/dashboard/attendance",
-    icon: <Calendar className="h-6 w-6" />,
+    icon: newDesign ? 
+      <Image src="/images/brand/출력현황.png" alt="출근현황" width={24} height={24} className="h-6 w-6" /> :
+      <Calendar className="h-6 w-6" />,
     roles: ['worker', 'site_manager', 'customer_manager', 'admin', 'system_admin']
   },
   {
     id: "daily-reports",
     label: "작업일지",
     href: "/dashboard/daily-reports",
-    icon: <FileText className="h-6 w-6" />,
+    icon: newDesign ? 
+      <Image src="/images/brand/작업일지.png" alt="작업일지" width={24} height={24} className="h-6 w-6" /> :
+      <FileText className="h-6 w-6" />,
     roles: ['worker', 'site_manager', 'customer_manager', 'admin', 'system_admin']
   },
   {
     id: "site-info",
     label: "현장정보",
     href: "/dashboard/site-info",
-    icon: <MapPin className="h-6 w-6" />,
+    icon: newDesign ? 
+      <Image src="/images/brand/현장정보.png" alt="현장정보" width={24} height={24} className="h-6 w-6" /> :
+      <MapPin className="h-6 w-6" />,
     roles: ['worker', 'site_manager', 'customer_manager', 'admin', 'system_admin']
   },
   {
-    id: "documents",
-    label: "문서함",
-    href: "/dashboard/documents",
-    icon: <FolderOpen className="h-6 w-6" />,
-    roles: ['worker', 'site_manager', 'customer_manager', 'admin', 'system_admin']
+    id: "salary",
+    label: "급여",
+    href: "/dashboard/salary",
+    icon: newDesign ? 
+      <Image src="/images/brand/급여.png" alt="급여" width={24} height={24} className="h-6 w-6" /> :
+      <DollarSign className="h-6 w-6" />,
+    roles: ['worker', 'site_manager', 'admin', 'system_admin']
   }
 ]
 
 export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMobileNavProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const newDesign = useNewDesign()
   const [isNavigating, setIsNavigating] = React.useState(false)
 
-  // Filter items based on user role
-  const visibleItems = NAV_ITEMS.filter(item => item.roles.includes(userRole))
+  // Create nav items and filter based on user role
+  const navItems = createNavItems(newDesign)
+  const visibleItems = navItems.filter(item => item.roles.includes(userRole))
 
   const handleNavigation = React.useCallback(async (item: NavItem, e: React.MouseEvent) => {
     e.preventDefault()
@@ -112,12 +127,13 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-[9999] bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 md:hidden shadow-lg"
+      className="fixed bottom-0 left-0 right-0 z-[9999] bg-[var(--nav-bg)] dark:bg-[var(--nav-bg)] border-t border-[var(--nav-border)] dark:border-[var(--nav-border)] md:hidden shadow-lg"
       style={{ 
         position: 'fixed', 
         bottom: '0', 
         left: '0', 
         right: '0',
+        height: 'var(--nav-h)',
         transform: 'translateZ(0)', // Force GPU acceleration
         backfaceVisibility: 'hidden' // Prevent flickering
       }}
@@ -132,11 +148,11 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
               onClick={(e) => handleNavigation(item, e)}
               disabled={isNavigating}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center p-2 transition-colors",
-                "min-h-[60px] text-xs font-medium",
+                "flex flex-1 flex-col items-center justify-center p-2 transition-all duration-200",
+                "min-h-[60px] text-xs font-medium rounded-lg mx-1",
                 active
-                  ? "text-blue-600 dark:text-blue-400"
-                  : "text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-300",
+                  ? "text-[var(--nav-text-active)] bg-blue-50 dark:bg-blue-900/20 scale-105"
+                  : "text-[var(--nav-text)] hover:text-[var(--nav-text-active)] hover:bg-gray-50 dark:hover:bg-gray-800/50",
                 isNavigating && "opacity-50"
               )}
               aria-label={`${item.label}으로 이동`}

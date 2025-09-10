@@ -1,39 +1,60 @@
-// Feature flags for conditional system loading
-export const FEATURE_FLAGS = {
-  // Analytics system
-  ENABLE_ANALYTICS: process.env.ENABLE_ANALYTICS === 'true',
-  ENABLE_ANALYTICS_REALTIME: process.env.ENABLE_ANALYTICS_REALTIME === 'true',
-  
-  // Monitoring system
-  ENABLE_MONITORING: process.env.ENABLE_MONITORING === 'true',
-  ENABLE_PERFORMANCE_MONITORING: process.env.ENABLE_PERFORMANCE_MONITORING === 'true',
-  
-  // Data export system
-  ENABLE_DATA_EXPORTS: process.env.ENABLE_DATA_EXPORTS === 'true',
-  
-  // Activity logging
-  ENABLE_ACTIVITY_LOGS: process.env.ENABLE_ACTIVITY_LOGS === 'true',
-  
-  // Table existence checks (for development/testing)
-  CHECK_TABLE_EXISTENCE: process.env.CHECK_TABLE_EXISTENCE !== 'false',
-} as const
+'use client'
 
-// Helper function to check if a feature is enabled
-export function isFeatureEnabled(feature: keyof typeof FEATURE_FLAGS): boolean {
-  return FEATURE_FLAGS[feature] === true
+import { useState, useEffect } from 'react'
+import React from 'react'
+
+/**
+ * Mobile UI Upgrade Feature Flag System
+ * Allows A/B testing between old and new design
+ */
+
+export const useNewDesign = () => {
+  const [enabled, setEnabled] = useState(false)
+  
+  useEffect(() => {
+    // Check environment variable
+    const envFlag = process.env.NEXT_PUBLIC_NEW_DESIGN === 'true'
+    
+    // Check localStorage for user preference (development)
+    const localFlag = typeof window !== 'undefined' && 
+      localStorage.getItem('new-design') === 'true'
+    
+    // Check URL parameter for quick testing
+    const urlFlag = typeof window !== 'undefined' && 
+      new URLSearchParams(window.location.search).get('new-design') === 'true'
+    
+    setEnabled(envFlag || localFlag || urlFlag)
+  }, [])
+  
+  return enabled
 }
 
-// Database table requirements for each feature
-export const FEATURE_TABLE_REQUIREMENTS = {
-  ENABLE_ANALYTICS: ['analytics_events', 'analytics_metrics'],
-  ENABLE_ANALYTICS_REALTIME: ['analytics_events', 'analytics_metrics'],
-  ENABLE_MONITORING: ['monitoring_metrics', 'system_metrics'],
-  ENABLE_PERFORMANCE_MONITORING: ['monitoring_metrics'],
-  ENABLE_DATA_EXPORTS: ['data_exports'],
-  ENABLE_ACTIVITY_LOGS: ['activity_logs'],
-} as const
+interface FeatureFlagProps {
+  flag: boolean
+  children: React.ReactNode
+  fallback?: React.ReactNode
+}
 
-// Helper to get required tables for a feature
-export function getRequiredTables(feature: keyof typeof FEATURE_TABLE_REQUIREMENTS): string[] {
-  return FEATURE_TABLE_REQUIREMENTS[feature] || []
+export function FeatureFlag({ flag, children, fallback = null }: FeatureFlagProps) {
+  return flag ? children as React.ReactElement : fallback as React.ReactElement
+}
+
+// Higher-order component for conditional rendering
+export function withNewDesign<P extends object>(
+  NewComponent: React.ComponentType<P>,
+  OldComponent: React.ComponentType<P>
+) {
+  return function WrappedComponent(props: P) {
+    const newDesign = useNewDesign()
+    return newDesign ? React.createElement(NewComponent, props) : React.createElement(OldComponent, props)
+  }
+}
+
+// Utility for toggling design in development
+export const toggleNewDesign = () => {
+  if (typeof window === 'undefined') return
+  
+  const current = localStorage.getItem('new-design') === 'true'
+  localStorage.setItem('new-design', (!current).toString())
+  window.location.reload()
 }
