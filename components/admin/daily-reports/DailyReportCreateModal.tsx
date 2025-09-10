@@ -233,18 +233,24 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
                     현장 선택 <span className="text-red-500">*</span>
                   </label>
                   <Select
-                    value={formData.site_id}
+                    value={formData.site_id || undefined}
                     onValueChange={(value) => setFormData(prev => ({ ...prev, site_id: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="현장을 선택하세요" />
                     </SelectTrigger>
                     <SelectContent>
-                      {sites.map(site => (
-                        <SelectItem key={site.id} value={site.id}>
-                          {site.name}
+                      {sites.length === 0 ? (
+                        <SelectItem value="no-sites" disabled>
+                          등록된 현장이 없습니다
                         </SelectItem>
-                      ))}
+                      ) : (
+                        sites.map(site => (
+                          <SelectItem key={site.id} value={site.id}>
+                            {site.name}
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -350,6 +356,7 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
               {workerInputMode === 'select' ? (
                 <div className="flex gap-2 mb-4">
                   <Select
+                    value={undefined}
                     onValueChange={addWorkerFromSelect}
                   >
                     <SelectTrigger className="flex-1">
@@ -357,9 +364,9 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
                     </SelectTrigger>
                     <SelectContent>
                       {availableWorkers.length === 0 ? (
-                        <div className="px-3 py-2 text-sm text-gray-500">
+                        <SelectItem value="no-workers" disabled>
                           {!formData.site_id ? '먼저 현장을 선택해주세요' : '배정된 작업자가 없습니다'}
-                        </div>
+                        </SelectItem>
                       ) : (
                         availableWorkers.map(worker => (
                           <SelectItem 

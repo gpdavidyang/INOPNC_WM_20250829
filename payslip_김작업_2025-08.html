@@ -1,0 +1,380 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>급여명세서 - 김작업</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 20mm;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background: white;
+    }
+    
+    .container {
+      max-width: 210mm;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 3px solid #2563eb;
+      padding-bottom: 20px;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+      color: #1e40af;
+    }
+    
+    .header .period {
+      font-size: 18px;
+      color: #64748b;
+    }
+    
+    .header .company {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #64748b;
+    }
+    
+    .section {
+      margin-bottom: 25px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    
+    .section-title {
+      background: #f3f4f6;
+      padding: 10px 15px;
+      font-weight: bold;
+      font-size: 16px;
+      color: #1f2937;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .section-content {
+      padding: 15px;
+    }
+    
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    
+    .info-item {
+      display: flex;
+      align-items: center;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      color: #6b7280;
+      margin-right: 10px;
+      min-width: 80px;
+    }
+    
+    .info-value {
+      color: #111827;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    th {
+      background: #f9fafb;
+      padding: 10px;
+      text-align: left;
+      font-weight: 600;
+      color: #4b5563;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .text-right {
+      text-align: right;
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+    
+    .amount {
+      font-weight: 600;
+      color: #111827;
+    }
+    
+    .deduction {
+      color: #dc2626;
+    }
+    
+    .net-pay-section {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 20px 0;
+    }
+    
+    .net-pay-label {
+      font-size: 18px;
+      margin-bottom: 10px;
+      opacity: 0.9;
+    }
+    
+    .net-pay-amount {
+      font-size: 32px;
+      font-weight: bold;
+    }
+    
+    .net-pay-korean {
+      font-size: 14px;
+      opacity: 0.8;
+      margin-top: 5px;
+    }
+    
+    .footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    
+    .footer-info {
+      margin-bottom: 10px;
+    }
+    
+    .stamp {
+      text-align: center;
+      margin-top: 20px;
+      padding: 15px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+    
+    .tax-info {
+      background: #fef3c7;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-size: 13px;
+      color: #92400e;
+    }
+    
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      
+      .container {
+        padding: 0;
+      }
+      
+      .section {
+        break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="company">INOPNC</div>
+      <h1>급여명세서</h1>
+      <div class="period">2025년 08월</div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">직원 정보</div>
+      <div class="section-content">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">성명:</span>
+            <span class="info-value">김작업</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">사번:</span>
+            <span class="info-value">FR-001</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">현장:</span>
+            <span class="info-value">삼성전자 평택캠퍼스 P3</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">급여방식:</span>
+            <span class="info-value">프리랜서</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">근무 정보</div>
+      <div class="section-content">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">근무일수:</span>
+            <span class="info-value">6일</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">총근무시간:</span>
+            <span class="info-value">59.6시간</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">노동시간:</span>
+            <span class="info-value">7.4시간</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">공수:</span>
+            <span class="info-value">0.93공수</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">연장근무:</span>
+            <span class="info-value">0.0시간</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">일당:</span>
+            <span class="info-value">150,000원</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">지급 내역</div>
+      <div class="section-content">
+        <table>
+          <thead>
+            <tr>
+              <th>지급 항목</th>
+              <th class="text-center">산출 기준</th>
+              <th class="text-right">금액</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>기본급</td>
+              <td class="text-center">6일 × 일급</td>
+              <td class="text-right amount">900,000원</td>
+            </tr>
+            
+            
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2">지급 합계</th>
+              <th class="text-right amount">900,000원</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">공제 내역</div>
+      <div class="section-content">
+        <table>
+          <thead>
+            <tr>
+              <th>공제 항목</th>
+              <th class="text-center">세율/요율</th>
+              <th class="text-right">금액</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>소득세</td>
+              <td class="text-center">3.3% (간이세율)</td>
+              <td class="text-right deduction">29,700원</td>
+            </tr>
+            
+            
+            
+          </tbody>
+          <tfoot>
+            <tr>
+              <th colspan="2">공제 합계</th>
+              <th class="text-right deduction">29,700원</th>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="tax-info">
+          <strong>급여방식:</strong> 프리랜서 | 
+          <strong>적용세율:</strong> 3.30%
+        </div>
+      </div>
+    </div>
+    
+    <div class="net-pay-section">
+      <div class="net-pay-label">실지급액</div>
+      <div class="net-pay-amount">870,300원</div>
+      <div class="net-pay-korean">(팔십칠만 삼백원)</div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">지급 정보</div>
+      <div class="section-content">
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="info-label">지급일:</span>
+            <span class="info-value">2025년 08월 25일</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">지급방법:</span>
+            <span class="info-value">계좌이체</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="stamp">
+      <strong>급여 지급 확인</strong><br>
+      위 금액을 정확히 지급하였음을 확인합니다.
+    </div>
+    
+    <div class="footer">
+      <div class="footer-info">
+        <strong>회사:</strong> INOPNC<br>
+        <strong>주소:</strong> 서울특별시 강남구 테헤란로 123<br>
+        <strong>전화:</strong> 02-1234-5678<br>
+        <strong>사업자등록번호:</strong> 123-45-67890
+      </div>
+      <div class="text-center" style="margin-top: 20px; color: #94a3b8;">
+        2025년 09월 10일 발행
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+    

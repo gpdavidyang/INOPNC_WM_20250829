@@ -190,7 +190,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h2 id="site-info-section" className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              오늘의 현장 정보
+              오늘 및 최근 현장 정보
             </h2>
             <span className="text-sm text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2.5 py-1 rounded-full font-medium">
               {siteInfo.name}
