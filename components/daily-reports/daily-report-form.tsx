@@ -635,7 +635,7 @@ export default function DailyReportForm({
                     value={formData.partner_company_id} 
                     onValueChange={(value) => setFormData(prev => ({
                       ...prev, 
-                      partner_company_id: value,
+                      partner_company_id: value === 'none' ? '' : value,
                       site_id: '' // Reset site selection when partner changes
                     }))}
                   >
@@ -643,7 +643,7 @@ export default function DailyReportForm({
                       <CustomSelectValue placeholder="파트너사를 선택하세요" />
                     </CustomSelectTrigger>
                     <CustomSelectContent>
-                      <CustomSelectItem value="">선택 안함</CustomSelectItem>
+                      <CustomSelectItem value="none">선택 안함</CustomSelectItem>
                       {partnerCompanies.map((company) => (
                         <CustomSelectItem key={company.id} value={company.id}>
                           {company.company_name}

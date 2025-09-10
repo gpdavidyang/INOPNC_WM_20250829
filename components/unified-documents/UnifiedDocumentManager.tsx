@@ -239,14 +239,14 @@ export default function UnifiedDocumentManager({
             {/* 카테고리 필터 */}
             {showCategories && (
               <Select
-                value={filters.categoryType || ''}
-                onValueChange={(value) => handleFilterChange({ categoryType: value || undefined })}
+                value={filters.categoryType || 'all'}
+                onValueChange={(value) => handleFilterChange({ categoryType: value === 'all' ? undefined : value })}
               >
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="카테고리 선택" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">전체 카테고리</SelectItem>
+                  <SelectItem value="all">전체 카테고리</SelectItem>
                   {categories.map((category) => (
                     <SelectItem key={category.category_type} value={category.category_type}>
                       {category.display_name_ko}
