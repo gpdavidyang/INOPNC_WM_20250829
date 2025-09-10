@@ -354,63 +354,63 @@ export default function SystemManagement({ profile }: SystemManagementProps) {
       {activeTab === 'overview' && (
         <>
           {/* System Status Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center">
+          <div className="grid grid-cols-4 gap-3 sm:gap-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center">
                 <div className="flex-shrink-0">
-                  <Users className="h-8 w-8 text-blue-600" />
+                  <Users className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
                 </div>
-                <div className="ml-4">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">사용자</div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <div className="mt-2 sm:mt-0 sm:ml-4 min-w-0">
+                  <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">사용자</div>
+                  <div className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {stats.active_users} / {stats.total_users}
                   </div>
-                  <div className="text-xs text-gray-500">활성 / 전체</div>
+                  <div className="text-xs text-gray-500 truncate">활성 / 전체</div>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center">
                 <div className="flex-shrink-0">
-                  <Monitor className="h-8 w-8 text-green-600" />
+                  <Monitor className="h-6 w-6 sm:h-8 sm:w-8 text-green-600" />
                 </div>
-                <div className="ml-4">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">현장</div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <div className="mt-2 sm:mt-0 sm:ml-4 min-w-0">
+                  <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">현장</div>
+                  <div className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {stats.active_sites} / {stats.total_sites}
                   </div>
-                  <div className="text-xs text-gray-500">활성 / 전체</div>
+                  <div className="text-xs text-gray-500 truncate">활성 / 전체</div>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center">
                 <div className="flex-shrink-0">
-                  <FileText className="h-8 w-8 text-purple-600" />
+                  <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600" />
                 </div>
-                <div className="ml-4">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">데이터</div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <div className="mt-2 sm:mt-0 sm:ml-4 min-w-0">
+                  <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">데이터</div>
+                  <div className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {stats.total_documents + stats.total_reports}
                   </div>
-                  <div className="text-xs text-gray-500">문서 + 보고서</div>
+                  <div className="text-xs text-gray-500 truncate">문서 + 보고서</div>
                 </div>
               </div>
             </div>
             
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-              <div className="flex items-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 sm:p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex flex-col sm:flex-row sm:items-center">
                 <div className="flex-shrink-0">
-                  <HardDrive className="h-8 w-8 text-orange-600" />
+                  <HardDrive className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600" />
                 </div>
-                <div className="ml-4">
-                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400">저장소</div>
-                  <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <div className="mt-2 sm:mt-0 sm:ml-4 min-w-0">
+                  <div className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400 truncate">저장소</div>
+                  <div className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                     {stats.storage_used}MB
                   </div>
-                  <div className="text-xs text-gray-500">사용량</div>
+                  <div className="text-xs text-gray-500 truncate">사용량</div>
                 </div>
               </div>
             </div>

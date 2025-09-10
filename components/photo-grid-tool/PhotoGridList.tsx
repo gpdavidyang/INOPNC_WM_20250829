@@ -36,6 +36,8 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
   const [selectedSite, setSelectedSite] = useState<string>('all')
   const [sites, setSites] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortField, setSortField] = useState<string>('')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     fetchDocuments()
@@ -44,7 +46,7 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
 
   useEffect(() => {
     filterDocuments()
-  }, [searchTerm, selectedSite, documents])
+  }, [searchTerm, selectedSite, documents, sortField, sortOrder])
 
   const fetchDocuments = async () => {
     try {
@@ -93,6 +95,39 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
       )
     }
 
+    // Apply sorting
+    if (sortField) {
+      filtered.sort((a, b) => {
+        let aValue = a[sortField]
+        let bValue = b[sortField]
+
+        // Handle nested properties
+        if (sortField === 'site_name') {
+          aValue = a.site?.name || ''
+          bValue = b.site?.name || ''
+        } else if (sortField === 'creator_name') {
+          aValue = a.creator?.full_name || ''
+          bValue = b.creator?.full_name || ''
+        }
+
+        // Handle dates
+        if (sortField === 'created_at') {
+          aValue = new Date(aValue).getTime()
+          bValue = new Date(bValue).getTime()
+        }
+
+        // Convert to string for comparison
+        aValue = String(aValue || '').toLowerCase()
+        bValue = String(bValue || '').toLowerCase()
+
+        if (sortOrder === 'asc') {
+          return aValue.localeCompare(bValue)
+        } else {
+          return bValue.localeCompare(aValue)
+        }
+      })
+    }
+
     setFilteredDocuments(filtered)
   }
 
@@ -132,6 +167,31 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
   const handlePreview = (doc: any) => {
     router.push(`/dashboard/admin/tools/photo-grids/preview/${doc.id}`)
   }
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortOrder('desc')
+    }
+  }
+
+  const SortableHeader = ({ field, children }: { field: string; children: React.ReactNode }) => (
+    <TableHead 
+      onClick={() => handleSort(field)}
+      className="cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-700"
+    >
+      <div className="flex items-center justify-between">
+        {children}
+        {sortField === field && (
+          <span className="ml-1 text-xs">
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </span>
+        )}
+      </div>
+    </TableHead>
+  )
 
   if (loading) {
     return (
@@ -177,12 +237,12 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>작성일</TableHead>
-                <TableHead>현장명</TableHead>
-                <TableHead>부재명</TableHead>
-                <TableHead>작업공정</TableHead>
-                <TableHead>작업구간</TableHead>
-                <TableHead>작성자</TableHead>
+                <SortableHeader field="created_at">작성일</SortableHeader>
+                <SortableHeader field="site_name">현장명</SortableHeader>
+                <SortableHeader field="component_name">부재명</SortableHeader>
+                <SortableHeader field="work_process">작업공정</SortableHeader>
+                <SortableHeader field="work_section">작업구간</SortableHeader>
+                <SortableHeader field="creator_name">작성자</SortableHeader>
                 <TableHead className="text-right">작업</TableHead>
               </TableRow>
             </TableHeader>

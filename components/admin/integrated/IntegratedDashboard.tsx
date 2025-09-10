@@ -163,7 +163,7 @@ export default function IntegratedDashboard() {
       {activeView === 'overview' && (
         <div className="space-y-6">
           {/* Main Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-4 gap-4 sm:gap-6">
             <StatCard
               title="전체 현장"
               value={stats?.total_sites || 0}
@@ -197,43 +197,43 @@ export default function IntegratedDashboard() {
           {/* Document Category Stats */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">문서함별 현황</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
-                <div className="flex items-center">
-                  <FileText className="h-8 w-8 text-blue-600 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900 dark:text-blue-100">공유문서함</p>
-                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats?.shared_documents || 0}</p>
+            <div className="grid grid-cols-4 gap-3 sm:gap-4">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 sm:p-4 border border-blue-200 dark:border-blue-700">
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600 mb-2 sm:mb-0 sm:mr-3" />
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-blue-900 dark:text-blue-100 truncate">공유문서함</p>
+                    <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-100">{stats?.shared_documents || 0}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
-                <div className="flex items-center">
-                  <Image className="h-8 w-8 text-purple-600 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-purple-900 dark:text-purple-100">도면마킹문서함</p>
-                    <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">{stats?.markup_documents || 0}</p>
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 sm:p-4 border border-purple-200 dark:border-purple-700">
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <Image className="h-6 w-6 sm:h-8 sm:w-8 text-purple-600 mb-2 sm:mb-0 sm:mr-3" />
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-purple-900 dark:text-purple-100 truncate">도면마킹문서함</p>
+                    <p className="text-lg sm:text-2xl font-bold text-purple-900 dark:text-purple-100">{stats?.markup_documents || 0}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-700">
-                <div className="flex items-center">
-                  <Shield className="h-8 w-8 text-green-600 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-green-900 dark:text-green-100">필수제출서류함</p>
-                    <p className="text-2xl font-bold text-green-900 dark:text-green-100">{stats?.required_documents || 0}</p>
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 sm:p-4 border border-green-200 dark:border-green-700">
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <Shield className="h-6 w-6 sm:h-8 sm:w-8 text-green-600 mb-2 sm:mb-0 sm:mr-3" />
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-green-900 dark:text-green-100 truncate">필수제출서류함</p>
+                    <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-100">{stats?.required_documents || 0}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-700">
-                <div className="flex items-center">
-                  <Package className="h-8 w-8 text-orange-600 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-orange-900 dark:text-orange-100">기성청구문서함</p>
-                    <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats?.invoice_documents || 0}</p>
+              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 sm:p-4 border border-orange-200 dark:border-orange-700">
+                <div className="flex flex-col sm:flex-row sm:items-center">
+                  <Package className="h-6 w-6 sm:h-8 sm:w-8 text-orange-600 mb-2 sm:mb-0 sm:mr-3" />
+                  <div className="min-w-0">
+                    <p className="text-xs sm:text-sm font-medium text-orange-900 dark:text-orange-100 truncate">기성청구문서함</p>
+                    <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">{stats?.invoice_documents || 0}</p>
                   </div>
                 </div>
               </div>

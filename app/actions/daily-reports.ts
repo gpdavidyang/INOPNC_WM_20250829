@@ -66,6 +66,7 @@ async function createHeadquartersRequest(
 
 export async function createDailyReport(data: {
   site_id: string
+  partner_company_id?: string
   work_date: string
   member_name: string
   process_type: string // Required field in actual DB

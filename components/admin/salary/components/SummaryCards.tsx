@@ -47,25 +47,25 @@ export default function SummaryCards({
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 relative z-0">
+    <div className="grid grid-cols-4 gap-3 sm:gap-4 relative z-0">
       {cards.map((card, index) => {
         const Icon = card.icon
         return (
           <div
             key={index}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 relative z-0"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-3 sm:p-4 relative z-0"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                   {card.title}
                 </p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white mt-1">
                   {card.value}
                 </p>
               </div>
-              <div className={`${card.color} p-3 rounded-lg bg-opacity-10`}>
-                <Icon className={`h-6 w-6 ${card.color.replace('bg-', 'text-')}`} />
+              <div className={`${card.color} p-2 sm:p-3 rounded-lg bg-opacity-10 mt-2 sm:mt-0 self-start sm:self-auto`}>
+                <Icon className={`h-4 w-4 sm:h-6 sm:w-6 ${card.color.replace('bg-', 'text-')}`} />
               </div>
             </div>
           </div>

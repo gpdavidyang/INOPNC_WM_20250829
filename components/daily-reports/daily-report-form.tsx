@@ -268,6 +268,7 @@ export default function DailyReportForm({
     if (mode === 'edit' && reportData) {
       return {
         site_id: reportData.site_id || (currentUser as any).site_id || '',
+        partner_company_id: reportData.partner_company_id || '',
         work_date: reportData.work_date || new Date().toISOString().split('T')[0],
         member_name: reportData.member_name || '',
         process_type: reportData.process_type || '',
@@ -285,6 +286,7 @@ export default function DailyReportForm({
     }
     return {
       site_id: (currentUser as any).site_id || '',
+      partner_company_id: '',
       work_date: new Date().toISOString().split('T')[0],
       member_name: '',
       process_type: '',
@@ -303,6 +305,62 @@ export default function DailyReportForm({
 
   // Work options
   const { componentTypes, processTypes, loading: optionsLoading } = useWorkOptions()
+
+  // Partner companies and filtered sites
+  const [partnerCompanies, setPartnerCompanies] = useState<any[]>([])
+  const [filteredSites, setFilteredSites] = useState<Site[]>(sites)
+  const [loadingPartners, setLoadingPartners] = useState(false)
+
+  // Load partner companies based on user role
+  useEffect(() => {
+    const loadPartnerCompanies = async () => {
+      if (!permissions.canViewAdvancedFeatures) {
+        // Worker/Site Manager don't see partner selection
+        return
+      }
+
+      setLoadingPartners(true)
+      try {
+        const response = await fetch('/api/admin/organizations/partner-companies')
+        if (response.ok) {
+          const data = await response.json()
+          setPartnerCompanies(data)
+        }
+      } catch (error) {
+        console.error('Failed to load partner companies:', error)
+      } finally {
+        setLoadingPartners(false)
+      }
+    }
+
+    loadPartnerCompanies()
+  }, [permissions.canViewAdvancedFeatures])
+
+  // Filter sites based on selected partner company
+  useEffect(() => {
+    const filterSites = async () => {
+      if (!formData.partner_company_id) {
+        setFilteredSites(sites)
+        return
+      }
+
+      try {
+        const response = await fetch(`/api/sites/by-partner?partner_company_id=${formData.partner_company_id}`)
+        if (response.ok) {
+          const partnerSites = await response.json()
+          setFilteredSites(partnerSites)
+        } else {
+          console.error('Failed to fetch sites for partner')
+          setFilteredSites(sites) // Fallback to all sites
+        }
+      } catch (error) {
+        console.error('Error fetching partner sites:', error)
+        setFilteredSites(sites) // Fallback to all sites
+      }
+    }
+
+    filterSites()
+  }, [formData.partner_company_id, sites])
 
   // Work content entries
   const [workEntries, setWorkEntries] = useState<WorkContentEntry[]>(() => {
@@ -568,7 +626,37 @@ export default function DailyReportForm({
             required={true}
             permissions={permissions}
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Partner Company Selection - Only for Admin/Customer Manager */}
+              {permissions.canViewAdvancedFeatures && (
+                <div>
+                  <Label htmlFor="partner_company_id">소속 파트너사</Label>
+                  <CustomSelect 
+                    value={formData.partner_company_id} 
+                    onValueChange={(value) => setFormData(prev => ({
+                      ...prev, 
+                      partner_company_id: value,
+                      site_id: '' // Reset site selection when partner changes
+                    }))}
+                  >
+                    <CustomSelectTrigger>
+                      <CustomSelectValue placeholder="파트너사를 선택하세요" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      <CustomSelectItem value="">선택 안함</CustomSelectItem>
+                      {partnerCompanies.map((company) => (
+                        <CustomSelectItem key={company.id} value={company.id}>
+                          {company.company_name}
+                        </CustomSelectItem>
+                      ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                  {loadingPartners && (
+                    <p className="text-xs text-gray-500 mt-1">파트너사 목록을 불러오는 중...</p>
+                  )}
+                </div>
+              )}
+              
               <div>
                 <Label htmlFor="site_id">현장 선택 *</Label>
                 <CustomSelect 
@@ -579,7 +667,7 @@ export default function DailyReportForm({
                     <CustomSelectValue placeholder="현장을 선택하세요" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
-                    {sites.map((site) => (
+                    {filteredSites.map((site) => (
                       <CustomSelectItem key={site.id} value={site.id}>
                         {site.name}
                       </CustomSelectItem>
@@ -587,6 +675,7 @@ export default function DailyReportForm({
                   </CustomSelectContent>
                 </CustomSelect>
               </div>
+              
               <div>
                 <Label htmlFor="work_date">작업일자 *</Label>
                 <Input

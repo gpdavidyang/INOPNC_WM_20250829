@@ -16,7 +16,7 @@ import {
   ChevronRight
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { formatBytes, formatDateTime } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 interface PhotoGridToolManagementProps {

@@ -229,6 +229,49 @@ export interface UserSiteHistory {
   is_active: boolean
 }
 
+// 파트너사 (협력업체)
+export interface PartnerCompany {
+  id: string
+  company_name: string
+  business_number?: string | null
+  company_type?: 'general_contractor' | 'subcontractor' | 'supplier' | 'consultant' | null
+  trade_type?: string[] | null
+  representative_name?: string | null
+  contact_person?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  bank_name?: string | null
+  bank_account?: string | null
+  credit_rating?: string | null
+  contract_start_date?: string | null
+  contract_end_date?: string | null
+  status?: 'active' | 'inactive' | 'terminated' | null
+  notes?: string | null
+  organization_id?: string | null
+  created_by?: string | null
+  updated_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
+// 현장-파트너사 연결
+export interface SitePartner {
+  id: string
+  site_id: string
+  partner_company_id: string
+  contract_amount?: number | null
+  work_scope?: string | null
+  start_date: string
+  end_date?: string | null
+  status?: 'active' | 'completed' | 'terminated' | null
+  created_at: string
+  updated_at: string
+  // Join된 데이터
+  partner_company?: PartnerCompany | null
+  site?: Site | null
+}
+
 // 작업일지 상태
 export type DailyReportStatus = 'draft' | 'submitted' | 'completed'
 
@@ -236,6 +279,7 @@ export type DailyReportStatus = 'draft' | 'submitted' | 'completed'
 export interface DailyReport {
   id: string
   site_id?: string | null
+  partner_company_id?: string | null // 파트너사 ID 추가
   work_date: string
   member_name: string // 부재명 (슬라브, 거더, 기둥, 기타)
   process_type: string // 공정 (균열, 면, 마감, 기타)
@@ -257,6 +301,10 @@ export interface DailyReport {
   site?: {
     id: string
     name: string
+  } | null
+  partner_company?: {
+    id: string
+    company_name: string
   } | null
   photo_grid_reports?: PhotoGridReport[] | null
 }
