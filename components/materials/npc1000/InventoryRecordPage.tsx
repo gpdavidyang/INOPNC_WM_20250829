@@ -154,7 +154,7 @@ export default function InventoryRecordPage() {
         siteId: siteId,
         materialCode: 'NPC-1000',
         quantity: quantityNum,
-        type: activeTab,
+        transactionType: activeTab === 'incoming' ? 'in' : 'out',
         transactionDate: new Date().toISOString(),
         notes: notes || undefined
       })

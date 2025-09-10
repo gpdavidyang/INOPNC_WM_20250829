@@ -88,11 +88,12 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
         .from('material_requests')
         .select(`
           *,
-          sites!site_id(name),
-          profiles!requester_id(name, role),
+          sites(name),
+          profiles:requested_by(full_name, role),
           material_request_items(
             material_id,
             requested_quantity,
+            approved_quantity,
             materials(name, code)
           )
         `)
@@ -107,6 +108,8 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
       }
 
       const { data, error } = await query
+
+      console.log('Material requests query result:', { data, error })
 
       if (!error && data) {
         const formattedData: ShipmentRequest[] = data
@@ -124,21 +127,21 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
             
             return {
               id: item.id,
-              request_date: item.request_date?.split('T')[0] || item.created_at.split('T')[0],
+              request_date: item.created_at.split('T')[0],
               site_id: item.site_id,
               site_name: (item as any).sites?.name || '알 수 없음',
-              requester_id: item.requester_id,
-              requester_name: (item as any).profiles?.name || '알 수 없음',
+              requester_id: item.requested_by,
+              requester_name: (item as any).profiles?.full_name || '알 수 없음',
               requester_role: (item as any).profiles?.role || 'worker',
               requested_amount: npcItem?.requested_quantity || 0,
-              urgency: item.priority === 'high' ? 'urgent' : item.priority === 'critical' ? 'critical' : 'normal',
+              urgency: item.urgency || item.priority || 'normal',
               reason: item.notes || '자재 요청',
               status: item.status,
-              approved_amount: item.approved_quantity,
+              approved_amount: npcItem?.approved_quantity,
               approved_by: item.approved_by,
               approved_at: item.approved_at,
-              rejection_reason: item.rejection_reason,
-              fulfillment_date: item.fulfillment_date,
+              rejection_reason: null,
+              fulfillment_date: item.fulfilled_at,
               notes: item.notes,
               created_at: item.created_at,
               updated_at: item.updated_at
