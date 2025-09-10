@@ -63,8 +63,12 @@ export async function POST(request: NextRequest) {
     const work_process = formData.get('work_process') as string
     const work_section = formData.get('work_section') as string
     const work_date = formData.get('work_date') as string
-    const beforePhoto = formData.get('before_photo') as File
-    const afterPhoto = formData.get('after_photo') as File
+    
+    // Get multiple photos
+    const beforePhotos = formData.getAll('before_photos') as File[]
+    const afterPhotos = formData.getAll('after_photos') as File[]
+    const beforePhotoOrders = formData.getAll('before_photo_orders').map(Number)
+    const afterPhotoOrders = formData.getAll('after_photo_orders').map(Number)
 
     console.log('Form data:', { 
       site_id, 
@@ -72,9 +76,16 @@ export async function POST(request: NextRequest) {
       work_process, 
       work_section, 
       work_date,
-      hasBeforePhoto: !!beforePhoto,
-      hasAfterPhoto: !!afterPhoto
+      beforePhotosCount: beforePhotos.length,
+      afterPhotosCount: afterPhotos.length
     })
+
+    // Validate photo limits
+    if (beforePhotos.length > 3 || afterPhotos.length > 3) {
+      return NextResponse.json({ 
+        error: '각 타입별 최대 3장까지 업로드 가능합니다.' 
+      }, { status: 400 })
+    }
 
     // Helper function to sanitize filename for Supabase storage
     const sanitizeFilename = (filename: string): string => {
@@ -94,171 +105,128 @@ export async function POST(request: NextRequest) {
       return sanitized
     }
 
-    // Upload photos to storage
-    let beforePhotoUrl = null
-    let afterPhotoUrl = null
+    // Upload photos to storage and collect URLs
+    const uploadedPhotos: { type: 'before' | 'after', url: string, order: number }[] = []
 
-    if (beforePhoto && beforePhoto.size > 0) {
-      const sanitizedName = sanitizeFilename(beforePhoto.name)
-      const beforePhotoName = `${Date.now()}-before-${sanitizedName}`
-      console.log('Uploading before photo:', beforePhotoName, 'Size:', beforePhoto.size)
+    // Upload before photos
+    for (let i = 0; i < beforePhotos.length; i++) {
+      const file = beforePhotos[i]
+      const order = beforePhotoOrders[i] || i
       
-      // Use service client for storage operations
-      const { data: beforeUpload, error: beforeError } = await serviceClient.storage
-        .from('photo-grids')
-        .upload(beforePhotoName, beforePhoto)
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      const sanitizedName = sanitizeFilename(file.name)
+      const fileName = `photo-grids/${Date.now()}_before_${order}_${sanitizedName}`
 
-      if (beforeError) {
-        console.error('Error uploading before photo:', {
-          error: beforeError,
-          filename: beforePhotoName,
-          size: beforePhoto.size,
-          type: beforePhoto.type
+      console.log('Uploading before photo:', fileName)
+
+      const { data: uploadData, error: uploadError } = await serviceClient.storage
+        .from('documents')
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false
         })
-        return NextResponse.json({ 
-          error: 'Failed to upload before photo',
-          details: beforeError.message || beforeError
-        }, { status: 500 })
+
+      if (uploadError) {
+        console.error('Error uploading before photo:', uploadError)
+        throw new Error(`Failed to upload before photo ${i + 1}: ${uploadError.message}`)
       }
 
       const { data: { publicUrl } } = serviceClient.storage
-        .from('photo-grids')
-        .getPublicUrl(beforePhotoName)
-      
-      beforePhotoUrl = publicUrl
+        .from('documents')
+        .getPublicUrl(fileName)
+
+      uploadedPhotos.push({ type: 'before', url: publicUrl, order })
     }
 
-    if (afterPhoto && afterPhoto.size > 0) {
-      const sanitizedName = sanitizeFilename(afterPhoto.name)
-      const afterPhotoName = `${Date.now()}-after-${sanitizedName}`
-      console.log('Uploading after photo:', afterPhotoName, 'Size:', afterPhoto.size)
+    // Upload after photos
+    for (let i = 0; i < afterPhotos.length; i++) {
+      const file = afterPhotos[i]
+      const order = afterPhotoOrders[i] || i
       
-      // Use service client for storage operations
-      const { data: afterUpload, error: afterError } = await serviceClient.storage
-        .from('photo-grids')
-        .upload(afterPhotoName, afterPhoto)
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      const sanitizedName = sanitizeFilename(file.name)
+      const fileName = `photo-grids/${Date.now()}_after_${order}_${sanitizedName}`
 
-      if (afterError) {
-        console.error('Error uploading after photo:', {
-          error: afterError,
-          filename: afterPhotoName,
-          size: afterPhoto.size,
-          type: afterPhoto.type
+      console.log('Uploading after photo:', fileName)
+
+      const { data: uploadData, error: uploadError } = await serviceClient.storage
+        .from('documents')
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false
         })
-        return NextResponse.json({ 
-          error: 'Failed to upload after photo',
-          details: afterError.message || afterError
-        }, { status: 500 })
+
+      if (uploadError) {
+        console.error('Error uploading after photo:', uploadError)
+        throw new Error(`Failed to upload after photo ${i + 1}: ${uploadError.message}`)
       }
 
       const { data: { publicUrl } } = serviceClient.storage
-        .from('photo-grids')
-        .getPublicUrl(afterPhotoName)
-      
-      afterPhotoUrl = publicUrl
+        .from('documents')
+        .getPublicUrl(fileName)
+
+      uploadedPhotos.push({ type: 'after', url: publicUrl, order })
     }
 
-    // Create photo grid record
-    const { data, error } = await supabase
+    // Create photo grid record in database
+    const { data: photoGrid, error: insertError } = await supabase
       .from('photo_grids')
       .insert({
         site_id,
         component_name,
         work_process,
         work_section,
-        work_date,
-        before_photo_url: beforePhotoUrl,
-        after_photo_url: afterPhotoUrl,
-        created_by: profile.id,
+        work_date: work_date || new Date().toISOString().split('T')[0],
+        created_by: user.id,
+        // Keep backward compatibility - store first photos in original columns
+        before_photo_url: uploadedPhotos.find(p => p.type === 'before' && p.order === 0)?.url || null,
+        after_photo_url: uploadedPhotos.find(p => p.type === 'after' && p.order === 0)?.url || null,
       })
       .select()
       .single()
 
-    if (error) {
-      console.error('Error creating photo grid:', error)
+    if (insertError) {
+      console.error('Error inserting photo grid:', insertError)
       return NextResponse.json({ error: 'Failed to create document' }, { status: 500 })
     }
 
-    console.log('Photo grid created successfully:', data.id)
+    // Insert all photos into photo_grid_images table
+    if (uploadedPhotos.length > 0) {
+      const photoImages = uploadedPhotos.map(photo => ({
+        photo_grid_id: photoGrid.id,
+        photo_type: photo.type,
+        photo_url: photo.url,
+        photo_order: photo.order
+      }))
 
-    // Generate PDF document and save to documents table
-    try {
-      // Create document record in documents table (legacy support)
-      const { data: documentData, error: docError } = await supabase
-        .from('documents')
-        .insert({
-          title: `사진대지_${component_name}_${work_process}_${work_date}`,
-          file_name: `사진대지_${component_name}_${work_process}_${work_date}.pdf`,
-          file_url: `/api/photo-grids/${data.id}/download`,
-          description: `${component_name} - ${work_process} 작업 사진대지`,
-          document_type: 'report', // Photo grids are a type of report
-          mime_type: 'application/pdf',
-          is_public: true,
-          site_id,
-          owner_id: profile.id, // Fixed: was 'created_by'
-          folder_path: '/photo-grids'
-        })
-        .select()
-        .single()
+      const { error: imagesError } = await supabase
+        .from('photo_grid_images')
+        .insert(photoImages)
 
-      if (docError) {
-        console.error('Error creating document:', docError)
-        // Don't fail the entire operation if document creation fails
-      } else {
-        console.log('Document created successfully:', documentData.id)
+      if (imagesError) {
+        console.error('Error inserting photo grid images:', imagesError)
+        // Don't fail the whole operation, but log the error
       }
-
-      // Also add to unified_document_system for admin dashboard
-      try {
-        const { data: unifiedDocData, error: unifiedDocError } = await supabase
-          .from('unified_document_system')
-          .insert({
-            title: `사진대지_${component_name}_${work_process}_${work_date}`,
-            file_name: `사진대지_${component_name}_${work_process}_${work_date}.pdf`,
-            file_url: `/api/photo-grids/${data.id}/download`, // Virtual PDF URL
-            description: `${component_name} - ${work_process} 작업 사진대지`,
-            category_type: 'photo_grid',
-            site_id,
-            uploaded_by: profile.id,
-            status: 'uploaded',
-            is_public: true, // Photo grids should be visible to all users
-            is_archived: false,
-            file_size: null, // PDF is generated on-demand
-            mime_type: 'application/pdf',
-            metadata: {
-              photo_grid_id: data.id,
-              component_name,
-              work_process,
-              work_section,
-              work_date,
-              has_before_photo: !!beforePhotoUrl,
-              has_after_photo: !!afterPhotoUrl
-            }
-          })
-          .select()
-          .single()
-
-        if (unifiedDocError) {
-          console.error('Error creating unified document:', unifiedDocError)
-        } else {
-          console.log('Unified document created successfully:', unifiedDocData.id)
-        }
-      } catch (unifiedError) {
-        console.error('Error in unified document creation:', unifiedError)
-      }
-    } catch (error) {
-      console.error('Error in document creation:', error)
-      // Don't fail the entire operation
     }
-    
-    return NextResponse.json(data)
+
+    console.log('Photo grid created successfully:', photoGrid.id)
+
+    return NextResponse.json({
+      success: true,
+      data: photoGrid
+    })
   } catch (error) {
     console.error('Error in POST /api/photo-grids:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Failed to create document'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
-// Explicitly export all HTTP methods this route handles
+// Handle GET request for fetching photo grids
 export async function GET(request: NextRequest) {
   try {
     const user = await getAuthenticatedUser()
@@ -268,11 +236,12 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
     
-    const { data, error } = await supabase
+    // Get photo grids with related data
+    const { data: photoGrids, error } = await supabase
       .from('photo_grids')
       .select(`
         *,
-        site:sites(id, name),
+        site:sites(id, name, address),
         creator:profiles(id, full_name)
       `)
       .order('created_at', { ascending: false })
@@ -282,21 +251,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
     }
 
-    return NextResponse.json(data || [])
+    // For each photo grid, fetch associated images from photo_grid_images table
+    const photoGridsWithImages = await Promise.all(
+      photoGrids.map(async (grid) => {
+        const { data: images } = await supabase
+          .from('photo_grid_images')
+          .select('*')
+          .eq('photo_grid_id', grid.id)
+          .order('photo_order', { ascending: true })
+
+        return {
+          ...grid,
+          images: images || []
+        }
+      })
+    )
+
+    return NextResponse.json({
+      success: true,
+      data: photoGridsWithImages
+    })
   } catch (error) {
     console.error('Error in GET /api/photo-grids:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
   }
-}
-
-// Handle OPTIONS requests for CORS
-export async function OPTIONS(request: NextRequest) {
-  return new NextResponse(null, {
-    status: 200,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-    },
-  })
 }
