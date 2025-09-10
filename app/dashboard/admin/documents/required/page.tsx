@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { canAccessDocumentCategory } from '@/lib/document-permissions'
 import RealRequiredDocumentsManagement from '@/components/admin/documents/RealRequiredDocumentsManagement'
 
 export default async function AdminRequiredDocumentsPage() {
@@ -22,7 +23,8 @@ export default async function AdminRequiredDocumentsPage() {
       redirect('/auth/login')
     }
 
-    if (profile.role !== 'admin') {
+    // 필수제출서류함 접근 권한 확인
+    if (!canAccessDocumentCategory(profile.role as any, 'required')) {
       redirect('/dashboard')
     }
 

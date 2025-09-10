@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createClient()
     
-    // Check authentication and admin role
+    // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     console.log('Required documents API - Auth check:', { user: user?.id, authError })
     
@@ -18,28 +18,36 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify admin role
+    // Get user profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    if (!profile || !['admin', 'system_admin', 'site_manager'].includes(profile.role)) {
-      console.log('Required documents API - Admin check failed:', { profile })
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
     }
 
-    console.log('Required documents API - Admin check passed:', { userId: user.id, role: profile.role })
+    // 필수서류함 접근 권한 체크: 파트너사는 접근 불가
+    if (profile.role === 'customer_manager') {
+      console.log('Required documents API - Partner access denied:', { profile })
+      return NextResponse.json({ error: '필수서류함에 접근할 권한이 없습니다' }, { status: 403 })
+    }
 
-    // Use service client to bypass RLS for admin operations
-    const serviceClient = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    console.log('Required documents API - Access granted:', { userId: user.id, role: profile.role })
 
-    // Get required documents from unified_document_system (same table as integrated view)
-    const { data: documents, error } = await serviceClient
+    // Admin의 경우 Service Client 사용 (모든 데이터 접근)
+    // 작업자/현장관리자의 경우 일반 Client 사용 (RLS 적용되어 본인 데이터만)
+    const clientToUse = ['admin', 'system_admin'].includes(profile.role)
+      ? createServiceClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+      : supabase
+
+    // Get required documents from unified_document_system
+    const { data: documents, error } = await clientToUse
       .from('unified_document_system')
       .select(`
         *,

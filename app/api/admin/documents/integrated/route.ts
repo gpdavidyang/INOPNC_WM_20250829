@@ -8,21 +8,21 @@ export async function GET(request: Request) {
   try {
     const supabase = createClient()
     
-    // Check authentication and admin role
+    // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify admin role
+    // Get user profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -33,7 +33,20 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '50')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    // Build query for unified document system
+    // 카테고리별 접근 권한 체크
+    if (categoryType) {
+      // 필수서류함: 파트너사 접근 불가
+      if (categoryType === 'required' && profile.role === 'customer_manager') {
+        return NextResponse.json({ error: '필수서류함에 접근할 권한이 없습니다' }, { status: 403 })
+      }
+      
+      // 기성청구함: 작업자/현장관리자 접근 불가
+      if (categoryType === 'invoice' && ['worker', 'site_manager'].includes(profile.role)) {
+        return NextResponse.json({ error: '기성청구함에 접근할 권한이 없습니다' }, { status: 403 })
+      }
+    }
+
+    // Build query for unified document system - RLS will automatically filter data based on role
     let query = supabase
       .from('unified_document_system')
       .select(`
@@ -138,6 +151,11 @@ export async function GET(request: Request) {
       return acc
     }, {} as Record<string, any[]>) || {}
 
+    // Set permissions based on user role
+    const isAdmin = ['admin', 'system_admin'].includes(profile.role)
+    const isWorker = ['worker', 'site_manager'].includes(profile.role)
+    const isPartner = profile.role === 'customer_manager'
+
     const response = {
       documents: documents || [],
       documents_by_category: documentsByCategory,
@@ -158,11 +176,20 @@ export async function GET(request: Request) {
         has_more: (totalCount || 0) > (offset + limit)
       },
       permissions: {
-        can_view_all: true,
-        can_download_all: true,
-        can_share_all: true,
-        can_edit_all: true,
-        global_access: true
+        can_view_all: isAdmin,
+        can_download_all: isAdmin,
+        can_share_all: isAdmin,
+        can_edit_all: isAdmin,
+        global_access: isAdmin,
+        role: profile.role,
+        // 역할별 접근 가능한 카테고리
+        accessible_categories: isAdmin 
+          ? ['shared', 'markup', 'required', 'invoice', 'photo_grid']
+          : isWorker
+          ? ['shared', 'markup', 'required', 'photo_grid']
+          : isPartner
+          ? ['shared', 'markup', 'invoice', 'photo_grid']
+          : []
       }
     }
 
