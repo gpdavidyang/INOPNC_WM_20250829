@@ -169,22 +169,20 @@ export function WorkOptionsManagement() {
     }
 
     try {
-      const response = await fetch('/api/admin/work-options', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          is_active: false
-        })
+      const response = await fetch(`/api/admin/work-options?id=${id}`, {
+        method: 'DELETE'
       })
 
-      if (!response.ok) throw new Error('Failed to delete option')
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete option')
+      }
 
       toast.success('옵션이 삭제되었습니다')
       await fetchOptions()
     } catch (error) {
       console.error('Error deleting option:', error)
-      toast.error('옵션 삭제에 실패했습니다')
+      toast.error(error instanceof Error ? error.message : '옵션 삭제에 실패했습니다')
     }
   }
 
