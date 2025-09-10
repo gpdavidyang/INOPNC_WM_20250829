@@ -150,15 +150,7 @@ export default function SalaryStatementManager() {
           labor_hours,
           work_date,
           site_id,
-          sites(name),
-          profiles!attendance_records_user_id_fkey(
-            id,
-            full_name,
-            phone,
-            daily_wage,
-            meal_allowance,
-            transportation_allowance
-          )
+          sites(name)
         `)
         .in('user_id', selectedWorkers)
         .gte('work_date', startDate)
@@ -175,17 +167,70 @@ export default function SalaryStatementManager() {
         return
       }
 
+      // Get profile information for selected workers
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          full_name,
+          phone,
+          daily_wage,
+          meal_allowance,
+          transportation_allowance
+        `)
+        .in('id', selectedWorkers)
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError)
+        throw new Error(`프로필 정보를 불러올 수 없습니다: ${profilesError.message}`)
+      }
+
+      // Get salary info for selected workers
+      const { data: salaryInfoData, error: salaryInfoError } = await supabase
+        .from('salary_info')
+        .select(`
+          user_id,
+          base_salary,
+          hourly_rate,
+          overtime_rate
+        `)
+        .in('user_id', selectedWorkers)
+        .is('end_date', null)
+
+      if (salaryInfoError) {
+        console.error('Error fetching salary info:', salaryInfoError)
+        throw new Error(`급여 정보를 불러올 수 없습니다: ${salaryInfoError.message}`)
+      }
+
+      // Create profile and salary info maps for quick lookup
+      const profilesMap = new Map()
+      const salaryInfoMap = new Map()
+      
+      profilesData?.forEach(profile => {
+        profilesMap.set(profile.id, profile)
+      })
+      
+      salaryInfoData?.forEach(salaryInfo => {
+        salaryInfoMap.set(salaryInfo.user_id, salaryInfo)
+      })
+
       // Process data by worker
       const workerMap = new Map()
       salaryData.forEach(record => {
-        if (!record || !record.profiles) {
+        if (!record) {
           console.warn('Skipping invalid record:', record)
           return
         }
 
         const workerId = record.user_id
-        const worker = record.profiles
+        const worker = profilesMap.get(workerId)
+        const salaryInfo = salaryInfoMap.get(workerId)
         const site = record.sites
+
+        if (!worker) {
+          console.warn('Worker profile not found:', workerId)
+          return
+        }
 
         if (!workerMap.has(workerId)) {
           workerMap.set(workerId, {
@@ -204,12 +249,25 @@ export default function SalaryStatementManager() {
 
         const workerData = workerMap.get(workerId)
         const laborHours = Number(record.labor_hours) || 0
-        const dailyWage = Number(worker.daily_wage) || 0
         const mealAllowance = Number(worker.meal_allowance) || 0
         const transportAllowance = Number(worker.transportation_allowance) || 0
 
         workerData.total_manhours += laborHours
-        workerData.base_salary += dailyWage
+
+        // 급여 계산 로직: salary_info의 정확한 정보 사용
+        // salary-calculation.service.ts와 동일한 로직 적용
+        const hourlyRate = salaryInfo?.hourly_rate || 20000 // 기본 시급 2만원
+        const overtimeRate = salaryInfo?.overtime_rate || (hourlyRate * 1.5)
+        
+        // labor_hours * 8이 실제 작업 시간 (salary-calculation.service.ts와 동일)
+        const actualWorkHours = laborHours * 8
+        const baseHours = Math.min(actualWorkHours, 8) // 최대 8시간
+        const overtimeHours = Math.max(actualWorkHours - 8, 0) // 연장근무
+        
+        const dailyBasePay = baseHours * hourlyRate
+        const dailyOvertimePay = overtimeHours * overtimeRate
+        
+        workerData.base_salary += dailyBasePay + dailyOvertimePay
         workerData.allowances += mealAllowance + transportAllowance
 
         // Track site work
@@ -225,6 +283,15 @@ export default function SalaryStatementManager() {
       // Insert statements into database
       const statementsToInsert = Array.from(workerMap.values()).map(worker => {
         worker.total_days = Array.from(worker.sites.values()).reduce((sum, site) => sum + site.days, 0)
+        
+        // 공제액 계산 (salary-calculation.service.ts와 동일)
+        const totalGrossPay = worker.base_salary + worker.allowances
+        const tax_deduction = Math.floor(totalGrossPay * 0.08) // 소득세 8%
+        const national_pension = Math.floor(totalGrossPay * 0.045) // 국민연금 4.5%
+        const health_insurance = Math.floor(totalGrossPay * 0.0343) // 건강보험 3.43%
+        const employment_insurance = Math.floor(totalGrossPay * 0.009) // 고용보험 0.9%
+        
+        worker.deductions = tax_deduction + national_pension + health_insurance + employment_insurance
         worker.net_salary = worker.base_salary + worker.allowances - worker.deductions
 
         return {

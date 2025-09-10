@@ -385,12 +385,13 @@ export async function getDailyReportById(id: string) {
   try {
     const supabase = await createClient()
     
-    // Get main report with site info
+    // Get main report with site info and partner company
     const { data, error } = await supabase
       .from('daily_reports')
       .select(`
         *,
-        site:sites(*)
+        site:sites(*),
+        partner_company:partner_companies(*)
       `)
       .eq('id', id)
       .single()
@@ -411,16 +412,33 @@ export async function getDailyReportById(id: string) {
       createdByProfile = profile
     }
 
-    // Get workers for this report
+    // Get workers for this report from daily_report_workers
     const { data: workers } = await supabase
       .from('daily_report_workers')
       .select('*')
       .eq('daily_report_id', id)
       .order('worker_name')
 
+    // Get worker assignments with profile details
+    const { data: workerAssignments } = await supabase
+      .from('worker_assignments')
+      .select(`
+        *,
+        profile:profiles(*)
+      `)
+      .eq('daily_report_id', id)
+      .order('assigned_at')
+
     // Get documents (photos, receipts) for this report
     const { data: documents } = await supabase
       .from('daily_documents')
+      .select('*')
+      .eq('daily_report_id', id)
+      .order('created_at')
+
+    // Get photo groups
+    const { data: photoGroups } = await supabase
+      .from('photo_groups')
       .select('*')
       .eq('daily_report_id', id)
       .order('created_at')
@@ -442,6 +460,8 @@ export async function getDailyReportById(id: string) {
     const reportWithDetails = {
       ...data,
       workers: workers || [],
+      workerAssignments: workerAssignments || [],
+      photoGroups: photoGroups || [],
       beforePhotos,
       afterPhotos,
       receipts,
