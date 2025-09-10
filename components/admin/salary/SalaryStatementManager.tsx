@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { FileText, Download, Trash2, Eye, Plus, Calendar } from 'lucide-react'
+import { FileText, ExternalLink, Trash2, Eye, Plus, Calendar } from 'lucide-react'
 import { 
   CustomSelect, 
   CustomSelectContent, 
@@ -281,40 +281,10 @@ export default function SalaryStatementManager() {
     }
   }
 
-  const downloadStatement = (statement: SalaryStatement) => {
-    // Generate PDF content (this would typically use a PDF library like jsPDF or similar)
-    const content = `
-급여명세서
-
-작업자: ${statement.worker_name}
-연락처: ${statement.worker_phone}
-지급년월: ${statement.year}년 ${statement.month}월
-
-근무일수: ${statement.statement_data.work_days}일
-총공수: ${statement.statement_data.total_manhours}시간
-
-급여 내역:
-- 기본급: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.base_salary || 0)}
-- 수당: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.allowances || 0)}
-- 공제: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.deductions || 0)}
-- 실수령액: ₩${new Intl.NumberFormat('ko-KR').format(statement.statement_data.net_salary || 0)}
-
-현장별 근무내역:
-${statement.statement_data.site_details.map(site => 
-  `- ${site.site_name}: ${site.days}일, ${site.manhours}시간`
-).join('\n')}
-    `
-
-    // Create downloadable text file (in real implementation, would generate PDF)
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `급여명세서_${statement.worker_name}_${statement.year}년${statement.month}월.txt`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
+  const viewPayslip = (statement: SalaryStatement) => {
+    // Open HTML payslip in new window/tab for printing
+    const payslipUrl = `/payslip/${statement.worker_id}/${statement.year}/${statement.month}`
+    window.open(payslipUrl, '_blank', 'width=800,height=600')
   }
 
   const deleteStatement = async (statementId: string) => {
@@ -407,6 +377,35 @@ ${statement.statement_data.site_details.map(site =>
         </div>
       </div>
 
+      {/* Print Guidance */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div className="flex items-start gap-3">
+          <div className="text-blue-600 dark:text-blue-400 mt-1">
+            🖨️
+          </div>
+          <div>
+            <h4 className="font-medium text-blue-800 dark:text-blue-300 mb-1">
+              급여명세서 인쇄 안내
+            </h4>
+            <p className="text-sm text-blue-700 dark:text-blue-400 mb-2">
+              작업 열의 <ExternalLink className="h-4 w-4 inline mx-1" /> 버튼을 클릭하면 새 창에서 급여명세서를 확인할 수 있습니다.
+            </p>
+            <div className="flex flex-wrap gap-2 text-sm text-blue-700 dark:text-blue-400">
+              <span className="flex items-center gap-1">
+                <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border border-blue-300 dark:border-blue-600 rounded text-xs">Cmd+P</kbd>
+                (Mac)
+              </span>
+              <span>또는</span>
+              <span className="flex items-center gap-1">
+                <kbd className="px-2 py-1 bg-white dark:bg-gray-700 border border-blue-300 dark:border-blue-600 rounded text-xs">Ctrl+P</kbd>
+                (Windows)
+              </span>
+              <span>를 눌러 PDF로 저장할 수 있습니다.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Statements List */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -486,11 +485,11 @@ ${statement.statement_data.site_details.map(site =>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => downloadStatement(statement)}
+                          onClick={() => viewPayslip(statement)}
                           className="p-2 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="다운로드"
+                          title="급여명세서 보기"
                         >
-                          <Download className="h-4 w-4" />
+                          <ExternalLink className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => deleteStatement(statement.id)}

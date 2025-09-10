@@ -117,23 +117,23 @@ export async function getSiteBlueprintDocument(siteId: string) {
 }
 
 /**
- * Get both PTW and blueprint documents for a site from documents table
+ * Get both PTW and blueprint documents for a site from unified_documents table
  */
 export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
   try {
     const supabase = createClient()
     
-    // Fetch PTW and blueprint documents from documents table
-    // Look for documents with title containing 'PTW' or '작업허가서' for PTW
-    // and '도면' or 'blueprint' for blueprints
+    // Fetch PTW and blueprint documents from unified_documents table
+    // Look for specific sub_types that were defined in the upload process
     const { data: documents, error } = await supabase
-      .from('documents')
+      .from('unified_documents')
       .select('*')
       .eq('site_id', siteId)
+      .in('sub_type', ['technical_drawing', 'safety_certificate'])
       .order('created_at', { ascending: false })
 
     if (error) {
-      console.error('Error fetching documents:', error)
+      console.error('Error fetching unified documents:', error)
       return {
         success: true,
         data: {
@@ -149,38 +149,15 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
     let blueprintDocument = null
 
     if (documents && documents.length > 0) {
-      // Find PTW document (작업허가서 or PTW in title or certificate type with PTW)
-      const ptwDoc = documents.find((doc: any) => 
-        doc.title?.includes('PTW') || 
-        doc.title?.includes('작업허가서') ||
-        doc.document_type === 'ptw' ||
-        (doc.document_type === 'certificate' && (doc.title?.includes('PTW') || doc.title?.includes('작업허가서')))
-      )
-
-      // Find blueprint document (도면 in title or document_type)
+      // Find blueprint document by sub_type
       const blueprintDoc = documents.find((doc: any) => 
-        doc.title?.includes('도면') || 
-        doc.title?.includes('공도면') ||
-        doc.title?.includes('blueprint') ||
-        doc.document_type === 'blueprint' ||
-        doc.document_type === 'drawing'
+        doc.sub_type === 'technical_drawing'
       )
 
-      if (ptwDoc) {
-        ptwDocument = {
-          id: ptwDoc.id,
-          site_id: ptwDoc.site_id,
-          document_type: 'ptw',
-          file_name: ptwDoc.file_name,
-          file_url: ptwDoc.file_url,
-          file_size: ptwDoc.file_size,
-          mime_type: ptwDoc.mime_type,
-          is_active: true,
-          created_at: ptwDoc.created_at,
-          updated_at: ptwDoc.updated_at || ptwDoc.created_at,
-          title: ptwDoc.title || ptwDoc.file_name
-        }
-      }
+      // Find PTW document by sub_type
+      const ptwDoc = documents.find((doc: any) => 
+        doc.sub_type === 'safety_certificate'
+      )
 
       if (blueprintDoc) {
         blueprintDocument = {
@@ -194,12 +171,30 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
           is_active: true,
           created_at: blueprintDoc.created_at,
           updated_at: blueprintDoc.updated_at || blueprintDoc.created_at,
-          title: blueprintDoc.title || blueprintDoc.file_name
+          title: blueprintDoc.title || blueprintDoc.file_name,
+          filename: blueprintDoc.file_name // Add for compatibility
+        }
+      }
+
+      if (ptwDoc) {
+        ptwDocument = {
+          id: ptwDoc.id,
+          site_id: ptwDoc.site_id,
+          document_type: 'ptw',
+          file_name: ptwDoc.file_name,
+          file_url: ptwDoc.file_url,
+          file_size: ptwDoc.file_size,
+          mime_type: ptwDoc.mime_type,
+          is_active: true,
+          created_at: ptwDoc.created_at,
+          updated_at: ptwDoc.updated_at || ptwDoc.created_at,
+          title: ptwDoc.title || ptwDoc.file_name,
+          filename: ptwDoc.file_name // Add for compatibility
         }
       }
     }
 
-    console.log('[Site Documents] Fetched documents for site:', siteId, {
+    console.log('[Site Documents] Fetched unified documents for site:', siteId, {
       hasPTW: !!ptwDocument,
       hasBlueprint: !!blueprintDocument,
       totalDocs: documents?.length || 0
@@ -214,7 +209,7 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
       error: null
     }
   } catch (error) {
-    console.error('Server error fetching site documents:', error)
+    console.error('Server error fetching unified site documents:', error)
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error', 

@@ -95,88 +95,69 @@ export default function DocumentsTab({
   const supabase = createClient()
   const router = useRouter()
 
-  // 필수 서류 목록 정의
-  const requiredDocuments: RequiredDocument[] = [
-    {
-      id: 'pre-work-medical',
-      name: '배치전 검진 서류',
-      description: '작업 배치 전 건강검진 결과서',
-      category: 'medical',
-      isRequired: true,
-      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-      maxSize: 5
-    },
-    {
-      id: 'safety-education',
-      name: '기초안전보건교육이수',
-      description: '건설업 기초안전보건교육 이수증',
-      category: 'certificate',
-      isRequired: true,
-      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-      maxSize: 5
-    },
-    {
-      id: 'vehicle-insurance',
-      name: '차량보험증',
-      description: '개인 차량 보험증명서',
-      category: 'vehicle',
-      isRequired: true,
-      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-      maxSize: 5
-    },
-    {
-      id: 'vehicle-registration',
-      name: '차량등록증',
-      description: '차량 등록증 사본',
-      category: 'vehicle',
-      isRequired: true,
-      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-      maxSize: 5
-    },
-    {
-      id: 'bank-account',
-      name: '통장사본',
-      description: '급여 입금용 통장 사본',
-      category: 'financial',
-      isRequired: true,
-      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-      maxSize: 5
-    },
-    {
-      id: 'id-card',
-      name: '신분증',
-      description: '주민등록증 또는 운전면허증',
-      category: 'personal',
-      isRequired: true,
-      acceptedFormats: ['image/jpeg', 'image/png'],
-      maxSize: 5
-    },
-    {
-      id: 'senior-docs',
-      name: '고령자 서류',
-      description: '만 60세 이상 근로자 추가 서류',
-      category: 'special',
-      isRequired: false,
-      acceptedFormats: ['application/pdf', 'image/jpeg', 'image/png'],
-      maxSize: 5
-    }
-  ]
+  // 필수 서류 목록 - 동적으로 로드
+  const [requiredDocuments, setRequiredDocuments] = useState<RequiredDocument[]>([])
+  const [submissionStatus, setSubmissionStatus] = useState<any[]>([])
 
   useEffect(() => {
+    loadRequiredDocuments()
     loadDocuments()
+    loadSubmissionStatus()
   }, [])
 
   // Calculate and report required docs progress
   useEffect(() => {
-    const uploadedCount = requiredDocuments.filter(reqDoc => 
-      documents.some(doc => doc.documentType === reqDoc.id && doc.status === 'completed')
-    ).length
-    const totalCount = requiredDocuments.filter(doc => doc.isRequired).length
+    const uploadedCount = requiredDocuments.filter(reqDoc => {
+      const hasSubmitted = submissionStatus.some(status => 
+        status.requirement_id === reqDoc.id && 
+        ['submitted', 'approved'].includes(status.submission_status)
+      )
+      return hasSubmitted || documents.some(doc => doc.documentType === reqDoc.id && doc.status === 'completed')
+    }).length
+    const totalCount = requiredDocuments.filter(doc => doc.isRequired || doc.is_mandatory).length
     
     if (onRequiredDocsUpdate) {
       onRequiredDocsUpdate(uploadedCount, totalCount)
     }
-  }, [documents, onRequiredDocsUpdate])
+  }, [documents, requiredDocuments, submissionStatus, onRequiredDocsUpdate])
+
+  const loadRequiredDocuments = async () => {
+    try {
+      const response = await fetch('/api/required-documents')
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        const transformedDocs = result.data.map((req: any) => ({
+          id: req.id,
+          name: req.requirement_name,
+          description: req.description,
+          category: req.document_type,
+          isRequired: req.is_mandatory || true,
+          acceptedFormats: req.file_format_allowed || ['application/pdf', 'image/jpeg', 'image/png'],
+          maxSize: req.max_file_size_mb || 10,
+          instructions: req.instructions
+        }))
+        setRequiredDocuments(transformedDocs)
+      }
+    } catch (error) {
+      console.error('Error loading required documents:', error)
+      // Keep empty array as fallback
+    }
+  }
+
+  const loadSubmissionStatus = async () => {
+    try {
+      const response = await fetch('/api/user-document-submissions')
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        setSubmissionStatus(result.data)
+      }
+    } catch (error) {
+      console.error('Error loading submission status:', error)
+      // Keep empty array as fallback
+    }
+  }
 
   const loadDocuments = async () => {
     setLoading(true)
@@ -358,7 +339,7 @@ export default function DocumentsTab({
     return null
   }
 
-  const uploadFile = async (file: File, category: string = 'misc', documentType?: string) => {
+  const uploadFile = async (file: File, category: string = 'misc', documentType?: string, requirementId?: string) => {
     // console.log('🔥🚀 uploadFile called with parameters:', {
     //   fileName: file.name,
     //   fileSize: file.size,
@@ -414,7 +395,14 @@ export default function DocumentsTab({
         if (reqDoc) {
           // console.log('📋 Found required document config:', reqDoc)
           formData.append('isRequired', reqDoc.isRequired.toString())
+          // Add requirement_id for linking
+          formData.append('requirementId', reqDoc.id)
         }
+      }
+      
+      // Add requirement_id if provided directly
+      if (requirementId) {
+        formData.append('requirementId', requirementId)
       }
 
       // Log FormData contents
@@ -506,6 +494,24 @@ export default function DocumentsTab({
           // console.log('📊 New documents count:', newDocs.length)
           return newDocs
         })
+        
+        // Update submission status if this is a required document
+        if (documentType && requiredDocuments.find(doc => doc.id === documentType)) {
+          try {
+            await fetch('/api/user-document-submissions', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                requirement_id: documentType,
+                document_id: result.data.id
+              })
+            })
+            // Reload submission status
+            loadSubmissionStatus()
+          } catch (error) {
+            console.error('Error updating submission status:', error)
+          }
+        }
 
         // console.log('8️⃣ Finalizing progress...')
         setUploadProgress(prev => {
