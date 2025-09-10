@@ -28,6 +28,8 @@ import { ko } from 'date-fns/locale'
 import { cn } from '@/lib/utils'
 import { useFontSize } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
+import { useSalaryRealtime } from '@/hooks/useSalaryRealtime'
+import { payslipGenerator } from '@/lib/services/payslip-generator'
 import type { Profile, UserSiteHistory } from '@/types'
 
 interface SalaryViewProps {
@@ -84,9 +86,11 @@ export function SalaryView({ profile }: SalaryViewProps) {
   const [loading, setLoading] = useState(false)
   const [siteHistory, setSiteHistory] = useState<UserSiteHistory[]>([])
   
-  // Performance optimizations: Caching system
-  const [salaryCache, setSalaryCache] = useState<Map<string, { data: any, timestamp: number }>>(new Map())
-  const [siteHistoryCache, setSiteHistoryCache] = useState<{ data: UserSiteHistory[], timestamp: number } | null>(null)
+  // 실시간 업데이트 훅 사용
+  const { refreshSalary } = useSalaryRealtime({ 
+    userId: profile?.id,
+    enabled: !!profile?.id 
+  })
   
   // Memoized date range options
   const dateRangeOptions: DateRangeOption[] = useMemo(() => [
@@ -105,43 +109,38 @@ export function SalaryView({ profile }: SalaryViewProps) {
     }
   }, [profile?.id, selectedSite, selectedDateRange])
 
-  const loadSiteHistory = useCallback(async () => {
-    const CACHE_DURATION = 10 * 60 * 1000 // 10 minutes for site history
-    
-    // Use cached data if available and not expired
-    if (siteHistoryCache && (Date.now() - siteHistoryCache.timestamp < CACHE_DURATION)) {
-      console.log('[SalaryView] Using cached site history')
-      setSiteHistory(siteHistoryCache.data)
-      return
+  // 실시간 업데이트 감지 시 데이터 새로고침
+  useEffect(() => {
+    const handleSalaryUpdate = () => {
+      loadSalaryHistoryList()
+      if (selectedMonthDetails) {
+        loadSalaryData()
+      }
     }
-    
+
+    // 급여 데이터가 변경되면 자동으로 새로고침
+    const interval = setInterval(() => {
+      refreshSalary()
+    }, 60000) // 1분마다 체크 (실시간 구독이 끊어진 경우 대비)
+
+    return () => clearInterval(interval)
+  }, [selectedMonthDetails, refreshSalary])
+
+  const loadSiteHistory = useCallback(async () => {
     try {
       console.log('[SalaryView] Fetching site history')
       const result = await getUserSiteHistory()
       if (result.success && result.data) {
-        const data = result.data
-        setSiteHistory(data)
-        setSiteHistoryCache({ data, timestamp: Date.now() })
+        setSiteHistory(result.data)
       }
     } catch (error) {
       console.error('Failed to load site history:', error)
       setSiteHistory([])
     }
-  }, [siteHistoryCache])
+  }, [])
 
   const loadSalaryHistoryList = useCallback(async () => {
     if (!profile?.id) return
-    
-    const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes for salary data
-    const cacheKey = `${profile.id}-${selectedSite}-${selectedDateRange}`
-    
-    // Use cached data if available and not expired
-    const cached = salaryCache.get(cacheKey)
-    if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
-      console.log('[SalaryView] Using cached salary data for:', cacheKey)
-      setMonthlyHistoryList(cached.data)
-      return
-    }
     
     setLoading(true)
     try {
@@ -215,12 +214,6 @@ export function SalaryView({ profile }: SalaryViewProps) {
       
       setMonthlyHistoryList(historyList)
       
-      // Cache the results
-      setSalaryCache(prev => new Map(prev.set(cacheKey, { 
-        data: historyList, 
-        timestamp: Date.now() 
-      })))
-      
     } catch (error) {
       console.error('Failed to load salary history:', error)
       // Fallback to empty list on error
@@ -228,7 +221,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
     } finally {
       setLoading(false)
     }
-  }, [profile?.id, selectedSite, selectedDateRange, siteHistory, salaryCache, dateRangeOptions])
+  }, [profile?.id, selectedSite, selectedDateRange, siteHistory, dateRangeOptions])
 
   const loadSalaryData = async () => {
     if (!profile?.id) return
@@ -281,40 +274,55 @@ export function SalaryView({ profile }: SalaryViewProps) {
 
   const handleDownloadPDF = async (salaryItem: any) => {
     try {
-      // Using existing PDF functionality - create a salary statement
-      const { jsPDF } = await import('jspdf')
+      // 통합 PDF 생성 서비스 사용
+      const payslipData = {
+        employee: {
+          id: profile.id,
+          name: profile.full_name || '',
+          email: profile.email || '',
+          role: profile.role || 'worker'
+        },
+        company: {
+          name: 'INOPNC',
+          address: '서울특별시 강남구',
+          phone: '02-1234-5678',
+          registrationNumber: '123-45-67890'
+        },
+        site: {
+          id: salaryItem.siteId || '',
+          name: salaryItem.site || ''
+        },
+        salary: salaryItem.fullData || {
+          base_pay: salaryItem.basicPay,
+          overtime_pay: salaryItem.overtimePay,
+          bonus_pay: salaryItem.allowance,
+          total_gross_pay: salaryItem.basicPay + salaryItem.overtimePay + salaryItem.allowance,
+          total_deductions: salaryItem.deductions,
+          net_pay: salaryItem.netPay,
+          work_days: salaryItem.workDays,
+          total_labor_hours: salaryItem.totalLaborHours,
+          total_work_hours: 0,
+          total_overtime_hours: 0,
+          tax_deduction: 0,
+          national_pension: 0,
+          health_insurance: 0,
+          employment_insurance: 0,
+          period_start: `${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}-01`,
+          period_end: `${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}-31`
+        },
+        paymentDate: new Date(),
+        paymentMethod: '계좌이체'
+      }
+
+      const pdfBlob = await payslipGenerator.generatePDF(payslipData)
       
-      const doc = new jsPDF()
-      
-      // Set font
-      doc.setFont('helvetica')
-      
-      // Title
-      doc.setFontSize(18)
-      doc.text('급여명세서', 105, 20, { align: 'center' })
-      
-      // Employee info
-      doc.setFontSize(12)
-      doc.text(`성명: ${profile.full_name || ''}`, 20, 40)
-      doc.text(`지급월: ${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}`, 20, 50)
-      doc.text(`현장: ${salaryItem.site}`, 20, 60)
-      
-      // Salary details
-      doc.text('지급내역', 20, 80)
-      doc.setFontSize(10)
-      doc.text(`기본급: ${salaryItem.basicPay.toLocaleString()}원`, 30, 90)
-      doc.text(`연장수당: ${salaryItem.overtimePay.toLocaleString()}원`, 30, 100)
-      doc.text(`제수당: ${salaryItem.allowance.toLocaleString()}원`, 30, 110)
-      
-      doc.text('공제내역', 20, 130)
-      doc.text(`총공제액: ${salaryItem.deductions.toLocaleString()}원`, 30, 140)
-      
-      doc.setFontSize(12)
-      doc.text(`실지급액: ${salaryItem.netPay.toLocaleString()}원`, 20, 160)
-      
-      // Save PDF
-      const fileName = `급여명세서_${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}.pdf`
-      doc.save(fileName)
+      // Blob을 다운로드
+      const url = URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `급여명세서_${salaryItem.year}-${salaryItem.monthNum.toString().padStart(2, '0')}.pdf`
+      link.click()
+      URL.revokeObjectURL(url)
       
     } catch (error) {
       console.error('PDF download error:', error)
