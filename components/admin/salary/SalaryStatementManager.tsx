@@ -148,12 +148,12 @@ export default function SalaryStatementManager() {
         .select(`
           profile_id,
           labor_hours,
-          daily_reports!inner(
+          daily_reports(
             work_date,
             site_id,
             sites(name)
           ),
-          profiles:profile_id(
+          profiles!worker_assignments_profile_id_fkey(
             id,
             full_name,
             phone,
