@@ -19,7 +19,9 @@ import {
   Calculator,
   TrendingUp,
   Download,
-  Calendar
+  Calendar,
+  Clock,
+  CheckCircle
 } from 'lucide-react'
 import { getSalaryInfo, calculateMonthlySalary } from '@/app/actions/salary'
 import { getUserSiteHistory } from '@/app/actions/site-info'
@@ -453,17 +455,27 @@ export function SalaryView({ profile }: SalaryViewProps) {
                     {Math.floor(salary.netPay / 10000)}만
                   </div>
                   <div className="text-center">
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      className="p-1 h-6 w-6 rounded hover:bg-blue-100"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadPDF(salary);
-                      }}
-                    >
-                      <Download className="h-3 w-3 text-blue-600" />
-                    </Button>
+                    {salary.fullData && salary.year && salary.monthNum ? (
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        className="p-1 h-6 w-6 rounded hover:bg-blue-100 relative group"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadPDF(salary);
+                        }}
+                        title="급여명세서 다운로드 가능"
+                      >
+                        <Download className="h-3 w-3 text-blue-600" />
+                      </Button>
+                    ) : (
+                      <div 
+                        className="p-1 h-6 w-6 rounded inline-flex items-center justify-center relative group"
+                        title="급여 처리 대기중"
+                      >
+                        <Clock className="h-3 w-3 text-red-500" />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
