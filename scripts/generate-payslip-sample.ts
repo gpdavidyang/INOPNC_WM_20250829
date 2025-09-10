@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { payslipGenerator } from '../lib/services/payslip-generator'
+import { payslipGeneratorKorean } from '../lib/services/payslip-generator-korean'
 import { writeFileSync } from 'fs'
 import { join } from 'path'
 
@@ -105,19 +105,15 @@ async function generateSamplePayslip() {
   }
 
   try {
-    // PDF 생성
-    console.log('🖨️  PDF 생성 중...')
-    const pdfBlob = await payslipGenerator.generatePDF(payslipData)
+    // HTML 생성 (한글 지원)
+    console.log('🖨️  급여명세서 생성 중...')
+    const html = payslipGeneratorKorean.generateHTML(payslipData)
     
-    // Blob을 Buffer로 변환
-    const arrayBuffer = await pdfBlob.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
+    // HTML 파일로 저장
+    const outputPath = join(process.cwd(), 'payslip_김작업_2025-08.html')
+    writeFileSync(outputPath, html, 'utf-8')
     
-    // 파일로 저장
-    const outputPath = join(process.cwd(), 'payslip_김작업_2025-08.pdf')
-    writeFileSync(outputPath, buffer)
-    
-    console.log('✅ PDF 생성 완료!')
+    console.log('✅ 급여명세서 생성 완료!')
     console.log('📁 저장 위치:', outputPath)
     console.log('')
     console.log('📋 급여명세서 내용 요약:')
@@ -143,9 +139,10 @@ generateSamplePayslip().then(result => {
   if (result.success) {
     console.log('\n🎉 샘플 급여명세서 생성 성공!')
     console.log('\n다음 단계:')
-    console.log('1. 생성된 PDF 파일 확인')
-    console.log('2. 포맷 및 내용 검토')
-    console.log('3. 다른 직원들에게도 동일하게 적용')
+    console.log('1. 생성된 HTML 파일을 브라우저에서 열기')
+    console.log('2. 브라우저에서 인쇄 > PDF로 저장')
+    console.log('3. 포맷 및 내용 검토')
+    console.log('4. 다른 직원들에게도 동일하게 적용')
   } else {
     console.error('\n❌ 생성 실패')
   }

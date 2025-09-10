@@ -205,7 +205,7 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
             </div>
             <div>
               <h3 className={`${getTypographyClass('base', isLargeFont)} font-semibold text-gray-900 dark:text-gray-100`}>
-                오늘의 현장 정보
+                오늘 및 최근 현장 정보
               </h3>
               <p className={`${getTypographyClass('sm', isLargeFont)} text-blue-600 dark:text-blue-400 font-medium`}>
                 {siteData.site_name}
