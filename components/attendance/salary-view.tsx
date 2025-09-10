@@ -33,7 +33,7 @@ import { payslipGenerator } from '@/lib/services/payslip-generator'
 import type { Profile, UserSiteHistory } from '@/types'
 
 interface SalaryViewProps {
-  profile: Profile
+  profile: Profile & { salary_type?: string }
 }
 
 interface SalaryInfo {
@@ -274,6 +274,12 @@ export function SalaryView({ profile }: SalaryViewProps) {
 
   const handleDownloadPDF = async (salaryItem: any) => {
     try {
+      // 급여명세서가 생성 가능한지 확인
+      if (!salaryItem.fullData || !salaryItem.year || !salaryItem.monthNum) {
+        alert('급여명세서가 아직 생성되지 않았습니다. 급여 처리가 완료된 후 다시 시도해주세요.');
+        return;
+      }
+
       // 통합 PDF 생성 서비스 사용
       // 월의 마지막 날 계산
       const lastDayOfMonth = new Date(salaryItem.year, salaryItem.monthNum, 0).getDate();
@@ -407,12 +413,11 @@ export function SalaryView({ profile }: SalaryViewProps) {
       <div className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden">
         {/* Table Header */}
         <div className="bg-gray-100 dark:bg-gray-700 px-3 py-2 border-b">
-          <div className="grid grid-cols-7 gap-1 font-medium text-gray-700 dark:text-gray-300 text-xs">
+          <div className="grid grid-cols-6 gap-1 font-medium text-gray-700 dark:text-gray-300 text-xs">
             <div className="whitespace-nowrap">월</div>
             <div className="whitespace-nowrap">현장</div>
             <div className="text-center whitespace-nowrap">총 공수</div>
-            <div className="text-right whitespace-nowrap">기본</div>
-            <div className="text-right whitespace-nowrap">연장</div>
+            <div className="text-right whitespace-nowrap">기본급</div>
             <div className="text-right whitespace-nowrap">실지급</div>
             <div className="text-center whitespace-nowrap">PDF</div>
           </div>
@@ -439,12 +444,11 @@ export function SalaryView({ profile }: SalaryViewProps) {
                 )}
                 onClick={() => handleRowClick(salary)}
               >
-                <div className="grid grid-cols-7 gap-1 items-center text-xs">
+                <div className="grid grid-cols-6 gap-1 items-center text-xs">
                   <div className="font-medium text-gray-900 dark:text-gray-100 whitespace-nowrap">{salary.month}</div>
                   <div className="text-gray-600 dark:text-gray-400 whitespace-nowrap truncate">{salary.site}</div>
                   <div className="text-center whitespace-nowrap">{salary.totalLaborHours?.toFixed(1) || '0.0'}</div>
                   <div className="text-right whitespace-nowrap">{Math.floor(salary.basicPay / 10000)}만</div>
-                  <div className="text-right whitespace-nowrap">{Math.floor(salary.overtimePay / 10000)}만</div>
                   <div className="text-right font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                     {Math.floor(salary.netPay / 10000)}만
                   </div>
@@ -504,15 +508,9 @@ export function SalaryView({ profile }: SalaryViewProps) {
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">연장수당</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">급여방식</span>
                 <span className="text-sm font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap text-right">
-                  ₩{selectedMonthDetails.overtime_pay.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">제수당</span>
-                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap text-right">
-                  ₩{selectedMonthDetails.bonus_pay.toLocaleString()}
+                  {profile.salary_type || '일용직'}
                 </span>
               </div>
             </div>
@@ -529,6 +527,13 @@ export function SalaryView({ profile }: SalaryViewProps) {
                 <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">실지급액</span>
                 <span className="text-sm font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap text-right">
                   ₩{selectedMonthDetails.net_pay.toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap">세율</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-gray-100 whitespace-nowrap text-right">
+                  {selectedMonthDetails.total_gross_pay > 0 ? 
+                    ((selectedMonthDetails.total_deductions / selectedMonthDetails.total_gross_pay) * 100).toFixed(1) : '0.0'}%
                 </span>
               </div>
             </div>
@@ -563,14 +568,6 @@ export function SalaryView({ profile }: SalaryViewProps) {
               <span className="text-sm text-gray-700 dark:text-gray-300">기본급</span>
               <span className="text-sm font-medium">{Math.floor(selectedMonthDetails.base_salary / 10000)}만원</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-700 dark:text-gray-300">+ 연장수당</span>
-              <span className="text-sm font-medium">{Math.floor(selectedMonthDetails.overtime_pay / 10000)}만원</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-700 dark:text-gray-300">+ 제수당</span>
-              <span className="text-sm font-medium">{Math.floor(selectedMonthDetails.bonus_pay / 10000)}만원</span>
-            </div>
             <div className="flex justify-between text-red-600">
               <span className="text-sm">- 공제액</span>
               <span className="text-sm font-medium">{Math.floor(selectedMonthDetails.total_deductions / 10000)}만원</span>
@@ -594,7 +591,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
                 <span className="text-sm font-medium">{selectedMonthDetails.work_days}일</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm text-gray-700 dark:text-gray-300">공수당 단가</span>
+                <span className="text-sm text-gray-700 dark:text-gray-300">일당(공수당단가)</span>
                 <span className="text-sm font-medium">
                   {selectedMonthDetails.total_labor_hours > 0 ? Math.floor((selectedMonthDetails.net_pay / selectedMonthDetails.total_labor_hours) / 1000) : 0}천원
                 </span>
