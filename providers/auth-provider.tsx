@@ -65,33 +65,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await refreshSession()
           }
         } else {
-          // If no session, try to bridge from server cookies only if there's evidence of authentication
-          // Only in development mode
-          if (process.env.NODE_ENV === 'development') {
-            console.log('🔄 [AUTH-PROVIDER] No client session found, checking for server session...')
-          }
+          // If no session, check if we're on a public page that doesn't need auth
+          const currentPath = window.location.pathname
+          const publicPaths = ['/auth/login', '/auth/signup', '/auth/signup-request', '/auth/reset-password', '/']
+          const isPublicPath = publicPaths.some(path => currentPath.startsWith(path))
           
-          const bridgeResult = await ensureClientSession()
-          
-          if (bridgeResult.success && bridgeResult.session) {
+          // Only attempt bridge if we're not on a public page
+          // This prevents unnecessary 401 errors on login page
+          if (!isPublicPath) {
             if (process.env.NODE_ENV === 'development') {
-              console.log('✅ [AUTH-PROVIDER] Session bridged successfully for:', bridgeResult.session.user?.email)
+              console.log('🔄 [AUTH-PROVIDER] No client session found, checking for server session...')
             }
-            setSession(bridgeResult.session)
-            setUser(bridgeResult.session.user)
             
-            // CRITICAL: After successful bridge, verify session is accessible with a fresh client
-            // This ensures the singleton has been updated with the new session
-            const freshClient = createClient()
-            const { data: { session: verifiedSession } } = await freshClient.auth.getSession()
+            const bridgeResult = await ensureClientSession()
             
-            if (verifiedSession) {
-              // Session verified with fresh client
+            if (bridgeResult.success && bridgeResult.session) {
+              if (process.env.NODE_ENV === 'development') {
+                console.log('✅ [AUTH-PROVIDER] Session bridged successfully for:', bridgeResult.session.user?.email)
+              }
+              setSession(bridgeResult.session)
+              setUser(bridgeResult.session.user)
+              
+              // CRITICAL: After successful bridge, verify session is accessible with a fresh client
+              // This ensures the singleton has been updated with the new session
+              const freshClient = createClient()
+              const { data: { session: verifiedSession } } = await freshClient.auth.getSession()
+              
+              if (verifiedSession) {
+                // Session verified with fresh client
+              } else {
+                // Session not yet accessible with fresh client
+              }
             } else {
-              // Session not yet accessible with fresh client
+              // No session available - this is OK for public pages
             }
           } else {
-            // No session available
+            // On public page - no need to bridge session
+            if (process.env.NODE_ENV === 'development') {
+              console.log('🔄 [AUTH-PROVIDER] On public page, skipping session bridge')
+            }
           }
         }
       } catch (error) {
