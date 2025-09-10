@@ -278,52 +278,52 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-blue-600 dark:text-blue-400">총 입고량</p>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+      <div className="grid grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">총 입고량</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-100">
                 {totals.totalIncoming.toLocaleString()}
               </p>
             </div>
-            <Package className="h-8 w-8 text-blue-500" />
+            <Package className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mt-2 sm:mt-0" />
           </div>
         </div>
 
-        <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-orange-600 dark:text-orange-400">총 사용량</p>
-              <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+        <div className="bg-orange-50 dark:bg-orange-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 truncate">총 사용량</p>
+              <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">
                 {totals.totalUsed.toLocaleString()}
               </p>
             </div>
-            <TrendingDown className="h-8 w-8 text-orange-500" />
+            <TrendingDown className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 mt-2 sm:mt-0" />
           </div>
         </div>
 
-        <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-green-600 dark:text-green-400">총 재고량</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+        <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 truncate">총 재고량</p>
+              <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-100">
                 {totals.totalRemaining.toLocaleString()}
               </p>
             </div>
-            <TrendingUp className="h-8 w-8 text-green-500" />
+            <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 mt-2 sm:mt-0" />
           </div>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-purple-600 dark:text-purple-400">평균 효율</p>
-              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 truncate">평균 효율</p>
+              <p className="text-lg sm:text-2xl font-bold text-purple-900 dark:text-purple-100">
                 {totals.avgEfficiency.toFixed(1)}%
               </p>
             </div>
-            <FileText className="h-8 w-8 text-purple-500" />
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 mt-2 sm:mt-0" />
           </div>
         </div>
       </div>

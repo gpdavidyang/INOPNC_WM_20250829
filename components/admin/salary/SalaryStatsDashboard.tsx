@@ -368,22 +368,22 @@ export default function SalaryStatsDashboard() {
       </div>
 
       {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-4 gap-3 sm:gap-6">
         {statsCards.map((card, index) => {
           const Icon = card.icon
           return (
-            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
                     {card.title}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
+                  <p className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">
                     {card.value}
                   </p>
                 </div>
-                <div className={`p-3 rounded-full bg-${card.color}-100 dark:bg-${card.color}-900`}>
-                  <Icon className={`h-6 w-6 text-${card.color}-600 dark:text-${card.color}-400`} />
+                <div className={`p-2 sm:p-3 rounded-full bg-${card.color}-100 dark:bg-${card.color}-900 mt-2 sm:mt-0 self-start sm:self-auto`}>
+                  <Icon className={`h-4 w-4 sm:h-6 sm:w-6 text-${card.color}-600 dark:text-${card.color}-400`} />
                 </div>
               </div>
             </div>

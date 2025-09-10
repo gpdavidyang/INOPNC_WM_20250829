@@ -336,55 +336,65 @@ export default function AuditLogSystem({ profile }: AuditLogSystemProps) {
         </div>
 
         {/* 통계 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <Activity className="h-5 w-5 text-gray-500" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.total}
-              </span>
+        <div className="grid grid-cols-5 gap-2 sm:gap-4">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">전체 로그</p>
+                <span className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.total}
+                </span>
+              </div>
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">전체 로그</p>
           </div>
           
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <Calendar className="h-5 w-5 text-blue-500" />
-              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {stats.today}
-              </span>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">오늘</p>
+                <span className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {stats.today}
+                </span>
+              </div>
+              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">오늘</p>
           </div>
           
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <XCircle className="h-5 w-5 text-red-500" />
-              <span className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {stats.failures}
-              </span>
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 truncate">실패</p>
+                <span className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
+                  {stats.failures}
+                </span>
+              </div>
+              <XCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-red-600 dark:text-red-400 mt-1">실패</p>
           </div>
           
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              <span className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                {stats.warnings}
-              </span>
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-yellow-600 dark:text-yellow-400 truncate">경고</p>
+                <span className="text-lg sm:text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  {stats.warnings}
+                </span>
+              </div>
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-yellow-600 dark:text-yellow-400 mt-1">경고</p>
           </div>
           
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <Users className="h-5 w-5 text-purple-500" />
-              <span className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {stats.activeUsers}
-              </span>
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 truncate">활성 사용자</p>
+                <span className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400">
+                  {stats.activeUsers}
+                </span>
+              </div>
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-purple-600 dark:text-purple-400 mt-1">활성 사용자</p>
           </div>
         </div>
       </div>

@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react'
 import { Profile } from '@/types'
 import { createClient } from '@/lib/supabase/client'
+import NotificationCreateModal from './NotificationCreateModal'
 import { 
   Bell, MessageSquare, AlertCircle, Info, CheckCircle, 
   Clock, Calendar, User, Building2, Filter, Search,
   Archive, Trash2, Eye, EyeOff, RefreshCw, Settings,
-  ChevronRight, X, FileText, Package, DollarSign, UserPlus
+  ChevronRight, X, FileText, Package, DollarSign, UserPlus, Plus
 } from 'lucide-react'
 
 interface NotificationCenterProps {
@@ -60,7 +61,36 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedNotification, setSelectedNotification] = useState<SystemNotification | null>(null)
   const [refreshing, setRefreshing] = useState(false)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
   const supabase = createClient()
+
+  // 데이터 변환 헬퍼 함수들
+  const getNotificationTypeFromString = (type: string): SystemNotification['type'] => {
+    switch (type) {
+      case 'info': return 'announcement'
+      case 'warning': return 'request'
+      case 'error': return 'system'
+      default: return 'announcement'
+    }
+  }
+
+  const getNotificationPriorityFromType = (type: string): SystemNotification['priority'] => {
+    switch (type) {
+      case 'error': return 'critical'
+      case 'warning': return 'high'
+      case 'info': return 'medium'
+      default: return 'low'
+    }
+  }
+
+  const getCategoryFromType = (type: string): string => {
+    switch (type) {
+      case 'error': return '시스템'
+      case 'warning': return '경고'
+      case 'info': return '공지사항'
+      default: return '일반'
+    }
+  }
 
   // 통계 데이터
   const stats = {
@@ -78,8 +108,9 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
     const channel = supabase
       .channel('notification_changes')
       .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'system_notifications' },
-        () => {
+        { event: '*', schema: 'public', table: 'notifications' },
+        (payload) => {
+          console.log('Notification change detected:', payload)
           fetchNotifications()
         }
       )
@@ -98,7 +129,37 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
     try {
       setLoading(true)
       
-      // 여러 소스에서 알림 데이터 집계
+      // 실제 알림 데이터 가져오기
+      const response = await fetch('/api/notifications?limit=50')
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to fetch notifications')
+      }
+      
+      // 데이터 변환
+      const transformedNotifications: SystemNotification[] = result.data.map((notification: any) => ({
+        id: notification.id,
+        type: getNotificationTypeFromString(notification.type),
+        title: notification.title,
+        message: notification.message,
+        priority: getNotificationPriorityFromType(notification.type),
+        category: getCategoryFromType(notification.type),
+        source: notification.user_id ? 'User System' : 'System Admin',
+        target_user_id: notification.user_id,
+        is_read: notification.is_read || false,
+        is_archived: false,
+        created_at: notification.created_at,
+        read_at: notification.read_at,
+        action_url: notification.action_url,
+        metadata: notification.metadata
+      }))
+      
+      setNotifications(transformedNotifications)
+    } catch (error) {
+      console.error('Error fetching notifications:', error)
+      
+      // 에러 시 기본 목 데이터
       const mockNotifications: SystemNotification[] = [
         {
           id: '1',
@@ -178,13 +239,13 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           created_at: new Date(Date.now() - 259200000).toISOString(),
           read_at: new Date(Date.now() - 172800000).toISOString()
         }
-      ]
+      ];
       
-      setNotifications(mockNotifications)
+      setNotifications(mockNotifications);
     } catch (error) {
-      console.error('Error fetching notifications:', error)
+      console.error('Error fetching notifications:', error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -295,66 +356,85 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
               모든 시스템 알림을 한 곳에서 관리하세요
             </p>
           </div>
-          <button
-            onClick={handleRefresh}
-            className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all ${
-              refreshing ? 'animate-spin' : ''
-            }`}
-          >
-            <RefreshCw className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setCreateModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center space-x-2 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              <span>새 알림</span>
+            </button>
+            <button
+              onClick={handleRefresh}
+              className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all ${
+                refreshing ? 'animate-spin' : ''
+              }`}
+            >
+              <RefreshCw className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            </button>
+          </div>
         </div>
 
         {/* 통계 카드 */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <Bell className="h-5 w-5 text-gray-500" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.total}
-              </span>
+        <div className="grid grid-cols-5 gap-2 sm:gap-4">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">전체</p>
+                <span className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.total}
+                </span>
+              </div>
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">전체</p>
           </div>
           
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <Eye className="h-5 w-5 text-blue-500" />
-              <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {stats.unread}
-              </span>
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">읽지 않음</p>
+                <span className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
+                  {stats.unread}
+                </span>
+              </div>
+              <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-blue-600 dark:text-blue-400 mt-1">읽지 않음</p>
           </div>
           
-          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <AlertCircle className="h-5 w-5 text-red-500" />
-              <span className="text-2xl font-bold text-red-600 dark:text-red-400">
-                {stats.critical}
-              </span>
+          <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-red-600 dark:text-red-400 truncate">긴급</p>
+                <span className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">
+                  {stats.critical}
+                </span>
+              </div>
+              <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-red-600 dark:text-red-400 mt-1">긴급</p>
           </div>
           
-          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <Clock className="h-5 w-5 text-orange-500" />
-              <span className="text-2xl font-bold text-orange-600 dark:text-orange-400">
-                {stats.high}
-              </span>
+          <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 truncate">높음</p>
+                <span className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
+                  {stats.high}
+                </span>
+              </div>
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">높음</p>
           </div>
           
-          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <Archive className="h-5 w-5 text-gray-500" />
-              <span className="text-2xl font-bold text-gray-900 dark:text-white">
-                {stats.archived}
-              </span>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">보관됨</p>
+                <span className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
+                  {stats.archived}
+                </span>
+              </div>
+              <Archive className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mt-1 sm:mt-0" />
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">보관됨</p>
           </div>
         </div>
       </div>
@@ -613,6 +693,16 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           </div>
         </div>
       )}
+
+      {/* 알림 생성 모달 */}
+      <NotificationCreateModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={() => {
+          fetchNotifications()
+          setCreateModalOpen(false)
+        }}
+      />
     </div>
   )
 }
