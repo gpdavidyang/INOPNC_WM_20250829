@@ -12,18 +12,16 @@ export const useNewDesign = () => {
   const [enabled, setEnabled] = useState(false)
   
   useEffect(() => {
-    // Check environment variable
-    const envFlag = process.env.NEXT_PUBLIC_NEW_DESIGN === 'true'
+    // DISABLED - Set to false to use original design
+    setEnabled(false)
     
-    // Check localStorage for user preference (development)
-    const localFlag = typeof window !== 'undefined' && 
-      localStorage.getItem('new-design') === 'true'
-    
-    // Check URL parameter for quick testing
-    const urlFlag = typeof window !== 'undefined' && 
-      new URLSearchParams(window.location.search).get('new-design') === 'true'
-    
-    setEnabled(envFlag || localFlag || urlFlag)
+    // Original logic (commented out for now)
+    // const envFlag = process.env.NEXT_PUBLIC_NEW_DESIGN === 'true'
+    // const localFlag = typeof window !== 'undefined' && 
+    //   localStorage.getItem('new-design') === 'true'
+    // const urlFlag = typeof window !== 'undefined' && 
+    //   new URLSearchParams(window.location.search).get('new-design') === 'true'
+    // setEnabled(envFlag || localFlag || urlFlag)
   }, [])
   
   return enabled
