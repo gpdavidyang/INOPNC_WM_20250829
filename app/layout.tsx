@@ -1,6 +1,22 @@
 import type { Metadata } from "next";
+import { Poppins, Noto_Sans_KR } from 'next/font/google';
 import "./globals.css";
 import "./fonts.css"; // Font optimization for production quality
+
+// Font configurations for mobile UI upgrade
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['600', '700', '800'],
+  variable: '--font-poppins',
+  display: 'swap',
+});
+
+const notoSansKR = Noto_Sans_KR({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-noto-kr',
+  display: 'swap',
+});
 // import "@/styles/sunlight-mode.css"; // Sunlight Mode CSS 비활성화
 // import "@/styles/font-optimization.css"; // 폰트 최적화 CSS 비활성화
 import { AuthProvider } from "@/providers/auth-provider";
@@ -88,8 +104,8 @@ export default async function RootLayout({
   const cookieStore = cookies();
   const userRole = cookieStore.get('user-role')?.value;
   
-  // Determine body classes based on role
-  let bodyClasses = "antialiased";
+  // Determine body classes based on role + font classes
+  let bodyClasses = `antialiased ${poppins.variable} ${notoSansKR.variable}`;
   if (userRole) {
     const roleClass = `role-${userRole.replace(/_/g, '-')}`;
     bodyClasses += ` ${roleClass}`;

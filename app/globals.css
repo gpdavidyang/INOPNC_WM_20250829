@@ -2,6 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   MOBILE UI UPGRADE - DESIGN TOKENS
+   HTML mockup integration layer
+   ======================================== */
+
+:root {
+  /* Brand Colors from mockup */
+  --brand: #1A254F;
+  --brand-light: #2A3570;
+  --brand-dark: #0F1835;
+  --num: #0068FE;
+  --accent: #2563eb;
+  
+  /* Layout Colors */
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #101828;
+  --text-muted: #667085;
+  --border: #e6eaf2;
+  
+  /* Component Specific */
+  --header-h: 56px;
+  --nav-h: 64px;
+  --nav-bg: #ffffff;
+  --nav-border: #e5e7eb;
+  --nav-text: #6b7280;
+  --nav-text-active: #2563eb;
+  
+  /* Mobile Viewport */
+  --vh: 1vh;
+  --dvh: 100dvh;
+  --svh: 100svh;
+  
+  /* Work Card Styles */
+  --work-card-bg: #ffffff;
+  --work-card-border: #E6ECF4;
+  --work-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --work-card-radius: 12px;
+}
+
+/* Dark theme extensions */
+[data-theme="dark"] {
+  --bg: #0f172a;
+  --card: #0f172a;
+  --border: #3A4048;
+  --text: #E9EEF5;
+  --text-muted: #A8B0BB;
+  --nav-bg: #11151B;
+  --nav-border: #3A4048;
+  --nav-text: #A8B0BB;
+  --nav-text-active: #2F6BFF;
+  --work-card-bg: #0f172a;
+  --work-card-border: #3A4048;
+}
+
 /* CRITICAL: Production Quality Preservation Layer */
 /* These rules MUST be loaded to prevent quality degradation in production */
 @layer base {
@@ -31,6 +86,81 @@
     image-rendering: high-quality !important;
     -ms-interpolation-mode: bicubic !important;
   }
+}
+
+/* ========================================
+   MOBILE OPTIMIZATION LAYER
+   From HTML mockup - iOS/Android optimization
+   ======================================== */
+
+/* Mobile input optimization - prevents iOS auto-zoom */
+input, select, textarea { 
+  font-size: 16px !important;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+}
+
+/* iOS auto-zoom prevention for all input types */
+input[type="text"], 
+input[type="password"], 
+input[type="email"], 
+input[type="tel"], 
+input[type="url"], 
+input[type="search"], 
+textarea, 
+select { 
+  font-size: 16px !important; 
+}
+
+/* Dynamic viewport height system */
+.min-h-screen-safe {
+  min-height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Font size scaling system from mockup */
+body.fs-100 { 
+  font-size: 15px; 
+  font-weight: 200; 
+  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+body.fs-150 { 
+  font-size: 27px; /* 15px * 1.8 = 27px */
+  font-weight: 200; 
+  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+/* Typography system */
+.font-poppins { 
+  font-family: 'Poppins', system-ui, sans-serif; 
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.brand-logo { 
+  font-family: 'Poppins', 'Inter', 'Pretendard', 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Work Card Styles from mockup */
+.work-card {
+  border: 1px solid var(--work-card-border);
+  border-radius: var(--work-card-radius);
+  background: var(--work-card-bg);
+  transition: all 0.2s ease;
+}
+
+.work-card:hover {
+  box-shadow: var(--work-card-shadow);
+  border-color: var(--accent);
 }
 
 /* Safe area support for mobile devices */
