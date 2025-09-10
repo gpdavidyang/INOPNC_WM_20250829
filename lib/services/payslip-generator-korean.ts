@@ -344,7 +344,7 @@ export class PayslipGeneratorKorean {
             </div>
             <div class="info-item">
               <span class="info-label">노동시간:</span>
-              <span class="info-value">${data.salary.total_labor_hours.toFixed(1)}시간</span>
+              <span class="info-value">${data.salary.total_labor_hours.toFixed(2)}시간</span>
             </div>
             <div class="info-item">
               <span class="info-label">공수:</span>
@@ -380,7 +380,7 @@ export class PayslipGeneratorKorean {
               ${data.salary.overtime_pay > 0 ? `
               <tr>
                 <td>연장수당</td>
-                <td class="text-center">${data.salary.total_overtime_hours.toFixed(1)}h</td>
+                <td class="text-center">${data.salary.total_overtime_hours.toFixed(2)}h</td>
                 <td class="text-right amount">${data.salary.overtime_pay.toLocaleString()}</td>
               </tr>
               ` : ''}

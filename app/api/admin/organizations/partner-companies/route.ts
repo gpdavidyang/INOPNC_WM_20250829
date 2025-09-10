@@ -35,10 +35,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'No partner company assigned' }, { status: 403 })
       }
       query = query.eq('id', profile.partner_company_id)
-    } else if (!['admin', 'system_admin'].includes(profile.role)) {
+    } else if (!['admin', 'system_admin', 'site_manager', 'worker'].includes(profile.role)) {
       // Other roles don't have access
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
+    // admin, system_admin, site_manager, worker can see all partner companies
 
     const { data: partnerCompanies, error } = await query
 

@@ -165,10 +165,10 @@ export class PayslipGenerator {
     
     doc.text(`근무일수: ${salary.work_days}일`, 20, yPos + 12)
     doc.text(`총근무시간: ${salary.total_work_hours}시간`, 20, yPos + 17)
-    doc.text(`연장근무: ${salary.total_overtime_hours.toFixed(1)}시간`, 20, yPos + 22)
+    doc.text(`연장근무: ${salary.total_overtime_hours.toFixed(2)}시간`, 20, yPos + 22)
     
     doc.text(`노동시간: ${salary.total_labor_hours}시간`, 110, yPos + 12)
-    doc.text(`공수: ${(salary.total_labor_hours / 8).toFixed(1)}공수`, 110, yPos + 17)
+    doc.text(`공수: ${(salary.total_labor_hours / 8).toFixed(2)}공수`, 110, yPos + 17)
     doc.text(`평균일급: ${this.formatCurrency(salary.total_gross_pay / salary.work_days)}`, 110, yPos + 22)
   }
 
@@ -195,7 +195,7 @@ export class PayslipGenerator {
     // 지급 내역 데이터
     const earningsData = [
       ['기본급', `${salary.work_days}일 × 일급`, salary.base_pay],
-      ['연장근무수당', `${salary.total_overtime_hours.toFixed(1)}시간 × 1.5배`, salary.overtime_pay],
+      ['연장근무수당', `${salary.total_overtime_hours.toFixed(2)}시간 × 1.5배`, salary.overtime_pay],
       ['제수당/상여금', '기타 수당', salary.bonus_pay || 0]
     ]
     

@@ -314,10 +314,8 @@ export default function DailyReportForm({
   // Load partner companies based on user role
   useEffect(() => {
     const loadPartnerCompanies = async () => {
-      if (!permissions.canViewAdvancedFeatures) {
-        // Worker/Site Manager don't see partner selection
-        return
-      }
+      // All users can now view and select partner companies
+      // Worker and Site Manager can see all partner companies
 
       setLoadingPartners(true)
       try {
@@ -627,10 +625,9 @@ export default function DailyReportForm({
             permissions={permissions}
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Partner Company Selection - Only for Admin/Customer Manager */}
-              {permissions.canViewAdvancedFeatures && (
-                <div>
-                  <Label htmlFor="partner_company_id">소속 파트너사</Label>
+              {/* Partner Company Selection - Available for all users */}
+              <div>
+                <Label htmlFor="partner_company_id">소속 파트너사</Label>
                   <CustomSelect 
                     value={formData.partner_company_id} 
                     onValueChange={(value) => setFormData(prev => ({
@@ -655,7 +652,6 @@ export default function DailyReportForm({
                     <p className="text-xs text-gray-500 mt-1">파트너사 목록을 불러오는 중...</p>
                   )}
                 </div>
-              )}
               
               <div>
                 <Label htmlFor="site_id">현장 선택 *</Label>

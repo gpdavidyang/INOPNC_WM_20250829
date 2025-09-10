@@ -439,7 +439,7 @@ export default function IndividualMonthlySalary() {
                         {worker.total_days}일
                       </td>
                       <td className="px-4 py-3 text-center text-sm text-gray-900 dark:text-gray-100">
-                        {(worker.total_manhours || 0).toFixed(1)}
+                        {(worker.total_manhours || 0).toFixed(2)}
                       </td>
                       <td className="px-4 py-3 text-right text-sm text-gray-900 dark:text-gray-100">
                         ₩{new Intl.NumberFormat('ko-KR').format(worker.base_salary || 0)}
@@ -477,7 +477,7 @@ export default function IndividualMonthlySalary() {
                               {worker.sites.map((site, index) => (
                                 <div key={index} className="flex justify-between text-gray-600 dark:text-gray-400">
                                   <span>{site.site_name}</span>
-                                  <span>{site.days}일 / {(site.manhours || 0).toFixed(1)}공수</span>
+                                  <span>{site.days}일 / {(site.manhours || 0).toFixed(2)}공수</span>
                                 </div>
                               ))}
                             </div>
