@@ -172,6 +172,25 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
     setShowDetailModal(true)
   }
 
+  const handleDelete = async (requestId: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return
+    
+    try {
+      const { error } = await supabase
+        .from('material_requests')
+        .delete()
+        .eq('id', requestId)
+      
+      if (error) throw error
+      
+      alert('출고 요청이 삭제되었습니다.')
+      fetchRequests()
+    } catch (error) {
+      console.error('Error deleting request:', error)
+      alert('출고 요청 삭제에 실패했습니다.')
+    }
+  }
+
   const handleProcessRequest = async () => {
     if (!selectedRequest) return
 
@@ -524,13 +543,20 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                     {getStatusBadge(request.status)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <button
-                      onClick={() => handleViewDetail(request)}
-                      className="text-blue-600 hover:text-blue-800"
-                      title="상세보기"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-center space-x-1">
+                      <button
+                        onClick={() => handleViewDetail(request)}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-700"
+                      >
+                        보기
+                      </button>
+                      <button
+                        onClick={() => handleDelete(request.id)}
+                        className="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 dark:border-red-600 dark:hover:bg-red-900/20"
+                      >
+                        삭제
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))

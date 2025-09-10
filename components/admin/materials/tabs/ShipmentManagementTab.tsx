@@ -206,6 +206,25 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     setShowTrackModal(true)
   }
 
+  const handleDelete = async (shipmentId: string) => {
+    if (!confirm('정말 삭제하시겠습니까?')) return
+    
+    try {
+      const { error } = await supabase
+        .from('shipments')
+        .delete()
+        .eq('id', shipmentId)
+      
+      if (error) throw error
+      
+      toast.success('출고 기록이 삭제되었습니다.')
+      fetchShipments()
+    } catch (error) {
+      console.error('Error deleting shipment:', error)
+      toast.error('출고 기록 삭제에 실패했습니다.')
+    }
+  }
+
   const submitShipment = async () => {
     try {
       if (!formData.site_id || !formData.quantity_shipped) {
@@ -557,20 +576,28 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                         </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center space-x-2">
+                        <div className="flex items-center justify-center space-x-1">
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleDetail(shipment)}
                           >
-                            <Eye className="h-4 w-4" />
+                            보기
                           </Button>
                           <Button
-                            variant="ghost"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleEdit(shipment)}
                           >
-                            <Edit className="h-4 w-4" />
+                            수정
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDelete(shipment.id)}
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                          >
+                            삭제
                           </Button>
                         </div>
                       </td>

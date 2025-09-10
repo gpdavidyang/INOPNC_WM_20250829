@@ -20,6 +20,14 @@ export async function bridgeSession(): Promise<SessionBridgeResult> {
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}))
+      // 401 is expected when there's no session - not an error condition
+      if (response.status === 401) {
+        // console.log('🌉 [SESSION-BRIDGE] No session to bridge (401)')
+        return { 
+          success: false, 
+          error: 'No session available' 
+        }
+      }
       // console.log('🌉 [SESSION-BRIDGE] Bridge failed:', errorData.error || 'Unknown error')
       return { 
         success: false, 

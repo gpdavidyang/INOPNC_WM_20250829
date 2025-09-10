@@ -7,21 +7,18 @@ import {
   createProductionRecord,
   updateProductionRecord,
   deleteProductionRecord,
-  getProductionHistory,
-  getDailyProductionStatus
+  getProductionHistory
 } from '@/app/actions/admin/production'
 import { 
-  Package, TrendingUp, Calendar, Building2, Search, Filter, 
-  Download, PlusCircle, Edit, Eye, Trash2, CheckCircle, 
-  XCircle, AlertTriangle, BarChart3, Factory, Save, X,
+  TrendingUp, Calendar, Search, 
+  Download, PlusCircle, BarChart3, Factory,
   DollarSign
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Card, CardContent } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
@@ -35,7 +32,7 @@ interface ExtendedProductionRecord extends ProductionRecord {
   creator_name?: string
 }
 
-export default function ProductionManagementTab({ profile }: ProductionManagementTabProps) {
+export default function ProductionManagementTab({ }: ProductionManagementTabProps) {
   const [productions, setProductions] = useState<ExtendedProductionRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -55,18 +52,9 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
     notes: ''
   })
 
-  // Stats from daily status
-  const [dailyStats, setDailyStats] = useState({
-    total_produced: 0,
-    total_cost: 0,
-    avg_unit_cost: 0,
-    record_count: 0
-  })
-
   // Fetch data
   useEffect(() => {
     fetchProductions()
-    fetchDailyStats()
   }, [selectedDateRange])
 
   const fetchProductions = async () => {
@@ -99,16 +87,6 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
     }
   }
 
-  const fetchDailyStats = async () => {
-    try {
-      const result = await getDailyProductionStatus()
-      if (result.success && result.data) {
-        setDailyStats(result.data.stats)
-      }
-    } catch (error) {
-      console.error('Error fetching daily stats:', error)
-    }
-  }
 
   const handleAdd = () => {
     setFormData({
@@ -144,7 +122,6 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
       if (result.success) {
         toast.success('생산 기록이 삭제되었습니다.')
         fetchProductions()
-        fetchDailyStats()
       } else {
         toast.error(result.error || '삭제에 실패했습니다.')
       }
@@ -187,7 +164,6 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
         toast.success('생산 기록이 추가되었습니다.')
         setShowAddModal(false)
         fetchProductions()
-        fetchDailyStats()
       } else {
         toast.error(result.error || '생산 기록 추가에 실패했습니다.')
       }
@@ -228,7 +204,6 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
         setShowEditModal(false)
         setSelectedProduction(null)
         fetchProductions()
-        fetchDailyStats()
       } else {
         toast.error(result.error || '생산 기록 수정에 실패했습니다.')
       }
@@ -328,11 +303,11 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
         </div>
 
         <div className="flex gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="standard">
             <Download className="h-4 w-4 mr-2" />
             내보내기
           </Button>
-          <Button onClick={handleAdd} size="sm">
+          <Button onClick={handleAdd} size="standard">
             <PlusCircle className="h-4 w-4 mr-2" />
             생산 기록 추가
           </Button>
@@ -404,28 +379,28 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
                         </div>
                       </td>
                       <td className="px-4 py-4 whitespace-nowrap text-center">
-                        <div className="flex items-center justify-center space-x-2">
+                        <div className="flex items-center justify-center space-x-1">
                           <Button
-                            variant="ghost"
-                            size="sm"
+                            variant="outline"
+                            size="compact"
                             onClick={() => handleDetail(production)}
                           >
-                            <Eye className="h-4 w-4" />
+                            보기
                           </Button>
                           <Button
-                            variant="ghost"
-                            size="sm"
+                            variant="outline"
+                            size="compact"
                             onClick={() => handleEdit(production)}
                           >
-                            <Edit className="h-4 w-4" />
+                            수정
                           </Button>
                           <Button
-                            variant="ghost"
-                            size="sm"
+                            variant="outline"
+                            size="compact"
                             onClick={() => handleDelete(production)}
-                            className="text-red-600 hover:text-red-800"
+                            className="text-red-600 hover:text-red-800 hover:bg-red-50"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            삭제
                           </Button>
                         </div>
                       </td>
@@ -440,50 +415,57 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
 
       {/* Add Production Modal */}
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>생산 기록 추가</DialogTitle>
+        <DialogContent className="max-w-lg p-8">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-xl">생산 기록 추가</DialogTitle>
+            <DialogDescription>
+              NPC-1000 자재의 생산 기록을 추가합니다.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <Label>생산일 *</Label>
+              <Label className="mb-2 block">생산일 *</Label>
               <Input
                 type="date"
                 value={formData.production_date}
                 onChange={(e) => setFormData({...formData, production_date: e.target.value})}
+                className="w-full"
               />
             </div>
             <div>
-              <Label>생산량 (말) *</Label>
+              <Label className="mb-2 block">생산량 (말) *</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={formData.quantity_produced}
                 onChange={(e) => setFormData({...formData, quantity_produced: e.target.value})}
                 placeholder="생산량 입력"
+                className="w-full"
               />
             </div>
             <div>
-              <Label>단위비용 (원)</Label>
+              <Label className="mb-2 block">단위비용 (원)</Label>
               <Input
                 type="number"
                 step="1"
                 value={formData.unit_cost}
                 onChange={(e) => setFormData({...formData, unit_cost: e.target.value})}
                 placeholder="말당 단위비용"
+                className="w-full"
               />
             </div>
             <div>
-              <Label>비고</Label>
+              <Label className="mb-2 block">비고</Label>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
                 placeholder="추가 설명이나 비고사항"
-                rows={3}
+                rows={4}
+                className="w-full"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setShowAddModal(false)}>취소</Button>
             <Button onClick={submitProduction}>추가</Button>
           </DialogFooter>
@@ -492,50 +474,57 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
 
       {/* Edit Production Modal */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>생산 기록 수정</DialogTitle>
+        <DialogContent className="max-w-lg p-8">
+          <DialogHeader className="mb-6">
+            <DialogTitle className="text-xl">생산 기록 수정</DialogTitle>
+            <DialogDescription>
+              기존 생산 기록을 수정합니다.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <Label>생산일 *</Label>
+              <Label className="mb-2 block">생산일 *</Label>
               <Input
                 type="date"
                 value={formData.production_date}
                 onChange={(e) => setFormData({...formData, production_date: e.target.value})}
+                className="w-full"
               />
             </div>
             <div>
-              <Label>생산량 (말) *</Label>
+              <Label className="mb-2 block">생산량 (말) *</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={formData.quantity_produced}
                 onChange={(e) => setFormData({...formData, quantity_produced: e.target.value})}
                 placeholder="생산량 입력"
+                className="w-full"
               />
             </div>
             <div>
-              <Label>단위비용 (원)</Label>
+              <Label className="mb-2 block">단위비용 (원)</Label>
               <Input
                 type="number"
                 step="1"
                 value={formData.unit_cost}
                 onChange={(e) => setFormData({...formData, unit_cost: e.target.value})}
                 placeholder="말당 단위비용"
+                className="w-full"
               />
             </div>
             <div>
-              <Label>비고</Label>
+              <Label className="mb-2 block">비고</Label>
               <Textarea
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
                 placeholder="추가 설명이나 비고사항"
-                rows={3}
+                rows={4}
+                className="w-full"
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-6">
             <Button variant="outline" onClick={() => setShowEditModal(false)}>취소</Button>
             <Button onClick={updateProduction}>수정</Button>
           </DialogFooter>
@@ -547,6 +536,9 @@ export default function ProductionManagementTab({ profile }: ProductionManagemen
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>생산 기록 상세</DialogTitle>
+            <DialogDescription>
+              생산 기록의 상세 정보를 확인합니다.
+            </DialogDescription>
           </DialogHeader>
           {selectedProduction && (
             <div className="space-y-6">

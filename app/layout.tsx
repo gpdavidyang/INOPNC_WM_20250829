@@ -4,6 +4,7 @@ import "./fonts.css"; // Font optimization for production quality
 // import "@/styles/sunlight-mode.css"; // Sunlight Mode CSS 비활성화
 // import "@/styles/font-optimization.css"; // 폰트 최적화 CSS 비활성화
 import { AuthProvider } from "@/providers/auth-provider";
+import { QueryProvider } from "@/providers/query-provider";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { FontSizeProvider } from "@/contexts/FontSizeContext";
 import { TouchModeProvider } from "@/contexts/TouchModeContext";
@@ -135,20 +136,22 @@ export default async function RootLayout({
                       <ThemeInitializer />
                       <ProductionQualityOptimizer />
                       <SkipNavigation />
-                      <AuthProvider>
-                        <PerformanceMonitoringProvider>
-                          <ViewportController>
-                            <AdminViewportMeta />
-                            <DeepLinkProvider />
-                            <UIDebugIndicator />
-                            {children}
-                            <OfflineIndicator />
-                            <InstallPrompt />
-                            <ServiceWorkerRegistration />
-                            <NotificationPermission />
-                          </ViewportController>
-                        </PerformanceMonitoringProvider>
-                      </AuthProvider>
+                      <QueryProvider>
+                        <AuthProvider>
+                          <PerformanceMonitoringProvider>
+                            <ViewportController>
+                              <AdminViewportMeta />
+                              <DeepLinkProvider />
+                              <UIDebugIndicator />
+                              {children}
+                              <OfflineIndicator />
+                              <InstallPrompt />
+                              <ServiceWorkerRegistration />
+                              <NotificationPermission />
+                            </ViewportController>
+                          </PerformanceMonitoringProvider>
+                        </AuthProvider>
+                      </QueryProvider>
                       <EnvironmentStatus />
                       <Toaster 
                         position="top-right"
