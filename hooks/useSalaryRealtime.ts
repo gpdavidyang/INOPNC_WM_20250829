@@ -1,6 +1,15 @@
 import { useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useQueryClient } from '@tanstack/react-query'
+
+// React Query를 안전하게 사용하기 위한 선택적 import
+let useQueryClient: any
+try {
+  const reactQuery = require('@tanstack/react-query')
+  useQueryClient = reactQuery.useQueryClient
+} catch (e) {
+  // React Query가 없거나 QueryClient가 설정되지 않은 경우
+  useQueryClient = () => null
+}
 
 interface UseSalaryRealtimeProps {
   userId?: string
@@ -23,18 +32,20 @@ export function useSalaryRealtime({
   const handleSalaryUpdate = useCallback((payload: any) => {
     console.log('급여 데이터 업데이트 감지:', payload)
     
-    // 캐시 무효화
-    if (userId) {
-      queryClient.invalidateQueries({ queryKey: ['salary', userId] })
-      queryClient.invalidateQueries({ queryKey: ['salary-history', userId] })
+    // QueryClient가 사용 가능할 때만 캐시 무효화
+    if (queryClient) {
+      if (userId) {
+        queryClient.invalidateQueries({ queryKey: ['salary', userId] })
+        queryClient.invalidateQueries({ queryKey: ['salary-history', userId] })
+      }
+      
+      if (siteId) {
+        queryClient.invalidateQueries({ queryKey: ['team-salary', siteId] })
+      }
+      
+      // 전역 급여 관련 쿼리 무효화
+      queryClient.invalidateQueries({ queryKey: ['salary-stats'] })
     }
-    
-    if (siteId) {
-      queryClient.invalidateQueries({ queryKey: ['team-salary', siteId] })
-    }
-    
-    // 전역 급여 관련 쿼리 무효화
-    queryClient.invalidateQueries({ queryKey: ['salary-stats'] })
   }, [userId, siteId, queryClient])
 
   useEffect(() => {
@@ -124,12 +135,14 @@ export function useSalaryRealtime({
   return {
     // 수동으로 급여 데이터 새로고침
     refreshSalary: () => {
-      if (userId) {
-        queryClient.invalidateQueries({ queryKey: ['salary', userId] })
-        queryClient.invalidateQueries({ queryKey: ['salary-history', userId] })
-      }
-      if (siteId) {
-        queryClient.invalidateQueries({ queryKey: ['team-salary', siteId] })
+      if (queryClient) {
+        if (userId) {
+          queryClient.invalidateQueries({ queryKey: ['salary', userId] })
+          queryClient.invalidateQueries({ queryKey: ['salary-history', userId] })
+        }
+        if (siteId) {
+          queryClient.invalidateQueries({ queryKey: ['team-salary', siteId] })
+        }
       }
     }
   }
@@ -157,9 +170,11 @@ export function useSalaryRulesRealtime(enabled = true) {
         },
         (payload) => {
           console.log('급여 계산 규칙 업데이트:', payload)
-          // 모든 급여 관련 캐시 무효화
-          queryClient.invalidateQueries({ queryKey: ['salary'] })
-          queryClient.invalidateQueries({ queryKey: ['salary-rules'] })
+          // QueryClient가 사용 가능할 때만 모든 급여 관련 캐시 무효화
+          if (queryClient) {
+            queryClient.invalidateQueries({ queryKey: ['salary'] })
+            queryClient.invalidateQueries({ queryKey: ['salary-rules'] })
+          }
         }
       )
       .on(
@@ -171,9 +186,11 @@ export function useSalaryRulesRealtime(enabled = true) {
         },
         (payload) => {
           console.log('세율 정보 업데이트:', payload)
-          // 세금 계산 관련 캐시 무효화
-          queryClient.invalidateQueries({ queryKey: ['salary'] })
-          queryClient.invalidateQueries({ queryKey: ['tax-rates'] })
+          // QueryClient가 사용 가능할 때만 세금 계산 관련 캐시 무효화
+          if (queryClient) {
+            queryClient.invalidateQueries({ queryKey: ['salary'] })
+            queryClient.invalidateQueries({ queryKey: ['tax-rates'] })
+          }
         }
       )
       .subscribe()
