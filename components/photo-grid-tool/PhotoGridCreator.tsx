@@ -26,10 +26,10 @@ interface PhotoGridCreatorProps {
 }
 
 interface PhotoData {
-  before: File | null
-  after: File | null
-  beforePreview: string | null
-  afterPreview: string | null
+  before: File[]
+  after: File[]
+  beforePreviews: string[]
+  afterPreviews: string[]
 }
 
 export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGridCreatorProps) {
@@ -48,10 +48,10 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
     document?.work_date || format(new Date(), 'yyyy-MM-dd')
   )
   const [photos, setPhotos] = useState<PhotoData>({
-    before: null,
-    after: null,
-    beforePreview: document?.before_photo_url || null,
-    afterPreview: document?.after_photo_url || null,
+    before: [],
+    after: [],
+    beforePreviews: [],
+    afterPreviews: [],
   })
 
   // Load work options from database
@@ -68,7 +68,11 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
 
   useEffect(() => {
     fetchSites()
-  }, [])
+    // Load existing photos if editing
+    if (document?.id) {
+      loadExistingPhotos(document.id)
+    }
+  }, [document])
 
   const fetchSites = async () => {
     try {
@@ -101,7 +105,30 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
     }
   }
 
-  const handlePhotoUpload = (type: 'before' | 'after', file: File) => {
+  const loadExistingPhotos = async (photoGridId: string) => {
+    try {
+      const response = await fetch(`/api/photo-grids/${photoGridId}/images`)
+      if (response.ok) {
+        const images = await response.json()
+        
+        const beforeImages = images.filter((img: any) => img.photo_type === 'before')
+          .sort((a: any, b: any) => a.photo_order - b.photo_order)
+        const afterImages = images.filter((img: any) => img.photo_type === 'after')
+          .sort((a: any, b: any) => a.photo_order - b.photo_order)
+        
+        setPhotos({
+          before: [],
+          after: [],
+          beforePreviews: beforeImages.map((img: any) => img.photo_url),
+          afterPreviews: afterImages.map((img: any) => img.photo_url),
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load existing photos:', error)
+    }
+  }
+
+  const handlePhotoUpload = (type: 'before' | 'after', index: number, file: File) => {
     if (!file.type.startsWith('image/')) {
       toast({
         title: '오류',
@@ -111,23 +138,81 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
       return
     }
 
+    // Check file size (10MB limit per file)
+    if (file.size > 10 * 1024 * 1024) {
+      toast({
+        title: '오류',
+        description: '파일 크기는 10MB 이하여야 합니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
     const reader = new FileReader()
     reader.onloadend = () => {
-      setPhotos(prev => ({
-        ...prev,
-        [type]: file,
-        [`${type}Preview`]: reader.result as string,
-      }))
+      setPhotos(prev => {
+        const newPhotos = { ...prev }
+        
+        if (type === 'before') {
+          const newBeforeFiles = [...prev.before]
+          const newBeforePreviews = [...prev.beforePreviews]
+          
+          newBeforeFiles[index] = file
+          newBeforePreviews[index] = reader.result as string
+          
+          return {
+            ...newPhotos,
+            before: newBeforeFiles,
+            beforePreviews: newBeforePreviews,
+          }
+        } else {
+          const newAfterFiles = [...prev.after]
+          const newAfterPreviews = [...prev.afterPreviews]
+          
+          newAfterFiles[index] = file
+          newAfterPreviews[index] = reader.result as string
+          
+          return {
+            ...newPhotos,
+            after: newAfterFiles,
+            afterPreviews: newAfterPreviews,
+          }
+        }
+      })
     }
     reader.readAsDataURL(file)
   }
 
-  const handleRemovePhoto = (type: 'before' | 'after') => {
-    setPhotos(prev => ({
-      ...prev,
-      [type]: null,
-      [`${type}Preview`]: null,
-    }))
+  const handleRemovePhoto = (type: 'before' | 'after', index: number) => {
+    setPhotos(prev => {
+      const newPhotos = { ...prev }
+      
+      if (type === 'before') {
+        const newBeforeFiles = [...prev.before]
+        const newBeforePreviews = [...prev.beforePreviews]
+        
+        newBeforeFiles.splice(index, 1)
+        newBeforePreviews.splice(index, 1)
+        
+        return {
+          ...newPhotos,
+          before: newBeforeFiles,
+          beforePreviews: newBeforePreviews,
+        }
+      } else {
+        const newAfterFiles = [...prev.after]
+        const newAfterPreviews = [...prev.afterPreviews]
+        
+        newAfterFiles.splice(index, 1)
+        newAfterPreviews.splice(index, 1)
+        
+        return {
+          ...newPhotos,
+          after: newAfterFiles,
+          afterPreviews: newAfterPreviews,
+        }
+      }
+    })
   }
 
   const handleSave = async () => {
@@ -168,19 +253,13 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
       return
     }
 
-    if (!photos.before && !photos.beforePreview) {
-      toast({
-        title: '오류',
-        description: '작업 전 사진을 업로드해주세요.',
-        variant: 'destructive',
-      })
-      return
-    }
+    const totalPhotos = photos.before.length + photos.beforePreviews.filter((p, i) => !photos.before[i]).length +
+                       photos.after.length + photos.afterPreviews.filter((p, i) => !photos.after[i]).length
 
-    if (!photos.after && !photos.afterPreview) {
+    if (totalPhotos === 0) {
       toast({
         title: '오류',
-        description: '작업 후 사진을 업로드해주세요.',
+        description: '최소 1장 이상의 사진을 업로드해주세요.',
         variant: 'destructive',
       })
       return
@@ -196,11 +275,29 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
       formData.append('work_section', workSection)
       formData.append('work_date', workDate)
       
-      if (photos.before) {
-        formData.append('before_photo', photos.before)
-      }
-      if (photos.after) {
-        formData.append('after_photo', photos.after)
+      // Add all before photos
+      photos.before.forEach((file, index) => {
+        formData.append(`before_photos`, file)
+        formData.append(`before_photo_orders`, index.toString())
+      })
+      
+      // Add all after photos
+      photos.after.forEach((file, index) => {
+        formData.append(`after_photos`, file)
+        formData.append(`after_photo_orders`, index.toString())
+      })
+
+      // Keep track of existing photos (for edit mode)
+      if (document?.id) {
+        const existingBefore = photos.beforePreviews
+          .map((url, index) => !photos.before[index] ? { url, order: index } : null)
+          .filter(Boolean)
+        const existingAfter = photos.afterPreviews
+          .map((url, index) => !photos.after[index] ? { url, order: index } : null)
+          .filter(Boolean)
+        
+        formData.append('existing_before_photos', JSON.stringify(existingBefore))
+        formData.append('existing_after_photos', JSON.stringify(existingAfter))
       }
 
       const url = document 
@@ -219,7 +316,6 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
         method,
         body: formData,
         cache: 'no-cache',
-        // Don't set Content-Type header for FormData - browser will set it with boundary
       })
 
       console.log(`[PhotoGrid] Response status:`, response.status)
@@ -250,6 +346,64 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
     }
   }
 
+  // Photo upload slot component
+  const PhotoUploadSlot = ({ 
+    type, 
+    index, 
+    photo, 
+    preview 
+  }: { 
+    type: 'before' | 'after'
+    index: number
+    photo?: File
+    preview?: string 
+  }) => (
+    <div className="relative">
+      {preview ? (
+        <div className="relative h-40 bg-gray-100 rounded-lg overflow-hidden">
+          <Image
+            src={preview}
+            alt={`${type === 'before' ? '작업 전' : '작업 후'} ${index + 1}`}
+            fill
+            className="object-cover"
+          />
+          <Button
+            variant="destructive"
+            size="sm"
+            className="absolute top-2 right-2 h-6 w-6 p-0"
+            onClick={() => handleRemovePhoto(type, index)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          <span className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+            {index + 1}
+          </span>
+        </div>
+      ) : (
+        <label className="block">
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) handlePhotoUpload(type, index, file)
+            }}
+          />
+          <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 h-40 flex flex-col items-center justify-center">
+            <Upload className="mx-auto h-8 w-8 text-gray-400" />
+            <p className="mt-2 text-sm text-gray-600">
+              사진 {index + 1}
+            </p>
+            <p className="text-xs text-gray-500">
+              클릭하여 업로드
+            </p>
+          </div>
+        </label>
+      )}
+    </div>
+  )
+
   return (
     <div>
       <div className="flex items-center gap-4 mb-6">
@@ -262,13 +416,13 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
         </h1>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left Column - Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>기본 정보</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      {/* Form Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>기본 정보</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="site">현장 선택 *</Label>
               <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
@@ -292,6 +446,16 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
                 type="date"
                 value={workDate}
                 onChange={(e) => setWorkDate(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="section">작업구간</Label>
+              <Input
+                id="section"
+                placeholder="예: 1층 A구역"
+                value={workSection}
+                onChange={(e) => setWorkSection(e.target.value)}
               />
             </div>
 
@@ -352,110 +516,53 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
                 />
               )}
             </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            <div>
-              <Label htmlFor="section">작업구간</Label>
-              <Input
-                id="section"
-                placeholder="예: 1층 A구역"
-                value={workSection}
-                onChange={(e) => setWorkSection(e.target.value)}
+      {/* Photos Section - Side by side layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column - Before Photos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              작업 전 사진
+              <span className="text-sm font-normal text-gray-500">(최대 3장)</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {[0, 1, 2].map(index => (
+              <PhotoUploadSlot
+                key={`before-${index}`}
+                type="before"
+                index={index}
+                photo={photos.before[index]}
+                preview={photos.beforePreviews[index]}
               />
-            </div>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Right Column - Photos */}
+        {/* Right Column - After Photos */}
         <Card>
           <CardHeader>
-            <CardTitle>사진 업로드</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <ImageIcon className="h-5 w-5" />
+              작업 후 사진
+              <span className="text-sm font-normal text-gray-500">(최대 3장)</span>
+            </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Before Photo */}
-            <div>
-              <Label>작업 전 사진 *</Label>
-              {photos.beforePreview ? (
-                <div className="relative mt-2">
-                  <div className="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
-                    <Image
-                      src={photos.beforePreview}
-                      alt="작업 전"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => handleRemovePhoto('before')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <label className="block mt-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handlePhotoUpload('before', file)
-                    }}
-                  />
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">
-                      클릭하여 사진 업로드
-                    </p>
-                  </div>
-                </label>
-              )}
-            </div>
-
-            {/* After Photo */}
-            <div>
-              <Label>작업 후 사진 *</Label>
-              {photos.afterPreview ? (
-                <div className="relative mt-2">
-                  <div className="relative h-48 bg-gray-100 rounded-lg overflow-hidden">
-                    <Image
-                      src={photos.afterPreview}
-                      alt="작업 후"
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={() => handleRemovePhoto('after')}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <label className="block mt-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (file) handlePhotoUpload('after', file)
-                    }}
-                  />
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-gray-400">
-                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                    <p className="mt-2 text-sm text-gray-600">
-                      클릭하여 사진 업로드
-                    </p>
-                  </div>
-                </label>
-              )}
-            </div>
+          <CardContent className="space-y-3">
+            {[0, 1, 2].map(index => (
+              <PhotoUploadSlot
+                key={`after-${index}`}
+                type="after"
+                index={index}
+                photo={photos.after[index]}
+                preview={photos.afterPreviews[index]}
+              />
+            ))}
           </CardContent>
         </Card>
       </div>

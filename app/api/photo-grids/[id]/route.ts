@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getAuthenticatedUser } from '@/lib/auth/session'
 
+// Handle GET request for a specific photo grid
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -14,28 +16,42 @@ export async function GET(
 
     const supabase = await createClient()
     
-    const { data, error } = await supabase
+    const { data: photoGrid, error } = await supabase
       .from('photo_grids')
       .select(`
         *,
-        site:sites(id, name),
+        site:sites(id, name, address),
         creator:profiles(id, full_name)
       `)
       .eq('id', params.id)
       .single()
 
-    if (error) {
-      console.error('Error fetching photo grid:', error)
+    if (error || !photoGrid) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    return NextResponse.json(data)
+    // Fetch associated images
+    const { data: images } = await supabase
+      .from('photo_grid_images')
+      .select('*')
+      .eq('photo_grid_id', params.id)
+      .order('photo_type', { ascending: true })
+      .order('photo_order', { ascending: true })
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...photoGrid,
+        images: images || []
+      }
+    })
   } catch (error) {
     console.error('Error in GET /api/photo-grids/[id]:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to fetch document' }, { status: 500 })
   }
 }
 
+// Handle PUT request for updating a photo grid
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -48,6 +64,14 @@ export async function PUT(
 
     const formData = await request.formData()
     const supabase = await createClient()
+    
+    // Try to create service client for storage operations
+    let serviceClient
+    try {
+      serviceClient = createServiceClient()
+    } catch (serviceError) {
+      serviceClient = supabase
+    }
 
     // Extract form data
     const site_id = formData.get('site_id') as string
@@ -55,67 +79,168 @@ export async function PUT(
     const work_process = formData.get('work_process') as string
     const work_section = formData.get('work_section') as string
     const work_date = formData.get('work_date') as string
-    const beforePhoto = formData.get('before_photo') as File | null
-    const afterPhoto = formData.get('after_photo') as File | null
+    
+    // Get new photos
+    const beforePhotos = formData.getAll('before_photos') as File[]
+    const afterPhotos = formData.getAll('after_photos') as File[]
+    const beforePhotoOrders = formData.getAll('before_photo_orders').map(Number)
+    const afterPhotoOrders = formData.getAll('after_photo_orders').map(Number)
+    
+    // Get existing photos that should be kept
+    const existingBeforeStr = formData.get('existing_before_photos') as string
+    const existingAfterStr = formData.get('existing_after_photos') as string
+    const existingBefore = existingBeforeStr ? JSON.parse(existingBeforeStr) : []
+    const existingAfter = existingAfterStr ? JSON.parse(existingAfterStr) : []
 
-    // Prepare update data
-    const updateData: any = {
-      site_id,
-      component_name,
-      work_process,
-      work_section,
-      work_date,
-      updated_at: new Date().toISOString(),
+    // Validate photo limits
+    const totalBefore = beforePhotos.length + existingBefore.length
+    const totalAfter = afterPhotos.length + existingAfter.length
+    
+    if (totalBefore > 3 || totalAfter > 3) {
+      return NextResponse.json({ 
+        error: '각 타입별 최대 3장까지 업로드 가능합니다.' 
+      }, { status: 400 })
     }
 
-    // Upload new photos if provided
-    if (beforePhoto && beforePhoto.size > 0) {
-      const beforePhotoName = `${Date.now()}-before-${beforePhoto.name}`
-      const { data: beforeUpload, error: beforeError } = await supabase.storage
-        .from('photo-grids')
-        .upload(beforePhotoName, beforePhoto)
-
-      if (!beforeError) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('photo-grids')
-          .getPublicUrl(beforePhotoName)
-        
-        updateData.before_photo_url = publicUrl
+    // Helper function to sanitize filename
+    const sanitizeFilename = (filename: string): string => {
+      const ext = filename.split('.').pop() || 'jpg'
+      const sanitized = filename
+        .replace(/[^\x00-\x7F]/g, '')
+        .replace(/\s+/g, '_')
+        .replace(/[^a-zA-Z0-9._-]/g, '')
+      
+      if (!sanitized || sanitized === `.${ext}`) {
+        return `photo.${ext}`
       }
+      
+      return sanitized
     }
 
-    if (afterPhoto && afterPhoto.size > 0) {
-      const afterPhotoName = `${Date.now()}-after-${afterPhoto.name}`
-      const { data: afterUpload, error: afterError } = await supabase.storage
-        .from('photo-grids')
-        .upload(afterPhotoName, afterPhoto)
+    // Upload new photos
+    const uploadedPhotos: { type: 'before' | 'after', url: string, order: number }[] = []
 
-      if (!afterError) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('photo-grids')
-          .getPublicUrl(afterPhotoName)
-        
-        updateData.after_photo_url = publicUrl
+    // Upload new before photos
+    for (let i = 0; i < beforePhotos.length; i++) {
+      const file = beforePhotos[i]
+      const order = beforePhotoOrders[i] || i
+      
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      const sanitizedName = sanitizeFilename(file.name)
+      const fileName = `photo-grids/${Date.now()}_before_${order}_${sanitizedName}`
+
+      const { data: uploadData, error: uploadError } = await serviceClient.storage
+        .from('documents')
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        throw new Error(`Failed to upload before photo: ${uploadError.message}`)
       }
+
+      const { data: { publicUrl } } = serviceClient.storage
+        .from('documents')
+        .getPublicUrl(fileName)
+
+      uploadedPhotos.push({ type: 'before', url: publicUrl, order })
+    }
+
+    // Upload new after photos
+    for (let i = 0; i < afterPhotos.length; i++) {
+      const file = afterPhotos[i]
+      const order = afterPhotoOrders[i] || i
+      
+      const arrayBuffer = await file.arrayBuffer()
+      const buffer = Buffer.from(arrayBuffer)
+      const sanitizedName = sanitizeFilename(file.name)
+      const fileName = `photo-grids/${Date.now()}_after_${order}_${sanitizedName}`
+
+      const { data: uploadData, error: uploadError } = await serviceClient.storage
+        .from('documents')
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (uploadError) {
+        throw new Error(`Failed to upload after photo: ${uploadError.message}`)
+      }
+
+      const { data: { publicUrl } } = serviceClient.storage
+        .from('documents')
+        .getPublicUrl(fileName)
+
+      uploadedPhotos.push({ type: 'after', url: publicUrl, order })
     }
 
     // Update photo grid record
-    const { data, error } = await supabase
+    const { data: photoGrid, error: updateError } = await supabase
       .from('photo_grids')
-      .update(updateData)
+      .update({
+        site_id,
+        component_name,
+        work_process,
+        work_section,
+        work_date,
+        updated_at: new Date().toISOString(),
+        // Update backward compatibility fields with first photos
+        before_photo_url: uploadedPhotos.find(p => p.type === 'before' && p.order === 0)?.url || 
+                         existingBefore.find((p: any) => p.order === 0)?.url || null,
+        after_photo_url: uploadedPhotos.find(p => p.type === 'after' && p.order === 0)?.url || 
+                        existingAfter.find((p: any) => p.order === 0)?.url || null,
+      })
       .eq('id', params.id)
       .select()
       .single()
 
-    if (error) {
-      console.error('Error updating photo grid:', error)
+    if (updateError) {
+      console.error('Error updating photo grid:', updateError)
       return NextResponse.json({ error: 'Failed to update document' }, { status: 500 })
     }
 
-    return NextResponse.json(data)
+    // Delete existing images from photo_grid_images table
+    await supabase
+      .from('photo_grid_images')
+      .delete()
+      .eq('photo_grid_id', params.id)
+
+    // Insert all photos (both new and existing) into photo_grid_images table
+    const allPhotos = [
+      ...uploadedPhotos,
+      ...existingBefore.map((p: any) => ({ type: 'before' as const, url: p.url, order: p.order })),
+      ...existingAfter.map((p: any) => ({ type: 'after' as const, url: p.url, order: p.order }))
+    ]
+
+    if (allPhotos.length > 0) {
+      const photoImages = allPhotos.map(photo => ({
+        photo_grid_id: params.id,
+        photo_type: photo.type,
+        photo_url: photo.url,
+        photo_order: photo.order
+      }))
+
+      const { error: imagesError } = await supabase
+        .from('photo_grid_images')
+        .insert(photoImages)
+
+      if (imagesError) {
+        console.error('Error inserting photo grid images:', imagesError)
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: photoGrid
+    })
   } catch (error) {
     console.error('Error in PUT /api/photo-grids/[id]:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Failed to update document'
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
   }
 }
 
