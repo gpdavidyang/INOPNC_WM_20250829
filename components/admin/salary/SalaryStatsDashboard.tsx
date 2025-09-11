@@ -91,7 +91,7 @@ export default function SalaryStatsDashboard() {
 
       // 작업자 배정 데이터 조회
       const { data: assignmentsData, error } = await supabase
-        .from('worker_assignments')
+        .from('work_records')
         .select(`
           id,
           profile_id,

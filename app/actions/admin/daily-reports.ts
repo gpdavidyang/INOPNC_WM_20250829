@@ -160,7 +160,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
           
           // Get total manhours from worker_assignments
           const { data: workerAssignments } = await supabase
-            .from('worker_assignments')
+            .from('work_records')
             .select('labor_hours')
             .eq('daily_report_id', report.id)
           

@@ -105,7 +105,7 @@ export async function GET(
 
     // Get assigned workers summary
     const { data: workersSummary } = await supabase
-      .from('worker_assignments')
+      .from('work_records')
       .select(`
         profiles(
           id,

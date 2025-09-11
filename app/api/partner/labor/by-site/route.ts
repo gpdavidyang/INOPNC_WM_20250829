@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 
       // Get labor hours for this site
       const { data: laborData, error: laborError } = await supabase
-        .from('attendance_records')
+        .from('work_records')
         .select('work_date, work_hours, labor_hours, overtime_hours')
         .eq('site_id', site.id)
         .gte('work_date', startDate)

@@ -93,88 +93,67 @@ export function NotificationDropdown() {
 
   const dropdownContent = open ? createPortal(
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Softer overlay */}
       <div 
-        className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40"
+        className="fixed inset-0 z-40 bg-black/30 dark:bg-black/50 backdrop-blur-sm"
         onClick={() => setOpen(false)}
       />
       
-      {/* Centered Dropdown */}
+      {/* Improved Modal Design */}
       <div
         ref={dropdownRef}
-        className="fixed z-50 left-1/2 top-12 sm:top-16 transform -translate-x-1/2 w-[95vw] sm:w-[90vw] max-w-[320px] min-w-[280px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-2xl animate-in fade-in-0 zoom-in-95 duration-200"
+        className="fixed z-50 left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] sm:w-[420px] max-w-[420px] bg-white dark:bg-gray-800 rounded-xl shadow-xl animate-in fade-in-0 zoom-in-95 duration-200"
         role="dialog"
         aria-modal="true"
         aria-labelledby="notification-title"
       >
-        {/* Header */}
-        <div className="px-2.5 py-1.5 border-b border-gray-200 dark:border-gray-600">
+        {/* Header - Cleaner design */}
+        <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <h3 
               id="notification-title"
-              className="text-sm font-semibold text-gray-900 dark:text-gray-100"
+              className="text-base font-semibold text-gray-900 dark:text-gray-100"
             >
               알림
             </h3>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="compact"
+            <div className="flex items-center gap-2">
+              <button
                 onClick={handleMarkAllRead}
                 disabled={markingAllRead}
-                className="h-7 sm:h-6 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 px-2"
+                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                 aria-label="모든 알림을 읽음으로 표시"
               >
-                <CheckCheck className="h-3 w-3 mr-1" />
                 모두 읽음
-              </Button>
-              <Button
-                variant="ghost"
-                size="compact"
-                className="h-7 w-7 sm:h-6 sm:w-6 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 p-0"
-                onClick={() => {
-                  setOpen(false)
-                  window.location.href = '/dashboard/settings/notifications'
-                }}
-                aria-label="알림 설정"
-              >
-                <Settings className="h-3 w-3" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="compact"
-                className="h-7 w-7 sm:h-6 sm:w-6 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 p-0"
+              </button>
+              <button
+                className="p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                 onClick={() => setOpen(false)}
-                aria-label="알림 창 닫기"
+                aria-label="닫기"
               >
-                <X className="h-3 w-3" />
-              </Button>
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
         
-        {/* Notification List */}
-        <div className="h-[300px] overflow-y-auto">
+        {/* Notification List - Better scrolling area */}
+        <div className="max-h-[400px] min-h-[200px] overflow-y-auto bg-gray-50 dark:bg-gray-900/50">
           <NotificationList 
             onNotificationClick={handleNotificationClick}
           />
         </div>
         
-        {/* Separator */}
-        <div className="border-t border-gray-200 dark:border-gray-600" />
-        
-        {/* Footer */}
-        <div className="p-1.5">
-          <Button 
-            variant="outline" 
-            className="w-full text-sm h-8 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 min-h-[36px] sm:min-h-[32px] touch-target-glove"
+        {/* Footer - Simplified */}
+        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+          <button 
+            className="w-full py-2 text-sm font-medium text-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
             onClick={() => {
               setOpen(false)
               window.location.href = '/dashboard/notifications'
             }}
           >
             모든 알림 보기
-          </Button>
+          </button>
         </div>
       </div>
     </>,

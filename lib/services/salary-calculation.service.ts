@@ -104,12 +104,12 @@ export class SalaryCalculationService {
       const period_start = format(startOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd')
       const period_end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd')
 
-      // 출근 기록 조회
+      // 출근 기록 조회 (work_records 테이블 사용)
       const supabase = this.getSupabaseClient()
       let query = supabase
-        .from('attendance_records')
+        .from('work_records')
         .select('*')
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
         .gte('work_date', period_start)
         .lte('work_date', period_end)
 

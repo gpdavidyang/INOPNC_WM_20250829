@@ -144,15 +144,16 @@ export default function SalaryStatementManager() {
       })
 
       const { data: salaryData, error: fetchError } = await supabase
-        .from('attendance_records')
+        .from('work_records')
         .select(`
           user_id,
+          profile_id,
           labor_hours,
           work_date,
           site_id,
           sites(name)
         `)
-        .in('user_id', selectedWorkers)
+        .or(`user_id.in.(${selectedWorkers.join(',')}),profile_id.in.(${selectedWorkers.join(',')})`)
         .gte('work_date', startDate)
         .lte('work_date', endDate)
 
@@ -222,7 +223,7 @@ export default function SalaryStatementManager() {
           return
         }
 
-        const workerId = record.user_id
+        const workerId = record.user_id || record.profile_id
         const worker = profilesMap.get(workerId)
         const salaryInfo = salaryInfoMap.get(workerId)
         const site = record.sites

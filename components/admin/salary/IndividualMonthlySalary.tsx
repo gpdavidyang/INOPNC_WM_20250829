@@ -85,15 +85,18 @@ export default function IndividualMonthlySalary() {
       const endDate = new Date(year, month, 0).toISOString().split('T')[0]
 
     let query = supabase
-      .from('worker_assignments')
+      .from('work_records')
       .select(`
         profile_id,
+        user_id,
         labor_hours,
-        daily_reports!inner(
-          work_date,
-          site_id,
-          sites(name)
-        ),
+        work_date,
+        site_id,
+        check_in_time,
+        check_out_time,
+        work_hours,
+        overtime_hours,
+        sites(name),
         profiles:profile_id(
           id,
           full_name,
@@ -103,11 +106,11 @@ export default function IndividualMonthlySalary() {
           transportation_allowance
         )
       `)
-      .gte('daily_reports.work_date', startDate)
-      .lte('daily_reports.work_date', endDate)
+      .gte('work_date', startDate)
+      .lte('work_date', endDate)
 
     if (selectedSites.length > 0) {
-      query = query.in('daily_reports.site_id', selectedSites)
+      query = query.in('site_id', selectedSites)
     }
     if (selectedWorkers.length > 0) {
       query = query.in('profile_id', selectedWorkers)
@@ -140,15 +143,14 @@ export default function IndividualMonthlySalary() {
     const workerMap = new Map<string, WorkerMonthlySalary>()
 
     data?.forEach(assignment => {
-      if (!assignment || !assignment.profiles || !assignment.daily_reports) {
+      if (!assignment || !assignment.profiles) {
         console.warn('Skipping invalid assignment:', assignment)
         return
       }
       
-      const workerId = assignment.profile_id
+      const workerId = assignment.profile_id || assignment.user_id
       const worker = assignment.profiles
-      const report = assignment.daily_reports
-      const site = report?.sites
+      const site = assignment.sites
 
       if (!workerMap.has(workerId)) {
         workerMap.set(workerId, {
