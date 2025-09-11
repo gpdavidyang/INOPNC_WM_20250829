@@ -357,7 +357,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
             <div className="text-center whitespace-nowrap">총 공수</div>
             <div className="text-right whitespace-nowrap">기본급</div>
             <div className="text-right whitespace-nowrap">실지급</div>
-            <div className="text-center whitespace-nowrap">PDF</div>
+            <div className="text-center whitespace-nowrap">링크</div>
           </div>
         </div>
         
