@@ -29,11 +29,14 @@ export async function getAttendanceRecords(params: {
     console.log('✅ User authenticated:', user.id)
     
     // Step 2: Build query with proper field selection
+    // IMPORTANT: Changed from attendance_records to work_records for data consistency
+    // This ensures both attendance calendar and salary view use the same data source
     let query = supabase
-      .from('attendance_records')
+      .from('work_records')
       .select(`
         id,
         user_id,
+        profile_id,
         site_id,
         work_date,
         check_in_time,
@@ -51,14 +54,16 @@ export async function getAttendanceRecords(params: {
       .lte('work_date', params.date_to)
       .order('work_date', { ascending: true })
 
+    // Use OR condition to match both user_id and profile_id
+    // This matches the logic used in salary-calculation.service.ts
     if (params.user_id) {
-      query = query.eq('user_id', params.user_id)
+      query = query.or(`user_id.eq.${params.user_id},profile_id.eq.${params.user_id}`)
     }
     if (params.site_id) {
       query = query.eq('site_id', params.site_id)
     }
 
-    console.log('📍 Executing attendance records query...')
+    console.log('📍 Executing work records query (unified data source)...')
     const { data, error } = await query
 
     // Step 3: Enhanced logging 
@@ -93,10 +98,12 @@ export async function getAttendanceRecords(params: {
     const transformedData = data?.map(record => ({
       ...record,
       date: record.work_date, // Add date field for compatibility
-      site_name: record.sites?.name || 'Unknown Site'
+      site_name: record.sites?.name || 'Unknown Site',
+      // Ensure user_id is set for compatibility
+      user_id: record.user_id || record.profile_id
     })) || []
 
-    console.log('✅ Successfully fetched and transformed', transformedData.length, 'attendance records')
+    console.log('✅ Successfully fetched and transformed', transformedData.length, 'work records')
     console.log('🔧 Sample transformed record:', transformedData[0] ? {
       id: transformedData[0].id,
       date: transformedData[0].date,
