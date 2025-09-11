@@ -292,7 +292,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
       // })
       
       let query = supabase
-        .from('attendance_records')
+        .from('work_records')
         .select(`
           id,
           work_date,
@@ -353,11 +353,12 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
       // Calculate salary from attendance records
       // Note: In a real system, this would come from a payroll table
       const { data: attendanceData, error } = await supabase
-        .from('attendance_records')
+        .from('work_records')
         .select(`
           work_date,
           work_hours,
           overtime_hours,
+          labor_hours,
           site_id,
           sites(name)
         `)

@@ -68,7 +68,7 @@ export default function SiteManagementList() {
               if (dailyReports && dailyReports.length > 0) {
                 const reportIds = dailyReports.map(r => r.id)
                 const { data: assignments } = await supabase
-                  .from('worker_assignments')
+                  .from('work_records')
                   .select('labor_hours')
                   .in('daily_report_id', reportIds)
                 

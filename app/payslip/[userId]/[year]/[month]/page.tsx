@@ -53,12 +53,12 @@ export default function PayslipPage() {
 
         // 3. 사이트 정보 조회 (최근 근무 사이트)
         const { data: attendanceData } = await supabase
-          .from('attendance_records')
+          .from('work_records')
           .select(`
             site_id,
             sites (name)
           `)
-          .eq('user_id', userId)
+          .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
           .gte('work_date', `${year}-${String(month).padStart(2, '0')}-01`)
           .lte('work_date', `${year}-${String(month).padStart(2, '0')}-31`)
           .limit(1)

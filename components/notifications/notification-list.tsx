@@ -121,22 +121,22 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
 
   const getNotificationBgColor = (type: NotificationType, read: boolean) => {
     if (read) {
-      return 'bg-white dark:bg-gray-800 opacity-60 dark:opacity-70'
+      return 'bg-white dark:bg-gray-800'
     }
     
     switch (type) {
       case 'success':
-        return 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500'
+        return 'bg-white dark:bg-gray-800 border-l-4 border-green-500'
       case 'warning':
-        return 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-500'
+        return 'bg-white dark:bg-gray-800 border-l-4 border-yellow-500'
       case 'error':
-        return 'bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500'
+        return 'bg-white dark:bg-gray-800 border-l-4 border-red-500'
       case 'system':
-        return 'bg-purple-50 dark:bg-purple-900/20 border-l-4 border-purple-500'
+        return 'bg-white dark:bg-gray-800 border-l-4 border-purple-500'
       case 'approval':
-        return 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500'
+        return 'bg-white dark:bg-gray-800 border-l-4 border-blue-500'
       default:
-        return 'bg-gray-50 dark:bg-gray-700/50 border-l-4 border-gray-400'
+        return 'bg-white dark:bg-gray-800 border-l-4 border-gray-400'
     }
   }
 
@@ -158,17 +158,17 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
   }
 
   return (
-    <ScrollArea className={cn("h-[300px]", className)}>
-      <div className="space-y-1 p-2">
+    <ScrollArea className={cn("h-full", className)}>
+      <div className="p-2">
         {notifications.map((notification: any) => (
           <div
             key={notification.id}
             className={cn(
-              "relative group flex items-start gap-2.5 p-2.5 rounded-md cursor-pointer transition-all",
-              "hover:shadow-sm border border-transparent",
+              "relative group flex items-start gap-3 p-3 mb-2 rounded-lg cursor-pointer transition-all",
+              "hover:bg-gray-50 dark:hover:bg-gray-700/50",
               getNotificationBgColor(notification.type, notification.read),
-              notification.read ? "border-gray-200 dark:border-gray-600" : "",
-              !notification.read && "font-medium"
+              notification.read ? "opacity-70" : "",
+              !notification.read && "shadow-sm"
             )}
             onClick={() => handleNotificationClick(notification)}
           >

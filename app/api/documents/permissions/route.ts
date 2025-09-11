@@ -61,7 +61,7 @@ export async function GET(request: Request) {
         } else if (categoryRule.site_access && document.site_id) {
           // Check if user has access to this site
           const { data: siteAccess } = await supabase
-            .from('worker_assignments')
+            .from('work_records')
             .select('id')
             .eq('profile_id', profile.id)
             .limit(1)

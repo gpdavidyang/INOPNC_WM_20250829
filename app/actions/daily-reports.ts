@@ -421,7 +421,7 @@ export async function getDailyReportById(id: string) {
 
     // Get worker assignments with profile details
     const { data: workerAssignments } = await supabase
-      .from('worker_assignments')
+      .from('work_records')
       .select(`
         *,
         profile:profiles(*)

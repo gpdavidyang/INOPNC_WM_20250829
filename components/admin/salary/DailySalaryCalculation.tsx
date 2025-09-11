@@ -125,7 +125,7 @@ export default function DailySalaryCalculation() {
       // Build Supabase query for worker assignments with related data
       // First, get the worker assignments with daily reports
       let query = supabase
-        .from('worker_assignments')
+        .from('work_records')
         .select(`
           id,
           profile_id,
