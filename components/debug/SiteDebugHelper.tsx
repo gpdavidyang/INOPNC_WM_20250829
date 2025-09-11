@@ -199,12 +199,12 @@ export default function SiteDebugHelper() {
               {debug.timestamp && (
                 <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
                   <div className="text-sm font-mono space-y-2">
-                    <div><strong>시간:</strong> {debug.timestamp}</div>
-                    <div><strong>소요시간:</strong> {debug.duration}</div>
+                    <div><strong>시간:</strong> {String(debug.timestamp)}</div>
+                    <div><strong>소요시간:</strong> {String(debug.duration)}</div>
                     
                     {debug.error ? (
                       <div className="text-red-600 dark:text-red-400">
-                        <strong>오류:</strong> {debug.error}
+                        <strong>오류:</strong> {String(debug.error)}
                       </div>
                     ) : (
                       <>

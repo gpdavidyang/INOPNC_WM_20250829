@@ -85,7 +85,7 @@ export function ProductionLoginDebug() {
         setApiTest({ status: 'error', message: data.error || 'API test failed' })
       }
     } catch (error) {
-      setApiTest({ status: 'error', message: `Network error: ${error.message}` })
+      setApiTest({ status: 'error', message: `Network error: ${error instanceof Error ? error.message : String(error)}` })
     }
   }
 
@@ -114,8 +114,8 @@ export function ProductionLoginDebug() {
           <div className="bg-gray-800 p-4 rounded">
             <h3 className="font-bold mb-2">Environment</h3>
             <div className="text-sm space-y-1">
-              <div>Node ENV: <span className="text-yellow-400">{debugInfo.environment}</span></div>
-              <div>Timestamp: <span className="text-gray-400">{debugInfo.timestamp}</span></div>
+              <div>Node ENV: <span className="text-yellow-400">{String(debugInfo.environment)}</span></div>
+              <div>Timestamp: <span className="text-gray-400">{String(debugInfo.timestamp)}</span></div>
               <div>Supabase URL: <span className={debugInfo.hasSupabaseUrl ? 'text-green-400' : 'text-red-400'}>
                 {debugInfo.hasSupabaseUrl ? debugInfo.supabaseUrlStart : 'MISSING'}
               </span></div>
@@ -170,7 +170,7 @@ export function ProductionLoginDebug() {
               apiTest.status === 'error' ? 'bg-red-900 text-red-300' :
               'bg-yellow-900 text-yellow-300'
             }`}>
-              {apiTest.message}
+              {String(apiTest.message)}
             </div>
           )}
         </div>
@@ -179,7 +179,7 @@ export function ProductionLoginDebug() {
         <div className="mt-4 bg-gray-800 p-4 rounded">
           <h3 className="font-bold mb-2">Browser Info</h3>
           <div className="text-xs text-gray-400 break-all">
-            {debugInfo.userAgent}
+            {String(debugInfo.userAgent)}
           </div>
         </div>
 
