@@ -117,29 +117,30 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// 안전한 파일명 생성 함수
+// 안전한 파일명 생성 함수 (Storage 호환)
 function generateSafeFileName(originalName: string): string {
   // 파일 확장자 분리
   const lastDotIndex = originalName.lastIndexOf('.')
   const extension = lastDotIndex > -1 ? originalName.slice(lastDotIndex) : ''
   const nameWithoutExt = lastDotIndex > -1 ? originalName.slice(0, lastDotIndex) : originalName
   
-  // 한글, 영문, 숫자, 일부 특수문자만 허용
-  // 공백은 언더스코어로 변환
+  // Supabase Storage는 ASCII 문자만 지원하므로 한글을 제거하고 영문/숫자만 유지
+  // 한글은 원본 파일명(title)에 보존됨
   let safeName = nameWithoutExt
+    .replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]/g, '') // 한글 제거
     .replace(/\s+/g, '_') // 공백을 언더스코어로
-    .replace(/[^\w\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uD7B0-\uD7FF._-]/g, '') // 한글 및 안전한 문자만 허용
+    .replace(/[^a-zA-Z0-9._-]/g, '') // 영문, 숫자, 일부 특수문자만 허용
     .replace(/_{2,}/g, '_') // 연속된 언더스코어를 하나로
-    .replace(/^_|_$/g, '') // 시작과 끝의 언더스코어 제거
+    .replace(/^[_.-]+|[_.-]+$/g, '') // 시작과 끝의 특수문자 제거
   
   // 파일명이 비어있으면 기본값 사용
-  if (!safeName) {
-    safeName = 'file'
+  if (!safeName || safeName.length === 0) {
+    safeName = 'document'
   }
   
-  // 파일명 길이 제한 (확장자 제외 100자)
-  if (safeName.length > 100) {
-    safeName = safeName.substring(0, 100)
+  // 파일명 길이 제한 (확장자 제외 50자)
+  if (safeName.length > 50) {
+    safeName = safeName.substring(0, 50)
   }
   
   // 타임스탬프와 랜덤 문자열 추가하여 고유성 보장
