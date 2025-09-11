@@ -586,6 +586,35 @@ export class PayslipGeneratorKorean {
         break-inside: avoid;
       }
     }
+    /* 모바일 안내 박스 스타일 */
+    .mobile-guide {
+      background: #f0f9ff;
+      border: 1px solid #0ea5e9;
+      border-radius: 6px;
+      padding: 8px;
+      margin-bottom: 10px;
+      font-size: 11px;
+      color: #0369a1;
+      display: none;
+    }
+    
+    .mobile-guide-item {
+      margin-bottom: 4px;
+    }
+    
+    .mobile-guide-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .button-label {
+      background: #10b981;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      display: inline-block;
+    }
+    
     /* 모바일 특화 스크롤 개선 */
     @media (max-width: 767px) {
       html, body {
@@ -598,6 +627,10 @@ export class PayslipGeneratorKorean {
         min-height: auto;
         height: auto;
         overflow: visible !important;
+      }
+      
+      .mobile-guide {
+        display: block;
       }
     }
   </style>
@@ -613,6 +646,16 @@ export class PayslipGeneratorKorean {
       <button onclick="window.print()" class="print-button">
         🖨️ 인쇄하기
       </button>
+    </div>
+    
+    <!-- Mobile User Guide -->
+    <div class="mobile-guide">
+      <div class="mobile-guide-item">
+        <strong>📱 인쇄 안내:</strong> 상단의 <span class="button-label">인쇄하기</span> 버튼을 눌러 PDF로 저장하거나 인쇄할 수 있습니다.
+      </div>
+      <div class="mobile-guide-item">
+        <strong>👆 화면 조작:</strong> 두 손가락으로 화면을 확대/축소하여 편하게 보실 수 있습니다.
+      </div>
     </div>
     
     <div class="header">
