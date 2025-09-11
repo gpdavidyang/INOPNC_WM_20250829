@@ -27,8 +27,11 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
   // Update active tab when initialTab prop changes
   useEffect(() => {
     const newTab = initialSearch === '공도면' ? 'shared' : initialTab
-    setActiveTab(newTab)
-  }, [initialTab, initialSearch])
+    // Only update if actually different to prevent infinite loops
+    if (newTab !== activeTab) {
+      setActiveTab(newTab)
+    }
+  }, [initialTab, initialSearch]) // Intentionally exclude activeTab to prevent loops
 
   const handleTabChange = (tab: 'personal' | 'shared' | 'markup' | 'required') => {
     setActiveTab(tab)
