@@ -272,15 +272,13 @@ export async function POST(request: NextRequest) {
               file_name: fileName,
               file_size: file.size,
               file_url: urlData.publicUrl,
-              file_type: file.type,
+              mime_type: file.type,
               category_type: 'required_user_docs',
               sub_category: requirement.document_type,
               tags: [requirement.document_type],
               uploaded_by: user.id,
               site_id: profile?.site_id || null,
-              status: 'uploaded',
-              requirement_id: requirementId,
-              original_document_id: documentData.id
+              status: 'uploaded'
             }
           ])
 
