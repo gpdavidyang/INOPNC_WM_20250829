@@ -682,7 +682,7 @@ export default function DailyReportDetailMobile({ report, currentUser }: DailyRe
                         <span className="text-gray-600 dark:text-gray-400">총 공수:</span>
                         <span className="font-semibold text-blue-600 dark:text-blue-400">
                           {((report.workers?.reduce((sum: number, w: any) => sum + (w.work_hours || 0), 0) || 0) / 8 + 
-                           (report.workerAssignments?.reduce((sum: number, a: any) => sum + (a.labor_hours || 0), 0) || 0)).toFixed(1)} 공수
+                           (report.workerAssignments?.reduce((sum: number, a: any) => sum + (a.labor_hours || 0), 0) || 0)).toFixed(2)} 공수
                         </span>
                       </div>
                     </div>

@@ -138,7 +138,7 @@ abstract class EmploymentTypePDFTemplate {
     currentY += 6
     
     const labor_hours = salary_calculation.tax_details?.labor_hours || 0
-    this.drawTableRow(['총 공수', '', `${labor_hours}공수`], currentY)
+    this.drawTableRow(['총 공수', '', `${labor_hours.toFixed(2)}공수`], currentY)
     currentY += 6
     
     // 지급 내역

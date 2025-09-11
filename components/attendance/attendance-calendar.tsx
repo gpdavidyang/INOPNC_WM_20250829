@@ -280,7 +280,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
         return (
           <div className="text-center mt-2 space-y-0.5">
             <div className="text-sm font-medium text-blue-600">
-              {attendance.labor_hours}
+              {attendance.labor_hours.toFixed(2)}
             </div>
             {attendance.site_name && (
               <div className="text-xs text-blue-600">
@@ -649,7 +649,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
                         attendance.labor_hours > 0 ? 'secondary' : 
                         'default'
                       }>
-                        {attendance.labor_hours} 공수
+                        {attendance.labor_hours.toFixed(2)} 공수
                       </Badge>
                     </div>
                   </div>

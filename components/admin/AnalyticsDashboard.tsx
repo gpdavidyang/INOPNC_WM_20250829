@@ -338,7 +338,7 @@ export default function AnalyticsDashboard({ profile }: AnalyticsDashboardProps)
                 총 공수
               </p>
               <p className={`${getFullTypographyClass('heading', '2xl', isLargeFont)} font-bold`}>
-                {(kpiData.total_labor_hours || 0).toFixed(1)}
+                {(kpiData.total_labor_hours || 0).toFixed(2)}
               </p>
               <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-red-600 flex items-center`}>
                 <TrendingDown className="h-3 w-3 mr-1" />

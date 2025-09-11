@@ -259,7 +259,7 @@ export function formatSalaryDetails(result: EnhancedSalaryCalculationResult): st
   
   let output = `=== ${type_label} 급여 계산 ===\n`
   output += `일급: ${result.daily_rate.toLocaleString()}원\n`
-  output += `공수: ${details.labor_hours}공수 (${details.total_hours}시간)\n`
+  output += `공수: ${details.labor_hours.toFixed(2)}공수 (${details.total_hours}시간)\n`
   output += `기본급: ${result.base_pay.toLocaleString()}원\n`
   output += `연장수당: ${result.overtime_pay.toLocaleString()}원\n`
   output += `총급여: ${result.gross_pay.toLocaleString()}원\n\n`
