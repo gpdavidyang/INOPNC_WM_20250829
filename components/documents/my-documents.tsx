@@ -59,6 +59,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
   const { touchMode } = useTouchMode()
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [sortBy, setSortBy] = useState('date')
@@ -74,10 +75,13 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
   const [selectedShareDoc, setSelectedShareDoc] = useState<RequiredDocument | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const requiredDocInputRef = useRef<HTMLInputElement>(null)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
     loadDocuments()
-  }, [filterType, sortBy])
+    // Set user from profile
+    setUser(profile)
+  }, [filterType, sortBy, profile])
 
   const loadDocuments = async () => {
     setLoading(true)
@@ -113,19 +117,38 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
 
 
   const handleUploadFiles = async (files: File[]) => {
-    for (const file of files) {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('title', file.name)
-      formData.append('description', file.name)
-      formData.append('document_type', 'personal')
-      formData.append('folder_path', 'personal')
-      formData.append('site_id', profile.site_id || '')
-      formData.append('is_public', 'false')
+    setIsUploading(true)
+    
+    try {
+      for (const file of files) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('category', 'personal')
+        formData.append('uploadedBy', user?.id || '')
+        formData.append('documentType', 'personal')
+        formData.append('isRequired', 'false')
+        
+        // Use API route directly for file upload
+        const response = await fetch('/api/documents', {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          console.error('Upload failed:', error)
+          alert(`파일 업로드 실패: ${error.error || '알 수 없는 오류'}`)
+        }
+      }
       
-      await uploadDocument(formData)
+      // Refresh documents list after upload
+      await loadDocuments()
+    } catch (error) {
+      console.error('Upload error:', error)
+      alert('파일 업로드 중 오류가 발생했습니다.')
+    } finally {
+      setIsUploading(false)
     }
-    loadDocuments()
   }
 
   const handleDelete = async (documentId: string) => {
@@ -256,17 +279,29 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     if (files.length === 0) return
     
     const file = files[0]
+    const docInfo = requiredDocs.find(d => d.id === docId)
+    
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('title', file.name)
-    formData.append('description', `필수서류: ${requiredDocs.find(d => d.id === docId)?.title}`)
-    formData.append('document_type', 'required')
-    formData.append('folder_path', 'required_documents')
-    formData.append('site_id', profile.site_id || '')
-    formData.append('is_public', 'false')
+    formData.append('category', 'required')
+    formData.append('uploadedBy', user?.id || '')
+    formData.append('documentType', 'required')
+    formData.append('isRequired', 'true')
+    formData.append('requirementId', docId)
     
     try {
-      await uploadDocument(formData)
+      // Use API route directly for file upload
+      const response = await fetch('/api/documents', {
+        method: 'POST',
+        body: formData
+      })
+      
+      if (!response.ok) {
+        const error = await response.json()
+        console.error('Required doc upload failed:', error)
+        alert(`파일 업로드 실패: ${error.error || '알 수 없는 오류'}`)
+        return
+      }
       
       // Update required docs state
       setRequiredDocs(prev => prev.map(doc => 
@@ -376,10 +411,20 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
               <Button
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-3 min-w-[120px]"
+                disabled={isUploading}
+                className="bg-blue-600 hover:bg-blue-700 text-white h-12 px-3 min-w-[120px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Upload className="h-4 w-4 mr-1" />
-                파일 업로드
+                {isUploading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-1" />
+                    업로드 중...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-1" />
+                    파일 업로드
+                  </>
+                )}
               </Button>
             )}
           </div>
