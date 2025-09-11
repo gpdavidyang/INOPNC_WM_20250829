@@ -274,15 +274,15 @@ export default function RequiredDocumentTypesAdmin() {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleEdit(docType)}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+                        className="px-3 py-1 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 rounded-md transition-colors"
                       >
-                        <Edit className="h-4 w-4" />
+                        수정
                       </button>
                       <button
                         onClick={() => handleDelete(docType.id)}
-                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                        className="px-3 py-1 text-sm bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800 rounded-md transition-colors"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        삭제
                       </button>
                     </div>
                   </td>
