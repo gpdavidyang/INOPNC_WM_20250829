@@ -160,17 +160,24 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
   return (
     <ScrollArea className={cn("h-full", className)}>
       <div className="p-2">
-        {(notifications || []).map((notification: any) => (
-          <div
-            key={notification.id}
-            className={cn(
-              "relative group flex items-start gap-3 p-3 mb-2 rounded-lg cursor-pointer transition-all",
-              "hover:bg-gray-50 dark:hover:bg-gray-700/50",
-              getNotificationBgColor(notification.type, notification.is_read),
-              notification.is_read ? "opacity-70" : "",
-              !notification.is_read && "shadow-sm"
-            )}
-            onClick={() => handleNotificationClick(notification)}
+        {(notifications || []).map((notification) => {
+          // Defensive check to ensure notification is valid
+          if (!notification || typeof notification !== 'object' || !notification.id) {
+            console.warn('[NotificationList] Invalid notification object:', notification)
+            return null
+          }
+          
+          return (
+            <div
+              key={notification.id}
+              className={cn(
+                "relative group flex items-start gap-3 p-3 mb-2 rounded-lg cursor-pointer transition-all",
+                "hover:bg-gray-50 dark:hover:bg-gray-700/50",
+                getNotificationBgColor(notification.type, notification.is_read),
+                notification.is_read ? "opacity-70" : "",
+                !notification.is_read && "shadow-sm"
+              )}
+              onClick={() => handleNotificationClick(notification)}
           >
             <div className="flex-shrink-0 mt-0.5">
               {getNotificationIcon(notification.type)}
@@ -228,7 +235,8 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
               <div className="absolute top-3 right-3 h-2 w-2 bg-blue-600 dark:bg-blue-400 rounded-full shadow-sm" />
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
     </ScrollArea>
   )
