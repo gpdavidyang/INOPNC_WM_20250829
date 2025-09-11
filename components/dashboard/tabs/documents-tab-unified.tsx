@@ -15,10 +15,9 @@ interface DocumentsTabUnifiedProps {
   profile: Profile
   initialTab?: 'personal' | 'shared' | 'markup' | 'required'
   initialSearch?: string
-  onTabChange?: (tabId: string) => void
 }
 
-export default function DocumentsTabUnified({ profile, initialTab = 'personal', initialSearch, onTabChange }: DocumentsTabUnifiedProps) {
+export default function DocumentsTabUnified({ profile, initialTab = 'personal', initialSearch }: DocumentsTabUnifiedProps) {
   // If initialSearch is for blueprints, default to shared tab
   const defaultTab = initialSearch === '공도면' ? 'shared' : initialTab
   const [activeTab, setActiveTab] = useState<'personal' | 'shared' | 'markup' | 'required'>(defaultTab)
@@ -35,9 +34,7 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
 
   const handleTabChange = (tab: 'personal' | 'shared' | 'markup' | 'required') => {
     setActiveTab(tab)
-    if (onTabChange) {
-      onTabChange(tab)
-    }
+    // No more onTabChange callback - component manages its own state
   }
 
   return (

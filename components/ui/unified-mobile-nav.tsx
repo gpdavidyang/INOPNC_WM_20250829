@@ -90,15 +90,11 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
     setIsNavigating(true)
     
     try {
-      console.log('[UnifiedMobileNav] Navigation click:', item.label, 'href:', item.href, 'current:', pathname)
-      
       if (item.href === pathname) {
-        console.log('[UnifiedMobileNav] Already on this page, skipping navigation')
         return // Already on this page
       }
       
       // Always use direct navigation for URL routes
-      console.log('[UnifiedMobileNav] Performing direct navigation to:', item.href)
       await router.push(item.href)
       
       // REMOVED: onTabChange call to prevent infinite recursion
@@ -107,12 +103,11 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
       // UnifiedMobileNav -> onTabChange -> DashboardLayout setActiveTab -> re-render -> infinite loop
       
     } catch (error) {
-      console.error('[UnifiedMobileNav] Navigation error:', error)
+      // Silent error handling
     } finally {
       // Reset navigation state after a short delay
       setTimeout(() => {
         setIsNavigating(false)
-        console.log('[UnifiedMobileNav] Navigation state reset')
       }, 500)
     }
   }, [router, pathname, isNavigating]) // REMOVED: onTabChange from dependencies

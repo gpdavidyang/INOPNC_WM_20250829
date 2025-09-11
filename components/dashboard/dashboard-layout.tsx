@@ -35,33 +35,16 @@ export default function DashboardLayout({ user, profile, children, initialActive
   const [isSidebarOpen, setIsSidebarOpen] = useState(false) // 초기값은 항상 false (닫힌 상태)
   const [documentsInitialSearch, setDocumentsInitialSearch] = useState<string | undefined>()
 
-  // Helper function to get active tab from pathname and hash
+  // Helper function to get active tab from pathname only (no hash navigation)
   const getCurrentActiveTabFromPath = (path: string) => {
-    // Check for hash-based navigation first
-    if (typeof window !== 'undefined' && window.location.hash) {
-      const hash = window.location.hash.replace('#', '')
-      if (hash === 'documents-unified' || hash === 'documents') return 'documents-unified'
-      if (hash === 'home') return 'home'
-      if (hash === 'daily-reports') return 'daily-reports'
-      if (hash === 'attendance') return 'attendance'
-      if (hash === 'profile') return 'profile'
-    }
-    
-    // Fallback to path-based navigation
+    // URL-based navigation only
     if (path.includes('/dashboard/site-info')) return 'site-info'
     if (path.includes('/dashboard/daily-reports')) return 'daily-reports'
     if (path.includes('/dashboard/attendance')) return 'attendance'
-    if (path.includes('/dashboard/documents')) return 'documents-unified'
-    if (path.includes('/dashboard/markup')) return 'documents-unified'
+    if (path.includes('/dashboard/documents')) return 'documents'
+    if (path.includes('/dashboard/markup')) return 'documents'
     if (path.includes('/dashboard/profile')) return 'profile'
-    if (path === '/dashboard') {
-      // Check if there's a hash for dashboard home page
-      if (typeof window !== 'undefined' && window.location.hash) {
-        const hash = window.location.hash.replace('#', '')
-        if (hash && hash !== 'home') return hash
-      }
-      return 'home'
-    }
+    if (path === '/dashboard' || path === '/dashboard/') return 'home'
     return 'home'
   }
 
@@ -71,28 +54,11 @@ export default function DashboardLayout({ user, profile, children, initialActive
     const newTab = getCurrentActiveTabFromPath(pathname)
     // Only update if actually changed to prevent re-renders
     if (newTab !== activeTab) {
-      // console.log('[DashboardLayout] Tab change:', activeTab, '->', newTab)
       setActiveTab(newTab)
     }
   }, [pathname]) // ✅ Removed children and activeTab dependency to prevent loops
 
-  // Listen for hash changes to support direct hash navigation
-  useEffect(() => {
-    const handleHashChange = () => {
-      const newTab = getCurrentActiveTabFromPath(pathname)
-      // Use functional update to get current activeTab without adding it to dependencies
-      setActiveTab(currentTab => {
-        if (newTab !== currentTab) {
-          // console.log('[DashboardLayout] Hash change detected, tab change:', currentTab, '->', newTab)
-          return newTab
-        }
-        return currentTab
-      })
-    }
-
-    window.addEventListener('hashchange', handleHashChange)
-    return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [pathname]) // ✅ FIXED: Removed activeTab from dependencies to prevent infinite loop
+  // Removed hash change listener - using URL-based navigation only
 
   // 컴포넌트 프리로드 - 사용자 역할에 따라
   useEffect(() => {
@@ -130,24 +96,27 @@ export default function DashboardLayout({ user, profile, children, initialActive
 
 
 
-  // 하단 네비게이션 클릭 처리 - FIXED: Removed manual setActiveTab calls after navigation
+  // 하단 네비게이션 클릭 처리 - URL-based navigation only
   const handleBottomNavClick = React.useCallback(async (tabId: string) => {
-    // console.log('[DashboardLayout] handleBottomNavClick called with:', tabId)
-    
     try {
-      // Check if it's a direct link (starts with /)
+      // Direct path navigation only
       if (tabId.startsWith('/')) {
-        // console.log('[DashboardLayout] Direct navigation to:', tabId)
         await router.push(tabId)
-        // REMOVED: Manual setActiveTab calls - the useEffect will handle this based on pathname change
-        // This prevents double state updates and potential infinite loops
         return
       }
       
-      // Handle hash-based or direct tab navigation
-      const cleanTabId = tabId.replace('#', '')
-      // console.log('[DashboardLayout] Setting active tab to:', cleanTabId)
-      setActiveTab(cleanTabId)
+      // Convert tab ID to path
+      const tabPaths: Record<string, string> = {
+        'home': '/dashboard',
+        'daily-reports': '/dashboard/daily-reports',
+        'attendance': '/dashboard/attendance',
+        'documents': '/dashboard/documents',
+        'site-info': '/dashboard/site-info',
+        'profile': '/dashboard/profile'
+      }
+      
+      const path = tabPaths[tabId] || '/dashboard'
+      await router.push(path)
       
     } catch (error) {
       console.error('[DashboardLayout] Navigation error:', error)
