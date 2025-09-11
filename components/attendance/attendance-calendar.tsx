@@ -432,9 +432,12 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
                 ? Math.min(attendance.labor_hours, 1.2) / 1.2 
                 : 0
 
+              // Create unique key - use day or fallback to index
+              const dayKey = day ? format(day, 'yyyy-MM-dd') : `calendar-day-${index}`
+
               return (
                 <div
-                  key={index}
+                  key={dayKey}
                   onClick={() => day && setSelectedDate(day)}
                   className={cn(
                     "relative cursor-pointer rounded-xl transition-all duration-300",
@@ -519,7 +522,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
                                 
                                 {/* Content with holographic effects */}
                                 <div className="relative z-20 text-center">
-                                  {content}
+                                  {content || null}
                                 </div>
                                 
                                 {/* Quantum field lines */}
@@ -527,7 +530,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
                                   <div className="flex space-x-1">
                                     {Array.from({ length: Math.ceil(quantumLevel * 5) }).map((_, i) => (
                                       <div
-                                        key={i}
+                                        key={`quantum-line-${dayKey}-${i}`}
                                         className="w-0.5 h-2 bg-gradient-to-t from-blue-400 to-purple-400 opacity-60 animate-pulse"
                                         style={{animationDelay: `${i * 0.2}s`}}
                                       ></div>
@@ -537,7 +540,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
                               </div>
                             )
                           }
-                          return content
+                          return content || null
                         })()
                       )}
 
