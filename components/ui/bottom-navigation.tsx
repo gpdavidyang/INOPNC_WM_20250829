@@ -83,16 +83,10 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
         
         // Check current location
         if (pathname === '/dashboard' || pathname === '/dashboard/') {
-          // We're on dashboard, handle via tab change
-          if (onTabChange) {
-            console.log('[BottomNav] Calling onTabChange for documents-unified')
-            onTabChange('documents-unified')
-            // Also update the hash for consistency
-            window.location.hash = 'documents-unified'
-          } else {
-            // No tab change handler, navigate directly
-            window.location.hash = 'documents-unified'
-          }
+          // We're on dashboard, just update the hash
+          // REMOVED onTabChange call to prevent infinite recursion
+          // The DashboardLayout will detect the hash change and update activeTab
+          window.location.hash = 'documents-unified'
         } else {
           // We're on another page, navigate to dashboard with documents hash
           const targetUrl = '/dashboard#documents-unified'
