@@ -16,11 +16,13 @@ import {
   Clock,
   UserPlus,
   Wand2,
-  History
+  History,
+  MoveRight
 } from 'lucide-react'
 import { WorkflowTooltip, MappingTooltip, AssignmentExplanationTooltip } from './AssignmentTooltip'
 import PartnerSiteMapping from './PartnerSiteMapping'
 import UserAssignmentMatrix from './UserAssignmentMatrix'
+import UserAssignmentMatrixDnD from './UserAssignmentMatrixDnD'
 import AssignmentWizard from './AssignmentWizard'
 import AssignmentHistory from './AssignmentHistory'
 
@@ -236,7 +238,7 @@ export default function AssignmentDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">전체 현황</TabsTrigger>
           <TabsTrigger value="mapping" className="flex items-center gap-2">
             파트너사-현장 매핑
@@ -245,6 +247,10 @@ export default function AssignmentDashboard() {
           <TabsTrigger value="assignments" className="flex items-center gap-2">
             사용자 배정
             <AssignmentExplanationTooltip />
+          </TabsTrigger>
+          <TabsTrigger value="dragdrop" className="flex items-center gap-1">
+            <MoveRight className="h-4 w-4" />
+            드래그 배정
           </TabsTrigger>
           <TabsTrigger value="activity">최근 활동</TabsTrigger>
         </TabsList>
@@ -410,6 +416,15 @@ export default function AssignmentDashboard() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="dragdrop" className="space-y-6">
+          <UserAssignmentMatrixDnD 
+            onUpdate={() => {
+              loadDashboardStats()
+              loadRecentActivity()
+            }}
+          />
         </TabsContent>
       </Tabs>
 
