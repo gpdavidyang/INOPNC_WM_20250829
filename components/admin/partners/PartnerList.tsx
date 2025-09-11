@@ -47,7 +47,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
   const [showForm, setShowForm] = useState(false)
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
   const [showDetail, setShowDetail] = useState(false)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
   const supabase = createClient()
 
   const loadPartners = async () => {
