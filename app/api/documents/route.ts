@@ -328,8 +328,8 @@ export async function POST(request: NextRequest) {
           folder_path: filePath,
           owner_id: user.id,
           site_id: profile?.site_id || null,
-          is_public: false,
-          description: `업로드된 파일: ${file.name}`
+          is_public: formData.get('isPublic') === 'true' || false,
+          description: formData.get('description') as string || `업로드된 파일: ${file.name}`
         }
       ])
       .select()
