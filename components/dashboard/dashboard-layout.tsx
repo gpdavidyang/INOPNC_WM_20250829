@@ -130,7 +130,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
 
 
 
-  // 하단 네비게이션 클릭 처리
+  // 하단 네비게이션 클릭 처리 - FIXED: Removed manual setActiveTab calls after navigation
   const handleBottomNavClick = React.useCallback(async (tabId: string) => {
     // console.log('[DashboardLayout] handleBottomNavClick called with:', tabId)
     
@@ -139,14 +139,8 @@ export default function DashboardLayout({ user, profile, children, initialActive
       if (tabId.startsWith('/')) {
         // console.log('[DashboardLayout] Direct navigation to:', tabId)
         await router.push(tabId)
-        
-        // Update active tab state based on the route
-        if (tabId === '/dashboard') setActiveTab('home')
-        else if (tabId === '/dashboard/attendance') setActiveTab('attendance')
-        else if (tabId === '/dashboard/daily-reports') setActiveTab('daily-reports')
-        else if (tabId === '/dashboard/site-info') setActiveTab('site-info')
-        else if (tabId === '/dashboard/documents') setActiveTab('documents')
-        
+        // REMOVED: Manual setActiveTab calls - the useEffect will handle this based on pathname change
+        // This prevents double state updates and potential infinite loops
         return
       }
       
