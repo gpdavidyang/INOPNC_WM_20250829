@@ -56,3 +56,24 @@ export const toggleNewDesign = () => {
   localStorage.setItem('new-design', (!current).toString())
   window.location.reload()
 }
+
+// Feature flag checking function
+export const isFeatureEnabled = (feature: string): boolean => {
+  // Disable all monitoring features in production for now
+  if (feature === 'ENABLE_MONITORING' || feature === 'ENABLE_PERFORMANCE_MONITORING') {
+    return false
+  }
+  
+  // Check environment variables
+  const envKey = `NEXT_PUBLIC_${feature}`
+  if (typeof process !== 'undefined' && process.env[envKey] === 'true') {
+    return true
+  }
+  
+  // Check localStorage for development
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    return localStorage.getItem(feature) === 'true'
+  }
+  
+  return false
+}
