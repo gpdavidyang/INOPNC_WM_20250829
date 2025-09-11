@@ -38,7 +38,7 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
       navigate = navigation?.navigate
       isNavigating = navigation?.isNavigating || false
     } catch (error) {
-      console.warn('[BottomNavigation] NavigationController not available, using fallback navigation:', error)
+      // NavigationController not available, using fallback navigation
       // Keep navigate as null, will use router.push fallback
     }
 
@@ -48,7 +48,6 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
       
       // 이미 네비게이션 중이면 무시 (짧은 시간 체크)
       if (isNavigating) {
-        console.log('[BottomNav] Navigation in progress, skipping')
         return
       }
       
@@ -77,26 +76,15 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
         return
       }
       
-      // Special handling for documents - ensure proper navigation
-      if (item.href === '#documents-unified' || item.href.includes('documents')) {
-        console.log('[BottomNav] Documents navigation detected')
+      // Special handling for documents - use URL-based navigation
+      if (item.href === '#documents-unified' || item.href === '#documents' || item.href.includes('documents')) {
+        // Always navigate to documents page directly
+        const targetUrl = '/dashboard/documents'
         
-        // Check current location
-        if (pathname === '/dashboard' || pathname === '/dashboard/') {
-          // We're on dashboard, just update the hash
-          // REMOVED onTabChange call to prevent infinite recursion
-          // The DashboardLayout will detect the hash change and update activeTab
-          window.location.hash = 'documents-unified'
+        if (navigate) {
+          navigate(targetUrl)
         } else {
-          // We're on another page, navigate to dashboard with documents hash
-          const targetUrl = '/dashboard#documents-unified'
-          console.log('[BottomNav] Navigating to:', targetUrl)
-          
-          if (navigate) {
-            navigate(targetUrl)
-          } else {
-            router.push(targetUrl)
-          }
+          router.push(targetUrl)
         }
         return
       }

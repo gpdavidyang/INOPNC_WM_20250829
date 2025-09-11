@@ -72,7 +72,7 @@ const generalUserMenuItems: MenuItem[] = [
     label: '문서함',
     icon: FolderOpen,
     roles: ['worker', 'site_manager', 'customer_manager'],
-    href: '/dashboard#documents-unified'
+    href: '/dashboard/documents'
   },
   {
     id: 'profile',
