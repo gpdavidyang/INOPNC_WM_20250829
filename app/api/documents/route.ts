@@ -234,20 +234,32 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (dbError) {
-      console.error('Database error:', dbError)
-      console.error('Failed to insert document with data:', {
+      console.error('❌ Database error when saving document:', {
+        error: dbError,
+        message: dbError.message,
+        code: dbError.code,
+        details: dbError.details,
+        hint: dbError.hint
+      })
+      console.error('❌ Document data that failed to insert:', {
         title: file.name,
         file_name: fileName,
+        file_url: urlData.publicUrl,
         file_size: file.size,
         mime_type: file.type,
         document_type: documentType || 'general',
-        owner_id: user.id
+        folder_path: filePath,
+        owner_id: user.id,
+        site_id: profile?.site_id || null,
+        is_public: false,
+        description: `업로드된 파일: ${file.name}`
       })
       // 업로드된 파일 삭제
       await supabase.storage.from('documents').remove([filePath])
       return NextResponse.json({ 
         error: 'Failed to save document info', 
-        details: dbError.message || dbError 
+        details: dbError.message || dbError,
+        dbError: dbError
       }, { status: 500 })
     }
 
@@ -283,7 +295,13 @@ export async function POST(request: NextRequest) {
           ])
 
         if (unifiedError) {
-          console.error('Failed to save to unified_document_system:', unifiedError)
+          console.error('❌ Failed to save to unified_document_system:', {
+            error: unifiedError,
+            message: unifiedError.message,
+            code: unifiedError.code,
+            details: unifiedError.details,
+            hint: unifiedError.hint
+          })
           // Don't fail the whole request - just log the error
         } else {
           console.log('✅ Successfully saved to unified_document_system')
