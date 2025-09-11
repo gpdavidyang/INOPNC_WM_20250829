@@ -404,8 +404,8 @@ function SidebarContent({
       // Special handling for documents tab - ensure proper navigation
       if (item.id === 'documents' || item.href.includes('#documents-unified')) {
         // console.log('[Sidebar] Navigating to documents tab')
-        // FIXED: Use direct navigation to prevent circular state updates
-        const targetUrl = '/dashboard/documents'
+        // Navigate directly to dashboard with hash to avoid redirect loops
+        const targetUrl = '/dashboard#documents-unified'
         
         if (navigate) {
           navigate(targetUrl)
