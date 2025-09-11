@@ -18,7 +18,7 @@ import {
   AlertCircle,
   FileText
 } from 'lucide-react'
-import { AssignmentTooltip } from './AssignmentTooltip'
+import AssignmentTooltip from './AssignmentTooltip'
 
 interface Partner {
   id: string
@@ -113,10 +113,10 @@ export default function AssignmentWizard({
 
   const fetchPartners = async () => {
     try {
-      const response = await fetch('/api/admin/partner-companies')
+      const response = await fetch('/api/admin/organizations/partner-companies')
       if (response.ok) {
         const data = await response.json()
-        setPartners(data.data || [])
+        setPartners(data || [])
       }
     } catch (error) {
       console.error('Failed to fetch partners:', error)
@@ -125,7 +125,7 @@ export default function AssignmentWizard({
 
   const fetchSites = async () => {
     try {
-      const response = await fetch('/api/admin/sites')
+      const response = await fetch('/api/sites')
       if (response.ok) {
         const data = await response.json()
         setSites(data.data || [])
