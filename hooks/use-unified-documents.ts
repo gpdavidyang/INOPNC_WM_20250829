@@ -10,6 +10,7 @@ export interface UnifiedDocument {
   file_url: string
   file_path?: string
   file_size?: number
+  file_type?: string
   mime_type?: string
   category_type: string
   sub_category?: string
@@ -19,10 +20,13 @@ export interface UnifiedDocument {
   site_id?: string
   customer_company_id?: string
   daily_report_id?: string
-  status: 'active' | 'archived' | 'deleted' | 'rejected'
+  status: 'active' | 'archived' | 'deleted' | 'rejected' | 'draft' | 'pending'
+  workflow_status?: string
   is_public: boolean
   is_archived: boolean
   approval_required: boolean
+  version?: number
+  access_level?: string
   approved_by?: string
   approved_at?: string
   metadata?: Record<string, any>
