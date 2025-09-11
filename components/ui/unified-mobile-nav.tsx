@@ -133,7 +133,7 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
       }}
     >
       <div className="flex h-16 items-center justify-around px-2" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
-        {(visibleItems || []).map((item) => {
+        {visibleItems && Array.isArray(visibleItems) && visibleItems.map((item) => {
           const active = isActive(item)
           
           return (
@@ -155,7 +155,7 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
               <div className="relative">
                 {/* Fixed: Don't use cloneElement with Next.js Image components */}
                 <div className="h-6 w-6 stroke-current">
-                  {item.icon}
+                  {React.isValidElement(item.icon) ? item.icon : <span>{item.icon}</span>}
                 </div>
                 {item.badge && (
                   <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
