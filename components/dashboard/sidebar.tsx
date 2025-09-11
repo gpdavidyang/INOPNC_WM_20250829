@@ -339,10 +339,7 @@ function SidebarContent({
   
   // Determine active tab based on current pathname
   const getActiveTabFromPath = () => {
-    // Check for hash-based navigation first
-    if (window.location.hash === '#documents-unified') return 'documents'
     if (pathname === '/dashboard' || pathname === '/dashboard/') {
-      // For dashboard root, check hash for active tab
       return activeTab || 'home'
     }
     if (pathname.includes('/dashboard/attendance')) return 'attendance'
@@ -401,18 +398,16 @@ function SidebarContent({
     
     // Admin pages or items with href should navigate to separate routes
     if (item.href) {
-      // Special handling for documents tab - ensure proper navigation
-      if (item.id === 'documents' || item.href.includes('#documents-unified')) {
-        // console.log('[Sidebar] Navigating to documents tab')
-        // Navigate directly to dashboard with hash to avoid redirect loops
-        const targetUrl = '/dashboard#documents-unified'
+      // Special handling for documents tab - use dedicated page
+      if (item.id === 'documents') {
+        // console.log('[Sidebar] Navigating to documents page')
+        const targetUrl = '/dashboard/documents'
         
         if (navigate) {
           navigate(targetUrl)
         } else {
           router.push(targetUrl)
         }
-        // REMOVED: onTabChange call - let the dashboard-layout handle state from pathname
         return
       }
       
