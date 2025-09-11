@@ -182,6 +182,10 @@ export default function DocumentsTab({
 
   // Calculate and report required docs progress
   useEffect(() => {
+    if (!Array.isArray(requiredDocuments) || !Array.isArray(documents) || !Array.isArray(submissionStatus)) {
+      return
+    }
+    
     const uploadedCount = requiredDocuments.filter(reqDoc => {
       const hasSubmitted = submissionStatus.some(status => 
         status.requirement_id === reqDoc.id && 
@@ -194,7 +198,7 @@ export default function DocumentsTab({
     if (onRequiredDocsUpdate) {
       onRequiredDocsUpdate(uploadedCount, totalCount)
     }
-  }, [documents, requiredDocuments, submissionStatus, onRequiredDocsUpdate])
+  }, [documents.length, requiredDocuments.length, submissionStatus.length, onRequiredDocsUpdate])
 
   const loadRequiredDocuments = async () => {
     try {
@@ -229,12 +233,14 @@ export default function DocumentsTab({
         setSubmissionStatus(result.data)
         
         // Update required documents with submission status
-        setRequiredDocuments(prev => prev.map(doc => {
-          const submission = result.data.find((s: any) => s.requirement_id === doc.id)
-          if (submission) {
-            return {
-              ...doc,
-              submissionStatus: submission.submission_status,
+        setRequiredDocuments(prev => {
+          if (!Array.isArray(prev)) return []
+          return prev.map(doc => {
+            const submission = result.data.find((s: any) => s.requirement_id === doc.id)
+            if (submission) {
+              return {
+                ...doc,
+                submissionStatus: submission.submission_status,
               rejectionReason: submission.rejection_reason,
               submittedAt: submission.submitted_at,
               approvedAt: submission.approved_at,
@@ -242,7 +248,8 @@ export default function DocumentsTab({
             }
           }
           return { ...doc, submissionStatus: 'not_submitted' }
-        }))
+        })
+        })
       }
     } catch (error) {
       console.error('Error loading submission status:', error)
@@ -506,6 +513,7 @@ export default function DocumentsTab({
       // Step 4: API Upload
       // console.log('4️⃣ Starting API upload to /api/documents')
       setUploadProgress(prev => {
+        if (!Array.isArray(prev)) return []
         const updated = prev.map(item => 
           item.fileName === file.name 
             ? { ...item, progress: 20 }
