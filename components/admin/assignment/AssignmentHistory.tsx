@@ -119,17 +119,17 @@ export default function AssignmentHistory() {
     }
 
     // Assignment type filter
-    if (filters.assignmentType) {
+    if (filters.assignmentType && filters.assignmentType !== 'all') {
       filtered = filtered.filter(record => record.assignment_type === filters.assignmentType)
     }
 
     // Role filter
-    if (filters.role) {
+    if (filters.role && filters.role !== 'all') {
       filtered = filtered.filter(record => record.role === filters.role)
     }
 
     // Date range filter
-    if (filters.dateRange) {
+    if (filters.dateRange && filters.dateRange !== 'all') {
       const now = new Date()
       let startDate: Date
       
@@ -312,7 +312,7 @@ export default function AssignmentHistory() {
                 <SelectValue placeholder="배정 유형" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">전체 유형</SelectItem>
+                <SelectItem value="all">전체 유형</SelectItem>
                 <SelectItem value="permanent">정규</SelectItem>
                 <SelectItem value="temporary">임시</SelectItem>
                 <SelectItem value="substitute">대체</SelectItem>
@@ -327,7 +327,7 @@ export default function AssignmentHistory() {
                 <SelectValue placeholder="역할" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">전체 역할</SelectItem>
+                <SelectItem value="all">전체 역할</SelectItem>
                 <SelectItem value="worker">작업자</SelectItem>
                 <SelectItem value="supervisor">감독자</SelectItem>
                 <SelectItem value="site_manager">현장관리자</SelectItem>
@@ -342,7 +342,7 @@ export default function AssignmentHistory() {
                 <SelectValue placeholder="기간" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">전체 기간</SelectItem>
+                <SelectItem value="all">전체 기간</SelectItem>
                 <SelectItem value="7days">최근 7일</SelectItem>
                 <SelectItem value="30days">최근 30일</SelectItem>
                 <SelectItem value="90days">최근 90일</SelectItem>

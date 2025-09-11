@@ -83,7 +83,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
   const [sites, setSites] = useState<Site[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('active')
   const [showAssignModal, setShowAssignModal] = useState(false)
   const [showBulkAssignModal, setShowBulkAssignModal] = useState(false)
@@ -102,7 +102,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
     site_id: '',
     assignment_type: 'permanent' as const,
     role: 'worker' as const,
-    partner_company_id: '',
+    partner_company_id: 'all',
     notes: ''
   })
 
@@ -275,7 +275,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
       assignment.site.name.toLowerCase().includes(searchLower) ||
       assignment.site.address.toLowerCase().includes(searchLower)
     
-    const matchesRole = !roleFilter || assignment.user.role === roleFilter
+    const matchesRole = roleFilter === 'all' || assignment.user.role === roleFilter
     
     return matchesSearch && matchesRole
   })
@@ -286,8 +286,8 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
       user.full_name.toLowerCase().includes(searchLower) ||
       user.email.toLowerCase().includes(searchLower)
     
-    const matchesRole = !roleFilter || user.role === roleFilter
-    const matchesPartner = !bulkAssignmentData.partner_company_id || 
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter
+    const matchesPartner = bulkAssignmentData.partner_company_id === 'all' || 
       user.partner_company?.id === bulkAssignmentData.partner_company_id
     
     return matchesSearch && matchesRole && matchesPartner
@@ -343,7 +343,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
             <SelectValue placeholder="모든 역할" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">모든 역할</SelectItem>
+            <SelectItem value="all">모든 역할</SelectItem>
             <SelectItem value="worker">작업자</SelectItem>
             <SelectItem value="site_manager">현장관리자</SelectItem>
             <SelectItem value="customer_manager">파트너사</SelectItem>
@@ -700,7 +700,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                     <SelectValue placeholder="모든 파트너사" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">모든 파트너사</SelectItem>
+                    <SelectItem value="all">모든 파트너사</SelectItem>
                     {partnersWithUsers.map((partner) => (
                       <SelectItem key={partner.id} value={partner.id}>
                         {partner.company_name}
