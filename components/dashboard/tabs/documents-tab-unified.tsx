@@ -28,84 +28,82 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
 
   return (
     <div className="space-y-4">
-      {/* Button Navigation - Enhanced with Required Documents Tab */}
-      <div className="flex flex-col gap-3">
-        {/* First Row: 내문서함, 공유문서함 */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => setActiveTab('personal')}
-            className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm min-h-[48px] transition-all duration-200 ${
-              activeTab === 'personal'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <FolderOpen className="h-5 w-5" />
-              <span>내문서함</span>
+      {/* Button Navigation - 2x2 Grid Layout */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* 내문서함 */}
+        <button
+          onClick={() => setActiveTab('personal')}
+          className={`py-4 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
+            activeTab === 'personal'
+              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
+          }`}
+        >
+          <div className="flex flex-col items-center gap-2">
+            <FolderOpen className="h-6 w-6" />
+            <span>내문서함</span>
+          </div>
+        </button>
+
+        {/* 공유문서함 */}
+        <button
+          onClick={() => setActiveTab('shared')}
+          className={`py-4 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
+            activeTab === 'shared'
+              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
+          }`}
+        >
+          <div className="flex flex-col items-center gap-2">
+            <Share2 className="h-6 w-6" />
+            <span>공유문서함</span>
+          </div>
+        </button>
+
+        {/* 도면마킹 */}
+        <button
+          onClick={() => setActiveTab('markup')}
+          className={`py-4 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
+            activeTab === 'markup'
+              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
+          }`}
+        >
+          <div className="flex flex-col items-center gap-2">
+            <Edit3 className="h-6 w-6" />
+            <span>도면마킹</span>
+          </div>
+        </button>
+
+        {/* 필수 제출 서류 */}
+        <button
+          onClick={() => setActiveTab('required')}
+          className={`py-4 px-4 rounded-lg font-medium text-sm transition-all duration-200 relative ${
+            activeTab === 'required'
+              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
+              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
+          }`}
+        >
+          <div className="flex flex-col items-center gap-2">
+            <FileCheck className="h-6 w-6" />
+            <span>필수 제출 서류</span>
+          </div>
+          {/* Progress Indicator - Bottom Border */}
+          {activeTab !== 'required' && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-600 rounded-b-lg overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-500 ${
+                  requiredDocsProgress.completed === requiredDocsProgress.total
+                    ? 'bg-green-500'
+                    : requiredDocsProgress.completed > 0
+                    ? 'bg-orange-500'
+                    : 'bg-red-500'
+                }`}
+                style={{ width: `${(requiredDocsProgress.completed / requiredDocsProgress.total) * 100}%` }}
+              />
             </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('shared')}
-            className={`flex-1 py-3 px-4 rounded-xl font-medium text-sm min-h-[48px] transition-all duration-200 ${
-              activeTab === 'shared'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <Share2 className="h-5 w-5" />
-              <span>공유문서함</span>
-            </div>
-          </button>
-        </div>
-        
-        {/* Second Row: 도면마킹 */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => setActiveTab('markup')}
-            className={`w-full py-3 px-4 rounded-xl font-medium text-sm min-h-[48px] transition-all duration-200 ${
-              activeTab === 'markup'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <Edit3 className="h-5 w-5" />
-              <span>도면마킹</span>
-            </div>
-          </button>
-        </div>
-        
-        {/* Third Row: 필수 제출 서류 */}
-        <div className="flex gap-3">
-          <button
-            onClick={() => setActiveTab('required')}
-            className={`w-full py-3 px-4 rounded-xl font-medium text-sm min-h-[48px] transition-all duration-200 relative ${
-              activeTab === 'required'
-                ? 'bg-blue-600 text-white shadow-lg'
-                : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 shadow-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-gray-500'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <FileCheck className="h-5 w-5" />
-              <span>필수 제출 서류</span>
-            </div>
-            {/* Progress Indicator Line */}
-            {activeTab !== 'required' && (
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-b-xl overflow-hidden">
-                <div 
-                  className={`h-full transition-all duration-500 ${
-                    requiredDocsProgress.completed === requiredDocsProgress.total
-                      ? 'bg-gradient-to-r from-green-500 to-emerald-500'
-                      : 'bg-gradient-to-r from-orange-500 to-red-500'
-                  }`}
-                  style={{ width: `${(requiredDocsProgress.completed / requiredDocsProgress.total) * 100}%` }}
-                />
-              </div>
-            )}
-          </button>
-        </div>
+          )}
+        </button>
       </div>
 
       {/* Tab Content */}
