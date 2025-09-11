@@ -14,16 +14,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('User document submissions API - User ID:', user.id)
+
     // Get user's document submission status
     const { data: submissions, error } = await supabase
       .from('user_document_submissions')
       .select(`
         *,
         requirement:document_requirements(*),
-        document:documents(id, file_name, file_url, created_at)
+        document:unified_document_system(id, title, file_name, file_url, created_at)
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
+
+    console.log('User document submissions API - Submissions found:', submissions?.length || 0)
+    console.log('User document submissions API - Error:', error)
 
     if (error) {
       console.error('Error fetching user submissions:', error)

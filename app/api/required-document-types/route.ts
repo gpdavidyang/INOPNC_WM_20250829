@@ -22,91 +22,44 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    const searchParams = request.nextUrl.searchParams
-    const roleType = searchParams.get('role_type') || profile.role
-    const siteId = searchParams.get('site_id') || profile.site_id
+    console.log('Required document types API - User profile:', profile)
 
-    let query = supabase
-      .from('required_document_types')
-      .select(`
-        id,
-        code,
-        name_ko,
-        name_en,
-        description,
-        file_types,
-        max_file_size,
-        sort_order,
-        role_mappings:required_documents_by_role!inner(
-          role_type,
-          is_required
-        )
-      `)
+    // First try to get from document_requirements table
+    const { data: documents, error } = await supabase
+      .from('document_requirements')
+      .select('*')
       .eq('is_active', true)
-      .eq('role_mappings.role_type', roleType)
-      .eq('role_mappings.is_required', true)
-      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: true })
 
-    const { data: baseDocuments, error: baseError } = await query
-
-    if (baseError) {
-      console.error('Error fetching base required documents:', baseError)
+    if (error) {
+      console.error('Error fetching document requirements:', error)
       return NextResponse.json({ error: 'Failed to fetch required documents' }, { status: 500 })
     }
 
-    let finalDocuments = baseDocuments || []
+    console.log('Required document types API - Found documents:', documents?.length || 0)
 
-    if (siteId) {
-      const { data: siteCustomizations, error: siteError } = await supabase
-        .from('site_required_documents')
-        .select(`
-          document_type_id,
-          is_required,
-          due_days,
-          notes,
-          document_type:required_document_types(
-            id,
-            code,
-            name_ko,
-            name_en,
-            description,
-            file_types,
-            max_file_size,
-            sort_order
-          )
-        `)
-        .eq('site_id', siteId)
-        .eq('is_required', true)
-        .eq('document_type.is_active', true)
+    // Transform to expected format for documents-tab.tsx
+    const transformedDocuments = (documents || []).map(doc => ({
+      id: doc.id,
+      code: doc.document_type || doc.id,
+      name_ko: doc.requirement_name,
+      name_en: doc.requirement_name,
+      description: doc.description,
+      file_types: doc.file_format_allowed || ['pdf', 'jpg', 'jpeg', 'png'],
+      max_file_size: (doc.max_file_size_mb || 5) * 1024 * 1024, // Convert MB to bytes
+      sort_order: 0,
+      isRequired: doc.is_mandatory,
+      is_mandatory: doc.is_mandatory,
+      submissionStatus: 'not_submitted' // Default status, will be updated by submission API
+    }))
 
-      if (!siteError && siteCustomizations) {
-        const siteDocumentIds = new Set(siteCustomizations.map(sc => sc.document_type_id))
-        
-        finalDocuments = finalDocuments.filter(doc => {
-          const hasSiteCustomization = siteDocumentIds.has(doc.id)
-          return !hasSiteCustomization
-        })
-
-        siteCustomizations.forEach(customization => {
-          if (customization.document_type) {
-            finalDocuments.push({
-              ...customization.document_type,
-              due_days: customization.due_days,
-              notes: customization.notes,
-              role_mappings: [{ role_type: roleType, is_required: true }]
-            })
-          }
-        })
-
-        finalDocuments.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-      }
-    }
+    console.log('Required document types API - Transformed documents:', transformedDocuments)
 
     return NextResponse.json({
-      required_documents: finalDocuments,
-      user_role: roleType,
-      site_id: siteId,
-      total_count: finalDocuments.length
+      required_documents: transformedDocuments,
+      user_role: profile.role,
+      site_id: profile.site_id,
+      total_count: transformedDocuments.length
     })
 
   } catch (error) {

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { 
   Users, 
   Building2, 
@@ -13,11 +14,15 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  UserPlus
+  UserPlus,
+  Wand2,
+  History
 } from 'lucide-react'
 import { WorkflowTooltip, MappingTooltip, AssignmentExplanationTooltip } from './AssignmentTooltip'
 import PartnerSiteMapping from './PartnerSiteMapping'
 import UserAssignmentMatrix from './UserAssignmentMatrix'
+import AssignmentWizard from './AssignmentWizard'
+import AssignmentHistory from './AssignmentHistory'
 
 interface DashboardStats {
   totalUsers: number
@@ -55,6 +60,10 @@ export default function AssignmentDashboard() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  
+  // Modal states
+  const [showWizard, setShowWizard] = useState(false)
+  const [showHistory, setShowHistory] = useState(false)
 
   // Load dashboard data
   useEffect(() => {
@@ -128,6 +137,23 @@ export default function AssignmentDashboard() {
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             파트너사-현장 매핑 및 사용자 배정을 통합 관리합니다
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowHistory(true)}
+            className="flex items-center gap-2"
+          >
+            <History className="h-4 w-4" />
+            배정 이력
+          </Button>
+          <Button
+            onClick={() => setShowWizard(true)}
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700"
+          >
+            <Wand2 className="h-4 w-4" />
+            배정 마법사
+          </Button>
         </div>
       </div>
 
@@ -386,6 +412,43 @@ export default function AssignmentDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Assignment Wizard Modal */}
+      <Dialog open={showWizard} onOpenChange={setShowWizard}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Wand2 className="h-5 w-5" />
+              배정 마법사
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <AssignmentWizard
+              onClose={() => setShowWizard(false)}
+              onComplete={() => {
+                setShowWizard(false)
+                loadDashboardStats()
+                loadRecentActivity()
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Assignment History Modal */}
+      <Dialog open={showHistory} onOpenChange={setShowHistory}>
+        <DialogContent className="max-w-7xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              배정 이력
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <AssignmentHistory />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
