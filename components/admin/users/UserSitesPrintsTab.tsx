@@ -161,7 +161,7 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
           labor_hours: record.labor_hours || 0,
           work_hours: record.work_hours || 0,
           overtime_hours: record.overtime_hours || 0,
-          task_description: record.notes || '', // attendance_records uses 'notes' instead of 'task_description'
+          task_description: record.notes || '', // work_records uses 'notes' instead of 'task_description'
           status: record.status || 'present',
           created_at: record.created_at
         }
@@ -536,7 +536,7 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
               <div className="flex gap-4">
                 <span>사용자 ID: {userId}</span>
                 <span>조회 월: {format(currentMonth, 'yyyy-MM')}</span>
-                <span>테이블: attendance_records</span>
+                <span>테이블: work_records</span>
               </div>
             </div>
           </div>

@@ -34,7 +34,7 @@ interface DailyReportDetailProps {
   report: DailyReport & {
     site?: any
     work_logs?: any[]
-    attendance_records?: any[]
+    work_records?: any[]
     created_by_profile?: any
     approved_by_profile?: any
     workers?: any[]
@@ -287,9 +287,9 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
             </h2>
           </div>
           <div className="px-3 py-3">
-            {report.attendance_records && report.attendance_records.length > 0 ? (
+            {report.work_records && report.work_records.length > 0 ? (
               <div className="space-y-2">
-                {report.attendance_records.map((record: any) => (
+                {report.work_records.map((record: any) => (
                   <div key={record.id} className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
                     <span className="text-sm text-gray-900 dark:text-gray-100">{record.worker?.full_name || '이름 없음'}</span>
                     <span className="text-sm font-medium text-gray-600 dark:text-gray-400">

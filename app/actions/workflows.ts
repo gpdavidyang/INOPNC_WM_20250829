@@ -190,7 +190,7 @@ export async function cascadeDeleteSite(
   const supabase = await createClient()
   const deletedEntities = {
     daily_reports: 0,
-    attendance_records: 0,
+    work_records: 0,
     documents: 0,
     site_workers: 0
   }
@@ -198,7 +198,7 @@ export async function cascadeDeleteSite(
   try {
     // Start transaction-like operation
     // Check for related entities
-    const tables = ['daily_reports', 'attendance_records', 'documents', 'site_workers']
+    const tables = ['daily_reports', 'work_records', 'documents', 'site_workers']
     
     for (const table of tables) {
       const { data: related, error: fetchError } = await supabase
