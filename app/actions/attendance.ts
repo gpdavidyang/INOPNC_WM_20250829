@@ -219,10 +219,10 @@ export async function checkIn(data: {
 
     // Check if already checked in today
     const { data: existingAttendance } = await supabase
-      .from('attendance_records')
+      .from('work_records')
       .select('id')
       .eq('site_id', data.site_id)
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
       .eq('work_date', today)
       .single()
 
@@ -230,12 +230,13 @@ export async function checkIn(data: {
       return { success: false, error: 'Already checked in today' }
     }
 
-    // Create attendance record
+    // Create work record
     const { data: attendance, error: attendanceError } = await supabase
-      .from('attendance_records')
+      .from('work_records')
       .insert({
         site_id: data.site_id,
         user_id: user.id,
+        profile_id: user.id, // Set both for compatibility
         work_date: today,
         check_in_time: checkInTime,
         status: 'present' as AttendanceStatus
@@ -244,7 +245,7 @@ export async function checkIn(data: {
       .single()
 
     if (attendanceError) {
-      console.error('Error creating attendance record:', attendanceError)
+      console.error('Error creating work record:', attendanceError)
       return { success: false, error: attendanceError.message }
     }
 
@@ -296,16 +297,16 @@ export async function checkOut(data: {
 
     const checkOutTime = new Date().toTimeString().split(' ')[0]
 
-    // Get attendance record
+    // Get work record
     const { data: attendance, error: fetchError } = await supabase
-      .from('attendance_records')
+      .from('work_records')
       .select('*')
       .eq('id', data.attendance_id)
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
       .single()
 
     if (fetchError || !attendance) {
-      return { success: false, error: 'Attendance record not found' }
+      return { success: false, error: 'Work record not found' }
     }
 
     if (attendance.check_out_time) {
@@ -321,9 +322,9 @@ export async function checkOut(data: {
     const regularHours = Math.min(hoursWorked, 8)
     const overtimeHours = Math.max(0, hoursWorked - 8)
 
-    // Update attendance record
+    // Update work record
     const { data: updatedAttendance, error: updateError } = await supabase
-      .from('attendance_records')
+      .from('work_records')
       .update({
         check_out_time: checkOutTime,
         work_hours: hoursWorked,
@@ -336,7 +337,7 @@ export async function checkOut(data: {
       .single()
 
     if (updateError) {
-      console.error('Error updating attendance record:', updateError)
+      console.error('Error updating work record:', updateError)
       return { success: false, error: updateError.message }
     }
 
@@ -381,7 +382,7 @@ export async function getTodayAttendance(site_id?: string) {
     const today = new Date().toISOString().split('T')[0]
 
     let query = supabase
-      .from('attendance_records')
+      .from('work_records')
       .select(`
         *,
         worker:profiles(*),
@@ -422,7 +423,7 @@ export async function getMyAttendance(filters: {
     }
 
     let query = supabase
-      .from('attendance_records')
+      .from('work_records')
       .select(`
         *,
         site:sites(
@@ -432,7 +433,7 @@ export async function getMyAttendance(filters: {
           site:sites(*)
         )
       `)
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
       .order('work_date', { ascending: false })
 
     if (filters.start_date) {
@@ -482,7 +483,7 @@ export async function updateAttendanceRecord(
     }
 
     const { data: attendance, error } = await supabase
-      .from('attendance_records')
+      .from('work_records')
       .update({
         ...data,
         updated_by: user.id,
@@ -523,8 +524,8 @@ export async function addBulkAttendance(
       return { success: false, error: 'User not authenticated' }
     }
 
-    // Prepare attendance records
-    const attendanceRecords = workers.map(worker => {
+    // Prepare work records
+    const workRecords = workers.map(worker => {
       const checkIn = new Date(`2000-01-01T${worker.check_in_time}`)
       const checkOut = worker.check_out_time ? new Date(`2000-01-01T${worker.check_out_time}`) : null
       const hoursWorked = checkOut ? (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) : 0
@@ -532,19 +533,21 @@ export async function addBulkAttendance(
       return {
         site_id,
         user_id: worker.user_id,
+        profile_id: worker.user_id, // Set both for compatibility
         work_date,
         check_in_time: worker.check_in_time,
         check_out_time: worker.check_out_time,
         work_hours: hoursWorked,
         overtime_hours: Math.max(0, hoursWorked - 8),
         notes: worker.notes,
-        status: 'present' as AttendanceStatus
+        status: 'present' as AttendanceStatus,
+        labor_hours: 1.0 // Default to 1.0 for bulk attendance
       }
     })
 
     const { data, error } = await supabase
-      .from('attendance_records')
-      .insert(attendanceRecords)
+      .from('work_records')
+      .insert(workRecords)
       .select()
 
     if (error) {
@@ -574,7 +577,7 @@ export async function getMonthlyAttendance(year: number, month: number) {
     const endDate = new Date(year, month, 0).toISOString().split('T')[0]
 
     const { data, error } = await supabase
-      .from('attendance_records')
+      .from('work_records')
       .select(`
         *,
         site:sites(
@@ -582,7 +585,7 @@ export async function getMonthlyAttendance(year: number, month: number) {
           site_id
         )
       `)
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
       .gte('work_date', startDate)
       .lte('work_date', endDate)
       .order('work_date', { ascending: true })
@@ -614,10 +617,11 @@ export async function getAttendanceSummary(filters: {
     const supabase = createClient()
 
     let query = supabase
-      .from('attendance_records')
+      .from('work_records')
       .select(`
         id,
         user_id,
+        profile_id,
         work_hours,
         overtime_hours,
         status,
@@ -647,7 +651,7 @@ export async function getAttendanceSummary(filters: {
 
     // Group by worker
     const workerSummary = data?.reduce((acc: any, record: any) => {
-      const workerId = record.user_id
+      const workerId = record.user_id || record.profile_id
       if (!workerId) return acc // Skip if no worker ID
       
       if (!acc[workerId]) {

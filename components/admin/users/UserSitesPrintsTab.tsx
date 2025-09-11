@@ -61,9 +61,9 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
     try {
       // 사용자의 가장 최근 데이터를 찾아서 해당 월로 설정
       const { data: latestRecord, error } = await supabase
-        .from('attendance_records')
+        .from('work_records')
         .select('work_date')
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
         .order('work_date', { ascending: false })
         .limit(1)
         .maybeSingle() // single() 대신 maybeSingle() 사용
@@ -102,9 +102,9 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
         dateRange: `${startDate} ~ ${endDate}`
       })
       
-      // Fetch attendance records with site information
+      // Fetch work records with site information
       const { data: attendanceData, error } = await supabase
-        .from('attendance_records')
+        .from('work_records')
         .select(`
           id,
           work_date,
@@ -122,7 +122,7 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
             status
           )
         `)
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
         .gte('work_date', startDate)
         .lte('work_date', endDate)
         .order('work_date', { ascending: false })
@@ -132,7 +132,7 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
         dataCount: attendanceData?.length || 0,
         firstRecord: attendanceData?.[0],
         query: {
-          table: 'attendance_records',
+          table: 'work_records',
           user_id: userId,
           date_filter: `${startDate} ~ ${endDate}`
         }

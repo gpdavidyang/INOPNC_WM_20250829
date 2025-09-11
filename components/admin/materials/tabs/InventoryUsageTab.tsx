@@ -68,59 +68,120 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
   const loadInventoryData = async () => {
     setLoading(true)
     try {
-      // Get daily reports with NPC-1000 data
-      let query = supabase
-        .from('daily_reports')
+      // Get NPC-1000 material ID
+      const { data: npcMaterial } = await supabase
+        .from('materials')
+        .select('id')
+        .eq('code', 'NPC-1000')
+        .single()
+
+      if (!npcMaterial) {
+        console.error('NPC-1000 material not found')
+        setLoading(false)
+        return
+      }
+
+      // Get transactions and inventory data
+      let transactionQuery = supabase
+        .from('material_transactions')
         .select(`
           id,
+          transaction_type,
+          quantity,
+          transaction_date,
           site_id,
-          work_date,
-          npc1000_incoming,
-          npc1000_used,
-          npc1000_remaining,
+          sites!material_transactions_site_id_fkey(name),
           created_by,
-          created_at,
-          sites!site_id(name)
+          created_at
         `)
-        .not('npc1000_incoming', 'is', null)
-        .gte('work_date', `${selectedMonth}-01`)
-        .lte('work_date', `${selectedMonth}-31`)
-        .order('work_date', { ascending: false })
+        .eq('material_id', npcMaterial.id)
+        .gte('transaction_date', `${selectedMonth}-01`)
+        .lte('transaction_date', `${selectedMonth}-31`)
 
       if (selectedSite) {
-        query = query.eq('site_id', selectedSite)
+        transactionQuery = transactionQuery.eq('site_id', selectedSite)
       }
 
-      const { data, error } = await query
+      const { data: transactions, error: transError } = await transactionQuery
 
-      if (!error && data) {
-        const formattedData: InventoryData[] = data.map(item => {
-          const incoming = item.npc1000_incoming || 0
-          const used = item.npc1000_used || 0
-          const remaining = item.npc1000_remaining || 0
-          const efficiency = incoming > 0 ? (used / incoming) * 100 : 0
+      // Get inventory data for each site
+      let inventoryQuery = supabase
+        .from('material_inventory')
+        .select(`
+          site_id,
+          current_stock,
+          sites(name)
+        `)
+        .eq('material_id', npcMaterial.id)
+
+      if (selectedSite) {
+        inventoryQuery = inventoryQuery.eq('site_id', selectedSite)
+      }
+
+      const { data: inventories, error: invError } = await inventoryQuery
+
+      // Aggregate transactions by date and site
+      const aggregatedData = new Map<string, InventoryData>()
+
+      if (transactions) {
+        transactions.forEach(trans => {
+          const key = `${trans.site_id}_${trans.transaction_date}`
           
-          let status: 'normal' | 'low' | 'critical' = 'normal'
-          if (remaining < 100) status = 'critical'
-          else if (remaining < 500) status = 'low'
+          if (!aggregatedData.has(key)) {
+            aggregatedData.set(key, {
+              id: key,
+              site_id: trans.site_id,
+              site_name: (trans as any).sites?.name || '알 수 없음',
+              work_date: trans.transaction_date,
+              incoming: 0,
+              used: 0,
+              remaining: 0,
+              efficiency_rate: 0,
+              status: 'normal',
+              created_by: trans.created_by || '',
+              created_at: trans.created_at
+            })
+          }
 
-          return {
-            id: item.id,
-            site_id: item.site_id || '',
-            site_name: (item as any).sites?.name || '알 수 없음',
-            work_date: item.work_date,
-            incoming: incoming,
-            used: used,
-            remaining: remaining,
-            efficiency_rate: efficiency,
-            status: status,
-            created_by: item.created_by || '',
-            created_at: item.created_at
+          const data = aggregatedData.get(key)!
+          if (trans.transaction_type === 'in') {
+            data.incoming += Number(trans.quantity)
+          } else if (trans.transaction_type === 'out') {
+            data.used += Number(trans.quantity)
           }
         })
-
-        setInventoryData(formattedData)
       }
+
+      // Add current inventory levels
+      if (inventories) {
+        inventories.forEach(inv => {
+          aggregatedData.forEach((data, key) => {
+            if (data.site_id === inv.site_id) {
+              data.remaining = Number(inv.current_stock)
+            }
+          })
+        })
+      }
+
+      // Calculate efficiency and status
+      const formattedData: InventoryData[] = Array.from(aggregatedData.values()).map(data => {
+        const efficiency = data.incoming > 0 ? (data.used / data.incoming) * 100 : 0
+        
+        let status: 'normal' | 'low' | 'critical' = 'normal'
+        if (data.remaining < 100) status = 'critical'
+        else if (data.remaining < 500) status = 'low'
+
+        return {
+          ...data,
+          efficiency_rate: efficiency,
+          status: status
+        }
+      })
+
+      // Sort by date descending
+      formattedData.sort((a, b) => b.work_date.localeCompare(a.work_date))
+
+      setInventoryData(formattedData)
     } catch (error) {
       console.error('Failed to load inventory data:', error)
     } finally {

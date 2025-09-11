@@ -83,27 +83,41 @@ export function useSalaryRealtime({
       channels.push(userChannel)
     }
 
-    // attendance_records 테이블 구독 (급여 계산에 영향)
+    // work_records 테이블 구독 (급여 계산에 영향)
     if (userId) {
-      const attendanceChannel = supabase
-        .channel(`attendance-updates-${userId}`)
+      const workChannel = supabase
+        .channel(`work-updates-${userId}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
-            table: 'attendance_records',
+            table: 'work_records',
             filter: `user_id=eq.${userId}`
           },
           (payload) => {
-            console.log('출근 기록 업데이트 감지:', payload)
-            // 출근 기록 변경 시 급여 재계산 필요
+            console.log('근무 기록 업데이트 감지 (user_id):', payload)
+            // 근무 기록 변경 시 급여 재계산 필요
+            handleSalaryUpdate(payload)
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'work_records',
+            filter: `profile_id=eq.${userId}`
+          },
+          (payload) => {
+            console.log('근무 기록 업데이트 감지 (profile_id):', payload)
+            // 근무 기록 변경 시 급여 재계산 필요
             handleSalaryUpdate(payload)
           }
         )
         .subscribe()
 
-      channels.push(attendanceChannel)
+      channels.push(workChannel)
     }
 
     // 현장별 구독 (현장관리자용)
