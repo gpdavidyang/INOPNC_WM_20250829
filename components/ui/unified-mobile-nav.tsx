@@ -139,7 +139,7 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
       }}
     >
       <div className="flex h-16 items-center justify-around px-2" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
-        {visibleItems.map((item) => {
+        {(visibleItems || []).map((item) => {
           const active = isActive(item)
           
           return (

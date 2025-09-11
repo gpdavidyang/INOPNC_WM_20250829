@@ -63,7 +63,7 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
       const result = await markNotificationAsRead(notification.id)
       if (result.success) {
         setNotifications(prev =>
-          prev.map(n =>
+          (prev || []).map(n =>
             n.id === notification.id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
           )
         )
@@ -160,7 +160,7 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
   return (
     <ScrollArea className={cn("h-full", className)}>
       <div className="p-2">
-        {notifications.map((notification: any) => (
+        {(notifications || []).map((notification: any) => (
           <div
             key={notification.id}
             className={cn(
