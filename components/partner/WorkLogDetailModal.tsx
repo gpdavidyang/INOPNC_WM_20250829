@@ -221,7 +221,7 @@ export default function WorkLogDetailModal({ isOpen, onClose, workLog }: WorkLog
                               {worker.start_time}-{worker.end_time}
                             </p>
                             <p className="text-xs font-medium text-blue-600 dark:text-blue-400">
-                              {worker.labor_hours}공수
+                              {worker.labor_hours.toFixed(2)}공수
                             </p>
                           </div>
                         </div>
@@ -234,7 +234,7 @@ export default function WorkLogDetailModal({ isOpen, onClose, workLog }: WorkLog
                         총 공수
                       </span>
                       <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
-                        {mockWorkers.reduce((sum, w) => sum + w.labor_hours, 0).toFixed(1)}공수
+                        {mockWorkers.reduce((sum, w) => sum + w.labor_hours, 0).toFixed(2)}공수
                       </span>
                     </div>
                   </div>

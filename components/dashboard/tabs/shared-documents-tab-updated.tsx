@@ -1,104 +1,57 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Profile } from '@/types'
 import { createClient } from '@/lib/supabase/client'
 import FileUploadComponent, { UploadMetadata, UploadResult } from '@/components/documents/common/FileUploadComponent'
+import DocumentCard from '@/components/documents/common/DocumentCard'
+import DocumentFilters from '@/components/documents/common/DocumentFilters'
+import ShareDialog from '@/components/documents/share-dialog'
 import {
-  Search,
-  Filter,
-  Download,
-  Share2,
-  Star,
-  MoreVertical,
-  FolderOpen,
-  FileText,
-  Image,
-  File,
-  Users,
-  Building,
-  Calendar,
-  ChevronDown,
-  Upload,
-  Grid,
-  List,
-  AlertCircle
+  Upload, Folder, AlertCircle, Share2, X, ChevronUp, ChevronDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { getFileTypeStyle, getStatusStyle } from '@/components/documents/design-tokens'
 
 interface SharedDocument {
   id: string
   title: string
+  name?: string
   file_name: string
   file_url: string
+  url?: string
   file_size: number
+  size?: number
   mime_type: string
+  type?: string
   document_type: string
+  category?: string
   description?: string
   owner_id: string
   owner?: {
     full_name: string
     email: string
   }
+  uploadedBy?: string
   site_id?: string
-  site?: {
+  site?: string | {
     name: string
   }
+  siteAddress?: string
   is_public: boolean
   created_at: string
+  uploadedAt?: string
   updated_at: string
+  status?: 'completed' | 'pending' | 'processing' | 'review'
+  submissionStatus?: 'not_submitted' | 'submitted' | 'approved' | 'rejected'
 }
 
 interface SharedDocumentsTabProps {
   profile: Profile
   initialCategory?: string
   initialSearch?: string
-}
-
-// 카테고리 정의
-const categories = [
-  { id: 'all', label: '전체', icon: FolderOpen },
-  { id: 'drawings', label: '도면', icon: FileText },
-  { id: 'manuals', label: '매뉴얼', icon: FileText },
-  { id: 'safety', label: '안전관리', icon: AlertCircle },
-  { id: 'training', label: '교육자료', icon: Users },
-  { id: 'reports', label: '보고서', icon: FileText },
-  { id: 'other', label: '기타', icon: File }
-]
-
-// 파일 아이콘 결정
-const getFileIcon = (mimeType: string) => {
-  if (mimeType.startsWith('image/')) return Image
-  if (mimeType.includes('pdf')) return FileText
-  return File
-}
-
-// 파일 크기 포맷
-const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes'
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
 }
 
 export default function SharedDocumentsTabUpdated({ 
@@ -110,19 +63,47 @@ export default function SharedDocumentsTabUpdated({
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState(initialCategory)
   const [searchTerm, setSearchTerm] = useState(initialSearch)
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  const [sortBy, setSortBy] = useState<'name' | 'date'>('date')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [selectedSite, setSelectedSite] = useState<string>('all')
   const [sites, setSites] = useState<Array<{id: string, name: string}>>([])
   const [showUpload, setShowUpload] = useState(false)
+  const [isUploadExpanded, setIsUploadExpanded] = useState(false)
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [documentToShare, setDocumentToShare] = useState<SharedDocument | null>(null)
   
   const supabase = createClient()
 
-  // 현장 목록 로드
+  // Categories for DocumentFilters - matching Personal Documents Tab
+  const categories = [
+    { id: 'all', label: '전체' },
+    { id: 'drawings', label: '도면' },
+    { id: 'manuals', label: '매뉴얼' },
+    { id: 'safety', label: '안전관리' },
+    { id: 'training', label: '교육자료' },
+    { id: 'reports', label: '보고서' },
+    { id: 'construction-docs', label: '시공문서' },
+    { id: 'photos', label: '사진' },
+    { id: 'other', label: '기타' }
+  ]
+
+  // Sort options for DocumentFilters - matching Personal Documents Tab
+  const sortOptions = [
+    { value: 'date-desc', label: '최신순' },
+    { value: 'date-asc', label: '오래된순' },
+    { value: 'name-asc', label: '이름순 (가-하)' },
+    { value: 'name-desc', label: '이름순 (하-가)' }
+  ]
+
+  // Load sites on mount
   useEffect(() => {
     fetchSites()
   }, [])
 
-  // 문서 목록 로드
+  // Load documents when filters change
   useEffect(() => {
     fetchDocuments()
   }, [selectedCategory, selectedSite, searchTerm])
@@ -167,26 +148,39 @@ export default function SharedDocumentsTabUpdated({
         .eq('is_public', true)
         .order('created_at', { ascending: false })
 
-      // 카테고리 필터
+      // Category filter
       if (selectedCategory !== 'all') {
         query = query.eq('document_type', selectedCategory)
       }
 
-      // 현장 필터
+      // Site filter
       if (selectedSite !== 'all') {
         query = query.eq('site_id', selectedSite)
       }
 
-      // 검색어 필터
+      // Search filter
       if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%`)
       }
 
       const { data, error } = await query
 
       if (error) throw error
 
-      setDocuments(data || [])
+      // Transform data to match DocumentCard interface
+      const transformedDocuments: SharedDocument[] = (data || []).map(doc => ({
+        ...doc,
+        name: doc.title || doc.file_name,
+        size: doc.file_size,
+        type: doc.mime_type,
+        category: doc.document_type,
+        uploadedAt: doc.created_at,
+        uploadedBy: doc.owner?.full_name || 'Unknown',
+        url: doc.file_url,
+        status: 'completed' as const
+      }))
+
+      setDocuments(transformedDocuments)
     } catch (error) {
       console.error('Error fetching documents:', error)
     } finally {
@@ -194,7 +188,31 @@ export default function SharedDocumentsTabUpdated({
     }
   }
 
-  // 파일 업로드 핸들러
+  // Filter and sort documents
+  const filteredAndSortedDocuments = documents
+    .filter(doc => {
+      const matchesCategory = selectedCategory === 'all' || doc.document_type === selectedCategory
+      const matchesSearch = searchTerm === '' || 
+        (doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+         doc.file_name?.toLowerCase().includes(searchTerm.toLowerCase()))
+      const matchesSite = selectedSite === 'all' || doc.site_id === selectedSite
+      return matchesCategory && matchesSearch && matchesSite
+    })
+    .sort((a, b) => {
+      let comparison = 0
+      switch (sortBy) {
+        case 'name':
+          comparison = (a.title || a.file_name).localeCompare(b.title || b.file_name)
+          break
+        case 'date':
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          break
+      }
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
+
+  // Upload handler
   const handleFileUpload = async (file: File, metadata?: UploadMetadata): Promise<UploadResult> => {
     try {
       const formData = new FormData()
@@ -202,7 +220,7 @@ export default function SharedDocumentsTabUpdated({
       formData.append('category', selectedCategory === 'all' ? 'other' : selectedCategory)
       formData.append('uploadedBy', profile.full_name)
       formData.append('documentType', selectedCategory === 'all' ? 'shared' : selectedCategory)
-      formData.append('isPublic', 'true') // 공유문서함은 항상 public
+      formData.append('isPublic', 'true')
       formData.append('description', `공유문서: ${file.name}`)
 
       const response = await fetch('/api/documents', {
@@ -217,7 +235,7 @@ export default function SharedDocumentsTabUpdated({
 
       const result = await response.json()
       
-      // 문서 목록 새로고침
+      // Refresh document list
       await fetchDocuments()
       
       return {
@@ -233,56 +251,142 @@ export default function SharedDocumentsTabUpdated({
     }
   }
 
-  // 문서 다운로드
-  const handleDownload = async (document: SharedDocument) => {
-    try {
-      window.open(document.file_url, '_blank')
-    } catch (error) {
-      console.error('Download error:', error)
+  const handleViewDocument = (document: SharedDocument) => {
+    if (document.file_url || document.url) {
+      window.open(document.file_url || document.url, '_blank')
+    } else {
+      alert('문서 URL을 찾을 수 없습니다.')
     }
   }
 
-  // 문서 공유
-  const handleShare = async (document: SharedDocument) => {
+  const handleDownloadDocument = async (document: SharedDocument) => {
     try {
-      const shareUrl = `${window.location.origin}/documents/${document.id}`
-      await navigator.clipboard.writeText(shareUrl)
-      alert('링크가 클립보드에 복사되었습니다.')
+      const url = document.file_url || document.url
+      if (url) {
+        const link = window.document.createElement('a')
+        link.href = url
+        link.download = document.title || document.file_name
+        link.style.display = 'none'
+        window.document.body.appendChild(link)
+        link.click()
+        window.document.body.removeChild(link)
+      } else {
+        alert('다운로드할 수 있는 파일이 없습니다.')
+      }
     } catch (error) {
-      console.error('Share error:', error)
+      console.error('Download failed:', error)
+      alert('다운로드 중 오류가 발생했습니다.')
     }
+  }
+
+  const handleShareDocument = (document: SharedDocument) => {
+    setDocumentToShare(document)
+    setShareDialogOpen(true)
+  }
+
+  const generateShareUrl = (document: SharedDocument) => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+    return `${baseUrl}/dashboard/documents/shared/${document.id}`
+  }
+
+  // Selection mode handlers
+  const toggleDocumentSelection = (docId: string) => {
+    setSelectedDocuments(prev => 
+      prev.includes(docId) 
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId]
+    )
   }
 
   const canUpload = profile.role === 'admin' || profile.role === 'system_admin' || profile.role === 'site_manager'
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="ml-3 text-sm text-gray-500 dark:text-gray-400">공유문서를 불러오는 중...</p>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">공유문서함</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            모든 사용자와 공유되는 문서들입니다
-          </p>
-        </div>
-        {canUpload && (
-          <Button onClick={() => setShowUpload(!showUpload)}>
-            <Upload className="h-4 w-4 mr-2" />
-            문서 업로드
-          </Button>
-        )}
-      </div>
+      {/* Modern DocumentFilters */}
+      <Card>
+        <CardContent className="p-6">
+          <DocumentFilters
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="공유문서 검색..."
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategoryChange={setSelectedCategory}
+            sites={sites}
+            selectedSite={selectedSite}
+            onSiteChange={setSelectedSite}
+            sortOptions={sortOptions}
+            selectedSort={`${sortBy}-${sortOrder}`}
+            onSortChange={(value) => {
+              const [newSortBy, newSortOrder] = value.split('-')
+              setSortBy(newSortBy as 'date' | 'name')
+              setSortOrder(newSortOrder as 'asc' | 'desc')
+            }}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            showUpload={canUpload}
+            onUploadClick={() => setIsUploadExpanded(!isUploadExpanded)}
+            uploadLoading={false}
+            isSelectionMode={isSelectionMode}
+            selectedCount={selectedDocuments.length}
+            onToggleSelectionMode={() => {
+              setIsSelectionMode(!isSelectionMode)
+              if (isSelectionMode) {
+                setSelectedDocuments([])
+              }
+            }}
+            onClearSelection={() => setSelectedDocuments([])}
+            additionalActions={
+              isSelectionMode && selectedDocuments.length > 0 ? (
+                <Button
+                  onClick={() => {
+                    // Handle bulk share action
+                    alert(`${selectedDocuments.length}개 문서 공유 기능은 준비 중입니다.`)
+                  }}
+                  size="sm"
+                  className="h-8"
+                >
+                  <Share2 className="h-4 w-4 mr-2" />
+                  공유
+                </Button>
+              ) : null
+            }
+            compact={true}
+          />
+        </CardContent>
+      </Card>
 
-      {/* 업로드 영역 */}
-      {showUpload && canUpload && (
-        <Card>
-          <CardHeader>
-            <CardTitle>공유문서 업로드</CardTitle>
-            <CardDescription>
-              업로드된 문서는 모든 사용자에게 공개됩니다
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+      {/* Upload Section */}
+      {isUploadExpanded && canUpload && (
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  공유문서 업로드
+                </h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  업로드된 문서는 모든 사용자에게 공개됩니다
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsUploadExpanded(false)}
+                title="접기"
+              >
+                <ChevronUp className="h-5 w-5" />
+              </Button>
+            </div>
             <FileUploadComponent
               onUpload={handleFileUpload}
               title="공유할 문서를 업로드하세요"
@@ -291,200 +395,93 @@ export default function SharedDocumentsTabUpdated({
               category={selectedCategory === 'all' ? 'other' : selectedCategory}
               isPublic={true}
               multiple={true}
-              maxSize={50} // 공유문서는 50MB까지 허용
+              maxSize={50}
             />
           </CardContent>
         </Card>
       )}
 
-      {/* 필터 및 검색 */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex-1">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input
-              placeholder="문서 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-        </div>
-        
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="카테고리 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map(category => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Modern Document Grid/List using DocumentCard */}
+      <Card>
+        <CardContent className={viewMode === 'grid' ? 'p-6' : 'p-4'}>
+          {filteredAndSortedDocuments.length === 0 ? (
+            <div className="text-center py-16">
+              <Folder className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                공유문서가 없습니다
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                {searchTerm 
+                  ? '검색 조건에 맞는 공유문서가 없습니다. 다른 검색어를 시도해보세요.' 
+                  : canUpload 
+                    ? '첫 번째 공유문서를 업로드해보세요.'
+                    : '관리자가 공유문서를 업로드할 때까지 기다려주세요.'
+                }
+              </p>
+              {canUpload && !searchTerm && (
+                <Button 
+                  onClick={() => setIsUploadExpanded(true)}
+                  className="mt-4"
+                  size="lg"
+                >
+                  <Upload className="h-5 w-5 mr-2" />
+                  첫 공유문서 업로드하기
+                </Button>
+              )}
+            </div>
+          ) : viewMode === 'grid' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredAndSortedDocuments.map((document: any) => (
+                <DocumentCard
+                  key={document.id}
+                  document={document}
+                  viewMode="grid"
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedDocuments.includes(document.id)}
+                  onSelect={toggleDocumentSelection}
+                  onView={handleViewDocument}
+                  onDownload={handleDownloadDocument}
+                  onShare={handleShareDocument}
+                  showOwner={true}
+                  showSite={true}
+                  showStatus={false}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {filteredAndSortedDocuments.map((document: any) => (
+                <DocumentCard
+                  key={document.id}
+                  document={document}
+                  viewMode="list"
+                  isSelectionMode={isSelectionMode}
+                  isSelected={selectedDocuments.includes(document.id)}
+                  onSelect={toggleDocumentSelection}
+                  onView={handleViewDocument}
+                  onDownload={handleDownloadDocument}
+                  onShare={handleShareDocument}
+                  showOwner={true}
+                  showSite={true}
+                  showStatus={false}
+                />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
-        <Select value={selectedSite} onValueChange={setSelectedSite}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="현장 선택" />
-          </SelectTrigger>
-          <SelectContent>
-            {sites.map(site => (
-              <SelectItem key={site.id} value={site.id}>
-                {site.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <div className="flex gap-2">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => setViewMode('grid')}
-          >
-            <Grid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* 문서 목록 */}
-      {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : documents.length === 0 ? (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            {searchTerm ? '검색 결과가 없습니다.' : '공유된 문서가 없습니다.'}
-          </AlertDescription>
-        </Alert>
-      ) : viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {documents.map(doc => {
-            const FileIcon = getFileIcon(doc.mime_type)
-            return (
-              <Card key={doc.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <FileIcon className="h-8 w-8 text-blue-600" />
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleDownload(doc)}>
-                          <Download className="h-4 w-4 mr-2" />
-                          다운로드
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleShare(doc)}>
-                          <Share2 className="h-4 w-4 mr-2" />
-                          공유
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  
-                  <h3 className="font-medium text-sm mb-1 line-clamp-2" title={doc.title}>
-                    {doc.title}
-                  </h3>
-                  
-                  {doc.description && (
-                    <p className="text-xs text-gray-500 mb-2 line-clamp-2">
-                      {doc.description}
-                    </p>
-                  )}
-                  
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <Users className="h-3 w-3" />
-                      <span className="truncate">{doc.owner?.full_name || 'Unknown'}</span>
-                    </div>
-                    {doc.site && (
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Building className="h-3 w-3" />
-                        <span className="truncate">{doc.site.name}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1 text-xs text-gray-500">
-                      <Calendar className="h-3 w-3" />
-                      <span>{new Date(doc.created_at).toLocaleDateString('ko-KR')}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center mt-3 pt-3 border-t">
-                    <Badge variant="secondary" className="text-xs">
-                      {categories.find(c => c.id === doc.document_type)?.label || '기타'}
-                    </Badge>
-                    <span className="text-xs text-gray-500">
-                      {formatFileSize(doc.file_size)}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {documents.map(doc => {
-            const FileIcon = getFileIcon(doc.mime_type)
-            return (
-              <Card key={doc.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      <FileIcon className="h-8 w-8 text-blue-600 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-medium text-sm mb-1 truncate">
-                          {doc.title}
-                        </h3>
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          <span>{doc.owner?.full_name || 'Unknown'}</span>
-                          {doc.site && <span>{doc.site.name}</span>}
-                          <span>{new Date(doc.created_at).toLocaleDateString('ko-KR')}</span>
-                          <span>{formatFileSize(doc.file_size)}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-xs">
-                        {categories.find(c => c.id === doc.document_type)?.label || '기타'}
-                      </Badge>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleDownload(doc)}>
-                            <Download className="h-4 w-4 mr-2" />
-                            다운로드
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleShare(doc)}>
-                            <Share2 className="h-4 w-4 mr-2" />
-                            공유
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+      {/* Individual Document Share Dialog */}
+      {shareDialogOpen && documentToShare && (
+        <ShareDialog
+          isOpen={shareDialogOpen}
+          onClose={() => {
+            setShareDialogOpen(false)
+            setDocumentToShare(null)
+          }}
+          document={documentToShare}
+          shareUrl={generateShareUrl(documentToShare)}
+        />
       )}
     </div>
   )

@@ -672,7 +672,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
             <div className={`text-xs font-bold leading-none ${
               isSelected ? 'text-white' : 'text-gray-800 dark:text-gray-200'
             }`}>
-              {dayRecord.labor_hours.toFixed(1)}
+              {dayRecord.labor_hours.toFixed(2)}
             </div>
           )}
           
@@ -1057,7 +1057,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
                               {salary.site_name.replace(/\s*[A-Z]?현장$/g, '')}
                             </td>
                             <td className="px-1 py-2 whitespace-nowrap text-xs text-center text-gray-900 dark:text-gray-100">
-                              {salary.total_labor_hours?.toFixed(1) || '0.0'}
+                              {salary.total_labor_hours?.toFixed(2) || '0.00'}
                             </td>
                             <td className="px-1 py-2 whitespace-nowrap text-xs text-right text-gray-900 dark:text-gray-100">
                               {(salary.basic_salary / 10000).toFixed(0)}만
@@ -1191,7 +1191,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
                                 <div className="space-y-1">
                                   <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">총 공수</span>
-                                    <span className="text-gray-900 dark:text-gray-100">{selectedSalary.total_labor_hours?.toFixed(1) || '0.0'}공수</span>
+                                    <span className="text-gray-900 dark:text-gray-100">{selectedSalary.total_labor_hours?.toFixed(2) || '0.00'}공수</span>
                                   </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-600 dark:text-gray-400">근무 날짜수</span>

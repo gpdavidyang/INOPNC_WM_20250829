@@ -3,9 +3,13 @@
 import { useState, useEffect } from 'react'
 import { Profile } from '@/types'
 import { FolderOpen, Share2, Edit3, FileCheck } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import DocumentsTab from './documents-tab'
 import SharedDocumentsTabUpdated from './shared-documents-tab-updated'
 import { MarkupEditor } from '@/components/markup/markup-editor'
+import { documentDesignTokens } from '@/components/documents/design-tokens'
 
 interface DocumentsTabUnifiedProps {
   profile: Profile
@@ -26,70 +30,71 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
     setActiveTab(newTab)
   }, [initialTab, initialSearch])
 
+  const handleTabChange = (tab: 'personal' | 'shared' | 'markup' | 'required') => {
+    setActiveTab(tab)
+    if (onTabChange) {
+      onTabChange(tab)
+    }
+  }
+
   return (
-    <div className="space-y-4">
-      {/* Button Navigation - 2x2 Grid Layout */}
-      <div className="grid grid-cols-2 gap-3">
-        {/* 내문서함 */}
-        <button
-          onClick={() => setActiveTab('personal')}
-          className={`py-4 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
-            activeTab === 'personal'
-              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
-          }`}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <FolderOpen className="h-6 w-6" />
+    <div className="space-y-6">
+      {/* Tab Navigation - Modern Card Design */}
+      <Card className="p-4">
+        <div className="grid grid-cols-2 gap-3">
+          {/* 내문서함 */}
+          <Button
+            variant={activeTab === 'personal' ? 'default' : 'outline'}
+            onClick={() => handleTabChange('personal')}
+            className="h-16 p-4 flex flex-col gap-2 text-sm font-medium"
+            size="lg"
+          >
+            <FolderOpen className="h-5 w-5" />
             <span>내문서함</span>
-          </div>
-        </button>
+          </Button>
 
-        {/* 공유문서함 */}
-        <button
-          onClick={() => setActiveTab('shared')}
-          className={`py-4 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
-            activeTab === 'shared'
-              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
-          }`}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <Share2 className="h-6 w-6" />
+          {/* 공유문서함 */}
+          <Button
+            variant={activeTab === 'shared' ? 'default' : 'outline'}
+            onClick={() => handleTabChange('shared')}
+            className="h-16 p-4 flex flex-col gap-2 text-sm font-medium"
+            size="lg"
+          >
+            <Share2 className="h-5 w-5" />
             <span>공유문서함</span>
-          </div>
-        </button>
+          </Button>
 
-        {/* 도면마킹 */}
-        <button
-          onClick={() => setActiveTab('markup')}
-          className={`py-4 px-4 rounded-lg font-medium text-sm transition-all duration-200 ${
-            activeTab === 'markup'
-              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
-          }`}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <Edit3 className="h-6 w-6" />
+          {/* 도면마킹 */}
+          <Button
+            variant={activeTab === 'markup' ? 'default' : 'outline'}
+            onClick={() => handleTabChange('markup')}
+            className="h-16 p-4 flex flex-col gap-2 text-sm font-medium"
+            size="lg"
+          >
+            <Edit3 className="h-5 w-5" />
             <span>도면마킹</span>
-          </div>
-        </button>
+          </Button>
 
-        {/* 필수 제출 서류 */}
-        <button
-          onClick={() => setActiveTab('required')}
-          className={`py-4 px-4 rounded-lg font-medium text-sm transition-all duration-200 relative ${
-            activeTab === 'required'
-              ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700'
-              : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 shadow-sm dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-700'
-          }`}
-        >
-          <div className="flex flex-col items-center gap-2">
-            <FileCheck className="h-6 w-6" />
+          {/* 필수 제출 서류 */}
+          <Button
+            variant={activeTab === 'required' ? 'default' : 'outline'}
+            onClick={() => handleTabChange('required')}
+            className="h-16 p-4 flex flex-col gap-2 text-sm font-medium relative"
+            size="lg"
+          >
+            <FileCheck className="h-5 w-5" />
             <span>필수 제출 서류</span>
-          </div>
-        </button>
-      </div>
+            {requiredDocsProgress.total > 0 && (
+              <Badge 
+                variant={requiredDocsProgress.completed === requiredDocsProgress.total ? "default" : "secondary"}
+                className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs rounded-full"
+              >
+                {requiredDocsProgress.completed}
+              </Badge>
+            )}
+          </Button>
+        </div>
+      </Card>
 
       {/* Tab Content */}
       <div className="min-h-[400px]">

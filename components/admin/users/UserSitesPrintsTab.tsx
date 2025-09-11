@@ -419,7 +419,7 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {summary.total_labor_hours.toFixed(1)}
+                        {summary.total_labor_hours.toFixed(2)}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">
@@ -489,7 +489,7 @@ export default function UserSitesPrintsTab({ userId, userName }: UserSitesPrints
                     </td>
                     <td className="py-4 px-6 text-center">
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {record.labor_hours.toFixed(1)}
+                        {record.labor_hours.toFixed(2)}
                       </span>
                     </td>
                     <td className="py-4 px-6 text-center">

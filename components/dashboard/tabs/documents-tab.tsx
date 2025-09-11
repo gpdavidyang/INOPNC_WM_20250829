@@ -11,7 +11,14 @@ import {
   Camera, FileCheck, ChevronUp, ChevronDown
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import DocumentCard from '@/components/documents/common/DocumentCard'
+import DocumentFilters from '@/components/documents/common/DocumentFilters'
 import ShareDialog from '@/components/documents/share-dialog'
+import { getFileTypeStyle, getStatusStyle } from '@/components/documents/design-tokens'
 
 interface DocumentsTabProps {
   profile: Profile
@@ -108,6 +115,30 @@ export default function DocumentsTab({
   // 필수 서류 목록 - 동적으로 로드
   const [requiredDocuments, setRequiredDocuments] = useState<RequiredDocument[]>([])
   const [submissionStatus, setSubmissionStatus] = useState<any[]>([])
+  
+  const handleRequiredDocumentUpload = async (documentType: string) => {
+    // console.log('🖱️ handleRequiredDocumentUpload called for:', documentType)
+    
+    if (!fileInputRef.current) {
+      console.error('❌ File input ref is not available')
+      alert('파일 입력 요소에 접근할 수 없습니다. 페이지를 새로고침해주세요.')
+      return
+    }
+    
+    if (uploadingDocuments.has(documentType)) {
+      // console.log('⏳ Already uploading for document:', documentType)
+      return // Prevent multiple uploads for this specific document
+    }
+    
+    // Set the document type before triggering file selection
+    fileInputRef.current.setAttribute('data-document-type', documentType)
+    
+    // Reset the file input to ensure change event fires
+    fileInputRef.current.value = ''
+    
+    // Trigger file selection
+    fileInputRef.current.click()
+  }
   
   // 제출 상태별 스타일 정의
   const getStatusStyle = (status?: string) => {
@@ -881,653 +912,404 @@ export default function DocumentsTab({
     }
   }
 
-  return (
-    <div className="space-y-4">
-      {/* Compact Document Management Header - Hide if showing only required docs */}
-      {!showOnlyRequiredDocs && (
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-xs font-medium text-gray-700 dark:text-gray-300">내문서함</h2>
-            {isSelectionMode && (
-              <span className="text-xs text-blue-600 dark:text-blue-400">
-                {selectedDocuments.length}개 선택됨
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            {isSelectionMode ? (
-              <>
-                <button
-                  onClick={() => {
-                    setIsSelectionMode(false)
-                    setSelectedDocuments([])
-                  }}
-                  className="px-2 py-1 text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  취소
-                </button>
-                <button
-                  onClick={() => setShowShareModal(true)}
-                  disabled={selectedDocuments.length === 0}
-                  className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-xs font-medium rounded-md transition-colors"
-                >
-                  <Share2 className="h-3 w-3" />
-                  공유
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={() => setIsSelectionMode(true)}
-                  className="flex items-center gap-1 px-2 py-1 text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md"
-                >
-                  <CheckCircle className="h-3 w-3" />
-                  선택
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors touch-manipulation"
-                >
-                  <Upload className="h-3 w-3" />
-                  업로드
-                </button>
-                <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded overflow-hidden">
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 transition-colors ${
-                      viewMode === 'list' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                    title="리스트 보기"
-                  >
-                    <List className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 transition-colors ${
-                      viewMode === 'grid' 
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
-                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                    }`}
-                    title="그리드 보기"
-                  >
-                    <Grid className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+  // Categories for DocumentFilters
+  const categories = [
+    { id: 'all', label: '전체' },
+    { id: 'work-reports', label: '작업일지' },
+    { id: 'safety-docs', label: '안전문서' },
+    { id: 'photos', label: '사진' },
+    { id: 'construction-docs', label: '시공문서' },
+    { id: 'certificates', label: '자격증' },
+    { id: 'other', label: '기타' }
+  ]
 
-        {/* Search and Filters - Compact Design */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="flex-1 relative">
-            <Search className="absolute left-2 top-1.5 h-3 w-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="파일명 검색..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-7 pr-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+  // Sort options for DocumentFilters
+  const sortOptions = [
+    { value: 'date-desc', label: '최신순' },
+    { value: 'date-asc', label: '오래된순' },
+    { value: 'name-asc', label: '이름순 (가-하)' },
+    { value: 'name-desc', label: '이름순 (하-가)' }
+  ]
+
+  return (
+    <div className="space-y-6">
+      {/* Modern DocumentFilters - Hide if showing only required docs */}
+      {!showOnlyRequiredDocs && (
+        <Card>
+          <CardContent className="p-6">
+            <DocumentFilters
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              searchPlaceholder="파일명 검색..."
+              categories={categories}
+              selectedCategory={selectedCategory}
+              onCategoryChange={() => {}} // Category selection disabled for personal docs
+              sortOptions={sortOptions}
+              selectedSort={`${sortBy}-${sortOrder}`}
+              onSortChange={(value) => {
+                const [newSortBy, newSortOrder] = value.split('-')
+                setSortBy(newSortBy as 'date' | 'name')
+                setSortOrder(newSortOrder as 'asc' | 'desc')
+              }}
+              viewMode={viewMode}
+              onViewModeChange={setViewMode}
+              showUpload={true}
+              onUploadClick={() => fileInputRef.current?.click()}
+              uploadLoading={uploading}
+              isSelectionMode={isSelectionMode}
+              selectedCount={selectedDocuments.length}
+              onToggleSelectionMode={() => {
+                setIsSelectionMode(!isSelectionMode)
+                if (isSelectionMode) {
+                  setSelectedDocuments([])
+                }
+              }}
+              onClearSelection={() => setSelectedDocuments([])}
+              additionalActions={
+                isSelectionMode && selectedDocuments.length > 0 ? (
+                  <Button
+                    onClick={() => setShowShareModal(true)}
+                    size="sm"
+                    className="h-8"
+                  >
+                    <Share2 className="h-4 w-4 mr-2" />
+                    공유
+                  </Button>
+                ) : null
+              }
+              compact={true}
             />
-          </div>
-          <div className="flex flex-wrap gap-1">
-            <div className="relative">
-              <select
-                value={`${sortBy}-${sortOrder}`}
-                onChange={(e) => {
-                  const [newSortBy, newSortOrder] = e.target.value.split('-')
-                  setSortBy(newSortBy as 'date' | 'name')
-                  setSortOrder(newSortOrder as 'asc' | 'desc')
-                }}
-                className="appearance-none pl-2.5 pr-6 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 cursor-pointer transition-colors min-w-[90px]"
-              >
-                <option value="date-desc">최신순</option>
-                <option value="date-asc">오래된순</option>
-                <option value="name-asc">이름순 (가-하)</option>
-                <option value="name-desc">이름순 (하-가)</option>
-              </select>
-              <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-500 pointer-events-none" />
-            </div>
-          </div>
-        </div>
-      </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* 필수 서류 체크리스트 - Show based on props */}
       {!hideRequiredDocs && (
-      <div className="bg-gradient-to-r from-gray-50 to-gray-50 dark:from-gray-900/20 dark:to-gray-900/20 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex-1">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">
-              {showOnlyRequiredDocs ? '필수 서류 업로드' : '필수 제출 서류'} ({uploadedRequiredDocs}/{totalRequiredDocs}개 완료)
-            </h3>
-            {showOnlyRequiredDocs && (
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                {uploadedRequiredDocs === totalRequiredDocs 
-                  ? '🎉 모든 필수 서류 업로드가 완료되었습니다!' 
-                  : '안전한 현장 근무를 위해 다음 서류들을 모두 업로드해주세요.'
-                }
-              </p>
-            )}
-            {/* Progress Bar */}
-            <div className="mt-2 flex items-center gap-3">
-              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-500"
-                  style={{ width: `${(uploadedRequiredDocs / totalRequiredDocs) * 100}%` }}
-                />
-              </div>
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                {Math.round((uploadedRequiredDocs / totalRequiredDocs) * 100)}%
-              </span>
-            </div>
-          </div>
-          {!showOnlyRequiredDocs && (
-            <button
-              onClick={() => setIsRequiredDocsExpanded(!isRequiredDocsExpanded)}
-              className="ml-3 p-1.5 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all"
-              title={isRequiredDocsExpanded ? "접기" : "펼치기"}
-            >
-              {isRequiredDocsExpanded ? (
-                <ChevronUp className="h-5 w-5" />
-              ) : (
-                <ChevronDown className="h-5 w-5" />
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                {showOnlyRequiredDocs ? '필수 서류 업로드' : '필수 제출 서류'} ({uploadedRequiredDocs}/{totalRequiredDocs}개 완료)
+              </h3>
+              {showOnlyRequiredDocs && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  {uploadedRequiredDocs === totalRequiredDocs 
+                    ? '🎉 모든 필수 서류 업로드가 완료되었습니다!' 
+                    : '안전한 현장 근무를 위해 다음 서류들을 모두 업로드해주세요.'
+                  }
+                </p>
               )}
-            </button>
-          )}
-        </div>
-        
-
-        {/* 필수 서류 목록 - 펼쳐진 경우에만 표시 (필수 서류 탭에서는 항상 표시) */}
-        {(isRequiredDocsExpanded || showOnlyRequiredDocs) && (
-          <div className="grid gap-3">
-            {requiredDocuments.map((reqDoc) => {
-              const uploadedDoc = documents.find(doc => doc.documentType === reqDoc.id)
-              const isUploaded = uploadedDoc?.status === 'completed'
-              const isProcessing = uploadedDoc?.status === 'processing'
-              const needsReview = uploadedDoc?.status === 'review'
-              const statusStyle = getStatusStyle(reqDoc.submissionStatus)
-              const StatusIcon = statusStyle.icon
-              
-              return (
-                <div key={reqDoc.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3 flex-1">
-                      <div className="flex-shrink-0">
-                        {reqDoc.submissionStatus === 'approved' ? (
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                        ) : reqDoc.submissionStatus === 'submitted' ? (
-                          <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />
-                        ) : reqDoc.submissionStatus === 'rejected' ? (
-                          <X className="h-5 w-5 text-red-500" />
-                        ) : isUploaded ? (
-                          <CheckCircle className="h-5 w-5 text-green-500" />
-                        ) : isProcessing ? (
-                          <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />
-                        ) : needsReview ? (
-                          <AlertCircle className="h-5 w-5 text-orange-500" />
-                        ) : (
-                          <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {reqDoc.name}
-                            {!reqDoc.isRequired && (
-                              <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(선택)</span>
+              {/* Progress Bar */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <Progress 
+                    value={(uploadedRequiredDocs / totalRequiredDocs) * 100} 
+                    className="h-2"
+                  />
+                </div>
+                <Badge variant="secondary" className="text-sm font-medium">
+                  {Math.round((uploadedRequiredDocs / totalRequiredDocs) * 100)}%
+                </Badge>
+              </div>
+            </div>
+            {!showOnlyRequiredDocs && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsRequiredDocsExpanded(!isRequiredDocsExpanded)}
+                className="ml-6"
+                title={isRequiredDocsExpanded ? "접기" : "펼치기"}
+              >
+                {isRequiredDocsExpanded ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
+              </Button>
+            )}
+          </div>
+          
+          {/* 필수 서류 목록 - 펼쳐진 경우에만 표시 (필수 서류 탭에서는 항상 표시) */}
+          {(isRequiredDocsExpanded || showOnlyRequiredDocs) && (
+            <div className="grid gap-4">
+              {requiredDocuments.map((reqDoc) => {
+                const uploadedDoc = documents.find(doc => doc.documentType === reqDoc.id)
+                const isUploaded = uploadedDoc?.status === 'completed'
+                const isProcessing = uploadedDoc?.status === 'processing'
+                const needsReview = uploadedDoc?.status === 'review'
+                const statusStyle = getStatusStyle(reqDoc.submissionStatus || 'pending')
+                
+                return (
+                  <Card key={reqDoc.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 flex-1">
+                          <div className="flex-shrink-0">
+                            {reqDoc.submissionStatus === 'approved' ? (
+                              <CheckCircle className="h-6 w-6 text-green-500" />
+                            ) : reqDoc.submissionStatus === 'submitted' ? (
+                              <Clock className="h-6 w-6 text-yellow-500 animate-pulse" />
+                            ) : reqDoc.submissionStatus === 'rejected' ? (
+                              <X className="h-6 w-6 text-red-500" />
+                            ) : isUploaded ? (
+                              <CheckCircle className="h-6 w-6 text-green-500" />
+                            ) : isProcessing ? (
+                              <Clock className="h-6 w-6 text-yellow-500 animate-pulse" />
+                            ) : needsReview ? (
+                              <AlertCircle className="h-6 w-6 text-orange-500" />
+                            ) : (
+                              <div className="h-6 w-6 rounded-full border-2 border-gray-300 dark:border-gray-600" />
                             )}
-                          </h4>
-                          {reqDoc.submissionStatus && reqDoc.submissionStatus !== 'not_submitted' && (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.color}`}>
-                              {statusStyle.text}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{reqDoc.description}</p>
-                        {reqDoc.submissionStatus === 'rejected' && reqDoc.rejectionReason && (
-                          <div className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded-md">
-                            <p className="text-xs text-red-600 dark:text-red-400">
-                              <span className="font-medium">반려 사유:</span> {reqDoc.rejectionReason}
-                            </p>
                           </div>
-                        )}
-                        {isUploaded && uploadedDoc && (
-                          <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-700">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 flex-1 min-w-0">
-                                <CheckCircle className="h-3 w-3 text-green-500 flex-shrink-0" />
-                                <div className="flex-1 min-w-0">
-                                  <div className="text-xs font-medium text-green-700 dark:text-green-300 truncate">
-                                    {uploadedDoc.name}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-1">
+                              <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                                {reqDoc.name}
+                                {!reqDoc.isRequired && (
+                                  <Badge variant="outline" className="ml-2 text-xs">선택</Badge>
+                                )}
+                              </h4>
+                              {reqDoc.submissionStatus && reqDoc.submissionStatus !== 'not_submitted' && (
+                                <Badge 
+                                  variant="secondary" 
+                                  className="text-xs"
+                                  style={{
+                                    backgroundColor: statusStyle.bg,
+                                    color: statusStyle.text
+                                  }}
+                                >
+                                  {reqDoc.submissionStatus === 'approved' ? '승인됨' :
+                                   reqDoc.submissionStatus === 'submitted' ? '검토중' :
+                                   reqDoc.submissionStatus === 'rejected' ? '반려됨' : '미제출'}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{reqDoc.description}</p>
+                            {reqDoc.submissionStatus === 'rejected' && reqDoc.rejectionReason && (
+                              <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                                <p className="text-sm text-red-700 dark:text-red-300">
+                                  <span className="font-medium">반려 사유:</span> {reqDoc.rejectionReason}
+                                </p>
+                              </div>
+                            )}
+                            {isUploaded && uploadedDoc && (
+                              <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium text-green-700 dark:text-green-300 truncate">
+                                        {uploadedDoc.name}
+                                      </div>
+                                    </div>
                                   </div>
+                                  <Badge variant="outline" className="text-green-600 dark:text-green-400 border-green-300">
+                                    {formatFileSize(uploadedDoc.size)}
+                                  </Badge>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1 ml-2">
-                                <span className="text-xs text-green-600 dark:text-green-400 whitespace-nowrap">
-                                  {formatFileSize(uploadedDoc.size)}
-                                </span>
-                              </div>
-                            </div>
+                            )}
                           </div>
-                        )}
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          {reqDoc.submissionStatus === 'approved' && uploadedDoc ? (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleViewDocument(uploadedDoc)
+                                }}
+                                title="미리보기"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDownloadDocument(uploadedDoc)
+                                }}
+                                title="다운로드"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : reqDoc.submissionStatus === 'submitted' && uploadedDoc ? (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleViewDocument(uploadedDoc)
+                                }}
+                                title="미리보기"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Badge variant="secondary" className="text-yellow-600 dark:text-yellow-400">
+                                검토중...
+                              </Badge>
+                            </div>
+                          ) : reqDoc.submissionStatus === 'rejected' ? (
+                            <Button
+                              onClick={() => handleRequiredDocumentUpload(reqDoc.id)}
+                              className="bg-red-500 hover:bg-red-600 text-white"
+                              size="sm"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              재제출
+                            </Button>
+                          ) : isUploaded && uploadedDoc ? (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleViewDocument(uploadedDoc)
+                                }}
+                                title="미리보기"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDownloadDocument(uploadedDoc)
+                                }}
+                                title="다운로드"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleShareDocument(uploadedDoc)
+                                }}
+                                title="공유하기"
+                              >
+                                <Share2 className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  deleteDocument(uploadedDoc.id)
+                                }}
+                                title="삭제"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              onClick={() => handleRequiredDocumentUpload(reqDoc.id)}
+                              disabled={uploadingDocuments.has(reqDoc.id)}
+                              size="sm"
+                            >
+                              {uploadingDocuments.has(reqDoc.id) ? (
+                                <Clock className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Upload className="h-4 w-4 mr-2" />
+                              )}
+                              {uploadingDocuments.has(reqDoc.id) ? '업로드 중...' : '업로드하기'}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-3">
-                      {reqDoc.submissionStatus === 'approved' && uploadedDoc ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewDocument(uploadedDoc)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                            title="미리보기"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDownloadDocument(uploadedDoc)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                            title="다운로드"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ) : reqDoc.submissionStatus === 'submitted' && uploadedDoc ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewDocument(uploadedDoc)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                            title="미리보기"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <span className="text-xs text-yellow-600 dark:text-yellow-400">검토중...</span>
-                        </div>
-                      ) : reqDoc.submissionStatus === 'rejected' ? (
-                        <button
-                          onClick={() => {
-                            // console.log('🖱️ Re-upload button clicked for rejected document:', reqDoc.id)
-                            handleRequiredDocumentUpload(reqDoc.id)
-                          }}
-                          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
-                        >
-                          <Upload className="h-3 w-3" />
-                          재제출
-                        </button>
-                      ) : isUploaded ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewDocument(uploadedDoc)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                            title="미리보기"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDownloadDocument(uploadedDoc)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                            title="다운로드"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleShareDocument(uploadedDoc)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                            title="공유하기"
-                          >
-                            <Share2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              deleteDocument(uploadedDoc.id)
-                            }}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="삭제"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            // console.log('🖱️ Upload button clicked for document:', reqDoc.id)
-                            // console.log('📋 Button element:', event?.target)
-                            
-                            if (!fileInputRef.current) {
-                              console.error('❌ File input ref is not available')
-                              // console.log('🔍 fileInputRef:', fileInputRef)
-                              alert('파일 입력 요소에 접근할 수 없습니다. 페이지를 새로고침해주세요.')
-                              return
-                            }
-                            
-                            // console.log('✅ File input ref found:', fileInputRef.current)
-                            // console.log('🔍 File input properties:', {
-                            //   type: fileInputRef.current.type,
-                            //   accept: fileInputRef.current.accept,
-                            //   multiple: fileInputRef.current.multiple,
-                            //   value: fileInputRef.current.value,
-                            //   disabled: fileInputRef.current.disabled
-                            // })
-                            
-                            if (uploadingDocuments.has(reqDoc.id)) {
-                              // console.log('⏳ Already uploading for document:', reqDoc.id)
-                              return // Prevent multiple uploads for this specific document
-                            }
-                            
-                            // console.log('📤 Starting upload process for document:', reqDoc.id)
-                            // console.log('📊 Current uploadingDocuments:', Array.from(uploadingDocuments))
-                            
-                            // Set the document type before triggering file selection
-                            fileInputRef.current.setAttribute('data-document-type', reqDoc.id)
-                            // console.log('🏷️ Set data-document-type to:', reqDoc.id)
-                            // console.log('🔍 Verify attribute was set:', fileInputRef.current.getAttribute('data-document-type'))
-                            
-                            // Reset the file input to ensure change event fires
-                            const oldValue = fileInputRef.current.value
-                            fileInputRef.current.value = ''
-                            // console.log('🔄 Reset file input value from', oldValue, 'to', fileInputRef.current.value)
-                            
-                            // Trigger file selection
-                            try {
-                              // console.log('🎯 About to click file input...')
-                              fileInputRef.current.click()
-                              // console.log('✅ File input clicked successfully')
-                              
-                              // Add a small delay to check if the dialog opened
-                              setTimeout(() => {
-                                // console.log('⏰ 500ms after click - checking if dialog opened')
-                                // console.log('🔍 File input value after click:', fileInputRef.current?.value)
-                              }, 500)
-                            } catch (error) {
-                              console.error('❌ Error clicking file input:', error)
-                              alert('파일 선택을 시작할 수 없습니다.')
-                            }
-                          }}
-                          disabled={uploadingDocuments.has(reqDoc.id)}
-                          className={`px-3 py-1.5 text-white text-xs font-medium rounded-md transition-colors touch-manipulation ${
-                            uploadingDocuments.has(reqDoc.id) 
-                              ? 'bg-gray-400 cursor-not-allowed' 
-                              : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800'
-                          }`}
-                        >
-                          {uploadingDocuments.has(reqDoc.id) ? '업로드 중...' : '업로드하기'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+                    </CardContent>
+                  </Card>
+                )
+              })}
             </div>
           )}
-      </div>
+        </CardContent>
+      </Card>
       )}
 
-      {/* Main Content - Always show unless both required and personal docs are hidden */}
+      {/* Modern Document Grid/List using DocumentCard */}
       {(!showOnlyRequiredDocs || displayDocuments.length > 0) && (
-      <div>
-        <div>
-          {/* Upload Progress Section Removed - Using toast messages instead */}
-
-
-          {/* Documents Grid/List */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <Card>
+          <CardContent className={viewMode === 'grid' ? 'p-6' : 'p-4'}>
             {filteredAndSortedDocuments.length === 0 ? (
-              <div className="text-center py-12">
-                <Folder className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+              <div className="text-center py-16">
+                <Folder className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                   {showOnlyRequiredDocs ? '제출된 필수 서류가 없습니다' : '문서가 없습니다'}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
                   {showOnlyRequiredDocs 
                     ? '필수 서류를 업로드해주세요.' 
                     : searchTerm 
-                      ? '검색 조간에 맞는 문서가 없습니다.' 
-                      : '새로운 문서를 업로드해보세요.'
+                      ? '검색 조건에 맞는 문서가 없습니다. 다른 검색어를 시도해보세요.' 
+                      : '새로운 문서를 업로드하여 시작해보세요.'
                   }
                 </p>
+                {!showOnlyRequiredDocs && !searchTerm && (
+                  <Button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-4"
+                    size="lg"
+                  >
+                    <Upload className="h-5 w-5 mr-2" />
+                    첫 문서 업로드하기
+                  </Button>
+                )}
               </div>
             ) : viewMode === 'grid' ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-                {filteredAndSortedDocuments.map((document: any) => {
-                  const getFileTypeDisplay = (type: string) => {
-                    if (type === 'markup-document') return '도면'
-                    if (type.includes('pdf')) return 'PDF'
-                    if (type.includes('word')) return 'DOC'
-                    if (type.includes('excel')) return 'XLS'
-                    if (type.startsWith('image/')) return 'IMG'
-                    return 'FILE'
-                  }
-                  
-                  const getFileTypeColor = (type: string) => {
-                    if (type === 'markup-document') return 'bg-purple-100 text-purple-700 border-purple-200'
-                    if (type.includes('pdf')) return 'bg-red-100 text-red-700 border-red-200'
-                    if (type.includes('word')) return 'bg-blue-100 text-blue-700 border-blue-200'
-                    if (type.includes('excel')) return 'bg-green-100 text-green-700 border-green-200'
-                    if (type.startsWith('image/')) return 'bg-orange-100 text-orange-700 border-orange-200'
-                    return 'bg-gray-100 text-gray-700 border-gray-200'
-                  }
-
-                  return (
-                    <div
-                      key={document.id}
-                      className={`relative border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${
-                        isSelectionMode && selectedDocuments.includes(document.id)
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-600'
-                      }`}
-                      onClick={() => isSelectionMode && toggleDocumentSelection(document.id)}
-                    >
-                      {/* Selection Checkbox */}
-                      {isSelectionMode && (
-                        <div className="absolute top-2 left-2">
-                          <input
-                            type="checkbox"
-                            checked={selectedDocuments.includes(document.id)}
-                            onChange={() => toggleDocumentSelection(document.id)}
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                      )}
-                      
-                      <div className="flex flex-col items-center text-center">
-                        {/* File Type Badge */}
-                        <div className="mb-3">
-                          <span className={`inline-block px-1.5 py-0.5 text-xs font-medium rounded-md ${getFileTypeColor(document.type)}`}>
-                            {getFileTypeDisplay(document.type)}
-                          </span>
-                        </div>
-                        
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 mb-2">
-                          {document.name}
-                        </h4>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                          {formatFileSize(document.size)}
-                        </p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
-                          {formatDate(document.uploadedAt)}
-                        </p>
-                        
-                        <div className="flex gap-1">
-                          <button
-                            onClick={() => handleViewDocument(document)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                            title="보기"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDownloadDocument(document)}
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                            title="다운로드"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleShareDocument(document)}
-                            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                            title="공유하기"
-                          >
-                            <Share2 className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteDocument(document.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="삭제"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredAndSortedDocuments.map((document: any) => (
+                  <DocumentCard
+                    key={document.id}
+                    document={document}
+                    viewMode="grid"
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedDocuments.includes(document.id)}
+                    onSelect={toggleDocumentSelection}
+                    onView={handleViewDocument}
+                    onDownload={handleDownloadDocument}
+                    onShare={handleShareDocument}
+                    onDelete={deleteDocument}
+                    showOwner={true}
+                    showSite={true}
+                    showStatus={false}
+                  />
+                ))}
               </div>
             ) : (
-              <div className="space-y-1">
-                {filteredAndSortedDocuments.map((document: any) => {
-                  const FileIcon = getFileIcon(document.type)
-                  const getFileTypeDisplay = (type: string) => {
-                    if (type === 'markup-document') return '도면'
-                    if (type.includes('pdf')) return 'PDF'
-                    if (type.includes('word')) return 'DOC'
-                    if (type.includes('excel')) return 'XLS'
-                    if (type.startsWith('image/')) return 'IMG'
-                    return 'FILE'
-                  }
-                  
-                  const getFileTypeColor = (type: string) => {
-                    if (type === 'markup-document') return 'bg-purple-100 text-purple-700 border-purple-200'
-                    if (type.includes('pdf')) return 'bg-red-100 text-red-700 border-red-200'
-                    if (type.includes('word')) return 'bg-blue-100 text-blue-700 border-blue-200'
-                    if (type.includes('excel')) return 'bg-green-100 text-green-700 border-green-200'
-                    if (type.startsWith('image/')) return 'bg-orange-100 text-orange-700 border-orange-200'
-                    return 'bg-gray-100 text-gray-700 border-gray-200'
-                  }
-
-                  return (
-                    <div
-                      key={document.id}
-                      className={`bg-white dark:bg-gray-800 border rounded p-2 hover:shadow-sm transition-all duration-200 cursor-pointer ${
-                        isSelectionMode && selectedDocuments.includes(document.id)
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
-                      }`}
-                      onClick={() => isSelectionMode && toggleDocumentSelection(document.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        {/* Selection Checkbox */}
-                        {isSelectionMode && (
-                          <div className="flex-shrink-0">
-                            <input
-                              type="checkbox"
-                              checked={selectedDocuments.includes(document.id)}
-                              onChange={() => toggleDocumentSelection(document.id)}
-                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          </div>
-                        )}
-                        
-                        {/* Badge Only */}
-                        <div className="flex-shrink-0">
-                          <span className={`inline-block px-1 py-0.5 text-xs font-medium rounded ${getFileTypeColor(document.type)}`}>
-                            {getFileTypeDisplay(document.type)}
-                          </span>
-                        </div>
-                        
-                        {/* File Info - Enhanced Layout with Site Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate mb-0.5">
-                                {document.name}
-                              </h4>
-                              <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-0.5">
-                                <span>
-                                  {new Date(document.uploadedAt).toLocaleDateString('ko-KR', {
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </span>
-                                {document.site && (
-                                  <>
-                                    <span>•</span>
-                                    <span className="truncate max-w-20 text-xs" title={document.siteAddress}>
-                                      {document.site}
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              <div className="text-xs text-gray-400 dark:text-gray-500 truncate">
-                                {document.uploadedBy}
-                              </div>
-                            </div>
-                            
-                            {/* Action Buttons - Compact */}
-                            <div className="flex items-center gap-0.5 ml-2">
-                              <button
-                                onClick={() => handleViewDocument(document)}
-                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
-                                title="보기"
-                              >
-                                <Eye className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleDownloadDocument(document)}
-                                className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors"
-                                title="다운로드"
-                              >
-                                <Download className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => handleShareDocument(document)}
-                                className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded transition-colors"
-                                title="공유하기"
-                              >
-                                <Share2 className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                onClick={() => deleteDocument(document.id)}
-                                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                title="삭제"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+              <div className="space-y-3">
+                {filteredAndSortedDocuments.map((document: any) => (
+                  <DocumentCard
+                    key={document.id}
+                    document={document}
+                    viewMode="list"
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedDocuments.includes(document.id)}
+                    onSelect={toggleDocumentSelection}
+                    onView={handleViewDocument}
+                    onDownload={handleDownloadDocument}
+                    onShare={handleShareDocument}
+                    onDelete={deleteDocument}
+                    showOwner={true}
+                    showSite={true}
+                    showStatus={false}
+                  />
+                ))}
               </div>
             )}
-          </div>
-        </div>
-      </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Hidden File Input */}
@@ -1562,67 +1344,73 @@ export default function DocumentsTab({
         style={{ display: 'none' }}
       />
 
-      {/* Share Modal */}
+      {/* Modern Share Modal using Dialog */}
       {showShareModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             {/* Background overlay */}
             <div 
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              className="fixed inset-0 bg-black/50 transition-opacity"
               onClick={() => setShowShareModal(false)}
             />
 
             {/* Modal panel */}
-            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-sm sm:w-full">
-              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
+              <div className="bg-white dark:bg-gray-800 px-6 pt-6 pb-4 sm:p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                     문서 공유하기
                   </h3>
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => setShowShareModal(false)}
                     className="text-gray-400 hover:text-gray-500"
                   >
                     <X className="h-5 w-5" />
-                  </button>
+                  </Button>
                 </div>
 
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
                   선택한 {selectedDocuments.length}개의 문서를 공유합니다
                 </p>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <button
+                <div className="grid grid-cols-2 gap-4">
+                  <Button
+                    variant="outline"
                     onClick={() => handleShare('sms')}
-                    className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                    className="flex flex-col items-center justify-center p-6 h-auto hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
-                    <MessageSquare className="h-6 w-6 mb-2 text-gray-600 dark:text-gray-300" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200">문자</span>
-                  </button>
+                    <MessageSquare className="h-8 w-8 mb-3 text-gray-600 dark:text-gray-300" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">문자</span>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => handleShare('email')}
-                    className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                    className="flex flex-col items-center justify-center p-6 h-auto hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
-                    <Mail className="h-6 w-6 mb-2 text-gray-600 dark:text-gray-300" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200">이메일</span>
-                  </button>
+                    <Mail className="h-8 w-8 mb-3 text-gray-600 dark:text-gray-300" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">이메일</span>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => handleShare('kakao')}
-                    className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                    className="flex flex-col items-center justify-center p-6 h-auto hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
-                    <MessageSquare className="h-6 w-6 mb-2 text-yellow-600" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200">카카오톡</span>
-                  </button>
+                    <MessageSquare className="h-8 w-8 mb-3 text-yellow-600" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">카카오톡</span>
+                  </Button>
 
-                  <button
+                  <Button
+                    variant="outline"
                     onClick={() => handleShare('link')}
-                    className="flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                    className="flex flex-col items-center justify-center p-6 h-auto hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
-                    <Link2 className="h-6 w-6 mb-2 text-gray-600 dark:text-gray-300" />
-                    <span className="text-sm text-gray-700 dark:text-gray-200">링크 복사</span>
-                  </button>
+                    <Link2 className="h-8 w-8 mb-3 text-gray-600 dark:text-gray-300" />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">링크 복사</span>
+                  </Button>
                 </div>
               </div>
             </div>
