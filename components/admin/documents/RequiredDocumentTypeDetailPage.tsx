@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { FileCheck, Search, Download, Eye, Trash2, User, Calendar, RefreshCw, AlertCircle, CheckCircle, XCircle, Clock, Filter, CheckSquare, Square } from 'lucide-react'
+import { ArrowLeft, FileCheck, Search, Download, Eye, RefreshCw, AlertCircle, CheckCircle, XCircle, Clock, Filter, CheckSquare, Square, User, Calendar } from 'lucide-react'
 
 interface RequiredDocument {
   id: string
@@ -11,6 +11,7 @@ interface RequiredDocument {
   document_type: string
   file_name: string
   file_size: number
+  file_url?: string
   status: 'pending' | 'approved' | 'rejected' | 'submitted'
   submission_date: string
   submitted_by: {
@@ -25,6 +26,10 @@ interface RequiredDocument {
   rejection_reason?: string
 }
 
+interface RequiredDocumentTypeDetailPageProps {
+  documentType: string
+}
+
 // 문서 타입 라벨 매핑
 const DOCUMENT_TYPE_LABELS = {
   medical_checkup: '배치전 검진 결과서',
@@ -36,69 +41,47 @@ const DOCUMENT_TYPE_LABELS = {
   senior_documents: '고령자 서류'
 }
 
-export default function RealRequiredDocumentsManagement() {
+export default function RequiredDocumentTypeDetailPage({ 
+  documentType 
+}: RequiredDocumentTypeDetailPageProps) {
   const router = useRouter()
   const [documents, setDocuments] = useState<RequiredDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [typeFilter, setTypeFilter] = useState<string>('all')
   const [selectedDocs, setSelectedDocs] = useState<string[]>([])
   const [showRejectionModal, setShowRejectionModal] = useState(false)
   const [rejectionReason, setRejectionReason] = useState('')
   const [selectedForRejection, setSelectedForRejection] = useState<string[]>([])
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [previewDocument, setPreviewDocument] = useState<RequiredDocument | null>(null)
 
   useEffect(() => {
-    console.log('RealRequiredDocumentsManagement - Component mounted')
     fetchDocuments()
-  }, [])
+  }, [documentType])
 
   const fetchDocuments = async () => {
     try {
       setLoading(true)
-      console.log('RealRequiredDocumentsManagement - Fetching documents...')
       
-      const response = await fetch('/api/admin/documents/required', {
+      const response = await fetch(`/api/admin/documents/required/${encodeURIComponent(documentType)}`, {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },
       })
-      console.log('RealRequiredDocumentsManagement - Response status:', response.status)
       
       if (response.ok) {
         const data = await response.json()
-        console.log('RealRequiredDocumentsManagement - API response:', data)
-        console.log('RealRequiredDocumentsManagement - Documents count:', data.documents?.length || 0)
         setDocuments(data.documents || [])
       } else {
         const errorData = await response.json().catch(() => ({}))
-        console.error('Failed to fetch required documents:', response.status, errorData)
+        console.error('Failed to fetch documents:', response.status, errorData)
       }
     } catch (error) {
-      console.error('Error fetching required documents:', error)
+      console.error('Error fetching documents:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleDownload = async (document: RequiredDocument) => {
-    try {
-      // This would need to be implemented to get the signed URL for download
-      alert(`다운로드 기능은 추후 구현 예정입니다: ${document.file_name}`)
-    } catch (error) {
-      alert('다운로드 중 오류가 발생했습니다.')
-    }
-  }
-
-  const handleDelete = async (document: RequiredDocument) => {
-    if (!confirm(`${document.title}을(를) 삭제하시겠습니까?`)) return
-
-    try {
-      // This would need to be implemented
-      alert('삭제 기능은 추후 구현 예정입니다.')
-    } catch (error) {
-      alert('삭제 중 오류가 발생했습니다.')
     }
   }
 
@@ -154,6 +137,20 @@ export default function RealRequiredDocumentsManagement() {
     } catch (error) {
       console.error('Error rejecting documents:', error)
       alert('반려 처리 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handlePreview = (document: RequiredDocument) => {
+    setPreviewDocument(document)
+    setShowPreviewModal(true)
+  }
+
+  const handleDownload = async (document: RequiredDocument) => {
+    try {
+      // This would need to be implemented to get the signed URL for download
+      alert(`다운로드 기능은 추후 구현 예정입니다: ${document.file_name}`)
+    } catch (error) {
+      alert('다운로드 중 오류가 발생했습니다.')
     }
   }
 
@@ -215,10 +212,11 @@ export default function RealRequiredDocumentsManagement() {
                          doc.file_name.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesStatus = statusFilter === 'all' || doc.status === statusFilter
-    const matchesType = typeFilter === 'all' || doc.document_type === typeFilter
     
-    return matchesSearch && matchesStatus && matchesType
+    return matchesSearch && matchesStatus
   })
+
+  const documentTypeLabel = DOCUMENT_TYPE_LABELS[documentType as keyof typeof DOCUMENT_TYPE_LABELS] || documentType
 
   if (loading) {
     return (
@@ -233,12 +231,21 @@ export default function RealRequiredDocumentsManagement() {
     <div className="space-y-6">
       {/* 헤더 */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <FileCheck className="w-6 h-6 text-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900">필수 제출 서류함</h2>
-          <span className="px-2 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">
-            {filteredDocuments.length}건
-          </span>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            뒤로가기
+          </button>
+          <div className="flex items-center gap-2">
+            <FileCheck className="w-6 h-6 text-blue-600" />
+            <h1 className="text-2xl font-bold text-gray-900">{documentTypeLabel}</h1>
+            <span className="px-3 py-1 text-sm bg-blue-100 text-blue-800 rounded-full">
+              {filteredDocuments.length}건
+            </span>
+          </div>
         </div>
         <button
           onClick={fetchDocuments}
@@ -305,17 +312,6 @@ export default function RealRequiredDocumentsManagement() {
             <option value="approved">승인</option>
             <option value="rejected">반려</option>
           </select>
-
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="all">모든 문서 유형</option>
-            {Object.entries(DOCUMENT_TYPE_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
         </div>
       </div>
 
@@ -323,8 +319,8 @@ export default function RealRequiredDocumentsManagement() {
       {filteredDocuments.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">제출된 필수 서류가 없습니다</h3>
-          <p className="text-gray-600">사용자들이 업로드한 필수 서류가 여기에 표시됩니다.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">제출된 {documentTypeLabel}가 없습니다</h3>
+          <p className="text-gray-600">해당 문서 유형의 제출서류가 여기에 표시됩니다.</p>
         </div>
       ) : (
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -341,10 +337,10 @@ export default function RealRequiredDocumentsManagement() {
                     />
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    문서 정보
+                    제출자
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    제출자
+                    파일 정보
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     상태
@@ -373,26 +369,21 @@ export default function RealRequiredDocumentsManagement() {
                         />
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div 
-                          className="cursor-pointer hover:bg-blue-50 -m-2 p-2 rounded-lg transition-colors"
-                          onClick={() => router.push(`/dashboard/admin/documents/required/${encodeURIComponent(document.document_type)}`)}
-                        >
-                          <div className="text-sm font-medium text-blue-600 hover:text-blue-800">{document.title}</div>
-                          <div className="text-sm text-gray-500">
-                            {DOCUMENT_TYPE_LABELS[document.document_type as keyof typeof DOCUMENT_TYPE_LABELS] || document.document_type}
-                          </div>
-                          <div className="text-xs text-gray-400 mt-1">
-                            {document.file_name} ({formatFileSize(document.file_size)})
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <User className="w-4 h-4 text-gray-400 mr-2" />
                           <div>
                             <div className="text-sm font-medium text-gray-900">{document.submitted_by.full_name}</div>
-                            <div className="text-sm text-gray-500">{document.organization_name}</div>
+                            <div className="text-sm text-gray-500">{document.submitted_by.email}</div>
                           </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{document.file_name}</div>
+                          <div className="text-sm text-gray-500">{formatFileSize(document.file_size)}</div>
+                          {document.title && (
+                            <div className="text-xs text-gray-400 mt-1">{document.title}</div>
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -411,6 +402,13 @@ export default function RealRequiredDocumentsManagement() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handlePreview(document)}
+                            className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded transition-colors"
+                            title="미리보기"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                           {document.status === 'pending' || document.status === 'submitted' ? (
                             <>
                               <button
@@ -434,7 +432,7 @@ export default function RealRequiredDocumentsManagement() {
                           ) : null}
                           <button
                             onClick={() => handleDownload(document)}
-                            className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded transition-colors"
+                            className="text-gray-600 hover:text-gray-900 p-1 hover:bg-gray-50 rounded transition-colors"
                             title="다운로드"
                           >
                             <Download className="w-4 h-4" />
@@ -478,6 +476,36 @@ export default function RealRequiredDocumentsManagement() {
                 className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
               >
                 반려
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 미리보기 모달 (간단한 구현) */}
+      {showPreviewModal && previewDocument && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] w-full p-6 overflow-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">파일 미리보기</h3>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="text-center py-8 text-gray-500">
+              <Eye className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-lg font-medium">{previewDocument.file_name}</p>
+              <p className="text-sm">{formatFileSize(previewDocument.file_size)}</p>
+              <p className="mt-4">미리보기 기능은 추후 구현 예정입니다.</p>
+              <button
+                onClick={() => handleDownload(previewDocument)}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Download className="w-4 h-4 inline mr-2" />
+                다운로드
               </button>
             </div>
           </div>

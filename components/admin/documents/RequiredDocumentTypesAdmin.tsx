@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Settings, FileText, Eye, EyeOff, Users, Building2, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Settings, FileText, Eye, EyeOff, X } from 'lucide-react'
 
 interface RequiredDocumentType {
   id: string
@@ -34,18 +34,8 @@ interface DocumentTypeFormData {
   file_types: string[]
   max_file_size: number
   sort_order: number
-  role_mappings: Array<{
-    role_type: string
-    is_required: boolean
-  }>
 }
 
-const ROLE_OPTIONS = [
-  { value: 'worker', label: '작업자' },
-  { value: 'site_manager', label: '현장관리자' },
-  { value: 'admin', label: '관리자' },
-  { value: 'partner', label: '파트너사' }
-]
 
 const DEFAULT_FILE_TYPES = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx']
 
@@ -61,8 +51,7 @@ export default function RequiredDocumentTypesAdmin() {
     description: '',
     file_types: ['pdf', 'jpg', 'jpeg', 'png'],
     max_file_size: 10485760,
-    sort_order: 0,
-    role_mappings: []
+    sort_order: 0
   })
 
   useEffect(() => {
@@ -118,8 +107,7 @@ export default function RequiredDocumentTypesAdmin() {
       description: documentType.description || '',
       file_types: documentType.file_types,
       max_file_size: documentType.max_file_size,
-      sort_order: documentType.sort_order,
-      role_mappings: documentType.role_mappings || []
+      sort_order: documentType.sort_order
     })
     setShowModal(true)
   }
@@ -165,18 +153,10 @@ export default function RequiredDocumentTypesAdmin() {
       description: '',
       file_types: ['pdf', 'jpg', 'jpeg', 'png'],
       max_file_size: 10485760,
-      sort_order: 0,
-      role_mappings: []
+      sort_order: 0
     })
   }
 
-  const handleRoleMappingChange = (role: string, isRequired: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      role_mappings: prev.role_mappings.filter(rm => rm.role_type !== role)
-        .concat(isRequired ? [{ role_type: role, is_required: true }] : [])
-    }))
-  }
 
   const formatFileSize = (bytes: number) => {
     return `${(bytes / 1048576).toFixed(1)}MB`
@@ -232,12 +212,6 @@ export default function RequiredDocumentTypesAdmin() {
                   파일 제한
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  적용 역할
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  현장 설정
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   상태
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -272,25 +246,6 @@ export default function RequiredDocumentTypesAdmin() {
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       {docType.file_types.join(', ')}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {docType.role_mappings?.map((mapping) => (
-                        <span
-                          key={mapping.role_type}
-                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                        >
-                          <Users className="h-3 w-3 mr-1" />
-                          {ROLE_OPTIONS.find(r => r.value === mapping.role_type)?.label || mapping.role_type}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                      <Building2 className="h-4 w-4 mr-1" />
-                      {docType.site_customizations?.length || 0}개 현장
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -452,24 +407,6 @@ export default function RequiredDocumentTypesAdmin() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  적용 역할
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  {ROLE_OPTIONS.map((role) => (
-                    <label key={role.value} className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={formData.role_mappings.some(rm => rm.role_type === role.value)}
-                        onChange={(e) => handleRoleMappingChange(role.value, e.target.checked)}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">{role.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
