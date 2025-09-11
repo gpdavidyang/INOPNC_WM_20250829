@@ -188,8 +188,8 @@ export async function POST(request: NextRequest) {
     console.log('✅ File converted to buffer, size:', buffer.length)
 
     // Supabase Storage에 파일 업로드
-    const fileName = `${Date.now()}-${file.name}`
-    const filePath = `documents/${user.id}/${fileName}`
+    let fileName = `${Date.now()}-${file.name}`
+    let filePath = `documents/${user.id}/${fileName}`
     console.log('📁 Uploading to path:', filePath)
 
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -200,11 +200,48 @@ export async function POST(request: NextRequest) {
       })
 
     if (uploadError) {
-      console.error('Supabase Storage upload error:', uploadError)
-      return NextResponse.json({ 
-        error: 'Failed to upload file to storage', 
-        details: uploadError.message || uploadError 
-      }, { status: 500 })
+      console.error('❌ Supabase Storage upload error:', {
+        error: uploadError,
+        message: uploadError.message,
+        statusCode: uploadError.statusCode,
+        filePath: filePath,
+        fileSize: buffer.length,
+        fileType: file.type
+      })
+      
+      // Check if it's a duplicate file error
+      if (uploadError.message?.includes('already exists')) {
+        // Try with a different filename
+        const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`
+        const uniqueFilePath = `documents/${user.id}/${uniqueFileName}`
+        
+        console.log('🔄 Retrying with unique filename:', uniqueFilePath)
+        
+        const { data: retryData, error: retryError } = await supabase.storage
+          .from('documents')
+          .upload(uniqueFilePath, buffer, {
+            contentType: file.type,
+            upsert: false
+          })
+        
+        if (retryError) {
+          console.error('❌ Retry upload also failed:', retryError)
+          return NextResponse.json({ 
+            error: 'Failed to upload file to storage', 
+            details: retryError.message || retryError 
+          }, { status: 500 })
+        }
+        
+        // Update filePath for database insert
+        Object.assign(uploadData || {}, retryData)
+        filePath = uniqueFilePath
+        fileName = uniqueFileName
+      } else {
+        return NextResponse.json({ 
+          error: 'Failed to upload file to storage', 
+          details: uploadError.message || uploadError 
+        }, { status: 500 })
+      }
     }
 
     // 파일 URL 생성
