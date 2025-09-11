@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom'
 export function NotificationDropdown() {
   const [open, setOpen] = useState(false)
   const [markingAllRead, setMarkingAllRead] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
   const triggerRef = useRef<HTMLDivElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -38,6 +39,38 @@ export function NotificationDropdown() {
     // Close dropdown when a notification is clicked
     setOpen(false)
   }
+
+  // Calculate dropdown position when opening
+  useEffect(() => {
+    if (open && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect()
+      const dropdownWidth = window.innerWidth < 640 ? window.innerWidth * 0.9 : 420
+      const dropdownHeight = 500 // Approximate height
+      
+      let top = rect.bottom + 8 // 8px gap from trigger
+      let left = rect.left + rect.width / 2 - dropdownWidth / 2
+      
+      // Adjust if dropdown would go off screen
+      if (left < 10) {
+        left = 10
+      } else if (left + dropdownWidth > window.innerWidth - 10) {
+        left = window.innerWidth - dropdownWidth - 10
+      }
+      
+      // If dropdown would go below viewport, position above trigger
+      if (top + dropdownHeight > window.innerHeight - 10) {
+        top = rect.top - dropdownHeight - 8
+      }
+      
+      // On mobile, position from top with some margin
+      if (window.innerWidth < 640) {
+        top = 60 // Below header
+        left = window.innerWidth * 0.05 // 5% margin on each side
+      }
+      
+      setDropdownPosition({ top, left })
+    }
+  }, [open])
 
   // Handle click outside to close dropdown and responsive positioning
   useEffect(() => {
@@ -95,14 +128,18 @@ export function NotificationDropdown() {
     <>
       {/* Backdrop - Softer overlay */}
       <div 
-        className="fixed inset-0 z-40 bg-black/30 dark:bg-black/50 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40 sm:bg-transparent"
         onClick={() => setOpen(false)}
       />
       
-      {/* Improved Modal Design */}
+      {/* Improved Modal Design - Positioned near bell icon */}
       <div
         ref={dropdownRef}
-        className="fixed z-50 left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[90vw] sm:w-[420px] max-w-[420px] bg-white dark:bg-gray-800 rounded-xl shadow-xl animate-in fade-in-0 zoom-in-95 duration-200"
+        className="fixed z-50 w-[90vw] sm:w-[420px] max-w-[420px] bg-white dark:bg-gray-800 rounded-xl shadow-2xl animate-in fade-in-0 slide-in-from-top-2 duration-200"
+        style={{
+          top: `${dropdownPosition.top}px`,
+          left: `${dropdownPosition.left}px`,
+        }}
         role="dialog"
         aria-modal="true"
         aria-labelledby="notification-title"
