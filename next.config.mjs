@@ -79,6 +79,13 @@ const nextConfig = {
   // DISABLE font optimization
   optimizeFonts: false,
   
+  // API configuration for file uploads
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb',
+    },
+  },
+  
   // Headers
   headers: async () => {
     return [
