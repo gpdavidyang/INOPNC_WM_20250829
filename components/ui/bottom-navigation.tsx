@@ -98,7 +98,6 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
         }
       } else {
         // 직접 경로는 통합 네비게이션 컨트롤러 사용
-        console.log('[BottomNav] Navigating to:', item.href)
         
         // Include hash in comparison to ensure navigation works from hash routes
         const currentFullPath = `${pathname}${window.location.hash}`
@@ -107,14 +106,12 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
         if (currentFullPath !== targetFullPath) {
           // Clear any existing hash when navigating to a new route
           if (!item.href.includes('#') && window.location.hash) {
-            console.log('[BottomNav] Clearing hash for clean navigation')
             window.location.hash = ''
             // Small delay to ensure hash is cleared before navigation
             setTimeout(() => {
               if (navigate) {
                 navigate(item.href)
               } else {
-                console.log('[BottomNavigation] NavigationController not available, using router.push')
                 router.push(item.href)
               }
             }, 10)
@@ -123,12 +120,9 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
             if (navigate) {
               navigate(item.href)
             } else {
-              console.log('[BottomNavigation] NavigationController not available, using router.push')
               router.push(item.href)
             }
           }
-        } else {
-          console.log('[BottomNav] Already on target route, skipping navigation')
         }
       }
     }, [isNavigating, navigate, pathname, currentUser, onTabChange, router])
@@ -187,15 +181,9 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
                 aria-current={isActive ? "page" : undefined}
               >
                 <div className="relative">
-                  {React.isValidElement(item.icon) 
-                    ? React.cloneElement(item.icon as React.ReactElement, {
-                        className: "h-6 w-6", // Larger icons for better visibility (24x24px)
-                        "aria-hidden": "true",
-                        strokeWidth: isActive ? 2.5 : 1.5, // Enhanced stroke for outdoor visibility
-                        stroke: "currentColor", // Ensure icons use current text color
-                        fill: "none" // Ensure no fill color override
-                      })
-                    : item.icon}
+                  <div className={cn("h-6 w-6", isActive && "font-bold")}>
+                    {item.icon}
+                  </div>
                   {item.badge && (
                     <div className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[7px] font-bold text-white min-w-[12px]">
                       {typeof item.badge === 'number' && item.badge > 99 ? '99+' : item.badge}
