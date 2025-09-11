@@ -64,7 +64,7 @@ export const AccessibleFormField = forwardRef<HTMLDivElement, AccessibleFormFiel
         
         <div>
           {React.Children.map(children, (child) => {
-            if (React.isValidElement(child)) {
+            if (React.isValidElement(child) && typeof child.type !== 'string') {
               return React.cloneElement(child as React.ReactElement<any>, {
                 id: fieldId,
                 'aria-describedby': cn(
