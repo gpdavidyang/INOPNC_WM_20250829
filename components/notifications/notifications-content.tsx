@@ -540,14 +540,21 @@ export function NotificationsContent() {
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredNotifications.map((notification: any) => (
-              <div
-                key={notification.id}
-                className={cn(
-                  "group flex items-start gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors",
-                  !notification.is_read && "bg-blue-50/30 dark:bg-blue-950/20 border-l-3 border-blue-500"
-                )}
-              >
+            {filteredNotifications.map((notification) => {
+              // Defensive check to ensure notification is valid
+              if (!notification || typeof notification !== 'object' || !notification.id) {
+                console.warn('[NotificationsContent] Invalid notification object:', notification)
+                return null
+              }
+              
+              return (
+                <div
+                  key={notification.id}
+                  className={cn(
+                    "group flex items-start gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors",
+                    !notification.is_read && "bg-blue-50/30 dark:bg-blue-950/20 border-l-3 border-blue-500"
+                  )}
+                >
                 <input
                   type="checkbox"
                   checked={selectedNotifications.has(notification.id)}
@@ -612,7 +619,8 @@ export function NotificationsContent() {
                   </div>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

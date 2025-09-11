@@ -333,21 +333,29 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       if (error) throw error
 
       // Format results with defensive access
-      const results: SiteSearchResult[] = (data || []).map((site: any) => ({
-        id: site?.id || '',
-        name: site?.name || '이름 없음',
-        address: site?.site_addresses?.[0]?.full_address || '주소 정보 없음',
-        construction_period: {
-          start_date: new Date(site?.construction_start_date || new Date()),
-          end_date: new Date(site?.construction_end_date || new Date())
-        },
+      const results: SiteSearchResult[] = (data || []).map((site) => {
+        // Defensive check for invalid site objects
+        if (!site || typeof site !== 'object') {
+          console.warn('[SiteContext] Invalid site object in search results:', site)
+          return null
+        }
+        
+        return {
+          id: site?.id || '',
+          name: site?.name || '이름 없음',
+          address: site?.site_addresses?.[0]?.full_address || '주소 정보 없음',
+          construction_period: {
+            start_date: new Date(site?.construction_start_date || new Date()),
+            end_date: new Date(site?.construction_end_date || new Date())
+          },
         progress_percentage: calculateProgress(
           site?.construction_start_date || new Date().toISOString(),
           site?.construction_end_date || new Date().toISOString()
         ),
         participant_count: 0, // TODO: Get actual count
         is_active: site?.is_active ?? false
-      }))
+        }
+      }).filter((result): result is SiteSearchResult => result !== null)
 
       return results
     } catch (err) {
