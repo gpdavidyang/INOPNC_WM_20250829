@@ -156,8 +156,8 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
         ref={ref}
         className={cn(
           "fixed bottom-0 left-0 right-0 z-50 border-t bg-white dark:bg-gray-900 md:hidden",
-          // Enhanced for construction site usage
-          "h-[64px] supports-[height:env(safe-area-inset-bottom)]:h-[68px]",
+          // Simplified height for better positioning
+          "h-16",
           "border-gray-200 dark:border-gray-700",
           "shadow-xl backdrop-blur-sm bg-white/95 dark:bg-gray-900/95",
           className
@@ -225,9 +225,6 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
             )
           })}
         </div>
-        
-        {/* iOS Safe Area - 불투명 배경 */}
-        <div className="h-safe-area-inset-bottom bg-white dark:bg-gray-900" />
       </nav>
     )
   }

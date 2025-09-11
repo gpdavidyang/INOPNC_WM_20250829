@@ -339,8 +339,14 @@ function SidebarContent({
   
   // Determine active tab based on current pathname
   const getActiveTabFromPath = () => {
-    if (pathname === '/dashboard' || pathname === '/dashboard/') return 'home'
+    // Check for hash-based navigation first
+    if (window.location.hash === '#documents-unified') return 'documents'
+    if (pathname === '/dashboard' || pathname === '/dashboard/') {
+      // For dashboard root, check hash for active tab
+      return activeTab || 'home'
+    }
     if (pathname.includes('/dashboard/attendance')) return 'attendance'
+    if (pathname.includes('/dashboard/salary')) return 'salary'
     if (pathname.includes('/dashboard/daily-reports')) return 'daily-reports'
     if (pathname.includes('/dashboard/site-info')) return 'site-info'
     if (pathname.includes('/dashboard/documents')) return 'documents'
@@ -395,25 +401,20 @@ function SidebarContent({
     
     // Admin pages or items with href should navigate to separate routes
     if (item.href) {
-      // Special handling for documents tab - always navigate to /dashboard#documents-unified
+      // Special handling for documents tab - ensure proper navigation
       if (item.id === 'documents' || item.href.includes('#documents-unified')) {
         // console.log('[Sidebar] Navigating to documents tab')
-        // Always navigate to the documents tab, even if we're already on /dashboard
         const targetUrl = '/dashboard#documents-unified'
         
-        // Check if we're already on the dashboard page
-        if (pathname === '/dashboard' || pathname === '/dashboard/') {
-          // We're on dashboard, just change the hash and trigger tab change
-          window.location.hash = 'documents-unified'
-          onTabChange('documents-unified')
+        // Always use router/navigate to ensure proper navigation and state updates
+        if (navigate) {
+          navigate(targetUrl)
         } else {
-          // Navigate to dashboard with the documents hash
-          if (navigate) {
-            navigate(targetUrl)
-          } else {
-            router.push(targetUrl)
-          }
+          router.push(targetUrl)
         }
+        
+        // Also trigger tab change for consistency
+        onTabChange('documents-unified')
         return
       }
       
@@ -422,6 +423,12 @@ function SidebarContent({
       if (currentFullPath === item.href) {
         // console.log('[Sidebar] Same path, navigation skipped')
         return
+      }
+      
+      // Clear any existing hash when navigating away from hash-based routes
+      if (window.location.hash && !item.href.includes('#')) {
+        // console.log('[Sidebar] Clearing hash for clean navigation')
+        window.location.hash = ''
       }
       
       // console.log('[Sidebar] Navigating to:', item.href)
