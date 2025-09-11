@@ -372,6 +372,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       } else if (obj.type === 'drawing') {
         const drawing = obj as DrawingMarkup
         if (drawing.path.length > 0) {
+          // 드로잉 경로 그리기
           ctx.strokeStyle = drawing.strokeColor
           ctx.lineWidth = drawing.strokeWidth
           ctx.globalAlpha = 1
@@ -381,6 +382,29 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
             ctx.lineTo(point.x, point.y)
           })
           ctx.stroke()
+          
+          // 선택된 경우 바운딩 박스 표시
+          if (isSelected) {
+            // 바운딩 박스 계산
+            let minX = drawing.path[0].x
+            let minY = drawing.path[0].y
+            let maxX = drawing.path[0].x
+            let maxY = drawing.path[0].y
+            
+            drawing.path.forEach(point => {
+              minX = Math.min(minX, point.x)
+              minY = Math.min(minY, point.y)
+              maxX = Math.max(maxX, point.x)
+              maxY = Math.max(maxY, point.y)
+            })
+            
+            // 선택 표시 그리기
+            ctx.strokeStyle = '#1F2937'
+            ctx.lineWidth = 2
+            ctx.setLineDash([5, 5])
+            ctx.strokeRect(minX - 5, minY - 5, maxX - minX + 10, maxY - minY + 10)
+            ctx.setLineDash([])
+          }
         }
       } else if (obj.type === 'stamp') {
         const stamp = obj as any // StampMarkup
@@ -800,16 +824,55 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
           }
         } else if (obj.type === 'drawing') {
           const drawing = obj as DrawingMarkup
-          // 드로잉 패스의 각 점 근처 체크
-          for (const pathPoint of drawing.path) {
-            const distance = Math.sqrt(
-              Math.pow(point.x - pathPoint.x, 2) + 
-              Math.pow(point.y - pathPoint.y, 2)
-            )
-            
-            if (distance <= 10) { // 10픽셀 이내면 선택
-              return obj
+          // 드로잉 패스의 선분 체크
+          if (drawing.path && drawing.path.length > 0) {
+            // 각 선분(두 점 사이)과의 거리 체크
+            for (let i = 0; i < drawing.path.length - 1; i++) {
+              const p1 = drawing.path[i]
+              const p2 = drawing.path[i + 1]
+              
+              // 점과 선분 사이의 최단 거리 계산
+              const lineLength = Math.sqrt(
+                Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2)
+              )
+              
+              if (lineLength === 0) {
+                // 두 점이 같은 경우
+                const distance = Math.sqrt(
+                  Math.pow(point.x - p1.x, 2) + Math.pow(point.y - p1.y, 2)
+                )
+                if (distance <= 15) return obj
+              } else {
+                // 선분에 대한 점의 투영 계산
+                const t = Math.max(0, Math.min(1, 
+                  ((point.x - p1.x) * (p2.x - p1.x) + 
+                   (point.y - p1.y) * (p2.y - p1.y)) / (lineLength * lineLength)
+                ))
+                
+                const projection = {
+                  x: p1.x + t * (p2.x - p1.x),
+                  y: p1.y + t * (p2.y - p1.y)
+                }
+                
+                const distance = Math.sqrt(
+                  Math.pow(point.x - projection.x, 2) + 
+                  Math.pow(point.y - projection.y, 2)
+                )
+                
+                // 선의 두께를 고려하여 15픽셀 이내면 선택
+                if (distance <= 15) {
+                  return obj
+                }
+              }
             }
+            
+            // 마지막 점도 체크
+            const lastPoint = drawing.path[drawing.path.length - 1]
+            const distance = Math.sqrt(
+              Math.pow(point.x - lastPoint.x, 2) + 
+              Math.pow(point.y - lastPoint.y, 2)
+            )
+            if (distance <= 15) return obj
           }
         }
       }
