@@ -4,6 +4,10 @@ import { createClient } from '@/lib/supabase/server'
 // 정적 생성 오류 해결을 위한 dynamic 설정
 export const dynamic = 'force-dynamic'
 
+// Vercel configuration for larger file uploads
+export const maxDuration = 30 // Maximum function duration in seconds
+export const runtime = 'nodejs' // Use Node.js runtime for better Buffer support
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createClient()
@@ -147,15 +151,33 @@ function generateSafeFileName(originalName: string): string {
 
 export async function POST(request: NextRequest) {
   console.log('📤 Document upload API called')
+  console.log('📤 Environment:', process.env.NODE_ENV)
+  console.log('📤 Vercel env:', process.env.VERCEL_ENV)
   console.log('📤 Request headers:', Object.fromEntries(request.headers.entries()))
   
   try {
     const supabase = await createClient()
 
-    // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // 현재 사용자 확인 - Add retry for auth check
+    let user = null
+    let authError = null
+    
+    for (let i = 0; i < 2; i++) {
+      const authResult = await supabase.auth.getUser()
+      user = authResult.data.user
+      authError = authResult.error
+      
+      if (user) break
+      
+      // If first attempt fails, wait briefly and retry
+      if (i === 0) {
+        console.log('⚠️ First auth attempt failed, retrying...')
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    }
+    
     if (authError || !user) {
-      console.error('❌ Authentication failed:', authError)
+      console.error('❌ Authentication failed after retries:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     console.log('✅ User authenticated:', user.id)
@@ -215,10 +237,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
     }
 
-    // 파일을 Buffer로 변환
+    // 파일을 Buffer로 변환 - Vercel compatibility fix
     console.log('🔄 Converting file to buffer...')
     const bytes = await file.arrayBuffer()
-    const buffer = Buffer.from(bytes)
+    // Use Uint8Array directly for better Vercel compatibility
+    const buffer = new Uint8Array(bytes)
     console.log('✅ File converted to buffer, size:', buffer.length)
 
     // 안전한 파일명 생성 (한글 포함)
@@ -227,12 +250,16 @@ export async function POST(request: NextRequest) {
     console.log('📁 Original filename:', file.name)
     console.log('📁 Safe filename:', fileName)
     console.log('📁 Uploading to path:', filePath)
+    console.log('📁 User ID for path:', user.id)
+    console.log('📁 Buffer type:', buffer.constructor.name)
+    console.log('📁 Buffer size:', buffer.byteLength || buffer.length)
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
       .upload(filePath, buffer, {
         contentType: file.type,
-        upsert: false
+        upsert: false,
+        duplex: 'half' // Add duplex mode for better streaming support
       })
 
     if (uploadError) {
@@ -258,7 +285,8 @@ export async function POST(request: NextRequest) {
           .from('documents')
           .upload(uniqueFilePath, buffer, {
             contentType: file.type,
-            upsert: false
+            upsert: false,
+            duplex: 'half' // Add duplex mode for better streaming support
           })
         
         if (retryError) {
