@@ -88,21 +88,6 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
             <FileCheck className="h-6 w-6" />
             <span>필수 제출 서류</span>
           </div>
-          {/* Progress Indicator - Bottom Border */}
-          {activeTab !== 'required' && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-600 rounded-b-lg overflow-hidden">
-              <div 
-                className={`h-full transition-all duration-500 ${
-                  requiredDocsProgress.completed === requiredDocsProgress.total
-                    ? 'bg-green-500'
-                    : requiredDocsProgress.completed > 0
-                    ? 'bg-orange-500'
-                    : 'bg-red-500'
-                }`}
-                style={{ width: `${(requiredDocsProgress.completed / requiredDocsProgress.total) * 100}%` }}
-              />
-            </div>
-          )}
         </button>
       </div>
 
