@@ -404,17 +404,15 @@ function SidebarContent({
       // Special handling for documents tab - ensure proper navigation
       if (item.id === 'documents' || item.href.includes('#documents-unified')) {
         // console.log('[Sidebar] Navigating to documents tab')
-        const targetUrl = '/dashboard#documents-unified'
+        // FIXED: Use direct navigation to prevent circular state updates
+        const targetUrl = '/dashboard/documents'
         
-        // Always use router/navigate to ensure proper navigation and state updates
         if (navigate) {
           navigate(targetUrl)
         } else {
           router.push(targetUrl)
         }
-        
-        // Also trigger tab change for consistency
-        onTabChange('documents-unified')
+        // REMOVED: onTabChange call - let the dashboard-layout handle state from pathname
         return
       }
       

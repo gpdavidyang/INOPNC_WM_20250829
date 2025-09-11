@@ -158,9 +158,10 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
               aria-current={active ? "page" : undefined}
             >
               <div className="relative">
-                {React.cloneElement(item.icon as React.ReactElement, {
-                  className: "h-6 w-6 stroke-current"
-                })}
+                {/* Fixed: Don't use cloneElement with Next.js Image components */}
+                <div className="h-6 w-6 stroke-current">
+                  {item.icon}
+                </div>
                 {item.badge && (
                   <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
                     {typeof item.badge === 'number' && item.badge > 9 ? '9+' : item.badge}
