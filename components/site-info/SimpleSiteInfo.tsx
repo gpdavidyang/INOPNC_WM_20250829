@@ -79,17 +79,23 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
         .select(`
           partner_company_id,
           partner_companies:partner_company_id (
-            name,
+            company_name,
             business_number,
-            representative
+            representative_name
           )
         `)
         .eq('id', userId)
         .single()
       
+      if (profileError) {
+        console.error('[SIMPLE-SITE-INFO] Error fetching profile:', profileError)
+      }
+      
       if (profile && profile.partner_companies) {
-        setPartnerCompany(profile.partner_companies.name)
-        console.log('[SIMPLE-SITE-INFO] Partner company:', profile.partner_companies.name)
+        setPartnerCompany(profile.partner_companies.company_name)
+        console.log('[SIMPLE-SITE-INFO] Partner company:', profile.partner_companies.company_name)
+      } else {
+        console.log('[SIMPLE-SITE-INFO] No partner company found for user:', userId)
       }
       
       // 직접 site_assignments 테이블에서 데이터 가져오기
