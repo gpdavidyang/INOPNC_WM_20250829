@@ -80,16 +80,72 @@ export class PayslipGeneratorKorean {
     
     body {
       font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
-      line-height: 1.3;
+      line-height: 1.4;
       color: #333;
-      background: white;
-      font-size: 11px;
+      background: #f8fafc;
+      font-size: 14px;
     }
     
     .container {
-      max-width: 210mm;
+      max-width: 100%;
       margin: 0 auto;
-      padding: 10px;
+      padding: 15px;
+      background: white;
+      min-height: 100vh;
+    }
+    
+    /* 네비게이션 버튼 */
+    .nav-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding: 10px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      background: #3b82f6;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .back-button:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+    
+    .back-arrow {
+      margin-right: 8px;
+      font-size: 16px;
+    }
+    
+    .print-button {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 16px;
+      background: #10b981;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .print-button:hover {
+      background: #059669;
     }
     
     .header {
@@ -122,9 +178,27 @@ export class PayslipGeneratorKorean {
     
     .two-columns {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
+      grid-template-columns: 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    
+    @media (min-width: 768px) {
+      .two-columns {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      
+      .container {
+        max-width: 210mm;
+        padding: 10px;
+      }
+      
+      body {
+        font-size: 11px;
+        background: white;
+      }
     }
     
     .section {
@@ -149,52 +223,96 @@ export class PayslipGeneratorKorean {
     
     .info-grid {
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 5px;
+      grid-template-columns: 1fr;
+      gap: 12px;
     }
     
     .info-grid-3 {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    
+    @media (min-width: 768px) {
+      .info-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+      }
+      
+      .info-grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+      }
+      
+      .info-item {
+        font-size: 10px;
+      }
+      
+      .info-label {
+        min-width: 50px;
+      }
     }
     
     .info-item {
       display: flex;
       align-items: center;
-      font-size: 10px;
+      font-size: 14px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .info-item:last-child {
+      border-bottom: none;
     }
     
     .info-label {
       font-weight: 600;
       color: #6b7280;
-      margin-right: 5px;
-      min-width: 50px;
+      margin-right: 8px;
+      min-width: 80px;
+      flex-shrink: 0;
     }
     
     .info-value {
       color: #111827;
       font-weight: 500;
+      word-break: break-word;
+      flex: 1;
     }
     
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 10px;
+      font-size: 13px;
+    }
+    
+    @media (min-width: 768px) {
+      table {
+        font-size: 10px;
+      }
+      
+      th {
+        padding: 5px;
+        font-size: 10px;
+      }
+      
+      td {
+        padding: 4px 5px;
+      }
     }
     
     th {
       background: #f9fafb;
-      padding: 5px;
+      padding: 10px 8px;
       text-align: left;
       font-weight: 600;
       color: #4b5563;
       border-bottom: 1px solid #e5e7eb;
-      font-size: 10px;
+      font-size: 13px;
     }
     
     td {
-      padding: 4px 5px;
+      padding: 10px 8px;
       border-bottom: 1px solid #f3f4f6;
     }
     
@@ -289,10 +407,51 @@ export class PayslipGeneratorKorean {
       body {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        background: white !important;
+        font-size: 11px;
       }
       
       .container {
         padding: 0;
+        background: white;
+      }
+      
+      .nav-header {
+        display: none !important;
+      }
+      
+      .two-columns {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      
+      .info-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 5px;
+      }
+      
+      .info-item {
+        font-size: 10px;
+        padding: 2px 0;
+        border-bottom: none;
+      }
+      
+      .info-label {
+        min-width: 50px;
+      }
+      
+      table {
+        font-size: 10px;
+      }
+      
+      th {
+        padding: 5px;
+        font-size: 10px;
+      }
+      
+      td {
+        padding: 4px 5px;
       }
       
       .section {
@@ -303,6 +462,17 @@ export class PayslipGeneratorKorean {
 </head>
 <body>
   <div class="container">
+    <!-- Navigation Header -->
+    <div class="nav-header">
+      <button onclick="history.back()" class="back-button">
+        <span class="back-arrow">←</span>
+        메인화면으로
+      </button>
+      <button onclick="window.print()" class="print-button">
+        🖨️ 인쇄하기
+      </button>
+    </div>
+    
     <div class="header">
       <div class="company">${data.company.name}</div>
       <h1>급여명세서</h1>
