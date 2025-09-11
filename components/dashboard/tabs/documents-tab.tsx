@@ -414,31 +414,24 @@ export default function DocumentsTab({
     const validation = validateFile(file)
     if (validation) {
       // console.log('❌ File validation failed:', validation)
-      setUploadProgress(prev => [...prev, {
-        fileName: file.name,
-        progress: 0,
-        status: 'error',
-        error: validation
-      }])
+      // Show validation error toast
+      const toastDiv = document.createElement('div')
+      toastDiv.className = 'fixed bottom-4 right-4 bg-orange-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2'
+      toastDiv.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <span>${validation}</span>
+      `
+      document.body.appendChild(toastDiv)
+      setTimeout(() => {
+        toastDiv.style.opacity = '0'
+        toastDiv.style.transition = 'opacity 0.5s'
+        setTimeout(() => document.body.removeChild(toastDiv), 500)
+      }, 5000)
       return Promise.reject(new Error(validation))
     }
     // console.log('✅ File validation passed')
-
-    // Step 2: Initialize Progress Tracking
-    // console.log('2️⃣ Initializing progress tracking...')
-    const progressItem: UploadProgress = {
-      fileName: file.name,
-      progress: 0,
-      status: 'uploading'
-    }
-    
-    setUploadProgress(prev => {
-      // console.log('📊 Adding progress item:', progressItem)
-      // console.log('📊 Previous progress:', prev)
-      const newProgress = [...prev, progressItem]
-      // console.log('📊 New progress:', newProgress)
-      return newProgress
-    })
 
     try {
       // Step 3: Create FormData
@@ -1271,43 +1264,7 @@ export default function DocumentsTab({
       {(!showOnlyRequiredDocs || displayDocuments.length > 0) && (
       <div>
         <div>
-          {/* Upload Progress */}
-          {uploadProgress.length > 0 && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 mb-4">
-              <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">업로드 진행상황</h4>
-              <div className="space-y-2">
-                {uploadProgress.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between">
-                    <div className="flex-1 mr-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                          {item.fileName}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {item.status === 'completed' ? '완료' : 
-                           item.status === 'error' ? '실패' : 
-                           `${item.progress}%`}
-                        </span>
-                      </div>
-                      {item.status === 'uploading' && (
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1">
-                          <div
-                            className="bg-blue-500 h-1 rounded-full transition-all duration-300"
-                            style={{ width: `${item.progress}%` }}
-                          />
-                        </div>
-                      )}
-                      {item.error && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">{item.error}</p>
-                      )}
-                    </div>
-                    {item.status === 'completed' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                    {item.status === 'error' && <X className="h-4 w-4 text-red-500" />}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Upload Progress Section Removed - Using toast messages instead */}
 
 
           {/* Documents Grid/List */}
