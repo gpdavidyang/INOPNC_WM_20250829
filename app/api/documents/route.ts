@@ -147,6 +147,8 @@ function generateSafeFileName(originalName: string): string {
 
 export async function POST(request: NextRequest) {
   console.log('📤 Document upload API called')
+  console.log('📤 Request headers:', Object.fromEntries(request.headers.entries()))
+  
   try {
     const supabase = await createClient()
 
@@ -399,9 +401,20 @@ export async function POST(request: NextRequest) {
     })
 
   } catch (error) {
-    console.error('Upload API error:', error)
+    console.error('❌ Upload API critical error:', {
+      error: error,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      type: typeof error,
+      details: JSON.stringify(error)
+    })
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      },
       { status: 500 }
     )
   }
