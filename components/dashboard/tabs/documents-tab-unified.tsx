@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Profile } from '@/types'
 import { FolderOpen, Share2, Edit3, FileCheck } from 'lucide-react'
 import DocumentsTab from './documents-tab'
-import SharedDocumentsTab from './shared-documents-tab'
+import SharedDocumentsTabUpdated from './shared-documents-tab-updated'
 import { MarkupEditor } from '@/components/markup/markup-editor'
 
 interface DocumentsTabUnifiedProps {
@@ -100,7 +100,7 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
             onRequiredDocsUpdate={(completed, total) => setRequiredDocsProgress({ completed, total })}
           />
         ) : activeTab === 'shared' ? (
-          <SharedDocumentsTab profile={profile} initialSearch={initialSearch} />
+          <SharedDocumentsTabUpdated profile={profile} initialSearch={initialSearch} />
         ) : activeTab === 'markup' ? (
           <MarkupEditor profile={profile} />
         ) : (
