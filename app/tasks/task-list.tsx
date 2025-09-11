@@ -94,13 +94,13 @@ export default function TaskList({ currentUser, currentProfile, tasks, projects,
     return labels[priority as keyof typeof labels] || '보통'
   }
 
-  // Filter tasks
-  const filteredTasks = tasks.filter(task => {
+  // Filter tasks with defensive array handling
+  const filteredTasks = Array.isArray(tasks) ? tasks.filter(task => {
     if (filter.status !== 'all' && task.status !== filter.status) return false
     if (filter.project !== 'all' && task.project_id !== filter.project) return false
     if (filter.assignee !== 'all' && task.assigned_to !== filter.assignee) return false
     return true
-  })
+  }) : []
 
   return (
     <>
@@ -151,7 +151,7 @@ export default function TaskList({ currentUser, currentProfile, tasks, projects,
                   className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
                   <option value="all">전체</option>
-                  {projects.map(project => (
+                  {Array.isArray(projects) && projects.map(project => (
                     <option key={project.id} value={project.id}>{project.name}</option>
                   ))}
                 </select>
@@ -165,7 +165,7 @@ export default function TaskList({ currentUser, currentProfile, tasks, projects,
                   className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
                   <option value="all">전체</option>
-                  {users.map(user => (
+                  {Array.isArray(users) && users.map(user => (
                     <option key={user.id} value={user.id}>
                       {user.full_name || user.email}
                     </option>

@@ -109,7 +109,7 @@ export default function DailyReportList({ siteId, canCreate = false }: DailyRepo
           <span className="ml-1 text-xs font-medium">{pdfReports.length}</span>
         </div>
         <div className="flex gap-1">
-          {pdfReports.slice(0, 2).map((report) => (
+          {Array.isArray(pdfReports) && pdfReports.slice(0, 2).map((report) => (
             <button
               key={report.id}
               onClick={() => handleDownloadPDF(report)}
