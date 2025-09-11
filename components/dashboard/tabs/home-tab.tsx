@@ -390,10 +390,16 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
                 <button
                   key={item.id}
                   onClick={() => {
-                    // 문서함의 경우 onDocumentsSearch가 있고 탭 변경이 필요한 경우에만 사용
-                    if (item.path === '/dashboard/documents' && onDocumentsSearch && onTabChange) {
-                      onTabChange('documents')  // 탭 변경
-                      onDocumentsSearch('')      // 검색 초기화
+                    // 문서함의 경우 hash 기반 네비게이션으로 처리
+                    if (item.id === 'documents') {
+                      if (onTabChange) {
+                        onTabChange('documents-unified')  // 탭 변경
+                      } else {
+                        router.push('/dashboard#documents-unified')     // 라우터로 이동
+                      }
+                      if (onDocumentsSearch) {
+                        onDocumentsSearch('')      // 검색 초기화
+                      }
                     } else {
                       router.push(item.path)     // 그 외에는 라우터로 이동
                     }
