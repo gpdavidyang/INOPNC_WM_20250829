@@ -17,7 +17,7 @@ export interface NotificationExtended {
   title: string
   message: string
   data?: Record<string, any>
-  read: boolean
+  is_read: boolean
   read_at?: string | null
   created_at: string
   created_by?: string | null
@@ -77,7 +77,7 @@ export interface CreateNotificationRequest {
 // 알림 필터 타입
 export interface NotificationFilter {
   type?: NotificationType
-  read?: boolean
+  read?: boolean  // API 호환성을 위해 유지, 내부적으로 is_read로 매핑
   start_date?: string
   end_date?: string
   limit?: number

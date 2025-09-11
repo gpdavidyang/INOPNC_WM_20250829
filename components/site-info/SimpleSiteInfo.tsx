@@ -29,6 +29,7 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
   } | null>(null)
   const [documentsLoading, setDocumentsLoading] = useState(false)
   const [currentSiteId, setCurrentSiteId] = useState<string | null>(null)
+  const [partnerCompany, setPartnerCompany] = useState<string | null>(null)
   
   useEffect(() => {
     fetchSiteData()
@@ -71,6 +72,25 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
       // 먼저 사용자 정보 확인
       const { data: { user }, error: userError } = await supabase.auth.getUser()
       console.log('[SIMPLE-SITE-INFO] Current auth user:', user?.email, user?.id)
+      
+      // 사용자의 프로필 정보에서 파트너사 정보 가져오기
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          partner_company_id,
+          partner_companies:partner_company_id (
+            name,
+            business_number,
+            representative
+          )
+        `)
+        .eq('id', userId)
+        .single()
+      
+      if (profile && profile.partner_companies) {
+        setPartnerCompany(profile.partner_companies.name)
+        console.log('[SIMPLE-SITE-INFO] Partner company:', profile.partner_companies.name)
+      }
       
       // 직접 site_assignments 테이블에서 데이터 가져오기
       const { data: assignments, error: assignError } = await supabase
@@ -210,6 +230,11 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
               <p className={`${getTypographyClass('sm', isLargeFont)} text-blue-600 dark:text-blue-400 font-medium`}>
                 {siteData.site_name}
               </p>
+              {partnerCompany && (
+                <p className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-400 mt-0.5`}>
+                  소속: {partnerCompany}
+                </p>
+              )}
             </div>
           </div>
           {isExpanded ? (
@@ -221,6 +246,23 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
         
         {isExpanded && (
           <div className="mt-4 space-y-4">
+            {/* 소속 파트너사 정보 */}
+            {partnerCompany && (
+              <div className="bg-yellow-50/50 dark:bg-yellow-900/10 rounded-lg p-3 border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                  <div className="flex-1">
+                    <p className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-400`}>
+                      소속 회사
+                    </p>
+                    <p className={`${getTypographyClass('sm', isLargeFont)} text-gray-900 dark:text-gray-100 font-semibold`}>
+                      {partnerCompany}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* 현장 주소 */}
             <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3">
               <div className="flex items-start gap-2">
