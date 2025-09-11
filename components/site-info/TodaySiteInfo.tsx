@@ -311,7 +311,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
           {siteInfo.managers && siteInfo.managers.length > 0 && (
             <>
               {/* Construction Manager first */}
-              {siteInfo.managers.filter((manager: any) => manager.role === 'construction_manager').map((manager: any, index: number) => (
+              {siteInfo.managers.filter((manager: any) => manager?.role === 'construction_manager' && manager?.name && manager?.phone).map((manager: any, index: number) => (
                 <div key={index} className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -338,7 +338,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                 </div>
               ))}
               {/* Assistant Manager second */}
-              {siteInfo.managers.filter((manager: any) => manager.role === 'assistant_manager').map((manager: any, index: number) => (
+              {siteInfo.managers.filter((manager: any) => manager?.role === 'assistant_manager' && manager?.name && manager?.phone).map((manager: any, index: number) => (
                 <div key={index} className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -365,7 +365,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                 </div>
               ))}
               {/* Safety Manager third */}
-              {siteInfo.managers.filter((manager: any) => manager.role === 'safety_manager').map((manager: any, index: number) => (
+              {siteInfo.managers.filter((manager: any) => manager?.role === 'safety_manager' && manager?.name && manager?.phone).map((manager: any, index: number) => (
                 <div key={index} className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-gray-400 flex-shrink-0" />

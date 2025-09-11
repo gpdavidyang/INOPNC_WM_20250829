@@ -183,7 +183,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
   const getSelectedQuickMenuItems = () => {
     return selectedQuickMenuItems
       .map(id => availableQuickMenuItems.find(item => item.id === id))
-      .filter(item => item !== undefined)
+      .filter((item): item is QuickMenuItem => item !== undefined)
   }
 
   const saveQuickMenuSettings = () => {
