@@ -482,11 +482,26 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         // 선택 도구 로직
         const clickedObject = findObjectAtPoint(coords)
         if (clickedObject) {
-          onStateChange(prev => ({
-            ...prev,
-            selectedObjects: [clickedObject.id]
-          }))
+          // Shift 키가 눌려있으면 기존 선택에 추가/제거
+          if (e.shiftKey) {
+            onStateChange(prev => ({
+              ...prev,
+              selectedObjects: prev.selectedObjects.includes(clickedObject.id)
+                ? prev.selectedObjects.filter(id => id !== clickedObject.id)
+                : [...prev.selectedObjects, clickedObject.id]
+            }))
+          } else {
+            // 단일 선택
+            onStateChange(prev => ({
+              ...prev,
+              selectedObjects: [clickedObject.id],
+              // 이동을 위한 시작 위치 저장
+              dragStart: coords,
+              draggedObject: clickedObject
+            }))
+          }
         } else {
+          // 빈 공간 클릭 시 선택 해제
           onStateChange(prev => ({
             ...prev,
             selectedObjects: []
@@ -584,6 +599,33 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       const coords = getCanvasCoordinates(e)
 
       // console.log('🔥 Mouse move:', { activeTool, coords, currentDrawing: !!currentDrawing }) // 디버깅용
+
+      // 선택 도구로 객체 이동
+      if (activeTool === 'select' && editorState.selectedObjects.length > 0 && (editorState as any).dragStart) {
+        const deltaX = coords.x - (editorState as any).dragStart.x
+        const deltaY = coords.y - (editorState as any).dragStart.y
+        
+        // 선택된 모든 객체 이동
+        onStateChange(prev => {
+          const updatedObjects = prev.markupObjects.map(obj => {
+            if (prev.selectedObjects.includes(obj.id)) {
+              return {
+                ...obj,
+                x: obj.x + deltaX,
+                y: obj.y + deltaY
+              }
+            }
+            return obj
+          })
+          
+          return {
+            ...prev,
+            markupObjects: updatedObjects,
+            dragStart: coords // 새로운 시작 위치로 업데이트
+          }
+        })
+        return
+      }
 
       if (currentDrawing) {
         if (currentDrawing.type === 'box') {
@@ -715,17 +757,61 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
 
     // 점에서 객체 찾기
     const findObjectAtPoint = (point: { x: number, y: number }): MarkupObject | null => {
+      // 역순으로 검색 (최상위 객체부터)
       for (let i = editorState.markupObjects.length - 1; i >= 0; i--) {
         const obj = editorState.markupObjects[i]
         
         if (obj.type === 'box') {
           const box = obj as BoxMarkup
-          if (point.x >= box.x && point.x <= box.x + box.width &&
-              point.y >= box.y && point.y <= box.y + box.height) {
+          // 박스 영역 체크
+          const minX = Math.min(box.x, box.x + box.width)
+          const maxX = Math.max(box.x, box.x + box.width)
+          const minY = Math.min(box.y, box.y + box.height)
+          const maxY = Math.max(box.y, box.y + box.height)
+          
+          if (point.x >= minX && point.x <= maxX &&
+              point.y >= minY && point.y <= maxY) {
             return obj
           }
+        } else if (obj.type === 'text') {
+          const text = obj as TextMarkup
+          // 텍스트 바운딩 박스 체크 (대략적인 크기)
+          const approxWidth = text.content.length * (text.fontSize || 16) * 0.6
+          const approxHeight = (text.fontSize || 16) * 1.5
+          
+          if (point.x >= text.x - 5 && point.x <= text.x + approxWidth + 5 &&
+              point.y >= text.y - approxHeight && point.y <= text.y + 5) {
+            return obj
+          }
+        } else if (obj.type === 'stamp') {
+          const stamp = obj as any
+          // 스탬프 크기 계산
+          const sizeMap = { small: 20, medium: 30, large: 40 }
+          const size = sizeMap[stamp.size] || 30
+          
+          // 원형 스탬프 히트 테스트
+          const distance = Math.sqrt(
+            Math.pow(point.x - stamp.x, 2) + 
+            Math.pow(point.y - stamp.y, 2)
+          )
+          
+          if (distance <= size / 2 + 5) { // 약간의 여유 공간 추가
+            return obj
+          }
+        } else if (obj.type === 'drawing') {
+          const drawing = obj as DrawingMarkup
+          // 드로잉 패스의 각 점 근처 체크
+          for (const pathPoint of drawing.path) {
+            const distance = Math.sqrt(
+              Math.pow(point.x - pathPoint.x, 2) + 
+              Math.pow(point.y - pathPoint.y, 2)
+            )
+            
+            if (distance <= 10) { // 10픽셀 이내면 선택
+              return obj
+            }
+          }
         }
-        // TODO: 텍스트와 드로잉 객체 히트 테스트 구현
       }
       
       return null
