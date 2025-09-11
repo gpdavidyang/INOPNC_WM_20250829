@@ -85,12 +85,12 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
             >
               <FileCheck className="h-6 w-6" />
               <span className="text-center leading-tight">필수서류 제출</span>
-              {requiredDocsProgress.total > 0 && (
+              {(requiredDocsProgress.total || 0) > 0 && (
                 <Badge 
-                  variant={requiredDocsProgress.completed === requiredDocsProgress.total ? "default" : "destructive"}
+                  variant={(requiredDocsProgress.completed || 0) === (requiredDocsProgress.total || 0) ? "default" : "destructive"}
                   className="absolute -top-1 -right-1 h-6 w-6 p-0 flex items-center justify-center text-xs rounded-full shadow-sm border-2 border-white dark:border-gray-900"
                 >
-                  {requiredDocsProgress.completed}/{requiredDocsProgress.total}
+                  {(requiredDocsProgress.completed || 0)}/{(requiredDocsProgress.total || 0)}
                 </Badge>
               )}
             </Button>

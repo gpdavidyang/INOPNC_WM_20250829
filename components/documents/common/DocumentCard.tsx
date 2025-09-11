@@ -84,15 +84,20 @@ const categories = [
 ]
 
 const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes'
+  if (!bytes || bytes === 0) return '0 Bytes'
+  if (typeof bytes !== 'number' || isNaN(bytes)) return 'Unknown'
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  const size = Math.round(bytes / Math.pow(k, i) * 100) / 100
+  return `${size} ${sizes[i] || 'Bytes'}`
 }
 
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('ko-KR', {
+  if (!dateString) return 'Unknown'
+  const date = new Date(dateString)
+  if (isNaN(date.getTime())) return 'Invalid Date'
+  return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -111,7 +116,7 @@ const getFileIcon = (type: string) => {
 }
 
 const getDisplayName = (document: Document) => {
-  return document.title || document.name
+  return document.title || document.name || 'Unnamed Document'
 }
 
 const getFileSize = (document: Document) => {
@@ -127,7 +132,8 @@ const getUploadDate = (document: Document) => {
 }
 
 const getOwnerName = (document: Document) => {
-  return document.owner?.full_name || document.uploadedBy || 'Unknown'
+  const name = document.owner?.full_name || document.uploadedBy
+  return name || 'Unknown'
 }
 
 const getSiteName = (document: Document) => {
@@ -139,7 +145,8 @@ const getSiteName = (document: Document) => {
 const getCategoryLabel = (document: Document) => {
   const categoryId = document.document_type || document.category
   const category = categories.find(c => c.id === categoryId)
-  return category?.label || '기타'
+  const label = category?.label
+  return label || '기타'
 }
 
 const getStatusIcon = (status?: string) => {
