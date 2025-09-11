@@ -167,7 +167,7 @@ const BottomNavigation = React.forwardRef<HTMLElement, BottomNavigationProps>(
         aria-label="하단 메인 네비게이션"
       >
         <div className="flex h-full items-center justify-around px-1">
-          {items.map((item, index) => {
+          {(items || []).map((item, index) => {
             
             // 활성 상태 판단 로직
             let isActive = false

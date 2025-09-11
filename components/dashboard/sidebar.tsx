@@ -478,7 +478,7 @@ function SidebarContent({
         {/* Main menu - 사용자 역할에 따라 다른 메뉴 표시 */}
         <nav className="space-y-1" aria-label="주요 메뉴" role="navigation">
           <ul role="list">
-            {mainMenuItems.map((item: MenuItem, index: number) => {
+            {(mainMenuItems || []).map((item: MenuItem, index: number) => {
               const Icon = item.icon
               return (
                 <li key={item.id} role="none">
@@ -520,7 +520,7 @@ function SidebarContent({
             </h3>
             <nav className="space-y-1" aria-label="시스템 관리 메뉴" role="navigation">
               <ul role="list">
-                {systemMenuItems.map((item: MenuItem, index: number) => {
+                {(systemMenuItems || []).map((item: MenuItem, index: number) => {
                   const Icon = item.icon
                   const itemIndex = mainMenuItems.length + index
                   return (

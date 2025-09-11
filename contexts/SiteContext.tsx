@@ -332,21 +332,21 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error
 
-      // Format results
+      // Format results with defensive access
       const results: SiteSearchResult[] = (data || []).map((site: any) => ({
-        id: (site as any).id,
-        name: (site as any).name,
-        address: (site as any).site_addresses?.[0]?.full_address || '주소 정보 없음',
+        id: site?.id || '',
+        name: site?.name || '이름 없음',
+        address: site?.site_addresses?.[0]?.full_address || '주소 정보 없음',
         construction_period: {
-          start_date: new Date((site as any).construction_start_date),
-          end_date: new Date((site as any).construction_end_date)
+          start_date: new Date(site?.construction_start_date || new Date()),
+          end_date: new Date(site?.construction_end_date || new Date())
         },
         progress_percentage: calculateProgress(
-          (site as any).construction_start_date,
-          (site as any).construction_end_date
+          site?.construction_start_date || new Date().toISOString(),
+          site?.construction_end_date || new Date().toISOString()
         ),
         participant_count: 0, // TODO: Get actual count
-        is_active: (site as any).is_active
+        is_active: site?.is_active ?? false
       }))
 
       return results
