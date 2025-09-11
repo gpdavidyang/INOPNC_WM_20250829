@@ -135,32 +135,8 @@ export default function PayslipPage() {
 
   return (
     <div>
-      {/* Print Instructions */}
-      <div className="no-print bg-blue-50 border border-blue-200 p-4 mb-4 rounded-lg">
-        <div className="flex items-center gap-2">
-          <div className="text-blue-600">🖨️</div>
-          <div>
-            <p className="font-medium text-blue-800">인쇄 안내</p>
-            <p className="text-sm text-blue-700">
-              <kbd className="px-2 py-1 bg-white border rounded">Cmd+P</kbd> (Mac) 또는 
-              <kbd className="px-2 py-1 bg-white border rounded">Ctrl+P</kbd> (Windows)를 눌러 
-              PDF로 저장할 수 있습니다.
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* HTML Content */}
       <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
-      
-      {/* Additional Print Styles */}
-      <style jsx>{`
-        @media print {
-          .no-print {
-            display: none !important;
-          }
-        }
-      `}</style>
     </div>
   )
 }
