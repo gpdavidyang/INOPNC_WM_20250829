@@ -88,10 +88,10 @@ export class PayslipGeneratorKorean {
     
     body {
       font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
-      line-height: 1.4;
+      line-height: 1.3;
       color: #333;
       background: #f8fafc;
-      font-size: 14px;
+      font-size: 12px;
       min-height: 100vh;
       height: auto;
       overflow: auto;
@@ -105,13 +105,13 @@ export class PayslipGeneratorKorean {
     .container {
       max-width: 100%;
       margin: 0 auto;
-      padding: 15px;
+      padding: 10px;
       background: white;
       min-height: 100vh;
       height: auto;
       overflow: visible;
       position: relative;
-      padding-bottom: 50px;
+      padding-bottom: 30px;
       /* iOS 스크롤 개선 */
       -webkit-transform: translateZ(0);
       transform: translateZ(0);
@@ -122,8 +122,8 @@ export class PayslipGeneratorKorean {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 20px;
-      padding: 10px 0;
+      margin-bottom: 15px;
+      padding: 8px 0;
       border-bottom: 1px solid #e5e7eb;
       position: sticky;
       top: 0;
@@ -177,20 +177,20 @@ export class PayslipGeneratorKorean {
     
     .header {
       text-align: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       border-bottom: 2px solid #2563eb;
-      padding-bottom: 10px;
+      padding-bottom: 8px;
       position: relative;
     }
     
     .header h1 {
-      font-size: 20px;
-      margin-bottom: 5px;
+      font-size: 18px;
+      margin-bottom: 3px;
       color: #1e40af;
     }
     
     .header .period {
-      font-size: 14px;
+      font-size: 12px;
       color: #64748b;
     }
     
@@ -198,7 +198,7 @@ export class PayslipGeneratorKorean {
       position: absolute;
       top: 0;
       right: 0;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: bold;
       color: #64748b;
     }
@@ -206,8 +206,8 @@ export class PayslipGeneratorKorean {
     .two-columns {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 10px;
-      margin-bottom: 12px;
+      gap: 8px;
+      margin-bottom: 8px;
     }
     
     .compact-grid {
@@ -243,23 +243,23 @@ export class PayslipGeneratorKorean {
     }
     
     .section {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       border: 1px solid #e5e7eb;
-      border-radius: 5px;
+      border-radius: 4px;
       overflow: hidden;
     }
     
     .section-title {
       background: #f3f4f6;
-      padding: 5px 10px;
+      padding: 4px 8px;
       font-weight: bold;
-      font-size: 12px;
+      font-size: 11px;
       color: #1f2937;
       border-bottom: 1px solid #e5e7eb;
     }
     
     .section-content {
-      padding: 8px;
+      padding: 6px;
     }
     
     .info-grid {
@@ -277,8 +277,8 @@ export class PayslipGeneratorKorean {
     .compact-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin: 5px 0;
+      gap: 6px;
+      margin: 4px 0;
     }
     
     @media (min-width: 480px) {
@@ -321,8 +321,8 @@ export class PayslipGeneratorKorean {
     .info-item {
       display: flex;
       align-items: center;
-      font-size: 14px;
-      padding: 8px 0;
+      font-size: 11px;
+      padding: 4px 0;
       border-bottom: 1px solid #f3f4f6;
     }
     
@@ -333,9 +333,10 @@ export class PayslipGeneratorKorean {
     .info-label {
       font-weight: 600;
       color: #6b7280;
-      margin-right: 8px;
-      min-width: 80px;
+      margin-right: 6px;
+      min-width: 60px;
       flex-shrink: 0;
+      font-size: 10px;
     }
     
     .info-value {
@@ -343,29 +344,44 @@ export class PayslipGeneratorKorean {
       font-weight: 500;
       word-break: break-word;
       flex: 1;
+      font-size: 11px;
     }
     
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 11px;
+      font-size: 10px;
       border: 1px solid #e5e7eb;
     }
     
     @media (max-width: 767px) {
+      body {
+        font-size: 11px;
+      }
+      
       table {
-        font-size: 10px;
+        font-size: 9px;
       }
       
       th {
-        padding: 6px 4px;
-        font-size: 10px;
+        padding: 4px 3px;
+        font-size: 9px;
         line-height: 1.2;
       }
       
       td {
-        padding: 6px 4px;
-        line-height: 1.3;
+        padding: 4px 3px;
+        line-height: 1.2;
+        font-size: 9px;
+      }
+      
+      .info-label {
+        font-size: 9px;
+        min-width: 50px;
+      }
+      
+      .info-value {
+        font-size: 10px;
       }
     }
     
@@ -386,12 +402,12 @@ export class PayslipGeneratorKorean {
     
     th {
       background: #f9fafb;
-      padding: 8px 6px;
+      padding: 5px 4px;
       text-align: left;
       font-weight: 600;
       color: #4b5563;
       border-bottom: 1px solid #e5e7eb;
-      font-size: 11px;
+      font-size: 10px;
       border-right: 1px solid #e5e7eb;
     }
     
@@ -400,10 +416,11 @@ export class PayslipGeneratorKorean {
     }
     
     td {
-      padding: 8px 6px;
+      padding: 5px 4px;
       border-bottom: 1px solid #f3f4f6;
       border-right: 1px solid #f3f4f6;
       vertical-align: top;
+      font-size: 10px;
     }
     
     td:last-child {
@@ -430,35 +447,35 @@ export class PayslipGeneratorKorean {
     .net-pay-section {
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       color: white;
-      padding: 10px;
-      border-radius: 5px;
+      padding: 8px;
+      border-radius: 4px;
       text-align: center;
-      margin: 10px 0;
+      margin: 8px 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
     }
     
     .net-pay-label {
-      font-size: 14px;
+      font-size: 12px;
       font-weight: bold;
     }
     
     .net-pay-amount {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: bold;
     }
     
     .net-pay-korean {
-      font-size: 10px;
+      font-size: 9px;
       opacity: 0.9;
     }
     
     .footer {
-      margin-top: 10px;
-      padding-top: 10px;
+      margin-top: 8px;
+      padding-top: 8px;
       border-top: 1px solid #e5e7eb;
-      font-size: 9px;
+      font-size: 8px;
       color: #6b7280;
       display: flex;
       justify-content: space-between;
@@ -467,36 +484,37 @@ export class PayslipGeneratorKorean {
     
     .footer-info {
       flex: 1;
+      font-size: 8px;
     }
     
     .stamp {
       text-align: center;
-      padding: 8px;
+      padding: 6px;
       border: 1px solid #cbd5e1;
-      border-radius: 5px;
+      border-radius: 4px;
       background: #f8fafc;
-      font-size: 10px;
-      width: 200px;
+      font-size: 9px;
+      width: 180px;
     }
     
     .tax-info {
       background: #fef3c7;
-      padding: 8px;
-      border-radius: 4px;
-      margin-top: 8px;
-      font-size: 11px;
+      padding: 6px;
+      border-radius: 3px;
+      margin-top: 6px;
+      font-size: 10px;
       color: #92400e;
-      line-height: 1.4;
+      line-height: 1.3;
       border-left: 3px solid #f59e0b;
     }
     
     .calculation-summary {
       background: #f0f9ff;
       border: 1px solid #0ea5e9;
-      border-radius: 6px;
-      padding: 10px;
-      margin: 10px 0;
-      font-size: 12px;
+      border-radius: 4px;
+      padding: 8px;
+      margin: 8px 0;
+      font-size: 11px;
       color: #0369a1;
     }
     
@@ -772,7 +790,7 @@ export class PayslipGeneratorKorean {
     <!-- Final Calculation Summary -->
     <div class="calculation-summary">
       <strong>💰 최종 계산 요약</strong><br>
-      <div class="compact-grid" style="margin-top: 8px;">
+      <div class="compact-grid" style="margin-top: 6px;">
         <div>• 총 지급액: <strong>${data.salary.total_gross_pay.toLocaleString()}원</strong></div>
         <div>• 총 공제액: <strong>${data.salary.total_deductions.toLocaleString()}원</strong></div>
         <div>• 실 지급액: <strong style="color: #dc2626;">${data.salary.net_pay.toLocaleString()}원</strong></div>
@@ -783,7 +801,7 @@ export class PayslipGeneratorKorean {
     <div class="net-pay-section">
       <div class="net-pay-label">
         <div>실지급액</div>
-        <div style="font-size: 11px; opacity: 0.9; margin-top: 2px;">
+        <div style="font-size: 10px; opacity: 0.9; margin-top: 2px;">
           총지급액 - 총공제액<br>
           ${data.salary.total_gross_pay.toLocaleString()} - ${data.salary.total_deductions.toLocaleString()}
         </div>
