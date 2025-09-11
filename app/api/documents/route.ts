@@ -296,7 +296,7 @@ export async function POST(request: NextRequest) {
           file_url: urlData.publicUrl,
           file_size: file.size,
           mime_type: file.type,
-          document_type: documentType || 'general',
+          document_type: documentType || 'other',
           folder_path: filePath,
           owner_id: user.id,
           site_id: profile?.site_id || null,

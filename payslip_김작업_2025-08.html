@@ -3,7 +3,8 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>급여명세서 - 김작업</title>
   <style>
     @page {
@@ -17,12 +18,23 @@
       box-sizing: border-box;
     }
     
+    html {
+      height: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    
     body {
       font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
       line-height: 1.4;
       color: #333;
       background: #f8fafc;
       font-size: 14px;
+      min-height: 100%;
+      height: auto;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
     }
     
     .container {
@@ -31,6 +43,9 @@
       padding: 15px;
       background: white;
       min-height: 100vh;
+      overflow: visible;
+      position: relative;
+      padding-bottom: 50px;
     }
     
     /* 네비게이션 버튼 */
@@ -41,6 +56,9 @@
       margin-bottom: 20px;
       padding: 10px 0;
       border-bottom: 1px solid #e5e7eb;
+      position: relative;
+      background: white;
+      z-index: 10;
     }
     
     .back-button {
