@@ -167,18 +167,18 @@ export default function DocumentsTab({
 
   const loadRequiredDocuments = async () => {
     try {
-      const response = await fetch('/api/required-documents')
+      const response = await fetch('/api/required-document-types')
       const result = await response.json()
       
-      if (result.success && result.data) {
-        const transformedDocs = result.data.map((req: any) => ({
+      if (result.required_documents && Array.isArray(result.required_documents)) {
+        const transformedDocs = result.required_documents.map((req: any) => ({
           id: req.id,
-          name: req.requirement_name,
+          name: req.name_ko,
           description: req.description,
-          category: req.document_type,
-          isRequired: req.is_mandatory || true,
-          acceptedFormats: req.file_format_allowed || ['application/pdf', 'image/jpeg', 'image/png'],
-          maxSize: req.max_file_size_mb || 10,
+          category: req.code,
+          isRequired: req.is_mandatory || req.isRequired || true,
+          acceptedFormats: req.file_types || ['application/pdf', 'image/jpeg', 'image/png'],
+          maxSize: req.max_file_size || 10485760, // bytes
           instructions: req.instructions
         }))
         setRequiredDocuments(transformedDocs)
