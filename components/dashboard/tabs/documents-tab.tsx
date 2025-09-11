@@ -416,7 +416,8 @@ export default function DocumentsTab({
       // console.log('❌ File validation failed:', validation)
       // Show validation error toast
       const toastDiv = document.createElement('div')
-      toastDiv.className = 'fixed bottom-4 right-4 bg-orange-600 text-white px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2'
+      toastDiv.className = 'fixed bottom-4 right-4 bg-orange-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2'
+      toastDiv.style.cssText = 'z-index: 9999; animation: slideInRight 0.3s ease-out;'
       toastDiv.innerHTML = `
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
@@ -424,10 +425,15 @@ export default function DocumentsTab({
         <span>${validation}</span>
       `
       document.body.appendChild(toastDiv)
+      
+      // Remove toast after 5 seconds with fade out
       setTimeout(() => {
-        toastDiv.style.opacity = '0'
-        toastDiv.style.transition = 'opacity 0.5s'
-        setTimeout(() => document.body.removeChild(toastDiv), 500)
+        toastDiv.style.animation = 'slideOutRight 0.3s ease-out'
+        setTimeout(() => {
+          if (document.body.contains(toastDiv)) {
+            document.body.removeChild(toastDiv)
+          }
+        }, 300)
       }, 5000)
       return Promise.reject(new Error(validation))
     }
@@ -443,13 +449,15 @@ export default function DocumentsTab({
       
       if (documentType) {
         // console.log('📋 Adding document type to FormData:', documentType)
-        formData.append('documentType', documentType)
         const reqDoc = requiredDocuments.find(doc => doc.id === documentType)
         if (reqDoc) {
           // console.log('📋 Found required document config:', reqDoc)
-          formData.append('isRequired', reqDoc.isRequired.toString())
-          // Add requirement_id for linking
+          // For required documents, use 'other' as documentType
+          formData.append('documentType', 'other')
+          formData.append('isRequired', 'true')
           formData.append('requirementId', reqDoc.id)
+        } else {
+          formData.append('documentType', documentType)
         }
       }
       
@@ -566,24 +574,28 @@ export default function DocumentsTab({
           }
         }
 
-        // console.log('8️⃣ Finalizing progress...')
-        setUploadProgress(prev => {
-          const updated = prev.map(item => 
-            item.fileName === file.name 
-              ? { ...item, progress: 100, status: 'completed' }
-              : item
-          )
-          // console.log('📊 Final progress update:', updated)
-          return updated
-        })
-
-        // Remove completed upload after 3 seconds
-        setTimeout(() => {
-          // console.log('🧹 Removing completed upload from progress')
-          setUploadProgress(prev => prev.filter(item => item.fileName !== file.name))
-        }, 3000)
-
         // console.log('✅ Upload completed successfully!')
+        // Show success toast message
+        const toastDiv = document.createElement('div')
+        toastDiv.className = 'fixed bottom-4 right-4 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2'
+        toastDiv.style.cssText = 'z-index: 9999; animation: slideInRight 0.3s ease-out;'
+        toastDiv.innerHTML = `
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          <span>${file.name} 업로드 성공</span>
+        `
+        document.body.appendChild(toastDiv)
+        
+        // Remove toast after 5 seconds with fade out
+        setTimeout(() => {
+          toastDiv.style.animation = 'slideOutRight 0.3s ease-out'
+          setTimeout(() => {
+            if (document.body.contains(toastDiv)) {
+              document.body.removeChild(toastDiv)
+            }
+          }, 300)
+        }, 5000)
 
       } else {
         // console.log('❌ API returned success=false:', result)
@@ -600,15 +612,27 @@ export default function DocumentsTab({
         console.error('❌ Error stack:', error.stack)
       }
       
-      setUploadProgress(prev => {
-        const updated = prev.map(item => 
-          item.fileName === file.name 
-            ? { ...item, status: 'error', error: error instanceof Error ? error.message : '업로드 실패' }
-            : item
-        )
-        // console.log('📊 Error progress update:', updated)
-        return updated
-      })
+      // Show error toast message
+      const toastDiv = document.createElement('div')
+      toastDiv.className = 'fixed bottom-4 right-4 bg-red-600 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-2'
+      toastDiv.style.cssText = 'z-index: 9999; animation: slideInRight 0.3s ease-out;'
+      toastDiv.innerHTML = `
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+        <span>${file.name} 업로드 실패: ${error instanceof Error ? error.message : '알 수 없는 오류'}</span>
+      `
+      document.body.appendChild(toastDiv)
+      
+      // Remove toast after 7 seconds with fade out
+      setTimeout(() => {
+        toastDiv.style.animation = 'slideOutRight 0.3s ease-out'
+        setTimeout(() => {
+          if (document.body.contains(toastDiv)) {
+            document.body.removeChild(toastDiv)
+          }
+        }, 300)
+      }, 7000)
       
       // Re-throw the error so the calling function can handle it
       throw error

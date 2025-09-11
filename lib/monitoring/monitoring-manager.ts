@@ -61,7 +61,7 @@ interface SystemHealthMetrics {
   memory_usage_mb: number
   cpu_usage_percent: number
   daily_reports_created_today: number
-  attendance_records_today: number
+  work_records_today: number
   document_uploads_today: number
   offline_sync_failures: number
 }
@@ -452,7 +452,7 @@ export class MonitoringManager {
         memory_usage_mb: 0, // Calculated separately
         cpu_usage_percent: 0, // Would need monitoring setup
         daily_reports_created_today: dailyReports,
-        attendance_records_today: attendanceRecords,
+        work_records_today: attendanceRecords,
         document_uploads_today: documentUploads,
         offline_sync_failures: 0 // Would track from sync events
       }
@@ -677,9 +677,9 @@ export class MonitoringManager {
   private async countAttendanceRecordsToday(): Promise<number> {
     const today = new Date().toISOString().split('T')[0]
     const { data } = await this.supabase
-      .from('attendance_records')
+      .from('work_records')
       .select('id', { count: 'exact' })
-      .gte('check_in_time', `${today}T00:00:00.000Z`)
+      .eq('work_date', today)
 
     return data?.length || 0
   }

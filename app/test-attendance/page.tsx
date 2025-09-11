@@ -27,14 +27,14 @@ export default function TestAttendancePage() {
         
         console.log('✅ Logged in:', authData.user?.email)
         
-        // 출근 데이터 조회
+        // 근무 데이터 조회
         const { data: attendance, error: attendanceError } = await supabase
-          .from('attendance_records')
+          .from('work_records')
           .select(`
             *,
             sites(id, name)
           `)
-          .eq('user_id', authData.user?.id)
+          .or(`user_id.eq.${authData.user?.id},profile_id.eq.${authData.user?.id}`)
           .gte('work_date', '2025-08-01')
           .lte('work_date', '2025-08-31')
           .order('work_date', { ascending: true })

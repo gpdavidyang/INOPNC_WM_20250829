@@ -61,11 +61,11 @@ export default function UserDetailPage() {
     try {
       const supabase = createClient()
       
-      // Get total work hours from attendance_records
+      // Get total work hours from work_records
       const { data: attendanceData } = await supabase
-        .from('attendance_records')
+        .from('work_records')
         .select('work_hours')
-        .eq('user_id', userId)
+        .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
       
       const totalWorkHours = attendanceData?.reduce((sum, record) => sum + (record.work_hours || 0), 0) || 0
       

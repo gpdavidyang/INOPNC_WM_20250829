@@ -69,9 +69,9 @@ export default function PartnerPrintStatusTab({ profile, sites }: PartnerPrintSt
         availableSites: sites
       })
       
-      // Build query for attendance records
+      // Build query for work records
       let query = supabase
-        .from('attendance_records')
+        .from('work_records')
         .select(`
           id,
           work_date,
@@ -81,7 +81,7 @@ export default function PartnerPrintStatusTab({ profile, sites }: PartnerPrintSt
           site_id,
           sites(id, name)
         `)
-        .eq('user_id', profile.id)
+        .or(`user_id.eq.${profile.id},profile_id.eq.${profile.id}`)
         .gte('work_date', startDate)
         .lte('work_date', endDate)
         .order('work_date', { ascending: false })

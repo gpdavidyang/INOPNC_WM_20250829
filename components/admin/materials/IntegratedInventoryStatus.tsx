@@ -63,24 +63,61 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
   const fetchInventoryData = async () => {
     setLoading(true)
     try {
-      const { data: inventoryData, error } = await supabase
+      // First try to use the view if it exists
+      const { data: viewData, error: viewError } = await supabase
         .from('v_inventory_status')
-        .select(`
-          *,
-          material:materials(name, code),
-          site:sites(name)
-        `)
+        .select(`*`)
         .order('location')
 
-      if (error) throw error
+      if (!viewError && viewData && viewData.length > 0) {
+        // View exists and has data
+        const processedData: ExtendedInventoryStatus[] = viewData.map(item => ({
+          ...item,
+          site_name: item.location,
+          material_name: 'NPC-1000'
+        }))
+        
+        setInventoryData(processedData)
+      } else {
+        // Fallback: Query directly from material_inventory table
+        const { data: inventoryData, error } = await supabase
+          .from('material_inventory')
+          .select(`
+            *,
+            materials(name, code),
+            sites(name)
+          `)
+          .order('site_id')
 
-      const processedData: ExtendedInventoryStatus[] = (inventoryData || []).map(item => ({
-        ...item,
-        site_name: item.site?.name || item.location,
-        material_name: item.material?.name || 'NPC-1000'
-      }))
+        if (error) throw error
 
-      setInventoryData(processedData)
+        const processedData: ExtendedInventoryStatus[] = (inventoryData || []).map(item => {
+          const currentStock = Number(item.current_stock) || 0
+          const reservedStock = Number(item.reserved_stock) || 0
+          const availableStock = currentStock - reservedStock
+          const minimumThreshold = 100 // Default threshold
+          
+          let status = 'normal'
+          if (currentStock === 0) status = 'out_of_stock'
+          else if (currentStock < minimumThreshold) status = 'low'
+
+          return {
+            location: (item as any).sites?.name || 'Unknown',
+            current_stock: currentStock,
+            reserved_stock: reservedStock,
+            available_stock: availableStock,
+            minimum_threshold: minimumThreshold,
+            status: status,
+            last_updated: item.last_updated,
+            site_id: item.site_id,
+            material_id: item.material_id,
+            site_name: (item as any).sites?.name || 'Unknown',
+            material_name: (item as any).materials?.name || 'NPC-1000'
+          }
+        })
+
+        setInventoryData(processedData)
+      }
       
       // Generate alerts
       const newAlerts: InventoryAlert[] = []

@@ -21,24 +21,25 @@ export interface DailyReportQueryOptions {
 }
 
 /**
- * 출근 현황 조회 (성능 최적화)
- * 인덱스: idx_attendance_site_user_date 활용
+ * 근무 현황 조회 (성능 최적화)
+ * 인덱스: idx_work_records_site_date 활용
  */
 export async function getAttendanceRecordsOptimized(options: AttendanceQueryOptions = {}) {
   const supabase = createClient()
   
   let query = supabase
-    .from('attendance_records')
+    .from('work_records')
     .select(`
       id,
       user_id,
+      profile_id,
       site_id,
       work_date,
       status,
       labor_hours,
       check_in_time,
       check_out_time,
-      profiles!user_id (
+      profiles!profile_id (
         full_name,
         email,
         role
@@ -56,9 +57,9 @@ export async function getAttendanceRecordsOptimized(options: AttendanceQueryOpti
     query = query.eq('site_id', options.siteId)
   }
   
-  // 사용자 필터
+  // 사용자 필터 (user_id 또는 profile_id 체크)
   if (options.userId) {
-    query = query.eq('user_id', options.userId)
+    query = query.or(`user_id.eq.${options.userId},profile_id.eq.${options.userId}`)
   }
   
   // 날짜 범위 필터 (인덱스 활용)
@@ -84,7 +85,7 @@ export async function getAttendanceRecordsOptimized(options: AttendanceQueryOpti
   const { data, error } = await query
   
   if (error) {
-    console.error('출근 현황 조회 오류:', error)
+    console.error('근무 현황 조회 오류:', error)
     return { data: [], error }
   }
   
@@ -92,8 +93,8 @@ export async function getAttendanceRecordsOptimized(options: AttendanceQueryOpti
 }
 
 /**
- * 현장별 출근 현황 집계 (실시간 대시보드용)
- * 부분 인덱스: idx_attendance_recent 활용
+ * 현장별 근무 현황 집계 (실시간 대시보드용)
+ * 부분 인덱스: idx_work_records_recent 활용
  */
 export async function getAttendanceSummaryBySite(siteId?: string, date?: string) {
   const supabase = createClient()
@@ -101,7 +102,7 @@ export async function getAttendanceSummaryBySite(siteId?: string, date?: string)
   const targetDate = date || new Date().toISOString().split('T')[0]
   
   let query = supabase
-    .from('attendance_records')
+    .from('work_records')
     .select(`
       site_id,
       status,
