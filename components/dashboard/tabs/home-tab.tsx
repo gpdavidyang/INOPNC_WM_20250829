@@ -389,8 +389,15 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
               {getSelectedQuickMenuItems().map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => item.path === '/dashboard/documents' && onDocumentsSearch ? 
-                    onDocumentsSearch('') : router.push(item.path)}
+                  onClick={() => {
+                    // 문서함의 경우 onDocumentsSearch가 있고 탭 변경이 필요한 경우에만 사용
+                    if (item.path === '/dashboard/documents' && onDocumentsSearch && onTabChange) {
+                      onTabChange('documents')  // 탭 변경
+                      onDocumentsSearch('')      // 검색 초기화
+                    } else {
+                      router.push(item.path)     // 그 외에는 라우터로 이동
+                    }
+                  }}
                   className={`
                     flex flex-col items-center justify-center p-4 rounded-xl border transition-all duration-200
                     ${newDesign ? 'border-[var(--work-card-border)] hover:border-[var(--accent)] hover:bg-gradient-to-br from-white to-blue-50 dark:from-gray-800 dark:to-gray-700' : item.backgroundColor}
@@ -399,7 +406,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
                   `}
                 >
                   <div className={`${item.color} ${newDesign ? 'w-10 h-10' : ''}`}>{item.icon}</div>
-                  <span className={getTypographyClass('sm', isLargeFont, `font-medium mt-2 ${item.color}`)}>
+                  <span className={`${getTypographyClass('sm', isLargeFont)} font-medium mt-2 ${item.color}`}>
                     {item.name}
                   </span>
                 </button>
@@ -425,7 +432,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Megaphone className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                <h3 className={getTypographyClass('base', isLargeFont, 'font-semibold')}>
+                <h3 className={`${getTypographyClass('base', isLargeFont)} font-semibold`}>
                   공지사항
                 </h3>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -459,7 +466,7 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className={getTypographyClass('sm', isLargeFont, `font-medium ${!notification.is_read ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`)}>
+                          <h4 className={`${getTypographyClass('sm', isLargeFont)} font-medium ${!notification.is_read ? 'text-gray-900 dark:text-gray-100' : 'text-gray-600 dark:text-gray-400'}`}>
                             {notification.title}
                           </h4>
                           <span className={`text-xs px-2 py-0.5 rounded-full ${getPriorityColor(notification.priority)}`}>
@@ -470,10 +477,10 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           )}
                         </div>
-                        <p className={getTypographyClass('xs', isLargeFont, 'text-gray-600 dark:text-gray-400 mt-1')}>
+                        <p className={`${getTypographyClass('xs', isLargeFont)} text-gray-600 dark:text-gray-400 mt-1`}>
                           {notification.message}
                         </p>
-                        <p className={getTypographyClass('xs', isLargeFont, 'text-gray-500 dark:text-gray-500 mt-1')}>
+                        <p className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-500 mt-1`}>
                           {notification.created_at?.split('T')[0] || new Date().toISOString().split('T')[0]}
                         </p>
                       </div>
@@ -517,13 +524,13 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className={getTypographyClass('sm', isLargeFont, 'font-medium')}>
+                        <p className={`${getTypographyClass('sm', isLargeFont)} font-medium`}>
                           {history.site_name}
                         </p>
-                        <p className={getTypographyClass('xs', isLargeFont, 'text-gray-500 dark:text-gray-400')}>
+                        <p className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-400`}>
                           {history.site_address}
                         </p>
-                        <p className={getTypographyClass('xs', isLargeFont, 'text-gray-500 dark:text-gray-400 mt-1')}>
+                        <p className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-400 mt-1`}>
                           {history.assigned_date} ~ {history.unassigned_date || '현재'}
                         </p>
                       </div>

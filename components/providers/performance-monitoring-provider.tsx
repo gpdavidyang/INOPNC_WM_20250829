@@ -6,8 +6,18 @@ import { initWebVitals, observePerformance, performanceMark } from '@/lib/monito
 import { setUserContext } from '@/lib/monitoring/sentry'
 import { initRUM, rum } from '@/lib/monitoring/rum'
 import { initializeMonitoring, isMonitoringInitialized, checkMonitoringHealth } from '@/lib/monitoring/init'
-import { isFeatureEnabled } from '@/lib/feature-flags'
 import * as Sentry from '@sentry/nextjs'
+
+// Safe import with fallback
+let isFeatureEnabled: (feature: string) => boolean = () => false
+try {
+  const featureFlags = require('@/lib/feature-flags')
+  if (featureFlags && typeof featureFlags.isFeatureEnabled === 'function') {
+    isFeatureEnabled = featureFlags.isFeatureEnabled
+  }
+} catch (error) {
+  console.warn('Feature flags module not available, using defaults')
+}
 
 interface PerformanceMonitoringProviderProps {
   children: React.ReactNode
