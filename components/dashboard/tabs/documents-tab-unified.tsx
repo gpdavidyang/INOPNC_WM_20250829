@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Profile } from '@/types'
 import { FolderOpen, Share2, Edit3, FileCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import DocumentsTab from './documents-tab'
 import SharedDocumentsTabUpdated from './shared-documents-tab-updated'
@@ -39,65 +39,67 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
 
   return (
     <div className="space-y-6">
-      {/* Tab Navigation - Modern Card Design */}
-      <Card className="p-4">
-        <div className="grid grid-cols-2 gap-3">
-          {/* 내문서함 */}
-          <Button
-            variant={activeTab === 'personal' ? 'default' : 'outline'}
-            onClick={() => handleTabChange('personal')}
-            className="h-16 p-4 flex flex-col gap-2 text-sm font-medium"
-            size="lg"
-          >
-            <FolderOpen className="h-5 w-5" />
-            <span>내문서함</span>
-          </Button>
+      {/* Tab Navigation - Modern Unified Design */}
+      <Card className="bg-gradient-to-r from-blue-50/50 to-indigo-50/50 dark:from-blue-900/10 dark:to-indigo-900/10 border border-blue-100 dark:border-blue-800">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-2 gap-4">
+            {/* 내문서함 */}
+            <Button
+              variant={activeTab === 'personal' ? 'default' : 'outline'}
+              onClick={() => handleTabChange('personal')}
+              className="h-20 p-4 flex flex-col gap-3 text-sm font-semibold transition-all duration-200 hover:shadow-md"
+              size="lg"
+            >
+              <FolderOpen className="h-6 w-6" />
+              <span>내문서함</span>
+            </Button>
 
-          {/* 공유문서함 */}
-          <Button
-            variant={activeTab === 'shared' ? 'default' : 'outline'}
-            onClick={() => handleTabChange('shared')}
-            className="h-16 p-4 flex flex-col gap-2 text-sm font-medium"
-            size="lg"
-          >
-            <Share2 className="h-5 w-5" />
-            <span>공유문서함</span>
-          </Button>
+            {/* 공유문서함 */}
+            <Button
+              variant={activeTab === 'shared' ? 'default' : 'outline'}
+              onClick={() => handleTabChange('shared')}
+              className="h-20 p-4 flex flex-col gap-3 text-sm font-semibold transition-all duration-200 hover:shadow-md"
+              size="lg"
+            >
+              <Share2 className="h-6 w-6" />
+              <span>공유문서함</span>
+            </Button>
 
-          {/* 도면마킹 */}
-          <Button
-            variant={activeTab === 'markup' ? 'default' : 'outline'}
-            onClick={() => handleTabChange('markup')}
-            className="h-16 p-4 flex flex-col gap-2 text-sm font-medium"
-            size="lg"
-          >
-            <Edit3 className="h-5 w-5" />
-            <span>도면마킹</span>
-          </Button>
+            {/* 도면마킹 */}
+            <Button
+              variant={activeTab === 'markup' ? 'default' : 'outline'}
+              onClick={() => handleTabChange('markup')}
+              className="h-20 p-4 flex flex-col gap-3 text-sm font-semibold transition-all duration-200 hover:shadow-md"
+              size="lg"
+            >
+              <Edit3 className="h-6 w-6" />
+              <span>도면마킹</span>
+            </Button>
 
-          {/* 필수 제출 서류 */}
-          <Button
-            variant={activeTab === 'required' ? 'default' : 'outline'}
-            onClick={() => handleTabChange('required')}
-            className="h-16 p-4 flex flex-col gap-2 text-sm font-medium relative"
-            size="lg"
-          >
-            <FileCheck className="h-5 w-5" />
-            <span>필수 제출 서류</span>
-            {requiredDocsProgress.total > 0 && (
-              <Badge 
-                variant={requiredDocsProgress.completed === requiredDocsProgress.total ? "default" : "secondary"}
-                className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs rounded-full"
-              >
-                {requiredDocsProgress.completed}
-              </Badge>
-            )}
-          </Button>
-        </div>
+            {/* 필수 제출 서류 */}
+            <Button
+              variant={activeTab === 'required' ? 'default' : 'outline'}
+              onClick={() => handleTabChange('required')}
+              className="h-20 p-4 flex flex-col gap-3 text-sm font-semibold relative transition-all duration-200 hover:shadow-md"
+              size="lg"
+            >
+              <FileCheck className="h-6 w-6" />
+              <span className="text-center leading-tight">필수서류 제출</span>
+              {requiredDocsProgress.total > 0 && (
+                <Badge 
+                  variant={requiredDocsProgress.completed === requiredDocsProgress.total ? "default" : "destructive"}
+                  className="absolute -top-1 -right-1 h-6 w-6 p-0 flex items-center justify-center text-xs rounded-full shadow-sm border-2 border-white dark:border-gray-900"
+                >
+                  {requiredDocsProgress.completed}/{requiredDocsProgress.total}
+                </Badge>
+              )}
+            </Button>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Tab Content */}
-      <div className="min-h-[400px]">
+      <div className="min-h-[500px] bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
         {activeTab === 'personal' ? (
           <DocumentsTab 
             profile={profile} 
