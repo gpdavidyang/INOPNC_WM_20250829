@@ -1125,34 +1125,30 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
                           {formatDate(document.lastModified)}
                         </p>
                         
-                        <div className="flex gap-1">
+                        <div className="flex flex-wrap gap-1 justify-center">
                           <button
                             onClick={() => handleViewDocument(document)}
-                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                            title="보기"
+                            className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 rounded-md transition-colors border border-gray-300 dark:border-gray-600 hover:border-blue-400"
                           >
-                            <Eye className="h-4 w-4" />
+                            보기
                           </button>
                           <button
                             onClick={() => handleDownloadDocument(document)}
-                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                            title="다운로드"
+                            className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 dark:text-gray-400 dark:hover:text-green-400 dark:hover:bg-green-900/20 rounded-md transition-colors border border-gray-300 dark:border-gray-600 hover:border-green-400"
                           >
-                            <Download className="h-4 w-4" />
+                            다운로드
                           </button>
                           <button
                             onClick={() => handleShareDocument(document)}
-                            className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                            title="공유하기"
+                            className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 dark:text-gray-400 dark:hover:text-purple-400 dark:hover:bg-purple-900/20 rounded-md transition-colors border border-gray-300 dark:border-gray-600 hover:border-purple-400"
                           >
-                            <Share2 className="h-4 w-4" />
+                            공유
                           </button>
                           <button
                             onClick={() => deleteDocument(document.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                            title="삭제"
+                            className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 rounded-md transition-colors border border-gray-300 dark:border-gray-600 hover:border-red-400"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            삭제
                           </button>
                         </div>
                       </div>
@@ -1209,35 +1205,31 @@ export default function SharedDocumentsTab({ profile, initialSearch }: SharedDoc
                               </div>
                             </div>
                             
-                            {/* Action Buttons - Compact */}
+                            {/* Action Buttons - Korean Text */}
                             <div className="flex items-center gap-1 ml-3">
                               <button
                                 onClick={() => handleViewDocument(document)}
-                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                                title="보기"
+                                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-blue-600 hover:bg-blue-50 dark:text-gray-400 dark:hover:text-blue-400 dark:hover:bg-blue-900/20 rounded-md transition-colors border border-gray-300 dark:border-gray-600 hover:border-blue-400"
                               >
-                                <Eye className="h-4 w-4" />
+                                보기
                               </button>
                               <button
                                 onClick={() => handleDownloadDocument(document)}
-                                className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                                title="다운로드"
+                                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 dark:text-gray-400 dark:hover:text-green-400 dark:hover:bg-green-900/20 rounded-md transition-colors border border-gray-300 dark:border-gray-600 hover:border-green-400"
                               >
-                                <Download className="h-4 w-4" />
+                                다운로드
                               </button>
                               <button
                                 onClick={() => handleShareDocument(document)}
-                                className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors"
-                                title="공유하기"
+                                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-purple-600 hover:bg-purple-50 dark:text-gray-400 dark:hover:text-purple-400 dark:hover:bg-purple-900/20 rounded-md transition-colors border border-gray-300 dark:border-gray-600 hover:border-purple-400"
                               >
-                                <Share2 className="h-4 w-4" />
+                                공유
                               </button>
                               <button
                                 onClick={() => deleteDocument(document.id)}
-                                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                title="삭제"
+                                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 dark:text-gray-400 dark:hover:text-red-400 dark:hover:bg-red-900/20 rounded-md transition-colors border border-gray-300 dark:border-gray-600 hover:border-red-400"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                삭제
                               </button>
                             </div>
                           </div>
