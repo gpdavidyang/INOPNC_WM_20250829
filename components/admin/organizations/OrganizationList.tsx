@@ -20,8 +20,6 @@ import {
   List
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import OrganizationForm from './OrganizationForm'
-import OrganizationDetail from './OrganizationDetail'
 
 interface Organization {
   id: string
@@ -50,10 +48,7 @@ export default function OrganizationList() {
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showForm, setShowForm] = useState(false)
-  const [editingOrg, setEditingOrg] = useState<Organization | null>(null)
-  const [viewingOrg, setViewingOrg] = useState<Organization | null>(null)
-  const [viewMode, setViewMode] = useState<'card' | 'list'>('list') // Add view mode state
+  const [viewMode, setViewMode] = useState<'card' | 'list'>('list')
   const supabase = createClient()
 
   useEffect(() => {
@@ -300,16 +295,13 @@ export default function OrganizationList() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div className="flex items-center gap-1">
                         <button
-                          onClick={() => setViewingOrg(org)}
+                          onClick={() => router.push(`/dashboard/admin/organizations/${org.id}`)}
                           className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                         >
                           상세
                         </button>
                         <button
-                          onClick={() => {
-                            setEditingOrg(org)
-                            setShowForm(true)
-                          }}
+                          onClick={() => router.push(`/dashboard/admin/organizations/${org.id}/edit`)}
                           className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                         >
                           수정
@@ -422,16 +414,13 @@ export default function OrganizationList() {
               {/* Actions */}
               <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end items-center gap-1">
                 <button
-                  onClick={() => setViewingOrg(org)}
+                  onClick={() => router.push(`/dashboard/admin/organizations/${org.id}`)}
                   className="px-2 py-1 text-xs font-medium text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   상세
                 </button>
                 <button
-                  onClick={() => {
-                    setEditingOrg(org)
-                    setShowForm(true)
-                  }}
+                  onClick={() => router.push(`/dashboard/admin/organizations/${org.id}/edit`)}
                   className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                 >
                   수정
@@ -448,34 +437,6 @@ export default function OrganizationList() {
         </div>
       )}
 
-      {/* Organization Form Modal */}
-      {showForm && (
-        <OrganizationForm
-          organization={editingOrg}
-          onClose={() => {
-            setShowForm(false)
-            setEditingOrg(null)
-          }}
-          onSave={() => {
-            setShowForm(false)
-            setEditingOrg(null)
-            fetchOrganizations()
-          }}
-        />
-      )}
-
-      {/* Organization Detail Modal */}
-      {viewingOrg && (
-        <OrganizationDetail
-          organization={viewingOrg}
-          onClose={() => setViewingOrg(null)}
-          onEdit={() => {
-            setEditingOrg(viewingOrg)
-            setViewingOrg(null)
-            setShowForm(true)
-          }}
-        />
-      )}
     </div>
   )
 }

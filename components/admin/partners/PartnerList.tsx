@@ -364,16 +364,13 @@ export default function PartnerList({ profile }: PartnerListProps) {
               onClick={() => handleView(partner)}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  <Building2 className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                      {partner.company_name}
-                    </h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {getCompanyTypeLabel(partner.company_type)}
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white">
+                    {partner.company_name}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {getCompanyTypeLabel(partner.company_type)}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {getStatusBadge(partner.status)}
@@ -487,20 +484,15 @@ export default function PartnerList({ profile }: PartnerListProps) {
                   >
                     {/* 회사정보 */}
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8">
-                          <Building2 className="h-8 w-8 text-blue-600" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {partner.company_name}
                         </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {partner.company_name}
+                        {partner.representative_name && (
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            대표: {partner.representative_name}
                           </div>
-                          {partner.representative_name && (
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              대표: {partner.representative_name}
-                            </div>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </td>
                     

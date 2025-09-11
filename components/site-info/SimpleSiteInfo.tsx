@@ -108,6 +108,7 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
             safety_manager_phone,
             accommodation_name,
             accommodation_address,
+            component_name,
             work_process,
             work_section
           )
@@ -137,8 +138,9 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
           safety_manager_phone: site.safety_manager_phone || '010-2345-6789',
           accommodation_name: site.accommodation_name || '현장 숙소',
           accommodation_address: site.accommodation_address || site.address,
-          work_instructions: site.work_process || '일반 건설 작업',
-          work_section: site.work_section || 'A구역'
+          component_name: site.component_name || '미정',
+          work_process: site.work_process || '미정',
+          work_section: site.work_section || '미정'
         })
         setCurrentSiteId(site.id)
         setIsExpanded(true) // 데이터가 있으면 자동 확장
@@ -411,9 +413,32 @@ export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps
                   <p className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-400`}>
                     작업내용
                   </p>
-                  <p className={`${getTypographyClass('sm', isLargeFont)} text-gray-900 dark:text-gray-100 font-medium`}>
-                    {siteData.work_section} - {siteData.work_instructions}
-                  </p>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-400 min-w-[60px]`}>
+                        부재명:
+                      </span>
+                      <span className={`${getTypographyClass('sm', isLargeFont)} text-gray-900 dark:text-gray-100 font-medium`}>
+                        {siteData.component_name}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-400 min-w-[60px]`}>
+                        작업공정:
+                      </span>
+                      <span className={`${getTypographyClass('sm', isLargeFont)} text-gray-900 dark:text-gray-100 font-medium`}>
+                        {siteData.work_process}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`${getTypographyClass('xs', isLargeFont)} text-gray-500 dark:text-gray-400 min-w-[60px]`}>
+                        작업구간:
+                      </span>
+                      <span className={`${getTypographyClass('sm', isLargeFont)} text-gray-900 dark:text-gray-100 font-medium`}>
+                        {siteData.work_section}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
