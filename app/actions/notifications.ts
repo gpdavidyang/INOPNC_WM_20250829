@@ -38,7 +38,7 @@ export async function getNotifications(filter?: NotificationFilter) {
     }
     
     if (filter?.read !== undefined) {
-      query = query.eq('read', filter.read)
+      query = query.eq('is_read', filter.read)
     }
     
     if (filter?.start_date) {
@@ -102,7 +102,7 @@ export async function getNotificationStats(): Promise<{ success: boolean; data?:
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('read', false)
+      .eq('is_read', false)
 
     // 타입별 알림 수
     const { data: typeData } = await supabase
@@ -145,7 +145,7 @@ export async function markNotificationAsRead(notificationId: string) {
     const { data, error } = await supabase
       .from('notifications')
       .update({ 
-        read: true, 
+        is_read: true, 
         read_at: new Date().toISOString() 
       })
       .eq('id', notificationId)
@@ -179,16 +179,17 @@ export async function markAllNotificationsAsRead() {
     const { data, error } = await supabase
       .from('notifications')
       .update({ 
-        read: true, 
+        is_read: true, 
         read_at: new Date().toISOString() 
       })
       .eq('user_id', user.id)
-      .eq('read', false)
+      .eq('is_read', false)
+      .select()
 
     if (error) throw error
 
     revalidatePath('/dashboard')
-    return { success: true, count: (data as any)?.length || 0 }
+    return { success: true, count: data?.length || 0 }
   } catch (error) {
     logError(error, 'markAllNotificationsAsRead')
     return { 

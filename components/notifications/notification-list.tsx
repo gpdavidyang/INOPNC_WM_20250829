@@ -57,14 +57,14 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
   }
 
   const handleMarkAsRead = async (notification: NotificationExtended) => {
-    if (notification.read) return
+    if (notification.is_read) return
 
     try {
       const result = await markNotificationAsRead(notification.id)
       if (result.success) {
         setNotifications(prev =>
           prev.map(n =>
-            n.id === notification.id ? { ...n, read: true, read_at: new Date().toISOString() } : n
+            n.id === notification.id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
           )
         )
       }
@@ -166,9 +166,9 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
             className={cn(
               "relative group flex items-start gap-3 p-3 mb-2 rounded-lg cursor-pointer transition-all",
               "hover:bg-gray-50 dark:hover:bg-gray-700/50",
-              getNotificationBgColor(notification.type, notification.read),
-              notification.read ? "opacity-70" : "",
-              !notification.read && "shadow-sm"
+              getNotificationBgColor(notification.type, notification.is_read),
+              notification.is_read ? "opacity-70" : "",
+              !notification.is_read && "shadow-sm"
             )}
             onClick={() => handleNotificationClick(notification)}
           >
@@ -181,7 +181,7 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
                 <div className="flex-1">
                   <h4 className={cn(
                     "text-sm leading-tight",
-                    notification.read 
+                    notification.is_read 
                       ? "text-gray-700 dark:text-gray-300 font-normal" 
                       : "text-gray-900 dark:text-gray-100 font-semibold"
                   )}>
@@ -189,7 +189,7 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
                   </h4>
                   <p className={cn(
                     "text-sm mt-1 leading-relaxed line-clamp-2",
-                    notification.read 
+                    notification.is_read 
                       ? "text-gray-500 dark:text-gray-400" 
                       : "text-gray-600 dark:text-gray-300"
                   )}>
@@ -224,7 +224,7 @@ export function NotificationList({ className, onNotificationClick }: Notificatio
               </div>
             </div>
 
-            {!notification.read && (
+            {!notification.is_read && (
               <div className="absolute top-3 right-3 h-2 w-2 bg-blue-600 dark:bg-blue-400 rounded-full shadow-sm" />
             )}
           </div>

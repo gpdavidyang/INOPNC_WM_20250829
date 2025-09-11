@@ -82,7 +82,7 @@ export function NotificationsContent() {
             type: 'info',
             title: '새로운 작업일지가 제출되었습니다',
             message: '김철수님이 서울 강남구 현장의 작업일지를 제출했습니다. 확인해주세요.',
-            read: false,
+            is_read: false,
             created_at: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
             data: {}
           },
@@ -92,7 +92,7 @@ export function NotificationsContent() {
             type: 'warning',
             title: 'NPC-1000 재고 부족 경고',
             message: '서울 강남구 현장의 NPC-1000 재고가 150kg 남았습니다. 추가 주문이 필요합니다.',
-            read: false,
+            is_read: false,
             created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
             data: {}
           },
@@ -102,7 +102,7 @@ export function NotificationsContent() {
             type: 'system',
             title: '시스템 점검 안내',
             message: '2025-08-03 02:00~04:00에 시스템 점검이 예정되어 있습니다.',
-            read: false,
+            is_read: false,
             created_at: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
             data: {}
           },
@@ -112,7 +112,7 @@ export function NotificationsContent() {
             type: 'success',
             title: '작업일지 승인 완료',
             message: '2025-08-01일자 작업일지가 승인되었습니다.',
-            read: true,
+            is_read: true,
             read_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
             created_at: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
             data: {}
@@ -123,7 +123,7 @@ export function NotificationsContent() {
             type: 'error',
             title: '작업일지 반려',
             message: '2025-07-31일자 작업일지가 반려되었습니다. 사유: 작업 내용 누락',
-            read: true,
+            is_read: true,
             read_at: new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString(),
             created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
             data: {}
@@ -148,14 +148,14 @@ export function NotificationsContent() {
   }
 
   const handleMarkAsRead = async (notification: NotificationExtended) => {
-    if (notification.read) return
+    if (notification.is_read) return
 
     try {
       const result = await markNotificationAsRead(notification.id)
       if (result.success) {
         setNotifications(prev =>
           prev.map(n =>
-            n.id === notification.id ? { ...n, read: true, read_at: new Date().toISOString() } : n
+            n.id === notification.id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
           )
         )
         toast.success('알림을 읽음 처리했습니다.')
@@ -192,7 +192,7 @@ export function NotificationsContent() {
       const result = await markAllNotificationsAsRead()
       if (result.success) {
         setNotifications(prev =>
-          prev.map(n => ({ ...n, read: true, read_at: new Date().toISOString() }))
+          prev.map(n => ({ ...n, is_read: true, read_at: new Date().toISOString() }))
         )
         toast.success(`${result.count}개의 알림을 읽음 처리했습니다.`)
       } else {
@@ -320,8 +320,8 @@ export function NotificationsContent() {
   })
 
 
-  const unreadCount = notifications.filter(n => !n.read).length
-  const readCount = notifications.filter(n => n.read).length
+  const unreadCount = notifications.filter(n => !n.is_read).length
+  const readCount = notifications.filter(n => n.is_read).length
   const totalCount = notifications.length
 
   // Error State
@@ -545,7 +545,7 @@ export function NotificationsContent() {
                 key={notification.id}
                 className={cn(
                   "group flex items-start gap-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors",
-                  !notification.read && "bg-blue-50/30 dark:bg-blue-950/20 border-l-3 border-blue-500"
+                  !notification.is_read && "bg-blue-50/30 dark:bg-blue-950/20 border-l-3 border-blue-500"
                 )}
               >
                 <input
@@ -568,7 +568,7 @@ export function NotificationsContent() {
                       <div className="flex items-start justify-between gap-2 mb-0.5">
                         <h3 className={cn(
                           "font-medium text-sm line-clamp-1 flex-1",
-                          notification.read 
+                          notification.is_read 
                             ? "text-gray-700 dark:text-gray-300" 
                             : "text-gray-900 dark:text-gray-100"
                         )}>
@@ -576,14 +576,14 @@ export function NotificationsContent() {
                         </h3>
                         <div className="flex items-center gap-1 flex-shrink-0">
                           {getTypeBadge(notification.type)}
-                          {!notification.read && (
+                          {!notification.is_read && (
                             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                           )}
                         </div>
                       </div>
                       <p className={cn(
                         "text-xs line-clamp-2 mb-1",
-                        notification.read 
+                        notification.is_read 
                           ? "text-gray-500 dark:text-gray-400" 
                           : "text-gray-600 dark:text-gray-300"
                       )}>
