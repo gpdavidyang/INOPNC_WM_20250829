@@ -304,9 +304,9 @@ export function NotificationsContent() {
     // 읽음 상태 필터
     let matchesReadFilter = true
     if (readFilter === 'read') {
-      matchesReadFilter = notification.read
+      matchesReadFilter = notification.is_read
     } else if (readFilter === 'unread') {
-      matchesReadFilter = !notification.read
+      matchesReadFilter = !notification.is_read
     }
     // readFilter === 'all'인 경우는 모든 알림을 표시
     
