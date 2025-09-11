@@ -154,66 +154,6 @@ export type Database = {
           }
         ]
       }
-      attendance_records: {
-        Row: {
-          check_in_time: string | null
-          check_out_time: string | null
-          created_at: string
-          id: string
-          notes: string | null
-          overtime_hours: number | null
-          site_id: string | null
-          status: string | null
-          updated_at: string
-          user_id: string | null
-          work_date: string
-          work_hours: number | null
-        }
-        Insert: {
-          check_in_time?: string | null
-          check_out_time?: string | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          overtime_hours?: number | null
-          site_id?: string | null
-          status?: string | null
-          updated_at?: string
-          user_id?: string | null
-          work_date: string
-          work_hours?: number | null
-        }
-        Update: {
-          check_in_time?: string | null
-          check_out_time?: string | null
-          created_at?: string
-          id?: string
-          notes?: string | null
-          overtime_hours?: number | null
-          site_id?: string | null
-          status?: string | null
-          updated_at?: string
-          user_id?: string | null
-          work_date?: string
-          work_hours?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "attendance_records_site_id_fkey"
-            columns: ["site_id"]
-            isOneToOne: false
-            referencedRelation: "sites"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "attendance_records_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       daily_report_workers: {
         Row: {
           created_at: string
