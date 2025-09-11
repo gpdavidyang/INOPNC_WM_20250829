@@ -27,9 +27,8 @@ export async function GET(request: NextRequest) {
     // 활성화된 조직 목록 조회
     const { data: organizations, error } = await supabase
       .from('organizations')
-      .select('id, name, type, description, address, phone')
+      .select('id, name, description, address, phone')
       .eq('is_active', true)
-      .order('type', { ascending: true })
       .order('name', { ascending: true })
     
     if (error) {
@@ -37,20 +36,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch organizations' }, { status: 500 })
     }
     
-    // 조직 타입별로 그룹화
-    const groupedOrganizations = organizations.reduce((acc, org) => {
-      const typeKey = org.type
-      if (!acc[typeKey]) {
-        acc[typeKey] = []
-      }
-      acc[typeKey].push(org)
-      return acc
-    }, {} as Record<string, typeof organizations>)
-    
     return NextResponse.json({
       success: true,
-      data: organizations,
-      grouped: groupedOrganizations
+      data: organizations
     })
     
   } catch (error) {

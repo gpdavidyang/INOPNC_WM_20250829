@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FileCheck, Search, Download, Eye, Trash2, User, Calendar, RefreshCw, AlertCircle, CheckCircle, XCircle, Clock, Filter } from 'lucide-react'
+import { FileCheck, Search, Download, Eye, Trash2, User, Calendar, RefreshCw, AlertCircle, CheckCircle, XCircle, Clock, Filter, CheckSquare, Square } from 'lucide-react'
 
 interface RequiredDocument {
   id: string
@@ -10,7 +10,7 @@ interface RequiredDocument {
   document_type: string
   file_name: string
   file_size: number
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'submitted'
   submission_date: string
   submitted_by: {
     id: string
@@ -19,6 +19,9 @@ interface RequiredDocument {
     role: string
   }
   organization_name?: string
+  submission_id?: string
+  requirement_id?: string
+  rejection_reason?: string
 }
 
 // 문서 타입 라벨 매핑
@@ -38,6 +41,10 @@ export default function RealRequiredDocumentsManagement() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([])
+  const [showRejectionModal, setShowRejectionModal] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [selectedForRejection, setSelectedForRejection] = useState<string[]>([])
 
   useEffect(() => {
     console.log('RealRequiredDocumentsManagement - Component mounted')
@@ -90,6 +97,77 @@ export default function RealRequiredDocumentsManagement() {
       alert('삭제 기능은 추후 구현 예정입니다.')
     } catch (error) {
       alert('삭제 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handleApprove = async (submissionIds: string[]) => {
+    try {
+      const promises = submissionIds.map(id => 
+        fetch('/api/user-document-submissions', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submission_id: id,
+            status: 'approved'
+          })
+        })
+      )
+      
+      await Promise.all(promises)
+      alert(`${submissionIds.length}개 서류가 승인되었습니다.`)
+      fetchDocuments()
+      setSelectedDocs([])
+    } catch (error) {
+      console.error('Error approving documents:', error)
+      alert('승인 처리 중 오류가 발생했습니다.')
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      alert('반려 사유를 입력해주세요.')
+      return
+    }
+
+    try {
+      const promises = selectedForRejection.map(id => 
+        fetch('/api/user-document-submissions', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            submission_id: id,
+            status: 'rejected',
+            rejection_reason: rejectionReason
+          })
+        })
+      )
+      
+      await Promise.all(promises)
+      alert(`${selectedForRejection.length}개 서류가 반려되었습니다.`)
+      fetchDocuments()
+      setSelectedDocs([])
+      setShowRejectionModal(false)
+      setRejectionReason('')
+      setSelectedForRejection([])
+    } catch (error) {
+      console.error('Error rejecting documents:', error)
+      alert('반려 처리 중 오류가 발생했습니다.')
+    }
+  }
+
+  const toggleDocSelection = (docId: string) => {
+    setSelectedDocs(prev => 
+      prev.includes(docId) 
+        ? prev.filter(id => id !== docId)
+        : [...prev, docId]
+    )
+  }
+
+  const toggleAllSelection = () => {
+    if (selectedDocs.length === filteredDocuments.length) {
+      setSelectedDocs([])
+    } else {
+      setSelectedDocs(filteredDocuments.map(doc => doc.submission_id || doc.id))
     }
   }
 
@@ -169,6 +247,36 @@ export default function RealRequiredDocumentsManagement() {
         </button>
       </div>
 
+      {/* 일괄 작업 버튼 */}
+      {selectedDocs.length > 0 && (
+        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+          <span className="text-sm text-blue-700 font-medium">
+            {selectedDocs.length}개 선택됨
+          </span>
+          <button
+            onClick={() => handleApprove(selectedDocs)}
+            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            일괄 승인
+          </button>
+          <button
+            onClick={() => {
+              setSelectedForRejection(selectedDocs)
+              setShowRejectionModal(true)
+            }}
+            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            일괄 반려
+          </button>
+          <button
+            onClick={() => setSelectedDocs([])}
+            className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            선택 취소
+          </button>
+        </div>
+      )}
+
       {/* 검색 및 필터 */}
       <div className="flex flex-col sm:flex-row gap-4 bg-gray-50 p-4 rounded-lg">
         <div className="flex-1">
@@ -222,6 +330,14 @@ export default function RealRequiredDocumentsManagement() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="w-12 px-6 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedDocs.length === filteredDocuments.length && filteredDocuments.length > 0}
+                      onChange={toggleAllSelection}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     문서 정보
                   </th>
@@ -240,59 +356,125 @@ export default function RealRequiredDocumentsManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredDocuments.map((document) => (
-                  <tr key={document.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{document.title}</div>
-                        <div className="text-sm text-gray-500">
-                          {DOCUMENT_TYPE_LABELS[document.document_type as keyof typeof DOCUMENT_TYPE_LABELS] || document.document_type}
-                        </div>
-                        <div className="text-xs text-gray-400 mt-1">
-                          {document.file_name} ({formatFileSize(document.file_size)})
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <User className="w-4 h-4 text-gray-400 mr-2" />
+                {filteredDocuments.map((document) => {
+                  const docId = document.submission_id || document.id
+                  const isSelected = selectedDocs.includes(docId)
+                  
+                  return (
+                    <tr key={document.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleDocSelection(docId)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{document.submitted_by.full_name}</div>
-                          <div className="text-sm text-gray-500">{document.organization_name}</div>
+                          <div className="text-sm font-medium text-gray-900">{document.title}</div>
+                          <div className="text-sm text-gray-500">
+                            {DOCUMENT_TYPE_LABELS[document.document_type as keyof typeof DOCUMENT_TYPE_LABELS] || document.document_type}
+                          </div>
+                          <div className="text-xs text-gray-400 mt-1">
+                            {document.file_name} ({formatFileSize(document.file_size)})
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(document.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        {formatDate(document.submission_date)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleDownload(document)}
-                          className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded transition-colors"
-                          title="다운로드"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(document)}
-                          className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
-                          title="삭제"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <User className="w-4 h-4 text-gray-400 mr-2" />
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{document.submitted_by.full_name}</div>
+                            <div className="text-sm text-gray-500">{document.organization_name}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(document.status)}
+                        {document.status === 'rejected' && document.rejection_reason && (
+                          <div className="mt-1 text-xs text-red-600">
+                            사유: {document.rejection_reason}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {formatDate(document.submission_date)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-2">
+                          {document.status === 'pending' || document.status === 'submitted' ? (
+                            <>
+                              <button
+                                onClick={() => handleApprove([docId])}
+                                className="text-green-600 hover:text-green-900 p-1 hover:bg-green-50 rounded transition-colors"
+                                title="승인"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedForRejection([docId])
+                                  setShowRejectionModal(true)
+                                }}
+                                className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
+                                title="반려"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </>
+                          ) : null}
+                          <button
+                            onClick={() => handleDownload(document)}
+                            className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded transition-colors"
+                            title="다운로드"
+                          >
+                            <Download className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* 반려 사유 입력 모달 */}
+      {showRejectionModal && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">반려 사유 입력</h3>
+            <textarea
+              value={rejectionReason}
+              onChange={(e) => setRejectionReason(e.target.value)}
+              placeholder="반려 사유를 입력해주세요..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={4}
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowRejectionModal(false)
+                  setRejectionReason('')
+                  setSelectedForRejection([])
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleReject}
+                className="px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                반려
+              </button>
+            </div>
           </div>
         </div>
       )}

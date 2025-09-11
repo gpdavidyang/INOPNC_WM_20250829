@@ -242,24 +242,11 @@ export default function UserManagement({ profile }: UserManagementProps) {
           return <span className="text-gray-400">소속 없음</span>
         }
         
-        const typeConfig = {
-          head_office: { text: '본사', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' },
-          branch_office: { text: '지사', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' },
-          department: { text: '부서', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' }
-        }
-        
-        const config = typeConfig[organization.type as keyof typeof typeConfig] || typeConfig.department
-        
         return (
           <div className="text-sm">
             <div className="flex items-center text-gray-900 dark:text-gray-100 font-medium">
               <Building className="h-3 w-3 mr-1" />
               {organization.name}
-            </div>
-            <div className="mt-1">
-              <span className={`inline-flex px-2 py-1 text-xs rounded-full ${config.color}`}>
-                {config.text}
-              </span>
             </div>
           </div>
         )

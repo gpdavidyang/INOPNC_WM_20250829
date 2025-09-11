@@ -20,7 +20,6 @@ import { ko } from 'date-fns/locale'
 interface Organization {
   id: string
   name: string
-  type: string
   description?: string
   address?: string
   phone?: string
@@ -92,20 +91,6 @@ export default function OrganizationDetail({ organization, onClose, onEdit }: Or
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-start gap-3">
                   <Briefcase className="h-5 w-5 text-gray-400 mt-0.5" />
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">조직 타입</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                        organization.type === 'head_office' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' :
-                        organization.type === 'branch_office' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' :
-                        'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                      }`}>
-                        {organization.type === 'head_office' ? '본사' :
-                         organization.type === 'branch_office' ? '지사/협력업체' :
-                         organization.type === 'department' ? '부서' : organization.type}
-                      </span>
-                    </p>
-                  </div>
                 </div>
 
                 <div className="flex items-start gap-3">

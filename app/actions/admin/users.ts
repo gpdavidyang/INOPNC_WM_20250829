@@ -39,7 +39,6 @@ export interface UserWithSites extends Profile {
   organization?: {
     id: string
     name: string
-    type: string
   } | null
 }
 
@@ -62,8 +61,7 @@ export async function getUsers(
           *,
           organizations!profiles_organization_id_fkey(
             id,
-            name,
-            type
+            name
           )
         `, { count: 'exact' })
         .order('created_at', { ascending: false })
@@ -190,8 +188,7 @@ export async function getUsers(
             work_log_stats: workLogStats,
             organization: user.organizations ? {
               id: user.organizations.id,
-              name: user.organizations.name,
-              type: user.organizations.type
+              name: user.organizations.name
             } : null
           }
         })
@@ -230,8 +227,7 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
           *,
           organizations!profiles_organization_id_fkey(
             id,
-            name,
-            type
+            name
           )
         `)
         .eq('id', userId)

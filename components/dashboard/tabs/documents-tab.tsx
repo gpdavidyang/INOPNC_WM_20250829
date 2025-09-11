@@ -35,6 +35,10 @@ interface Document {
   documentType?: string
   site?: string
   siteAddress?: string
+  submissionStatus?: 'not_submitted' | 'submitted' | 'approved' | 'rejected'
+  rejectionReason?: string
+  reviewedAt?: string
+  expiryDate?: string
 }
 
 interface RequiredDocument {
@@ -47,6 +51,12 @@ interface RequiredDocument {
   example?: string
   acceptedFormats?: string[]
   maxSize?: number
+  submissionStatus?: 'not_submitted' | 'submitted' | 'approved' | 'rejected'
+  rejectionReason?: string
+  expiryDays?: number
+  submittedAt?: string
+  approvedAt?: string
+  rejectedAt?: string
 }
 
 interface UploadProgress {
@@ -98,6 +108,40 @@ export default function DocumentsTab({
   // 필수 서류 목록 - 동적으로 로드
   const [requiredDocuments, setRequiredDocuments] = useState<RequiredDocument[]>([])
   const [submissionStatus, setSubmissionStatus] = useState<any[]>([])
+  
+  // 제출 상태별 스타일 정의
+  const getStatusStyle = (status?: string) => {
+    switch(status) {
+      case 'approved':
+        return { 
+          color: 'text-green-600 dark:text-green-400', 
+          bg: 'bg-green-50 dark:bg-green-900/20',
+          icon: CheckCircle,
+          text: '승인됨'
+        }
+      case 'submitted':
+        return { 
+          color: 'text-yellow-600 dark:text-yellow-400', 
+          bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+          icon: Clock,
+          text: '검토중'
+        }
+      case 'rejected':
+        return { 
+          color: 'text-red-600 dark:text-red-400', 
+          bg: 'bg-red-50 dark:bg-red-900/20',
+          icon: X,
+          text: '반려됨'
+        }
+      default:
+        return { 
+          color: 'text-gray-600 dark:text-gray-400', 
+          bg: 'bg-gray-50 dark:bg-gray-900/20',
+          icon: AlertCircle,
+          text: '미제출'
+        }
+    }
+  }
 
   useEffect(() => {
     loadRequiredDocuments()
@@ -152,6 +196,22 @@ export default function DocumentsTab({
       
       if (result.success && result.data) {
         setSubmissionStatus(result.data)
+        
+        // Update required documents with submission status
+        setRequiredDocuments(prev => prev.map(doc => {
+          const submission = result.data.find((s: any) => s.requirement_id === doc.id)
+          if (submission) {
+            return {
+              ...doc,
+              submissionStatus: submission.submission_status,
+              rejectionReason: submission.rejection_reason,
+              submittedAt: submission.submitted_at,
+              approvedAt: submission.approved_at,
+              rejectedAt: submission.rejected_at
+            }
+          }
+          return { ...doc, submissionStatus: 'not_submitted' }
+        }))
       }
     } catch (error) {
       console.error('Error loading submission status:', error)
@@ -972,13 +1032,21 @@ export default function DocumentsTab({
               const isUploaded = uploadedDoc?.status === 'completed'
               const isProcessing = uploadedDoc?.status === 'processing'
               const needsReview = uploadedDoc?.status === 'review'
+              const statusStyle = getStatusStyle(reqDoc.submissionStatus)
+              const StatusIcon = statusStyle.icon
               
               return (
                 <div key={reqDoc.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 flex-1">
                       <div className="flex-shrink-0">
-                        {isUploaded ? (
+                        {reqDoc.submissionStatus === 'approved' ? (
+                          <CheckCircle className="h-5 w-5 text-green-500" />
+                        ) : reqDoc.submissionStatus === 'submitted' ? (
+                          <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />
+                        ) : reqDoc.submissionStatus === 'rejected' ? (
+                          <X className="h-5 w-5 text-red-500" />
+                        ) : isUploaded ? (
                           <CheckCircle className="h-5 w-5 text-green-500" />
                         ) : isProcessing ? (
                           <Clock className="h-5 w-5 text-yellow-500 animate-pulse" />
@@ -989,13 +1057,27 @@ export default function DocumentsTab({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                          {reqDoc.name}
-                          {!reqDoc.isRequired && (
-                            <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(선택)</span>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {reqDoc.name}
+                            {!reqDoc.isRequired && (
+                              <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">(선택)</span>
+                            )}
+                          </h4>
+                          {reqDoc.submissionStatus && reqDoc.submissionStatus !== 'not_submitted' && (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusStyle.bg} ${statusStyle.color}`}>
+                              {statusStyle.text}
+                            </span>
                           )}
-                        </h4>
+                        </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{reqDoc.description}</p>
+                        {reqDoc.submissionStatus === 'rejected' && reqDoc.rejectionReason && (
+                          <div className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 rounded-md">
+                            <p className="text-xs text-red-600 dark:text-red-400">
+                              <span className="font-medium">반려 사유:</span> {reqDoc.rejectionReason}
+                            </p>
+                          </div>
+                        )}
                         {isUploaded && uploadedDoc && (
                           <div className="mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-700">
                             <div className="flex items-center justify-between">
@@ -1018,7 +1100,55 @@ export default function DocumentsTab({
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-3">
-                      {isUploaded ? (
+                      {reqDoc.submissionStatus === 'approved' && uploadedDoc ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewDocument(uploadedDoc)
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title="미리보기"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDownloadDocument(uploadedDoc)
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                            title="다운로드"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ) : reqDoc.submissionStatus === 'submitted' && uploadedDoc ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewDocument(uploadedDoc)
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                            title="미리보기"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                          <span className="text-xs text-yellow-600 dark:text-yellow-400">검토중...</span>
+                        </div>
+                      ) : reqDoc.submissionStatus === 'rejected' ? (
+                        <button
+                          onClick={() => {
+                            // console.log('🖱️ Re-upload button clicked for rejected document:', reqDoc.id)
+                            handleRequiredDocumentUpload(reqDoc.id)
+                          }}
+                          className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          <Upload className="h-3 w-3" />
+                          재제출
+                        </button>
+                      ) : isUploaded ? (
                         <div className="flex items-center gap-1">
                           <button
                             onClick={(e) => {

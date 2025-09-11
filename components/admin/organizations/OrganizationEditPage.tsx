@@ -8,7 +8,6 @@ import { createClient } from '@/lib/supabase/client'
 interface Organization {
   id: string
   name: string
-  type: string
   description?: string
   address?: string
   phone?: string
@@ -35,7 +34,6 @@ export default function OrganizationEditPage({ organization: initialOrg }: Organ
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: initialOrg.name || '',
-    type: initialOrg.type || 'client',
     description: initialOrg.description || '',
     address: initialOrg.address || '',
     phone: initialOrg.phone || '',
@@ -136,21 +134,6 @@ export default function OrganizationEditPage({ organization: initialOrg }: Organ
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       required
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      거래처 유형
-                    </label>
-                    <select
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    >
-                      <option value="client">발주처</option>
-                      <option value="contractor">시공사</option>
-                      <option value="supplier">자재업체</option>
-                      <option value="partner">협력업체</option>
-                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
