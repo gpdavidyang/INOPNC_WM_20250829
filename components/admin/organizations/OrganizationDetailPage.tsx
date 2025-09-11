@@ -23,7 +23,6 @@ import { createClient } from '@/lib/supabase/client'
 interface Organization {
   id: string
   name: string
-  type: string
   description?: string
   address?: string
   phone?: string
@@ -95,15 +94,6 @@ export default function OrganizationDetailPage({ organization: initialOrg }: Org
     }
   }
 
-  const getTypeLabel = (type: string) => {
-    const types: Record<string, string> = {
-      'client': '발주처',
-      'contractor': '시공사',
-      'supplier': '자재업체',
-      'partner': '협력업체'
-    }
-    return types[type] || type
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -167,14 +157,6 @@ export default function OrganizationDetailPage({ organization: initialOrg }: Org
                     </label>
                     <p className="text-gray-900 dark:text-white mt-1">
                       {organization.name}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      거래처 유형
-                    </label>
-                    <p className="text-gray-900 dark:text-white mt-1">
-                      {getTypeLabel(organization.type)}
                     </p>
                   </div>
                   {organization.business_number && (

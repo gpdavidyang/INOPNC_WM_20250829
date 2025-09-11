@@ -378,7 +378,6 @@ function EditUserModal({
   const [organizations, setOrganizations] = useState<Array<{
     id: string
     name: string
-    type: string
     description: string
   }>>([])
   const [organizationsLoading, setOrganizationsLoading] = useState(false)
@@ -544,23 +543,11 @@ function EditUserModal({
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-50"
             >
               <option value="">조직을 선택하세요</option>
-              {organizations.map((org) => {
-                const getTypeLabel = (type: string) => {
-                  const typeLabels: Record<string, string> = {
-                    'head_office': '본사',
-                    'branch_office': '지사',
-                    'partner': '파트너사',
-                    'contractor': '협력업체'
-                  }
-                  return typeLabels[type] || type
-                }
-                
-                return (
-                  <option key={org.id} value={org.id}>
-                    [{getTypeLabel(org.type)}] {org.name}
-                  </option>
-                )
-              })}
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
             </select>
             {organizationsLoading && (
               <p className="text-sm text-gray-500 mt-1">조직 목록을 불러오는 중...</p>

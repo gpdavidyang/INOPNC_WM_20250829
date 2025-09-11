@@ -117,6 +117,18 @@ const menuCategories = [
         hidden: true  // 현재 사용하지 않음
       },
       {
+        id: 'document-requirements',
+        label: '필수서류 설정',
+        icon: Settings,
+        href: '/dashboard/admin/document-requirements'
+      },
+      {
+        id: 'document-submissions',
+        label: '필수서류 제출현황',
+        icon: FileCheck,
+        href: '/dashboard/admin/documents/required'
+      },
+      {
         id: 'salary',
         label: '급여관리 도구',
         icon: DollarSign,

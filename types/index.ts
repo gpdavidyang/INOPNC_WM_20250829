@@ -116,14 +116,10 @@ export interface PhotoProgress {
   overall_progress: number // 0-100%
 }
 
-// 조직 타입
-export type OrganizationType = 'head_office' | 'branch_office' | 'department'
-
 // 조직
 export interface Organization {
   id: string
   name: string
-  type: OrganizationType
   parent_id?: string | null
   description?: string | null
   address?: string | null

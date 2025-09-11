@@ -45,7 +45,6 @@ interface SiteOption {
 interface OrganizationOption {
   id: string
   name: string
-  type: string
 }
 
 export default function DocumentPermissionsModal({
@@ -507,7 +506,7 @@ export default function DocumentPermissionsModal({
                       <option value="">조직 선택</option>
                       {organizations.map(org => (
                         <option key={org.id} value={org.id}>
-                          {org.name} ({org.type})
+                          {org.name}
                         </option>
                       ))}
                     </select>

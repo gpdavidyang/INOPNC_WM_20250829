@@ -455,9 +455,6 @@ export default function UserDetailModal({
                   ) : user.organization ? (
                     <div>
                       <p className="text-sm font-medium">{user.organization.name}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {user.organization.type === 'partner' ? '파트너사' : '일반'}
-                      </p>
                     </div>
                   ) : (
                     <p className="text-sm text-gray-500">소속 없음</p>

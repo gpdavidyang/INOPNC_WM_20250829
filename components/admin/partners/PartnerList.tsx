@@ -5,7 +5,7 @@ import { Profile } from '@/types'
 import { 
   Plus, Search, Filter, Building2, 
   Calendar, DollarSign, MapPin, Phone, Mail, FileText,
-  Users, Grid3x3, List
+  Users, Grid3x3, List, ChevronUp, ChevronDown, ChevronsUpDown
 } from 'lucide-react'
 import PartnerForm from './PartnerForm'
 import PartnerDetail from './PartnerDetail'
@@ -34,6 +34,9 @@ interface Partner {
   site_count?: number
 }
 
+type PartnerSortField = 'company_name' | 'company_type' | 'status' | 'phone' | 'site_count' | 'created_at'
+type SortDirection = 'asc' | 'desc'
+
 interface PartnerListProps {
   profile: Profile
 }
@@ -48,6 +51,8 @@ export default function PartnerList({ profile }: PartnerListProps) {
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null)
   const [showDetail, setShowDetail] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list')
+  const [sortField, setSortField] = useState<PartnerSortField>('company_name')
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const supabase = createClient()
 
   const loadPartners = async () => {
@@ -130,6 +135,48 @@ export default function PartnerList({ profile }: PartnerListProps) {
     return () => clearTimeout(handler)
   }, [searchTerm, statusFilter, typeFilter])
 
+  const handleSort = (field: PartnerSortField) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (field: PartnerSortField) => {
+    if (sortField !== field) {
+      return <ChevronsUpDown className="h-4 w-4 ml-1" />
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-4 w-4 ml-1" />
+      : <ChevronDown className="h-4 w-4 ml-1" />
+  }
+
+  const sortedAndFilteredPartners = [...partners].sort((a, b) => {
+    const multiplier = sortDirection === 'asc' ? 1 : -1
+    
+    switch (sortField) {
+      case 'company_name':
+        return multiplier * a.company_name.localeCompare(b.company_name, 'ko')
+      case 'company_type':
+        return multiplier * a.company_type.localeCompare(b.company_type)
+      case 'status':
+        return multiplier * a.status.localeCompare(b.status)
+      case 'phone':
+        const phoneA = a.phone || ''
+        const phoneB = b.phone || ''
+        return multiplier * phoneA.localeCompare(phoneB)
+      case 'site_count':
+        const siteCountA = a.site_count || 0
+        const siteCountB = b.site_count || 0
+        return multiplier * (siteCountA - siteCountB)
+      case 'created_at':
+        return multiplier * new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      default:
+        return 0
+    }
+  })
 
   const handleEdit = (partner: Partner) => {
     setSelectedPartner(partner)
@@ -357,7 +404,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {partners.map((partner) => (
+          {sortedAndFilteredPartners.map((partner) => (
             <div
               key={partner.id}
               className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-md transition-shadow cursor-pointer"
@@ -452,20 +499,50 @@ export default function PartnerList({ profile }: PartnerListProps) {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-700">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    회사정보
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('company_name')}
+                  >
+                    <div className="flex items-center">
+                      회사정보
+                      {getSortIcon('company_name')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    업종
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('company_type')}
+                  >
+                    <div className="flex items-center">
+                      업종
+                      {getSortIcon('company_type')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    연락처
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('phone')}
+                  >
+                    <div className="flex items-center">
+                      연락처
+                      {getSortIcon('phone')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    현장수
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('site_count')}
+                  >
+                    <div className="flex items-center">
+                      현장수
+                      {getSortIcon('site_count')}
+                    </div>
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    상태
+                  <th 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                    onClick={() => handleSort('status')}
+                  >
+                    <div className="flex items-center">
+                      상태
+                      {getSortIcon('status')}
+                    </div>
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                     전문분야
@@ -476,7 +553,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {partners.map((partner) => (
+                {sortedAndFilteredPartners.map((partner) => (
                   <tr 
                     key={partner.id} 
                     className="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
