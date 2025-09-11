@@ -113,6 +113,38 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// 안전한 파일명 생성 함수
+function generateSafeFileName(originalName: string): string {
+  // 파일 확장자 분리
+  const lastDotIndex = originalName.lastIndexOf('.')
+  const extension = lastDotIndex > -1 ? originalName.slice(lastDotIndex) : ''
+  const nameWithoutExt = lastDotIndex > -1 ? originalName.slice(0, lastDotIndex) : originalName
+  
+  // 한글, 영문, 숫자, 일부 특수문자만 허용
+  // 공백은 언더스코어로 변환
+  let safeName = nameWithoutExt
+    .replace(/\s+/g, '_') // 공백을 언더스코어로
+    .replace(/[^\w\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F\uA960-\uA97F\uD7B0-\uD7FF._-]/g, '') // 한글 및 안전한 문자만 허용
+    .replace(/_{2,}/g, '_') // 연속된 언더스코어를 하나로
+    .replace(/^_|_$/g, '') // 시작과 끝의 언더스코어 제거
+  
+  // 파일명이 비어있으면 기본값 사용
+  if (!safeName) {
+    safeName = 'file'
+  }
+  
+  // 파일명 길이 제한 (확장자 제외 100자)
+  if (safeName.length > 100) {
+    safeName = safeName.substring(0, 100)
+  }
+  
+  // 타임스탬프와 랜덤 문자열 추가하여 고유성 보장
+  const timestamp = Date.now()
+  const randomStr = Math.random().toString(36).substring(2, 8)
+  
+  return `${timestamp}_${randomStr}_${safeName}${extension}`
+}
+
 export async function POST(request: NextRequest) {
   console.log('📤 Document upload API called')
   try {
@@ -187,9 +219,11 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes)
     console.log('✅ File converted to buffer, size:', buffer.length)
 
-    // Supabase Storage에 파일 업로드
-    let fileName = `${Date.now()}-${file.name}`
+    // 안전한 파일명 생성 (한글 포함)
+    let fileName = generateSafeFileName(file.name)
     let filePath = `documents/${user.id}/${fileName}`
+    console.log('📁 Original filename:', file.name)
+    console.log('📁 Safe filename:', fileName)
     console.log('📁 Uploading to path:', filePath)
 
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -211,11 +245,12 @@ export async function POST(request: NextRequest) {
       
       // Check if it's a duplicate file error
       if (uploadError.message?.includes('already exists')) {
-        // Try with a different filename
-        const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`
+        // Try with a different filename (regenerate with new timestamp)
+        const uniqueFileName = generateSafeFileName(file.name)
         const uniqueFilePath = `documents/${user.id}/${uniqueFileName}`
         
-        console.log('🔄 Retrying with unique filename:', uniqueFilePath)
+        console.log('🔄 Retrying with unique filename:', uniqueFileName)
+        console.log('🔄 Retry path:', uniqueFilePath)
         
         const { data: retryData, error: retryError } = await supabase.storage
           .from('documents')
@@ -254,8 +289,8 @@ export async function POST(request: NextRequest) {
       .from('documents')
       .insert([
         {
-          title: file.name,
-          file_name: fileName,
+          title: file.name, // 원본 파일명 유지 (사용자가 보는 이름)
+          file_name: fileName, // 실제 저장된 파일명 (안전한 파일명)
           file_url: urlData.publicUrl,
           file_size: file.size,
           mime_type: file.type,
