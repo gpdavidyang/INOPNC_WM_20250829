@@ -415,29 +415,26 @@ export default function RealRequiredDocumentsManagement() {
                             <>
                               <button
                                 onClick={() => handleApprove([docId])}
-                                className="text-green-600 hover:text-green-900 p-1 hover:bg-green-50 rounded transition-colors"
-                                title="승인"
+                                className="px-2 py-1 text-xs bg-green-100 hover:bg-green-200 text-green-700 hover:text-green-800 rounded transition-colors"
                               >
-                                <CheckCircle className="w-4 h-4" />
+                                승인
                               </button>
                               <button
                                 onClick={() => {
                                   setSelectedForRejection([docId])
                                   setShowRejectionModal(true)
                                 }}
-                                className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
-                                title="반려"
+                                className="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 hover:text-red-800 rounded transition-colors"
                               >
-                                <XCircle className="w-4 h-4" />
+                                반려
                               </button>
                             </>
                           ) : null}
                           <button
                             onClick={() => handleDownload(document)}
-                            className="text-blue-600 hover:text-blue-900 p-1 hover:bg-blue-50 rounded transition-colors"
-                            title="다운로드"
+                            className="px-2 py-1 text-xs bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 rounded transition-colors"
                           >
-                            <Download className="w-4 h-4" />
+                            다운로드
                           </button>
                         </div>
                       </td>
