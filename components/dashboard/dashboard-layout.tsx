@@ -80,15 +80,19 @@ export default function DashboardLayout({ user, profile, children, initialActive
   useEffect(() => {
     const handleHashChange = () => {
       const newTab = getCurrentActiveTabFromPath(pathname)
-      if (newTab !== activeTab) {
-        // console.log('[DashboardLayout] Hash change detected, tab change:', activeTab, '->', newTab)
-        setActiveTab(newTab)
-      }
+      // Use functional update to get current activeTab without adding it to dependencies
+      setActiveTab(currentTab => {
+        if (newTab !== currentTab) {
+          // console.log('[DashboardLayout] Hash change detected, tab change:', currentTab, '->', newTab)
+          return newTab
+        }
+        return currentTab
+      })
     }
 
     window.addEventListener('hashchange', handleHashChange)
     return () => window.removeEventListener('hashchange', handleHashChange)
-  }, [pathname, activeTab])
+  }, [pathname]) // ✅ FIXED: Removed activeTab from dependencies to prevent infinite loop
 
   // 컴포넌트 프리로드 - 사용자 역할에 따라
   useEffect(() => {
