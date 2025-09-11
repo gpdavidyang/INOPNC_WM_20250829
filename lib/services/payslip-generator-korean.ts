@@ -64,7 +64,8 @@ export class PayslipGeneratorKorean {
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>급여명세서 - ${data.employee.name}</title>
   <style>
     @page {
@@ -78,12 +79,27 @@ export class PayslipGeneratorKorean {
       box-sizing: border-box;
     }
     
+    html {
+      height: 100%;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+    
     body {
       font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
       line-height: 1.4;
       color: #333;
       background: #f8fafc;
       font-size: 14px;
+      min-height: 100vh;
+      height: auto;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      position: relative;
+      /* iOS Safari 스크롤 버그 해결 */
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
     
     .container {
@@ -92,6 +108,13 @@ export class PayslipGeneratorKorean {
       padding: 15px;
       background: white;
       min-height: 100vh;
+      height: auto;
+      overflow: visible;
+      position: relative;
+      padding-bottom: 50px;
+      /* iOS 스크롤 개선 */
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
     
     /* 네비게이션 버튼 */
@@ -102,6 +125,10 @@ export class PayslipGeneratorKorean {
       margin-bottom: 20px;
       padding: 10px 0;
       border-bottom: 1px solid #e5e7eb;
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 100;
     }
     
     .back-button {
@@ -539,6 +566,20 @@ export class PayslipGeneratorKorean {
       
       .section {
         break-inside: avoid;
+      }
+    }
+    /* 모바일 특화 스크롤 개선 */
+    @media (max-width: 767px) {
+      html, body {
+        height: 100%;
+        overflow: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+      }
+      
+      .container {
+        min-height: auto;
+        height: auto;
+        overflow: visible !important;
       }
     }
   </style>
