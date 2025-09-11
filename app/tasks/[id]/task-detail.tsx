@@ -210,7 +210,7 @@ export default function TaskDetail({
                               className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                             >
                               <option value="">프로젝트 없음</option>
-                              {projects.map(project => (
+                              {Array.isArray(projects) && projects.map(project => (
                                 <option key={project.id} value={project.id}>{project.name}</option>
                               ))}
                             </select>
@@ -224,7 +224,7 @@ export default function TaskDetail({
                               className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                             >
                               <option value="">미지정</option>
-                              {users.map(user => (
+                              {Array.isArray(users) && users.map(user => (
                                 <option key={user.id} value={user.id}>
                                   {user.full_name || user.email}
                                 </option>
@@ -369,7 +369,7 @@ export default function TaskDetail({
               <div className="bg-white shadow overflow-hidden sm:rounded-lg">
                 <div className="px-4 py-5 sm:px-6">
                   <h3 className="text-lg leading-6 font-medium text-gray-900">
-                    댓글 ({comments.length})
+                    댓글 ({Array.isArray(comments) ? comments.length : 0})
                   </h3>
                 </div>
                 
@@ -394,7 +394,7 @@ export default function TaskDetail({
 
                   {/* Comments List */}
                   <ul className="divide-y divide-gray-200">
-                    {comments.map((comment: any) => (
+                    {Array.isArray(comments) && comments.map((comment: any) => (
                       <li key={comment.id} className="px-4 py-4">
                         <div className="flex space-x-3">
                           <div className="flex-1 space-y-1">

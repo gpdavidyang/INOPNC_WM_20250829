@@ -67,7 +67,7 @@ export default function TestAuthFix() {
             <div>
               <h2 className="font-semibold text-lg text-red-600">Errors</h2>
               <ul className="list-disc list-inside space-y-1">
-                {errors.map((error, idx) => (
+                {Array.isArray(errors) && errors.map((error, idx) => (
                   <li key={idx} className="text-red-600 text-sm">{error}</li>
                 ))}
               </ul>
