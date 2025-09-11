@@ -106,14 +106,20 @@ const ConstructionNavBar = React.forwardRef<HTMLElement, ConstructionNavBarProps
                 aria-disabled={isNavigating}
               >
                 <div className="relative">
-                  {React.cloneElement(item.icon as React.ReactElement, {
-                    className: cn(
-                      "h-7 w-7", // 건설 현장용 더 큰 아이콘
-                      touchMode === 'glove' && "h-8 w-8"
-                    ),
-                    "aria-hidden": "true",
-                    strokeWidth: isActive ? 2.8 : 1.8 // 더 두꺼운 선
-                  })}
+                  {React.isValidElement(item.icon) 
+                    ? React.cloneElement(item.icon as React.ReactElement, {
+                        className: cn(
+                          "h-7 w-7", // 건설 현장용 더 큰 아이콘
+                          touchMode === 'glove' && "h-8 w-8"
+                        ),
+                        "aria-hidden": "true",
+                        strokeWidth: isActive ? 2.8 : 1.8 // 더 두꺼운 선
+                      })
+                    : <div className={cn(
+                        "h-7 w-7",
+                        touchMode === 'glove' && "h-8 w-8"
+                      )} aria-hidden="true">{item.icon}</div>
+                  }
                   
                   {/* 배지 표시 */}
                   {item.badge && (
