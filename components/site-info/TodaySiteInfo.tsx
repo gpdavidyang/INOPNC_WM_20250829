@@ -308,7 +308,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
           )}
 
           {/* Manager Contacts */}
-          {siteInfo.managers && siteInfo.managers.length > 0 && (
+          {Array.isArray(siteInfo.managers) && siteInfo.managers.length > 0 && (
             <>
               {/* Construction Manager first */}
               {siteInfo.managers.filter((manager: any) => manager?.role === 'construction_manager' && manager?.name && manager?.phone).map((manager: any, index: number) => (
