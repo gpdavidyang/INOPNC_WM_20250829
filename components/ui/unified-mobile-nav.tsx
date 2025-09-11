@@ -101,11 +101,10 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
       console.log('[UnifiedMobileNav] Performing direct navigation to:', item.href)
       await router.push(item.href)
       
-      // Call onTabChange for state management
-      if (onTabChange) {
-        console.log('[UnifiedMobileNav] Calling onTabChange with:', item.id)
-        onTabChange(item.id)
-      }
+      // REMOVED: onTabChange call to prevent infinite recursion
+      // The DashboardLayout already handles activeTab updates via useEffect when pathname changes
+      // Calling onTabChange here creates a circular state update pattern:
+      // UnifiedMobileNav -> onTabChange -> DashboardLayout setActiveTab -> re-render -> infinite loop
       
     } catch (error) {
       console.error('[UnifiedMobileNav] Navigation error:', error)
@@ -116,7 +115,7 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
         console.log('[UnifiedMobileNav] Navigation state reset')
       }, 500)
     }
-  }, [router, pathname, onTabChange, isNavigating])
+  }, [router, pathname, isNavigating]) // REMOVED: onTabChange from dependencies
 
   const isActive = React.useCallback((item: NavItem) => {
     if (activeTab && item.href.startsWith('#')) {
