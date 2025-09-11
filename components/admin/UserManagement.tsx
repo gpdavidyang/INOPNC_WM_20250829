@@ -17,7 +17,7 @@ import {
   UpdateUserData,
   UserWithSites 
 } from '@/app/actions/admin/users'
-import { Plus, Search, User, Phone, Mail, Shield, Key, UserCheck, UserX, FileText, ClipboardCheck, Calendar, Building } from 'lucide-react'
+import { Plus, Search, User, Phone, Mail, Shield, Key, UserCheck, UserX, FileText, ClipboardCheck, Calendar, Building, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import UserDetailModal from './UserDetailModal'
 import { useRouter } from 'next/navigation'
@@ -294,10 +294,20 @@ export default function UserManagement({ profile }: UserManagementProps) {
     {
       key: 'site_assignments',
       label: '배정 현장',
-      render: (assignments: UserWithSites['site_assignments']) => {
+      render: (assignments: UserWithSites['site_assignments'], user: UserWithSites) => {
         const activeAssignments = assignments?.filter(a => a.is_active) || []
         if (activeAssignments.length === 0) {
-          return <span className="text-gray-400">미배정</span>
+          return (
+            <div className="text-sm">
+              <span className="text-orange-600 dark:text-orange-400">미배정</span>
+              <button
+                onClick={() => router.push(`/dashboard/admin/assignment?user=${user.id}`)}
+                className="ml-2 text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                배정하기
+              </button>
+            </div>
+          )
         }
         
         return (
@@ -317,6 +327,12 @@ export default function UserManagement({ profile }: UserManagementProps) {
                 +{activeAssignments.length - 2} 더보기
               </div>
             )}
+            <button
+              onClick={() => router.push(`/dashboard/admin/assignment?user=${user.id}`)}
+              className="text-xs text-blue-600 hover:text-blue-800 underline"
+            >
+              배정 관리
+            </button>
           </div>
         )
       }
@@ -498,6 +514,14 @@ export default function UserManagement({ profile }: UserManagementProps) {
             <option value="inactive">비활성</option>
             <option value="suspended">정지</option>
           </select>
+          
+          <button
+            onClick={() => router.push('/dashboard/admin/assignment')}
+            className="inline-flex items-center whitespace-nowrap px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-md transition-colors"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            통합 배정 관리
+          </button>
           
           <button
             onClick={handleCreateUser}
