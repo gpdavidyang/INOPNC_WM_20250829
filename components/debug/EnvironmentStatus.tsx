@@ -68,7 +68,7 @@ export function EnvironmentStatus({ showInProduction = false }: EnvironmentStatu
           </svg>
           <div>
             <p className="font-medium text-red-800">Environment Error</p>
-            <p className="text-red-700">{envStatus.error}</p>
+            <p className="text-red-700">{String(envStatus.error || 'Unknown error')}</p>
           </div>
         </div>
       </div>
@@ -92,13 +92,13 @@ export function EnvironmentStatus({ showInProduction = false }: EnvironmentStatu
         </svg>
         <div className="flex-1">
           <p className={`font-medium ${hasErrors ? 'text-red-800' : 'text-green-800'}`}>
-            Environment: {data?.environment || 'unknown'} ({data?.status || 'checking'})
+            Environment: {String(data?.environment || 'unknown')} ({String(data?.status || 'checking')})
           </p>
           {data?.summary && (
             <p className={`text-xs ${hasErrors ? 'text-red-700' : 'text-green-700'} mb-1`}>
-              Checks: {data.summary.passed}/{data.summary.total} passed
-              {data.summary.warnings > 0 && `, ${data.summary.warnings} warnings`}
-              {data.summary.failed > 0 && `, ${data.summary.failed} failed`}
+              Checks: {Number(data.summary.passed) || 0}/{Number(data.summary.total) || 0} passed
+              {(Number(data.summary.warnings) || 0) > 0 && `, ${Number(data.summary.warnings)} warnings`}
+              {(Number(data.summary.failed) || 0) > 0 && `, ${Number(data.summary.failed)} failed`}
             </p>
           )}
           
@@ -108,9 +108,9 @@ export function EnvironmentStatus({ showInProduction = false }: EnvironmentStatu
                 <>
                   <p className="text-red-700 font-medium mb-1">Failed:</p>
                   <ul className="text-red-600 text-xs list-disc list-inside space-y-1 mb-2">
-                    {failedChecks.map((check: any) => (
-                      <li key={check.name}>
-                        {check.name}: {check.error || 'Failed'}
+                    {failedChecks.map((check: any, index: number) => (
+                      <li key={check.name || `failed-${index}`}>
+                        {String(check.name || 'Unknown')}: {String(check.error || 'Failed')}
                       </li>
                     ))}
                   </ul>
@@ -120,9 +120,9 @@ export function EnvironmentStatus({ showInProduction = false }: EnvironmentStatu
                 <>
                   <p className="text-yellow-700 font-medium mb-1">Warnings:</p>
                   <ul className="text-yellow-600 text-xs list-disc list-inside space-y-1">
-                    {warnChecks.map((check: any) => (
-                      <li key={check.name}>
-                        {check.name}: {check.error || 'Warning'}
+                    {warnChecks.map((check: any, index: number) => (
+                      <li key={check.name || `warn-${index}`}>
+                        {String(check.name || 'Unknown')}: {String(check.error || 'Warning')}
                       </li>
                     ))}
                   </ul>

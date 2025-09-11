@@ -244,7 +244,7 @@ export function AdminDashboardContent() {
               />
             ))}
           </div>
-        ) : quickActions.length > 0 ? (
+        ) : Array.isArray(quickActions) && quickActions.length > 0 ? (
           <div className="grid grid-cols-6 gap-2">
             {quickActions.map((action) => {
               const IconComponent = ICON_MAP[action.icon_name as keyof typeof ICON_MAP] || Home
@@ -284,7 +284,7 @@ export function AdminDashboardContent() {
         }`}>
           <h2 className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-semibold mb-4`}>최근 활동</h2>
           <div className="space-y-3">
-            {dashboardStats.recentActivities.length > 0 ? (
+            {Array.isArray(dashboardStats.recentActivities) && dashboardStats.recentActivities.length > 0 ? (
               dashboardStats.recentActivities.map((activity) => {
                 const IconComponent = ACTIVITY_ICON_MAP[activity.icon as keyof typeof ACTIVITY_ICON_MAP] || AlertCircle
                 return (

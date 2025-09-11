@@ -27,6 +27,11 @@ export default function PartnerDashboardClient({
 }: PartnerDashboardClientProps) {
   const { isLargeFont } = useFontSize()
 
+  // Defensive rendering: Ensure all arrays are properly initialized
+  const safeSitePartnerships = Array.isArray(sitePartnerships) ? sitePartnerships : []
+  const safeRecentReports = Array.isArray(recentReports) ? recentReports : []
+  const safeWorkers = Array.isArray(workers) ? workers : []
+
   const getTypographyClass = (type: string, size: string = 'base') => {
     return getFullTypographyClass(type, size, isLargeFont)
   }
@@ -132,9 +137,9 @@ export default function PartnerDashboardClient({
             </h2>
           </div>
           <div className="p-6">
-            {sitePartnerships.length > 0 ? (
+            {safeSitePartnerships.length > 0 ? (
               <div className="space-y-4">
-                {sitePartnerships.slice(0, 5).map((sp) => (
+                {safeSitePartnerships.slice(0, 5).map((sp) => (
                   <div key={sp.id} className="flex items-start space-x-3">
                     <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
                     <div className="flex-1">
@@ -179,9 +184,9 @@ export default function PartnerDashboardClient({
             </h2>
           </div>
           <div className="p-6">
-            {recentReports.length > 0 ? (
+            {safeRecentReports.length > 0 ? (
               <div className="space-y-4">
-                {recentReports.slice(0, 5).map((report) => (
+                {safeRecentReports.slice(0, 5).map((report) => (
                   <div key={report.id} className="flex items-start space-x-3">
                     <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
                     <div className="flex-1">
@@ -231,9 +236,9 @@ export default function PartnerDashboardClient({
           </h2>
         </div>
         <div className="p-6">
-          {workers.length > 0 ? (
+          {safeWorkers.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {workers.map((worker) => (
+              {safeWorkers.map((worker) => (
                 <div key={worker.id} className="flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <User className="h-10 w-10 text-gray-400" />
                   <div>

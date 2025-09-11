@@ -48,12 +48,15 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
   const [rejectionReason, setRejectionReason] = useState('')
   const [showRejectModal, setShowRejectModal] = useState<string | null>(null)
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
+
+  // Defensive rendering: Ensure requests is always an array
+  const safeRequests = Array.isArray(requests) ? requests : []
   const [sortField, setSortField] = useState<'requested_at' | 'full_name' | 'company'>('requested_at')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [showApprovalModal, setShowApprovalModal] = useState(false)
   const [approvalRequest, setApprovalRequest] = useState<SignupRequest | null>(null)
 
-  const filteredRequests = requests.filter(request => {
+  const filteredRequests = safeRequests.filter(request => {
     if (filter === 'all') return true
     return request.status === filter
   }).sort((a, b) => {
