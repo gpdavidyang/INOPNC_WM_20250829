@@ -163,10 +163,7 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
     <div>
       {/* Quick Menu Section - 빠른메뉴 */}
       <section 
-        className="rounded-xl overflow-hidden"
         style={{ 
-          backgroundColor: 'var(--card)',
-          padding: '16px',
           marginBottom: '12px'
         }}
       >
@@ -222,11 +219,10 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
                 src={item.iconUrl}
                 alt={item.name}
                 style={{
-                  width: '100%',
-                  height: 'auto',
+                  width: '64px',
+                  height: '64px',
                   objectFit: 'contain',
                   display: 'block',
-                  maxWidth: 'clamp(46px, 9.7vw, 78px)',
                   transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                 }}
               />
