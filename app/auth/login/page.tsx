@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ButtonNew } from '@/components/ui/button-new'
+import { InputNew } from '@/components/ui/input-new'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -39,103 +41,125 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] px-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
-          <div className="flex flex-col items-center justify-center mb-6">
+        {/* Card container */}
+        <div className="bg-[var(--card)] rounded-[var(--r-lg)] shadow-[var(--shadow-card)] p-8">
+          {/* Logo and Brand Title */}
+          <div className="flex flex-col items-center justify-center mb-8">
             <Image
               src="/INOPNC_logo.png"
               alt="INOPNC Logo"
               width={180}
               height={60}
+              className="mb-4"
               priority
-              className="mb-2"
             />
+            <h1 className="t-brand">INOPNC</h1>
           </div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-6 text-center">
-            로그인
-          </h2>
-          
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                이메일
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="email@example.com"
-                disabled={isLoading}
-              />
-            </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                비밀번호
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="비밀번호를 입력하세요"
-                disabled={isLoading}
-              />
-            </div>
+          {/* Login Form */}
+          <form onSubmit={handleLogin} className="space-y-6">
+            {/* Email Input */}
+            <InputNew
+              type="email"
+              label="이메일"
+              placeholder="example@inopnc.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              error={error && !email ? '이메일을 입력해주세요' : undefined}
+              icon={
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="m22 7-10 5L2 7" />
+                </svg>
+              }
+            />
 
+            {/* Password Input */}
+            <InputNew
+              type="password"
+              label="비밀번호"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              error={error && !password ? '비밀번호를 입력해주세요' : undefined}
+              icon={
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+              }
+            />
+
+            {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-md text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
 
-            <button
+            {/* Login Button */}
+            <ButtonNew
               type="submit"
+              variant="primary"
+              size="full"
+              loading={isLoading}
               disabled={isLoading}
-              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ? '로그인 중...' : '로그인'}
-            </button>
+            </ButtonNew>
+
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[var(--line)]"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-[var(--card)] text-[var(--muted)]">또는</span>
+              </div>
+            </div>
+
+            {/* Secondary Actions */}
+            <div className="space-y-3">
+              <Link href="/auth/register">
+                <ButtonNew
+                  type="button"
+                  variant="outline"
+                  size="full"
+                >
+                  회원가입
+                </ButtonNew>
+              </Link>
+              
+              <Link href="/auth/forgot-password">
+                <ButtonNew
+                  type="button"
+                  variant="ghost"
+                  size="full"
+                >
+                  비밀번호 찾기
+                </ButtonNew>
+              </Link>
+            </div>
           </form>
 
-          <div className="mt-6 text-center space-y-2">
-            <Link 
-              href="/auth/signup-request" 
-              className="block text-sm text-blue-600 hover:text-blue-700"
-            >
-              회원가입 요청
-            </Link>
-            <Link 
-              href="/auth/reset-password" 
-              className="block text-sm text-gray-600 hover:text-gray-700"
-            >
-              비밀번호 찾기
-            </Link>
+          {/* Footer Info */}
+          <div className="mt-8 text-center">
+            <p className="t-cap">
+              © 2024 INOPNC. All rights reserved.
+            </p>
           </div>
+        </div>
 
-          <div className="mt-6 pt-6 border-t border-gray-200 text-center">
-            <Link 
-              href="/test-deployment" 
-              className="text-xs text-gray-500 hover:text-gray-600"
-            >
-              배포 테스트 페이지
-            </Link>
-            {' | '}
-            <Link 
-              href="/auth/login-static" 
-              className="text-xs text-gray-500 hover:text-gray-600"
-            >
-              정적 로그인 페이지
-            </Link>
-          </div>
+        {/* Additional Info */}
+        <div className="mt-6 text-center">
+          <p className="t-cap">
+            문제가 있으신가요?{' '}
+            <a href="mailto:support@inopnc.com" className="text-[var(--accent)] hover:underline">
+              고객지원
+            </a>
+          </p>
         </div>
       </div>
     </div>
