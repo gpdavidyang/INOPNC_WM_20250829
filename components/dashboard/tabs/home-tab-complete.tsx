@@ -5,6 +5,15 @@ import { Profile } from '@/types'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { ChevronDown, Camera, FileText } from 'lucide-react'
+import Image from 'next/image'
+
+// Static image imports
+import payIcon from '@/public/images/pay.png'
+import reportIcon from '@/public/images/report.png'
+import mapIcon from '@/public/images/map.png'
+import documentsIcon from '@/public/images/documents.svg'
+import requestsIcon from '@/public/images/requests.svg'
+import inventoryIcon from '@/public/images/inventory.svg'
 
 interface HomeTabProps {
   profile: Profile
@@ -17,7 +26,7 @@ interface HomeTabProps {
 interface QuickMenuItem {
   id: string
   name: string
-  iconUrl: string
+  iconUrl: string | any // Allow StaticImageData type
   path: string
 }
 
@@ -48,42 +57,42 @@ export default function HomeTabComplete({ profile, onTabChange }: HomeTabProps) 
   const [drawings, setDrawings] = useState<File[]>([])
   const [activeUploadType, setActiveUploadType] = useState<string | null>(null)
 
-  // Quick menu items - 6 items with exact URLs from home.html
+  // Quick menu items - 6 items with static imports
   const quickMenuItems: QuickMenuItem[] = [
     {
       id: 'attendance',
       name: '출력현황',
-      iconUrl: '/images/pay.png',
+      iconUrl: payIcon,
       path: '/dashboard/attendance'
     },
     {
       id: 'daily-reports',
       name: '작업일지',
-      iconUrl: '/images/report.png',
+      iconUrl: reportIcon,
       path: '/dashboard/daily-reports'
     },
     {
       id: 'site-info',
       name: '현장정보',
-      iconUrl: '/images/map.png',
+      iconUrl: mapIcon,
       path: '/dashboard/site-info'
     },
     {
       id: 'documents',
       name: '문서함',
-      iconUrl: '/images/documents.png',
+      iconUrl: documentsIcon,
       path: '/dashboard/documents'
     },
     {
       id: 'requests',
       name: '본사요청',
-      iconUrl: '/images/requests.png',
+      iconUrl: requestsIcon,
       path: '/dashboard/requests'
     },
     {
       id: 'inventory',
       name: '재고관리',
-      iconUrl: '/images/inventory.svg',
+      iconUrl: inventoryIcon,
       path: '/dashboard/inventory'
     }
   ]
@@ -227,17 +236,18 @@ export default function HomeTabComplete({ profile, onTabChange }: HomeTabProps) 
                 e.currentTarget.style.transform = 'translateY(0) scale(1)'
               }}
             >
-              <img 
-                src={item.iconUrl}
-                alt={item.name}
-                style={{
-                  width: '64px',
-                  height: '64px',
-                  objectFit: 'contain',
-                  display: 'block',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-              />
+              <div style={{ position: 'relative', width: '64px', height: '64px' }}>
+                <Image 
+                  src={item.iconUrl}
+                  alt={item.name}
+                  width={64}
+                  height={64}
+                  style={{
+                    objectFit: 'contain',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                  }}
+                />
+              </div>
               <span style={{
                 fontSize: '12px',
                 fontWeight: 600,

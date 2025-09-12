@@ -1,0 +1,29 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="folder-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7DD3FC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3B82F6;stop-opacity:1" />
+    </linearGradient>
+    <filter id="folder-shadow" x="0" y="0" width="150%" height="150%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="8"/>
+      <feOffset dx="0" dy="4" result="offsetblur"/>
+      <feFlood flood-color="#3B82F6" flood-opacity="0.2"/>
+      <feComposite in2="offsetblur" operator="in"/>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Back folder tab -->
+  <path d="M24 30 C24 25 25 20 30 20 L50 20 L58 28 L90 28 C95 28 100 33 100 38 L100 38 L24 38 Z" 
+        fill="url(#folder-gradient)" opacity="0.7"/>
+  
+  <!-- Main folder body -->
+  <rect x="20" y="36" width="80" height="54" rx="8" 
+        fill="url(#folder-gradient)" filter="url(#folder-shadow)"/>
+  
+  <!-- Folder handle -->
+  <rect x="42" y="62" width="36" height="4" rx="2" fill="white" opacity="0.9"/>
+</svg>
