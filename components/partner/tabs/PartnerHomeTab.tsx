@@ -363,10 +363,13 @@ export default function PartnerHomeTab({ profile, sites, organization, onTabChan
                         role="menuitem"
                       >
                         <div className={`mb-2 p-2 rounded-lg bg-white dark:bg-slate-800 shadow-sm group-hover:shadow-md transition-all duration-200 border border-gray-200 dark:border-slate-600 ${item.color}`} aria-hidden="true">
-                          {React.cloneElement(item.icon as React.ReactElement, {
-                            className: "h-5 w-5",
-                            strokeWidth: 2
-                          })}
+                          {React.isValidElement(item.icon) ? 
+                            React.cloneElement(item.icon as React.ReactElement, {
+                              className: "h-5 w-5",
+                              strokeWidth: 2
+                            }) :
+                            <div className="h-5 w-5">{item.icon}</div>
+                          }
                         </div>
                         <span className="text-xs font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
                       </button>

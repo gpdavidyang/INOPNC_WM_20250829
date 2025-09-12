@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Profile } from '@/types'
 import { FolderOpen, Share2, Edit3, FileCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -22,6 +22,11 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
   const defaultTab = initialSearch === '공도면' ? 'shared' : initialTab
   const [activeTab, setActiveTab] = useState<'personal' | 'shared' | 'markup' | 'required'>(defaultTab)
   const [requiredDocsProgress, setRequiredDocsProgress] = useState({ completed: 0, total: 6 })
+  
+  // Use useCallback to memoize the callback function
+  const handleRequiredDocsUpdate = useCallback((completed: number, total: number) => {
+    setRequiredDocsProgress({ completed, total })
+  }, [])
 
   // Update active tab when initialTab prop changes
   useEffect(() => {
@@ -104,7 +109,7 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
           <DocumentsTab 
             profile={profile} 
             hideRequiredDocs={true}
-            onRequiredDocsUpdate={(completed, total) => setRequiredDocsProgress({ completed, total })}
+            onRequiredDocsUpdate={handleRequiredDocsUpdate}
           />
         ) : activeTab === 'shared' ? (
           <SharedDocumentsTabUpdated profile={profile} initialSearch={initialSearch} />
@@ -114,7 +119,7 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
           <DocumentsTab 
             profile={profile} 
             showOnlyRequiredDocs={true}
-            onRequiredDocsUpdate={(completed, total) => setRequiredDocsProgress({ completed, total })}
+            onRequiredDocsUpdate={handleRequiredDocsUpdate}
           />
         )}
       </div>

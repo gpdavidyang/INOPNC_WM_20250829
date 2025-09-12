@@ -1041,7 +1041,7 @@ export default function DocumentsTab({
           {/* 필수 서류 목록 - 펼쳐진 경우에만 표시 (필수 서류 탭에서는 항상 표시) */}
           {(isRequiredDocsExpanded || showOnlyRequiredDocs) && (
             <div className="grid gap-4">
-              {requiredDocuments.map((reqDoc) => {
+              {Array.isArray(requiredDocuments) && requiredDocuments.map((reqDoc) => {
                 const uploadedDoc = documents.find(doc => doc.documentType === reqDoc.id)
                 const isUploaded = uploadedDoc?.status === 'completed'
                 const isProcessing = uploadedDoc?.status === 'processing'
@@ -1277,7 +1277,7 @@ export default function DocumentsTab({
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {filteredAndSortedDocuments.map((document: any) => (
+                {Array.isArray(filteredAndSortedDocuments) && filteredAndSortedDocuments.map((document: any) => (
                   <DocumentCard
                     key={document.id}
                     document={document}
@@ -1297,7 +1297,7 @@ export default function DocumentsTab({
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredAndSortedDocuments.map((document: any) => (
+                {Array.isArray(filteredAndSortedDocuments) && filteredAndSortedDocuments.map((document: any) => (
                   <DocumentCard
                     key={document.id}
                     document={document}
