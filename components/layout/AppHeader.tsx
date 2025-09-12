@@ -206,8 +206,8 @@ export function AppHeader() {
           border-radius: 8px;
           transition: all 0.2s ease;
           position: relative;
-          min-width: 42px;
-          min-height: 42px;
+          min-width: 36px;
+          min-height: 36px;
           color: var(--brand);
         }
         
