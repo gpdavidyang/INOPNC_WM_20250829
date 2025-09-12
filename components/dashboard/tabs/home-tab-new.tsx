@@ -160,7 +160,7 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div>
       {/* Quick Menu Section - 빠른메뉴 */}
       <section 
         className="rounded-xl overflow-hidden"
@@ -253,6 +253,7 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
         style={{
           backgroundColor: '#F8F9FB',
           border: '1px solid #E6ECF4',
+          marginTop: '0',
           marginBottom: '12px'
         }}
         onClick={handleNoticeClick}
