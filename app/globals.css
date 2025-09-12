@@ -2,29 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import INOPNC Design System Tokens */
+@import '../styles/design-tokens.css';
+
 /* ========================================
    MOBILE UI UPGRADE - DESIGN TOKENS
    HTML mockup integration layer
    ======================================== */
 
 :root {
-  /* Brand Colors from mockup */
-  --brand: #1A254F;
+  /* Brand Colors from mockup (Now defined in design-tokens.css) */
+  /* Keeping these for backward compatibility */
   --brand-light: #2A3570;
   --brand-dark: #0F1835;
   --num: #0068FE;
-  --accent: #2563eb;
   
-  /* Layout Colors */
-  --bg: #f5f7fb;
-  --card: #ffffff;
-  --text: #101828;
-  --text-muted: #667085;
-  --border: #e6eaf2;
+  /* Layout Colors (Override from design-tokens if needed) */
+  /* These are now defined in design-tokens.css */
   
-  /* Component Specific */
-  --header-h: 56px;
-  --nav-h: 64px;
+  /* Component Specific (Override from design-tokens) */
   --nav-bg: #ffffff;
   --nav-border: #e5e7eb;
   --nav-text: #6b7280;

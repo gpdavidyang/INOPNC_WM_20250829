@@ -1,11 +1,12 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
+  darkMode: ["class", '[data-theme="dark"]'],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./styles/**/*.css",
   ],
   safelist: [
     // Force Desktop UI classes - NEVER purge these
@@ -44,7 +45,22 @@ const config: Config = {
         '2xl': '1536px',
       },
       colors: {
-        // INOPNC 디자인 시스템 색상 팔레트
+        // CSS 변수 기반 색상 시스템
+        brand: 'var(--brand)',
+        accent: 'var(--accent)',
+        'accent-cyan': 'var(--accent-cyan)',
+        warn: 'var(--warn)',
+        success: 'var(--success)',
+        
+        // Tag colors
+        tag: {
+          1: 'var(--tag1)',
+          2: 'var(--tag2)',
+          3: 'var(--tag3)',
+          4: 'var(--tag4)',
+        },
+        
+        // INOPNC 디자인 시스템 색상 팔레트 (레거시 호환성)
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',
@@ -178,17 +194,24 @@ const config: Config = {
         ]
       },
       fontSize: {
-        // INOPNC 디자인 시스템 타이포그래피 - 더 큰 폰트 크기로 조정
-        'xs': ['0.875rem', { lineHeight: '1.25rem' }],   // 14px (기존 13px에서 증가)
-        'sm': ['1rem', { lineHeight: '1.5rem' }],        // 16px (기존 15px에서 증가)
-        'base': ['1.125rem', { lineHeight: '1.75rem' }], // 18px (기존 17px에서 증가)
-        'lg': ['1.25rem', { lineHeight: '2rem' }],       // 20px (기존 19px에서 증가)
-        'xl': ['1.375rem', { lineHeight: '2rem' }],      // 22px (기존 21px에서 증가)
-        '2xl': ['1.625rem', { lineHeight: '2.25rem' }],  // 26px (기존 25px에서 증가)
-        '3xl': ['2rem', { lineHeight: '2.5rem' }],       // 32px (기존 31px에서 증가)
-        '4xl': ['2.375rem', { lineHeight: '2.75rem' }],  // 38px (기존 37px에서 증가)
-        '5xl': ['3.25rem', { lineHeight: '1' }],         // 52px (기존 50px에서 증가)
-        '6xl': ['4rem', { lineHeight: '1' }]             // 64px (기존 62px에서 증가)
+        // 디자인 토큰 기반 타이포그래피
+        'cap': ['var(--fs-cap)', { lineHeight: 'var(--lh)' }],     // 12px - 캡션
+        'ctl': ['var(--fs-ctl)', { lineHeight: 'var(--lh)' }],     // 14px - 컨트롤/버튼
+        'body': ['var(--fs-body)', { lineHeight: 'var(--lh)' }],   // 15px - 본문
+        'h2': ['var(--fs-h2)', { lineHeight: 'var(--lh)' }],       // 18px - 섹션 제목
+        'title': ['var(--fs-title)', { lineHeight: 'var(--lh)' }], // 24px - 메인 타이틀
+        
+        // 기존 시스템 호환성
+        'xs': ['0.75rem', { lineHeight: '1rem' }],        // 12px
+        'sm': ['0.875rem', { lineHeight: '1.25rem' }],    // 14px
+        'base': ['0.9375rem', { lineHeight: '1.4' }],     // 15px
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],    // 18px
+        'xl': ['1.5rem', { lineHeight: '2rem' }],         // 24px
+        '2xl': ['1.875rem', { lineHeight: '2.25rem' }],   // 30px
+        '3xl': ['2.25rem', { lineHeight: '2.5rem' }],     // 36px
+        '4xl': ['3rem', { lineHeight: '1' }],             // 48px
+        '5xl': ['3.75rem', { lineHeight: '1' }],          // 60px
+        '6xl': ['4.5rem', { lineHeight: '1' }]            // 72px
       },
       spacing: {
         // INOPNC 디자인 시스템 스페이싱 확장
@@ -215,13 +238,27 @@ const config: Config = {
         '28': '112px',
         '32': '128px'
       },
+      height: {
+        'btn': 'var(--btn-h)',       // 44px
+        'input': 'var(--input-h)',   // 44px
+        'search': 'var(--search-h)',  // 52px
+        'chip': 'var(--chip-h)',     // 48px
+        'header': 'var(--header-h)',  // 80px
+        'nav': 'var(--nav-h)',        // 72px
+      },
+      minHeight: {
+        'btn': 'var(--btn-h)',       // 44px
+        'input': 'var(--input-h)',   // 44px
+        'touch': '44px',             // 최소 터치 타겟
+      },
       borderRadius: {
-        'sm': '0.25rem',    // 4px
-        'md': '0.375rem',   // 6px
-        'lg': '0.5rem',     // 8px
-        'xl': '0.75rem',    // 12px
-        '2xl': '1rem',      // 16px
-        '3xl': '1.5rem'     // 24px
+        'sm': 'var(--r-sm)',     // 8px
+        'md': 'var(--r-md)',     // 12px
+        'lg': 'var(--r-lg)',     // 14px
+        'xl': 'var(--r-xl)',     // 24px
+        '2xl': '1rem',           // 16px
+        '3xl': '1.5rem',         // 24px
+        'full': 'var(--r-full)', // 9999px
       },
       boxShadow: {
         'sm': '0 1px 2px 0 rgb(0 0 0 / 0.05)',
