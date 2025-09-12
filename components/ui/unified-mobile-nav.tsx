@@ -154,7 +154,10 @@ export function UnifiedMobileNav({ userRole, activeTab, onTabChange }: UnifiedMo
             >
               <div className="relative">
                 {/* Fixed: Don't use cloneElement with Next.js Image components */}
-                <div className="h-6 w-6 stroke-current">
+                <div className={cn(
+                  "h-6 w-6",
+                  active ? "text-blue-600 dark:text-blue-400" : "text-gray-600 dark:text-gray-400"
+                )}>
                   {React.isValidElement(item.icon) ? item.icon : <span>{item.icon}</span>}
                 </div>
                 {item.badge && (
