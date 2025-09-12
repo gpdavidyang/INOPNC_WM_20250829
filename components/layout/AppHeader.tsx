@@ -60,13 +60,18 @@ export function AppHeader() {
         <div className="header-content">
           {/* Left: Logo */}
           <div className="header-left">
-            <h1 
-              className="brand-title" 
+            <img 
+              src="/INOPNC_logo.png"
+              alt="INOPNC"
+              className="brand-logo"
               onClick={handleLogoClick}
-              style={{ cursor: 'pointer' }}
-            >
-              INOPNC
-            </h1>
+              style={{ 
+                cursor: 'pointer',
+                height: '40px',
+                width: 'auto',
+                objectFit: 'contain'
+              }}
+            />
           </div>
           
           {/* Right: Action buttons */}
@@ -177,14 +182,16 @@ export function AppHeader() {
           flex: 0 0 auto;
         }
         
-        .brand-title {
-          font-family: var(--font-brand);
-          font-size: var(--fs-title);
-          font-weight: 700;
-          color: var(--brand);
-          margin: 0;
-          line-height: var(--lh);
-          white-space: nowrap;
+        .brand-logo {
+          display: block;
+          height: 40px;
+          width: auto;
+          object-fit: contain;
+          transition: transform 0.2s ease;
+        }
+        
+        .brand-logo:hover {
+          transform: scale(1.05);
         }
         
         .header-icon-btn {
@@ -259,10 +266,6 @@ export function AppHeader() {
         }
         
         /* Dark mode adjustments */
-        [data-theme="dark"] .brand-title {
-          color: #FFFFFF;
-        }
-        
         [data-theme="dark"] .header-icon-btn {
           color: #FFFFFF;
         }
@@ -272,8 +275,8 @@ export function AppHeader() {
         }
         
         /* Large text mode */
-        body.large-text .brand-title {
-          font-size: 24px;
+        body.large-text .brand-logo {
+          height: 48px;
         }
         
         body.large-text .header-icon-btn .icon-text {
