@@ -28,7 +28,8 @@ import {
   Monitor,
   Database,
   Settings as SettingsIcon,
-  HelpCircle
+  HelpCircle,
+  Building
 } from 'lucide-react'
 import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
@@ -42,6 +43,7 @@ interface QuickActionsSettingsProps {
 const AVAILABLE_ICONS = [
   { name: 'Users', icon: Users, label: '사용자' },
   { name: 'Building2', icon: Building2, label: '건물' },
+  { name: 'Building', icon: Building, label: '현장카드' },
   { name: 'DollarSign', icon: DollarSign, label: '달러' },
   { name: 'Package', icon: Package, label: '패키지' },
   { name: 'FileText', icon: FileText, label: '문서' },

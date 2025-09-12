@@ -27,3 +27,13 @@ export function DailyReportsPageClient({ profile, sites }: DailyReportsPageClien
     </DashboardLayout>
   )
 }
+      </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <BottomNavigation
+        items={bottomNavItems}
+        className="lg:hidden"
+      />
+    </div>
+  )
+}

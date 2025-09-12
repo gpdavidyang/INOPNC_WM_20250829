@@ -26,7 +26,8 @@ import {
   Database,
   Settings,
   HelpCircle,
-  Camera
+  Camera,
+  Building
 } from 'lucide-react'
 import Link from 'next/link'
 import type { QuickAction } from '@/types'
@@ -37,6 +38,7 @@ import { formatRelativeTime } from '@/lib/utils/format-time'
 const ICON_MAP = {
   Users,
   Building2,
+  Building,
   DollarSign,
   Package,
   FileText,
