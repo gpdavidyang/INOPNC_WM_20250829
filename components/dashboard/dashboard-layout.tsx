@@ -8,7 +8,7 @@ import { Home, Calendar, FileText, FolderOpen, User as UserIcon, MapPin } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Sidebar from './sidebar'
 import { AppHeader } from '@/components/layout/AppHeader'
-import HomeTab from './tabs/home-tab'
+import HomeTabNew from './tabs/home-tab-new'
 import {
   LazyWorkLogsTab,
   LazyDocumentsTabUnified,
@@ -111,7 +111,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
     
     switch (activeTab) {
       case 'home':
-        return <HomeTab 
+        return <HomeTabNew 
           profile={profile} 
           onTabChange={setActiveTab}
           onDocumentsSearch={setDocumentsInitialSearch}
@@ -123,7 +123,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
         return <LazyAttendanceTab profile={profile} />
       case 'documents':
         // Show fallback content while navigation happens
-        return <HomeTab 
+        return <HomeTabNew 
           profile={profile} 
           onTabChange={setActiveTab}
           onDocumentsSearch={setDocumentsInitialSearch}
@@ -131,7 +131,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
       case 'site-info':
         // Site info has its own dedicated page at /dashboard/site-info
         // This case shouldn't normally be reached when using the dedicated page
-        return <HomeTab 
+        return <HomeTabNew 
           profile={profile} 
           onTabChange={setActiveTab}
           onDocumentsSearch={setDocumentsInitialSearch}
@@ -267,7 +267,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
           </div>
         )
       default:
-        return <HomeTab 
+        return <HomeTabNew 
           profile={profile} 
           onTabChange={setActiveTab}
           initialCurrentSite={initialCurrentSite}
