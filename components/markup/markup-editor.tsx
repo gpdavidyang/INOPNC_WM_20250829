@@ -395,8 +395,8 @@ export function MarkupEditor({
         />
       )}
 
-      {/* 메인 영역 */}
-      <div className="flex-1 flex overflow-hidden">
+      {/* 메인 영역 - Allow scrolling on mobile */}
+      <div className="flex-1 flex overflow-auto md:overflow-hidden">
         {blueprintUrl ? (
           <>
             {/* 데스크톱: 좌측 도구 패널 */}
@@ -424,8 +424,8 @@ export function MarkupEditor({
               </div>
             )}
 
-            {/* 캔버스 영역 */}
-            <div className="flex-1 relative bg-gray-100 dark:bg-gray-900 overflow-hidden min-h-96" ref={containerRef} style={{ height: '100%' }}>
+            {/* 캔버스 영역 - Mobile friendly */}
+            <div className="flex-1 relative bg-gray-100 dark:bg-gray-900 overflow-auto md:overflow-hidden min-h-[400px] md:min-h-96" ref={containerRef}>
               <MarkupCanvas
                 ref={canvasRef}
                 editorState={editorState}

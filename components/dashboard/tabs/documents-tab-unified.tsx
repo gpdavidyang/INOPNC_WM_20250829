@@ -103,8 +103,8 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
         </CardContent>
       </Card>
 
-      {/* Tab Content */}
-      <div className="min-h-[500px] bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm">
+      {/* Tab Content - Removed fixed height for proper scrolling */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-visible">
         {activeTab === 'personal' ? (
           <DocumentsTab 
             profile={profile} 
