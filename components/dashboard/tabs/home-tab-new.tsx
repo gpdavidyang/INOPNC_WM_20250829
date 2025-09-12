@@ -231,13 +231,13 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
                 }}
               />
               <span style={{
-                fontSize: '14px',
-                fontWeight: 700,
+                fontSize: '12px',
+                fontWeight: 600,
                 color: '#1A254F',
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
                 lineHeight: '1.2',
-                marginTop: '4px',
+                marginTop: '2px',
                 fontFamily: 'var(--font-sans)'
               }}>
                 {item.name}
@@ -294,7 +294,7 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
                 }}
               >
                 <span style={{
-                  fontSize: '15px',
+                  fontSize: '14px',
                   fontWeight: 500,
                   color: '#374151',
                   whiteSpace: 'nowrap',
