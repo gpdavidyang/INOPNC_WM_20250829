@@ -231,13 +231,13 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
                 }}
               />
               <span style={{
-                fontSize: '12px',
-                fontWeight: 600,
+                fontSize: '14px',
+                fontWeight: 700,
                 color: '#1A254F',
                 whiteSpace: 'nowrap',
                 textAlign: 'center',
                 lineHeight: '1.2',
-                marginTop: '2px',
+                marginTop: '4px',
                 fontFamily: 'var(--font-sans)'
               }}>
                 {item.name}
@@ -251,7 +251,8 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
       <section 
         className="rounded-xl overflow-hidden cursor-pointer"
         style={{
-          backgroundColor: 'var(--card)',
+          backgroundColor: '#F8F9FB',
+          border: '1px solid #E6ECF4',
           marginBottom: '12px'
         }}
         onClick={handleNoticeClick}
@@ -293,9 +294,9 @@ export default function HomeTabNew({ profile, onTabChange }: HomeTabProps) {
                 }}
               >
                 <span style={{
-                  fontSize: '14px',
+                  fontSize: '15px',
                   fontWeight: 500,
-                  color: '#6B7280',
+                  color: '#374151',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
