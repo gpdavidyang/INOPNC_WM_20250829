@@ -1,0 +1,21 @@
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M20 30L40 20L60 30L40 40L20 30Z" fill="url(#grad4)"/>
+  <path d="M20 30V50L40 60V40L20 30Z" fill="url(#grad5)"/>
+  <path d="M60 30V50L40 60V40L60 30Z" fill="url(#grad6)"/>
+  <path d="M25 35L35 40V55L25 50V35Z" fill="#FFFFFF" opacity="0.3"/>
+  <text x="40" y="50" text-anchor="middle" font-size="14" font-weight="bold" fill="#FFFFFF">Y</text>
+  <defs>
+    <linearGradient id="grad4" x1="40" y1="20" x2="40" y2="40">
+      <stop stop-color="#7EFACC"/>
+      <stop offset="1" stop-color="#5ED4AA"/>
+    </linearGradient>
+    <linearGradient id="grad5" x1="30" y1="30" x2="30" y2="60">
+      <stop stop-color="#5ED4AA"/>
+      <stop offset="1" stop-color="#4BB592"/>
+    </linearGradient>
+    <linearGradient id="grad6" x1="50" y1="30" x2="50" y2="60">
+      <stop stop-color="#4BB592"/>
+      <stop offset="1" stop-color="#3A9F7E"/>
+    </linearGradient>
+  </defs>
+</svg>
