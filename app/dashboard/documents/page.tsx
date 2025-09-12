@@ -39,10 +39,10 @@ export default function DocumentsPage() {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">문서함을 불러오는 중...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 dark:border-gray-100 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">문서함을 불러오는 중...</p>
         </div>
       </div>
     )
@@ -50,18 +50,18 @@ export default function DocumentsPage() {
   
   if (!profile) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-gray-600">프로필을 찾을 수 없습니다.</p>
+          <p className="text-gray-600 dark:text-gray-400">프로필을 찾을 수 없습니다.</p>
         </div>
       </div>
     )
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">문서함</h1>
+    <div className="w-full">
+      <div className="px-4 sm:px-6 lg:px-8 py-4">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">문서함</h1>
         <DocumentsTabUnified
           profile={profile}
           initialTab={tab || 'personal'}
