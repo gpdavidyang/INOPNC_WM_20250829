@@ -43,19 +43,18 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] px-4">
       <div className="w-full max-w-md">
-        {/* Card container */}
-        <div className="bg-[var(--card)] rounded-[var(--r-lg)] shadow-[var(--shadow-card)] p-8">
-          {/* Logo and Brand Title */}
+        {/* Card container - 테두리 추가 */}
+        <div className="bg-[var(--card)] rounded-[var(--r-lg)] border border-[var(--line)] shadow-lg p-8">
+          {/* Logo only - INOPNC 텍스트 제거 */}
           <div className="flex flex-col items-center justify-center mb-8">
             <Image
               src="/INOPNC_logo.png"
               alt="INOPNC Logo"
               width={180}
               height={60}
-              className="mb-4"
+              className="mb-2"
               priority
             />
-            <h1 className="t-brand">INOPNC</h1>
           </div>
 
           {/* Login Form */}
