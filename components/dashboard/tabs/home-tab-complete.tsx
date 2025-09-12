@@ -71,13 +71,13 @@ export default function HomeTabComplete({ profile, onTabChange }: HomeTabProps) 
     {
       id: 'documents',
       name: '문서함',
-      iconUrl: '/images/documents.svg',
+      iconUrl: '/images/documents.png',
       path: '/dashboard/documents'
     },
     {
       id: 'requests',
       name: '본사요청',
-      iconUrl: '/images/requests.svg',
+      iconUrl: '/images/requests.png',
       path: '/dashboard/requests'
     },
     {
