@@ -350,7 +350,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
                     </Badge>
                   </button>
                   
-                  {expandedCategories.has(rootCategory.id) && rootCategory.children && (
+                  {expandedCategories.has(rootCategory.id) && Array.isArray(rootCategory.children) && (
                     <div className="ml-6 space-y-1">
                       {rootCategory.children.map((subCategory: any) => (
                         <button
@@ -562,7 +562,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
                 </CustomSelectTrigger>
                 <CustomSelectContent>
                   {Array.from(categoryHierarchy.values()).map(rootCategory => (
-                    rootCategory.children && rootCategory.children.map((subCategory: any) => (
+                    Array.isArray(rootCategory.children) && rootCategory.children.map((subCategory: any) => (
                       <CustomSelectItem key={subCategory.id} value={subCategory.id}>
                         {rootCategory.name} - {subCategory.name} ({subCategory.code})
                       </CustomSelectItem>
