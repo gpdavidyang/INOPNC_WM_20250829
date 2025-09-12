@@ -61,7 +61,7 @@ export function AppHeader() {
           {/* Left: Logo */}
           <div className="header-left">
             <img 
-              src="/INOPNC_logo.png"
+              src="/logo_g.png"
               alt="INOPNC"
               className="brand-logo"
               onClick={handleLogoClick}
