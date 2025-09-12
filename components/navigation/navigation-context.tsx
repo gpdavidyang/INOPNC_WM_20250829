@@ -21,6 +21,7 @@ export function NavigationProvider({ children }: { children: React.ReactNode }) 
     if (path.includes('/dashboard/documents')) return 'documents'
     if (path.includes('/dashboard/daily-reports')) return 'daily-reports'
     if (path.includes('/dashboard/attendance')) return 'attendance'
+    if (path.includes('/dashboard/site-info-card')) return 'site-info-card'
     if (path.includes('/dashboard/site-info')) return 'site-info'
     if (path.includes('/dashboard/profile')) return 'profile'
     if (path === '/dashboard' || path === '/dashboard/') return 'home'

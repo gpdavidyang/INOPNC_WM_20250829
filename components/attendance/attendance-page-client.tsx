@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { AttendanceView } from './attendance-view'
 import { SalaryView } from './salary-view'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useFontSize } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { cn } from '@/lib/utils'
@@ -16,7 +15,7 @@ interface AttendancePageClientProps {
 export function AttendancePageClient({ profile, isPartnerCompany }: AttendancePageClientProps) {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
-  const [activeTab, setActiveTab] = useState('attendance')
+  const [activeTab, setActiveTab] = useState('work')
 
   console.log('AttendancePageClient: Received profile:', {
     hasProfile: !!profile,
@@ -27,52 +26,100 @@ export function AttendancePageClient({ profile, isPartnerCompany }: AttendancePa
   })
 
   return (
-    <div className="h-full bg-white dark:bg-gray-900">
-      <div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* UI Guidelines에 맞는 탭 디자인 */}
-          <div className="flex gap-3 mb-3">
-            <button
-              onClick={() => setActiveTab('attendance')}
-              className={cn(
-                "flex-1 py-3 px-4 rounded-xl font-medium transition-all",
-                "min-h-[48px]", // UI Guidelines 표준 버튼 높이
-                activeTab === 'attendance' 
-                  ? "bg-toss-blue-600 text-white shadow-lg" 
-                  : "bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 shadow-sm",
-                touchMode === 'glove' && "min-h-[60px] text-base",
-                touchMode === 'precision' && "min-h-[44px] text-sm",
-                touchMode !== 'precision' && touchMode !== 'glove' && "text-sm"
-              )}
-            >
-              출력정보
-            </button>
-            <button
-              onClick={() => setActiveTab('salary')}
-              className={cn(
-                "flex-1 py-3 px-4 rounded-xl font-medium transition-all",
-                "min-h-[48px]", // UI Guidelines 표준 버튼 높이
-                activeTab === 'salary' 
-                  ? "bg-toss-blue-600 text-white shadow-lg" 
-                  : "bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 shadow-sm",
-                touchMode === 'glove' && "min-h-[60px] text-base",
-                touchMode === 'precision' && "min-h-[44px] text-sm",
-                touchMode !== 'precision' && touchMode !== 'glove' && "text-sm"
-              )}
-            >
-              급여정보
-            </button>
-          </div>
+    <div className="min-h-screen flex flex-col items-center bg-[#f5f7fb] dark:bg-[#0f172a]">
+      <main className="w-full max-w-[480px] mx-auto px-4 pb-6">
+        {/* 상단 라인 탭 - worklog.html과 동일한 스타일 */}
+        <nav className="line-tabs rounded-t-xl overflow-hidden mb-3.5">
+          <button 
+            className={cn(
+              "line-tab",
+              activeTab === 'work' && "active"
+            )}
+            onClick={() => setActiveTab('work')}
+            data-tab="work"
+          >
+            출력현황
+          </button>
+          <button 
+            className={cn(
+              "line-tab",
+              activeTab === 'pay' && "active"
+            )}
+            onClick={() => setActiveTab('pay')}
+            data-tab="pay"
+          >
+            급여현황
+          </button>
+        </nav>
 
-          <TabsContent value="attendance" className="mt-0">
-            <AttendanceView profile={profile} />
-          </TabsContent>
+        {/* 출력현황 콘텐츠 */}
+        <div id="workView" className={activeTab !== 'work' ? 'hidden' : ''}>
+          <AttendanceView profile={profile} />
+        </div>
 
-          <TabsContent value="salary" className="mt-0">
-            <SalaryView profile={profile} />
-          </TabsContent>
-        </Tabs>
-      </div>
+        {/* 급여현황 콘텐츠 */}
+        <div id="payView" className={activeTab !== 'pay' ? 'hidden' : ''}>
+          <SalaryView profile={profile} />
+        </div>
+      </main>
+
+      <style jsx>{`
+        /* 라인 탭 스타일 - worklog.html에서 가져옴 */
+        .line-tabs {
+          display: flex;
+          gap: 0;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          padding: 4px;
+          border-radius: 12px 12px 0 0;
+        }
+        
+        .line-tab {
+          flex: 1;
+          padding: 12px 16px;
+          font-family: 'Noto Sans KR', system-ui, sans-serif;
+          font-weight: 600;
+          font-size: 15px;
+          color: #6b7280;
+          background: transparent;
+          border: none;
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          position: relative;
+        }
+        
+        .line-tab:hover {
+          color: #374151;
+        }
+        
+        .line-tab.active {
+          color: #ffffff;
+          background: #1A254F;
+        }
+        
+        :global([data-theme="dark"]) .line-tabs {
+          background: #11151B;
+          border-color: #3A4048;
+        }
+        
+        :global([data-theme="dark"]) .line-tab {
+          color: #A8B0BB;
+        }
+        
+        :global([data-theme="dark"]) .line-tab:hover {
+          color: #E9EEF5;
+        }
+        
+        :global([data-theme="dark"]) .line-tab.active {
+          color: #ffffff;
+          background: #2F6BFF;
+        }
+        
+        .hidden {
+          display: none !important;
+        }
+      `}</style>
     </div>
   )
 }

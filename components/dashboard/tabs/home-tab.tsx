@@ -15,7 +15,7 @@ import {
   Edit3, ChevronDown, ChevronUp, Phone, Copy, Navigation,
   Building2, Megaphone, Settings, X, Check, Users, BarChart3,
   ClipboardList, Bell, MessageSquare, DollarSign, HardHat, Plus, GripVertical,
-  ArrowUp, ArrowDown
+  ArrowUp, ArrowDown, Building
 } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
@@ -145,6 +145,17 @@ function HomeTab({ profile, onTabChange, onDocumentsSearch, initialCurrentSite, 
       color: 'text-red-600 dark:text-red-400',
       backgroundColor: 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border-red-200 dark:border-red-800',
       description: '중요 알림 및 공지'
+    },
+    {
+      id: 'site-info-card',
+      name: '현장카드',
+      icon: newDesign ? 
+        <Image src="/images/brand/현장카드.png" alt="현장카드" width={40} height={40} className="h-10 w-10" /> :
+        <Building className="h-5 w-5" />,
+      path: '/dashboard/site-info-card',
+      color: 'text-cyan-600 dark:text-cyan-400',
+      backgroundColor: 'bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 border-cyan-200 dark:border-cyan-800',
+      description: '현장 정보 카드'
     }
   ]
 

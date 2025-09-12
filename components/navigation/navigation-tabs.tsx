@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { Home, Calendar, FileText, FolderOpen, User as UserIcon, MapPin } from 'lucide-react'
+import { Home, Calendar, FileText, FolderOpen, User as UserIcon, MapPin, Building } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useNavigation } from './navigation-context'
@@ -46,6 +46,13 @@ const navigationTabs: NavigationTab[] = [
     icon: <MapPin className="h-5 w-5" />,
     path: '/dashboard/site-info',
     roles: ['worker', 'site_manager']
+  },
+  {
+    id: 'site-info-card',
+    label: '현장카드',
+    icon: <Building className="h-5 w-5" />,
+    path: '/dashboard/site-info-card',
+    roles: ['worker', 'site_manager', 'admin', 'system_admin']
   },
   {
     id: 'profile',

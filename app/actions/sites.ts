@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { Site } from '@/types'
 
 export async function getSites() {
   // console.log('🔍 getSites called - starting execution')
@@ -47,6 +48,51 @@ export async function getSites() {
     return { success: true, data: sites }
   } catch (error) {
     console.error('💥 Unexpected error in getSites:', error)
+    return { success: false, error: `Failed to fetch sites: ${error instanceof Error ? error.message : 'Unknown error'}` }
+  }
+}
+
+// Get all sites with additional info
+export async function getAllSites(): Promise<{ success: boolean; data?: Site[]; error?: string }> {
+  try {
+    const supabase = createClient()
+    
+    // Check authentication
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+    
+    // Get sites with related data
+    const { data: sites, error: sitesError } = await supabase
+      .from('sites')
+      .select(`
+        *,
+        site_assignments!site_assignments_site_id_fkey (
+          user_id,
+          is_active
+        )
+      `)
+      .order('created_at', { ascending: false })
+
+    if (sitesError) {
+      console.error('Database error in getAllSites:', sitesError)
+      return { success: false, error: sitesError.message }
+    }
+
+    // Process sites to add worker count and additional fields
+    const processedSites = sites?.map(site => ({
+      ...site,
+      worker_count: site.site_assignments?.filter((a: any) => a.is_active).length || 0,
+      company: 'INOPNC', // Default company
+      accident_free_days: Math.floor((new Date().getTime() - new Date(site.created_at).getTime()) / (1000 * 60 * 60 * 24)),
+      accommodation: site.accommodation_address,
+      manager_phone: site.construction_manager_phone || site.safety_manager_phone
+    })) || []
+
+    return { success: true, data: processedSites }
+  } catch (error) {
+    console.error('Unexpected error in getAllSites:', error)
     return { success: false, error: `Failed to fetch sites: ${error instanceof Error ? error.message : 'Unknown error'}` }
   }
 }

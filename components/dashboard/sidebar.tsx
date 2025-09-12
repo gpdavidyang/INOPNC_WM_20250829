@@ -5,7 +5,7 @@ import { Profile, UserRole } from '@/types'
 import { 
   Home, FileText, Calendar, FolderOpen, MapPin, Share2, User, Users, 
   BarChart3, Settings, X, Bell, Building2, FolderCheck, DollarSign, 
-  Package, Layers, MoreHorizontal, Activity 
+  Package, Layers, MoreHorizontal, Activity, Building
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
@@ -68,11 +68,32 @@ const generalUserMenuItems: MenuItem[] = [
     href: '/dashboard/site-info'
   },
   {
+    id: 'site-info-card',
+    label: '현장카드',
+    icon: Building,
+    roles: ['worker', 'site_manager', 'customer_manager', 'admin', 'system_admin'],
+    href: '/dashboard/site-info-card'
+  },
+  {
     id: 'documents',
     label: '문서함',
     icon: FolderOpen,
     roles: ['worker', 'site_manager', 'customer_manager'],
     href: '/dashboard/documents'
+  },
+  {
+    id: 'requests',
+    label: '본사요청',
+    icon: Bell,
+    roles: ['worker', 'site_manager', 'customer_manager'],
+    href: '/dashboard/requests'
+  },
+  {
+    id: 'inventory',
+    label: '재고관리',
+    icon: Package,
+    roles: ['worker', 'site_manager', 'customer_manager'],
+    href: '/dashboard/inventory'
   },
   {
     id: 'profile',
@@ -100,6 +121,13 @@ const adminMenuItems: MenuItem[] = [
     roles: ['admin', 'system_admin'],
     href: '/dashboard/admin/sites',
     isAdminPage: true
+  },
+  {
+    id: 'site-info-card',
+    label: '현장카드',
+    icon: Building,
+    roles: ['admin', 'system_admin'],
+    href: '/dashboard/site-info-card'
   },
   {
     id: 'user-management',
@@ -345,8 +373,11 @@ function SidebarContent({
     if (pathname.includes('/dashboard/attendance')) return 'attendance'
     if (pathname.includes('/dashboard/salary')) return 'salary'
     if (pathname.includes('/dashboard/daily-reports')) return 'daily-reports'
+    if (pathname.includes('/dashboard/site-info-card')) return 'site-info-card'
     if (pathname.includes('/dashboard/site-info')) return 'site-info'
     if (pathname.includes('/dashboard/documents')) return 'documents'
+    if (pathname.includes('/dashboard/requests')) return 'requests'
+    if (pathname.includes('/dashboard/inventory')) return 'inventory'
     if (pathname.includes('/dashboard/profile')) return 'profile'
     if (pathname.includes('/dashboard/admin')) {
       // Check for specific admin pages
