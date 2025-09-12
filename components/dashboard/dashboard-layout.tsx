@@ -16,7 +16,7 @@ import {
   preloadForRole
 } from './tabs/lazy-components'
 // import SiteInfoTab from './tabs/site-info-tab' // Moved to dedicated page: /dashboard/site-info
-import { UnifiedMobileNav } from '@/components/ui/unified-mobile-nav'
+// Removed UnifiedMobileNav - will be replaced with new design later
 
 interface DashboardLayoutProps {
   user: User
@@ -92,36 +92,11 @@ export default function DashboardLayout({ user, profile, children, initialActive
     )
   }
 
-  // Navigation items moved to UnifiedMobileNav component
+  // Navigation items - mobile nav removed temporarily
 
 
 
-  // 하단 네비게이션 클릭 처리 - URL-based navigation only
-  const handleBottomNavClick = React.useCallback(async (tabId: string) => {
-    try {
-      // Direct path navigation only
-      if (tabId.startsWith('/')) {
-        await router.push(tabId)
-        return
-      }
-      
-      // Convert tab ID to path
-      const tabPaths: Record<string, string> = {
-        'home': '/dashboard',
-        'daily-reports': '/dashboard/daily-reports',
-        'attendance': '/dashboard/attendance',
-        'documents': '/dashboard/documents',
-        'site-info': '/dashboard/site-info',
-        'profile': '/dashboard/profile'
-      }
-      
-      const path = tabPaths[tabId] || '/dashboard'
-      await router.push(path)
-      
-    } catch (error) {
-      console.error('[DashboardLayout] Navigation error:', error)
-    }
-  }, [router])
+  // Mobile navigation removed - will be replaced with new design later
 
   const renderContent = () => {
     // If children are provided (e.g., from dedicated pages), render them instead
@@ -365,15 +340,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
         </main>
       </div>
 
-      {/* Simplified Mobile Bottom Navigation */}
-      <UnifiedMobileNav 
-        userRole={profile.role}
-        activeTab={activeTab}
-        onTabChange={(tabId) => {
-          // console.log('[DashboardLayout] onTabChange called with:', tabId)
-          handleBottomNavClick(tabId)
-        }}
-      />
+      {/* Mobile Bottom Navigation removed - will be replaced with new design later */}
     </div>
   )
 }
