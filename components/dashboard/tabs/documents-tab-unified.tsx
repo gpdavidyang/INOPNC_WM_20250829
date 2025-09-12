@@ -50,7 +50,7 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
           <div className="grid grid-cols-2 gap-4">
             {/* 내문서함 */}
             <Button
-              variant={activeTab === 'personal' ? 'default' : 'outline'}
+              variant={activeTab === 'personal' ? 'primary' : 'outline'}
               onClick={() => handleTabChange('personal')}
               className="h-20 p-4 flex flex-col gap-3 text-sm font-semibold transition-all duration-200 hover:shadow-md"
               size="lg"
@@ -61,7 +61,7 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
 
             {/* 공유문서함 */}
             <Button
-              variant={activeTab === 'shared' ? 'default' : 'outline'}
+              variant={activeTab === 'shared' ? 'primary' : 'outline'}
               onClick={() => handleTabChange('shared')}
               className="h-20 p-4 flex flex-col gap-3 text-sm font-semibold transition-all duration-200 hover:shadow-md"
               size="lg"
@@ -72,7 +72,7 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
 
             {/* 도면마킹 */}
             <Button
-              variant={activeTab === 'markup' ? 'default' : 'outline'}
+              variant={activeTab === 'markup' ? 'primary' : 'outline'}
               onClick={() => handleTabChange('markup')}
               className="h-20 p-4 flex flex-col gap-3 text-sm font-semibold transition-all duration-200 hover:shadow-md"
               size="lg"
@@ -83,7 +83,7 @@ export default function DocumentsTabUnified({ profile, initialTab = 'personal', 
 
             {/* 필수 제출 서류 */}
             <Button
-              variant={activeTab === 'required' ? 'default' : 'outline'}
+              variant={activeTab === 'required' ? 'primary' : 'outline'}
               onClick={() => handleTabChange('required')}
               className="h-20 p-4 flex flex-col gap-3 text-sm font-semibold relative transition-all duration-200 hover:shadow-md"
               size="lg"
