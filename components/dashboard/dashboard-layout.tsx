@@ -323,7 +323,7 @@ export default function DashboardLayout({ user, profile, children, initialActive
         <AppHeader />
         
         {/* Main content with scroll container - Add padding-top for fixed header */}
-        <main id="main-content" className="flex-1 overflow-y-auto bg-slate-100 dark:bg-slate-900 pt-[var(--header-h)]">
+        <main id="main-content" className="flex-1 overflow-y-auto pt-[var(--header-h)]" style={{ backgroundColor: 'var(--bg)' }}>
           <div className="pt-3 px-4 sm:px-6 lg:px-8 pb-6">
             <div className="mx-auto max-w-7xl">
               <div role="region" aria-live="polite" aria-label="페이지 콘텐츠">
