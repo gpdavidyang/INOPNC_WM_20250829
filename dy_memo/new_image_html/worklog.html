@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ko" data-theme="light">
+<html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
@@ -21,6 +21,7 @@
   <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio"></script>
 <script>tailwind.config = { darkMode: 'class' };</script>
   <!-- 공통 스타일 -->
+  <link rel="stylesheet" href="./assets/css/common-ui.css">
 <style>
     /* ===== CSS 변수 ===== */
     :root {
@@ -28,6 +29,11 @@
       --bg: #f5f7fb; --card: #ffffff; --text: #101828; --muted: #667085; --line: #e6eaf2;
       --header-h: 56px; --nav-h: 64px; --nav-bg: #ffffff; --nav-border: #e5e7eb; --nav-text: #6b7280; --nav-text-active: #2563eb;
       --brand: #1A254F; --num: #0068FE; /* 브랜드 색상 및 번호 컬러 */
+      
+      /* 모바일 뷰포트 대응 */
+      --vh: 1vh;
+      --dvh: 100dvh;
+      --svh: 100svh;
     }
     [data-theme="dark"] {
       --bg: #0f172a; --surface: #11151B; --card: #0f172a; --overlay: #0f172aCC; --line: #4A5568; --line-soft: #3A4048;
@@ -42,6 +48,13 @@
     * { box-sizing: border-box; }
     body { font-family: var(--font); background: var(--bg); color: var(--text); margin: 0; padding: 0; }
 
+    /* ===== 상단 헤더 ===== */
+    /* 헤더 스타일은 공용 CSS로 이동 */
+
+    /* 글씨 크기 스위치는 공용 CSS로 이동 */
+
+    /* 검색 페이지는 공용 CSS로 이동 */
+
     /* 탭 전환용 기본 유틸 */
     .hidden { display: none !important; }
     /* ===== 라벨 스타일 ===== */
@@ -51,62 +64,10 @@
       font-weight: 500; color:#6b7280;
     }
     [data-theme="dark"] .label-part{ color: #E9EEF5; }
-    /* ===== 상단 헤더 ===== */
-    header.appbar{ position:fixed; top:0; left:0; right:0; z-index:100; height:var(--header-h); background:var(--card); border-bottom:1px solid var(--line); }
-    .bar{ max-width:960px; margin:0 auto; height:100%; display:flex; align-items:center; justify-content:space-between; padding:0 12px; }
-    .brand-logo{ 
-      font:800 20px/1 "Poppins",var(--font); 
-      color:var(--text); 
-      letter-spacing:.2px; 
-      text-decoration:none; 
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-      position: relative; 
-      transform: translateX(-12px); /* 좌측으로 12px 이동 */ 
-      flex-shrink: 0; /* flex로 눌림 방지 */
-    }
-    .brand-logo img{ 
-      height: 24px; 
-      max-height: 28px;     /* 상한 */
-      width: auto;          /* 비율 유지 */
-      aspect-ratio: auto;   /* 실제 비율 유지 */
-      object-fit: contain;  /* 비율 유지하며 컨테이너에 맞춤 */
-      flex: 0 0 auto;       /* flex로 눌림 방지 */
-      image-rendering: auto; /* 이미지 렌더링 최적화 */
-      display: block;
-    }
-    @media(min-width: 768px){ 
-      .brand-logo img{ height: 28px; } 
-    }
-    .brand-logo:hover{ transform: translateX(-12px) translateY(-2px); text-shadow: 0 4px 8px rgba(0,0,0,0.15); }
-    .brand-logo:active{ transform: translateX(-12px) translateY(0); }
-    .actions{ display:flex; align-items:center; gap:12px; }
-    .icon-btn{ 
-      background:transparent; 
-      border:0; 
-      padding:0; 
-      border-radius:8px; 
-      color:#374151; 
-      cursor:pointer; 
-      position: relative;
-      width: 28px;
-      height: 28px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      vertical-align: middle;
-      line-height: 0;
-      flex-shrink: 0;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-    }
-    #btnTheme{ transform: translateX(2.5px); }
-    .icon-btn:hover{ color:#1A254F; background:rgba(26, 37, 79, 0.08); }
-    .icon-btn:active{ transform:scale(.95); }
-    [data-theme="dark"] .icon-btn{ color:#c9d1d9; }
-    [data-theme="dark"] .icon-btn:hover{ color:#3182ce; background:rgba(49, 130, 206, 0.1); }
-    .appbar .icon-btn:hover{ background:none !important; } /* 헤더 아이콘 호버 시 배경색 제거 */
-    [data-theme="dark"] .appbar .icon-btn:hover{ background:none !important; } /* 다크 테마 헤더 아이콘 호버 시 배경색 제거 */
+    /* 아이콘 버튼 스타일은 공용 CSS에서 정의됨 */
     .btn-plain{ background:none; border:none; padding:0 6px; font-weight:700; font-size:14px; line-height:1; cursor:pointer; color:var(--text); }
     .btn-plain:focus{ outline:none; }
+    /* 홈과 동일한 알림 배지 스타일 */
     .notification-badge{ 
       position:absolute; 
       top: -2px; 
@@ -124,12 +85,52 @@
       justify-content:center; 
       border:1px solid #fff; 
       box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: all 0.3s ease; 
       z-index: 2;
     }
+    .notification-badge.is-hidden{ display:none !important; }
     [data-theme="dark"] .notification-badge{ border-color:#fff; }
-    .bell-img{ width:26.4px; height:26.4px; object-fit:contain; display:block; }
     
-    /* 알림 아이콘 스타일 */
+    /* 홈과 동일한 알림 아이콘 스타일 */
+    .bell-icon{ 
+      width:26px; height:26px; color:#6b7280; 
+      transition:color .2s ease; 
+    }
+    .bell-icon:hover{ color:#1A254F; }
+    [data-theme="dark"] .bell-icon{ color:#9ca3af; }
+    [data-theme="dark"] .bell-icon:hover{ color:#2F6BFF; }
+    
+    .bell-img{ width:26px; height:26px; object-fit:contain; display:block; }
+    
+    /* 확대 모드에서 알림 배지 조정 */
+    body.fs-150 .notification-badge {
+      position: absolute;
+      top: -4px;
+      right: -6px;
+      background: #ff0000;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      min-width: 16px;
+      height: 16px;
+      padding: 0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #fff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      z-index: 2;
+      transition: all 0.3s ease;
+      transform: scale(1);
+      transform-origin: center;
+    }
+    
+    [data-theme="dark"] body.fs-150 .notification-badge {
+      border-color: #fff;
+    }
+    
+    /* 홈과 동일한 아이콘 스타일 */
     .icon {
       height: 100%;
       width: 100%;
@@ -137,6 +138,7 @@
       flex-shrink: 0;
       display: block;
     }
+    /* 홈과 동일한 notif 스타일 */
     .notif {
       position: relative;
       width: 28px;
@@ -155,7 +157,7 @@
     }
     .notif::before, .notif::after { content: none !important; }
     .notif, .notif * { list-style: none; }
-    /* 알림 벨 애니메이션 */
+    /* 홈과 동일한 알림 벨 애니메이션 */
     @keyframes bellRing{0%{transform:rotate(0deg) scale(1);}10%{transform:rotate(-8deg) scale(1.05);}20%{transform:rotate(8deg) scale(1.05);}30%{transform:rotate(-6deg) scale(1.03);}40%{transform:rotate(6deg) scale(1.03);}50%{transform:rotate(-4deg) scale(1.02);}60%{transform:rotate(4deg) scale(1.02);}70%{transform:rotate(-2deg) scale(1.01);}80%{transform:rotate(2deg) scale(1.01);}90%{transform:rotate(-1deg) scale(1.005);}100%{transform:rotate(0deg) scale(1);} }
     #notificationBtn.bell-ringing{ animation: bellRing 1.2s ease-in-out; }
     /* ===== 검색 전체화면 페이지 ===== */
@@ -182,23 +184,48 @@
     [data-theme="dark"] .sp-icon{ color:#ffffff; opacity:0.8; }
     /* 루사이드가 생성한 SVG에도 직접 적용(안전망) */
     [data-theme="dark"] .sp-head svg{ stroke:#ffffff; }
-    /* 알림 배지 펄스 효과 */
+    /* 홈과 동일한 알림 배지 애니메이션 */
     @keyframes notificationPulse {
-      0% { transform: scale(1); background-color: #ef4444; }
-      50% { transform: scale(1.2); background-color: #dc2626; }
-      100% { transform: scale(1); background-color: #ef4444; }
+      0% { transform: scale(1); background-color: #ff0000; }
+      50% { transform: scale(1.2); background-color: #cc0000; }
+      100% { transform: scale(1); background-color: #ff0000; }
     }
+    
     .notification-badge.pulse {
       animation: notificationPulse 0.6s ease-in-out;
     }
+    
     /* 새로운 알림 추가 시 배지 강조 효과 */
     @keyframes newNotificationGlow {
-      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
     }
+    
     .notification-badge.glow {
       animation: newNotificationGlow 1s ease-out;
+    }
+    
+    /* 확대 모드용 펄스 애니메이션 */
+    @keyframes notificationPulseFs150 {
+      0% { transform: scale(1); background-color: #ff0000; }
+      50% { transform: scale(1.2); background-color: #cc0000; }
+      100% { transform: scale(1); background-color: #ff0000; }
+    }
+    
+    body.fs-150 .notification-badge.pulse {
+      animation: notificationPulseFs150 0.6s ease-in-out;
+    }
+    
+    /* 확대 모드용 글로우 애니메이션 */
+    @keyframes newNotificationGlowFs150 {
+      0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+      70% { box-shadow: 0 0 0 0.625rem rgba(255, 0, 0, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+    }
+    
+    body.fs-150 .notification-badge.glow {
+      animation: newNotificationGlowFs150 1s ease-out;
     }
     /* ===== 글씨 크기 스위치 ===== */
     body.fs-100{font-size:15px; font-weight:200; font-family:'Noto Sans KR',system-ui,-apple-system,Segoe UI,Roboto,Apple SD Gothic Neo,Malgun Gothic,sans-serif;}
@@ -501,95 +528,7 @@
     [data-theme="dark"] .fswitch{ border-color:var(--line) !important; background:#0b1220; }
     [data-theme="dark"] .fswitch-btn{ color:#cbd5e1; }
     [data-theme="dark"] .fswitch-btn.active{ background:#0068FE; color:#fff; box-shadow:0 0 0 1px rgba(255,255,255,.08) inset; }
-    /* ===== 하단 네비게이터 ===== */
-    .bottom-nav-wrap {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 50;
-    }
-    .bottom-nav {
-      background: var(--nav-bg);
-      border-top: 1px solid var(--nav-border);
-      box-shadow: 0 -6px 16px rgba(17, 24, 39, .06);
-      height: var(--nav-h);
-      padding-bottom: env(safe-area-inset-bottom);
-    }
-    .nav-list {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      max-width: 720px;
-      height: 100%;
-      margin: 0 auto;
-      padding: 0;
-      list-style: none;
-    }
-    .nav-item {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .nav-item:active {
-      transform: scale(.95);
-    }
-    .nav-link {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      color: var(--nav-text);
-      text-decoration: none;
-      transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-    }
-    .nav-link:hover {
-      color: #1A254F;
-      transform: translateY(-4px) scale(1.05);
-    }
-    .nav-link:hover .nav-svg {
-      color: #1A254F;
-    }
-    .nav-link:hover .nav-label {
-      color: #1A254F;
-    }
-    .nav-link.active {
-      color: var(--nav-text-active);
-    }
-    .nav-label {
-      font-size: 11px;
-      font-weight: 600;
-      line-height: 1;
-    }
-    .nav-ico {
-      width: 26px;
-      height: 26px;
-      display: grid;
-      place-items: center;
-    }
-    .nav-svg {
-      width: 22px;
-      height: 22px;
-      transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .nav-item:hover .nav-svg {
-      transform: scale(1.2);
-    }
-    /* 모든 네비게이터 메뉴 기본 상태 - 통일 */
-    .nav-link .nav-svg {
-      color: #99A4BE;
-    }
-    .nav-link .nav-label {
-      color: #99A4BE;
-    }
-    [data-theme="dark"] .nav-link:hover .nav-svg {
-      color: #3182ce;
-    }
-    [data-theme="dark"] .nav-link:hover .nav-label {
-      color: #3182ce;
-    }
+    /* 하단 네비게이터는 공용 CSS로 이동 */
     /* ===== 버튼 스타일 ===== */
     .btn { 
         display: inline-flex; 
@@ -2023,77 +1962,39 @@
   @media (max-width:840px){ .stage{ width:640px } }
   @media (max-width:680px){ .stage{ width:520px } }
 </style>
-  <script src="/assets/common.js" defer></script>
+  <script src="/assets/common.js?v=20250110" defer></script>
   <link rel="preconnect" href="https://postfiles.pstatic.net" crossorigin>
   <link rel="dns-prefetch" href="//postfiles.pstatic.net">
+  <!-- 캐시 방지 메타 태그 -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  
+  <!-- 즉시 실행 스크립트 - 캐시 문제 해결 -->
+  <script>
+    // 페이지 로드 즉시 실행
+    (function() {
+      console.log('캐시 방지 스크립트 실행');
+      
+      // 로고 이미지 강제 업데이트
+      setTimeout(function() {
+        const headerLogo = document.getElementById('headerLogo');
+        if (headerLogo) {
+          const timestamp = Date.now();
+          const baseUrl = 'https://postfiles.pstatic.net/MjAyNTA5MTBfMjk3/MDAxNzU3NDc4ODkwMTc3.lBcKNGpQIyCk5kkAruIKUApO23ml-EJeX7da8626bQQg.oMA0TTp0F8nLP6ICPLrGelEJMVNg6cS5fdLUsXBb7pUg.PNG/00_%EB%A1%9C%EA%B3%A0-%EC%84%B8%EB%A1%9C%EC%A1%B0%ED%95%A9_n.png?type=w3840';
+          headerLogo.src = baseUrl + '&t=' + timestamp;
+          headerLogo.srcset = baseUrl + '&t=' + timestamp + ' 1x, ' + baseUrl + '&t=' + timestamp + ' 2x';
+          console.log('로고 이미지 즉시 업데이트:', timestamp);
+        }
+      }, 100);
+    })();
+  </script>
 </head>
 <body>
-  <!-- ===== 상단 헤더 ===== -->
-  <header class="appbar">
-    <div class="bar">
-      <div class="flex items-center gap-3">
-        <button class="icon-btn" aria-label="메뉴" id="btnHamburger"><i data-lucide="menu" class="w-5 h-5"></i></button>
-        <a href="home.html" class="brand-logo tracking-tight logo-text" id="homeLink" title="홈으로 이동">
-          <img src="https://postfiles.pstatic.net/MjAyNTA5MDlfMTY2/MDAxNzU3Mzg1MDM2NjE5.LY9NCqiU7KTydmgbxO9BJRmKTHwOQz60fD0gJQKoxGog.f-406ZRNkxt_9ChiJTCNhIbmQSvgAvDDn0mU_XlIxOgg.PNG/00_%EB%A1%9C%EA%B3%A0-%EC%84%B8%EB%A1%9C%EC%A1%B0%ED%95%A9.png?type=w3840"
-               srcset="https://postfiles.pstatic.net/MjAyNTA5MDlfMTY2/MDAxNzU3Mzg1MDM2NjE5.LY9NCqiU7KTydmgbxO9BJRmKTHwOQz60fD0gJQKoxGog.f-406ZRNkxt_9ChiJTCNhIbmQSvgAvDDn0mU_XlIxOgg.PNG/00_%EB%A1%9C%EA%B3%A0-%EC%84%B8%EB%A1%9C%EC%A1%B0%ED%95%A9.png?type=w3840 1x, https://postfiles.pstatic.net/MjAyNTA5MDlfMTY2/MDAxNzU3Mzg1MDM2NjE5.LY9NCqiU7KTydmgbxO9BJRmKTHwOQz60fD0gJQKoxGog.f-406ZRNkxt_9ChiJTCNhIbmQSvgAvDDn0mU_XlIxOgg.PNG/00_%EB%A1%9C%EA%B3%A0-%EC%84%B8%EB%A1%9C%EC%A1%B0%ED%95%A9.png?type=w3840 2x"
-               sizes="(max-width: 480px) 120px, 160px"
-               alt="INOPNC" 
-               referrerpolicy="no-referrer" 
-               loading="lazy" 
-               decoding="async">
-        </a>
-      </div>
-      <div class="actions">
-        <!-- 1) 글씨 크기 스위치 -->
-        <div class="fswitch" role="group" aria-label="글씨 크기">
-          <button id="fsNormal" class="fswitch-btn active" type="button">일반</button>
-          <button id="fsLarge" class="fswitch-btn" type="button">확대</button>
-        </div>
-        <!-- 2) 다크모드 -->
-        <button id="btnTheme" class="icon-btn" aria-label="다크모드"><i data-lucide="moon" class="w-5 h-5" id="themeIcon"></i></button>
-        <!-- 3) 검색 -->
-        <button id="btnSearch" class="icon-btn" aria-label="검색"><i data-lucide="search" class="w-5 h-5"></i></button>
-        <!-- 4) 알림 -->
-        <button class="notif" aria-label="알림" id="notificationBtn">
-          <img src="https://postfiles.pstatic.net/MjAyNTA5MDlfMTI4/MDAxNzU3MzczOTIzNjY1.cz65rYnLgXusuSn6OTKRtzcS3bVGqAdkQY-0GgOfW0Ug.A8e6_KKQ-P1GI4h_lx7pP4O-dqCinve_Un8_A7tVghkg.PNG/bell.png?type=w3840"
-               alt="알림"
-               class="icon"
-               width="24"
-               height="24"
-               referrerpolicy="no-referrer"
-               crossorigin="anonymous"
-               loading="lazy"
-               decoding="async"
-               onerror="
-                 if(!this.dataset.step){ 
-                   this.dataset.step='proxy'; 
-                   this.src='https://images.weserv.nl/?url=postfiles.pstatic.net%2FMjAyNTA5MDlfMTI4%2FMDAxNzU3MzczOTIzNjY1.cz65rYnLgXusuSn6OTKRtzcS3bVGqAdkQY-0GgOfW0Ug.A8e6_KKQ-P1GI4h_lx7pP4O-dqCinve_Un8_A7tVghkg.PNG%2Fbell.png%3Ftype%3Dw3840';
-                 } else if(this.dataset.step==='proxy'){ 
-                   this.dataset.step='fallback'; 
-                   this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE4IDhBNiA2IDAgMCAwIDYgOEM2IDE1IDMgMTcgMyAxN0gyMUMyMSAxNyAxOCAxNSAxOCA4WiIgc3Ryb2tlPSIjNjc0NzUxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8cGF0aCBkPSJNMTMgMjFWN0E1IDUgMCAwIDAgMTEgN1YyMSIgc3Ryb2tlPSIjNjc0NzUxIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPgo8L3N2Zz4K';
-                 } else { 
-                   this.onerror=null; 
-                 }
-               "/>
-          <span class="notification-badge" id="notificationBadge">3</span>
-        </button>
-      </div>
-    </div>
-  </header>
-  <!-- 검색 전체화면 페이지 -->
-  <div id="searchPage" class="search-page" role="dialog" aria-modal="true">
-    <div class="sp-head">
-      <button id="spBack" class="sp-back" aria-label="뒤로"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
-      <div class="sp-input-wrap">
-        <input id="spInput" class="sp-input" type="search" placeholder="현장명을 검색하세요." />
-        <i data-lucide="search" class="sp-icon"></i>
-      </div>
-    </div>
-    <div class="sp-body">
-      <div class="sp-section-title">최근 검색어</div>
-      <div class="sp-list" id="spList"><!-- JS 렌더 --></div>
-    </div>
-  </div>
+  <!-- ===== 상단 헤더 (공용) ===== -->
+  <div id="appbar-slot"></div>
+  <!-- 검색 전체화면 페이지 (공용) -->
+  <div id="search-slot"></div>
   <div class="min-h-screen flex flex-col items-center" style="padding-top: calc(var(--header-h) + 10px); padding-bottom: var(--nav-h);">
     <main class="w-full max-w-[480px] mx-auto px-4 pb-6">
       <!-- 상단 라인 탭 -->
@@ -2241,7 +2142,7 @@
                   </div>
                   <div>
                     <label class="label-part block mb-1 text-[14px] font-normal text-gray-600 dark:text-white" style="font-family: 'Noto Sans KR', system-ui, sans-serif;">기본급(직접입력)</label>
-                    <input id="baseManual" class="w-full h-12 px-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] text-gray-900 dark:text-white" type="text" placeholder="기본급을 직접입력하세요" style="font-family: 'Noto Sans KR', system-ui, sans-serif; font-size: 15px; border-radius: 12px;"/>
+                    <input id="baseManual" class="w-full h-12 px-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-[#0f172a] text-gray-900 dark:text-white" type="text" placeholder="기본급 직접입력" style="font-family: 'Noto Sans KR', system-ui, sans-serif; font-size: 15px; border-radius: 12px;"/>
                   </div>
                 </div>
                 <div class="mb-3">
@@ -2345,8 +2246,8 @@
                         <colgroup><col style="width:20%"><col style="width:30%"><col style="width:20%"><col style="width:30%"></colgroup>
                         <tbody>
                           <tr>
-                            <th>성명</th><td>이노피앤씨</td>
-                            <th>지급일</th><td>2025.08.12</td>
+                            <th>성명</th><td id="payslip-employee-name">이노피앤씨</td>
+                            <th>지급일</th><td id="payslip-pay-date">2025.08.12</td>
                           </tr>
                         </tbody>
                       </table>
@@ -2363,18 +2264,18 @@
                         </thead>
                         <tbody>
                           <tr>
-                            <td>기본급</td><td style="text-align:right">5,500,000</td>
-                            <td>소득세</td><td style="text-align:right">165,000</td>
+                            <td>기본급</td><td id="payslip-basic-pay" style="text-align:right">5,500,000</td>
+                            <td>소득세</td><td id="payslip-income-tax" style="text-align:right">165,000</td>
                           </tr>
                           <tr>
-                            <td style="text-align:right;font-weight:700">지급액 계</td>
-                            <td style="text-align:right;font-weight:700">5,500,000</td>
-                            <td>지방소득세</td><td style="text-align:right">16,500</td>
+                            <td style="text-align:center;font-weight:700">지급액 계</td>
+                            <td id="payslip-total-pay" style="text-align:right;font-weight:700">5,500,000</td>
+                            <td>지방소득세</td><td id="payslip-local-tax" style="text-align:right">16,500</td>
                           </tr>
                           <tr>
-                            <td>실지급액</td><td></td>
+                            <td>실지급액</td><td id="payslip-net-pay" style="text-align:right"></td>
                             <td style="text-align:right;font-weight:700">공제액 계</td>
-                            <td style="text-align:right;font-weight:700">181,500</td>
+                            <td id="payslip-total-deduction" style="text-align:right;font-weight:700">181,500</td>
                           </tr>
                         </tbody>
                       </table>
@@ -2388,7 +2289,7 @@
                           <tr><th>구분</th><th>산출식 또는 산출방법</th><th>지급액(원)</th></tr>
                         </thead>
                         <tbody>
-                          <tr><td>기본급</td><td>25 × 220,000</td><td style="text-align:right">5,500,000</td></tr>
+                          <tr><td>기본급</td><td id="payslip-calculation-method">25 × 220,000</td><td id="payslip-calculation-amount" style="text-align:right">5,500,000</td></tr>
                         </tbody>
                       </table>
                     </article>
@@ -2402,7 +2303,53 @@
       </div>
 </main>
   </div>
-<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="./assets/js/common-ui.js"></script>
+  <script>
+    // 파셜 파일들을 로드하는 함수
+    async function loadPartials() {
+      try {
+        // 헤더 로드
+        const appbarResponse = await fetch('./partials/appbar.html');
+        if (appbarResponse.ok) {
+          const appbarHTML = await appbarResponse.text();
+          document.getElementById('appbar-slot').innerHTML = appbarHTML;
+        } else {
+          console.error('상단헤더 로드 실패:', appbarResponse.status);
+        }
+        
+        // 검색 페이지 로드
+        const searchResponse = await fetch('./partials/search.html');
+        if (searchResponse.ok) {
+          const searchHTML = await searchResponse.text();
+          document.getElementById('search-slot').innerHTML = searchHTML;
+        } else {
+          console.error('검색 페이지 로드 실패:', searchResponse.status);
+        }
+        
+        // 하단 네비게이터 로드
+        const bottomNavResponse = await fetch('./partials/bottom-nav.html');
+        if (bottomNavResponse.ok) {
+          const bottomNavHTML = await bottomNavResponse.text();
+          document.getElementById('bottom-nav-slot').innerHTML = bottomNavHTML;
+        } else {
+          console.error('하단 네비게이터 로드 실패:', bottomNavResponse.status);
+        }
+        
+        // Lucide 아이콘 재초기화
+        if (window.lucide && window.lucide.createIcons) {
+          window.lucide.createIcons();
+        }
+        
+        console.log('공용 UI 컴포넌트 로드 완료');
+      } catch (error) {
+        console.error('공용 UI 컴포넌트 로드 실패:', error);
+      }
+    }
+    
+    // DOM 로드 후 파셜 파일들 로드
+    // loadPartials는 통합된 DOMContentLoaded에서 호출됨
+  </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
     // 페이지별 고유 JavaScript
@@ -2413,17 +2360,270 @@
         window.lucide.createIcons();
       }
     }
-    // 페이지 로드 시 Lucide 아이콘 초기화
-    document.addEventListener('DOMContentLoaded', function() {
-      initLucideIcons();
-      initButtonClickEffects();
+    
+    // Theme toggle
+    const root = document.documentElement;
+    // 다크모드 토글 기능은 common-ui.js의 initThemeToggle()에서 처리됨
+
+    // ===== 다크모드 초기화 (페이지 로드 시 즉시 실행) =====
+    (function initThemeImmediately() {
+      const THEME_KEY = 'inopnc_theme';
+      const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      console.log('다크모드 즉시 초기화:', savedTheme);
+    })();
+
+    // ===== 통합된 DOMContentLoaded 이벤트 리스너 =====
+    document.addEventListener('DOMContentLoaded', async () => {
+      console.log('통합 DOMContentLoaded 이벤트 리스너 시작');
+      
+      // 파셜 먼저 로드
+      await loadPartials();
+      
+      // 파셜 로드 후 기능 초기화
+      setTimeout(() => {
+        // Lucide 아이콘 초기화
+        initLucideIcons();
+        initButtonClickEffects();
+        
+        // 성명 업데이트 및 급여명세서 자동 업데이트
+        updateAuthorName();
+        updatePreviewData();
+        
+        // 상단헤더 기능 초기화
+        if (typeof initThemeToggle === 'function') {
+          initThemeToggle();
+          console.log('다크모드 토글 기능 초기화 완료');
+        } else {
+          console.error('initThemeToggle 함수를 찾을 수 없습니다');
+        }
+        
+        // 다크모드 토글 기능 강화 구현
+        const THEME_KEY = 'inopnc_theme';
+        
+        // 다크모드 토글 함수 (전역)
+        window.toggleTheme = function() {
+          const root = document.documentElement;
+          const currentTheme = root.getAttribute('data-theme');
+          const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+          
+          console.log('토글 전 테마:', currentTheme, '→ 토글 후 테마:', newTheme);
+          
+          root.setAttribute('data-theme', newTheme);
+          localStorage.setItem(THEME_KEY, newTheme);
+          
+          // 아이콘 변경
+          const themeIcon = document.getElementById('themeIcon');
+          if (themeIcon) {
+            themeIcon.setAttribute('data-lucide', newTheme === 'dark' ? 'sun' : 'moon');
+            if (typeof initLucideIcons === 'function') {
+              initLucideIcons();
+            }
+          }
+          
+          console.log('테마 변경 완료:', newTheme);
+        };
+        
+        // 다크모드 토글 버튼 이벤트 설정
+        function setupThemeToggle() {
+          const themeBtn = document.getElementById('btnTheme');
+          const themeIcon = document.getElementById('themeIcon');
+          
+          if (themeBtn && themeIcon) {
+            console.log('다크모드 토글 버튼과 아이콘이 정상적으로 로드됨');
+            
+            // 기존 이벤트 리스너 제거 (중복 방지)
+            themeBtn.removeEventListener('click', window.toggleTheme);
+            
+            // 새로운 클릭 이벤트 추가
+            themeBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log('다크모드 토글 버튼 클릭됨!');
+              window.toggleTheme();
+            });
+            
+            // 저장된 테마 적용
+            const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            themeIcon.setAttribute('data-lucide', savedTheme === 'dark' ? 'sun' : 'moon');
+            if (typeof initLucideIcons === 'function') {
+              initLucideIcons();
+            }
+            
+            console.log('저장된 테마 적용됨:', savedTheme);
+            return true;
+          } else {
+            console.error('다크모드 토글 버튼 또는 아이콘을 찾을 수 없음:', { themeBtn, themeIcon });
+            return false;
+          }
+        }
+        
+        // 다크모드 토글 설정 시도
+        if (!setupThemeToggle()) {
+          // 버튼을 찾지 못한 경우 재시도
+          setTimeout(() => {
+            console.log('다크모드 토글 버튼 재시도...');
+            setupThemeToggle();
+          }, 500);
+        }
+        if (typeof initFontScaleSwitch === 'function') {
+          initFontScaleSwitch();
+        }
+        if (typeof initSearchPage === 'function') {
+          initSearchPage();
+        }
+        if (typeof initNotificationPopup === 'function') {
+          initNotificationPopup();
+        }
+        
+        console.log('파셜 로드 및 기능 초기화 완료');
+        
+        // 다크모드 상태 최종 확인
+        setTimeout(() => {
+          const currentTheme = document.documentElement.getAttribute('data-theme');
+          const savedTheme = localStorage.getItem('inopnc_theme');
+          const themeBtn = document.getElementById('btnTheme');
+          const themeIcon = document.getElementById('themeIcon');
+          
+          console.log('=== 다크모드 최종 상태 ===');
+          console.log('현재 테마:', currentTheme);
+          console.log('저장된 테마:', savedTheme);
+          console.log('토글 버튼:', themeBtn);
+          console.log('테마 아이콘:', themeIcon);
+          
+          // 다크모드 토글 버튼 클릭 테스트
+          if (themeBtn) {
+            console.log('다크모드 토글 버튼 클릭 테스트 준비됨');
+            // 테스트용 클릭 이벤트 (개발용)
+            window.testThemeToggle = function() {
+              console.log('테스트: 다크모드 토글 실행');
+              if (typeof window.toggleTheme === 'function') {
+                window.toggleTheme();
+              } else {
+                console.error('toggleTheme 함수를 찾을 수 없음');
+              }
+            };
+            console.log('테스트 함수 등록됨: window.testThemeToggle()');
+          }
+          console.log('========================');
+        }, 500);
+      }, 300);
+      
+      // 헤더 스타일 강제 적용 (캐시 문제 해결)
+      const brandLogo = document.querySelector('.brand-logo');
+      if (brandLogo) {
+        brandLogo.style.fontFamily = '"Poppins", "Inter", "Pretendard", "Noto Sans KR", system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+        brandLogo.style.fontWeight = '800';
+        brandLogo.style.fontSize = '20px';
+        brandLogo.style.lineHeight = '1';
+        brandLogo.style.letterSpacing = '.2px';
+        brandLogo.style.color = 'var(--brand)';
+        brandLogo.style.textDecoration = 'none';
+        brandLogo.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        brandLogo.style.flexShrink = '0';
+      }
+      
+      // 로고 이미지 강제 업데이트 (캐시 방지)
+      const headerLogo = document.getElementById('headerLogo');
+      if (headerLogo) {
+        const timestamp = Date.now();
+        const baseUrl = 'https://postfiles.pstatic.net/MjAyNTA5MTBfMjk3/MDAxNzU3NDc4ODkwMTc3.lBcKNGpQIyCk5kkAruIKUApO23ml-EJeX7da8626bQQg.oMA0TTp0F8nLP6ICPLrGelEJMVNg6cS5fdLUsXBb7pUg.PNG/00_%EB%A1%9C%EA%B3%A0-%EC%84%B8%EB%A1%9C%EC%A1%B0%ED%95%A9_n.png?type=w3840';
+        headerLogo.src = baseUrl + '&t=' + timestamp;
+        headerLogo.srcset = baseUrl + '&t=' + timestamp + ' 1x, ' + baseUrl + '&t=' + timestamp + ' 2x';
+        console.log('로고 이미지 강제 업데이트:', timestamp);
+      }
+      
       // 급여 정보 요약 초기화
       setTimeout(() => {
         updatePayFormFields(); // 급여 정보입력 필드 자동 업데이트
         updatePaySummary();
-          }, 100);
+      }, 100);
       
-      // 월간 통계 아이콘은 인라인 데이터 URL 사용으로 오류 가능성 제거
+      // ===== 글씨 크기 스위치 =====
+      const FS_KEY = 'font-scale-mode';
+      const fsNormal = document.getElementById('fsNormal');
+      const fsLarge  = document.getElementById('fsLarge');
+
+      function applyFontScale(mode){
+        document.body.classList.remove('fs-100','fs-150');
+        document.body.classList.add(mode);
+        fsNormal?.classList.toggle('active', mode === 'fs-100');
+        fsLarge?.classList.toggle('active',  mode === 'fs-150');
+        try{ localStorage.setItem(FS_KEY, mode); }catch(e){}
+      }
+      applyFontScale(localStorage.getItem(FS_KEY) || 'fs-100');
+      fsNormal?.addEventListener('click', ()=>applyFontScale('fs-100'));
+      fsLarge?.addEventListener('click', ()=>applyFontScale('fs-150'));
+
+      // ===== 검색 페이지 (현장명) =====
+      const btnSearch = document.getElementById('btnSearch');
+      const page = document.getElementById('searchPage');
+      const back = document.getElementById('spBack');
+      const input = document.getElementById('spInput');
+      const list = document.getElementById('spList');
+
+      const SEARCH_KEY = 'inopnc_search_history';
+      let searchHistory = [];
+      
+      try {
+        const stored = localStorage.getItem(SEARCH_KEY);
+        if (stored) searchHistory = JSON.parse(stored);
+      } catch(e) {}
+
+      function renderList(){
+        if (!list) return;
+        list.innerHTML = searchHistory.map(item => `
+          <div class="sp-item" data-text="${item}">
+            <i data-lucide="search" class="sp-item-icon"></i>
+            <span class="sp-item-text">${item}</span>
+          </div>
+        `).join('');
+        initLucideIcons();
+        
+        list.querySelectorAll('.sp-item').forEach(el => {
+          el.addEventListener('click', () => {
+            input.value = el.dataset.text;
+            closePage();
+          });
+        });
+      }
+
+      renderList();
+
+      function openPage(){ page.style.display = 'block'; setTimeout(()=> input.focus(), 30); }
+      function closePage(){ page.style.display = 'none'; }
+
+      btnSearch?.addEventListener('click', openPage);
+      back?.addEventListener('click', closePage);
+      document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closePage(); });
+      
+      // ===== 프리 기본 선택 설정 =====
+      const freelanceChip = document.querySelector('[data-role="emp"][data-value="freelance"]');
+      if(freelanceChip && !freelanceChip.classList.contains('active')) {
+        // 모든 버튼의 active 클래스 제거
+        document.querySelectorAll('[data-role="emp"]').forEach(chip => {
+          chip.classList.remove('active');
+        });
+        // 프리 버튼에 active 클래스 추가
+        freelanceChip.classList.add('active');
+        // 프리에 해당하는 세율 적용
+        const rateDeduct = document.getElementById('rateDeduct');
+        const rateLocal = document.getElementById('rateLocal');
+        if(rateDeduct) rateDeduct.textContent = '3.0%';
+        if(rateLocal) rateLocal.textContent = '0.3%';
+        console.log('프리 기본 선택됨');
+      }
+      
+      // ===== 각 기능별 초기화 함수 호출 =====
+      setTimeout(() => {
+        initPayslipPreview(); // 급여명세서 미리보기 기능
+        initTabSwitching();   // 탭 전환 기능
+        initCalendar();       // 달력 기능
+        initSiteSelect();     // 현장 선택 기능
+      }, 100);
+      
+      console.log('통합 DOMContentLoaded 이벤트 리스너 완료');
     });
     
     /* ===== 버튼 클릭 효과 초기화 ===== */
@@ -2680,7 +2880,8 @@
     
     // 급여명세서 미리보기 기능
     function updatePreviewData() {
-      console.log('미리보기 데이터 업데이트 시작');
+      console.log('=== 미리보기 데이터 업데이트 시작 ===');
+      console.log('updatePreviewData 함수 호출됨');
       try {
         // 월 표시 업데이트 (직전월) - 새로운 HTML 구조에 맞게 수정
         const payslipSubdate = document.getElementById('payslipSubdate');
@@ -2697,21 +2898,32 @@
         // 급여 정보 요약 업데이트
         updatePaySummary();
         
-        // 작성자명 업데이트 (홈의 작성자 데이터 우선) - 새로운 HTML 구조에 맞게 수정
-        const employeeNameTd = document.querySelector('.payslip table.tbl tbody tr td:nth-child(2)');
-        if(employeeNameTd) {
-          const homeAuthor = localStorage.getItem('homeAuthorName');
-          const employeeNameEl = document.getElementById('employeeName');
-          const fallback = employeeNameEl ? employeeNameEl.value : '이노피앤씨';
-          employeeNameTd.textContent = homeAuthor && homeAuthor.trim().length > 0 ? homeAuthor : fallback;
+        // 작성자명 업데이트 (홈의 작성자 데이터 우선)
+        const employeeNameEl = document.getElementById('payslip-employee-name');
+        if(employeeNameEl) {
+          const homeAuthor = localStorage.getItem('inopnc_author');
+          const employeeNameInput = document.getElementById('employeeName');
+          const fallback = employeeNameInput ? employeeNameInput.value : '이노피앤씨';
+          const finalName = homeAuthor && homeAuthor.trim().length > 0 ? homeAuthor : fallback;
+          employeeNameEl.textContent = finalName;
+          console.log('급여명세서 성명 업데이트:', {
+            homeAuthor,
+            fallback,
+            finalName,
+            element: employeeNameEl
+          });
+        } else {
+          console.error('성명 셀을 찾을 수 없습니다: payslip-employee-name');
         }
-        // 지급일 업데이트 (해당 월 10일) - 새로운 HTML 구조에 맞게 수정
-        const payDateTd = document.querySelector('.payslip table.tbl tbody tr td:nth-child(4)');
-        if(payDateTd) {
+        
+        // 지급일 업데이트 (현재년-월 "10일")
+        const payDateEl = document.getElementById('payslip-pay-date');
+        if(payDateEl) {
           const now = new Date();
           const year = now.getFullYear();
           const month = String(now.getMonth() + 1).padStart(2, '0');
-          payDateTd.textContent = `${year}.${month}.10`;
+          payDateEl.textContent = `${year}.${month}.10`;
+          console.log('지급일 업데이트:', `${year}.${month}.10`);
         }
         // 홈에서 입력한 공수 데이터 가져오기
         const workLogData = JSON.parse(localStorage.getItem('workLogData') || '[]');
@@ -2720,92 +2932,118 @@
           return sum + (parseInt(item.men) || 1);
         }, 0);
         
-        // 기본급 계산 (개선된 파싱 함수 사용)
+        // 기본급 계산 (급여 정보 입력의 기본급(자동) 데이터만 사용)
         const baseAdminEl = document.getElementById('baseAdmin');
-        const baseManualEl = document.getElementById('baseManual');
         const baseAdmin = baseAdminEl ? parseNumber(baseAdminEl.value) : 0;
-        const baseManual = baseManualEl ? parseNumber(baseManualEl.value) : 0;
-        // 기본급 결정 (직접입력이 있으면 그것을 사용, 없으면 설정값 사용)
-        const basePay = baseManual > 0 ? baseManual : baseAdmin;
         
-        console.log('미리보기 기본급 파싱 결과:', {
+        // 기본급 결정 (급여 정보 입력의 기본급(자동) 데이터만 사용)
+        // 기본급(직접입력)은 무시하고 기본급(자동)만 사용
+        const basePay = baseAdmin;
+        
+        console.log('급여명세서 기본급 파싱 결과:', {
           baseAdminElValue: baseAdminEl ? baseAdminEl.value : 'null',
-          baseManualElValue: baseManualEl ? baseManualEl.value : 'null',
           baseAdmin: baseAdmin,
-          baseManual: baseManual,
           basePay: basePay,
-          totalWorkDays: totalWorkDays
+          totalWorkDays: totalWorkDays,
+          totalWorkHours: totalWorkHours,
+          note: '기본급(자동) 필드의 값만 사용하여 계산'
         });
         const totalGross = basePay * totalWorkHours; // 공수 합산값으로 계산
-        // 고용형태에 따른 세율 적용
+        // 고용형태에 따른 세율 적용 (급여 정보 입력박스의 고용형태 선택박스에 입력된 % 반영)
         const activeEmpChip = document.querySelector('[data-role="emp"].active');
         let empType = 'freelance';
-        let incomeTaxRate = 0.03;
-        let localTaxRate = 0.003;
+        let incomeTaxRate = 0.033;  // 기본값 3.3%
+        let localTaxRate = 0.0033;  // 지방소득세 0.33%
+        
         if(activeEmpChip) {
           empType = activeEmpChip.dataset.value || 'freelance';
-          switch(empType) {
-            case 'freelance':
-              incomeTaxRate = 0.03;  // 소득세 3%
-              localTaxRate = 0.003;  // 지방소득세 0.3%
-              break;
-            case 'daily':
-              incomeTaxRate = 0.06;  // 소득세 6%
-              localTaxRate = 0.006;  // 지방소득세 0.6%
-              break;
-            case 'regular':
-              // 상용의 경우 직접입력 버튼 텍스트에서 값 가져오기
-              const manualChip = document.querySelector('[data-role="emp"][data-value="manual"]');
-              const regularRate = manualChip ? parseFloat(manualChip.textContent.replace(/[^0-9.]/g, '')) || 15.42 : 15.42;
-              incomeTaxRate = regularRate / 100;  // 소득세
-              localTaxRate = incomeTaxRate * 0.1; // 지방소득세 (소득세의 10%)
-              break;
-            case 'manual':
-              // 직접입력의 경우 현재 입력된 값 사용
-              const manualRateEl = document.querySelector('[data-role="emp"][data-value="manual"]');
-              if(manualRateEl) {
-                const manualRate = parseFloat(manualRateEl.textContent.replace(/[^0-9.]/g, '')) || 0;
-                incomeTaxRate = manualRate / 100;
-                localTaxRate = 0;
-              }
-              break;
+          
+          // 고용형태 선택박스에 입력된 %를 직접 반영
+          const chipText = activeEmpChip.textContent.trim();
+          const rateMatch = chipText.match(/(\d+\.?\d*)/);
+          
+          if(rateMatch) {
+            const inputRate = parseFloat(rateMatch[1]);
+            incomeTaxRate = inputRate / 100;  // %를 소수로 변환
+            localTaxRate = incomeTaxRate * 0.1; // 지방소득세 (소득세의 10%)
+          } else {
+            // 기본값 사용
+            switch(empType) {
+              case 'freelance':
+                incomeTaxRate = 0.033;  // 소득세 3.3%
+                localTaxRate = 0.0033;  // 지방소득세 0.33%
+                break;
+              case 'daily':
+                incomeTaxRate = 0.06;  // 소득세 6%
+                localTaxRate = 0.006;  // 지방소득세 0.6%
+                break;
+              default:
+                incomeTaxRate = 0.033;  // 기본값 3.3%
+                localTaxRate = 0.0033;  // 지방소득세 0.33%
+            }
           }
         }
         const incomeTax = Math.round(totalGross * incomeTaxRate);
         const localTax = Math.round(totalGross * localTaxRate);
         const totalDeduction = incomeTax + localTax;
+        // 실지급액: 지급액 - 공제액 데이터 표기
         const netPay = totalGross - totalDeduction;
-        // 미리보기 업데이트 (새로운 HTML 구조에 맞게 수정)
-        // 기본급 업데이트
-        const basicPayTd = document.querySelector('.payslip table.tbl tbody tr:nth-child(1) td:nth-child(2)');
-        if(basicPayTd) basicPayTd.textContent = totalGross.toLocaleString();
+        
+        console.log('급여명세서 계산 결과:', {
+          basePay,
+          totalWorkHours,
+          totalGross,
+          incomeTax,
+          localTax,
+          totalDeduction,
+          netPay,
+          empType
+        });
+        
+        // 미리보기 업데이트 (ID 기반으로 변경)
+        // 기본급 업데이트 (급여정보요약표의 기본급 데이터 사용)
+        const basicPayEl = document.getElementById('payslip-basic-pay');
+        if(basicPayEl) {
+          // 급여정보요약표의 기본급 데이터를 가져와서 사용
+          const summaryBasePayEl = document.getElementById('summaryBasePay');
+          const summaryBasePayValue = summaryBasePayEl ? summaryBasePayEl.textContent : '0원';
+          basicPayEl.textContent = summaryBasePayValue;
+          console.log('급여명세서 기본급 지급금액 업데이트:', {
+            급여정보요약표기본급: summaryBasePayValue,
+            실제공수일: totalWorkHours + '일',
+            기본급자동: basePay.toLocaleString() + '원'
+          });
+        }
         
         // 지급액 계 업데이트
-        const totalPayTd = document.querySelector('.payslip table.tbl tbody tr:nth-child(2) td:nth-child(2)');
-        if(totalPayTd) totalPayTd.textContent = totalGross.toLocaleString();
+        const totalPayEl = document.getElementById('payslip-total-pay');
+        if(totalPayEl) totalPayEl.textContent = totalGross.toLocaleString();
         
         // 소득세 업데이트
-        const incomeTaxTd = document.querySelector('.payslip table.tbl tbody tr:nth-child(1) td:nth-child(4)');
-        if(incomeTaxTd) incomeTaxTd.textContent = incomeTax.toLocaleString();
+        const incomeTaxEl = document.getElementById('payslip-income-tax');
+        if(incomeTaxEl) incomeTaxEl.textContent = incomeTax.toLocaleString();
         
         // 지방소득세 업데이트
-        const localTaxTd = document.querySelector('.payslip table.tbl tbody tr:nth-child(2) td:nth-child(4)');
-        if(localTaxTd) localTaxTd.textContent = localTax.toLocaleString();
+        const localTaxEl = document.getElementById('payslip-local-tax');
+        if(localTaxEl) localTaxEl.textContent = localTax.toLocaleString();
         
         // 공제액 계 업데이트
-        const totalDeductionTd = document.querySelector('.payslip table.tbl tbody tr:nth-child(3) td:nth-child(4)');
-        if(totalDeductionTd) totalDeductionTd.textContent = totalDeduction.toLocaleString();
+        const totalDeductionEl = document.getElementById('payslip-total-deduction');
+        if(totalDeductionEl) totalDeductionEl.textContent = totalDeduction.toLocaleString();
         
         // 실지급액 업데이트
-        const netPayTd = document.querySelector('.payslip table.tbl tbody tr:nth-child(3) td:nth-child(2)');
-        if(netPayTd) netPayTd.textContent = netPay.toLocaleString();
+        const netPayEl = document.getElementById('payslip-net-pay');
+        if(netPayEl) netPayEl.textContent = netPay.toLocaleString();
         
-        // 계산방법 업데이트
-        const calcMethodTd = document.querySelector('.payslip table.tbl:last-child tbody tr td:nth-child(2)');
-        if(calcMethodTd) calcMethodTd.textContent = `${totalWorkHours} × ${basePay.toLocaleString()}`;
+        // 산출식 또는 산출방법 업데이트 (홈의 공수 입력값 실시간 반영)
+        const calcMethodEl = document.getElementById('payslip-calculation-method');
+        if(calcMethodEl) {
+          // 기본급(자동) 필드의 값을 실시간으로 반영 (텍스트 제거)
+          calcMethodEl.textContent = `${totalWorkHours} × ${basePay.toLocaleString()}`;
+        }
         
-        const calcAmountTd = document.querySelector('.payslip table.tbl:last-child tbody tr td:nth-child(3)');
-        if(calcAmountTd) calcAmountTd.textContent = totalGross.toLocaleString();
+        const calcAmountEl = document.getElementById('payslip-calculation-amount');
+        if(calcAmountEl) calcAmountEl.textContent = totalGross.toLocaleString();
         console.log('미리보기 데이터 업데이트 완료:', {
           totalGross,
           incomeTax,
@@ -2897,6 +3135,7 @@
         e.preventDefault();
         console.log('미리보기 버튼 클릭됨');
         try {
+          // 급여명세서 데이터 업데이트
           updatePreviewData();
           const previewDock = document.getElementById('previewDock');
           if(previewDock) {
@@ -2934,6 +3173,14 @@
     const empChips = document.querySelectorAll('[data-role="emp"]');
     if(baseAdminEl) {
       baseAdminEl.addEventListener('input', (e) => {
+        formatInputField(e.target);
+        // 기본급(자동) 값 변경 시 급여 명세서표 실시간 업데이트
+        updatePreviewData();
+        console.log('기본급(자동) 값 변경됨:', e.target.value);
+      });
+      
+      // 포커스 아웃 시에도 업데이트
+      baseAdminEl.addEventListener('blur', (e) => {
         formatInputField(e.target);
         updatePreviewData();
       });
@@ -3159,156 +3406,48 @@
     window.checkAdminApproval = checkAdminApproval;
     console.log('급여명세서 기능 초기화 완료');
 </script>
-  <!-- ===== 하단 네비게이터 ===== -->
-  <nav class="bottom-nav-wrap">
-    <div class="bottom-nav">
-      <ul class="nav-list">
-        <li class="nav-item"><a class="nav-link" data-route="home" href="home.html"><span class="nav-ico"><i data-lucide="home" class="nav-svg"></i></span><span class="nav-label">홈</span></a></li>
-        <li class="nav-item"><a class="nav-link" data-route="worklog" href="worklog.html"><span class="nav-ico"><i data-lucide="calculator" class="nav-svg"></i></span><span class="nav-label">출력현황</span></a></li>
-        <li class="nav-item"><a class="nav-link active" data-route="worklog" href="worklog.html"><span class="nav-ico"><i data-lucide="clipboard-list" class="nav-svg"></i></span><span class="nav-label">작업일지</span></a></li>
-        <li class="nav-item"><a class="nav-link" data-route="sites" href="#sites"><span class="nav-ico"><i data-lucide="map" class="nav-svg"></i></span><span class="nav-label">현장정보</span></a></li>
-        <li class="nav-item"><a class="nav-link" data-route="docs" href="#docs"><span class="nav-ico"><i data-lucide="folder" class="nav-svg"></i></span><span class="nav-label">문서함</span></a></li>
-      </ul>
-    </div>
-  </nav>
+  <!-- ===== 하단 네비게이터 (공용) ===== -->
+  <div id="bottom-nav-slot"></div>
   <script>
-    // Lucide 아이콘 초기화 함수
-    function initLucideIcons() {
-      if (window.lucide && window.lucide.createIcons) {
-        window.lucide.createIcons();
-      }
-    }
-    // Theme toggle
-    const root = document.documentElement;
-    const themeBtn = document.getElementById('btnTheme');
-    const themeIcon = document.getElementById('themeIcon');
-    const THEME_KEY = 'inopnc_theme';
-    function setTheme(mode){
-      root.setAttribute('data-theme', mode);
-      try{ localStorage.setItem(THEME_KEY, mode); }catch(e){}
-      themeIcon && themeIcon.setAttribute('data-lucide', mode === 'dark' ? 'sun' : 'moon');
-      if(typeof initLucideIcons === 'function') {
-        initLucideIcons();
-    }
-      console.log('테마 변경:', mode);
-    }
-    // 초기 테마 설정
-    setTheme(localStorage.getItem(THEME_KEY) || 'light');
-    // 테마 버튼 이벤트 리스너
-    themeBtn && themeBtn.addEventListener('click', ()=>{
-      setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-    });
-    // ===== 글씨 크기 스위치 =====
-    document.addEventListener('DOMContentLoaded', () => {
-      const FS_KEY = 'inopnc_fontscale';
-      const fsNormal = document.getElementById('fsNormal');
-      const fsLarge  = document.getElementById('fsLarge');
-      function applyFontScale(mode){
-        document.body.classList.remove('fs-100','fs-150');
-        document.body.classList.add(mode);
-        fsNormal?.classList.toggle('active', mode === 'fs-100');
-        fsLarge?.classList.toggle('active',  mode === 'fs-150');
-        try{ localStorage.setItem(FS_KEY, mode); }catch(e){}
-        console.log('글씨 크기 변경:', mode);
-      }
-      // 초기 글씨 크기 설정
-      applyFontScale(localStorage.getItem(FS_KEY) || 'fs-100');
-      // 글씨 크기 버튼 이벤트 리스너
-      fsNormal?.addEventListener('click', ()=>applyFontScale('fs-100'));
-      fsLarge?.addEventListener('click', ()=>applyFontScale('fs-150'));
-      // 프리 기본 선택 설정
-      const freelanceChip = document.querySelector('[data-role="emp"][data-value="freelance"]');
-      if(freelanceChip && !freelanceChip.classList.contains('active')) {
-        // 모든 버튼의 active 클래스 제거
-        document.querySelectorAll('[data-role="emp"]').forEach(chip => {
-          chip.classList.remove('active');
+    // 네비게이터 동기화는 공용 JS로 이동
+    // 글씨 크기 스위치는 공용 JS로 이동
+    // 프리 기본 선택 설정 (통합된 DOMContentLoaded에서 처리됨)
+    // 검색 페이지와 알림 기능은 공용 JS로 이동
+    // 네비게이터 동기화는 공용 JS로 이동
+    
+    // 페이지 로드 시 성명 업데이트
+    function updateAuthorName() {
+      const employeeNameTd = document.querySelector('.payslip table:nth-child(1) tbody tr td:nth-child(2)');
+      if(employeeNameTd) {
+        const homeAuthor = localStorage.getItem('inopnc_author');
+        const employeeNameEl = document.getElementById('employeeName');
+        const fallback = employeeNameEl ? employeeNameEl.value : '이노피앤씨';
+        const finalName = homeAuthor && homeAuthor.trim().length > 0 ? homeAuthor : fallback;
+        employeeNameTd.textContent = finalName;
+        console.log('페이지 로드 시 성명 업데이트:', {
+          homeAuthor,
+          fallback,
+          finalName
         });
-        // 프리 버튼에 active 클래스 추가
-        freelanceChip.classList.add('active');
-        // 프리에 해당하는 세율 적용
-        const rateDeduct = document.getElementById('rateDeduct');
-        const rateLocal = document.getElementById('rateLocal');
-        if(rateDeduct) rateDeduct.textContent = '3.0%';
-        if(rateLocal) rateLocal.textContent = '0.3%';
-        console.log('프리 기본 선택됨');
       }
-    });
-    // ===== 검색 페이지 (현장명) =====
-    document.addEventListener('DOMContentLoaded', () => {
-      const btnSearch = document.getElementById('btnSearch');
-      const page = document.getElementById('searchPage');
-      const back = document.getElementById('spBack');
-      const input = document.getElementById('spInput');
-      const list = document.getElementById('spList');
-      // 최근 검색어 예시(현장명)
-      const keywords = [
-        "포항환호1BL","포항환호2BL","디에이치방배","위례자이더시티","과천지식정보타운","송도더샵프라임뷰","검단신도시AA10"
-      ];
-      function renderList(){
-        list.innerHTML = '';
-        keywords.forEach((k, idx) => {
-            const row = document.createElement('div');
-            row.className = 'sp-row';
-            row.innerHTML = `<span class="sp-num">${idx+1}</span><span class="sp-item">${k}</span>`;
-          list.appendChild(row);
-          });
-      }
-      renderList();
-      function openPage(){
-        page.style.display = 'block';
-        setTimeout(()=> input.focus(), 30);
-        console.log('검색 페이지 열림');
-      }
-      function closePage(){
-        page.style.display = 'none';
-        console.log('검색 페이지 닫힘');
-        }
-      btnSearch?.addEventListener('click', openPage);
-      back?.addEventListener('click', closePage);
-      document.addEventListener('keydown', (e)=>{
-        if(e.key === 'Escape') closePage();
-      });
-    });
-    // 알림 벨 애니메이션
-    const notificationBtn = document.getElementById('notificationBtn');
-    notificationBtn && notificationBtn.addEventListener('click', ()=>{
-      notificationBtn.classList.remove('bell-ringing');
-      notificationBtn.classList.add('bell-ringing');
-      setTimeout(() => {
-        notificationBtn.classList.remove('bell-ringing');
-      }, 1000);
-      console.log('알림 버튼 클릭됨');
-    });
-    // 하단 네비 active 동기화
-    function syncNav() {
-      // 현재 페이지에 따라 활성 탭 설정
-      const currentPage = window.location.pathname;
-      let activeRoute = 'home'; // 기본값
-      if (currentPage.includes('worklog.html')) {
-        activeRoute = 'worklog';
-      } else if (currentPage.includes('home.html')) {
-        activeRoute = 'home';
-      } else if (currentPage.includes('output')) {
-        activeRoute = 'output';
-      } else if (currentPage.includes('sites')) {
-        activeRoute = 'sites';
-      } else if (currentPage.includes('docs')) {
-        activeRoute = 'docs';
-      }
-      // 모든 네비게이터 링크를 순회하며, 현재 페이지와 일치하는 링크에 'active' 클래스를 부여합니다.
-      document.querySelectorAll('.nav-link').forEach(a => {
-        a.classList.toggle('active', a.dataset.route === activeRoute);
-      });
-      console.log('네비게이션 동기화 완료:', activeRoute);
     }
-    // 페이지 로드 시 실행
-    syncNav();
-    // URL 해시가 변경될 때마다 실행 (예: 사용자가 다른 탭을 클릭할 때)
-    window.addEventListener('hashchange', syncNav);
+    
+    // DOM 로드 완료 후 성명 업데이트 및 급여명세서 자동 업데이트
+    // updateAuthorName과 updatePreviewData는 통합된 DOMContentLoaded에서 호출됨
+    
+    // 급여명세서 강제 업데이트 함수 (디버깅용)
+    function forceUpdatePayslip() {
+      console.log('=== 급여명세서 강제 업데이트 시작 ===');
+      updatePreviewData();
+    }
+    
+    // 글로벌 함수로 등록 (콘솔에서 호출 가능)
+    window.forceUpdatePayslip = forceUpdatePayslip;
+    
   </script>
   <script>
     // ===== 급여명세서 미리보기 기능 =====
-    document.addEventListener('DOMContentLoaded', function() {
+    function initPayslipPreview() {
       console.log('급여명세서 미리보기 기능 초기화 시작');
       // ===== 100% 기준(가로에 딱 맞춤), - 100% + 형태로 표시, 확대 시 100% 이상 가능 =====
       const previewDock = document.getElementById('previewDock');
@@ -3426,12 +3565,12 @@
       }, 100);
       
       console.log('급여명세서 미리보기 기능 초기화 완료');
-    });
+    }
   </script>
   
   <script>
     // ===== 라인 탭 전환 =====
-    document.addEventListener('DOMContentLoaded', function() {
+    function initTabSwitching() {
       console.log('탭 전환 기능 초기화 시작');
       
       const tabBtns  = document.querySelectorAll('.line-tab');
@@ -3540,12 +3679,12 @@
       })();
       
       console.log('탭 전환 기능 초기화 완료');
-    });
+    }
   </script>
   
   <script>
     // ===== 달력 기능 =====
-    document.addEventListener('DOMContentLoaded', function() {
+    function initCalendar() {
       const btnPrev = document.getElementById('btnPrev');
       const btnNext = document.getElementById('btnNext');
       const ymBtn = document.getElementById('ymBtn');
@@ -3845,10 +3984,10 @@
         const workLogData = JSON.parse(localStorage.getItem('workLogData') || '[]');
         updateMonthlyStats(currentDate.getFullYear(), currentDate.getMonth(), workLogData);
       });
-    });
+    }
     
     // ===== 현장 선택 드롭다운 기능 =====
-    document.addEventListener('DOMContentLoaded', function() {
+    function initSiteSelect() {
       const siteSelect = document.getElementById('siteSelect');
       const selectDisplay = document.getElementById('selectDisplay');
       
@@ -3859,7 +3998,7 @@
           console.log('선택된 현장:', selectedOption.text);
         });
       }
-    });
+    }
   </script>
 
   <!-- ========== 햄버거 드로어 ========== -->
@@ -3892,11 +4031,11 @@
     .menu-item-with-btn .menu-item{padding:0; border-bottom:none;}
     [data-theme="dark"] .menu-item-with-btn{border-color:#1E293B; background-color:#FFFFFF;}
     .close-btn{background-color:#ffffff; color:#000000; border:1px solid #e0e0e0; border-radius:6px; padding:8px 16px; font-family:'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:all 0.3s ease; box-shadow:0 1px 3px rgba(0,0,0,0.1);}
-    .close-btn:hover{background-color:#f5f5f5; border-color:#d0d0d0;}
+    .close-btn:hover{background-color:#f5f8fd; border-color:#d0d0d0;}
     [data-theme="dark"] .close-btn{background-color:#2a2a2a; color:#ffffff; border-color:#404040;}
     [data-theme="dark"] .close-btn:hover{background-color:#3a3a3a; border-color:#505050;}
     .account-manage-btn{background-color:#ffffff; color:#000000; border:1px solid #e0e0e0; border-radius:6px; padding:8px 16px; font-family:'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; font-size:14px; font-weight:500; cursor:pointer; transition:all 0.3s ease; box-shadow:0 1px 3px rgba(0,0,0,0.1);}
-    .account-manage-btn:hover{background-color:#f5f5f5; border-color:#d0d0d0;}
+    .account-manage-btn:hover{background-color:#f5f8fd; border-color:#d0d0d0;}
     [data-theme="dark"] .account-manage-btn{background-color:#2a2a2a; color:#ffffff; border-color:#404040;}
     [data-theme="dark"] .account-manage-btn:hover{background-color:#3a3a3a; border-color:#505050;}
     .account-info{padding:12px 0; border-bottom:1px solid #E5E7EB;}
@@ -3971,11 +4110,6 @@
       </div>
       <input type="file" id="avatarUpload" accept="image/*" aria-hidden="true" />
       <ul class="menu-list">
-        <li><a class="menu-item" href="home.html"><span class="menu-label">홈</span></a></li>
-        <li><a class="menu-item" href="worklog.html"><span class="menu-label">출력현황</span></a></li>
-        <li><a class="menu-item" href="home.html"><span class="menu-label">작업일지</span></a></li>
-        <li><a class="menu-item" href="현장정보.html"><span class="menu-label">현장정보</span></a></li>
-        <li><a class="menu-item" href="home.html"><span class="menu-label">문서함</span></a></li>
         <li class="menu-item-with-btn">
           <a class="menu-item" href="home.html"><span class="menu-label">내정보</span></a>
           <button class="account-manage-btn" id="accountManageBtn">계정관리</button>
