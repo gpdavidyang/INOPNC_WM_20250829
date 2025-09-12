@@ -426,70 +426,245 @@ export default function HomeTabComplete({ profile, onTabChange }: HomeTabProps) 
         </div>
       </section>
 
-      {/* Work Content Section - 작업내용 */}
+      {/* Work Content Section - 작업내용기록 */}
       <section style={{ marginBottom: '12px' }}>
-        <h3 style={{
-          fontSize: '17px',
-          fontWeight: 700,
-          color: '#1A254F',
-          marginBottom: '8px',
-          fontFamily: 'var(--font-sans)'
-        }}>
-          작업내용
-        </h3>
         <div style={{
           backgroundColor: '#fff',
           border: '1px solid #E6ECF4',
           borderRadius: '14px',
           padding: '14px'
         }}>
-          <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-            <input
-              type="text"
-              placeholder="부재명"
-              value={workPart}
-              onChange={(e) => setWorkPart(e.target.value)}
-              style={{
-                flex: 1,
-                height: '44px',
-                padding: '0 12px',
-                border: '1px solid #E6ECF4',
-                borderRadius: '8px',
-                fontSize: '15px',
-                fontFamily: 'var(--font-sans)'
-              }}
-            />
-            <input
-              type="text"
-              placeholder="공정"
-              value={workProcess}
-              onChange={(e) => setWorkProcess(e.target.value)}
-              style={{
-                flex: 1,
-                height: '44px',
-                padding: '0 12px',
-                border: '1px solid #E6ECF4',
-                borderRadius: '8px',
-                fontSize: '15px',
-                fontFamily: 'var(--font-sans)'
-              }}
-            />
+          <h3 style={{
+            fontSize: '17px',
+            fontWeight: 700,
+            color: '#1A254F',
+            marginBottom: '12px',
+            fontFamily: 'var(--font-sans)'
+          }}>
+            작업내용기록
+          </h3>
+          
+          {/* 부재명 */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>부재명</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              {['슬라브', '거더', '기둥'].map((item) => (
+                <button
+                  key={item}
+                  onClick={(e) => {
+                    const btn = e.currentTarget;
+                    const isActive = btn.getAttribute('data-active') === 'true';
+                    btn.setAttribute('data-active', !isActive ? 'true' : 'false');
+                    btn.style.backgroundColor = !isActive ? '#2563eb' : '#ffffff';
+                    btn.style.color = !isActive ? '#ffffff' : '#000000';
+                    btn.style.borderColor = !isActive ? '#2563eb' : '#E6ECF4';
+                  }}
+                  data-active="false"
+                  style={{
+                    flex: 1,
+                    height: '48px',
+                    backgroundColor: '#ffffff',
+                    color: '#000000',
+                    border: '1px solid #E6ECF4',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    minWidth: 0
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+              <input
+                type="text"
+                placeholder="기타 직접입력"
+                style={{
+                  flex: 1,
+                  height: '48px',
+                  padding: '0 12px',
+                  border: '1px solid #E6ECF4',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  minWidth: 0
+                }}
+              />
+            </div>
           </div>
-          <input
-            type="text"
-            placeholder="작업위치"
-            value={workArea}
-            onChange={(e) => setWorkArea(e.target.value)}
-            style={{
-              width: '100%',
-              height: '44px',
-              padding: '0 12px',
-              border: '1px solid #E6ECF4',
-              borderRadius: '8px',
-              fontSize: '15px',
-              fontFamily: 'var(--font-sans)'
-            }}
-          />
+          
+          {/* 작업공정 */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>작업공정</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              {['균열', '면', '마감'].map((item) => (
+                <button
+                  key={item}
+                  onClick={(e) => {
+                    const btn = e.currentTarget;
+                    const isActive = btn.getAttribute('data-active') === 'true';
+                    btn.setAttribute('data-active', !isActive ? 'true' : 'false');
+                    btn.style.backgroundColor = !isActive ? '#2563eb' : '#ffffff';
+                    btn.style.color = !isActive ? '#ffffff' : '#000000';
+                    btn.style.borderColor = !isActive ? '#2563eb' : '#E6ECF4';
+                  }}
+                  data-active="false"
+                  style={{
+                    flex: 1,
+                    height: '48px',
+                    backgroundColor: '#ffffff',
+                    color: '#000000',
+                    border: '1px solid #E6ECF4',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    minWidth: 0
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+              <input
+                type="text"
+                placeholder="기타 직접입력"
+                style={{
+                  flex: 1,
+                  height: '48px',
+                  padding: '0 12px',
+                  border: '1px solid #E6ECF4',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  minWidth: 0
+                }}
+              />
+            </div>
+          </div>
+          
+          {/* 구분선 */}
+          <div style={{ borderTop: '1px solid #E6ECF4', margin: '24px auto', width: '98%' }}></div>
+          
+          {/* 작업구간 */}
+          <h3 style={{
+            fontSize: '17px',
+            fontWeight: 700,
+            color: '#1A254F',
+            marginBottom: '12px',
+            fontFamily: 'var(--font-sans)'
+          }}>
+            작업구간
+          </h3>
+          
+          {/* 작업유형 */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>작업유형</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              {['지하', '지붕'].map((item) => (
+                <button
+                  key={item}
+                  onClick={(e) => {
+                    const btn = e.currentTarget;
+                    const isActive = btn.getAttribute('data-active') === 'true';
+                    btn.setAttribute('data-active', !isActive ? 'true' : 'false');
+                    btn.style.backgroundColor = !isActive ? '#2563eb' : '#ffffff';
+                    btn.style.color = !isActive ? '#ffffff' : '#000000';
+                    btn.style.borderColor = !isActive ? '#2563eb' : '#E6ECF4';
+                  }}
+                  data-active="false"
+                  data-code={item === '지하' ? 'UG' : 'RF'}
+                  style={{
+                    flex: 1,
+                    height: '48px',
+                    backgroundColor: '#ffffff',
+                    color: '#000000',
+                    border: '1px solid #E6ECF4',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    minWidth: 0
+                  }}
+                >
+                  {item}
+                </button>
+              ))}
+              <input
+                type="text"
+                placeholder="기타 직접입력"
+                style={{
+                  flex: 1,
+                  height: '48px',
+                  padding: '0 12px',
+                  border: '1px solid #E6ECF4',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  minWidth: 0
+                }}
+              />
+            </div>
+          </div>
+          
+          {/* 블럭 / 동 / 호수 */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ fontSize: '14px', color: '#6B7280', marginBottom: '8px' }}>블럭 / 동 / 호수</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%' }}>
+              <input
+                type="text"
+                placeholder="블럭"
+                onInput={(e) => {
+                  const input = e.target as HTMLInputElement;
+                  input.value = input.value.toUpperCase();
+                }}
+                style={{
+                  flex: 1,
+                  height: '48px',
+                  padding: '0 12px',
+                  border: '1px solid #E6ECF4',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  minWidth: 0
+                }}
+              />
+              <input
+                type="number"
+                placeholder="동"
+                min="0"
+                onInput={(e) => {
+                  const input = e.target as HTMLInputElement;
+                  input.value = input.value.replace(/[^0-9]/g, '');
+                }}
+                style={{
+                  flex: 1,
+                  height: '48px',
+                  padding: '0 12px',
+                  border: '1px solid #E6ECF4',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  minWidth: 0
+                }}
+              />
+              <input
+                type="number"
+                placeholder="호수"
+                min="0"
+                onInput={(e) => {
+                  const input = e.target as HTMLInputElement;
+                  input.value = input.value.replace(/[^0-9]/g, '');
+                }}
+                style={{
+                  flex: 1,
+                  height: '48px',
+                  padding: '0 12px',
+                  border: '1px solid #E6ECF4',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  minWidth: 0
+                }}
+              />
+            </div>
+          </div>
         </div>
       </section>
 
