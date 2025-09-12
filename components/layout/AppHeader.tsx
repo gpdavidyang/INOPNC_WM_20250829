@@ -67,7 +67,7 @@ export function AppHeader() {
               onClick={handleLogoClick}
               style={{ 
                 cursor: 'pointer',
-                height: '40px',
+                height: '32px',
                 width: 'auto',
                 objectFit: 'contain'
               }}
@@ -162,7 +162,7 @@ export function AppHeader() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          height: var(--header-h);
+          height: 56px;
           padding: 0 20px;
           width: 100%;
           box-sizing: border-box;
@@ -184,7 +184,7 @@ export function AppHeader() {
         
         .brand-logo {
           display: block;
-          height: 40px;
+          height: 32px;
           width: auto;
           object-fit: contain;
           transition: transform 0.2s ease;
@@ -276,7 +276,7 @@ export function AppHeader() {
         
         /* Large text mode */
         body.large-text .brand-logo {
-          height: 48px;
+          height: 36px;
         }
         
         body.large-text .header-icon-btn .icon-text {

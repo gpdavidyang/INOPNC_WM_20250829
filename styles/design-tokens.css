@@ -63,7 +63,7 @@
   --gap: 12px;         /* Default gap */
   
   /* Layout Heights */
-  --header-h: 80px;    /* Header height */
+  --header-h: 56px;    /* Header height - matches base.html */
   --nav-h: 72px;       /* Bottom navigation height */
   
   /* Shadows */
