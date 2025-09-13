@@ -1,7 +1,7 @@
 'use server'
 
 import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired } from './common'
-import { Site, SiteStatus } from '@/types'
+import { Site, SiteStatus, Profile } from '@/types'
 
 export interface CreateSiteData {
   name: string
