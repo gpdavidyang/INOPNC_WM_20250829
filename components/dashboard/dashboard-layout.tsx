@@ -8,7 +8,8 @@ import { Home, Calendar, FileText, FolderOpen, User as UserIcon, MapPin } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import Sidebar from './sidebar'
 import Header from './header'
-import HomeTab from './tabs/home-tab'
+import HomeTabNew from './tabs/home-tab-new'
+import MobileDashboardLayout from './mobile-dashboard-layout'
 import {
   LazyWorkLogsTab,
   LazyDocumentsTabUnified,
@@ -92,6 +93,13 @@ export default function DashboardLayout({ user, profile, children, initialActive
     )
   }
 
+  // Use mobile layout for mobile roles (worker, site_manager, customer_manager)
+  const isMobileRole = profile.role === 'worker' || profile.role === 'site_manager' || profile.role === 'customer_manager'
+  
+  if (isMobileRole) {
+    return <MobileDashboardLayout user={user} profile={profile}>{children}</MobileDashboardLayout>
+  }
+
   // Navigation items - mobile nav removed temporarily
 
 
@@ -111,31 +119,19 @@ export default function DashboardLayout({ user, profile, children, initialActive
     
     switch (activeTab) {
       case 'home':
-        return <HomeTab 
-          profile={profile} 
-          onTabChange={setActiveTab}
-          onDocumentsSearch={setDocumentsInitialSearch}
-        />
+        return <HomeTabNew />
       case 'daily-reports':
-        return <LazyWorkLogsTab profile={profile} />
+        return <LazyWorkLogsTab />
       case 'attendance':
         // 지연 로딩으로 성능 개선
         return <LazyAttendanceTab profile={profile} />
       case 'documents':
         // Show fallback content while navigation happens
-        return <HomeTab 
-          profile={profile} 
-          onTabChange={setActiveTab}
-          onDocumentsSearch={setDocumentsInitialSearch}
-        />
+        return <HomeTabNew />
       case 'site-info':
         // Site info has its own dedicated page at /dashboard/site-info
         // This case shouldn't normally be reached when using the dedicated page
-        return <HomeTab 
-          profile={profile} 
-          onTabChange={setActiveTab}
-          onDocumentsSearch={setDocumentsInitialSearch}
-        />
+        return <HomeTabNew />
       case 'blueprint-markup':
         // Should not reach here - dedicated page at /dashboard/markup
         return <div className="p-4">Loading markup editor...</div>

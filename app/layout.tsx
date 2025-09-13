@@ -1,22 +1,6 @@
 import type { Metadata } from "next";
-import { Poppins, Noto_Sans_KR } from 'next/font/google';
 import "./globals.css";
 import "./fonts.css"; // Font optimization for production quality
-
-// Font configurations for mobile UI upgrade
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['600', '700', '800'],
-  variable: '--font-poppins',
-  display: 'swap',
-});
-
-const notoSansKR = Noto_Sans_KR({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-noto-kr',
-  display: 'swap',
-});
 // import "@/styles/sunlight-mode.css"; // Sunlight Mode CSS 비활성화
 // import "@/styles/font-optimization.css"; // 폰트 최적화 CSS 비활성화
 import { AuthProvider } from "@/providers/auth-provider";
@@ -121,6 +105,18 @@ export default async function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
+        {/* Google Fonts for Design System */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link 
+          href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap" 
+          rel="stylesheet" 
+        />
+        <link 
+          href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" 
+          rel="stylesheet" 
+        />
+        
         <script dangerouslySetInnerHTML={{
           __html: `
             // Suppress Chrome extension console errors in development

@@ -5,6 +5,9 @@
 /* Import INOPNC Design System Tokens */
 @import '../styles/design-tokens.css';
 
+/* Import Component Styles */
+@import '../styles/components.css';
+
 /* ========================================
    MOBILE UI UPGRADE - DESIGN TOKENS
    HTML mockup integration layer
