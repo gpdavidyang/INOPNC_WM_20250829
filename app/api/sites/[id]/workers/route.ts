@@ -61,7 +61,7 @@ export async function GET(
       p_role_filter: roleFilter,
       p_limit: limit,
       p_offset: offset
-    });
+    } as any);
 
     if (error) throw error;
 
@@ -127,7 +127,7 @@ export async function POST(
       p_assignment_type: assignmentType,
       p_notes: notes,
       p_assigned_by: user?.id || null
-    });
+    } as any);
 
     if (error) throw error;
 
