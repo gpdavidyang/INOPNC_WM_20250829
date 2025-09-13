@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     
     console.log('[TEST-PROD-LOGIN] Sample users:', { 
       count: users?.length || 0,
-      users: users?.map(u => ({ email: u.email, role: u.role })),
+      users: users?.map((u: any) => ({ email: u.email, role: u.role })),
       error: usersError?.message
     })
     
