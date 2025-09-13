@@ -536,7 +536,7 @@ export async function approveSignupRequest(
         .from('sites')
         .select('name')
         .in('id', siteIds)
-      siteNames = sites?.map(s => s.name) || []
+      siteNames = sites?.map((s: any) => s.name) || []
     }
 
     // Create profile with proper partner_company_id for customer_manager
