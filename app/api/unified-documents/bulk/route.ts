@@ -212,12 +212,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(request: NextRequest) {
   try {
     const supabase = createClient()
-    const { id } = params
     const body = await request.json()
-    const { action, ...actionData } = body
+    const { id, action, ...actionData } = body
 
     // 인증 확인
     const { data: { user }, error: authError } = await supabase.auth.getUser()
