@@ -800,7 +800,7 @@ function CoreFilesSection({
       alert(`${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}가 삭제되었습니다.`)
     } catch (error) {
       console.error('Delete error:', error)
-      alert(`파일 삭제에 실패했습니다: ${error.message}`)
+      alert(`파일 삭제에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
     }
   }
 

@@ -65,7 +65,6 @@ export default function WorkerCalendarClient({
       <PageHeader 
         title={`${workerName} - ${year}년 ${month}월 근무 캘린더`}
         subtitle="작업자의 월별 근무 일정과 시간을 확인하세요"
-        showBreadcrumbs={false}
       />
       
       <div className="px-8 py-8" style={{ minWidth: '1536px' }}>

@@ -161,7 +161,7 @@ export default async function SiteDocumentsPage({ params }: PageProps) {
 
       {/* Document Management Section */}
       <Suspense fallback={<DocumentManagementSkeleton />}>
-        <SiteDocumentManagement profile={profile} />
+        <SiteDocumentManagement siteId={params.id} siteName={site?.name} />
       </Suspense>
     </div>
   )
