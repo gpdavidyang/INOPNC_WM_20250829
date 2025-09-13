@@ -91,7 +91,7 @@ export async function getCurrentUserSiteDeploymentSafe() {
     const allCookies = cookieStore.getAll()
     
     // Find the Supabase auth token cookie
-    const authCookie = allCookies.find(c => 
+    const authCookie = allCookies.find((c: any) => 
       c.name.includes('sb-') && c.name.includes('-auth-token')
     )
     
@@ -339,7 +339,7 @@ export async function getUserSiteHistoryDeploymentSafe() {
       if (!error && data) {
         return {
           success: true,
-          data: data.map(assignment => formatSiteData(assignment.sites, assignment))
+          data: data.map((assignment: any) => formatSiteData(assignment.sites, assignment))
         }
       }
     }
