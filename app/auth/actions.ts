@@ -477,8 +477,8 @@ export async function approveSignupRequest(
     }
     
     // Validate required assignments based on role
-    if ((role === 'worker' || role === 'site_manager') && !organizationId) {
-      return { error: '작업자와 현장관리자는 소속 업체가 필요합니다.' }
+    if (role === 'worker' && !organizationId) {
+      return { error: '작업자는 소속 업체가 필요합니다.' }
     }
     
     if (role === 'worker' && (!siteIds || siteIds.length === 0)) {
