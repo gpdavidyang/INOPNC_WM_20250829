@@ -301,7 +301,7 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
         .eq('user_id', user.id)
         .order('report_date', { ascending: false })
 
-      const thisMonthReports = workLogs?.filter(log => 
+      const thisMonthReports = workLogs?.filter((log: any) => 
         new Date(log.report_date) >= startOfMonth
       ).length || 0
 
