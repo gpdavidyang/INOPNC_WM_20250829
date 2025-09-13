@@ -361,8 +361,8 @@ export async function getDailyProductionStatus(date?: string) {
     }
 
     // 통계 계산
-    const totalProduced = dailyProduction?.reduce((sum, record) => sum + Number(record.quantity_produced), 0) || 0
-    const totalCost = dailyProduction?.reduce((sum, record) => sum + Number(record.total_cost || 0), 0) || 0
+    const totalProduced = dailyProduction?.reduce((sum: number, record: any) => sum + Number(record.quantity_produced), 0) || 0
+    const totalCost = dailyProduction?.reduce((sum: number, record: any) => sum + Number(record.total_cost || 0), 0) || 0
     const avgUnitCost = totalProduced > 0 ? totalCost / totalProduced : 0
 
     return {
