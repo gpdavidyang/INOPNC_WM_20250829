@@ -169,7 +169,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
             </Label>
             <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} mt-1 flex items-center gap-2`}>
               <Building2 className="h-4 w-4 text-gray-400" />
-              {profile.organization_id ? 'INOPNC' : '-'}
+              {profile.role === 'admin' ? 'INOPNC' : '-'}
             </p>
           </div>
           
