@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import { getDailyReportById } from '@/app/actions/daily-reports'
 import DailyReportForm from '@/components/daily-reports/daily-report-form'
-import Sidebar from '@/components/dashboard/sidebar'
 import Header from '@/components/dashboard/header'
 import { BottomNavigation, BottomNavItem } from '@/components/ui/bottom-navigation'
 import { NavigationController } from '@/components/navigation/navigation-controller'
@@ -151,23 +150,20 @@ export default async function EditDailyReportPage({
       </div>
 
       {/* Desktop View */}
-      <div className="hidden lg:flex min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Sidebar />
-        <div className="flex-1">
-          <Header />
-          <main className="p-6">
-            <div className="max-w-4xl mx-auto">
-              <DailyReportForm
-                mode="edit"
-                reportData={report as any}
-                currentUser={profile as any}
-                sites={sites || []}
-                materials={materials || []}
-                workers={workers as any || []}
-              />
-            </div>
-          </main>
-        </div>
+      <div className="hidden lg:block">
+        <Header />
+        <main className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+          <div className="max-w-4xl mx-auto">
+            <DailyReportForm
+              mode="edit"
+              reportData={report as any}
+              currentUser={profile as any}
+              sites={sites || []}
+              materials={materials || []}
+              workers={workers as any || []}
+            />
+          </div>
+        </main>
       </div>
     </>
     </NavigationController>
