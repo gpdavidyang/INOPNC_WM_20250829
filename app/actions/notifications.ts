@@ -283,10 +283,10 @@ export async function getNotificationPreferences() {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
-    const { data, error } = await supabase
-      .from('user_notification_preferences' as any)
+    const { data, error } = await (supabase
+      .from('user_notification_preferences')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', user.id) as any)
 
     if (error && error.code !== 'PGRST116') throw error // PGRST116: no rows returned
 
@@ -317,18 +317,18 @@ export async function updateNotificationPreference(
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
-    const { data, error } = await supabase
-      .from('user_notification_preferences' as any)
+    const { data, error } = await (supabase
+      .from('user_notification_preferences')
       .upsert({
         user_id: user.id,
         notification_type: notificationType,
         ...settings,
         updated_at: new Date().toISOString()
-      }, {
+      } as any, {
         onConflict: 'user_id,notification_type'
       })
       .select()
-      .single()
+      .single() as any)
 
     validateSupabaseResponse(data, error)
 
