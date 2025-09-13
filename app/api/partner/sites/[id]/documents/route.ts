@@ -93,7 +93,7 @@ export async function GET(
     }
 
     // Transform documents for frontend
-    const transformedDocuments = (documents || []).map(doc => ({
+    const transformedDocuments = (documents || []).map((doc: any) => ({
       id: doc.id,
       type: mapDocumentType(doc.category_type, doc.sub_type),
       name: doc.file_name,
@@ -110,7 +110,7 @@ export async function GET(
     }))
 
     // Group documents by type for statistics
-    const documentStats = transformedDocuments.reduce((acc, doc) => {
+    const documentStats = transformedDocuments.reduce((acc: any, doc: any) => {
       const type = doc.categoryType || 'other'
       acc[type] = (acc[type] || 0) + 1
       return acc
