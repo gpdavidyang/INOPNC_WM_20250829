@@ -61,7 +61,7 @@ export async function POST(
 
     // Create assignments for each worker with their actual role
     const assignments = worker_ids.map(workerId => {
-      const workerProfile = workerProfiles?.find(p => p.id === workerId)
+      const workerProfile = workerProfiles?.find((p: any) => p.id === workerId)
       // Map the user's role to a valid site assignment role
       let assignmentRole = 'worker'
       if (workerProfile?.role === 'site_manager') {

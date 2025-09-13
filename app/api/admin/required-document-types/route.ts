@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     let filteredData = data || []
 
     if (roleType || siteId) {
-      filteredData = data?.filter(docType => {
+      filteredData = data?.filter((docType: any) => {
         if (roleType) {
           const hasRoleMapping = docType.role_mappings?.some(
             (mapping: any) => mapping.role_type === roleType && mapping.is_required

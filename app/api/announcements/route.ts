@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     if (targetWorkers?.length) {
       // Create notifications for all target workers
-      const notifications = targetWorkers.map(worker => ({
+      const notifications = targetWorkers.map((worker: any) => ({
         user_id: worker.id,
         type: priority === 'urgent' ? 'error' : priority === 'high' ? 'warning' : 'info',
         title: `📢 ${title}`,
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       // Send push notifications
       try {
         await notificationHelpers.sendSiteAnnouncement(
-          targetWorkers.map(w => w.id),
+          targetWorkers.map((w: any) => w.id),
           title,
           content,
           priority,
@@ -206,14 +206,14 @@ export async function GET(request: NextRequest) {
 
     // Mark announcements as read for the user
     const unreadIds = announcements
-      ?.filter(a => !a.read_status?.length)
-      .map(a => a.id) || []
+      ?.filter((a: any) => !a.read_status?.length)
+      .map((a: any) => a.id) || []
 
     if (unreadIds.length > 0) {
       await supabase
         .from('announcement_reads')
         .insert(
-          unreadIds.map(announcementId => ({
+          unreadIds.map((announcementId: any) => ({
             announcement_id: announcementId,
             user_id: user.id,
             read_at: new Date().toISOString()

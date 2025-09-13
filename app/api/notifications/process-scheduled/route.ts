@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const results = await Promise.allSettled(
-      scheduledNotifications.map(async (notification) => {
+      scheduledNotifications.map(async (notification: any) => {
         try {
           // Mark as processing
           await supabase
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Filter users based on notification preferences
-          const eligibleUsers = targetUsers.filter(user => {
+          const eligibleUsers = targetUsers.filter((user: any) => {
             const prefs = user.notification_preferences || {}
             
             // Check if push notifications are enabled
@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
               const currentMinutes = now.getMinutes()
               const currentTime = currentHour * 60 + currentMinutes
               
-              const [startHour, startMin] = (prefs.quiet_hours_start || '22:00').split(':').map(Number)
-              const [endHour, endMin] = (prefs.quiet_hours_end || '08:00').split(':').map(Number)
+              const [startHour, startMin] = (prefs.quiet_hours_start || '22:00').split(':').map((x: any) => Number(x))
+              const [endHour, endMin] = (prefs.quiet_hours_end || '08:00').split(':').map((x: any) => Number(x))
               const startTime = startHour * 60 + startMin
               const endTime = endHour * 60 + endMin
               
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
           })
 
           // Send push notifications
-          const sendPromises = eligibleUsers.map(async (user) => {
+          const sendPromises = eligibleUsers.map(async (user: any) => {
             try {
               const subscription = JSON.parse(user.push_subscription)
               const prefs = user.notification_preferences || {}
@@ -229,7 +229,7 @@ export async function POST(request: NextRequest) {
           })
 
           const sendResults = await Promise.allSettled(sendPromises)
-          const successCount = sendResults.filter(r => r.status === 'fulfilled' && r.value.success).length
+          const successCount = sendResults.filter((r: any) => r.status === 'fulfilled' && r.value.success).length
 
           // Mark scheduled notification as completed
           await supabase
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
     )
 
     const processed = results.length
-    const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length
+    const successful = results.filter((r: any) => r.status === 'fulfilled' && r.value.success).length
     const failed = processed - successful
 
     return NextResponse.json({
@@ -281,7 +281,7 @@ export async function POST(request: NextRequest) {
         processed,
         successful,
         failed,
-        results: results.map(r => r.status === 'fulfilled' ? r.value : { success: false, error: r.reason })
+        results: results.map((r: any) => r.status === 'fulfilled' ? r.value : { success: false, error: r.reason })
       }
     })
 

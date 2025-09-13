@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
           console.warn('Site membership lookup failed, falling back to organization filter:', sitesError)
           // Fall back to organization-level access
         } else if (assignedSites && assignedSites.length > 0) {
-          const siteIds = assignedSites.map(s => s.site_id)
+          const siteIds = assignedSites.map((s: any) => s.site_id)
           query = query.in('site_id', siteIds)
         } else {
           // Site manager with no assigned sites - return empty result
@@ -192,7 +192,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Group metrics by type if no specific type requested
-    const groupedMetrics = metricType ? data : data?.reduce((acc, metric) => {
+    const groupedMetrics = metricType ? data : data?.reduce((acc: any, metric: any) => {
       if (!acc[metric.metric_type]) {
         acc[metric.metric_type] = []
       }
@@ -405,10 +405,10 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ success: true })
-      } catch (metricError) {
+      } catch (metricError: any) {
         console.error('Performance metric storage exception:', {
-          error: metricError.message,
-          stack: metricError.stack,
+          error: metricError?.message || 'Unknown error',
+          stack: metricError?.stack,
           type,
           metric,
           timestamp: new Date().toISOString()
@@ -449,11 +449,11 @@ export async function POST(request: NextRequest) {
 
     // Check if aggregation function exists before calling
     try {
-      const { error } = await supabase.rpc('aggregate_daily_analytics', {
+      const { error } = await (supabase.rpc('aggregate_daily_analytics', {
         p_organization_id: profile.organization_id,
         p_site_id: siteId || null,
         p_date: date || new Date().toISOString().split('T')[0]
-      })
+      } as any) as any)
 
       if (error) {
         const errorInfo = error instanceof Error ? {

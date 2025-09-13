@@ -140,16 +140,16 @@ export async function POST(request: NextRequest) {
       .from('notification_logs')
       .select('user_id')
       .gte('sent_at', oneHourAgo)
-      .in('user_id', targetUsers.map(u => u.id))
+      .in('user_id', targetUsers.map((u: any) => u.id))
     
     // Count notifications per user
     const notificationCounts: Record<string, number> = {}
-    recentNotifications?.forEach(log => {
+    recentNotifications?.forEach((log: any) => {
       notificationCounts[log.user_id] = (notificationCounts[log.user_id] || 0) + 1
     })
 
     // Filter users based on their notification preferences
-    const eligibleUsers = targetUsers.filter(user => {
+    const eligibleUsers = targetUsers.filter((user: any) => {
       if (!user.push_subscription) return false
       
       const prefs = user.notification_preferences || {}
@@ -203,8 +203,8 @@ export async function POST(request: NextRequest) {
         const currentMinutes = now.getMinutes()
         const currentTime = currentHour * 60 + currentMinutes
         
-        const [startHour, startMin] = (prefs.quiet_hours_start || '22:00').split(':').map(Number)
-        const [endHour, endMin] = (prefs.quiet_hours_end || '08:00').split(':').map(Number)
+        const [startHour, startMin] = (prefs.quiet_hours_start || '22:00').split(':').map((x: any) => Number(x))
+        const [endHour, endMin] = (prefs.quiet_hours_end || '08:00').split(':').map((x: any) => Number(x))
         const startTime = startHour * 60 + startMin
         const endTime = endHour * 60 + endMin
         
@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Send push notifications
-    const notificationPromises = eligibleUsers.map(async (user) => {
+    const notificationPromises = eligibleUsers.map(async (user: any) => {
       try {
         const subscription = JSON.parse(user.push_subscription)
         const prefs = user.notification_preferences || {}
@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
     })
 
     const results = await Promise.allSettled(notificationPromises)
-    const successCount = results.filter(r => r.status === 'fulfilled' && r.value.success).length
+    const successCount = results.filter((r: any) => r.status === 'fulfilled' && r.value.success).length
     const failureCount = results.length - successCount
 
     return NextResponse.json({

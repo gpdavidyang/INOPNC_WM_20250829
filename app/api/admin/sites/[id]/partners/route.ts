@@ -93,7 +93,7 @@ export async function GET(
     const totalPartners = partners?.length || 0
     const totalInvoiceDocuments = invoiceDocuments?.length || 0
     
-    const documentsByPartner = invoiceDocuments?.reduce((acc, doc) => {
+    const documentsByPartner = invoiceDocuments?.reduce((acc: any, doc: any) => {
       const partnerId = doc.customer_company_id || 'unassigned'
       const partnerName = partnerId === 'unassigned' ? '미배정' : `Partner ${partnerId.slice(0, 8)}`
       

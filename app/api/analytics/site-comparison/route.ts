@@ -63,11 +63,11 @@ export const GET = withApiMonitoring(
         })
       }
 
-      const siteNames = sites.map(site => site.name)
-      const siteIds = sites.map(site => site.id)
+      const siteNames = sites.map((site: any) => site.name)
+      const siteIds = sites.map((site: any) => site.id)
 
       // Get worker count per site
-      const workerCountPromises = siteIds.map(async (siteId) => {
+      const workerCountPromises = siteIds.map(async (siteId: any) => {
         const { data: reports } = await supabase
           .from('daily_reports')
           .select('created_by')
@@ -75,12 +75,12 @@ export const GET = withApiMonitoring(
           .gte('created_at', fromDate.toISOString())
           .lte('created_at', toDate.toISOString())
 
-        const uniqueWorkers = new Set(reports?.map(r => r.created_by) || [])
+        const uniqueWorkers = new Set(reports?.map((r: any) => r.created_by) || [])
         return uniqueWorkers.size
       })
 
       // Get daily reports count per site
-      const dailyReportsPromises = siteIds.map(async (siteId) => {
+      const dailyReportsPromises = siteIds.map(async (siteId: any) => {
         const { data: reports } = await supabase
           .from('daily_reports')
           .select('id')
@@ -98,8 +98,8 @@ export const GET = withApiMonitoring(
       ])
 
       // Generate mock data for material usage and productivity
-      const materialUsage = siteIds.map(() => Math.floor(Math.random() * 30) + 70) // 70-100%
-      const productivity = siteIds.map(() => Math.floor(Math.random() * 20) + 80) // 80-100 points
+      const materialUsage = siteIds.map((_: any) => Math.floor(Math.random() * 30) + 70) // 70-100%
+      const productivity = siteIds.map((_: any) => Math.floor(Math.random() * 20) + 80) // 80-100 points
 
       const comparisonData = {
         siteNames,
@@ -119,6 +119,5 @@ export const GET = withApiMonitoring(
         { status: 500 }
       )
     }
-  },
-  { name: 'getSiteComparison' }
+  }
 )

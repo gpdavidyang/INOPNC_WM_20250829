@@ -12,7 +12,7 @@ const REQUIRED_DOCUMENTS = [
   'senior_documents' // 고령자 서류
 ]
 
-const DOCUMENT_LABELS = {
+const DOCUMENT_LABELS: Record<string, string> = {
   'medical_checkup': '배치전 검진 결과서',
   'safety_education': '기초안전보건교육이수증',
   'vehicle_insurance': '차량 보험증',
@@ -62,7 +62,7 @@ export async function GET(
 
     // Create a map of document status
     const documentStatus = REQUIRED_DOCUMENTS.reduce((acc, docType) => {
-      const doc = documents?.find(d => d.document_type === docType)
+      const doc = documents?.find((d: any) => d.document_type === docType)
       acc[docType] = {
         label: DOCUMENT_LABELS[docType],
         uploaded: !!doc,

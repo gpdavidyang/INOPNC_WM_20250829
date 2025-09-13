@@ -135,7 +135,7 @@ export async function getCurrentUserSite() {
 
     // Convert to the expected format
     const site = assignment.sites
-    const siteData = {
+    const siteData: any = {
       site_id: site.id,
       site_name: site.name,
       site_address: site.address,
@@ -182,11 +182,11 @@ export async function getCurrentUserSite() {
         log('getCurrentUserSite: Found documents:', documents?.length || 0)
         
         // Add documents to site data using the getSiteDocumentsPTWAndBlueprint logic
-        const ptwDocument = documents?.find(doc => 
+        const ptwDocument = documents?.find((doc: any) => 
           doc.document_type === 'ptw' ||
           (doc.title && (doc.title.includes('PTW') || doc.title.includes('작업허가서')))
         )
-        const blueprintDocument = documents?.find(doc => 
+        const blueprintDocument = documents?.find((doc: any) => 
           doc.document_type === 'blueprint' ||
           doc.document_type === 'drawing' ||
           (doc.title && (doc.title.includes('도면') || doc.title.includes('blueprint')))
@@ -300,7 +300,7 @@ export async function getUserSiteHistory() {
     }
 
     // Convert to the expected format
-    const historyData = data?.map(assignment => {
+    const historyData = data?.map((assignment: any) => {
       const site = assignment.sites
       return {
         site_id: site.id,

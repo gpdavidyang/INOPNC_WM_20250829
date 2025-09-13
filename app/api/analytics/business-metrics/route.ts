@@ -71,7 +71,7 @@ export const GET = withApiMonitoring(
         .gte('created_at', fromDate.toISOString())
         .lte('created_at', toDate.toISOString())
 
-      const activeWorkerIds = [...new Set(activeWorkersData?.map(r => r.created_by) || [])]
+      const activeWorkerIds = Array.from(new Set(activeWorkersData?.map((r: any) => r.created_by) || []))
 
       // Get daily reports count
       const { data: dailyReportsData } = await supabase
@@ -117,7 +117,7 @@ export const GET = withApiMonitoring(
         .gte('created_at', previousFromDate.toISOString())
         .lte('created_at', previousToDate.toISOString())
 
-      const prevActiveWorkerIds = [...new Set(prevActiveWorkersData?.map(r => r.created_by) || [])]
+      const prevActiveWorkerIds = Array.from(new Set(prevActiveWorkersData?.map((r: any) => r.created_by) || []))
 
       const { data: prevDailyReportsData } = await supabase
         .from('daily_reports')
@@ -158,6 +158,5 @@ export const GET = withApiMonitoring(
         { status: 500 }
       )
     }
-  },
-  { name: 'getBusinessMetrics' }
+  }
 )

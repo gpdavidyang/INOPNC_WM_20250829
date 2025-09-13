@@ -185,8 +185,8 @@ export async function POST(request: NextRequest) {
     const markup_count = Array.isArray(markup_data) ? markup_data.length : 0
 
     // markup_documents 테이블에 문서 생성
-    const { data: document, error } = await supabase
-      .from('markup_documents' as any)
+    const { data: document, error } = await (supabase
+      .from('markup_documents')
       .insert({
         title,
         description,
@@ -198,9 +198,9 @@ export async function POST(request: NextRequest) {
         site_id: (profile as any).site_id,
         markup_count,
         file_size: 0 // TODO: 실제 파일 크기 계산
-      })
+      } as any)
       .select()
-      .single()
+      .single() as any)
 
     if (error) {
       console.error('Error creating markup document:', error)

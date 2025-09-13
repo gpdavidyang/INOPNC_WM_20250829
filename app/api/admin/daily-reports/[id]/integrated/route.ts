@@ -113,7 +113,7 @@ export async function GET(
       .limit(10)
 
     // Calculate labor statistics
-    const workerStats = reportData.worker_assignments?.reduce((stats, assignment) => {
+    const workerStats = reportData.worker_assignments?.reduce((stats: any, assignment: any) => {
       stats.total_workers++
       stats.total_hours += assignment.labor_hours || 0
       stats.total_overtime += assignment.overtime_hours || 0
@@ -148,7 +148,7 @@ export async function GET(
     }
 
     // Organize documents by type
-    const documentsByType = reportData.unified_documents?.reduce((acc, doc) => {
+    const documentsByType = reportData.unified_documents?.reduce((acc: any, doc: any) => {
       const type = doc.document_type
       if (!acc[type]) acc[type] = []
       acc[type].push(doc)
@@ -156,7 +156,7 @@ export async function GET(
     }, {} as Record<string, any[]>) || {}
 
     // Get primary customer
-    const primaryCustomer = reportData.sites?.customer_sites?.find(cs => cs.is_primary_customer)
+    const primaryCustomer = reportData.sites?.customer_sites?.find((cs: any) => cs.is_primary_customer)
 
     // Calculate material usage
     const materialUsage = {
@@ -176,7 +176,7 @@ export async function GET(
       },
       site: reportData.sites,
       primary_customer: primaryCustomer?.customer_companies,
-      all_customers: reportData.sites?.customer_sites?.map(cs => ({
+      all_customers: reportData.sites?.customer_sites?.map((cs: any) => ({
         ...cs.customer_companies,
         relationship_type: cs.relationship_type,
         is_primary_customer: cs.is_primary_customer
@@ -185,7 +185,7 @@ export async function GET(
       worker_statistics: workerStats,
       documents: documentsByType,
       document_counts: Object.entries(documentsByType).reduce((acc, [type, docs]) => {
-        acc[type] = docs.length
+        acc[type] = (docs as any[]).length
         return acc
       }, {} as Record<string, number>),
       material_usage: materialUsage,

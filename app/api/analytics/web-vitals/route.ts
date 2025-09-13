@@ -70,7 +70,7 @@ export const GET = withApiMonitoring(
       // Aggregate the latest values for each metric
       const latestValues: Record<string, number> = {}
       
-      webVitalsData?.forEach(row => {
+      webVitalsData?.forEach((row: any) => {
         const metricName = row.metric_type.replace('web_vitals_', '').toUpperCase()
         if (!latestValues[metricName] || row.created_at > latestValues[metricName + '_time']) {
           latestValues[metricName] = row.metric_value
@@ -79,7 +79,7 @@ export const GET = withApiMonitoring(
       })
 
       // Format response data
-      const webVitals: WebVitalData[] = Object.keys(THRESHOLDS).map(metricName => {
+      const webVitals: WebVitalData[] = Object.keys(THRESHOLDS).map((metricName: any) => {
         const value = latestValues[metricName] || 0
         const threshold = THRESHOLDS[metricName as keyof typeof THRESHOLDS]
         
@@ -99,6 +99,5 @@ export const GET = withApiMonitoring(
         { status: 500 }
       )
     }
-  },
-  { name: 'getWebVitals' }
+  }
 )

@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     
-    const debugInfo = {
+    const debugInfo: any = {
       timestamp: new Date().toISOString(),
       environment: {
         NODE_ENV: process.env.NODE_ENV,

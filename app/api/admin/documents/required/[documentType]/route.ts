@@ -81,7 +81,7 @@ export async function GET(request: NextRequest, { params }: DocumentTypeRoutePar
 
     // Filter documents by document type
     // Check both tags and sub_category for document type matching
-    const filteredDocuments = documents?.filter(doc => {
+    const filteredDocuments = documents?.filter((doc: any) => {
       const docType = (doc.tags && doc.tags.length > 0) ? doc.tags[0] : (doc.sub_category || 'unknown')
       return docType === documentType
     }) || []
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest, { params }: DocumentTypeRoutePar
     console.log('Document type filter API - Sample filtered document:', filteredDocuments[0])
 
     // Transform data to match the expected format
-    const transformedDocuments = filteredDocuments.map(doc => ({
+    const transformedDocuments = filteredDocuments.map((doc: any) => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,
