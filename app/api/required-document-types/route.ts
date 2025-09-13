@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     console.log('Required document types API - Found documents:', documents?.length || 0)
 
     // Transform to expected format for documents-tab.tsx
-    const transformedDocuments = (documents || []).map(doc => ({
+    const transformedDocuments = (documents || []).map((doc: any) => ({
       id: doc.id,
       code: doc.document_type || doc.id,
       name_ko: doc.requirement_name,
