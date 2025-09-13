@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch categories' }, { status: 500 })
     }
 
-    let categoryStats = {}
+    let categoryStats: Record<string, { total: number; active: number }> = {}
     
     if (includeStats) {
       // 카테고리별 문서 통계 조회
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       const { data: statsData, error: statsError } = await statsQuery
 
       if (!statsError && statsData) {
-        categoryStats = statsData.reduce((acc: any, doc: any) => {
+        categoryStats = statsData.reduce((acc: Record<string, { total: number; active: number }>, doc: any) => {
           if (!acc[doc.category_type]) {
             acc[doc.category_type] = {
               total: 0,
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
             acc[doc.category_type].active += 1
           }
           return acc
-        }, {} as Record<string, { total: number; active: number }>)
+        }, {})
       }
     }
 
