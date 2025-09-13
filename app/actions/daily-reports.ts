@@ -848,7 +848,7 @@ export async function deleteAdditionalPhoto(photoId: string) {
     const isManager = profile?.role && ['admin', 'system_admin', 'site_manager'].includes(profile.role)
 
     if (!isOwner && !isManager) {
-      throw new AppError('사진을 삭제할 권한이 없습니다.', ErrorType.FORBIDDEN, 403)
+      throw new AppError('사진을 삭제할 권한이 없습니다.', ErrorType.AUTHORIZATION, 403)
     }
 
     // Delete from storage
