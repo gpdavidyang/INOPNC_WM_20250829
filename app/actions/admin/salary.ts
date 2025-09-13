@@ -913,7 +913,7 @@ export async function getAvailableWorkersForSalary(): Promise<AdminActionResult<
       }
 
       // Transform data to match expected format
-      const transformedWorkers = (workers || []).map(worker => ({
+      const transformedWorkers = (workers || []).map((worker: any) => ({
         id: worker.id,
         name: worker.full_name
       }))
@@ -1080,7 +1080,7 @@ export async function getOutputSummary(
       }
 
       // Transform to output format 
-      const outputData: OutputSummary[] = Object.values(workSummary).map(item => {
+      const outputData: OutputSummary[] = Object.values(workSummary).map((item: any) => {
         const workDatesArray = Array.from(item.work_days).sort()
         
         return {
