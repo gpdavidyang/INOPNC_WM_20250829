@@ -16,10 +16,10 @@ export async function getCurrentUserSite() {
     
     // 배포 환경에서 쿠키 상태 확인
     try {
-      const { data: session } = await supabase.auth.getSession()
+      const { data: sessionData } = await supabase.auth.getSession()
       log('getCurrentUserSite: Session check result:', { 
-        hasSession: !!session,
-        hasAccessToken: !!session?.access_token,
+        hasSession: !!sessionData?.session,
+        hasAccessToken: !!sessionData?.session?.access_token,
         env: process.env.NODE_ENV
       })
     } catch (sessionError) {
