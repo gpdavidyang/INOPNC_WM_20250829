@@ -281,7 +281,7 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
 
       // Create status for each required document type
       const documents = REQUIRED_DOCUMENT_TYPES.map(docType => {
-        const doc = userDocs?.find(d => d.document_type === docType)
+        const doc = userDocs?.find((d: any) => d.document_type === docType)
         return {
           document_type: docType,
           document_name: doc?.original_filename || null,
