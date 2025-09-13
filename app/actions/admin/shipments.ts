@@ -378,9 +378,9 @@ export async function getPendingShipmentRequests() {
     }
 
     // 긴급도별 분류
-    const urgentRequests = pendingRequests?.filter(req => req.urgency === 'emergency') || []
-    const highPriorityRequests = pendingRequests?.filter(req => req.urgency === 'urgent') || []
-    const normalRequests = pendingRequests?.filter(req => req.urgency === 'normal') || []
+    const urgentRequests = pendingRequests?.filter((req: any) => req.urgency === 'emergency') || []
+    const highPriorityRequests = pendingRequests?.filter((req: any) => req.urgency === 'urgent') || []
+    const normalRequests = pendingRequests?.filter((req: any) => req.urgency === 'normal') || []
 
     return {
       success: true,
