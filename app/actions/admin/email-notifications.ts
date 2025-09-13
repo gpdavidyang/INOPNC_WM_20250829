@@ -415,7 +415,7 @@ export async function sendWelcomeEmail(
   userName: string,
   tempPassword: string,
   userRole: UserRole
-): Promise<AdminActionResult<void>> {
+): Promise<AdminActionResult<{ id: string; scheduled: boolean }>> {
   return withAdminAuth(async (supabase, profile) => {
     const roleText = {
       worker: '작업자',
@@ -469,7 +469,7 @@ export async function sendPasswordResetEmail(
   userEmail: string,
   userName: string,
   tempPassword: string
-): Promise<AdminActionResult<void>> {
+): Promise<AdminActionResult<{ id: string; scheduled: boolean }>> {
   return withAdminAuth(async (supabase, profile) => {
     const emailData: EmailNotificationData = {
       recipient_email: userEmail,
