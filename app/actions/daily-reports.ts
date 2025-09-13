@@ -868,7 +868,7 @@ export async function deleteAdditionalPhoto(photoId: string) {
       .eq('id', photoId)
 
     if (deleteError) {
-      throw new AppError('사진 삭제에 실패했습니다.', ErrorType.DATABASE, 500)
+      throw new AppError('사진 삭제에 실패했습니다.', ErrorType.SERVER_ERROR, 500)
     }
 
     // Reorder remaining photos
@@ -931,7 +931,7 @@ export async function getAdditionalPhotos(reportId: string) {
       .order('upload_order', { ascending: true })
 
     if (error) {
-      throw new AppError('사진 목록 조회에 실패했습니다.', ErrorType.DATABASE, 500)
+      throw new AppError('사진 목록 조회에 실패했습니다.', ErrorType.SERVER_ERROR, 500)
     }
 
     const beforePhotos: AdditionalPhotoData[] = []
