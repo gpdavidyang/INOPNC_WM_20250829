@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Return sites in the format expected by the frontend
-    const formattedSites = (sites || []).map(site => ({
+    const formattedSites = (sites || []).map((site: any) => ({
       id: site.id,
       name: site.name,
       address: site.address,
