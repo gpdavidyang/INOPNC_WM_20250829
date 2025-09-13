@@ -109,7 +109,7 @@ export async function sendBulkEmailNotifications(
           .eq('status', 'active')
 
         if (users) {
-          recipients = users.map(user => ({
+          recipients = users.map((user: any) => ({
             email: user.email,
             name: user.full_name,
             role: user.role
@@ -144,7 +144,7 @@ export async function sendBulkEmailNotifications(
       }
 
       // Create bulk email notifications
-      const notifications = recipients.map(recipient => ({
+      const notifications = recipients.map((recipient: any) => ({
         recipient_email: recipient.email,
         recipient_name: recipient.name,
         subject: data.subject,
