@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 
 interface AuditLogSystemProps {
-  profile: Profile
+  profile?: Profile
 }
 
 interface AuditLog {
