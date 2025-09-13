@@ -14,14 +14,14 @@ export async function getMaterials() {
   try {
     const supabase = createClient()
     
-    const { data, error } = await supabase
-      .from('materials' as any)
+    const { data, error } = await (supabase
+      .from('materials')
       .select(`
         *,
         category:material_categories(id, name)
       `)
       .eq('is_active', true)
-      .order('name')
+      .order('name') as any)
 
     validateSupabaseResponse(data, error)
 
@@ -40,10 +40,10 @@ export async function getMaterialCategories() {
   try {
     const supabase = createClient()
     
-    const { data, error } = await supabase
-      .from('material_categories' as any)
+    const { data, error } = await (supabase
+      .from('material_categories')
       .select('*')
-      .order('name')
+      .order('name') as any)
 
     validateSupabaseResponse(data, error)
 
@@ -123,14 +123,14 @@ export async function getMaterialInventory(siteId: string) {
   try {
     const supabase = createClient()
     
-    const { data, error } = await supabase
-      .from('material_inventory' as any)
+    const { data, error } = await (supabase
+      .from('material_inventory')
       .select(`
         *,
         material:materials(id, name, code, specification, unit, min_stock_level)
       `)
       .eq('site_id', siteId)
-      .order('material_id')
+      .order('material_id') as any)
 
     if (error) throw error
 
@@ -146,24 +146,24 @@ export async function getNPC1000Inventory(siteId?: string) {
     const supabase = createClient()
     
     // First get the NPC-1000 material ID
-    const { data: npcMaterial } = await supabase
-      .from('materials' as any)
+    const { data: npcMaterial } = await (supabase
+      .from('materials')
       .select('id')
       .eq('code', 'NPC-1000')
-      .single()
+      .single() as any)
 
     if (!npcMaterial) {
       return { success: false, error: 'NPC-1000 material not found' }
     }
 
-    let query = supabase
-      .from('material_inventory' as any)
+    let query = (supabase
+      .from('material_inventory')
       .select(`
         *,
         material:materials(name, code, specification, unit),
         site:sites(id, name, address)
       `)
-      .eq('material_id', (npcMaterial as any).id)
+      .eq('material_id', (npcMaterial as any).id)) as any
 
     if (siteId) {
       query = query.eq('site_id', siteId)
@@ -193,19 +193,19 @@ export async function updateMaterialStock(
     if (!user) throw new Error('Unauthorized')
 
     // Get current stock
-    const { data: currentInventory } = await supabase
-      .from('material_inventory' as any)
+    const { data: currentInventory } = await (supabase
+      .from('material_inventory')
       .select('current_stock')
       .eq('site_id', siteId)
       .eq('material_id', materialId)
-      .single()
+      .single() as any)
 
     const currentStock = (currentInventory as any)?.current_stock || 0
     const difference = newStock - currentStock
 
     // Create adjustment transaction
-    const { error: transactionError } = await supabase
-      .from('material_transactions' as any)
+    const { error: transactionError } = await (supabase
+      .from('material_transactions')
       .insert({
         transaction_type: 'adjustment',
         site_id: siteId,
@@ -214,7 +214,7 @@ export async function updateMaterialStock(
         notes: notes || `Stock adjustment: ${currentStock} → ${newStock}`,
         transaction_date: new Date().toISOString().split('T')[0],
         created_by: user.id
-      })
+      } as any) as any)
 
     if (transactionError) throw transactionError
 
@@ -252,16 +252,16 @@ export async function createMaterialTransaction(transactionData: {
       transactionData.site_id = transactionData.to_site_id!
     }
 
-    const { data, error } = await supabase
-      .from('material_transactions' as any)
+    const { data, error } = await (supabase
+      .from('material_transactions')
       .insert({
         ...transactionData,
         transaction_date: new Date().toISOString().split('T')[0],
         created_by: user.id,
         total_price: transactionData.unit_price ? transactionData.unit_price * transactionData.quantity : undefined
-      })
+      } as any)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
@@ -283,8 +283,8 @@ export async function getMaterialTransactions(filters: {
   try {
     const supabase = createClient()
     
-    let query = supabase
-      .from('material_transactions' as any)
+    let query = (supabase
+      .from('material_transactions')
       .select(`
         *,
         material:materials(name, code, specification, unit),
@@ -293,7 +293,7 @@ export async function getMaterialTransactions(filters: {
         to_site:to_site_id(name),
         creator:created_by(full_name),
         approver:approved_by(full_name)
-      `)
+      `)) as any
 
     if (filters.site_id) {
       query = query.or(`site_id.eq.${filters.site_id},from_site_id.eq.${filters.site_id},to_site_id.eq.${filters.site_id}`)
@@ -347,8 +347,8 @@ export async function createMaterialRequest(requestData: {
     const request_number = `MR-${new Date().getFullYear()}-${timestamp}`
 
     // Create request
-    const { data: request, error: requestError } = await supabase
-      .from('material_requests' as any)
+    const { data: request, error: requestError } = await (supabase
+      .from('material_requests')
       .insert({
         request_number,
         site_id: requestData.site_id,
@@ -356,9 +356,9 @@ export async function createMaterialRequest(requestData: {
         priority: requestData.priority || 'normal',
         needed_by: requestData.needed_by,
         notes: requestData.notes
-      })
+      } as any)
       .select()
-      .single()
+      .single() as any)
 
     if (requestError) throw requestError
 
@@ -393,8 +393,8 @@ export async function getMaterialRequests(filters: {
   try {
     const supabase = createClient()
     
-    let query = supabase
-      .from('material_requests' as any)
+    let query = (supabase
+      .from('material_requests')
       .select(`
         *,
         site:sites(name),
@@ -404,7 +404,7 @@ export async function getMaterialRequests(filters: {
           *,
           material:materials(name, code, specification, unit)
         )
-      `)
+      `)) as any
 
     if (filters.site_id) {
       query = query.eq('site_id', filters.site_id)
@@ -455,12 +455,12 @@ export async function updateMaterialRequestStatus(
       updates.fulfilled_at = new Date().toISOString()
     }
 
-    const { data, error } = await supabase
-      .from('material_requests' as any)
-      .update(updates)
+    const { data, error } = await (supabase
+      .from('material_requests')
+      .update(updates as any)
       .eq('id', requestId)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
