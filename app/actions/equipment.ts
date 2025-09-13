@@ -19,12 +19,12 @@ export async function getEquipment(filters?: {
     const supabase = createClient()
     
     let query = supabase
-      .from('equipment' as any)
+      .from('equipment')
       .select(`
         *,
         category:equipment_categories(id, name),
         site:sites(id, name)
-      `)
+      `) as any
       .eq('is_active', true)
     
     if (filters?.site_id) {
@@ -56,10 +56,10 @@ export async function getEquipmentCategories() {
   try {
     const supabase = createClient()
     
-    const { data, error } = await supabase
-      .from('equipment_categories' as any)
+    const { data, error } = await (supabase
+      .from('equipment_categories')
       .select('*')
-      .order('name')
+      .order('name') as any)
 
     validateSupabaseResponse(data, error)
 
@@ -88,11 +88,11 @@ export async function createEquipmentCheckout(checkoutData: {
     if (!user) throw new Error('Unauthorized')
 
     // Check if equipment is available
-    const { data: equipment, error: equipmentError } = await supabase
-      .from('equipment' as any)
+    const { data: equipment, error: equipmentError } = await (supabase
+      .from('equipment')
       .select('status')
       .eq('id', checkoutData.equipment_id)
-      .single()
+      .single() as any)
 
     if (equipmentError || !equipment) {
       throw new Error('장비를 찾을 수 없습니다.')
@@ -104,15 +104,15 @@ export async function createEquipmentCheckout(checkoutData: {
       throw new Error('장비가 사용 가능한 상태가 아닙니다.')
     }
 
-    const { data, error } = await supabase
-      .from('equipment_checkouts' as any)
+    const { data, error } = await (supabase
+      .from('equipment_checkouts')
       .insert({
         ...checkoutData,
         checked_out_by: user.id,
         checked_out_at: new Date().toISOString()
-      })
+      } as any)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
@@ -137,16 +137,16 @@ export async function returnEquipment(
     
     if (!user) throw new Error('Unauthorized')
 
-    const { data, error } = await supabase
-      .from('equipment_checkouts' as any)
+    const { data, error } = await (supabase
+      .from('equipment_checkouts')
       .update({
         actual_return_date: new Date().toISOString().split('T')[0],
         checked_in_by: user.id,
         checked_in_at: new Date().toISOString(),
         condition_in: returnData.condition_in,
         damage_notes: returnData.damage_notes
-      })
-      .eq('id', checkoutId)
+      } as any)
+      .eq('id', checkoutId) as any)
       .select()
       .single()
 
@@ -171,14 +171,14 @@ export async function getEquipmentCheckouts(filters?: {
     const supabase = createClient()
     
     let query = supabase
-      .from('equipment_checkouts' as any)
+      .from('equipment_checkouts')
       .select(`
         *,
         equipment:equipment_id(id, code, name),
         checked_out_user:checked_out_by(id, full_name),
         checked_in_user:checked_in_by(id, full_name),
         site:sites(id, name)
-      `)
+      `) as any
 
     if (filters?.equipment_id) {
       query = query.eq('equipment_id', filters.equipment_id)
@@ -223,11 +223,11 @@ export async function createEquipmentMaintenance(maintenanceData: {
     
     if (!user) throw new Error('Unauthorized')
 
-    const { data, error } = await supabase
-      .from('equipment_maintenance' as any)
-      .insert(maintenanceData)
+    const { data, error } = await (supabase
+      .from('equipment_maintenance')
+      .insert(maintenanceData as any)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
@@ -252,12 +252,12 @@ export async function updateEquipmentMaintenance(
   try {
     const supabase = createClient()
     
-    const { data, error } = await supabase
-      .from('equipment_maintenance' as any)
-      .update(updates)
+    const { data, error } = await (supabase
+      .from('equipment_maintenance')
+      .update(updates as any)
       .eq('id', maintenanceId)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
@@ -279,12 +279,12 @@ export async function getEquipmentMaintenance(filters?: {
     const supabase = createClient()
     
     let query = supabase
-      .from('equipment_maintenance' as any)
+      .from('equipment_maintenance')
       .select(`
         *,
         equipment:equipment_id(id, code, name),
         performed_by_user:performed_by(id, full_name)
-      `)
+      `) as any
 
     if (filters?.equipment_id) {
       query = query.eq('equipment_id', filters.equipment_id)
@@ -335,12 +335,12 @@ export async function getWorkerSkillAssignments(workerId?: string) {
     const supabase = createClient()
     
     let query = supabase
-      .from('worker_skill_assignments' as any)
+      .from('worker_skill_assignments')
       .select(`
         *,
         worker:profiles!worker_id(id, full_name),
         skill:worker_skills(id, name, category)
-      `)
+      `) as any
 
     if (workerId) {
       query = query.eq('worker_id', workerId)
@@ -370,11 +370,11 @@ export async function upsertWorkerSkillAssignment(assignmentData: {
   try {
     const supabase = createClient()
     
-    const { data, error } = await supabase
-      .from('worker_skill_assignments' as any)
-      .upsert(assignmentData)
+    const { data, error } = await (supabase
+      .from('worker_skill_assignments')
+      .upsert(assignmentData as any)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
@@ -423,11 +423,11 @@ export async function createResourceAllocation(allocationData: {
                                   (overtimeHours * overtimeRate)
     }
 
-    const { data, error } = await supabase
-      .from('resource_allocations' as any)
-      .insert(calculatedData)
+    const { data, error } = await (supabase
+      .from('resource_allocations')
+      .insert(calculatedData as any)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
@@ -451,13 +451,13 @@ export async function getResourceAllocations(filters?: {
     const supabase = createClient()
     
     let query = supabase
-      .from('resource_allocations' as any)
+      .from('resource_allocations')
       .select(`
         *,
         site:sites(id, name),
         created_by_user:created_by(id, full_name),
         approved_by_user:approved_by(id, full_name)
-      `)
+      `) as any
 
     if (filters?.allocation_type) {
       query = query.eq('allocation_type', filters.allocation_type)
@@ -530,7 +530,7 @@ export async function getEquipmentStats(siteId?: string) {
   try {
     const supabase = createClient()
     
-    let baseQuery = supabase.from('equipment' as any).select('status', { count: 'exact' })
+    let baseQuery = (supabase.from('equipment').select('status', { count: 'exact' }) as any)
     if (siteId) {
       baseQuery = baseQuery.eq('site_id', siteId)
     }
