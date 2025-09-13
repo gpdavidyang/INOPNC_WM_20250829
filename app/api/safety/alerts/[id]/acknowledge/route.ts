@@ -75,7 +75,7 @@ export async function POST(
         .select('user_id')
         .eq('alert_id', alertId)
 
-      const acknowledgedUsers = allAcks?.map(a => a.user_id) || []
+      const acknowledgedUsers = allAcks?.map((a: any) => a.user_id) || []
       const allAcknowledged = safetyAlert.affected_workers.every(
         (workerId: string) => acknowledgedUsers.includes(workerId)
       )
