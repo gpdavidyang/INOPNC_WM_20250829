@@ -420,7 +420,7 @@ export async function getSalaryRecords(
               deductions: 0,
               total_pay: Math.round(basePay + overtimePay),
               status: 'calculated' as const,
-              notes: workHours > 8 ? `연장근무 ${overtimeHours.toFixed(1)}시간` : null,
+              notes: workHours > 8 ? `연장근무 ${overtimeHours.toFixed(1)}시간` : undefined,
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             })
