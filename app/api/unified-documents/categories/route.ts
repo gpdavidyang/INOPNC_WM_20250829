@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 카테고리와 통계 결합
-    const categoriesWithStats = categories?.map(category => ({
+    const categoriesWithStats = categories?.map((category: any) => ({
       ...category,
       stats: categoryStats[category.category_type] || { total: 0, active: 0 }
     }))
