@@ -14,7 +14,7 @@ import PartnerSiteLaborCard from '../cards/PartnerSiteLaborCard'
 
 interface PartnerHomeTabProps {
   profile: Profile
-  sites: any[]
+  sites: unknown[]
   organization: any
   onTabChange?: (tab: string) => void
 }

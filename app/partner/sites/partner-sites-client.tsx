@@ -11,7 +11,7 @@ import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 interface PartnerSitesClientProps {
   profile: Profile & { partner_companies?: any }
-  sitePartnerships: any[]
+  sitePartnerships: unknown[]
   reportCountMap: Record<string, number>
   workerCountMap: Record<string, number>
 }

@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 import { NPC1000RequestForm } from './NPC1000RequestForm'
 
 interface NPC1000InventoryDashboardProps {
-  sites: any[]
+  sites: unknown[]
   currentUser: any
 }
 
@@ -88,7 +88,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
     }
   }
 
-  const calculateStats = (inventoryData: any[]) => {
+  const calculateStats = (inventoryData: unknown[]) => {
     const totalStock = inventoryData.reduce((sum, item) => sum + (item.current_stock || 0), 0)
     const lowStockSites = inventoryData.filter(item => 
       item.current_stock <= (item.minimum_stock || 1000)

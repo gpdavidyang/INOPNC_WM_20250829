@@ -18,7 +18,7 @@ export interface FeatureFlag {
   environments: string[]
   start_date?: string
   end_date?: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
 export interface FeatureFlagContext {

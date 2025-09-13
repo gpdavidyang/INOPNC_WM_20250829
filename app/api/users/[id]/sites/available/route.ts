@@ -58,7 +58,7 @@ export async function GET(
         hasMore: offset + limit < (count || 0)
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching available sites for user:', error);
     return NextResponse.json(
       { success: false, error: error.message },

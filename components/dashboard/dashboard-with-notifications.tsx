@@ -10,7 +10,7 @@ interface DashboardWithNotificationsProps {
   user: User
   profile: Profile
   initialCurrentSite?: any
-  initialSiteHistory?: any[]
+  initialSiteHistory?: unknown[]
 }
 
 export default function DashboardWithNotifications({ user, profile, initialCurrentSite, initialSiteHistory }: DashboardWithNotificationsProps) {

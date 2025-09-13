@@ -1,5 +1,6 @@
 'use server'
 
+import type { AsyncState, ApiResponse } from '@/types/utils'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { 
@@ -42,7 +43,7 @@ export async function getEquipment(filters?: {
     validateSupabaseResponse(data, error)
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logError(error, 'getEquipment')
     return { 
       success: false, 
@@ -64,7 +65,7 @@ export async function getEquipmentCategories() {
     validateSupabaseResponse(data, error)
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logError(error, 'getEquipmentCategories')
     return { 
       success: false, 
@@ -118,7 +119,7 @@ export async function createEquipmentCheckout(checkoutData: {
 
     revalidatePath('/dashboard/equipment')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -154,7 +155,7 @@ export async function returnEquipment(
 
     revalidatePath('/dashboard/equipment')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -203,7 +204,7 @@ export async function getEquipmentCheckouts(filters?: {
     if (error) throw error
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -233,7 +234,7 @@ export async function createEquipmentMaintenance(maintenanceData: {
 
     revalidatePath('/dashboard/equipment')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -263,7 +264,7 @@ export async function updateEquipmentMaintenance(
 
     revalidatePath('/dashboard/equipment')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -306,7 +307,7 @@ export async function getEquipmentMaintenance(filters?: {
     if (error) throw error
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -324,7 +325,7 @@ export async function getWorkerSkills() {
     if (error) throw error
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -351,7 +352,7 @@ export async function getWorkerSkillAssignments(workerId?: string) {
     if (error) throw error
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -380,7 +381,7 @@ export async function upsertWorkerSkillAssignment(assignmentData: {
 
     revalidatePath('/dashboard/workers')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -433,7 +434,7 @@ export async function createResourceAllocation(allocationData: {
 
     revalidatePath('/dashboard/resources')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -512,7 +513,7 @@ export async function getResourceAllocations(filters?: {
           .select('id, code, name')
           .in('id', equipmentIds)
 
-        const equipmentMap = new Map(equipment?.map((e: any) => [e.id, e]))
+        const equipmentMap = new Map(equipment?.map((e: Event) => [e.id, e]))
         equipmentAllocations.forEach((a: any) => {
           a.equipment = equipmentMap.get(a.resource_id)
         })
@@ -520,7 +521,7 @@ export async function getResourceAllocations(filters?: {
     }
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -597,7 +598,7 @@ export async function getEquipmentStats(siteId?: string) {
         upcomingMaintenance: upcomingMaintenanceResult.count || 0
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }

@@ -8,8 +8,8 @@ import Navbar from '@/components/navbar'
 interface TaskFormProps {
   currentUser: any
   currentProfile: any
-  projects: any[]
-  users: any[]
+  projects: unknown[]
+  users: unknown[]
 }
 
 export default function TaskForm({ currentUser, currentProfile, projects, users }: TaskFormProps) {
@@ -47,7 +47,7 @@ export default function TaskForm({ currentUser, currentProfile, projects, users 
       alert('작업 생성 기능은 아직 구현 중입니다.')
       router.push('/tasks')
       // router.refresh()
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert('작업 생성 중 오류가 발생했습니다: ' + error.message)
     } finally {
       setLoading(false)

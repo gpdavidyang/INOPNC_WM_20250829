@@ -316,7 +316,7 @@ export function mapLegacyToCategory(legacyTable: string, legacyType: string): st
 }
 
 // 카테고리별 기본 메타데이터 생성
-export function generateCategoryMetadata(categoryType: string, additionalData?: Record<string, any>): Record<string, any> {
+export function generateCategoryMetadata(categoryType: string, additionalData?: Record<string, unknown>): Record<string, unknown> {
   const baseMetadata = {
     category_type: categoryType,
     created_via: 'unified_system',

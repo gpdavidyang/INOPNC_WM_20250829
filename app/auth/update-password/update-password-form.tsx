@@ -89,7 +89,7 @@ export default function UpdatePasswordForm() {
         router.push('/auth/login?message=password-updated')
       }, 2000)
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Password update error:', error)
       setError(error.message || '비밀번호 업데이트 중 오류가 발생했습니다.')
     } finally {

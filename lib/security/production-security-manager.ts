@@ -46,7 +46,7 @@ interface SecurityAlert {
   user_id?: string
   ip_address?: string
   user_agent?: string
-  details: Record<string, any>
+  details: Record<string, unknown>
   created_at: string
   resolved: boolean
   resolved_at?: string

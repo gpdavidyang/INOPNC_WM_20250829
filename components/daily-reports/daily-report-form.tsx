@@ -61,12 +61,12 @@ interface DailyReportFormProps {
   workers?: Profile[]
   reportData?: DailyReport & {
     site?: any
-    work_logs?: any[]
+    work_logs?: unknown[]
     weather_conditions?: any
-    photo_groups?: any[]
-    worker_entries?: any[]
-    receipts?: any[]
-    additional_photos?: any[]
+    photo_groups?: unknown[]
+    worker_entries?: unknown[]
+    receipts?: unknown[]
+    additional_photos?: unknown[]
   }
 }
 

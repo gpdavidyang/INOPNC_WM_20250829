@@ -33,7 +33,7 @@ import {
 
 interface PartnerSiteInfoTabProps {
   profile: Profile
-  sites: any[]
+  sites: unknown[]
 }
 
 interface SiteParticipation {
@@ -185,7 +185,7 @@ export default function PartnerSiteInfoTab({ profile, sites }: PartnerSiteInfoTa
   })
 
   const getDocumentIcon = (iconName: string) => {
-    const iconComponents: { [key: string]: any } = {
+    const iconComponents: Record<string, unknown> = {
       DollarSign,
       FileSignature,
       Calculator,

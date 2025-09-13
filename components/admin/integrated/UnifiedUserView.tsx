@@ -47,9 +47,9 @@ interface UserProfile {
 
 interface IntegratedUserData {
   user: UserProfile
-  assigned_sites: any[]
-  daily_reports: any[]
-  worker_assignments: any[]
+  assigned_sites: unknown[]
+  daily_reports: unknown[]
+  worker_assignments: unknown[]
   documents: Record<string, any[]>
   statistics: {
     total_sites: number

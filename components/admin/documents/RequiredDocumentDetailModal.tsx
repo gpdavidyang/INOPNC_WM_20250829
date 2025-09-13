@@ -132,7 +132,7 @@ export default function RequiredDocumentDetailModal({
         }
         setSubmission(submissionData)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error fetching document:', error)
       setError(error.message || '문서 정보를 불러오는데 실패했습니다.')
     } finally {
@@ -190,7 +190,7 @@ export default function RequiredDocumentDetailModal({
       alert(`서류가 성공적으로 ${newStatus === 'approved' ? '승인' : '거부'}되었습니다.`)
       onSuccess()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating status:', error)
       setError(error.message || '상태 업데이트에 실패했습니다.')
     } finally {
@@ -237,7 +237,7 @@ export default function RequiredDocumentDetailModal({
 
       setIsEditMode(false)
       onSuccess() // Refresh parent component
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating document:', error)
       setError(error.message || '문서 수정에 실패했습니다.')
     } finally {

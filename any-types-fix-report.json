@@ -1,0 +1,266 @@
+{
+  "timestamp": "2025-09-13T23:18:41.722Z",
+  "summary": {
+    "filesProcessed": 128,
+    "filesFixed": 24,
+    "totalFixes": 46
+  },
+  "results": [
+    {
+      "file": "lib/monitoring/monitoring-manager.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 2
+        },
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        },
+        {
+          "pattern": "promise-any",
+          "count": 4
+        },
+        {
+          "pattern": "function-return-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 8
+    },
+    {
+      "file": "lib/security/audit-logger.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "lib/test-utils/mocks/analytics.mock.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 1
+        },
+        {
+          "pattern": "record-string-any",
+          "count": 3
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "lib/monitoring/performance-budgets.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "lib/monitoring/alerting-manager.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "lib/search/types.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "lib/database/optimized-queries.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "lib/cache/performance-cache.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "lib/test-utils/mocks/__tests__/analytics.mock.test.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "lib/security/security-headers.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/security/production-security-manager.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/security/backup-automation.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/salary/enhanced-calculator.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/pwa/offline-storage.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/performance/metrics.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/feature-flags/feature-flags.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/data-generation/generators.ts",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/backup/types.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/backup/backup-scheduler.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/monitoring/sentry.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/monitoring/rum.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/monitoring/performance-metrics.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/monitoring/api-monitoring.ts",
+      "fixes": [
+        {
+          "pattern": "record-string-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/test-utils/examples/analytics-testing.example.tsx",
+      "fixes": [
+        {
+          "pattern": "any-array-to-unknown",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    }
+  ]
+}

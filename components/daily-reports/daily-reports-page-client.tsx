@@ -12,7 +12,7 @@ import { Home, Calendar, FileText, FolderOpen, MapPin } from 'lucide-react'
 
 interface DailyReportsPageClientProps {
   profile: Profile
-  sites: any[]
+  sites: unknown[]
 }
 
 export function DailyReportsPageClient({ profile, sites }: DailyReportsPageClientProps) {

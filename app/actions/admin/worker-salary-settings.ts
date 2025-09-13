@@ -150,7 +150,7 @@ export async function setWorkerSalarySetting(
   employment_type: EmploymentType,
   daily_rate: number,
   custom_tax_rates?: Record<string, number>,
-  bank_account_info?: Record<string, any>,
+  bank_account_info?: Record<string, unknown>,
   effective_date: string = new Date().toISOString().split('T')[0],
   notes?: string
 ): Promise<AdminActionResult<{ setting_id: string }>> {
@@ -346,7 +346,7 @@ export async function getPersonalMonthlySalarySummary(
   total_tax: number
   total_net_pay: number
   employment_type: EmploymentType
-  records: any[]
+  records: unknown[]
 }>> {
   return withAdminAuth(async (supabase) => {
     try {

@@ -36,13 +36,13 @@ interface IntegratedReportData {
   daily_report: any
   site: any
   primary_customer: any
-  all_customers: any[]
-  worker_assignments: any[]
+  all_customers: unknown[]
+  worker_assignments: unknown[]
   worker_statistics: any
   documents: Record<string, any[]>
   document_counts: Record<string, number>
   material_usage: any
-  related_reports: any[]
+  related_reports: unknown[]
   report_author: any
 }
 

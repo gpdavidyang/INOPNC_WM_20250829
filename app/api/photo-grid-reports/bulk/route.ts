@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let results: any[] = []
+    let results: unknown[] = []
 
     switch (action) {
       case 'delete':

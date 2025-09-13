@@ -337,7 +337,7 @@ export default function SalaryStatementManager() {
 
       alert(`${statementsToInsert.length}개의 급여명세서가 생성되었습니다.`)
       fetchStatements()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error generating statements:', error)
       const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.'
       alert(`급여명세서 생성 중 오류가 발생했습니다: ${errorMessage}`)

@@ -113,7 +113,7 @@ export default function AdminView({
   
   // 문서 타입 아이콘
   const getDocumentIcon = (document: UnifiedDocument) => {
-    const iconMap: Record<string, any> = {
+    const iconMap: Record<string, unknown> = {
       markup: Image,
       photo_grid: Image,
       required: Shield,

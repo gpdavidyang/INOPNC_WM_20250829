@@ -45,13 +45,13 @@ interface DailyReportDetailMobileProps {
     partner_company?: any
     created_by_profile?: any
     approved_by_profile?: any
-    workers?: any[]
-    workerAssignments?: any[]
-    photoGroups?: any[]
-    beforePhotos?: any[]
-    afterPhotos?: any[]
-    receipts?: any[]
-    documents?: any[]
+    workers?: unknown[]
+    workerAssignments?: unknown[]
+    photoGroups?: unknown[]
+    beforePhotos?: unknown[]
+    afterPhotos?: unknown[]
+    receipts?: unknown[]
+    documents?: unknown[]
     component_name?: string
     work_process?: string
     work_section?: string
@@ -77,7 +77,7 @@ export default function DailyReportDetailMobile({ report, currentUser }: DailyRe
   // Photo modal state
   const [photoModal, setPhotoModal] = useState<{
     isOpen: boolean
-    photos: any[]
+    photos: unknown[]
     initialIndex: number
     title: string
   }>({
@@ -178,7 +178,7 @@ export default function DailyReportDetailMobile({ report, currentUser }: DailyRe
   }
 
   // Photo modal handlers
-  const openPhotoModal = (photos: any[], initialIndex: number, title: string) => {
+  const openPhotoModal = (photos: unknown[], initialIndex: number, title: string) => {
     setPhotoModal({
       isOpen: true,
       photos,

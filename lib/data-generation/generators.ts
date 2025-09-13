@@ -503,7 +503,7 @@ export class PayrollCalculator {
    */
   calculateMonthlyPayroll(
     userId: string,
-    attendanceRecords: any[],
+    attendanceRecords: unknown[],
     hourlyRate: number,
     period: string
   ): PayrollData {

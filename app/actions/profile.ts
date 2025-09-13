@@ -22,7 +22,7 @@ export async function getProfile() {
     if (error) throw error
 
     return { success: true, data: data as Profile }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -46,7 +46,7 @@ export async function updateProfile(updates: Partial<Profile>) {
     if (error) throw error
 
     return { success: true, data: data as Profile }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -79,7 +79,7 @@ export async function getProfiles(filters?: {
     if (error) throw error
 
     return { success: true, data: data as Profile[] }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }

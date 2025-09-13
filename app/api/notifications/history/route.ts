@@ -65,13 +65,13 @@ export async function GET(request: NextRequest) {
 
     // Map engagement data to notifications
     const notificationsWithEngagement = notifications?.map((notification: any) => {
-      const engagement = engagements?.filter((e: any) => e.notification_id === notification.id) || []
+      const engagement = engagements?.filter((e: Event) => e.notification_id === notification.id) || []
       return {
         ...notification,
         engagement: {
-          clicked: engagement.some((e: any) => e.engagement_type === 'notification_clicked'),
-          deepLinked: engagement.some((e: any) => e.engagement_type === 'deep_link_navigation'),
-          actionPerformed: engagement.some((e: any) => e.engagement_type === 'action_performed'),
+          clicked: engagement.some((e: Event) => e.engagement_type === 'notification_clicked'),
+          deepLinked: engagement.some((e: Event) => e.engagement_type === 'deep_link_navigation'),
+          actionPerformed: engagement.some((e: Event) => e.engagement_type === 'action_performed'),
           lastEngagement: engagement.sort((a: any, b: any) => 
             new Date(b.engaged_at).getTime() - new Date(a.engaged_at).getTime()
           )[0]?.engaged_at
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Notification history error:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch notification history',
@@ -151,7 +151,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Notification update error:', error)
     return NextResponse.json({ 
       error: 'Failed to update notification',

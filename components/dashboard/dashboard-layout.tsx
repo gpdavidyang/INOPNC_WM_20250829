@@ -26,7 +26,7 @@ interface DashboardLayoutProps {
   initialActiveTab?: string
   useConstructionMode?: boolean // 건설 현장 모드 옵션
   initialCurrentSite?: any
-  initialSiteHistory?: any[]
+  initialSiteHistory?: unknown[]
 }
 
 export default function DashboardLayout({ user, profile, children, initialActiveTab = 'home', useConstructionMode = false, initialCurrentSite, initialSiteHistory }: DashboardLayoutProps) {

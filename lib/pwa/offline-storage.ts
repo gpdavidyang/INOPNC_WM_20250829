@@ -219,7 +219,7 @@ class OfflineStorageManager {
   }
 
   // Private helper methods
-  private getStoredData(key: string): any[] {
+  private getStoredData(key: string): unknown[] {
     try {
       const stored = localStorage.getItem(key)
       return stored ? JSON.parse(stored) : []

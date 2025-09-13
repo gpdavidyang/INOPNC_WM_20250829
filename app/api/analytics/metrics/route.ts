@@ -405,7 +405,7 @@ export async function POST(request: NextRequest) {
         }
 
         return NextResponse.json({ success: true })
-      } catch (metricError: any) {
+      } catch (metricError) {
         console.error('Performance metric storage exception:', {
           error: metricError?.message || 'Unknown error',
           stack: metricError?.stack,

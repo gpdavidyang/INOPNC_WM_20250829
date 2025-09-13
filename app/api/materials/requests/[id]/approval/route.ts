@@ -127,7 +127,7 @@ export async function POST(
       message: `Material request ${status} successfully`
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Material approval error:', error)
     return NextResponse.json({ 
       error: 'Failed to process material approval',

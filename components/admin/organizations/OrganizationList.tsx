@@ -106,7 +106,7 @@ export default function OrganizationList() {
       
       setOrganizations(organizations.filter(org => org.id !== id))
       alert('거래처가 삭제되었습니다.')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting organization:', error)
       
       // Check for foreign key constraint error

@@ -36,8 +36,8 @@ import { formatDate } from '@/lib/utils'
 
 interface EquipmentListProps {
   equipment: Equipment[]
-  categories: any[]
-  sites: any[]
+  categories: unknown[]
+  sites: unknown[]
   onCheckout: (equipment: Equipment) => void
   onMaintenance: (equipment: Equipment) => void
   onEdit: (equipment: Equipment) => void

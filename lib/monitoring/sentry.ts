@@ -179,7 +179,7 @@ export const setUserContext = (user: any) => {
 }
 
 // Custom error boundary
-export const captureException = (error: Error, context?: Record<string, any>) => {
+export const captureException = (error: Error, context?: Record<string, unknown>) => {
   Sentry.withScope((scope) => {
     if (context) {
       scope.setContext('additional', context)

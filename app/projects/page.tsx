@@ -28,7 +28,7 @@ export default async function ProjectsPage() {
   //   `)
   //   .order('created_at', { ascending: false })
   
-  const projects: any[] = []
+  const projects: unknown[] = []
 
   return (
     <div className="min-h-screen bg-gray-100">

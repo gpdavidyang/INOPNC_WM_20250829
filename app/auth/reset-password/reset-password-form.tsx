@@ -25,7 +25,7 @@ export default function ResetPasswordForm() {
       if (error) throw error
 
       setSuccess(true)
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError(error.message || '오류가 발생했습니다.')
     } finally {
       setLoading(false)

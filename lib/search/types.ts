@@ -4,7 +4,7 @@ export interface SearchFilter {
   field: string
   operator: SearchOperator
   value: any
-  values?: any[] // For 'between' operator
+  values?: unknown[] // For 'between' operator
 }
 
 export interface SearchOptions {
@@ -27,7 +27,7 @@ export interface AppliedFilter {
   field: string
   operator: SearchOperator
   value: any
-  values?: any[]
+  values?: unknown[]
   label: string
   displayValue: string
 }

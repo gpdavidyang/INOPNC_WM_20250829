@@ -13,9 +13,9 @@ interface PartnerDashboardClientProps {
     totalWorkers: number
     recentReports: number
   }
-  sitePartnerships: any[]
-  recentReports: any[]
-  workers: any[]
+  sitePartnerships: unknown[]
+  recentReports: unknown[]
+  workers: unknown[]
 }
 
 export default function PartnerDashboardClient({

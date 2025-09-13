@@ -22,7 +22,7 @@ import {
 
 interface PartnerPrintStatusTabProps {
   profile: Profile
-  sites: any[]
+  sites: unknown[]
 }
 
 interface AttendanceRecord {

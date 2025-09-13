@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
  */
 
 export async function GET(request: NextRequest) {
-  const results: any[] = []
+  const results: unknown[] = []
   let overallSuccess = true
 
   try {

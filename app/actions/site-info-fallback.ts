@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getCurrentUserSiteDirect, getUserSiteHistoryDirect } from './site-info-direct'
 import { getCurrentUserSite, getUserSiteHistory } from './site-info'
 
-const log = (...args: any[]) => {
+const log = (...args: unknown[]) => {
   console.log('[SITE-INFO-FALLBACK]', ...args)
 }
 

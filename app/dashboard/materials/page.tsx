@@ -23,7 +23,7 @@ export default async function MaterialsPage() {
   const categories = categoriesResult.success ? categoriesResult.data || [] : []
 
   // Get inventory for user's site if they have one
-  let inventory: any[] = []
+  let inventory: unknown[] = []
   if (siteResult.success && siteResult.data) {
     const inventoryResult = await getMaterialInventory(siteResult.data.id)
     inventory = inventoryResult.success ? inventoryResult.data || [] : []

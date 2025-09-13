@@ -98,7 +98,7 @@ export async function POST(
       message: 'Safety alert acknowledged successfully'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Safety alert acknowledgment error:', error)
     return NextResponse.json({ 
       error: 'Failed to acknowledge safety alert',

@@ -25,7 +25,7 @@ interface HomeTabProps {
   onTabChange?: (tabId: string) => void
   onDocumentsSearch?: (searchTerm: string) => void
   initialCurrentSite?: any
-  initialSiteHistory?: any[]
+  initialSiteHistory?: unknown[]
 }
 
 interface Announcement {

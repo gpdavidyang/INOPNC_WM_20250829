@@ -5,7 +5,7 @@ export interface PDFGeneratorOptions {
   siteName: string
   reportDate: string
   reporterName: string
-  photoGroups: any[]
+  photoGroups: unknown[]
 }
 
 // Base64로 인코딩된 한글 지원 폰트 (NotoSansKR 일부)

@@ -200,7 +200,7 @@ class PerformanceTracker {
   
   // Get performance summary
   getPerformanceSummary() {
-    const summary: Record<string, any> = {}
+    const summary: Record<string, unknown> = {}
     
     // Calculate percentiles for each metric
     for (const [key, values] of Object.entries(this.metrics)) {

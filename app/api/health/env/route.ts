@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
             error: 'URL does not appear to be a Supabase URL'
           })
         }
-      } catch (urlError: any) {
+      } catch (urlError) {
         checks.push({
           name: 'supabase_url_format',
           status: 'fail',
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
           details: { hasSession: !!data?.session }
         })
       }
-    } catch (connectionError: any) {
+    } catch (connectionError) {
       checks.push({
         name: 'supabase_auth_connection',
         status: 'fail',
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
           details: { tablesFound: data?.length || 0 }
         })
       }
-    } catch (dbError: any) {
+    } catch (dbError) {
       checks.push({
         name: 'database_connection',
         status: 'fail',
@@ -189,7 +189,7 @@ export async function GET(request: NextRequest) {
               status: 'pass'
             })
           }
-        } catch (tableError: any) {
+        } catch (tableError) {
           checks.push({
             name: `table_${tableName}`,
             status: 'fail',
@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
           })
         }
       }
-    } catch (tablesError: any) {
+    } catch (tablesError) {
       checks.push({
         name: 'tables_check',
         status: 'fail',
@@ -236,7 +236,7 @@ export async function GET(request: NextRequest) {
           })
         }
       }
-    } catch (networkError: any) {
+    } catch (networkError) {
       checks.push({
         name: 'network_connectivity',
         status: 'fail',
@@ -277,7 +277,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(result, { status: httpStatus })
     
-  } catch (error: any) {
+  } catch (error: unknown) {
     const errorResult: HealthCheckResult = {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),

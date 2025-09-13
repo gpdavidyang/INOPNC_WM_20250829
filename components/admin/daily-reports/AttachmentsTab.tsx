@@ -174,7 +174,7 @@ export default function AttachmentsTab({
       if (onSaveComplete) {
         onSaveComplete()
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading files:', error)
       setSaveStatus({ 
         type: 'error', 

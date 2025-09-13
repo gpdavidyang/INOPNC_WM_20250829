@@ -52,7 +52,7 @@ export default async function NewDailyReportDevPage() {
   
   console.log('DEV MODE - Sites fetched:', { count: sites?.length, error: sitesError })
   
-  const materials: any[] = []
+  const materials: unknown[] = []
 
   // Get workers
   const { data: workers } = await serviceSupabase

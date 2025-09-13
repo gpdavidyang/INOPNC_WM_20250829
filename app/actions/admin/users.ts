@@ -112,7 +112,7 @@ export async function getUsers(
             .eq('is_active', true)
 
           // Get required documents status from user_documents table
-          let requiredDocuments: any[] = []
+          let requiredDocuments: unknown[] = []
           try {
             const REQUIRED_DOCUMENT_TYPES = [
               'medical_checkup',

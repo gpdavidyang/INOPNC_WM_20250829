@@ -39,7 +39,7 @@ interface MarkupDocument {
   description?: string
   original_blueprint_url: string
   original_blueprint_filename: string
-  markup_data: any[]
+  markup_data: unknown[]
   preview_image_url?: string
   location: 'personal' | 'shared'
   markup_count: number

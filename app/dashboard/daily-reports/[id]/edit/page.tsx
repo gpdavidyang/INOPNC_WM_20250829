@@ -92,7 +92,7 @@ export default async function EditDailyReportPage({
   }
 
   // Get materials and workers (simplified for now)
-  const materials: any[] = []
+  const materials: unknown[] = []
   const { data: workers } = await supabase
     .from('profiles')
     .select('*')

@@ -18,7 +18,7 @@ import {
 
 interface PartnerWorkLogsTabProps {
   profile: Profile
-  sites: any[]
+  sites: unknown[]
 }
 
 interface WorkLog {

@@ -74,7 +74,7 @@ export async function POST(
       message: 'Announcement dismissed'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Dismiss announcement error:', error)
     return NextResponse.json({ 
       error: 'Failed to dismiss announcement',

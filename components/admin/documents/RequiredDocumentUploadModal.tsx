@@ -256,7 +256,7 @@ export default function RequiredDocumentUploadModal({
       alert('필수 제출 서류가 성공적으로 등록되었습니다.')
       onSuccess()
       onClose()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading required document:', error)
       setError(error.message || '서류 등록에 실패했습니다.')
     } finally {

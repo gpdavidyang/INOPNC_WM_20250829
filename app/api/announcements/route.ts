@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       recipientsCount: targetWorkers?.length || 0
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Announcement creation error:', error)
     return NextResponse.json({ 
       error: 'Failed to create announcement',
@@ -228,7 +228,7 @@ export async function GET(request: NextRequest) {
       announcements: announcements || []
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get announcements error:', error)
     return NextResponse.json({ 
       error: 'Failed to get announcements',

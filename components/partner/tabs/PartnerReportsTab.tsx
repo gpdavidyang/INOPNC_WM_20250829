@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface PartnerReportsTabProps {
   profile: Profile
-  sites: any[]
+  sites: unknown[]
 }
 
 export default function PartnerReportsTab({ profile, sites }: PartnerReportsTabProps) {

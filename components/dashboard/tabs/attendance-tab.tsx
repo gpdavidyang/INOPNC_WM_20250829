@@ -252,7 +252,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
       } else {
         await loadSalaryData()
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('❌ AttendanceTab: Error loading data:', error)
       setError(`데이터를 불러오는데 실패했습니다: ${error.message}`)
     } finally {
@@ -270,7 +270,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
 
       if (error) throw error
       setSites(data || [])
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error loading sites:', error)
       setSites([])
       throw new Error(`현장 목록 로드 실패: ${error.message}`)
@@ -341,7 +341,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
       }))
       
       setAttendanceRecords(transformedData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[AttendanceTab] Error loading attendance data:', error)
       setAttendanceRecords([])
       throw new Error(`출근 데이터 로드 실패: ${error.message}`)

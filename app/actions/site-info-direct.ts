@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 
-const log = (...args: any[]) => {
+const log = (...args: unknown[]) => {
   console.log('[SITE-INFO-DIRECT]', ...args)
 }
 

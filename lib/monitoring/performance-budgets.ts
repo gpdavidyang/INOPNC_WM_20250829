@@ -118,7 +118,7 @@ export interface PerformanceAlert {
   value: number
   severity: AlertSeverity
   timestamp: Date
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 class PerformanceBudgetManager {
@@ -167,7 +167,7 @@ class PerformanceBudgetManager {
   }
 
   // Check if a metric value violates the performance budget
-  checkBudget(metric: string, value: number, metadata?: Record<string, any>): PerformanceAlert | null {
+  checkBudget(metric: string, value: number, metadata?: Record<string, unknown>): PerformanceAlert | null {
     const budget = this.budgets.get(metric)
     if (!budget || !budget.enabled) {
       return null
@@ -360,7 +360,7 @@ export const performanceBudgetManager = new PerformanceBudgetManager()
 export function checkPerformanceBudget(
   metric: string, 
   value: number, 
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 ): PerformanceAlert | null {
   return performanceBudgetManager.checkBudget(metric, value, metadata)
 }

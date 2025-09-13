@@ -198,7 +198,7 @@ export default function EnhancedDocumentsView() {
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split('.').pop()?.toLowerCase()
-    const iconMap: Record<string, any> = {
+    const iconMap: Record<string, unknown> = {
       pdf: FileType,
       jpg: FileImage,
       jpeg: FileImage,

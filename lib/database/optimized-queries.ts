@@ -299,11 +299,11 @@ export async function getDashboardMetrics(siteId?: string) {
 /**
  * 성능 모니터링용 쿼리 실행 시간 측정
  */
-export function withPerformanceLogging<T extends (...args: any[]) => Promise<any>>(
+export function withPerformanceLogging<T extends (...args: unknown[]) => Promise<any>>(
   queryFunction: T,
   queryName: string
 ): T {
-  return (async (...args: any[]) => {
+  return (async (...args: unknown[]) => {
     const startTime = performance.now()
     
     try {

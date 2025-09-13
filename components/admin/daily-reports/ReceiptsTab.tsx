@@ -315,7 +315,7 @@ export default function ReceiptsTab({
       if (onSaveComplete) {
         onSaveComplete()
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading receipts:', error)
       setSaveStatus({ 
         type: 'error', 
@@ -435,7 +435,7 @@ export default function ReceiptsTab({
       if (onSaveComplete) {
         onSaveComplete()
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading receipts:', error)
       setSaveStatus({ 
         type: 'error', 

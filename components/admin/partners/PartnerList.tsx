@@ -196,7 +196,7 @@ export default function PartnerList({ profile }: PartnerListProps) {
 
       alert('파트너사가 삭제되었습니다.')
       await loadPartners()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete partner:', error)
       
       if (error.code === '23503') {

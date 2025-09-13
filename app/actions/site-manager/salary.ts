@@ -41,7 +41,7 @@ export async function exportTeamSalaryReport(params: TeamSalaryParams & { format
         filename: `급여보고서_${params.year}-${params.month}.${params.format}`
       }
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('급여 보고서 생성 오류:', error)
     return { success: false, error: error.message }
   }

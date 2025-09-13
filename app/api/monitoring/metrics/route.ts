@@ -85,7 +85,7 @@ export const GET = withAPIMonitoring(
 
       return NextResponse.json(response)
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch monitoring metrics:', error)
       
       return NextResponse.json(
@@ -143,7 +143,7 @@ export const POST = withAPIMonitoring(
         timestamp: new Date().toISOString()
       })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to store metric:', error)
       
       return NextResponse.json(

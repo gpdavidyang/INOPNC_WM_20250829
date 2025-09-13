@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       message: 'Safety alert created and notifications sent'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Safety alert creation error:', error)
     return NextResponse.json({ 
       error: 'Failed to create safety alert',
@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
       alerts: alerts || []
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get safety alerts error:', error)
     return NextResponse.json({ 
       error: 'Failed to get safety alerts',

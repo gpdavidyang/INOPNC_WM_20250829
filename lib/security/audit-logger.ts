@@ -24,7 +24,7 @@ export interface AuditEvent {
   resource_id?: string
   action: string
   outcome: 'success' | 'failure' | 'partial'
-  details: Record<string, any>
+  details: Record<string, unknown>
   risk_score: number
   compliance_tags: string[]
   metadata: {
@@ -102,7 +102,7 @@ export class AuditLogger {
   async logEvent(
     eventType: AuditEventType,
     action: string,
-    details: Record<string, any>,
+    details: Record<string, unknown>,
     context: {
       user_id?: string
       session_id?: string
@@ -167,7 +167,7 @@ export class AuditLogger {
   private calculateSeverity(
     eventType: AuditEventType, 
     action: string, 
-    details: Record<string, any>
+    details: Record<string, unknown>
   ): 'info' | 'warning' | 'error' | 'critical' {
     // Security events are generally high severity
     if (eventType === 'security_event') {
@@ -209,7 +209,7 @@ export class AuditLogger {
   private calculateRiskScore(
     eventType: AuditEventType, 
     action: string, 
-    details: Record<string, any>
+    details: Record<string, unknown>
   ): number {
     let score = 0
 
@@ -265,7 +265,7 @@ export class AuditLogger {
   private generateComplianceTags(
     eventType: AuditEventType, 
     action: string, 
-    details: Record<string, any>
+    details: Record<string, unknown>
   ): string[] {
     const tags: string[] = []
 

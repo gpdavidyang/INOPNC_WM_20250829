@@ -33,15 +33,15 @@ import { toast } from 'sonner'
 interface DailyReportDetailProps {
   report: DailyReport & {
     site?: any
-    work_logs?: any[]
-    work_records?: any[]
+    work_logs?: unknown[]
+    work_records?: unknown[]
     created_by_profile?: any
     approved_by_profile?: any
-    workers?: any[]
-    beforePhotos?: any[]
-    afterPhotos?: any[]
-    receipts?: any[]
-    documents?: any[]
+    workers?: unknown[]
+    beforePhotos?: unknown[]
+    afterPhotos?: unknown[]
+    receipts?: unknown[]
+    documents?: unknown[]
     component_name?: string
     work_process?: string
     work_section?: string

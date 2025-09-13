@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
       message: 'Equipment maintenance scheduled successfully'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Equipment maintenance creation error:', error)
     return NextResponse.json({ 
       error: 'Failed to create equipment maintenance',
@@ -200,7 +200,7 @@ export async function GET(request: NextRequest) {
       maintenanceRecords: maintenanceRecords || []
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get maintenance records error:', error)
     return NextResponse.json({ 
       error: 'Failed to get maintenance records',

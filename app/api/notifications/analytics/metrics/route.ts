@@ -73,11 +73,11 @@ export async function GET(request: NextRequest) {
     const { data: engagements } = await engagementQuery
 
     // Calculate engagement metrics
-    const deepLinks = engagements?.filter((e: any) => e.engagement_type === 'deep_link_navigation').length || 0
-    const actions = engagements?.filter((e: any) => e.engagement_type === 'action_performed').length || 0
+    const deepLinks = engagements?.filter((e: Event) => e.engagement_type === 'deep_link_navigation').length || 0
+    const actions = engagements?.filter((e: Event) => e.engagement_type === 'action_performed').length || 0
 
     // Group by notification type
-    const byType: Record<string, any> = {}
+    const byType: Record<string, unknown> = {}
     logs?.forEach((log: any) => {
       if (!byType[log.notification_type]) {
         byType[log.notification_type] = {
@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Notification metrics error:', error)
     return NextResponse.json({ 
       error: 'Failed to fetch notification metrics',

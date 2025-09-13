@@ -266,8 +266,8 @@ export async function createAuditLog(data: {
   entity_id: string
   action: string
   user_id: string
-  changes: Record<string, any>
-  metadata?: Record<string, any>
+  changes: Record<string, unknown>
+  metadata?: Record<string, unknown>
 }): Promise<WorkflowResult> {
   const supabase = await createClient()
   
@@ -307,7 +307,7 @@ export async function rollbackTransaction(
   }>
 ): Promise<WorkflowResult> {
   const supabase = await createClient()
-  const completed: any[] = []
+  const completed: unknown[] = []
   
   try {
     for (const op of operations) {

@@ -192,7 +192,7 @@ class RealUserMonitoring {
   }
   
   // Track page view
-  trackPageView(customData?: Record<string, any>) {
+  trackPageView(customData?: Record<string, unknown>) {
     if (!this.session) return
     
     this.session.pageViews++

@@ -73,7 +73,7 @@ export default function OrganizationForm({ organization, onClose, onSave, isPage
       }
       
       onSave()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error saving organization:', error)
       alert(error.message || '저장 중 오류가 발생했습니다.')
     } finally {

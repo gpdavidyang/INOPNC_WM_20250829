@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react'
 import { FileText, Image, Shield, Package, Download, Eye, Users } from 'lucide-react'
 
 interface DocumentsByCategory {
-  shared?: any[]
-  markup?: any[]
-  required?: any[]
-  invoice?: any[]
+  shared?: unknown[]
+  markup?: unknown[]
+  required?: unknown[]
+  invoice?: unknown[]
 }
 
 interface DocumentStatistics {
@@ -19,7 +19,7 @@ interface DocumentStatistics {
 }
 
 interface DocumentsData {
-  documents: any[]
+  documents: unknown[]
   documents_by_category: DocumentsByCategory
   statistics: DocumentStatistics
   permissions: {
