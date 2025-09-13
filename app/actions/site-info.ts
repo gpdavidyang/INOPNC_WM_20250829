@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 
-const log = (...args: any[]) => {
+const log = (...args: unknown[]) => {
   // Enable logging to debug site info issues
   console.log('[SITE-INFO DEBUG]', ...args)
 }

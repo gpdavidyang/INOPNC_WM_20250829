@@ -282,7 +282,7 @@ export const NOTIFICATION_GROUPS = {
 }
 
 // Template variable replacement function
-export function processNotificationTemplate(config: NotificationConfig, variables: Record<string, any>): NotificationConfig {
+export function processNotificationTemplate(config: NotificationConfig, variables: Record<string, unknown>): NotificationConfig {
   const processed = { ...config }
   
   // Replace variables in title and body
@@ -292,7 +292,7 @@ export function processNotificationTemplate(config: NotificationConfig, variable
   return processed
 }
 
-function replaceVariables(template: string, variables: Record<string, any>): string {
+function replaceVariables(template: string, variables: Record<string, unknown>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
     return variables[key]?.toString() || match
   })

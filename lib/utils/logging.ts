@@ -31,7 +31,7 @@ export interface PerformanceMetric {
   metricType: 'counter' | 'gauge' | 'histogram'
   value: number
   unit?: string
-  tags?: Record<string, any>
+  tags?: Record<string, unknown>
   source?: string
 }
 
@@ -129,9 +129,9 @@ export async function recordMetric(metric: PerformanceMetric): Promise<boolean> 
 export class PerformanceTimer {
   private startTime: number
   private metricName: string
-  private tags: Record<string, any>
+  private tags: Record<string, unknown>
 
-  constructor(metricName: string, tags: Record<string, any> = {}) {
+  constructor(metricName: string, tags: Record<string, unknown> = {}) {
     this.startTime = Date.now()
     this.metricName = metricName
     this.tags = tags
@@ -163,7 +163,7 @@ export function withPerformanceLogging(metricName?: string) {
     const method = descriptor.value
     const finalMetricName = metricName || `${target.constructor.name}.${propertyName}`
 
-    descriptor.value = async function (...args: any[]) {
+    descriptor.value = async function (...args: unknown[]) {
       const timer = new PerformanceTimer(finalMetricName, {
         function: propertyName,
         class: target.constructor.name

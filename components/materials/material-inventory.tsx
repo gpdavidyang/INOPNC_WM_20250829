@@ -34,8 +34,8 @@ import { toast } from '@/components/ui/use-toast'
 import { Progress } from '@/components/ui/progress'
 
 interface MaterialInventoryProps {
-  materials: any[]
-  initialInventory: any[]
+  materials: unknown[]
+  initialInventory: unknown[]
   currentUser: any
   currentSite?: any
   searchQuery: string

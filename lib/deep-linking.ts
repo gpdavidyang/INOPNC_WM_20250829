@@ -10,7 +10,7 @@ export interface DeepLinkParams {
   type?: string
   id?: string
   action?: string
-  params?: Record<string, any>
+  params?: Record<string, unknown>
 }
 
 export class DeepLinkHandler {
@@ -131,7 +131,7 @@ export class DeepLinkHandler {
       }
       
       // Extract query parameters
-      const params: Record<string, any> = {}
+      const params: Record<string, unknown> = {}
       urlObj.searchParams.forEach((value, key) => {
         params[key] = value
       })
@@ -216,6 +216,6 @@ export const deepLinkHandler = DeepLinkHandler.getInstance()
 // Declare gtag for TypeScript
 declare global {
   interface Window {
-    gtag?: (...args: any[]) => void
+    gtag?: (...args: unknown[]) => void
   }
 }

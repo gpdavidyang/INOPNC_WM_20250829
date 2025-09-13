@@ -58,7 +58,7 @@ interface Alert {
   category: AlertCategory
   title: string
   message: string
-  context: Record<string, any>
+  context: Record<string, unknown>
   timestamp: string
   resolved: boolean
   resolvedAt?: string
@@ -133,7 +133,7 @@ export class AlertingManager {
     ruleId: string
     title: string
     message: string
-    context?: Record<string, any>
+    context?: Record<string, unknown>
     severity?: AlertSeverity
     category?: AlertCategory
   }): Promise<Alert> {
@@ -760,7 +760,7 @@ _INOPNC Construction Management System_`,
   /**
    * Utility methods
    */
-  private findExistingAlert(ruleId: string, context?: Record<string, any>): Alert | undefined {
+  private findExistingAlert(ruleId: string, context?: Record<string, unknown>): Alert | undefined {
     return Array.from(this.activeAlerts.values()).find(alert => 
       alert.ruleId === ruleId && !alert.resolved
     )

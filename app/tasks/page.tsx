@@ -36,8 +36,8 @@ export default async function TasksPage() {
   //   .eq('status', 'active')
   //   .order('name')
 
-  const tasks: any[] = []
-  const projects: any[] = []
+  const tasks: unknown[] = []
+  const projects: unknown[] = []
 
   // Get all users for assignment
   const { data: users } = await supabase

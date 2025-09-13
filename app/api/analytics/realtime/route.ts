@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Analytics realtime setup error:', {
       error: error?.message || 'Unknown error',
       stack: error?.stack,
@@ -288,7 +288,7 @@ export async function POST(request: NextRequest) {
 
       // Successfully inserted event
       const insertedEvent = data
-    } catch (insertError: any) {
+    } catch (insertError) {
       console.error('Analytics event insertion exception:', {
         error: insertError?.message || 'Unknown error',
         stack: insertError?.stack,

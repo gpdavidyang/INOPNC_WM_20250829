@@ -114,7 +114,7 @@ export function SkillManagementDialog({
       } else {
         throw new Error(result.error)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: '기술 관리 실패',
         description: error.message || '기술 관리에 실패했습니다.',

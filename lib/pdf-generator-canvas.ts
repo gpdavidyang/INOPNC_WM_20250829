@@ -5,7 +5,7 @@ export interface PDFGeneratorOptions {
   siteName: string
   reportDate: string
   reporterName: string
-  photoGroups: any[]
+  photoGroups: unknown[]
 }
 
 // Canvas를 사용하여 한글 텍스트를 이미지로 렌더링한 후 PDF 생성

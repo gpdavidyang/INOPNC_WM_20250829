@@ -163,7 +163,7 @@ export function validateSupabaseResponse<T>(
 }
 
 // Form validation error handling
-export function getFieldError(errors: Record<string, any>, field: string): string | undefined {
+export function getFieldError(errors: Record<string, unknown>, field: string): string | undefined {
   const error = errors[field]
   if (!error) return undefined
   

@@ -91,10 +91,10 @@ export const logger = new Logger()
 
 // Export a no-op logger for client-side code in production
 export const clientLogger = {
-  debug: (...args: any[]) => {},
-  info: (...args: any[]) => {},
-  warn: (...args: any[]) => {},
-  error: (...args: any[]) => {
+  debug: (...args: unknown[]) => {},
+  info: (...args: unknown[]) => {},
+  warn: (...args: unknown[]) => {},
+  error: (...args: unknown[]) => {
     if (process.env.NODE_ENV !== 'production') {
       console.error(...args)
     }

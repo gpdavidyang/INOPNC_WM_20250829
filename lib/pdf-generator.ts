@@ -6,7 +6,7 @@ export interface PDFGeneratorOptions {
   siteName: string
   reportDate: string
   reporterName: string
-  photoGroups: any[]
+  photoGroups: unknown[]
 }
 
 // HTML을 Canvas로 변환하고 PDF 생성

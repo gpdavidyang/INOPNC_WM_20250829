@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       success: true,
       data: result
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Salary calculation error:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: result
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Salary fetch error:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },

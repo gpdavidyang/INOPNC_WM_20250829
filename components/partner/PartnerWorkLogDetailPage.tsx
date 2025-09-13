@@ -34,7 +34,7 @@ import { ko } from 'date-fns/locale'
 interface PartnerWorkLogDetailPageProps {
   user: User
   profile: Profile
-  sites: any[]
+  sites: unknown[]
   workLogId: string
 }
 
@@ -110,7 +110,7 @@ export default function PartnerWorkLogDetailPage({
       workLogData.weather = '맑음' // This could be fetched from weather API or stored separately
 
       setWorkLog(workLogData)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error loading work log:', err)
       setError('작업일지를 불러오는데 실패했습니다.')
     } finally {

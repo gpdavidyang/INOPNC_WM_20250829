@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
           })
 
         return { success: true, userId: user.id }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`Failed to send notification to user ${user.id}:`, error)
         
         // Handle expired subscriptions
@@ -319,7 +319,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Push notification error:', error)
     return NextResponse.json({ 
       error: 'Failed to send push notification',

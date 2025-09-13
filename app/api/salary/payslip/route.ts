@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         filename: `급여명세서_${year}-${month.toString().padStart(2, '0')}.pdf`
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Payslip generation error:', error)
     return NextResponse.json(
       { error: error.message || 'Internal server error' },

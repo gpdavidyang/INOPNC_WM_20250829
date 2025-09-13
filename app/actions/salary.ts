@@ -61,7 +61,7 @@ export async function getSalaryInfo(params: { user_id: string; date?: string }) 
     }
 
     return { success: true, data: data as SalaryInfo }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Exception in getSalaryInfo:', error)
     return { success: false, error: error.message }
   }
@@ -114,7 +114,7 @@ export async function calculateMonthlySalary(params: { user_id: string; year: nu
     }
 
     return { success: true, data: calculation }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('❌ Exception in calculateMonthlySalary:', error)
     return { success: false, error: error.message }
   }

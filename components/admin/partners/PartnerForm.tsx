@@ -201,7 +201,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
       }
 
       onSave()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save partner:', error)
       
       if (error.code === '23505') {

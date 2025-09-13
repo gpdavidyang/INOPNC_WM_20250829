@@ -1,5 +1,6 @@
 'use server'
 
+import type { AsyncState, ApiResponse } from '@/types/utils'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { 
@@ -26,7 +27,7 @@ export async function getMaterials() {
     validateSupabaseResponse(data, error)
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logError(error, 'getMaterials')
     return { 
       success: false, 
@@ -48,7 +49,7 @@ export async function getMaterialCategories() {
     validateSupabaseResponse(data, error)
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     logError(error, 'getMaterialCategories')
     return { 
       success: false, 
@@ -82,7 +83,7 @@ export async function createMaterial(materialData: {
 
     revalidatePath('/dashboard/materials')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -113,7 +114,7 @@ export async function updateMaterial(id: string, updates: Partial<{
 
     revalidatePath('/dashboard/materials')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -135,7 +136,7 @@ export async function getMaterialInventory(siteId: string) {
     if (error) throw error
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -174,7 +175,7 @@ export async function getNPC1000Inventory(siteId?: string) {
     if (error) throw error
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -222,7 +223,7 @@ export async function updateMaterialStock(
 
     revalidatePath('/dashboard/materials')
     return { success: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -267,7 +268,7 @@ export async function createMaterialTransaction(transactionData: {
 
     revalidatePath('/dashboard/materials')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -319,7 +320,7 @@ export async function getMaterialTransactions(filters: {
     if (error) throw error
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -378,7 +379,7 @@ export async function createMaterialRequest(requestData: {
 
     revalidatePath('/dashboard/materials/requests')
     return { success: true, data: request }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -426,7 +427,7 @@ export async function getMaterialRequests(filters: {
     if (error) throw error
 
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }
@@ -466,7 +467,7 @@ export async function updateMaterialRequestStatus(
 
     revalidatePath('/dashboard/materials/requests')
     return { success: true, data }
-  } catch (error: any) {
+  } catch (error: unknown) {
     return { success: false, error: error.message }
   }
 }

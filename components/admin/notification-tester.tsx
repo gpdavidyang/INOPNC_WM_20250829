@@ -137,7 +137,7 @@ export function NotificationTester() {
         status: response.status
       })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       setResult({
         success: false,
         error: error.message,
@@ -199,7 +199,7 @@ export function NotificationTester() {
         status: response.status
       })
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       setResult({
         success: false,
         error: error.message,

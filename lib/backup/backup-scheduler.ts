@@ -348,7 +348,7 @@ export class BackupScheduler {
     jobId: string, 
     status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled',
     progress: number,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ) {
     try {
       const updates: any = {

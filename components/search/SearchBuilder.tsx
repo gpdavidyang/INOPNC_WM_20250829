@@ -34,7 +34,7 @@ interface FilterRow {
   field: string
   operator: SearchOperator
   value: any
-  values?: any[] // For 'between' operator
+  values?: unknown[] // For 'between' operator
 }
 
 export function SearchBuilder({ fields, onSearch, className, loading }: SearchBuilderProps) {

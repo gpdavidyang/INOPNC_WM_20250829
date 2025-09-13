@@ -195,7 +195,7 @@ export async function searchDailyReports(
 
 export async function getQuickFilterResults(
   filterId: string,
-  quickFilters: any[]
+  quickFilters: unknown[]
 ): Promise<{ success: boolean; data?: SearchResult<DailyReport>; error?: string }> {
   try {
     const quickFilter = quickFilters.find(f => f.id === filterId)

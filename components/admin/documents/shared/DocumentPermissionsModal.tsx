@@ -177,7 +177,7 @@ export default function DocumentPermissionsModal({
       setCopiedToken(data.token)
       setTimeout(() => setCopiedToken(null), 3000)
       
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError(error.message)
     } finally {
       setGeneratingLink(false)
@@ -209,7 +209,7 @@ export default function DocumentPermissionsModal({
       }
 
       await loadShareTokens()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError(error.message)
     }
   }
@@ -238,7 +238,7 @@ export default function DocumentPermissionsModal({
       await loadPermissions()
       setShowAddForm(false)
       resetForm()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError(error.message)
     } finally {
       setSaving(false)
@@ -265,7 +265,7 @@ export default function DocumentPermissionsModal({
       }
 
       await loadPermissions()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError(error.message)
     } finally {
       setSaving(false)
@@ -290,7 +290,7 @@ export default function DocumentPermissionsModal({
       }
 
       await loadPermissions()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError(error.message)
     } finally {
       setSaving(false)

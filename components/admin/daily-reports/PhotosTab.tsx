@@ -187,7 +187,7 @@ export default function PhotosTab({
       if (onSaveComplete) {
         onSaveComplete()
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error uploading photos:', error)
       setSaveStatus({ 
         type: 'error', 

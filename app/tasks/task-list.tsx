@@ -9,9 +9,9 @@ import Link from 'next/link'
 interface TaskListProps {
   currentUser: any
   currentProfile: any
-  tasks: any[]
-  projects: any[]
-  users: any[]
+  tasks: unknown[]
+  projects: unknown[]
+  users: unknown[]
 }
 
 export default function TaskList({ currentUser, currentProfile, tasks, projects, users }: TaskListProps) {

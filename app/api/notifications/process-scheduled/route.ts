@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
                 })
 
               return { success: true, userId: user.id }
-            } catch (error: any) {
+            } catch (error: unknown) {
               console.error(`Failed to send scheduled notification to user ${user.id}:`, error)
               
               // Handle expired subscriptions
@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
             total: eligibleUsers.length
           }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(`Failed to process scheduled notification ${notification.id}:`, error)
           
           // Mark as failed
@@ -285,7 +285,7 @@ export async function POST(request: NextRequest) {
       }
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error processing scheduled notifications:', error)
     return NextResponse.json({ 
       error: 'Failed to process scheduled notifications',

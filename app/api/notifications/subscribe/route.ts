@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       subscriptionId: profile.id
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Subscription error:', error)
     return NextResponse.json({ 
       error: 'Failed to save subscription',
@@ -109,7 +109,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Subscription removed successfully'
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Unsubscription error:', error)
     return NextResponse.json({ 
       error: 'Failed to remove subscription',

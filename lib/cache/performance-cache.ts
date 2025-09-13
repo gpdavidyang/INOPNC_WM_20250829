@@ -64,7 +64,7 @@ class PerformanceCache {
 export const performanceCache = new PerformanceCache()
 
 // 캐시 키 생성 헬퍼
-export const createCacheKey = (prefix: string, ...params: any[]) => {
+export const createCacheKey = (prefix: string, ...params: unknown[]) => {
   return `${prefix}:${params.join(':')}`
 }
 
@@ -91,7 +91,7 @@ export const withCache = async <T>(
 }
 
 // 사용자별 캐시 키 생성
-export const createUserCacheKey = (userId: string, resource: string, ...params: any[]) => {
+export const createUserCacheKey = (userId: string, resource: string, ...params: unknown[]) => {
   return createCacheKey(`user:${userId}:${resource}`, ...params)
 }
 

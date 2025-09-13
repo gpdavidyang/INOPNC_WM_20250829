@@ -58,13 +58,13 @@ interface Site {
 
 interface IntegratedSiteData {
   site: Site
-  customers: any[]
+  customers: unknown[]
   primary_customer: any
-  daily_reports: any[]
+  daily_reports: unknown[]
   documents_by_category: Record<string, any[]>
   statistics: any
-  recent_activities: any[]
-  assigned_workers: any[]
+  recent_activities: unknown[]
+  assigned_workers: unknown[]
   document_category_counts: Record<string, number>
 }
 

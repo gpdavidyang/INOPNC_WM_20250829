@@ -37,7 +37,7 @@ export default function SignupRequestPage() {
       } else if (result?.success) {
         setSubmitted(true)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup request error:', error)
       setError('승인 요청 중 오류가 발생했습니다.')
     } finally {

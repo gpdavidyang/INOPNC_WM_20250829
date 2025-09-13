@@ -45,7 +45,7 @@ interface MonitoringAlert {
   event_type: MonitoringEventType
   severity: AlertSeverity
   message: string
-  context: Record<string, any>
+  context: Record<string, unknown>
   timestamp: string
   resolved: boolean
   resolved_at?: string
@@ -704,12 +704,12 @@ export class MonitoringManager {
     }
   }
 
-  private calculatePerformanceTrends(metrics: any[]): any {
+  private calculatePerformanceTrends(metrics: unknown[]): unknown {
     // Implementation for trend calculation
     return { api_response_time: { trend: 'stable', change: 0 } }
   }
 
-  private detectMemoryLeak(usageHistory: any[]): boolean {
+  private detectMemoryLeak(usageHistory: unknown[]): boolean {
     // Simple leak detection: check if memory consistently increases
     if (usageHistory.length < 5) return false
     
@@ -733,22 +733,22 @@ export class MonitoringManager {
       })
   }
 
-  private async getDailyReportsMetrics(): Promise<any> {
+  private async getDailyReportsMetrics(): Promise<unknown> {
     // Implementation for daily reports metrics
     return { created_today: 0, avg_creation_time_ms: 0, failed_today: 0 }
   }
 
-  private async getAttendanceMetrics(): Promise<any> {
+  private async getAttendanceMetrics(): Promise<unknown> {
     // Implementation for attendance metrics
     return { records_today: 0, avg_check_in_time_ms: 0, sync_failures: 0 }
   }
 
-  private async getDocumentsMetrics(): Promise<any> {
+  private async getDocumentsMetrics(): Promise<unknown> {
     // Implementation for documents metrics
     return { uploads_today: 0, avg_upload_time_ms: 0, failed_uploads: 0, storage_used_mb: 0 }
   }
 
-  private async getSitesMetrics(): Promise<any> {
+  private async getSitesMetrics(): Promise<unknown> {
     // Implementation for sites metrics
     return { active_sites: 0, users_per_site: {}, avg_activity_per_site: 0 }
   }

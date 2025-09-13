@@ -16,7 +16,7 @@ import PartnerBottomNavigation from './PartnerBottomNavigation'
 interface PartnerDashboardProps {
   user: User
   profile: Profile
-  sites: any[]
+  sites: unknown[]
   organization: any
 }
 

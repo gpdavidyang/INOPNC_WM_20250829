@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       })
     }
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Reminder schedule error:', error)
     return NextResponse.json({ 
       error: 'Failed to schedule reminder',
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
       reminders: reminders || []
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Get reminders error:', error)
     return NextResponse.json({ 
       error: 'Failed to get reminders',

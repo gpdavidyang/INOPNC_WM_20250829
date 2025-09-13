@@ -55,27 +55,27 @@ export const createLogger = (module: string) => {
   }
 
   return {
-    error: (...args: any[]) => {
+    error: (...args: unknown[]) => {
       if (shouldLog(LogLevel.ERROR)) {
         console.error(`[${module}]`, ...args)
       }
     },
-    warn: (...args: any[]) => {
+    warn: (...args: unknown[]) => {
       if (shouldLog(LogLevel.WARN)) {
         console.warn(`[${module}]`, ...args)
       }
     },
-    info: (...args: any[]) => {
+    info: (...args: unknown[]) => {
       if (shouldLog(LogLevel.INFO)) {
         console.info(`[${module}]`, ...args)
       }
     },
-    debug: (...args: any[]) => {
+    debug: (...args: unknown[]) => {
       if (shouldLog(LogLevel.DEBUG)) {
         console.log(`[${module}]`, ...args)
       }
     },
-    log: (...args: any[]) => {
+    log: (...args: unknown[]) => {
       // Alias for debug
       if (shouldLog(LogLevel.DEBUG)) {
         console.log(`[${module}]`, ...args)

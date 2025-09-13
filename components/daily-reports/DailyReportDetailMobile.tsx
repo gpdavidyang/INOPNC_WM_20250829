@@ -48,11 +48,11 @@ interface DailyReportDetailMobileProps {
     site?: any
     created_by_profile?: any
     approved_by_profile?: any
-    workers?: any[]
-    beforePhotos?: any[]
-    afterPhotos?: any[]
-    receipts?: any[]
-    documents?: any[]
+    workers?: unknown[]
+    beforePhotos?: unknown[]
+    afterPhotos?: unknown[]
+    receipts?: unknown[]
+    documents?: unknown[]
   }
   currentUser: Profile
 }

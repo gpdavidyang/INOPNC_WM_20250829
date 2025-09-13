@@ -8,7 +8,7 @@ interface EngagementData {
   action?: string
   targetUrl?: string
   timestamp: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export async function POST(request: NextRequest) {
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Notification engagement error:', error)
     return NextResponse.json({ 
       error: 'Failed to log notification engagement',

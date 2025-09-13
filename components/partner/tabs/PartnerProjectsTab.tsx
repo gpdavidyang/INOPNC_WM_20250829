@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface PartnerProjectsTabProps {
   profile: Profile
-  sites: any[]
+  sites: unknown[]
 }
 
 export default function PartnerProjectsTab({ profile, sites }: PartnerProjectsTabProps) {

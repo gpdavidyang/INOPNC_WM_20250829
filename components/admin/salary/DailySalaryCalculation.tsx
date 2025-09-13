@@ -234,7 +234,7 @@ export default function DailySalaryCalculation() {
 
       setData(transformedData)
       calculateSummary(transformedData)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load daily salary data:', error)
       const errorMessage = error.message || '알 수 없는 오류가 발생했습니다.'
       alert(`급여 데이터를 불러오는 중 오류가 발생했습니다: ${errorMessage}`)

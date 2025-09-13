@@ -8,30 +8,30 @@ const isDebugEnabled = process.env.DEBUG === 'true'
 const disableConsoleLogs = process.env.NEXT_PUBLIC_DISABLE_CONSOLE_LOGS === 'true'
 
 export const logger = {
-  log: (...args: any[]) => {
+  log: (...args: unknown[]) => {
     if (!disableConsoleLogs && (isDebugEnabled || !isDevelopment)) {
       console.log(...args)
     }
   },
   
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (!disableConsoleLogs && (isDebugEnabled || !isDevelopment)) {
       console.info(...args)
     }
   },
   
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (isDebugEnabled) {
       console.debug(...args)
     }
   },
   
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     // Always show warnings
     console.warn(...args)
   },
   
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     // Always show errors
     console.error(...args)
   },

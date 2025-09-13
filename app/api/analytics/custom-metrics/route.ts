@@ -86,7 +86,7 @@ export const GET = withApiMonitoring(
       }
 
       // Aggregate metrics by type
-      const aggregateMetrics = (data: any[]) => {
+      const aggregateMetrics = (data: unknown[]) => {
         const aggregated: Record<string, { total: number; count: number }> = {}
         
         data?.forEach(row => {

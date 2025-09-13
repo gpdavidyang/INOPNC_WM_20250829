@@ -78,7 +78,7 @@ export const ErrorMessages = {
 /**
  * Handle errors consistently across the application
  */
-export function handleError(error: any): ApiResponse {
+export function handleError(error: unknown): ApiResponse {
   console.error('Application error:', error)
   
   // Handle known AppError instances

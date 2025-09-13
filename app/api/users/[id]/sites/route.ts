@@ -45,7 +45,7 @@ export async function GET(
         hasMore: offset + limit < total
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching user sites:', error);
     return NextResponse.json(
       { success: false, error: error.message },
@@ -119,7 +119,7 @@ export async function POST(
       success: true,
       data
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error assigning site to user:', error);
     return NextResponse.json(
       { success: false, error: error.message },
@@ -180,7 +180,7 @@ export async function PATCH(
       success: true,
       data
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating user site assignment:', error);
     return NextResponse.json(
       { success: false, error: error.message },
@@ -226,7 +226,7 @@ export async function DELETE(
       success: true,
       data
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error removing site from user:', error);
     return NextResponse.json(
       { success: false, error: error.message },

@@ -9,7 +9,7 @@ import Link from 'next/link'
 interface ProjectListProps {
   currentUser: any
   currentProfile: any
-  projects: any[]
+  projects: unknown[]
 }
 
 export default function ProjectList({ currentUser, currentProfile, projects }: ProjectListProps) {
@@ -48,7 +48,7 @@ export default function ProjectList({ currentUser, currentProfile, projects }: P
       setShowModal(false)
       setFormData({ name: '', description: '', start_date: '', end_date: '' })
       // router.refresh()
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert('프로젝트 생성 중 오류가 발생했습니다: ' + error.message)
     } finally {
       setLoading(false)

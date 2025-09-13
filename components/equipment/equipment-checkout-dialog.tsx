@@ -21,7 +21,7 @@ import { Package, Calendar, MapPin, FileText } from 'lucide-react'
 
 interface EquipmentCheckoutDialogProps {
   equipment: Equipment | null
-  sites: any[]
+  sites: unknown[]
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void

@@ -284,7 +284,7 @@ describe('Analytics Mock Infrastructure', () => {
   })
 
   describe('MockAnalyticsBatcher', () => {
-    let batchedEvents: any[][] = []
+    let batchedEvents: unknown[][] = []
     let batcher: MockAnalyticsBatcher
 
     beforeEach(() => {
@@ -318,7 +318,7 @@ describe('Analytics Mock Infrastructure', () => {
       jest.useFakeTimers()
       
       // Create a new batcher with fake timers active
-      let testBatchedEvents: any[][] = []
+      let testBatchedEvents: unknown[][] = []
       const testBatcher = new MockAnalyticsBatcher(3, 1000, (events) => {
         testBatchedEvents.push(events)
       })

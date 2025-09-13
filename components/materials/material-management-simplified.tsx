@@ -3,9 +3,9 @@
 import NPC1000DailyDashboard from './npc1000/NPC1000DailyDashboard'
 
 interface MaterialManagementSimplifiedProps {
-  materials: any[]
-  categories: any[]
-  initialInventory: any[]
+  materials: unknown[]
+  categories: unknown[]
+  initialInventory: unknown[]
   currentUser: any
   currentSite?: any
 }

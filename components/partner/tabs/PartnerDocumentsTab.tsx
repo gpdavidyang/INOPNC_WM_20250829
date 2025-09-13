@@ -18,7 +18,7 @@ import {
 
 interface PartnerDocumentsTabProps {
   profile: Profile
-  sites: any[]
+  sites: unknown[]
 }
 
 interface Document {

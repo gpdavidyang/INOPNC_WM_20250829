@@ -448,7 +448,7 @@ interface DocumentListProps {
   onSelectAll: () => void
   onUpdate: (id: string, updates: Partial<UnifiedDocument>) => Promise<UnifiedDocument | null>
   onDelete: (id: string, hardDelete?: boolean) => Promise<boolean>
-  categories: any[]
+  categories: unknown[]
   loading: boolean
 }
 
@@ -545,7 +545,7 @@ interface DocumentCardProps {
   onToggleSelection: (id: string) => void
   onUpdate: (id: string, updates: Partial<UnifiedDocument>) => Promise<UnifiedDocument | null>
   onDelete: (id: string, hardDelete?: boolean) => Promise<boolean>
-  categories: any[]
+  categories: unknown[]
 }
 
 function DocumentCard({ document, selected, onToggleSelection, onUpdate, onDelete, categories }: DocumentCardProps) {

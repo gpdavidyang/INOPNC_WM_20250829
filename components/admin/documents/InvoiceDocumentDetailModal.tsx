@@ -236,7 +236,7 @@ export default function InvoiceDocumentDetailModal({
       alert('서류 정보가 성공적으로 수정되었습니다.')
       setEditing(false)
       onUpdate()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating document:', error)
       alert('서류 정보 수정에 실패했습니다.')
     } finally {
@@ -271,7 +271,7 @@ export default function InvoiceDocumentDetailModal({
 
       alert('서류가 승인되었습니다.')
       onUpdate()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error approving document:', error)
       alert('서류 승인에 실패했습니다.')
     } finally {
@@ -309,7 +309,7 @@ export default function InvoiceDocumentDetailModal({
 
       alert('서류가 거부되었습니다.')
       onUpdate()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error rejecting document:', error)
       alert('서류 거부에 실패했습니다.')
     } finally {

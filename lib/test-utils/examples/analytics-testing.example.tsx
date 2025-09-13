@@ -301,7 +301,7 @@ export function testGoogleAnalyticsIntegration() {
 
 // Example 7: Testing analytics batching
 export function testAnalyticsBatching() {
-  let batchedEvents: any[] = []
+  let batchedEvents: unknown[] = []
   const batcher = new MockAnalyticsBatcher(
     3, // batch size
     1000, // flush interval

@@ -16,7 +16,7 @@ export async function GET() {
       success: true 
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('VAPID key error:', error)
     return NextResponse.json({ 
       error: 'Failed to get VAPID key',

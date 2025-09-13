@@ -60,7 +60,7 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
 
       setMessage({ type: 'success', text: '프로필이 업데이트되었습니다.' })
       router.refresh()
-    } catch (error: any) {
+    } catch (error: unknown) {
       setMessage({ type: 'error', text: error.message })
     } finally {
       setLoading(false)
@@ -103,7 +103,7 @@ export default function SettingsForm({ user, profile }: SettingsFormProps) {
         newPassword: '',
         confirmPassword: ''
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       setMessage({ type: 'error', text: error.message })
     } finally {
       setLoading(false)

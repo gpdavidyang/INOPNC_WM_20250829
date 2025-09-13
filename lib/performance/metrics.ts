@@ -66,7 +66,7 @@ export const measureRenderTime = (componentName: string) => {
   return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value
 
-    descriptor.value = function (...args: any[]) {
+    descriptor.value = function (...args: unknown[]) {
       performanceMetrics.startTiming(`${componentName}-${propertyKey}`)
       const result = originalMethod.apply(this, args)
       performanceMetrics.endTiming(`${componentName}-${propertyKey}`)

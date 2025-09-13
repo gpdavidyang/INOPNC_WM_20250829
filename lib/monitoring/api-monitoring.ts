@@ -410,7 +410,7 @@ class APIMonitor {
   }
   
   // Get construction-specific context for an endpoint
-  private getConstructionContext(endpoint: string): Record<string, any> {
+  private getConstructionContext(endpoint: string): Record<string, unknown> {
     if (endpoint.includes('/daily-reports')) {
       return { feature: 'daily_reports', category: 'core_workflow' }
     } else if (endpoint.includes('/attendance')) {

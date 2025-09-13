@@ -30,7 +30,7 @@ export default function SignupPage() {
         alert('회원가입이 완료되었습니다.')
         router.push('/auth/login')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup error:', error)
       setError('회원가입 중 오류가 발생했습니다.')
     } finally {

@@ -83,7 +83,7 @@ export default async function NewDailyReportPage() {
   //   .eq('is_active', true)
   //   .order('name')
   
-  const materials: any[] = []
+  const materials: unknown[] = []
 
   // Get workers for attendance - simplified query since organization relationships aren't set up
   const { data: workers } = await supabase

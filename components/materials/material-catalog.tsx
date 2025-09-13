@@ -49,8 +49,8 @@ import { useSortableData } from '@/components/ui/sortable-table'
 import type { SortConfig } from '@/components/ui/sortable-table'
 
 interface MaterialCatalogProps {
-  materials: any[]
-  categories: any[]
+  materials: unknown[]
+  categories: unknown[]
   searchQuery: string
 }
 

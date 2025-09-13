@@ -164,7 +164,7 @@ export function SharedDocuments({ profile, initialSearch }: SharedDocumentsProps
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
-  const FILE_TYPES: Record<string, any> = {
+  const FILE_TYPES: Record<string, unknown> = {
     pdf: { icon: FileText, color: 'text-red-500', bg: 'bg-red-50 dark:bg-red-900/20' },
     doc: { icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     docx: { icon: FileText, color: 'text-blue-500', bg: 'bg-blue-50 dark:bg-blue-900/20' },

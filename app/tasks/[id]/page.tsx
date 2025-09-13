@@ -60,8 +60,8 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   //   .eq('status', 'active')
   //   .order('name')
 
-  const comments: any[] = []
-  const projects: any[] = []
+  const comments: unknown[] = []
+  const projects: unknown[] = []
 
   return (
     <div className="min-h-screen bg-gray-100">

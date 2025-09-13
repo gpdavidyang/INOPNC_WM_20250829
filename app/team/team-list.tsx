@@ -8,7 +8,7 @@ import Navbar from '@/components/navbar'
 interface TeamListProps {
   currentUser: any
   currentProfile: any
-  teamMembers: any[]
+  teamMembers: unknown[]
 }
 
 export default function TeamList({ currentUser, currentProfile, teamMembers }: TeamListProps) {

@@ -64,7 +64,7 @@ export default function OrganizationDetailPage({ organization: initialOrg }: Org
       
       alert('거래처가 삭제되었습니다.')
       router.push('/dashboard/admin/organizations')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting organization:', error)
       
       if (error.code === '23503') {

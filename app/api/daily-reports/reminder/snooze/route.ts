@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
       snoozedUntil
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Reminder snooze error:', error)
     return NextResponse.json({ 
       error: 'Failed to snooze reminder',

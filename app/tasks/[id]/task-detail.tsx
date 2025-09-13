@@ -10,9 +10,9 @@ interface TaskDetailProps {
   currentUser: any
   currentProfile: any
   task: any
-  comments: any[]
-  users: any[]
-  projects: any[]
+  comments: unknown[]
+  users: unknown[]
+  projects: unknown[]
 }
 
 export default function TaskDetail({ 
@@ -67,7 +67,7 @@ export default function TaskDetail({
       alert('작업 수정 기능은 아직 구현 중입니다.')
       setIsEditing(false)
       // router.refresh()
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert('작업 수정 중 오류가 발생했습니다: ' + error.message)
     } finally {
       setLoading(false)
@@ -94,7 +94,7 @@ export default function TaskDetail({
       alert('댓글 추가 기능은 아직 구현 중입니다.')
       setNewComment('')
       // router.refresh()
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert('댓글 추가 중 오류가 발생했습니다: ' + error.message)
     } finally {
       setLoading(false)

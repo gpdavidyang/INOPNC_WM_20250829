@@ -84,7 +84,7 @@ export async function GET(
         hasMore: offset + limit < total
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error fetching site workers:', error);
     return NextResponse.json(
       { success: false, error: error.message },
@@ -135,7 +135,7 @@ export async function POST(
       success: true,
       data: data?.[0] || { success_count: 0, error_count: 0, error_messages: [] }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error assigning workers to site:', error);
     return NextResponse.json(
       { success: false, error: error.message },
@@ -196,7 +196,7 @@ export async function PATCH(
       success: true,
       data
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error updating site worker assignment:', error);
     return NextResponse.json(
       { success: false, error: error.message },
@@ -242,7 +242,7 @@ export async function DELETE(
       success: true,
       data
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error removing worker from site:', error);
     return NextResponse.json(
       { success: false, error: error.message },

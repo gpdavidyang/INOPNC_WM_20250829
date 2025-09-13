@@ -215,7 +215,7 @@ export function calculateMonthlySalaryAggregate(
     total_net: number
   }>
 } {
-  const breakdown: Record<string, any> = {
+  const breakdown: Record<string, unknown> = {
     regular_employee: { count: 0, total_gross: 0, total_tax: 0, total_net: 0 },
     freelancer: { count: 0, total_gross: 0, total_tax: 0, total_net: 0 },
     daily_worker: { count: 0, total_gross: 0, total_tax: 0, total_net: 0 }

@@ -23,9 +23,9 @@ import { MaterialTransactions } from './material-transactions'
 import { NPC1000Management } from './npc1000-management'
 
 interface MaterialManagementProps {
-  materials: any[]
-  categories: any[]
-  initialInventory: any[]
+  materials: unknown[]
+  categories: unknown[]
+  initialInventory: unknown[]
   currentUser: any
   currentSite?: any
 }

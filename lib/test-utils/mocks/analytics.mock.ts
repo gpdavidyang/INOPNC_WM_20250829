@@ -25,7 +25,7 @@ export interface WebVitalsMetrics {
 export interface AnalyticsEvent {
   name: string
   category: string
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
   timestamp: number
   userId?: string
   sessionId: string
@@ -122,7 +122,7 @@ export class MockAnalyticsAPI {
   }
 
   // Track custom event
-  track(eventName: string, properties?: Record<string, any>, category = 'custom'): void {
+  track(eventName: string, properties?: Record<string, unknown>, category = 'custom'): void {
     const event: AnalyticsEvent = {
       name: eventName,
       category,
@@ -472,7 +472,7 @@ export class MockVercelAnalytics {
     this.analytics = analytics
   }
 
-  track(eventName: string, properties?: Record<string, any>): void {
+  track(eventName: string, properties?: Record<string, unknown>): void {
     this.analytics.track(eventName, { ...properties, source: 'vercel' }, 'vercel')
   }
 
@@ -491,7 +491,7 @@ export class MockGoogleAnalytics {
     this.measurementId = measurementId
   }
 
-  gtag(command: string, ...args: any[]): void {
+  gtag(command: string, ...args: unknown[]): void {
     switch (command) {
       case 'event':
         const [eventName, parameters] = args

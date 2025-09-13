@@ -17,7 +17,7 @@ import { WorkerSkill, WorkerSkillAssignment } from '@/types/equipment'
 
 interface WorkerAssignmentDialogProps {
   worker: any
-  sites: any[]
+  sites: unknown[]
   skills: WorkerSkill[]
   skillAssignments: WorkerSkillAssignment[]
   open: boolean
@@ -117,7 +117,7 @@ export function WorkerAssignmentDialog({
       } else {
         throw new Error(result.error)
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: '배치 실패',
         description: error.message || '작업자 배치에 실패했습니다.',

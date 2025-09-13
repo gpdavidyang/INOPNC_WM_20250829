@@ -24,7 +24,7 @@ export async function GET() {
     payload.healthText = await r.text();
     payload.ok = r.ok;
     return Response.json(payload, { status: r.ok ? 200 : 502 });
-  } catch (e: any) {
+  } catch (e: Event) {
     payload.ok = false;
     payload.fetchError = String(e?.message || e);
     return Response.json(payload, { status: 500 });

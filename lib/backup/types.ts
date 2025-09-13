@@ -31,7 +31,7 @@ export interface BackupJob {
   file_size?: number // bytes
   compressed_size?: number // bytes
   error_message?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface BackupStats {

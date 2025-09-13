@@ -21,7 +21,7 @@ interface MarkupDocument {
   site_id?: string
   metadata?: {
     original_filename?: string
-    markup_data?: any[]
+    markup_data?: unknown[]
     preview_image_url?: string
     location?: 'personal' | 'shared'
     markup_count?: number

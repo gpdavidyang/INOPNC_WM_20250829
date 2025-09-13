@@ -53,7 +53,7 @@ export interface BackupJob {
   location: string
   verification_status?: 'pending' | 'passed' | 'failed'
   error_message?: string
-  metadata: Record<string, any>
+  metadata: Record<string, unknown>
 }
 
 export interface BackupMetrics {
