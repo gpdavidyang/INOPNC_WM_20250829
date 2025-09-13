@@ -338,7 +338,7 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
       console.error('Unexpected error fetching user:', error)
       return {
         success: false,
-        error: AdminErrors.UNEXPECTED_ERROR
+        error: AdminErrors.UNKNOWN_ERROR
       }
     }
   })
