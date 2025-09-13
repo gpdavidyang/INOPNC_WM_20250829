@@ -67,7 +67,7 @@ export default function UserDetailPage() {
         .select('work_hours')
         .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
       
-      const totalWorkHours = attendanceData?.reduce((sum, record) => sum + (record.work_hours || 0), 0) || 0
+      const totalWorkHours = attendanceData?.reduce((sum: number, record: any) => sum + (record.work_hours || 0), 0) || 0
       
       // Get total daily reports count
       const { count: reportsCount } = await supabase
