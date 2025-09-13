@@ -17,7 +17,7 @@ import {
 } from 'recharts'
 
 interface AnalyticsDashboardProps {
-  profile: Profile
+  profile?: Profile
 }
 
 // 차트 색상 팔레트
