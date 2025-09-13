@@ -69,12 +69,12 @@ export async function GET(request: NextRequest) {
       if (allNotifications) {
         adminStats = {
           total: allNotifications.length,
-          unread: allNotifications.filter(n => !n.is_read).length,
-          byType: allNotifications.reduce((acc: any, n) => {
+          unread: allNotifications.filter((n: any) => !n.is_read).length,
+          byType: allNotifications.reduce((acc: any, n: any) => {
             acc[n.type] = (acc[n.type] || 0) + 1
             return acc
           }, {}),
-          recent: allNotifications.filter(n => 
+          recent: allNotifications.filter((n: any) => 
             new Date().getTime() - new Date(n.created_at).getTime() < 24 * 60 * 60 * 1000
           ).length
         }
@@ -158,14 +158,14 @@ export async function POST(request: NextRequest) {
         .select('id')
         .eq('role', target_role)
       
-      targetUsers = roleUsers?.map(u => ({ user_id: u.id })) || []
+      targetUsers = roleUsers?.map((u: any) => ({ user_id: u.id })) || []
     } else {
       // 전체 공지 (user_id = null)
       targetUsers = [{ user_id: null }]
     }
 
     // 알림 생성
-    const notifications = targetUsers.map(target => ({
+    const notifications = targetUsers.map((target: any) => ({
       title,
       message,
       type,
