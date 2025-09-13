@@ -131,7 +131,7 @@ export async function getUsers(
 
             // Create status for each required document type
             requiredDocuments = REQUIRED_DOCUMENT_TYPES.map(docType => {
-              const doc = userDocs?.find(d => d.document_type === docType)
+              const doc = userDocs?.find((d: any) => d.document_type === docType)
               return {
                 document_type: docType,
                 status: doc ? 'submitted' : 'pending',
