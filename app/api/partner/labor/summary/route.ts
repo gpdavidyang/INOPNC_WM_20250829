@@ -69,9 +69,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch sites' }, { status: 500 })
     }
 
-    const siteIds = partnerSites?.map(sp => sp.site_id) || []
+    const siteIds = partnerSites?.map((sp: any) => sp.site_id) || []
     const totalSites = partnerSites?.length || 0
-    const activeSites = partnerSites?.filter(sp => sp.sites?.status === 'active').length || 0
+    const activeSites = partnerSites?.filter((sp: any) => sp.sites?.status === 'active').length || 0
 
     if (siteIds.length === 0) {
       return NextResponse.json({
@@ -98,12 +98,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate statistics
-    const totalWorkHours = laborData?.reduce((sum, record) => sum + (Number(record.work_hours) || 0), 0) || 0
-    const totalLaborHours = laborData?.reduce((sum, record) => sum + (Number(record.labor_hours) || 0), 0) || 0
-    const totalOvertimeHours = laborData?.reduce((sum, record) => sum + (Number(record.overtime_hours) || 0), 0) || 0
+    const totalWorkHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.work_hours) || 0), 0) || 0
+    const totalLaborHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.labor_hours) || 0), 0) || 0
+    const totalOvertimeHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.overtime_hours) || 0), 0) || 0
     
     // Get unique work dates for calculating working days
-    const uniqueDates = new Set(laborData?.map(record => record.work_date) || [])
+    const uniqueDates = new Set(laborData?.map((record: any) => record.work_date) || [])
     const workingDays = uniqueDates.size
 
     // Calculate average daily hours
