@@ -72,11 +72,11 @@ export async function createMaterial(materialData: {
   try {
     const supabase = createClient()
     
-    const { data, error } = await supabase
-      .from('materials' as any)
-      .insert(materialData)
+    const { data, error } = await (supabase
+      .from('materials')
+      .insert(materialData as any)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
@@ -102,12 +102,12 @@ export async function updateMaterial(id: string, updates: Partial<{
   try {
     const supabase = createClient()
     
-    const { data, error } = await supabase
-      .from('materials' as any)
-      .update(updates)
+    const { data, error } = await (supabase
+      .from('materials')
+      .update(updates as any)
       .eq('id', id)
       .select()
-      .single()
+      .single() as any)
 
     if (error) throw error
 
@@ -363,16 +363,16 @@ export async function createMaterialRequest(requestData: {
     if (requestError) throw requestError
 
     // Create request items
-    const { error: itemsError } = await supabase
-      .from('material_request_items' as any)
+    const { error: itemsError } = await (supabase
+      .from('material_request_items')
       .insert(
-        requestData.items.map(item => ({
+        requestData.items.map((item: any) => ({
           request_id: (request as any).id,
           material_id: item.material_id,
           requested_quantity: item.requested_quantity,
           notes: item.notes
-        }))
-      )
+        })) as any
+      ) as any)
 
     if (itemsError) throw itemsError
 
