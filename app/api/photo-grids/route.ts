@@ -253,7 +253,7 @@ export async function GET(request: NextRequest) {
 
     // For each photo grid, fetch associated images from photo_grid_images table
     const photoGridsWithImages = await Promise.all(
-      photoGrids.map(async (grid) => {
+      photoGrids.map(async (grid: any) => {
         const { data: images } = await supabase
           .from('photo_grid_images')
           .select('*')
