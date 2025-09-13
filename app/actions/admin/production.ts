@@ -53,7 +53,7 @@ export async function createProductionRecord(data: {
     // 인증 및 권한 확인
     const authResult = await requireAdminAuth()
     if (isAuthError(authResult)) {
-      return authResult
+      return createErrorResponse(authResult.error || '인증 실패', ErrorCodes.UNAUTHORIZED)
     }
     const { user, profile } = authResult
 
