@@ -150,7 +150,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
     return {
       id: doc.id,
       title: doc.title || doc.file_name,
-      description: doc.description,
+      description: doc.description || undefined,
       category: getCategoryFromPath(doc.folder_path || ''),
       documentType: doc.document_type || 'document',
       fileName: doc.file_name,
