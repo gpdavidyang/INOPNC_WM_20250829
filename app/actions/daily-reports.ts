@@ -120,8 +120,8 @@ export async function createDailyReport(data: {
         // Insert new worker details
         if (workerDetails.length > 0) {
           const workerInserts = workerDetails
-            .filter(worker => worker.worker_name && worker.labor_hours > 0)
-            .map(worker => ({
+            .filter((worker: any) => worker.worker_name && worker.labor_hours > 0)
+            .map((worker: any) => ({
               daily_report_id: report.id,
               worker_name: worker.worker_name,
               work_hours: worker.labor_hours,
@@ -165,8 +165,8 @@ export async function createDailyReport(data: {
     // Save worker details if provided
     if (workerDetails && workerDetails.length > 0 && report) {
       const workerInserts = workerDetails
-        .filter(worker => worker.worker_name && worker.labor_hours > 0)
-        .map(worker => ({
+        .filter((worker: any) => worker.worker_name && worker.labor_hours > 0)
+        .map((worker: any) => ({
           daily_report_id: report.id,
           worker_name: worker.worker_name,
           work_hours: worker.labor_hours,
@@ -444,15 +444,15 @@ export async function getDailyReportById(id: string) {
       .order('created_at')
 
     // Separate documents by type
-    const beforePhotos = documents?.filter(doc => 
+    const beforePhotos = documents?.filter((doc: any) => 
       doc.document_type === 'before_photo' || doc.category === 'before'
     ) || []
     
-    const afterPhotos = documents?.filter(doc => 
+    const afterPhotos = documents?.filter((doc: any) => 
       doc.document_type === 'after_photo' || doc.category === 'after'
     ) || []
     
-    const receipts = documents?.filter(doc => 
+    const receipts = documents?.filter((doc: any) => 
       doc.document_type === 'receipt' || doc.file_type === 'receipt'
     ) || []
 
