@@ -68,20 +68,20 @@ export async function GET(request: NextRequest) {
     // 통계 계산
     const stats = {
       total_reports: reports.length,
-      total_file_size: reports.reduce((sum, r) => sum + (r.file_size || 0), 0),
-      total_downloads: reports.reduce((sum, r) => sum + (r.download_count || 0), 0),
-      total_photo_groups: reports.reduce((sum, r) => sum + (r.total_photo_groups || 0), 0),
-      total_before_photos: reports.reduce((sum, r) => sum + (r.total_before_photos || 0), 0),
-      total_after_photos: reports.reduce((sum, r) => sum + (r.total_after_photos || 0), 0),
+      total_file_size: reports.reduce((sum: number, r: any) => sum + (r.file_size || 0), 0),
+      total_downloads: reports.reduce((sum: number, r: any) => sum + (r.download_count || 0), 0),
+      total_photo_groups: reports.reduce((sum: number, r: any) => sum + (r.total_photo_groups || 0), 0),
+      total_before_photos: reports.reduce((sum: number, r: any) => sum + (r.total_before_photos || 0), 0),
+      total_after_photos: reports.reduce((sum: number, r: any) => sum + (r.total_after_photos || 0), 0),
       
       // 상태별 통계
-      reports_by_status: reports.reduce((acc, r) => {
+      reports_by_status: reports.reduce((acc: any, r: any) => {
         acc[r.status] = (acc[r.status] || 0) + 1
         return acc
       }, {} as Record<string, number>),
       
       // 생성 방법별 통계
-      reports_by_method: reports.reduce((acc, r) => {
+      reports_by_method: reports.reduce((acc: any, r: any) => {
         const method = r.generation_method || 'unknown'
         acc[method] = (acc[method] || 0) + 1
         return acc
@@ -89,37 +89,37 @@ export async function GET(request: NextRequest) {
       
       // 평균 파일 크기
       average_file_size: reports.length > 0 
-        ? Math.round(reports.reduce((sum, r) => sum + (r.file_size || 0), 0) / reports.length)
+        ? Math.round(reports.reduce((sum: number, r: any) => sum + (r.file_size || 0), 0) / reports.length)
         : 0,
       
       // 가장 많이 다운로드된 보고서
       most_downloaded: reports.length > 0
-        ? reports.reduce((max, r) => 
+        ? reports.reduce((max: any, r: any) => 
             (r.download_count || 0) > (max.download_count || 0) ? r : max
           )
         : null,
       
       // 최근 보고서 (최신 5개)
       recent_reports: reports
-        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
         .slice(0, 5),
       
       // 사이트별 통계
-      reports_by_site: reports.reduce((acc, r) => {
+      reports_by_site: reports.reduce((acc: any, r: any) => {
         const siteName = r.daily_report?.site?.name || '알 수 없음'
         acc[siteName] = (acc[siteName] || 0) + 1
         return acc
       }, {} as Record<string, number>),
       
       // 생성자별 통계
-      reports_by_creator: reports.reduce((acc, r) => {
+      reports_by_creator: reports.reduce((acc: any, r: any) => {
         const creatorName = r.generated_by_profile?.full_name || '알 수 없음'
         acc[creatorName] = (acc[creatorName] || 0) + 1
         return acc
       }, {} as Record<string, number>),
       
       // 월별 생성 통계 (최근 12개월)
-      reports_by_month: reports.reduce((acc, r) => {
+      reports_by_month: reports.reduce((acc: any, r: any) => {
         const month = new Date(r.created_at).toISOString().substring(0, 7) // YYYY-MM
         acc[month] = (acc[month] || 0) + 1
         return acc
