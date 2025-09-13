@@ -24,8 +24,6 @@ const nextConfig = {
   experimental: {
     // 메모리 캐시 최적화
     optimizePackageImports: [
-      '@supabase/supabase-js',
-      '@supabase/ssr',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-select',
@@ -41,15 +39,6 @@ const nextConfig = {
     
     // Font optimization disabled for stability
     adjustFontFallbacks: false,
-    
-    // CSS optimization disabled for stability
-    // optimizeCss: false,
-    
-    // Server Components external packages
-    serverComponentsExternalPackages: ['@supabase/supabase-js'],
-    
-    // Enable Server Actions
-    serverActions: true,
   },
   
   // 개발 서버 최적화
@@ -85,12 +74,6 @@ const nextConfig = {
   // DISABLE font optimization
   optimizeFonts: false,
   
-  // API configuration for file uploads
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-  },
   
   // Headers
   headers: async () => {
