@@ -130,7 +130,7 @@ export async function GET(
 
     // Generate URLs for each token
     const baseUrl = request.nextUrl.origin
-    const tokensWithUrls = (tokens || []).map(token => ({
+    const tokensWithUrls = (tokens || []).map((token: any) => ({
       ...token,
       shareUrl: `${baseUrl}/shared/${params.id}?token=${token.token}`
     }))
