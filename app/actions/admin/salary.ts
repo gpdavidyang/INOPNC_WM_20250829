@@ -1081,7 +1081,7 @@ export async function getOutputSummary(
 
       // Transform to output format 
       const outputData: OutputSummary[] = Object.values(workSummary).map((item: any) => {
-        const workDatesArray = Array.from(item.work_days).sort()
+        const workDatesArray: string[] = Array.from(item.work_days as Set<string>).sort()
         
         return {
           worker_id: item.worker.id,
