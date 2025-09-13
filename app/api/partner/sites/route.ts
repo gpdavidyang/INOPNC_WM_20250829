@@ -158,7 +158,7 @@ export async function GET(request: Request) {
     }
 
     // Transform data for frontend consumption - with safe property access
-    const transformedParticipations = (participations || []).map(p => {
+    const transformedParticipations = (participations || []).map((p: any) => {
       try {
         return {
           id: p.sites?.id || '',
@@ -186,10 +186,10 @@ export async function GET(request: Request) {
 
     // Calculate statistics
     const totalSites = transformedParticipations.length
-    const activeSites = transformedParticipations.filter(p => 
+    const activeSites = transformedParticipations.filter((p: any) => 
       p.contractStatus === 'active' && (p.siteStatus === 'active' || p.siteStatus === 'in_progress')
     ).length
-    const completedSites = transformedParticipations.filter(p => 
+    const completedSites = transformedParticipations.filter((p: any) => 
       p.contractStatus === 'completed' || p.siteStatus === 'completed'
     ).length
 
