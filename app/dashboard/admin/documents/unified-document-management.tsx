@@ -158,7 +158,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
       fileUrl: doc.file_url,
       mimeType: doc.mime_type || 'application/octet-stream',
       owner: {
-        id: doc.owner_id,
+        id: doc.owner_id || '',
         name: doc.owner?.full_name || 'Unknown',
         email: doc.owner?.email || ''
       },
