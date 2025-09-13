@@ -4,7 +4,7 @@ import { useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/types'
-import DocumentsTabUnified from '@/components/dashboard/tabs/documents-tab-unified'
+import DocumentsTabNew from '@/components/dashboard/tabs/documents-tab-new'
 
 export default function DocumentsPage() {
   const searchParams = useSearchParams()
@@ -60,14 +60,7 @@ export default function DocumentsPage() {
   
   return (
     <div className="w-full">
-      <div className="px-4 sm:px-6 lg:px-8 py-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">문서함</h1>
-        <DocumentsTabUnified
-          profile={profile}
-          initialTab={tab || 'personal'}
-          initialSearch={search || undefined}
-        />
-      </div>
+      <DocumentsTabNew />
     </div>
   )
 }

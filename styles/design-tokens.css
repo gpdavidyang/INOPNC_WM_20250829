@@ -1,252 +1,93 @@
-/* =============== INOPNC Design System Tokens =============== */
-/* Based on 디자인CSS규칙.txt and base.html */
+/* =============== DESIGN TOKENS =============== */
+/* 디자인CSS규칙.txt 내용 그대로 적용 */
 
 :root {
-  /* ============= Typography ============= */
-  /* Font Families */
-  --font-sans: "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto, 
-               "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  /* Fonts (로드는 HTML에서) */
+  --font-sans: "Noto Sans KR", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --font-brand: "Poppins", var(--font-sans);
 
-  /* Font Sizes */
-  --fs-title: 24px;    /* Headlines/Main titles (weight: 700) */
-  --fs-h2: 18px;       /* Section/Card titles (weight: 600) */
-  --fs-body: 15px;     /* Body text (weight: 400) */
-  --fs-cap: 12px;      /* Captions/Helper text (weight: 400) */
-  --fs-ctl: 14px;      /* Buttons/Controls (weight: 500) */
-
-  /* Line Height */
+  /* Type scale / line-height */
   --lh: 1.4;
+  --fs-title: 24px;  /* 헤드라인/메인 타이틀 (700) */
+  --fs-h2:    18px;  /* 섹션/카드 타이틀 (600) */
+  --fs-body:  15px;  /* 본문 (400) */
+  --fs-cap:   12px;  /* 캡션 (400) */
+  --fs-ctl:   14px;  /* 버튼/탭 (500) */
 
-  /* ============= Colors (Light Mode) ============= */
-  /* Base Colors */
-  --bg: #F6F9FF;
-  --card: #FFFFFF;
-  --text: #1A1A1A;
-  --muted: #6B7280;
+  /* Colors (Light) */
+  --bg: #F6F9FF; 
+  --card: #FFFFFF; 
+  --text: #1A1A1A; 
+  --muted: #6B7280; 
   --line: #E6ECF4;
 
-  /* Brand Colors */
-  --brand: #1A254F;        /* Navy - Primary brand color */
-  --gray-btn: #99A4BE;     /* Gray button */
-  --sky-btn: #00BCD4;      /* Sky blue button */
-  --accent: #0068FE;       /* Accent blue */
-  --accent-cyan: #00BCD4;  /* Secondary accent */
-  --warn: #EA3829;         /* Warning/Danger */
-  --success: #22C55E;      /* Success */
+  /* Brand / Accent / Status */
+  --brand: #1A254F;        /* 남색 버튼 */
+  --gray-btn: #99A4BE;     /* 회색 버튼 */
+  --sky-btn: #00BCD4;      /* 하늘색 버튼 */
+  --accent: #0068FE;       /* 강조 블루 */
+  --accent-cyan: #00BCD4;  /* 보조 강조 */
+  --warn: #EA3829;         /* 주의 */
 
-  /* Tag Colors */
-  --tag1: #33E6F6;
-  --tag1-20: rgba(51, 230, 246, 0.20);
-  --tag2: #28C1CF;
-  --tag3: #2934D0;
-  --tag3-70: rgba(41, 52, 208, 0.70);
-  --tag3-15: rgba(41, 52, 208, 0.15);
-  --tag4: #FFD6EB;
+  /* Tag colors */
+  --tag1: #33E6F6;   
+  --tag1-20: rgba(51,230,246,.20);
+  --tag2: #28C1CF;   /* 사용 안 함(변형 제거), 변수는 보존 */
+  --tag3: #2934D0;   
+  --tag3-70: rgba(41,52,208,.70); 
+  --tag3-15: rgba(41,52,208,.15);
+  --tag4: #FFD6EB;   
   --tag4-ink: #FF3399;
-  --tag-blue: #0068FE;
-  --tag-blue-20: rgba(0, 104, 254, 0.20);
+  --tag-blue: #0068FE; 
+  --tag-blue-20: rgba(0,104,254,.20);
 
-  /* ============= Sizes & Spacing ============= */
-  --r: 14px;           /* Default border radius */
-  --r-sm: 8px;         /* Small radius */
-  --r-md: 12px;        /* Medium radius */
-  --r-lg: 14px;        /* Large radius */
-  --r-xl: 24px;        /* Extra large radius */
-  --r-full: 9999px;    /* Full radius */
-  
-  --pad: 14px;         /* Default padding */
-  --btn-h: 44px;       /* Button height (mobile optimized) */
-  --input-h: 44px;     /* Input height */
-  --search-h: 52px;    /* Search input height */
-  --chip-h: 48px;      /* Chip/Tag height */
-  --gap: 12px;         /* Default gap */
-  
-  /* Layout Heights */
-  --header-h: 80px;    /* Header height */
-  --nav-h: 72px;       /* Bottom navigation height */
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-  --shadow-card: 0 2px 10px rgba(2, 6, 23, 0.04);
-  --shadow-card-hover: 0 4px 12px rgba(2, 6, 23, 0.08);
-  
-  /* Transitions */
-  --transition-fast: 0.12s ease;
-  --transition-base: 0.2s ease;
-  --transition-slow: 0.3s ease;
-  --transition-slower: 0.45s ease;
+  /* Sizes */
+  --r: 14px; 
+  --pad: 14px; 
+  --btn-h: 44px; 
+  --chip-h: 48px; 
+  --gap: 12px;
+
+  /* Additional tokens from HTML files */
+  --header-h: 56px; 
+  --nav-h: 64px; 
+  --nav-bg: #ffffff; 
+  --nav-border: #e5e7eb; 
+  --nav-text: #6b7280; 
+  --nav-text-active: #2563eb;
+  --num: #0068FE; /* 번호 컬러 */
+
+  /* 모바일 뷰포트 대응 */
+  --vh: 1vh;
+  --dvh: 100dvh;
+  --svh: 100svh;
 }
 
-/* ============= Dark Mode ============= */
 [data-theme="dark"] {
-  /* Base Colors */
-  --bg: #0F172A;
-  --card: #111827;
-  --text: #E5E7EB;
-  --muted: #9CA3AF;
+  --bg: #0F172A; 
+  --card: #111827; 
+  --text: #E5E7EB; 
+  --muted: #9CA3AF; 
   --line: #3A4048;
+  --brand: #2F6BFF; 
+  --accent: #5B86FF; /* 다크에서 가시성 ↑ */
   
-  /* Brand Colors */
-  --brand: #2F6BFF;       /* Brighter blue for dark mode */
-  --accent: #5B86FF;      /* Lighter accent for visibility */
-  --accent-cyan: #00BCD4;
-  --warn: #FF5555;
-  --success: #50FA7B;
-  
-  /* Adjusted shadows for dark mode */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-  --shadow-card: 0 2px 10px rgba(0, 0, 0, 0.2);
-  --shadow-card-hover: 0 4px 12px rgba(0, 0, 0, 0.3);
+  /* Dark mode specific */
+  --surface: #11151B; 
+  --overlay: #0f172aCC; 
+  --line-soft: #2A2E35;
+  --text-muted: #A8B0BB; 
+  --icon: #B9C2CE;
+  --accent-weak: #1E4EDC; 
+  --accent-ghost: #2F6BFF1A;
+  --success: #22C55E; 
+  --danger: #EF4444;
+  --shadow: 0 10px 26px rgba(0,0,0,.35); 
+  --radius: 8px;
+  --nav-bg: #11151B; 
+  --nav-border: #3A4048; 
+  --nav-text: #A8B0BB; 
+  --nav-text-active: #2F6BFF;
+  --chip-active: #2F6BFF; 
+  --chip-active-line: #3B82F6;
 }
-
-/* ============= Typography Classes ============= */
-.t-brand {
-  font-family: var(--font-brand);
-  font-weight: 700;
-  font-size: var(--fs-title);
-  color: var(--brand);
-  line-height: var(--lh);
-}
-
-.t-title {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: var(--fs-title);
-  line-height: var(--lh);
-  color: var(--text);
-}
-
-.t-h2 {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: var(--fs-h2);
-  line-height: var(--lh);
-  color: var(--text);
-}
-
-.t-body {
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: var(--fs-body);
-  line-height: var(--lh);
-  color: var(--text);
-}
-
-.t-cap {
-  font-family: var(--font-sans);
-  font-weight: 400;
-  font-size: var(--fs-cap);
-  line-height: var(--lh);
-  color: var(--muted);
-}
-
-.t-ctl {
-  font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: var(--fs-ctl);
-  line-height: var(--lh);
-}
-
-/* ============= Animation Keyframes ============= */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideDown {
-  from {
-    transform: translateY(-20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes ripple {
-  to {
-    transform: scale(1);
-    opacity: 0;
-  }
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes bellShake {
-  0%, 100% {
-    transform: rotate(0deg);
-  }
-  10%, 30%, 50%, 70%, 90% {
-    transform: rotate(-10deg);
-  }
-  20%, 40%, 60%, 80% {
-    transform: rotate(10deg);
-  }
-}
-
-@keyframes countUp {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.3);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7);
-  }
-  70% {
-    box-shadow: 0 0 0 10px rgba(255, 68, 68, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(255, 68, 68, 0);
-  }
-}
-
-/* ============= Utility Classes ============= */
-.transition-fast { transition: all var(--transition-fast); }
-.transition-base { transition: all var(--transition-base); }
-.transition-slow { transition: all var(--transition-slow); }
-
-.shadow-card { box-shadow: var(--shadow-card); }
-.shadow-card-hover:hover { box-shadow: var(--shadow-card-hover); }
-
-/* Safe area for iOS devices */
-.safe-area-top { padding-top: env(safe-area-inset-top); }
-.safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
-.safe-area-left { padding-left: env(safe-area-inset-left); }
-.safe-area-right { padding-right: env(safe-area-inset-right); }

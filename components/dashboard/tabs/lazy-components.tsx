@@ -25,7 +25,7 @@ const ErrorFallback = ({ error }: { error: Error }) => (
 )
 
 // 지연 로딩할 컴포넌트들
-export const LazyWorkLogsTab = dynamic(() => import('./work-logs-tab'), {
+export const LazyWorkLogsTab = dynamic(() => import('./daily-reports-tab-new'), {
   loading: LoadingSpinner,
   ssr: false // 클라이언트에서만 렌더링 (성능 향상)
 })
@@ -35,7 +35,7 @@ export const LazyDocumentsTab = dynamic(() => import('./documents-tab'), {
   ssr: false
 })
 
-export const LazyDocumentsTabUnified = dynamic(() => import('./documents-tab-unified'), {
+export const LazyDocumentsTabUnified = dynamic(() => import('./documents-tab-new'), {
   loading: LoadingSpinner,
   ssr: false
 })
@@ -57,8 +57,8 @@ export const LazyMarkupEditor = dynamic(() => import('../../markup/markup-editor
 })
 
 // 성능 향상을 위한 프리로드 함수들
-export const preloadWorkLogs = () => import('./work-logs-tab')
-export const preloadDocuments = () => import('./documents-tab-unified')
+export const preloadWorkLogs = () => import('./daily-reports-tab-new')
+export const preloadDocuments = () => import('./documents-tab-new')
 export const preloadAttendance = () => import('./attendance-tab')
 export const preloadMarkup = () => import('../../markup/markup-editor')
 

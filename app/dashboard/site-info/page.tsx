@@ -3,7 +3,7 @@ import { getProfile } from '@/app/actions/profile'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import DashboardLayout from '@/components/dashboard/dashboard-layout'
-import SiteInfoPageNew from '@/components/site-info/SiteInfoPageNew'
+import SiteInfoTabNew from '@/components/dashboard/tabs/site-info-tab-new'
 
 export default async function SiteInfoPage() {
   // Get user profile for authentication
@@ -54,14 +54,7 @@ export default async function SiteInfoPage() {
       user={user} 
       profile={profileResult.data}
     >
-      <div className="space-y-3">
-        <SiteInfoPageNew 
-          initialCurrentSite={currentSite}
-          initialSiteHistory={siteHistory}
-          currentUser={profileResult.data}
-          errors={errors}
-        />
-      </div>
+      <SiteInfoTabNew />
     </DashboardLayout>
   )
 }
