@@ -386,10 +386,10 @@ export async function getSalaryRecords(
       const salaryRecords: SalaryRecord[] = []
       
       for (const report of dailyReports || []) {
-        const site = sites.find(s => s.id === report.site_id)
+        const site = sites.find((s: any) => s.id === report.site_id)
         
         for (const workerEntry of report.daily_report_workers || []) {
-          const worker = profiles.find(p => p.full_name === workerEntry.worker_name)
+          const worker = profiles.find((p: any) => p.full_name === workerEntry.worker_name)
           
           if (worker) {
             const workHours = parseFloat(workerEntry.work_hours) || 0
@@ -1026,11 +1026,11 @@ export async function getOutputSummary(
       }> = {}
 
       for (const report of reports) {
-        const site = sites.find(s => s.id === report.site_id)
+        const site = sites.find((s: any) => s.id === report.site_id)
         if (!site) continue
 
         for (const workerEntry of report.daily_report_workers || []) {
-          const worker = workers.find(w => w.full_name === workerEntry.worker_name)
+          const worker = workers.find((w: any) => w.full_name === workerEntry.worker_name)
           if (!worker) continue
 
           // Apply search filter if specified
@@ -1178,7 +1178,7 @@ export async function getWorkerCalendarData(
       const calendarData: WorkerCalendarData[] = []
 
       for (const report of reports) {
-        const site = sites.find(s => s.id === report.site_id)
+        const site = sites.find((s: any) => s.id === report.site_id)
         
         for (const workerEntry of report.daily_report_workers || []) {
           if (workerEntry.worker_name === workerData.full_name) {
