@@ -65,7 +65,7 @@ export default async function AnalyticsPage() {
           </div>
         </div>
       }>
-        <BusinessAnalyticsDashboard user={user} profile={profile} />
+        <BusinessAnalyticsDashboard user={{id: user.id, email: user.email || ''}} profile={profile} />
       </Suspense>
     </div>
   )
