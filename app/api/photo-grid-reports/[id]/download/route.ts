@@ -15,11 +15,26 @@ export async function POST(
       return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
     }
 
+    // First, get the current download count
+    const { data: currentData, error: fetchError } = await supabase
+      .from('photo_grid_reports')
+      .select('download_count')
+      .eq('id', params.id)
+      .single()
+
+    if (fetchError) {
+      console.error('Failed to fetch current data:', fetchError)
+      return NextResponse.json(
+        { error: 'Failed to fetch report data' },
+        { status: 500 }
+      )
+    }
+
     // 다운로드 카운트 업데이트 및 추적
     const { data, error } = await supabase
       .from('photo_grid_reports')
       .update({
-        download_count: supabase.raw('download_count + 1'),
+        download_count: (currentData?.download_count || 0) + 1,
         last_downloaded_at: new Date().toISOString(),
         last_downloaded_by: user.id
       })
