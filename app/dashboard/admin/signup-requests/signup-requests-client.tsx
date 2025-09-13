@@ -356,7 +356,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
                         </td>
                         <td className="px-2 py-2">
                           <Button
-                            size="sm"
+                            size="compact"
                             variant="ghost"
                             onClick={() => toggleRowExpansion(request.id)}
                             className="text-xs min-w-[40px] h-7 px-2 py-1"
@@ -464,7 +464,14 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
           setShowApprovalModal(false)
           setApprovalRequest(null)
         }}
-        request={approvalRequest}
+        request={approvalRequest ? {
+          id: approvalRequest.id,
+          full_name: approvalRequest.full_name,
+          email: approvalRequest.email,
+          phone: approvalRequest.phone,
+          company_name: approvalRequest.company,
+          requested_role: approvalRequest.job_type === 'construction' ? 'worker' : 'site_manager'
+        } : null}
         onApprove={handleApprove}
       />
     </div>

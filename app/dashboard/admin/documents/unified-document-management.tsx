@@ -160,7 +160,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
       owner: {
         id: doc.owner_id || '',
         name: doc.owner?.full_name || 'Unknown',
-        email: doc.owner?.email || ''
+        email: (doc.owner as any)?.email || ''
       },
       site: doc.site ? {
         id: doc.site_id!,
@@ -170,10 +170,10 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
       visibility: doc.is_public ? 'public' : doc.folder_path === '/shared' ? 'shared' : 'private',
       createdAt: doc.created_at,
       updatedAt: doc.updated_at,
-      viewCount: doc.view_count || 0,
-      downloadCount: doc.download_count || 0,
-      tags: doc.tags,
-      folder_path: doc.folder_path
+      viewCount: (doc as any).view_count || 0,
+      downloadCount: (doc as any).download_count || 0,
+      tags: (doc as any).tags,
+      folder_path: doc.folder_path || undefined
     }
   }
 
@@ -202,7 +202,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
         result = await getAllUnifiedDocuments()
       }
 
-      if (!result.success) {
+      if (!result.success || !result.data) {
         console.error('Error loading documents:', result.error)
         setDocuments([])
         return
@@ -228,7 +228,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
       
       // Calculate stats based on all documents (not filtered)
       const allDocsResult = selectedCategory !== 'all' ? await getAllUnifiedDocuments() : result
-      if (allDocsResult.success) {
+      if (allDocsResult.success && allDocsResult.data) {
         const allDocsTransformed = allDocsResult.data.map(transformDocument)
         
         setStats({
@@ -405,7 +405,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
-                size="sm"
+                size="compact"
                 onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
                 className={`${
                   touchMode === 'glove' ? 'p-3' : touchMode === 'precision' ? 'p-1.5' : 'p-2'
@@ -416,7 +416,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
               
               <Button
                 variant="outline"
-                size="sm"
+                size="compact"
                 onClick={() => setShowFilters(!showFilters)}
                 className={`${
                   touchMode === 'glove' ? 'px-4 py-3' : touchMode === 'precision' ? 'px-2 py-1' : 'px-3 py-2'
@@ -428,7 +428,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
               
               <Button
                 variant="outline"
-                size="sm"
+                size="compact"
                 onClick={loadDocuments}
                 className={`${
                   touchMode === 'glove' ? 'p-3' : touchMode === 'precision' ? 'p-1.5' : 'p-2'
@@ -540,7 +540,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
               </span>
               <div className="flex items-center gap-2">
                 <Button
-                  size="sm"
+                  size="compact"
                   variant="outline"
                   onClick={handleBulkDownload}
                   className={`${
@@ -551,7 +551,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
                   다운로드
                 </Button>
                 <Button
-                  size="sm"
+                  size="compact"
                   variant="outline"
                   onClick={handleBulkMove}
                   className={`${
@@ -562,7 +562,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
                   이동
                 </Button>
                 <Button
-                  size="sm"
+                  size="compact"
                   variant="outline"
                   onClick={handleBulkDelete}
                   className={`${
@@ -573,7 +573,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
                   삭제
                 </Button>
                 <Button
-                  size="sm"
+                  size="compact"
                   variant="ghost"
                   onClick={() => setSelectedDocuments([])}
                   className={`${
@@ -687,7 +687,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
                           </div>
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="compact"
                             className={`${
                               touchMode === 'glove' ? 'p-2' : touchMode === 'precision' ? 'p-1' : 'p-1.5'
                             }`}
@@ -786,7 +786,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
                           </div>
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="compact"
                             className="h-7 w-7 p-0"
                           >
                             <MoreVertical className="h-4 w-4" />
