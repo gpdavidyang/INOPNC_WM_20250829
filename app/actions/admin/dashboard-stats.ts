@@ -66,7 +66,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
         .limit(3)
 
       if (recentReports) {
-        recentReports.forEach(report => {
+        recentReports.forEach((report: any) => {
           const profile = report.profiles as any
           const site = report.sites as any
           activities.push({
@@ -89,7 +89,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
         .limit(2)
 
       if (recentUsers) {
-        recentUsers.forEach(user => {
+        recentUsers.forEach((user: any) => {
           activities.push({
             id: `user-${user.id}`,
             type: 'user_registration',
@@ -117,7 +117,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
         .limit(2)
 
       if (recentPhotos) {
-        recentPhotos.forEach(photo => {
+        recentPhotos.forEach((photo: any) => {
           const profile = photo.profiles as any
           activities.push({
             id: `photo-${photo.id}`,
