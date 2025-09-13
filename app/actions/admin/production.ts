@@ -298,21 +298,7 @@ export async function getProductionAnalytics(period: 'week' | 'month' | 'year' =
     }
 
     // 기간별 집계 쿼리
-    let dateFormat: string
-    switch (period) {
-      case 'week':
-        dateFormat = 'YYYY-"W"WW'
-        break
-      case 'year':
-        dateFormat = 'YYYY'
-        break
-      default:
-        dateFormat = 'YYYY-MM'
-    }
-
-    const { data: analytics, error } = await supabase.rpc('get_production_analytics', {
-      period_format: dateFormat
-    })
+    const { data: analytics, error } = await supabase.rpc('get_production_analytics')
 
     if (error) {
       console.error('Error fetching production analytics:', error)
