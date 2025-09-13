@@ -175,7 +175,7 @@ export async function getUserSiteHistoryDirect(userId?: string) {
       return { success: false, error: error.message }
     }
     
-    const history = assignments?.map(a => ({
+    const history = assignments?.map((a: any) => ({
       site_id: a.sites?.id,
       site_name: a.sites?.name,
       site_address: a.sites?.address,
