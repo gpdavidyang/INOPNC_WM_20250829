@@ -308,14 +308,14 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
       const transformedUser: UserWithSites = {
         ...user,
         organization: user.organizations || null,
-        site_assignments: assignments?.map(a => ({
+        site_assignments: assignments?.map((a: any) => ({
           site_id: a.site_id,
           site_name: (a.sites as any)?.name || 'Unknown',
           role: a.role,
           assigned_at: a.assigned_at,
           is_active: a.is_active
         })) || [],
-        required_documents: documents?.map(d => ({
+        required_documents: documents?.map((d: any) => ({
           document_type: d.document_type,
           document_name: d.document_name,
           status: d.status,
