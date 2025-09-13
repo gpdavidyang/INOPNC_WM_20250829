@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data to match the expected format
-    const transformedDocuments = documents?.map(doc => ({
+    const transformedDocuments = documents?.map((doc: any) => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,
