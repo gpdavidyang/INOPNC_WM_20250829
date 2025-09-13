@@ -9,9 +9,9 @@ const log = (...args: any[]) => {
 
 // 현재 사용자가 배정된 현장 정보 조회
 export async function getCurrentUserSite() {
-  const supabase = createClient()
-  
   try {
+    const supabase = createClient()
+    
     log('getCurrentUserSite: Starting... (env:', process.env.NODE_ENV, ')')
     
     // 배포 환경에서 쿠키 상태 확인
@@ -24,6 +24,7 @@ export async function getCurrentUserSite() {
       })
     } catch (sessionError) {
       log('getCurrentUserSite: Session check error:', sessionError)
+      return { success: false, error: 'Session check failed', data: null }
     }
     
     // 현재 사용자 확인
@@ -248,9 +249,9 @@ export async function getCurrentUserSite() {
 
 // 사용자의 현장 참여 이력 조회
 export async function getUserSiteHistory() {
-  const supabase = createClient()
-  
   try {
+    const supabase = createClient()
+    
     log('getUserSiteHistory: Starting...')
     
     // 현재 사용자 확인
@@ -259,7 +260,7 @@ export async function getUserSiteHistory() {
     
     if (authError || !user) {
       log('getUserSiteHistory: Authentication failed')
-      return { success: false, error: 'Authentication required' }
+      return { success: false, error: 'Authentication required', data: [] }
     }
 
     // Direct query approach - get all site assignments with site details
@@ -332,7 +333,7 @@ export async function getUserSiteHistory() {
   } catch (error) {
     console.error('Error fetching user site history:', error)
     const errorMessage = error instanceof Error ? error.message : 'Failed to fetch site history'
-    return { success: false, error: errorMessage }
+    return { success: false, error: errorMessage, data: [] }
   }
 }
 
