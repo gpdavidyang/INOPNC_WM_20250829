@@ -65,7 +65,7 @@ export async function forceSiteRefresh() {
     }
 
     // 활성 배정 찾기
-    const activeAssignment = allAssignments?.find(a => a.is_active) || null
+    const activeAssignment = allAssignments?.find((a: any) => a.is_active) || null
     console.log('🔧 [FORCE-REFRESH] Active assignment:', { 
       found: !!activeAssignment, 
       siteName: activeAssignment?.sites?.name 
