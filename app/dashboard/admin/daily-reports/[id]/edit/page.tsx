@@ -104,8 +104,8 @@ export default async function AdminEditDailyReportPage({ params }: PageProps) {
           reportData={{
             ...report,
             worker_entries: workerDetails,
-            receipts: dailyDocuments?.filter(doc => doc.file_type === 'receipt'),
-            additional_photos: dailyDocuments?.filter(doc => doc.file_type === 'photo')
+            receipts: dailyDocuments?.filter((doc: any) => doc.file_type === 'receipt'),
+            additional_photos: dailyDocuments?.filter((doc: any) => doc.file_type === 'photo')
           }}
           sites={sites || []}
           currentUser={profile as any}
