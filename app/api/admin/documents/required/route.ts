@@ -81,10 +81,10 @@ export async function GET(request: NextRequest) {
 
     console.log('Required documents API - Documents found:', documentsWithProfiles?.length || 0)
     console.log('Required documents API - Sample document:', documentsWithProfiles?.[0])
-    console.log('Required documents API - All document titles:', documentsWithProfiles?.map(d => d.title))
+    console.log('Required documents API - All document titles:', documentsWithProfiles?.map((d: any) => d.title))
 
     // Transform data to match the expected format
-    const transformedDocuments = documentsWithProfiles?.map(doc => ({
+    const transformedDocuments = documentsWithProfiles?.map((doc: any) => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,

@@ -85,8 +85,8 @@ export async function GET(
     }
 
     // Get site statistics
-    const { data: statsData } = await supabase
-      .rpc('get_site_statistics', { site_id_param: siteId })
+    const { data: statsData } = await (supabase
+      .rpc('get_site_statistics', { site_id_param: siteId } as any) as any)
 
     // Get recent activities
     const { data: recentActivities } = await supabase
@@ -121,21 +121,21 @@ export async function GET(
       .order('daily_reports.work_date', { ascending: false })
 
     // Group workers by profile to avoid duplicates
-    const uniqueWorkers = workersSummary?.reduce((acc, assignment) => {
+    const uniqueWorkers = workersSummary?.reduce((acc: any, assignment: any) => {
       const profileId = assignment.profiles?.id
-      if (profileId && !acc.find(w => w.id === profileId)) {
+      if (profileId && !acc.find((w: any) => w.id === profileId)) {
         acc.push({
           ...assignment.profiles,
           latest_trade_type: assignment.trade_type,
           latest_skill_level: assignment.skill_level,
-          assignment_count: workersSummary.filter(w => w.profiles?.id === profileId).length
+          assignment_count: workersSummary.filter((w: any) => w.profiles?.id === profileId).length
         })
       }
       return acc
     }, [] as any[]) || []
 
     // Organize customer information
-    const customers = siteData.customer_sites?.map(cs => ({
+    const customers = siteData.customer_sites?.map((cs: any) => ({
       ...cs.customer_companies,
       relationship_type: cs.relationship_type,
       contract_start_date: cs.contract_start_date,
@@ -144,10 +144,10 @@ export async function GET(
       is_primary_customer: cs.is_primary_customer
     })) || []
 
-    const primaryCustomer = customers.find(c => c.is_primary_customer)
+    const primaryCustomer = customers.find((c: any) => c.is_primary_customer)
 
     // Organize documents by category type (for new permission system)
-    const documentsByCategory = siteData.unified_documents?.reduce((acc, doc) => {
+    const documentsByCategory = siteData.unified_documents?.reduce((acc: any, doc: any) => {
       const category = doc.category_type || 'shared'
       if (!acc[category]) acc[category] = []
       acc[category].push(doc)
@@ -155,7 +155,7 @@ export async function GET(
     }, {} as Record<string, any[]>) || {}
 
     // Also organize by legacy document type for backward compatibility
-    const documentsByType = siteData.unified_documents?.reduce((acc, doc) => {
+    const documentsByType = siteData.unified_documents?.reduce((acc: any, doc: any) => {
       const type = doc.document_type
       if (!acc[type]) acc[type] = []
       acc[type].push(doc)
@@ -186,11 +186,11 @@ export async function GET(
       recent_activities: recentActivities || [],
       assigned_workers: uniqueWorkers,
       document_counts: Object.entries(documentsByType).reduce((acc, [type, docs]) => {
-        acc[type] = docs.length
+        acc[type] = (docs as any[]).length
         return acc
       }, {} as Record<string, number>),
       document_category_counts: Object.entries(documentsByCategory).reduce((acc, [category, docs]) => {
-        acc[category] = docs.length
+        acc[category] = (docs as any[]).length
         return acc
       }, {} as Record<string, number>)
     }

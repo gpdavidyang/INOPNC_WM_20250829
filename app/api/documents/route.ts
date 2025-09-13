@@ -267,7 +267,7 @@ export async function POST(request: NextRequest) {
       console.error('❌ Supabase Storage upload error:', {
         error: uploadError,
         message: uploadError.message,
-        statusCode: uploadError.statusCode,
+        statusCode: (uploadError as any).statusCode,
         filePath: filePath,
         fileSize: buffer.length,
         fileType: file.type

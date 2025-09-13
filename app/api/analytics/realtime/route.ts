@@ -107,12 +107,12 @@ export async function GET(request: NextRequest) {
       }
     })
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Analytics realtime setup error:', {
-      error: error.message,
-      stack: error.stack,
-      name: error.name,
-      cause: error.cause,
+      error: error?.message || 'Unknown error',
+      stack: error?.stack,
+      name: error?.name,
+      cause: error?.cause,
       timestamp: new Date().toISOString(),
       url: request.url,
       method: 'GET'
@@ -288,10 +288,10 @@ export async function POST(request: NextRequest) {
 
       // Successfully inserted event
       const insertedEvent = data
-    } catch (insertError) {
+    } catch (insertError: any) {
       console.error('Analytics event insertion exception:', {
-        error: insertError.message,
-        stack: insertError.stack,
+        error: insertError?.message || 'Unknown error',
+        stack: insertError?.stack,
         eventType,
         isRumEvent,
         timestamp: new Date().toISOString()
@@ -312,20 +312,20 @@ export async function POST(request: NextRequest) {
     // Trigger metric recalculation if needed (only for authenticated events)
     if (profile && ['report_submitted', 'report_approved', 'attendance_marked'].includes(eventType)) {
       // Run aggregation in the background (fire and forget)
-      supabase.rpc('aggregate_daily_analytics', {
+      ;(supabase.rpc('aggregate_daily_analytics', {
         p_organization_id: profile.organization_id,
         p_site_id: siteId,
         p_date: new Date().toISOString().split('T')[0]
-      }).then(() => {
+      } as any) as any).then(() => {
         console.log('Analytics aggregation triggered')
-      }).catch((err) => {
+      }).catch((err: any) => {
         console.error('Analytics aggregation failed:', err)
       })
     }
 
     return NextResponse.json({
       success: true,
-      event: data
+      event: null // Event was created but details not returned
     })
 
   } catch (error) {

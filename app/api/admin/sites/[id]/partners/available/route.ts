@@ -55,7 +55,7 @@ export async function GET(
     }
 
     // Add is_assigned flag for each partner
-    const partnersWithStatus = partners?.map(partner => ({
+    const partnersWithStatus = partners?.map((partner: any) => ({
       ...partner,
       is_assigned: partner.site_partners?.some((sp: any) => sp.site_id === siteId && sp.partner_company_id === partner.id) || false
     })) || []

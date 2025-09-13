@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       .select('user_id', { count: 'exact' })
       .eq('is_active', true)
 
-    const assignedUserIds = new Set(assignedUsersData?.map(a => a.user_id) || [])
+    const assignedUserIds = new Set(assignedUsersData?.map((a: any) => a.user_id) || [])
     const assignedUsers = assignedUserIds.size
     const unassignedUsers = (totalUsers || 0) - assignedUsers
 

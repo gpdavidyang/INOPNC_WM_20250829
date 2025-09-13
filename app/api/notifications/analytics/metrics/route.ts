@@ -55,9 +55,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate metrics
     const totalSent = logs?.length || 0
-    const delivered = logs?.filter(log => log.status === 'delivered').length || 0
-    const failed = logs?.filter(log => log.status === 'failed').length || 0
-    const clicked = logs?.filter(log => log.clicked_at).length || 0
+    const delivered = logs?.filter((log: any) => log.status === 'delivered').length || 0
+    const failed = logs?.filter((log: any) => log.status === 'failed').length || 0
+    const clicked = logs?.filter((log: any) => log.clicked_at).length || 0
 
     // Get engagement data
     let engagementQuery = supabase
@@ -73,12 +73,12 @@ export async function GET(request: NextRequest) {
     const { data: engagements } = await engagementQuery
 
     // Calculate engagement metrics
-    const deepLinks = engagements?.filter(e => e.engagement_type === 'deep_link_navigation').length || 0
-    const actions = engagements?.filter(e => e.engagement_type === 'action_performed').length || 0
+    const deepLinks = engagements?.filter((e: any) => e.engagement_type === 'deep_link_navigation').length || 0
+    const actions = engagements?.filter((e: any) => e.engagement_type === 'action_performed').length || 0
 
     // Group by notification type
     const byType: Record<string, any> = {}
-    logs?.forEach(log => {
+    logs?.forEach((log: any) => {
       if (!byType[log.notification_type]) {
         byType[log.notification_type] = {
           sent: 0,
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
       const nextDate = new Date(date)
       nextDate.setDate(nextDate.getDate() + 1)
       
-      const dayLogs = logs?.filter(log => {
+      const dayLogs = logs?.filter((log: any) => {
         const logDate = new Date(log.sent_at)
         return logDate >= date && logDate < nextDate
       }) || []
@@ -121,8 +121,8 @@ export async function GET(request: NextRequest) {
       timeSeries.push({
         date: date.toISOString().split('T')[0],
         sent: dayLogs.length,
-        delivered: dayLogs.filter(log => log.status === 'delivered').length,
-        clicked: dayLogs.filter(log => log.clicked_at).length
+        delivered: dayLogs.filter((log: any) => log.status === 'delivered').length,
+        clicked: dayLogs.filter((log: any) => log.clicked_at).length
       })
     }
 

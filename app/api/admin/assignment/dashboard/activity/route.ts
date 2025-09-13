@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform assignment data
-    const assignmentActivities = (assignments || []).map(assignment => ({
+    const assignmentActivities = (assignments || []).map((assignment: any) => ({
       id: `assignment-${assignment.id}`,
       type: assignment.is_active ? 'assignment' : 'unassignment',
       description: assignment.is_active 
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
     }))
 
     // Transform mapping data
-    const mappingActivities = (mappings || []).map(mapping => ({
+    const mappingActivities = (mappings || []).map((mapping: any) => ({
       id: `mapping-${mapping.id}`,
       type: 'mapping' as const,
       description: `${mapping.partner_company?.company_name}와 ${mapping.site?.name} 현장이 매핑되었습니다`,

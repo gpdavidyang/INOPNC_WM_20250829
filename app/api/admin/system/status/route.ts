@@ -72,11 +72,9 @@ export async function GET() {
     }
 
     // Update memory percentage
-    if (process.memoryUsage) {
-      systemStatus.memory.percentage = Math.round(
-        (systemStatus.memory.used / systemStatus.memory.total) * 100
-      )
-    }
+    systemStatus.memory.percentage = Math.round(
+      (systemStatus.memory.used / systemStatus.memory.total) * 100
+    )
 
     return NextResponse.json(systemStatus)
   } catch (error) {

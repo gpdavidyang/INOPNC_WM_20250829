@@ -37,7 +37,7 @@ export async function GET(
       .eq('site_id', siteId)
       .eq('is_active', true)
 
-    const assignedUserIds = assignedWorkers?.map(w => w.user_id) || []
+    const assignedUserIds = assignedWorkers?.map((w: any) => w.user_id) || []
 
     // Get ALL profiles (including admins who might work on sites)
     let profilesQuery = supabase
@@ -60,7 +60,7 @@ export async function GET(
     console.log('Sample profile:', profileWorkers?.[0])
 
     // Format profiles data
-    const formattedWorkers = profileWorkers?.map(worker => ({
+    const formattedWorkers = profileWorkers?.map((worker: any) => ({
       id: worker.id,
       full_name: worker.full_name || 'Unknown',
       email: worker.email || '',

@@ -170,6 +170,5 @@ export const GET = withApiMonitoring(
         { status: 500 }
       )
     }
-  },
-  { name: 'getCustomMetrics' }
+  }
 )

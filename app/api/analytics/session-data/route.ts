@@ -59,7 +59,7 @@ export const GET = withApiMonitoring(
       let totalSessionTime = 0
       let sessionsWithDuration = 0
 
-      sessionEvents?.forEach(event => {
+      sessionEvents?.forEach((event: any) => {
         const eventData = event.event_data
         
         if (event.event_type === 'rum_session_update' && eventData.id) {
@@ -88,11 +88,11 @@ export const GET = withApiMonitoring(
       // Calculate active users (sessions updated in last 30 minutes)
       const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000)
       const activeUsers = Array.from(sessions.values()).filter(
-        session => new Date(session.lastUpdate) > thirtyMinutesAgo
+        (session: any) => new Date(session.lastUpdate) > thirtyMinutesAgo
       ).length
 
       // Calculate average session duration and device breakdown
-      sessions.forEach(session => {
+      sessions.forEach((session: any) => {
         if (session.duration > 0) {
           totalSessionTime += session.duration
           sessionsWithDuration++
@@ -110,13 +110,13 @@ export const GET = withApiMonitoring(
 
       // Get top pages
       const topPages = Array.from(pageViews.entries())
-        .map(([page, views]) => ({ page, views }))
+        .map(([page, views]: [any, any]) => ({ page, views }))
         .sort((a, b) => b.views - a.views)
         .slice(0, 5)
 
       // Get device breakdown
       const deviceBreakdown = Array.from(deviceTypes.entries())
-        .map(([type, count]) => ({ type, count }))
+        .map(([type, count]: [any, any]) => ({ type, count }))
         .sort((a, b) => b.count - a.count)
 
       const sessionData: SessionData = {
@@ -136,6 +136,5 @@ export const GET = withApiMonitoring(
         { status: 500 }
       )
     }
-  },
-  { name: 'getSessionData' }
+  }
 )

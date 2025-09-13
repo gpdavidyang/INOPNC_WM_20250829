@@ -70,7 +70,7 @@ export const GET = withApiMonitoring(
       }>()
 
       // Process response time metrics
-      apiMetrics?.forEach(metric => {
+      apiMetrics?.forEach((metric: any) => {
         const endpoint = metric.dimensions?.endpoint || 'unknown'
         const responseTime = metric.metric_value
         const count = metric.metric_count || 1
@@ -92,7 +92,7 @@ export const GET = withApiMonitoring(
       })
 
       // Process error metrics
-      errorMetrics?.forEach(event => {
+      errorMetrics?.forEach((event: any) => {
         const endpoint = event.event_data?.endpoint || 'unknown'
         const endpointData = endpointMetrics.get(endpoint)
         if (endpointData) {
@@ -158,6 +158,5 @@ export const GET = withApiMonitoring(
         { status: 500 }
       )
     }
-  },
-  { name: 'getApiPerformance' }
+  }
 )

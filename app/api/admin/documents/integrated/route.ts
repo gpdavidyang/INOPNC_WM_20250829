@@ -125,7 +125,7 @@ export async function GET(request: Request) {
       .select('category_type')
       .eq('is_archived', false)
 
-    const statisticsByCategory = categoryStats?.reduce((acc, doc) => {
+    const statisticsByCategory = categoryStats?.reduce((acc: any, doc: any) => {
       const category = doc.category_type
       acc[category] = (acc[category] || 0) + 1
       return acc
@@ -137,14 +137,14 @@ export async function GET(request: Request) {
       .select('status')
       .eq('is_archived', false)
 
-    const statisticsByStatus = statusStats?.reduce((acc, doc) => {
+    const statisticsByStatus = statusStats?.reduce((acc: any, doc: any) => {
       const docStatus = doc.status
       acc[docStatus] = (acc[docStatus] || 0) + 1
       return acc
     }, {} as Record<string, number>) || {}
 
     // Group documents by category
-    const documentsByCategory = documents?.reduce((acc, doc) => {
+    const documentsByCategory = documents?.reduce((acc: any, doc: any) => {
       const category = doc.category_type
       if (!acc[category]) acc[category] = []
       acc[category].push(doc)

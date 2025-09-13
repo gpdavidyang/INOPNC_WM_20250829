@@ -81,11 +81,11 @@ export async function GET(request: NextRequest) {
             error: 'URL does not appear to be a Supabase URL'
           })
         }
-      } catch (urlError) {
+      } catch (urlError: any) {
         checks.push({
           name: 'supabase_url_format',
           status: 'fail',
-          error: `Invalid URL format: ${urlError.message}`
+          error: `Invalid URL format: ${urlError?.message || 'Unknown error'}`
         })
       }
     }
@@ -100,8 +100,8 @@ export async function GET(request: NextRequest) {
         checks.push({
           name: 'supabase_auth_connection',
           status: 'fail',
-          error: error.message,
-          details: { code: error.status, name: error.name }
+          error: (error as any)?.message || 'Unknown error',
+          details: { code: (error as any)?.status, name: (error as any)?.name }
         })
       } else {
         checks.push({
@@ -110,11 +110,11 @@ export async function GET(request: NextRequest) {
           details: { hasSession: !!data?.session }
         })
       }
-    } catch (connectionError) {
+    } catch (connectionError: any) {
       checks.push({
         name: 'supabase_auth_connection',
         status: 'fail',
-        error: connectionError.message
+        error: connectionError?.message || 'Unknown error'
       })
     }
     
@@ -132,8 +132,8 @@ export async function GET(request: NextRequest) {
         checks.push({
           name: 'database_connection',
           status: 'fail',
-          error: error.message,
-          details: { code: error.code, hint: error.hint }
+          error: (error as any)?.message || 'Unknown error',
+          details: { code: (error as any)?.code, hint: (error as any)?.hint }
         })
       } else {
         checks.push({
@@ -142,11 +142,11 @@ export async function GET(request: NextRequest) {
           details: { tablesFound: data?.length || 0 }
         })
       }
-    } catch (dbError) {
+    } catch (dbError: any) {
       checks.push({
         name: 'database_connection',
         status: 'fail',
-        error: dbError.message
+        error: dbError?.message || 'Unknown error'
       })
     }
     
@@ -175,7 +175,7 @@ export async function GET(request: NextRequest) {
             checks.push({
               name: `table_${tableName}`,
               status: 'fail',
-              error: `Table check failed: ${error.message}`
+              error: `Table check failed: ${(error as any)?.message || 'Unknown error'}`
             })
           } else if (!data) {
             checks.push({
@@ -189,19 +189,19 @@ export async function GET(request: NextRequest) {
               status: 'pass'
             })
           }
-        } catch (tableError) {
+        } catch (tableError: any) {
           checks.push({
             name: `table_${tableName}`,
             status: 'fail',
-            error: `Exception checking table: ${tableError.message}`
+            error: `Exception checking table: ${tableError?.message || 'Unknown error'}`
           })
         }
       }
-    } catch (tablesError) {
+    } catch (tablesError: any) {
       checks.push({
         name: 'tables_check',
         status: 'fail',
-        error: `Tables check failed: ${tablesError.message}`
+        error: `Tables check failed: ${tablesError?.message || 'Unknown error'}`
       })
     }
     
@@ -214,8 +214,7 @@ export async function GET(request: NextRequest) {
           method: 'GET',
           headers: {
             'apikey': process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          },
-          timeout: 5000 // 5 second timeout
+          }
         })
         
         if (response.ok) {
@@ -237,11 +236,11 @@ export async function GET(request: NextRequest) {
           })
         }
       }
-    } catch (networkError) {
+    } catch (networkError: any) {
       checks.push({
         name: 'network_connectivity',
         status: 'fail',
-        error: networkError.message,
+        error: networkError?.message || 'Unknown error',
         details: { type: 'network_error' }
       })
     }
@@ -278,7 +277,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(result, { status: httpStatus })
     
-  } catch (error) {
+  } catch (error: any) {
     const errorResult: HealthCheckResult = {
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
@@ -286,7 +285,7 @@ export async function GET(request: NextRequest) {
       checks: [{
         name: 'health_check_execution',
         status: 'fail',
-        error: error.message
+        error: error?.message || 'Unknown error'
       }],
       summary: { total: 1, passed: 0, failed: 1, warnings: 0 }
     }

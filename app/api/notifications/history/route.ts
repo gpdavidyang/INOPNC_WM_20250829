@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get engagement data for these notifications
-    const notificationIds = notifications?.map(n => n.id) || []
+    const notificationIds = notifications?.map((n: any) => n.id) || []
     const { data: engagements } = await supabase
       .from('notification_engagement')
       .select('*')
@@ -64,15 +64,15 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
 
     // Map engagement data to notifications
-    const notificationsWithEngagement = notifications?.map(notification => {
-      const engagement = engagements?.filter(e => e.notification_id === notification.id) || []
+    const notificationsWithEngagement = notifications?.map((notification: any) => {
+      const engagement = engagements?.filter((e: any) => e.notification_id === notification.id) || []
       return {
         ...notification,
         engagement: {
-          clicked: engagement.some(e => e.engagement_type === 'notification_clicked'),
-          deepLinked: engagement.some(e => e.engagement_type === 'deep_link_navigation'),
-          actionPerformed: engagement.some(e => e.engagement_type === 'action_performed'),
-          lastEngagement: engagement.sort((a, b) => 
+          clicked: engagement.some((e: any) => e.engagement_type === 'notification_clicked'),
+          deepLinked: engagement.some((e: any) => e.engagement_type === 'deep_link_navigation'),
+          actionPerformed: engagement.some((e: any) => e.engagement_type === 'action_performed'),
+          lastEngagement: engagement.sort((a: any, b: any) => 
             new Date(b.engaged_at).getTime() - new Date(a.engaged_at).getTime()
           )[0]?.engaged_at
         }

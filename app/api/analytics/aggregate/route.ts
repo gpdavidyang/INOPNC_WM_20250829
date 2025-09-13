@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
     const { date } = body
 
     // Run the daily aggregation for all sites
-    const { error } = await supabase.rpc('run_daily_analytics_aggregation', {
+    const { error } = await (supabase.rpc('run_daily_analytics_aggregation', {
       p_date: date || new Date().toISOString().split('T')[0]
-    })
+    } as any) as any)
 
     if (error) {
       console.error('Error running full aggregation:', error)
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Count sites that have been aggregated today
-    const aggregatedSites = new Set(data?.map(d => d.site_id) || [])
+    const aggregatedSites = new Set(data?.map((d: any) => d.site_id) || [])
     
     // Get total sites count
     let sitesQuery = supabase

@@ -50,10 +50,10 @@ export async function GET(
       
       // legacy document를 새로운 형식으로 변환
       const transformedDocument = {
-        ...legacyDocument,
-        file_url: legacyDocument.original_blueprint_url || legacyDocument.file_url,
-        original_blueprint_url: legacyDocument.original_blueprint_url,
-        original_blueprint_filename: legacyDocument.original_blueprint_filename
+        ...(legacyDocument as any),
+        file_url: (legacyDocument as any).original_blueprint_url || (legacyDocument as any).file_url,
+        original_blueprint_url: (legacyDocument as any).original_blueprint_url,
+        original_blueprint_filename: (legacyDocument as any).original_blueprint_filename
       }
       
       return NextResponse.json({
@@ -99,8 +99,8 @@ export async function PUT(
     const markup_count = Array.isArray(markup_data) ? markup_data.length : 0
 
     // markup_documents 테이블 업데이트
-    const { data: document, error } = await supabase
-      .from('markup_documents' as any)
+    const { data: document, error } = await (supabase
+      .from('markup_documents')
       .update({
         title,
         description,
@@ -108,10 +108,10 @@ export async function PUT(
         preview_image_url,
         markup_count,
         updated_at: new Date().toISOString()
-      })
+      } as any)
       .eq('id', params.id)
       .select()
-      .single()
+      .single() as any)
 
     if (error) {
       console.error('Error updating markup document:', error)
@@ -171,13 +171,13 @@ export async function DELETE(
     }
 
     // markup_documents 테이블에서 소프트 삭제
-    const { error } = await supabase
-      .from('markup_documents' as any)
+    const { error } = await (supabase
+      .from('markup_documents')
       .update({
         is_deleted: true,
         updated_at: new Date().toISOString()
-      })
-      .eq('id', params.id)
+      } as any)
+      .eq('id', params.id) as any)
 
     if (error) {
       console.error('Error deleting markup document:', error)

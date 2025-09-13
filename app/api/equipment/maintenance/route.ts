@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
         .eq('status', 'active')
 
       if (siteManagers?.length) {
-        const urgentNotifications = siteManagers.map(manager => ({
+        const urgentNotifications = siteManagers.map((manager: any) => ({
           user_id: manager.id,
           type: 'warning',
           title: `⚠️ 긴급 장비 점검 필요`,

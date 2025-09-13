@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
 
     // Get daily reports data
     const result = await getDailyReports(filters)
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 500 })
+    if (!result.success || !result.data) {
+      return NextResponse.json({ error: result.error || 'No data' }, { status: 500 })
     }
 
     const reports = result.data.reports as DailyReport[]
@@ -231,8 +231,8 @@ export async function GET(request: NextRequest) {
 
     // Log export activity (simplified version to avoid authentication issues)
     try {
-      await supabase
-        .from('activity_logs' as any)
+      await (supabase
+        .from('activity_logs')
         .insert({
           user_id: user.id,
           action: 'export_data',
@@ -243,7 +243,7 @@ export async function GET(request: NextRequest) {
             record_count: totalReports,
             filters: filters
           }
-        })
+        } as any) as any)
     } catch (logError) {
       // Don't fail the export if logging fails
       console.warn('Failed to log export activity:', logError)

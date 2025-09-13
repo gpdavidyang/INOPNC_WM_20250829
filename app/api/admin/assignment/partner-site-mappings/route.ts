@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     // Get assigned users count for each mapping
     const mappingsWithUserCounts = await Promise.all(
-      (mappings || []).map(async (mapping) => {
+      (mappings || []).map(async (mapping: any) => {
         const { count } = await supabase
           .from('unified_user_assignments')
           .select('id', { count: 'exact' })

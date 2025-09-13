@@ -99,7 +99,7 @@ export async function GET(
     }
 
     // Get worker details from profiles table
-    const workerIds = assignments?.map(a => a.user_id) || []
+    const workerIds = assignments?.map((a: any) => a.user_id) || []
     let workers = []
     
     
@@ -116,8 +116,8 @@ export async function GET(
       // Remove duplicates and prioritize higher-level roles
       const workerMap = new Map()
       
-      assignments?.forEach(assignment => {
-        const user = userDetails?.find(u => u.id === assignment.user_id)
+      assignments?.forEach((assignment: any) => {
+        const user = userDetails?.find((u: any) => u.id === assignment.user_id)
         const finalRole = user?.role || assignment.role || 'worker'
         
         
