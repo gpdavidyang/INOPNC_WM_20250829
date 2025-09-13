@@ -64,7 +64,7 @@ export async function PUT(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'edit'
-    })
+    } as any)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
@@ -128,7 +128,7 @@ export async function DELETE(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'delete'
-    })
+    } as any)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
