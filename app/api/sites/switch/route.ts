@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     try {
       // Get current preferences
       const { data: preferences } = await supabase
-        .from('site_preferences' as any)
+        .from('site_preferences')
         .select('recent_site_ids')
         .eq('user_id', user.id)
         .single()
@@ -114,21 +114,21 @@ export async function POST(request: NextRequest) {
       // Update or insert preferences
       if (preferences) {
         await supabase
-          .from('site_preferences' as any)
+          .from('site_preferences')
           .update({
             recent_site_ids: recentSites,
             last_site_id: siteId,
             updated_at: new Date().toISOString()
-          })
+          } as any)
           .eq('user_id', user.id)
       } else {
         await supabase
-          .from('site_preferences' as any)
+          .from('site_preferences')
           .insert({
             user_id: user.id,
             recent_site_ids: recentSites,
             last_site_id: siteId
-          })
+          } as any)
       }
     } catch (prefError) {
       // Don't fail the request if preferences update fails
