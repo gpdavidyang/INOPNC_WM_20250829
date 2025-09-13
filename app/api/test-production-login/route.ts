@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
       hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       databaseConnected: !testError,
       userCount: users?.length || 0,
-      sampleUsers: users?.map(u => u.email) || [],
+      sampleUsers: users?.map((u: any) => u.email) || [],
       timestamp: new Date().toISOString()
     })
     
