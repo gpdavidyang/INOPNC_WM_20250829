@@ -597,7 +597,7 @@ export async function calculateSalaries(
 
       // Process aggregated records
       console.log('Processing', recordMap.size, 'unique worker-date combinations...')
-      for (const [uniqueKey, recordData] of recordMap.entries()) {
+      for (const [uniqueKey, recordData] of Array.from(recordMap.entries())) {
         const { worker, site_id, work_date, workHours, hourlyRule, dailyRule, overtimeRule } = recordData
         
         // Convert work_hours (공수) to actual hours (1 공수 = 8시간)
