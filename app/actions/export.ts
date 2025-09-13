@@ -120,8 +120,8 @@ export async function logExportActivity(
     if (!user) return
 
     // Log export activity
-    const { error } = await supabase
-      .from('activity_logs' as any)
+    const { error } = await (supabase
+      .from('activity_logs')
       .insert({
         user_id: user.id,
         action: 'export_data',
@@ -134,7 +134,7 @@ export async function logExportActivity(
           site_ids: options.siteIds,
           status_filter: options.status
         }
-      })
+      } as any) as any)
 
     if (error) {
       logError(error, 'logExportActivity')
