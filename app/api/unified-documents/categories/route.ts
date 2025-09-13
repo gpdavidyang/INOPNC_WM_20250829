@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       const { data: statsData, error: statsError } = await statsQuery
 
       if (!statsError && statsData) {
-        categoryStats = statsData.reduce((acc, doc) => {
+        categoryStats = statsData.reduce((acc: any, doc: any) => {
           if (!acc[doc.category_type]) {
             acc[doc.category_type] = {
               total: 0,
