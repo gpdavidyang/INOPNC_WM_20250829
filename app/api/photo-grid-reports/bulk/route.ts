@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map(id => ({ id, action: 'deleted', success: true }))
+        results = reportIds.map((id: any) => ({ id, action: 'deleted', success: true }))
         break
 
       case 'archive':
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map(id => ({ id, action: 'archived', success: true }))
+        results = reportIds.map((id: any) => ({ id, action: 'archived', success: true }))
         break
 
       case 'restore':
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map(id => ({ id, action: 'restored', success: true }))
+        results = reportIds.map((id: any) => ({ id, action: 'restored', success: true }))
         break
 
       case 'permanent_delete':
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Storage에서 파일들 삭제
-        const filePaths = reports.map(r => `photo-grid-reports/${r.file_name}`)
+        const filePaths = reports.map((r: any) => `photo-grid-reports/${r.file_name}`)
         const { error: storageError } = await supabase.storage
           .from('documents')
           .remove(filePaths)
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map(id => ({ id, action: 'permanently_deleted', success: true }))
+        results = reportIds.map((id: any) => ({ id, action: 'permanently_deleted', success: true }))
         break
 
       case 'update_metadata':
@@ -156,8 +156,8 @@ export async function POST(request: NextRequest) {
 
         const allowedFields = ['title', 'notes', 'status']
         const updates = Object.keys(actionData)
-          .filter(key => allowedFields.includes(key))
-          .reduce((obj, key) => {
+          .filter((key: any) => allowedFields.includes(key))
+          .reduce((obj: any, key: any) => {
             obj[key] = actionData[key]
             return obj
           }, {} as any)
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map(id => ({ id, action: 'updated', success: true, updates }))
+        results = reportIds.map((id: any) => ({ id, action: 'updated', success: true, updates }))
         break
 
       default:
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
       message: `벌크 ${action} 작업이 완료되었습니다.`,
       results,
       total: reportIds.length,
-      successful: results.filter(r => r.success).length
+      successful: results.filter((r: any) => r.success).length
     })
   } catch (error) {
     console.error('API 오류:', error)
