@@ -95,7 +95,7 @@ export async function getAttendanceRecords(params: {
 
     // Step 4: Transform data to match expected interface
     // Client expects `date` field but DB has `work_date`
-    const transformedData = data?.map(record => ({
+    const transformedData = data?.map((record: any) => ({
       ...record,
       date: record.work_date, // Add date field for compatibility
       site_name: record.sites?.name || 'Unknown Site',
@@ -149,7 +149,7 @@ export async function getCompanyAttendanceSummary(params: {
     }
 
     const totalDays = dates.length
-    const totalWorkers = Math.max(...dates.map(d => d.totalWorkers))
+    const totalWorkers = Math.max(...dates.map((d: any) => d.totalWorkers))
     const totalHours = dates.reduce((sum: any, d: any) => sum + d.totalHours, 0)
 
     return { 
@@ -525,7 +525,7 @@ export async function addBulkAttendance(
     }
 
     // Prepare work records
-    const workRecords = workers.map(worker => {
+    const workRecords = workers.map((worker: any) => {
       const checkIn = new Date(`2000-01-01T${worker.check_in_time}`)
       const checkOut = worker.check_out_time ? new Date(`2000-01-01T${worker.check_out_time}`) : null
       const hoursWorked = checkOut ? (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) : 0
