@@ -22,7 +22,7 @@ export async function POST(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'share'
-    })
+    } as any)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
@@ -100,7 +100,7 @@ export async function GET(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'share'
-    })
+    } as any)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
@@ -161,7 +161,7 @@ export async function DELETE(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'share'
-    })
+    } as any)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
