@@ -518,7 +518,7 @@ export async function deleteUsers(userIds: string[]): Promise<AdminActionResult<
       }
 
       // Filter out test accounts from protection
-      const protectedAdmins = adminUsers?.filter(user => {
+      const protectedAdmins = adminUsers?.filter((user: any) => {
         const isTestAccount = 
           user.full_name?.toLowerCase().includes('테스트') ||
           user.full_name?.toLowerCase().includes('test') ||
