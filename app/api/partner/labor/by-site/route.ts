@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get labor data for each site
-    const siteLaborPromises = partnerSites.map(async (sitePartner) => {
+    const siteLaborPromises = partnerSites.map(async (sitePartner: any) => {
       const site = sitePartner.sites
       if (!site) return null
 
@@ -102,11 +102,11 @@ export async function GET(request: NextRequest) {
       }
 
       // Calculate totals
-      const totalWorkHours = laborData?.reduce((sum, record) => sum + (Number(record.work_hours) || 0), 0) || 0
-      const totalLaborHours = laborData?.reduce((sum, record) => sum + (Number(record.labor_hours) || 0), 0) || 0
+      const totalWorkHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.work_hours) || 0), 0) || 0
+      const totalLaborHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.labor_hours) || 0), 0) || 0
 
       // Get unique work dates for calculating working days
-      const uniqueDates = new Set(laborData?.map(record => record.work_date) || [])
+      const uniqueDates = new Set(laborData?.map((record: any) => record.work_date) || [])
       const workingDays = uniqueDates.size
 
       // Calculate average daily hours
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
     })
 
     const siteLabor = await Promise.all(siteLaborPromises)
-    const validSiteLabor = siteLabor.filter(site => site !== null)
+    const validSiteLabor = siteLabor.filter((site: any) => site !== null)
 
     // Sort by total labor hours descending
     validSiteLabor.sort((a, b) => (b?.totalLaborHours || 0) - (a?.totalLaborHours || 0))
