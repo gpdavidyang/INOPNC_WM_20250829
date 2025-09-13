@@ -937,7 +937,7 @@ export async function getAdditionalPhotos(reportId: string) {
     const beforePhotos: AdditionalPhotoData[] = []
     const afterPhotos: AdditionalPhotoData[] = []
 
-    photos?.forEach(photo => {
+    photos?.forEach((photo: any) => {
       const photoData: AdditionalPhotoData = {
         id: photo.id,
         filename: photo.file_name,
