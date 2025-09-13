@@ -22,7 +22,7 @@ export async function GET(
       p_search: search,
       p_limit: limit,
       p_offset: offset
-    });
+    } as any);
 
     if (error) throw error;
 
