@@ -9,6 +9,7 @@ import HomeTabNew from './tabs/home-tab-new'
 import DailyReportsTabNew from './tabs/daily-reports-tab-new'
 import DocumentsTabNew from './tabs/documents-tab-new'
 import SiteInfoTabNew from './tabs/site-info-tab-new'
+import { ErrorBoundary } from './error-boundary'
 
 interface MobileDashboardLayoutProps {
   user: User
@@ -21,10 +22,11 @@ export default function MobileDashboardLayout({ user, profile, children }: Mobil
 
   // Determine which content to show based on pathname
   const renderContent = () => {
-    // If children are provided (from dedicated pages), render them
-    if (children) {
-      return children
-    }
+    try {
+      // If children are provided (from dedicated pages), render them
+      if (children) {
+        return children
+      }
 
     // Otherwise render based on pathname
     if (pathname.includes('/daily-reports')) {
@@ -68,27 +70,55 @@ export default function MobileDashboardLayout({ user, profile, children }: Mobil
     
     // Default to home
     return <HomeTabNew />
+    } catch (error) {
+      console.error('Error rendering mobile content:', error)
+      return (
+        <div className="container" style={{ padding: '20px', paddingTop: '20px' }}>
+          <div className="card">
+            <h3 className="section-title" style={{ marginBottom: '16px' }}>오류 발생</h3>
+            <p style={{ color: 'var(--muted)', marginBottom: '16px' }}>
+              페이지를 로드하는 중 오류가 발생했습니다.
+            </p>
+            <button 
+              className="btn btn--primary" 
+              onClick={() => window.location.reload()}
+              style={{ width: '100%' }}
+            >
+              새로고침
+            </button>
+          </div>
+        </div>
+      )
+    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ background: 'var(--bg)' }}>
-      {/* Mobile Header */}
-      <MobileHeader 
-        userName={profile.full_name || user.email} 
-        notificationCount={0}
-      />
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gray-50" style={{ background: 'var(--bg)' }}>
+        {/* Mobile Header */}
+        <ErrorBoundary>
+          <MobileHeader 
+            userName={profile.full_name || user.email} 
+            notificationCount={0}
+          />
+        </ErrorBoundary>
 
-      {/* Main Content */}
-      <main style={{ 
-        paddingTop: 'var(--header-h, 56px)',
-        paddingBottom: 'calc(var(--nav-h, 64px) + env(safe-area-inset-bottom))',
-        minHeight: '100vh'
-      }}>
-        {renderContent()}
-      </main>
+        {/* Main Content */}
+        <main style={{ 
+          paddingTop: 'var(--header-h, 56px)',
+          paddingBottom: 'calc(var(--nav-h, 64px) + env(safe-area-inset-bottom))',
+          minHeight: '100vh'
+        }}>
+          <ErrorBoundary>
+            {renderContent()}
+          </ErrorBoundary>
+        </main>
 
-      {/* Bottom Navigation */}
-      <MobileBottomNav />
-    </div>
+        {/* Bottom Navigation */}
+        <ErrorBoundary>
+          <MobileBottomNav />
+        </ErrorBoundary>
+      </div>
+    </ErrorBoundary>
   )
 }
