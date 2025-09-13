@@ -56,7 +56,7 @@ export async function createBackupConfig(
     
     const { data, error } = await supabase
       .from('backup_configs' as any)
-      .insert(config)
+      .insert(config as any)
       .select()
       .single()
     
@@ -95,7 +95,7 @@ export async function updateBackupConfig(
     
     const { data, error } = await supabase
       .from('backup_configs' as any)
-      .update(updates)
+      .update(updates as any)
       .eq('id', id)
       .select()
       .single()
@@ -435,7 +435,7 @@ export async function restoreBackup(
         restore_point: request.restore_point,
         status: 'pending',
         created_by: user.id
-      })
+      } as any)
       .select('id')
       .single()
     
@@ -450,7 +450,7 @@ export async function restoreBackup(
         progress: 100,
         completed_at: new Date().toISOString(),
         restored_items: ['demo_restore']
-      })
+      } as any)
       .eq('id', (data as any)?.id)
     
     revalidatePath('/dashboard/admin/backup')
