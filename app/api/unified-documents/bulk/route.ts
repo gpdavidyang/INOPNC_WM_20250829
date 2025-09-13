@@ -52,8 +52,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 찾은 문서 ID와 요청된 ID 비교
-    const foundIds = documents.map(d => d.id)
-    const missingIds = documentIds.filter(id => !foundIds.includes(id))
+    const foundIds = documents.map((d: any) => d.id)
+    const missingIds = documentIds.filter((id: any) => !foundIds.includes(id))
     
     if (missingIds.length > 0) {
       return NextResponse.json({ 
