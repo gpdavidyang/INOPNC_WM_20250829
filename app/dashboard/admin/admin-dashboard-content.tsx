@@ -115,9 +115,9 @@ export function AdminDashboardContent() {
   const fetchPendingSignups = async () => {
     try {
       const module = await import('@/app/actions/admin/signup-approvals')
-      const result = await module.getSignupRequests('pending')
-      if (result.success && result.data) {
-        setPendingSignups(result.data.length)
+      const result = await module.getPendingSignupRequests()
+      if (result.requests) {
+        setPendingSignups(result.requests.length)
       }
     } catch (error) {
       console.error('Error fetching pending signups:', error)
