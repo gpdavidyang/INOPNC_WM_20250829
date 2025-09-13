@@ -268,7 +268,7 @@ export async function getMyDocuments(params?: {
     }
 
     // Transform documents to match the expected format
-    const transformedDocuments = documents?.map(doc => ({
+    const transformedDocuments = documents?.map((doc: any) => ({
       id: doc.id,
       category: doc.document_type || 'personal',
       name: doc.file_name || doc.title,
@@ -514,7 +514,7 @@ export async function shareDocument(params: {
     }
 
     // Create permission records for each user
-    const permissionsToInsert = userIds.map(userId => ({
+    const permissionsToInsert = userIds.map((userId: any) => ({
       document_id: documentId,
       user_id: userId,
       permission_type: permissionType,
@@ -644,14 +644,14 @@ export async function getSharedDocuments(params: {
     // Combine and transform documents
     const allSharedDocs = [
       ...(documents || []),
-      ...(sharedWithMe?.map(share => share.document).filter(Boolean) || [])
+      ...(sharedWithMe?.map((share: any) => share.document).filter(Boolean) || [])
     ]
 
     // Remove duplicates
-    const uniqueDocs = Array.from(new Map(allSharedDocs.map(doc => [doc.id, doc])).values())
+    const uniqueDocs = Array.from(new Map(allSharedDocs.map((doc: any) => [doc.id, doc])).values())
 
     // Transform documents to match the expected format
-    const transformedDocuments = uniqueDocs.map(doc => ({
+    const transformedDocuments = uniqueDocs.map((doc: any) => ({
       id: doc.id,
       category: doc.document_type || 'shared',
       name: doc.file_name || doc.title,
