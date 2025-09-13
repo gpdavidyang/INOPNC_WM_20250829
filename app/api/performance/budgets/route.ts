@@ -53,8 +53,7 @@ export const GET = withApiMonitoring(
         { status: 500 }
       )
     }
-  },
-  { name: 'getPerformanceBudgets' }
+  }
 )
 
 export const POST = withApiMonitoring(
@@ -128,6 +127,5 @@ export const POST = withApiMonitoring(
         { status: 500 }
       )
     }
-  },
-  { name: 'savePerformanceBudgets' }
+  }
 )
