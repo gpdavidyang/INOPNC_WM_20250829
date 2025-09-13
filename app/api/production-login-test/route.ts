@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       console.error('[PROD-LOGIN-TEST] Failed to create Supabase client:', clientError)
       return NextResponse.json({
         error: 'Failed to create Supabase client',
-        details: clientError.message
+        details: clientError instanceof Error ? clientError.message : 'Unknown error'
       }, { status: 500 })
     }
     
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       console.error('[PROD-LOGIN-TEST] Auth connection failed:', authError)
       return NextResponse.json({
         error: 'Auth connection failed',
-        details: authError.message
+        details: authError instanceof Error ? authError.message : 'Unknown error'
       }, { status: 500 })
     }
     
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       console.error('[PROD-LOGIN-TEST] Database test failed:', dbError)
       return NextResponse.json({
         error: 'Database test failed',
-        details: dbError.message
+        details: dbError instanceof Error ? dbError.message : 'Unknown error'
       }, { status: 500 })
     }
     
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
       console.error('[PROD-LOGIN-TEST] Login test failed:', loginError)
       return NextResponse.json({
         error: 'Login test failed',
-        details: loginError.message
+        details: loginError instanceof Error ? loginError.message : 'Unknown error'
       }, { status: 500 })
     }
     
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
             id: data.user.id,
             email: data.user.email
           },
-          profileError: profileError.message
+          profileError: profileError instanceof Error ? profileError.message : 'Unknown error'
         })
       }
     }
