@@ -18,14 +18,14 @@ export async function getEquipment(filters?: {
   try {
     const supabase = createClient()
     
-    let query = supabase
+    let query = (supabase
       .from('equipment')
       .select(`
         *,
         category:equipment_categories(id, name),
         site:sites(id, name)
-      `) as any
-      .eq('is_active', true)
+      `)
+      .eq('is_active', true)) as any
     
     if (filters?.site_id) {
       query = query.eq('site_id', filters.site_id)
@@ -170,7 +170,7 @@ export async function getEquipmentCheckouts(filters?: {
   try {
     const supabase = createClient()
     
-    let query = supabase
+    let query = (supabase
       .from('equipment_checkouts')
       .select(`
         *,
@@ -178,7 +178,7 @@ export async function getEquipmentCheckouts(filters?: {
         checked_out_user:checked_out_by(id, full_name),
         checked_in_user:checked_in_by(id, full_name),
         site:sites(id, name)
-      `) as any
+      `)) as any
 
     if (filters?.equipment_id) {
       query = query.eq('equipment_id', filters.equipment_id)
@@ -278,13 +278,13 @@ export async function getEquipmentMaintenance(filters?: {
   try {
     const supabase = createClient()
     
-    let query = supabase
+    let query = (supabase
       .from('equipment_maintenance')
       .select(`
         *,
         equipment:equipment_id(id, code, name),
         performed_by_user:performed_by(id, full_name)
-      `) as any
+      `)) as any
 
     if (filters?.equipment_id) {
       query = query.eq('equipment_id', filters.equipment_id)
@@ -334,13 +334,13 @@ export async function getWorkerSkillAssignments(workerId?: string) {
   try {
     const supabase = createClient()
     
-    let query = supabase
+    let query = (supabase
       .from('worker_skill_assignments')
       .select(`
         *,
         worker:profiles!worker_id(id, full_name),
         skill:worker_skills(id, name, category)
-      `) as any
+      `)) as any
 
     if (workerId) {
       query = query.eq('worker_id', workerId)
@@ -450,14 +450,14 @@ export async function getResourceAllocations(filters?: {
   try {
     const supabase = createClient()
     
-    let query = supabase
+    let query = (supabase
       .from('resource_allocations')
       .select(`
         *,
         site:sites(id, name),
         created_by_user:created_by(id, full_name),
         approved_by_user:approved_by(id, full_name)
-      `) as any
+      `)) as any
 
     if (filters?.allocation_type) {
       query = query.eq('allocation_type', filters.allocation_type)
