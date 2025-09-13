@@ -143,7 +143,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
 
     // Enrich with additional data
     const enrichedReports = await Promise.all(
-      (data || []).map(async (report) => {
+      (data || []).map(async (report: any) => {
         try {
           // Get profile data
           const { data: profile } = await supabase
