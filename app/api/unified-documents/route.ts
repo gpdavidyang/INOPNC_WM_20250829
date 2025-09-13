@@ -139,7 +139,7 @@ export async function GET(request: Request) {
 
     const { data: categoryStats } = await categoryStatsQuery
 
-    const statisticsByCategory = categoryStats?.reduce((acc, doc) => {
+    const statisticsByCategory = categoryStats?.reduce((acc: Record<string, number>, doc: any) => {
       const category = doc.category_type
       acc[category] = (acc[category] || 0) + 1
       return acc
@@ -158,14 +158,14 @@ export async function GET(request: Request) {
 
     const { data: statusStats } = await statusStatsQuery
 
-    const statisticsByStatus = statusStats?.reduce((acc, doc) => {
+    const statisticsByStatus = statusStats?.reduce((acc: Record<string, number>, doc: any) => {
       const docStatus = doc.status
       acc[docStatus] = (acc[docStatus] || 0) + 1
       return acc
     }, {} as Record<string, number>) || {}
 
     // Group documents by category
-    const documentsByCategory = documents?.reduce((acc, doc) => {
+    const documentsByCategory = documents?.reduce((acc: Record<string, any[]>, doc: any) => {
       const category = doc.category_type
       if (!acc[category]) acc[category] = []
       acc[category].push(doc)
