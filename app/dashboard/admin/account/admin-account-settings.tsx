@@ -135,7 +135,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <Label className={`${getFullTypographyClass('label', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
+            <Label className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
               이름
             </Label>
             <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} mt-1`}>
@@ -144,7 +144,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
           </div>
           
           <div>
-            <Label className={`${getFullTypographyClass('label', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
+            <Label className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
               이메일
             </Label>
             <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} mt-1 flex items-center gap-2`}>
@@ -154,7 +154,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
           </div>
           
           <div>
-            <Label className={`${getFullTypographyClass('label', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
+            <Label className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
               전화번호
             </Label>
             <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} mt-1 flex items-center gap-2`}>
@@ -164,7 +164,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
           </div>
           
           <div>
-            <Label className={`${getFullTypographyClass('label', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
+            <Label className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
               소속
             </Label>
             <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} mt-1 flex items-center gap-2`}>
@@ -174,7 +174,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
           </div>
           
           <div>
-            <Label className={`${getFullTypographyClass('label', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
+            <Label className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
               계정 생성일
             </Label>
             <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} mt-1 flex items-center gap-2`}>
@@ -184,7 +184,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
           </div>
           
           <div>
-            <Label className={`${getFullTypographyClass('label', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
+            <Label className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500 dark:text-gray-400`}>
               사용자 ID
             </Label>
             <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} mt-1 font-mono text-gray-500`}>
@@ -268,7 +268,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
             )}
             
             <div>
-              <Label htmlFor="current-password" className={getFullTypographyClass('label', 'sm', isLargeFont)}>
+              <Label htmlFor="current-password" className={getFullTypographyClass('body', 'sm', isLargeFont)}>
                 현재 비밀번호
               </Label>
               <div className="relative mt-1">
@@ -293,7 +293,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
             </div>
             
             <div>
-              <Label htmlFor="new-password" className={getFullTypographyClass('label', 'sm', isLargeFont)}>
+              <Label htmlFor="new-password" className={getFullTypographyClass('body', 'sm', isLargeFont)}>
                 새 비밀번호
               </Label>
               <div className="relative mt-1">
@@ -318,7 +318,7 @@ export function AdminAccountSettings({ profile, user }: AdminAccountSettingsProp
             </div>
             
             <div>
-              <Label htmlFor="confirm-password" className={getFullTypographyClass('label', 'sm', isLargeFont)}>
+              <Label htmlFor="confirm-password" className={getFullTypographyClass('body', 'sm', isLargeFont)}>
                 새 비밀번호 확인
               </Label>
               <div className="relative mt-1">
