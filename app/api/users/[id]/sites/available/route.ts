@@ -33,7 +33,7 @@ export async function GET(
       .eq('user_id', params.id)
       .eq('is_active', true);
 
-    const assignedSiteIds = assignedSites?.map(a => a.site_id) || [];
+    const assignedSiteIds = assignedSites?.map((a: any) => a.site_id) || [];
     
     if (assignedSiteIds.length > 0) {
       query = query.not('id', 'in', `(${assignedSiteIds.join(',')})`);
