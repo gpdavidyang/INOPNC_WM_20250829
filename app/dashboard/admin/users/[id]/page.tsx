@@ -372,7 +372,7 @@ function EditUserModal({
     phone: userData.phone || '',
     role: userData.role || 'worker',
     status: userData.status || 'active',
-    organization_id: userData.organization_id || ''
+    organization_id: userData.organization?.id || ''
   })
   
   const [organizations, setOrganizations] = useState<Array<{
@@ -389,7 +389,7 @@ function EditUserModal({
       phone: userData.phone || '',
       role: userData.role || 'worker',
       status: userData.status || 'active',
-      organization_id: userData.organization_id || ''
+      organization_id: userData.organization?.id || ''
     })
     
     // 조직 목록 로드
