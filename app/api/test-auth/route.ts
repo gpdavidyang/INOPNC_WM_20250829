@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const authMethodsTest = {
       name: 'Auth Methods Existence',
       success: true,
-      details: {}
+      details: {} as Record<string, boolean>
     }
 
     for (const method of requiredMethods) {
