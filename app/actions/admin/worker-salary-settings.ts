@@ -1,6 +1,6 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired } from './common'
+import { withAdminAuth, AdminActionResult, AdminErrors } from './common'
 import { 
   EmploymentType, 
   TaxRate, 
@@ -56,9 +56,8 @@ export async function updateTaxRate(
 ): Promise<AdminActionResult<void>> {
   return withAdminAuth(async (supabase, profile) => {
     try {
-      const validation = validateRequired({ id, rate })
-      if (!validation.success) {
-        return validation
+      if (!id || rate === undefined || rate === null) {
+        return { success: false, error: '필수 입력 항목이 누락되었습니다.' }
       }
 
       if (rate < 0 || rate > 100) {
@@ -157,9 +156,8 @@ export async function setWorkerSalarySetting(
 ): Promise<AdminActionResult<{ setting_id: string }>> {
   return withAdminAuth(async (supabase, profile) => {
     try {
-      const validation = validateRequired({ worker_id, employment_type, daily_rate })
-      if (!validation.success) {
-        return validation
+      if (!worker_id || !employment_type || !daily_rate) {
+        return { success: false, error: '필수 입력 항목이 누락되었습니다.' }
       }
 
       if (daily_rate <= 0) {
@@ -209,9 +207,8 @@ export async function calculatePersonalSalary(
     try {
       const { worker_id, work_date, labor_hours, bonus_pay = 0, additional_deductions = 0 } = params
 
-      const validation = validateRequired({ worker_id, work_date, labor_hours })
-      if (!validation.success) {
-        return validation
+      if (!worker_id || !work_date || labor_hours === undefined || labor_hours === null) {
+        return { success: false, error: '필수 입력 항목이 누락되었습니다.' }
       }
 
       if (labor_hours <= 0) {
@@ -284,12 +281,8 @@ export async function savePersonalSalaryRecord(
 ): Promise<AdminActionResult<{ record_id: string }>> {
   return withAdminAuth(async (supabase, profile) => {
     try {
-      const validation = validateRequired({ 
-        worker_id: calculation.worker_id,
-        work_date 
-      })
-      if (!validation.success) {
-        return validation
+      if (!calculation.worker_id || !work_date) {
+        return { success: false, error: '필수 입력 항목이 누락되었습니다.' }
       }
 
       const labor_hours = calculation.tax_details?.labor_hours || 0
@@ -357,9 +350,8 @@ export async function getPersonalMonthlySalarySummary(
 }>> {
   return withAdminAuth(async (supabase) => {
     try {
-      const validation = validateRequired({ worker_id, year, month })
-      if (!validation.success) {
-        return validation
+      if (!worker_id || !year || !month) {
+        return { success: false, error: '필수 입력 항목이 누락되었습니다.' }
       }
 
       const start_date = new Date(year, month - 1, 1).toISOString().split('T')[0]
