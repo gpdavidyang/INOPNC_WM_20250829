@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform database data to match expected format
-    const transformedData = requirements?.map(req => ({
+    const transformedData = requirements?.map((req: any) => ({
       id: req.id,
       requirement_name: req.requirement_name,
       document_type: req.document_type,
