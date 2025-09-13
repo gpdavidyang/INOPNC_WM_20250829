@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     if (siteWorkers?.length) {
       // Create notifications for all site workers
-      const notifications = siteWorkers.map(worker => ({
+      const notifications = siteWorkers.map((worker: any) => ({
         user_id: worker.id,
         type: severity === 'critical' ? 'error' : 'warning',
         title: `⚠️ ${title}`,
