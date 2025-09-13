@@ -165,7 +165,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
             .eq('daily_report_id', report.id)
           
           const totalManhours = workerAssignments 
-            ? workerAssignments.reduce((sum, w) => sum + (Number(w.labor_hours) || 0), 0)
+            ? workerAssignments.reduce((sum: number, w: any) => sum + (Number(w.labor_hours) || 0), 0)
             : 0
           
           // Get documents count for that day
