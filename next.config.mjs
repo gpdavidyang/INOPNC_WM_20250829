@@ -4,12 +4,12 @@ const nextConfig = {
   
   // TypeScript 빌드 최적화
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // Enable TypeScript checking in production
   },
   
   // ESLint 빌드 최적화
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: false, // Enable ESLint checking in production
   },
   
   // Enable SWC for better performance
@@ -44,6 +44,12 @@ const nextConfig = {
     
     // CSS optimization disabled for stability
     // optimizeCss: false,
+    
+    // Server Components external packages
+    serverComponentsExternalPackages: ['@supabase/supabase-js'],
+    
+    // Enable Server Actions
+    serverActions: true,
   },
   
   // 개발 서버 최적화
