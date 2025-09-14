@@ -1,35 +1,29 @@
-
 import { notFound, redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Home, Calendar, FileText, MapPin, FolderOpen } from 'lucide-react'
 import { NavigationController } from '@/components/navigation/navigation-controller'
 import { BottomNavigation } from '@/components/navigation/bottom-navigation'
-import { DailyReportForm } from '@/components/daily-reports/daily-report-form'
+import DailyReportForm from '@/components/daily-reports/daily-report-form'
 import { Header } from '@/components/layout/header'
 import { getDailyReportById } from '@/app/actions/daily-reports'
 import { getMaterials } from '@/app/actions/materials'
 import { getWorkers } from '@/app/actions/workers'
 import type { BottomNavItem } from '@/types'
 
-export default async function EditDailyReportPage({
-  params
-}: {
-  params: { id: string }
-}) {
+export default async function EditDailyReportPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
-  
+
   // Check authentication
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
   if (authError || !user) {
     redirect('/auth/login')
   }
 
   // Get user profile
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
 
   if (!profile) {
     redirect('/auth/login')
@@ -37,7 +31,7 @@ export default async function EditDailyReportPage({
 
   // Get daily report with all related data
   const result = await getDailyReportById(params.id)
-  
+
   if (!result.success || !result.data) {
     notFound()
   }
@@ -45,9 +39,7 @@ export default async function EditDailyReportPage({
   const report = result.data
 
   // Check if user can edit this report
-  const canEdit = 
-    report.created_by === user.id &&
-    report.status === 'draft'
+  const canEdit = report.created_by === user.id && report.status === 'draft'
 
   if (!canEdit) {
     redirect(`/dashboard/daily-reports/${params.id}`)
@@ -55,7 +47,7 @@ export default async function EditDailyReportPage({
 
   // Get sites data for the form
   let sites, sitesError
-  
+
   try {
     // First try with regular client
     const regularResult = await supabase
@@ -63,7 +55,7 @@ export default async function EditDailyReportPage({
       .select('*')
       .eq('status', 'active')
       .order('name')
-    
+
     if (regularResult.data && regularResult.data.length > 0) {
       sites = regularResult.data
       sitesError = regularResult.error
@@ -76,17 +68,17 @@ export default async function EditDailyReportPage({
         {
           auth: {
             autoRefreshToken: false,
-            persistSession: false
-          }
+            persistSession: false,
+          },
         }
       )
-      
+
       const serviceResult = await serviceSupabase
         .from('sites')
         .select('*')
         .eq('status', 'active')
         .order('name')
-      
+
       sites = serviceResult.data
       sitesError = serviceResult.error
     }
@@ -107,70 +99,70 @@ export default async function EditDailyReportPage({
 
   // Bottom navigation items
   const bottomNavItems: BottomNavItem[] = [
-    { 
-      label: "빠른화면", 
-      href: "/dashboard", 
-      icon: <Home /> 
+    {
+      label: '빠른화면',
+      href: '/dashboard',
+      icon: <Home />,
     },
-    { 
-      label: "출력정보", 
-      href: "/dashboard/attendance", 
-      icon: <Calendar /> 
+    {
+      label: '출력정보',
+      href: '/dashboard/attendance',
+      icon: <Calendar />,
     },
-    { 
-      label: "작업일지", 
-      href: "/dashboard/daily-reports", 
-      icon: <FileText />, 
-      badge: 3
+    {
+      label: '작업일지',
+      href: '/dashboard/daily-reports',
+      icon: <FileText />,
+      badge: 3,
     },
-    { 
-      label: "현장정보", 
-      href: "/dashboard/site-info", 
-      icon: <MapPin /> 
+    {
+      label: '현장정보',
+      href: '/dashboard/site-info',
+      icon: <MapPin />,
     },
-    { 
-      label: "문서함", 
-      href: "/dashboard/documents", 
-      icon: <FolderOpen /> 
-    }
+    {
+      label: '문서함',
+      href: '/dashboard/documents',
+      icon: <FolderOpen />,
+    },
   ]
 
   return (
     <NavigationController>
-    <>
-      {/* Mobile View */}
-      <div className="lg:hidden">
-        <Header />
-        <div className="pb-16">
-          <DailyReportForm
-            mode="edit"
-            reportData={report as any}
-            currentUser={profile as any}
-            sites={sites || []}
-            materials={materials || []}
-            workers={workers as unknown || []}
-          />
-        </div>
-        <BottomNavigation items={bottomNavItems} />
-      </div>
-
-      {/* Desktop View */}
-      <div className="hidden lg:block">
-        <Header />
-        <main className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
-          <div className="max-w-4xl mx-auto">
+      <>
+        {/* Mobile View */}
+        <div className="lg:hidden">
+          <Header />
+          <div className="pb-16">
             <DailyReportForm
               mode="edit"
               reportData={report as any}
               currentUser={profile as any}
               sites={sites || []}
               materials={materials || []}
-              workers={workers as unknown || []}
+              workers={(workers as unknown) || []}
             />
           </div>
-        </main>
-      </div>
-    </>
+          <BottomNavigation items={bottomNavItems} />
+        </div>
+
+        {/* Desktop View */}
+        <div className="hidden lg:block">
+          <Header />
+          <main className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+            <div className="max-w-4xl mx-auto">
+              <DailyReportForm
+                mode="edit"
+                reportData={report as any}
+                currentUser={profile as any}
+                sites={sites || []}
+                materials={materials || []}
+                workers={(workers as unknown) || []}
+              />
+            </div>
+          </main>
+        </div>
+      </>
     </NavigationController>
   )
 }
