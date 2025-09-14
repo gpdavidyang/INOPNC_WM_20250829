@@ -1,12 +1,19 @@
 'use server'
 
+import { withAdminAuth, AdminActionResult, AdminErrors } from './common'
+import type { UserRole } from '@/types'
 
 export interface EmailNotificationData {
   recipient_email: string
   recipient_name: string
   subject: string
   content: string
-  notification_type: 'welcome' | 'password_reset' | 'account_update' | 'document_reminder' | 'system_notification'
+  notification_type:
+    | 'welcome'
+    | 'password_reset'
+    | 'account_update'
+    | 'document_reminder'
+    | 'system_notification'
   sender_id: string
   priority: 'low' | 'normal' | 'high' | 'urgent'
   scheduled_at?: string | null
@@ -49,7 +56,7 @@ export async function sendEmailNotification(
           scheduled_at: data.scheduled_at || new Date().toISOString(),
           metadata: data.metadata || {},
           status: data.scheduled_at ? 'scheduled' : 'pending',
-          created_by: profile.id
+          created_by: profile.id,
         })
         .select()
         .single()
@@ -62,7 +69,7 @@ export async function sendEmailNotification(
       // In a real implementation, integrate with email service (SendGrid, AWS SES, etc.)
       // For now, we'll simulate the email sending
       const isScheduled = !!data.scheduled_at && new Date(data.scheduled_at) > new Date()
-      
+
       if (!isScheduled) {
         // Simulate immediate sending
         await simulateEmailSend(notification)
@@ -72,17 +79,17 @@ export async function sendEmailNotification(
         success: true,
         data: {
           id: notification.id,
-          scheduled: isScheduled
+          scheduled: isScheduled,
         },
-        message: isScheduled 
+        message: isScheduled
           ? `이메일이 ${new Date(data.scheduled_at!).toLocaleString('ko-KR')}에 발송 예약되었습니다.`
-          : '이메일이 성공적으로 발송되었습니다.'
+          : '이메일이 성공적으로 발송되었습니다.',
       }
     } catch (error) {
       console.error('Email notification error:', error)
       return {
         success: false,
-        error: AdminErrors.UNKNOWN_ERROR
+        error: AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -107,10 +114,10 @@ export async function sendBulkEmailNotifications(
           .eq('status', 'active')
 
         if (users) {
-          recipients = users.map((user: unknown) => ({
+          recipients = users.map((user: any) => ({
             email: user.email,
             name: user.full_name,
-            role: user.role
+            role: user.role,
           }))
         }
       }
@@ -119,17 +126,19 @@ export async function sendBulkEmailNotifications(
       if (data.site_filter && data.site_filter.length > 0) {
         const { data: siteUsers } = await supabase
           .from('site_assignments')
-          .select(`
+          .select(
+            `
             profiles!inner(email, full_name, role)
-          `)
+          `
+          )
           .in('site_id', data.site_filter)
           .eq('is_active', true)
 
         if (siteUsers) {
-          recipients = siteUsers.map((assignment: unknown) => ({
+          recipients = siteUsers.map((assignment: any) => ({
             email: assignment.profiles.email,
             name: assignment.profiles.full_name,
-            role: assignment.profiles.role
+            role: assignment.profiles.role,
           }))
         }
       }
@@ -137,12 +146,12 @@ export async function sendBulkEmailNotifications(
       if (recipients.length === 0) {
         return {
           success: false,
-          error: '발송할 수신자가 없습니다.'
+          error: '발송할 수신자가 없습니다.',
         }
       }
 
       // Create bulk email notifications
-      const notifications = recipients.map((recipient: unknown) => ({
+      const notifications = recipients.map((recipient: any) => ({
         recipient_email: recipient.email,
         recipient_name: recipient.name,
         subject: data.subject,
@@ -151,12 +160,12 @@ export async function sendBulkEmailNotifications(
         sender_id: profile.id,
         priority: data.priority,
         scheduled_at: new Date().toISOString(),
-        metadata: { 
+        metadata: {
           bulk_id: `bulk_${Date.now()}`,
-          recipient_role: recipient.role 
+          recipient_role: recipient.role,
         },
         status: 'pending' as const,
-        created_by: profile.id
+        created_by: profile.id,
       }))
 
       const { data: insertedNotifications, error } = await supabase
@@ -180,14 +189,14 @@ export async function sendBulkEmailNotifications(
         } catch (error) {
           console.error('Failed to send email:', error)
           failed++
-          
+
           // Update notification status to failed
           await supabase
             .from('email_notifications')
-            .update({ 
+            .update({
               status: 'failed',
               error_message: error instanceof Error ? error.message : 'Unknown error',
-              sent_at: new Date().toISOString()
+              sent_at: new Date().toISOString(),
             })
             .eq('id', notification.id)
         }
@@ -198,15 +207,15 @@ export async function sendBulkEmailNotifications(
         data: {
           sent,
           failed,
-          scheduled: false
+          scheduled: false,
         },
-        message: `총 ${recipients.length}명에게 이메일 발송 완료 (성공: ${sent}, 실패: ${failed})`
+        message: `총 ${recipients.length}명에게 이메일 발송 완료 (성공: ${sent}, 실패: ${failed})`,
       }
     } catch (error) {
       console.error('Bulk email notification error:', error)
       return {
         success: false,
-        error: AdminErrors.UNKNOWN_ERROR
+        error: AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -215,14 +224,18 @@ export async function sendBulkEmailNotifications(
 /**
  * Get email notification templates
  */
-export async function getEmailTemplates(): Promise<AdminActionResult<Array<{
-  id: string
-  name: string
-  subject: string
-  content: string
-  type: string
-}>>> {
-  return withAdminAuth(async (supabase) => {
+export async function getEmailTemplates(): Promise<
+  AdminActionResult<
+    Array<{
+      id: string
+      name: string
+      subject: string
+      content: string
+      type: string
+    }>
+  >
+> {
+  return withAdminAuth(async supabase => {
     try {
       // Predefined templates - in a real app, these would be stored in database
       const templates = [
@@ -244,7 +257,7 @@ export async function getEmailTemplates(): Promise<AdminActionResult<Array<{
 문의사항이 있으시면 언제든 연락해주세요.
 
 감사합니다.`,
-          type: 'welcome'
+          type: 'welcome',
         },
         {
           id: 'password_reset',
@@ -259,7 +272,7 @@ export async function getEmailTemplates(): Promise<AdminActionResult<Array<{
 보안을 위해 로그인 후 즉시 비밀번호를 변경해주시기 바랍니다.
 
 감사합니다.`,
-          type: 'password_reset'
+          type: 'password_reset',
         },
         {
           id: 'account_update',
@@ -274,7 +287,7 @@ export async function getEmailTemplates(): Promise<AdminActionResult<Array<{
 문의사항이 있으시면 관리자에게 연락해주세요.
 
 감사합니다.`,
-          type: 'account_update'
+          type: 'account_update',
         },
         {
           id: 'document_reminder',
@@ -291,7 +304,7 @@ export async function getEmailTemplates(): Promise<AdminActionResult<Array<{
 빠른 시일 내에 제출해주시기 바랍니다.
 
 감사합니다.`,
-          type: 'document_reminder'
+          type: 'document_reminder',
         },
         {
           id: 'system_notification',
@@ -304,19 +317,19 @@ export async function getEmailTemplates(): Promise<AdminActionResult<Array<{
 자세한 내용은 시스템에 로그인하여 확인하시기 바랍니다.
 
 감사합니다.`,
-          type: 'system_notification'
-        }
+          type: 'system_notification',
+        },
       ]
 
       return {
         success: true,
-        data: templates
+        data: templates,
       }
     } catch (error) {
       console.error('Error fetching email templates:', error)
       return {
         success: false,
-        error: AdminErrors.UNKNOWN_ERROR
+        error: AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -329,23 +342,25 @@ export async function getEmailNotificationHistory(
   page = 1,
   limit = 10,
   status?: 'pending' | 'sent' | 'failed' | 'scheduled'
-): Promise<AdminActionResult<{
-  notifications: Array<{
-    id: string
-    recipient_email: string
-    recipient_name: string
-    subject: string
-    notification_type: string
-    status: string
-    priority: string
-    created_at: string
-    sent_at?: string | null
-    error_message?: string | null
+): Promise<
+  AdminActionResult<{
+    notifications: Array<{
+      id: string
+      recipient_email: string
+      recipient_name: string
+      subject: string
+      notification_type: string
+      status: string
+      priority: string
+      created_at: string
+      sent_at?: string | null
+      error_message?: string | null
+    }>
+    total: number
+    pages: number
   }>
-  total: number
-  pages: number
-}>> {
-  return withAdminAuth(async (supabase) => {
+> {
+  return withAdminAuth(async supabase => {
     try {
       let query = supabase
         .from('email_notifications')
@@ -373,14 +388,14 @@ export async function getEmailNotificationHistory(
         data: {
           notifications: notifications || [],
           total: count || 0,
-          pages: totalPages
-        }
+          pages: totalPages,
+        },
       }
     } catch (error) {
       console.error('Email notification history error:', error)
       return {
         success: false,
-        error: AdminErrors.UNKNOWN_ERROR
+        error: AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -390,18 +405,23 @@ export async function getEmailNotificationHistory(
  * Simulate email sending (for development)
  * In production, replace with actual email service integration
  */
-async function simulateEmailSend(notification: unknown): Promise<void> {
+async function simulateEmailSend(notification: any): Promise<void> {
   return new Promise((resolve, reject) => {
     // Simulate network delay
-    setTimeout(() => {
-      // Simulate 95% success rate
-      if (Math.random() > 0.05) {
-        console.log(`📧 [SIMULATED] Email sent to ${notification.recipient_email}: ${notification.subject}`)
-        resolve()
-      } else {
-        reject(new Error('Simulated email service failure'))
-      }
-    }, Math.random() * 1000 + 500) // 500-1500ms delay
+    setTimeout(
+      () => {
+        // Simulate 95% success rate
+        if (Math.random() > 0.05) {
+          console.log(
+            `📧 [SIMULATED] Email sent to ${notification.recipient_email}: ${notification.subject}`
+          )
+          resolve()
+        } else {
+          reject(new Error('Simulated email service failure'))
+        }
+      },
+      Math.random() * 1000 + 500
+    ) // 500-1500ms delay
   })
 }
 
@@ -415,13 +435,14 @@ export async function sendWelcomeEmail(
   userRole: UserRole
 ): Promise<AdminActionResult<{ id: string; scheduled: boolean }>> {
   return withAdminAuth(async (supabase, profile) => {
-    const roleText = {
-      worker: '작업자',
-      site_manager: '현장관리자',
-      customer_manager: '파트너사 관리자',
-      admin: '관리자',
-      system_admin: '시스템관리자'
-    }[userRole] || '사용자'
+    const roleText =
+      {
+        worker: '작업자',
+        site_manager: '현장관리자',
+        customer_manager: '파트너사 관리자',
+        admin: '관리자',
+        system_admin: '시스템관리자',
+      }[userRole] || '사용자'
 
     const emailData: EmailNotificationData = {
       recipient_email: userEmail,
@@ -445,14 +466,14 @@ INOPNC 건설관리시스템에 가입해주셔서 감사합니다.
 INOPNC 관리팀`,
       notification_type: 'welcome',
       sender_id: profile.id,
-      priority: 'normal'
+      priority: 'normal',
     }
 
     const result = await sendEmailNotification(emailData)
     if (result.success) {
       return {
         success: true,
-        message: '환영 이메일이 성공적으로 발송되었습니다.'
+        message: '환영 이메일이 성공적으로 발송되었습니다.',
       }
     } else {
       return result
@@ -487,7 +508,7 @@ export async function sendPasswordResetEmail(
 INOPNC 관리팀`,
       notification_type: 'password_reset',
       sender_id: profile.id,
-      priority: 'high'
+      priority: 'high',
     }
 
     return await sendEmailNotification(emailData)
