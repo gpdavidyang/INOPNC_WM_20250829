@@ -2,9 +2,24 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { 
-  Users, UserPlus, Edit, Trash2, MoreVertical, Search, Filter, Eye,
-  User, Mail, Phone, Building, Shield, FileText, ClipboardCheck, Calendar, Plus
+import {
+  Users,
+  UserPlus,
+  Edit,
+  Trash2,
+  MoreVertical,
+  Search,
+  Filter,
+  Eye,
+  User,
+  Mail,
+  Phone,
+  Building,
+  Shield,
+  FileText,
+  ClipboardCheck,
+  Calendar,
+  Plus,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
@@ -13,14 +28,14 @@ import UserDetail from './users/UserDetail'
 import CreateUserModal from './users/CreateUserModal'
 import EditUserModal from './users/EditUserModal'
 import UserDetailModal from './UserDetailModal'
-import { 
-  getUsers, 
-  createUser, 
-  updateUser, 
-  deleteUsers, 
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUsers,
   updateUserRole,
   updateUserStatus,
-  exportUsers 
+  exportUsers,
 } from '@/app/actions/admin/users'
 import type { UserWithSites, UserRole, UserStatus, Profile } from '@/types'
 
@@ -29,11 +44,16 @@ interface UserManagementProps {
 }
 
 export default function UserManagement({ profile }: UserManagementProps) {
+  // Debug: Check if icons are loaded
+  if (typeof window !== 'undefined' && !Users) {
+    console.error('Users icon not loaded from lucide-react')
+  }
+
   const router = useRouter()
   const [users, setUsers] = useState<UserWithSites[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -44,10 +64,10 @@ export default function UserManagement({ profile }: UserManagementProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<UserRole | ''>('')
   const [statusFilter, setStatusFilter] = useState<UserStatus | ''>('')
-  
+
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  
+
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -59,7 +79,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
   const loadUsers = useCallback(async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       // console.log('[UserManagement] Loading users with params:', {
       //   currentPage,
@@ -68,7 +88,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
       //   roleFilter,
       //   statusFilter
       // })
-      
+
       const result = await getUsers(
         currentPage,
         pageSize,
@@ -76,9 +96,9 @@ export default function UserManagement({ profile }: UserManagementProps) {
         roleFilter || undefined,
         statusFilter || undefined
       )
-      
+
       // console.log('[UserManagement] GetUsers result:', result)
-      
+
       if (result.success && result.data) {
         // console.log('[UserManagement] Users loaded:', result.data.users.length, 'total:', result.data.total)
         setUsers(result.data.users)
@@ -98,9 +118,12 @@ export default function UserManagement({ profile }: UserManagementProps) {
 
   // Load data on mount and when filters change with debouncing
   useEffect(() => {
-    const handler = setTimeout(() => {
-      loadUsers()
-    }, searchTerm ? 300 : 0) // Only debounce search, not pagination/filters
+    const handler = setTimeout(
+      () => {
+        loadUsers()
+      },
+      searchTerm ? 300 : 0
+    ) // Only debounce search, not pagination/filters
 
     return () => clearTimeout(handler)
   }, [currentPage, searchTerm, roleFilter, statusFilter, loadUsers])
@@ -234,7 +257,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
             )}
           </div>
         </div>
-      )
+      ),
     },
     {
       key: 'organization',
@@ -243,7 +266,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
         if (!organization) {
           return <span className="text-gray-400">소속 없음</span>
         }
-        
+
         return (
           <div className="text-sm">
             <div className="flex items-center text-gray-900 dark:text-gray-100 font-medium">
@@ -252,46 +275,74 @@ export default function UserManagement({ profile }: UserManagementProps) {
             </div>
           </div>
         )
-      }
+      },
     },
     {
       key: 'role',
       label: '역할',
       render: (value: UserRole) => {
         const roleConfig = {
-          worker: { text: '작업자', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' },
-          site_manager: { text: '현장관리자', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
-          customer_manager: { text: '파트너사', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' },
-          admin: { text: '관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' },
-          system_admin: { text: '시스템관리자', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300' }
+          worker: {
+            text: '작업자',
+            color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+          },
+          site_manager: {
+            text: '현장관리자',
+            color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+          },
+          customer_manager: {
+            text: '파트너사',
+            color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300',
+          },
+          admin: {
+            text: '관리자',
+            color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+          },
+          system_admin: {
+            text: '시스템관리자',
+            color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+          },
         }
-        
+
         const config = roleConfig[value] || roleConfig.worker
         return (
-          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+          <span
+            className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+          >
             <Shield className="h-3 w-3 mr-1" />
             {config.text}
           </span>
         )
-      }
+      },
     },
     {
       key: 'status',
       label: '상태',
       render: (value: UserStatus) => {
         const statusConfig = {
-          active: { text: '활성', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
-          inactive: { text: '비활성', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300' },
-          suspended: { text: '정지', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' }
+          active: {
+            text: '활성',
+            color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+          },
+          inactive: {
+            text: '비활성',
+            color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+          },
+          suspended: {
+            text: '정지',
+            color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+          },
         }
-        
+
         const config = statusConfig[value || 'active']
         return (
-          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+          >
             {config.text}
           </span>
         )
-      }
+      },
     },
     {
       key: 'site_assignments',
@@ -311,23 +362,17 @@ export default function UserManagement({ profile }: UserManagementProps) {
             </div>
           )
         }
-        
+
         return (
           <div className="space-y-1">
             {activeAssignments.slice(0, 2).map((assignment, index) => (
               <div key={index} className="text-sm">
-                <span className="text-gray-900 dark:text-gray-100">
-                  {assignment.site_name}
-                </span>
-                <span className="text-gray-500 dark:text-gray-400 ml-1">
-                  ({assignment.role})
-                </span>
+                <span className="text-gray-900 dark:text-gray-100">{assignment.site_name}</span>
+                <span className="text-gray-500 dark:text-gray-400 ml-1">({assignment.role})</span>
               </div>
             ))}
             {activeAssignments.length > 2 && (
-              <div className="text-xs text-gray-400">
-                +{activeAssignments.length - 2} 더보기
-              </div>
+              <div className="text-xs text-gray-400">+{activeAssignments.length - 2} 더보기</div>
             )}
             <button
               onClick={() => router.push(`/dashboard/admin/assignment?user=${user.id}`)}
@@ -337,7 +382,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
             </button>
           </div>
         )
-      }
+      },
     },
     {
       key: 'required_documents',
@@ -346,19 +391,21 @@ export default function UserManagement({ profile }: UserManagementProps) {
         if (!documents || documents.length === 0) {
           return <span className="text-gray-400">서류 없음</span>
         }
-        
-        const submitted = documents.filter(d => d.status === 'submitted' || d.status === 'approved').length
+
+        const submitted = documents.filter(
+          d => d.status === 'submitted' || d.status === 'approved'
+        ).length
         const total = documents.length
         const pending = documents.filter(d => d.status === 'pending').length
         const rejected = documents.filter(d => d.status === 'rejected').length
-        
+
         const getStatusColor = () => {
           if (rejected > 0) return 'text-red-600 dark:text-red-400'
           if (pending > 0) return 'text-yellow-600 dark:text-yellow-400'
           if (submitted === total) return 'text-green-600 dark:text-green-400'
           return 'text-gray-600 dark:text-gray-400'
         }
-        
+
         return (
           <div className="text-sm">
             <div className={`flex items-center font-medium ${getStatusColor()}`}>
@@ -368,12 +415,14 @@ export default function UserManagement({ profile }: UserManagementProps) {
             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {pending > 0 && <span className="text-yellow-600">대기 {pending}건</span>}
               {rejected > 0 && (
-                <span className={`${pending > 0 ? 'ml-2' : ''} text-red-600`}>반려 {rejected}건</span>
+                <span className={`${pending > 0 ? 'ml-2' : ''} text-red-600`}>
+                  반려 {rejected}건
+                </span>
               )}
             </div>
           </div>
         )
-      }
+      },
     },
     {
       key: 'work_log_stats',
@@ -382,7 +431,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
         if (!stats) {
           return <span className="text-gray-400">통계 없음</span>
         }
-        
+
         return (
           <div className="text-sm">
             <div className="flex items-center text-gray-900 dark:text-gray-100">
@@ -400,13 +449,13 @@ export default function UserManagement({ profile }: UserManagementProps) {
             )}
           </div>
         )
-      }
+      },
     },
     {
       key: 'created_at',
       label: '생성일',
-      render: (value: string) => new Date(value).toLocaleDateString('ko-KR')
-    }
+      render: (value: string) => new Date(value).toLocaleDateString('ko-KR'),
+    },
   ]
 
   // Define bulk actions
@@ -416,31 +465,30 @@ export default function UserManagement({ profile }: UserManagementProps) {
       id: 'activate',
       label: '활성화',
       icon: UserCheck,
-      onClick: handleBulkStatusUpdate('active')
+      onClick: handleBulkStatusUpdate('active'),
     },
     {
       id: 'deactivate',
       label: '비활성화',
       icon: UserX,
       variant: 'secondary' as const,
-      onClick: handleBulkStatusUpdate('inactive')
+      onClick: handleBulkStatusUpdate('inactive'),
     },
     {
       id: 'set-worker',
       label: '작업자로 변경',
       icon: User,
       variant: 'secondary' as const,
-      onClick: handleBulkRoleUpdate('worker')
+      onClick: handleBulkRoleUpdate('worker'),
     },
     {
       id: 'set-manager',
       label: '현장관리자로 변경',
       icon: Shield,
       variant: 'secondary' as const,
-      onClick: handleBulkRoleUpdate('site_manager')
-    }
+      onClick: handleBulkRoleUpdate('site_manager'),
+    },
   ]
-
 
   // Custom actions for individual users
   const customActions = [
@@ -448,10 +496,11 @@ export default function UserManagement({ profile }: UserManagementProps) {
       icon: Key,
       label: '비밀번호 재설정',
       onClick: handlePasswordReset,
-      show: (user: UserWithSites) => user.role !== 'system_admin' || profile?.role === 'system_admin'
-    }
+      show: (user: UserWithSites) =>
+        user.role !== 'system_admin' || profile?.role === 'system_admin',
+    },
   ]
-  
+
   // Handle individual user deletion
   const handleDeleteUser = async (user: UserWithSites) => {
     if (!confirm(`정말로 ${user.full_name || user.email} 사용자를 삭제하시겠습니까?`)) {
@@ -486,16 +535,16 @@ export default function UserManagement({ profile }: UserManagementProps) {
               type="text"
               placeholder="이름 또는 이메일로 검색..."
               value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={e => handleSearch(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
-        
+
         <div className="flex flex-row gap-2 flex-shrink-0">
           <select
             value={roleFilter}
-            onChange={(e) => handleRoleFilter(e.target.value as UserRole | '')}
+            onChange={e => handleRoleFilter(e.target.value as UserRole | '')}
             className="min-w-[120px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
           >
             <option value="">모든 역할</option>
@@ -505,10 +554,10 @@ export default function UserManagement({ profile }: UserManagementProps) {
             <option value="admin">관리자</option>
             <option value="system_admin">시스템관리자</option>
           </select>
-          
+
           <select
             value={statusFilter}
-            onChange={(e) => handleStatusFilter(e.target.value as UserStatus | '')}
+            onChange={e => handleStatusFilter(e.target.value as UserStatus | '')}
             className="min-w-[100px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
           >
             <option value="">모든 상태</option>
@@ -516,7 +565,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
             <option value="inactive">비활성</option>
             <option value="suspended">정지</option>
           </select>
-          
+
           <button
             onClick={() => router.push('/dashboard/admin/assignment')}
             className="inline-flex items-center whitespace-nowrap px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-md transition-colors"
@@ -524,13 +573,12 @@ export default function UserManagement({ profile }: UserManagementProps) {
             <Users className="h-4 w-4 mr-2" />
             통합 배정 관리
           </button>
-          
+
           <button
             onClick={handleCreateUser}
             className="inline-flex items-center whitespace-nowrap px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            새 사용자
+            <Plus className="h-4 w-4 mr-2" />새 사용자
           </button>
         </div>
       </div>
@@ -591,7 +639,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
           }}
         />
       )}
-      
+
       {showEditModal && editingUser && (
         <UserCreateEditModal
           isOpen={showEditModal}
@@ -625,9 +673,9 @@ function UserCreateEditModal({ isOpen, onClose, onSuccess, user }: UserCreateEdi
     full_name: '',
     phone: '',
     role: 'worker',
-    status: 'active'
+    status: 'active',
   })
-  
+
   const [loading, setLoading] = useState(false)
 
   const isEditing = !!user
@@ -640,7 +688,7 @@ function UserCreateEditModal({ isOpen, onClose, onSuccess, user }: UserCreateEdi
         full_name: user.full_name,
         phone: user.phone || '',
         role: user.role,
-        status: user.status || 'active'
+        status: user.status || 'active',
       })
     }
   }, [user])
@@ -691,7 +739,7 @@ function UserCreateEditModal({ isOpen, onClose, onSuccess, user }: UserCreateEdi
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 required
                 disabled={isEditing} // Don't allow email changes in edit mode
@@ -705,7 +753,7 @@ function UserCreateEditModal({ isOpen, onClose, onSuccess, user }: UserCreateEdi
               <input
                 type="text"
                 value={formData.full_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 required
               />
@@ -718,7 +766,7 @@ function UserCreateEditModal({ isOpen, onClose, onSuccess, user }: UserCreateEdi
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
@@ -729,7 +777,7 @@ function UserCreateEditModal({ isOpen, onClose, onSuccess, user }: UserCreateEdi
               </label>
               <select
                 value={formData.role}
-                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value as UserRole }))}
+                onChange={e => setFormData(prev => ({ ...prev, role: e.target.value as UserRole }))}
                 className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               >
                 <option value="worker">작업자</option>
@@ -746,7 +794,9 @@ function UserCreateEditModal({ isOpen, onClose, onSuccess, user }: UserCreateEdi
               </label>
               <select
                 value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as UserStatus }))}
+                onChange={e =>
+                  setFormData(prev => ({ ...prev, status: e.target.value as UserStatus }))
+                }
                 className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               >
                 <option value="active">활성</option>
