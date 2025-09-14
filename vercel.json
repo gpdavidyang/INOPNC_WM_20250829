@@ -1,5 +1,5 @@
 {
-  "buildCommand": "rm -rf .next && next build",
+  "buildCommand": "rm -rf .next && cp tsconfig.vercel.json tsconfig.json && next build",
   "framework": "nextjs",
   "regions": ["icn1"],
   "installCommand": "rm -rf node_modules package-lock.json && npm install",
