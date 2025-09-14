@@ -28,9 +28,14 @@ export const MobileAuthGuard: React.FC<MobileAuthGuardProps> = ({
       return
     }
 
-    // Not a mobile role
+    // Not a mobile role - redirect to appropriate dashboard based on role
     if (!canAccessMobile) {
-      router.replace('/dashboard') // Redirect to admin dashboard
+      const role = profile?.role
+      if (role === 'system_admin') {
+        router.replace('/dashboard/admin')
+      } else {
+        router.replace('/auth/login')
+      }
       return
     }
 

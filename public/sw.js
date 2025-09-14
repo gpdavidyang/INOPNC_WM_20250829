@@ -1,11 +1,11 @@
 // INOPNC Work Management System Service Worker
 // Provides offline functionality and intelligent caching for construction sites
 
-// Updated cache version to force refresh in PWA - Critical Auth Fix
-const CACHE_NAME = 'inopnc-wm-v1.6.0'
-const STATIC_CACHE = 'inopnc-static-v1.6.0'
-const API_CACHE = 'inopnc-api-v1.6.0'
-const IMAGES_CACHE = 'inopnc-images-v1.3.0'
+// Updated cache version to force refresh in PWA - Fixed manifest loop issue
+const CACHE_NAME = 'inopnc-wm-v1.7.0'
+const STATIC_CACHE = 'inopnc-static-v1.7.0'
+const API_CACHE = 'inopnc-api-v1.7.0'
+const IMAGES_CACHE = 'inopnc-images-v1.4.0'
 const OFFLINE_PAGE = '/offline'
 
 // Cache size limits for mobile devices

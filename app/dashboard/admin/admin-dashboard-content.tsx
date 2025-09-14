@@ -4,7 +4,7 @@ import Link from 'next/link'
 import type { QuickAction } from '@/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import QuickActionsSettings from '@/components/admin/dashboard/QuickActionsSettings'
+import { QuickActionsSettings } from '@/components/admin/quick-actions-settings'
 import {
   Users,
   Building2,
@@ -439,3 +439,5 @@ export function AdminDashboardContent() {
     </div>
   )
 }
+
+export default AdminDashboardContent

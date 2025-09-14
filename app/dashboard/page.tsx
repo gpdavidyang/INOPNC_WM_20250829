@@ -6,46 +6,44 @@ export const dynamic = 'force-dynamic'
 export default async function DashboardPage() {
   try {
     const supabase = createClient()
+    
+    // Check user authentication
     const { data: { user }, error: userError } = await supabase.auth.getUser()
     
     if (userError || !user) {
+      console.log('Dashboard: No authenticated user, redirecting to login')
       redirect('/auth/login')
     }
     
-    // Get user profile to determine role-based redirect
+    // Get user profile for role-based routing
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, full_name, email')
       .eq('id', user.id)
       .single()
     
     if (profileError || !profile) {
-      // If profile doesn't exist or error, go to admin by default
+      console.log('Dashboard: Profile not found, redirecting to admin')
       redirect('/dashboard/admin')
     }
     
-    // Role-based routing
-    switch (profile.role) {
-      case 'system_admin':
-        redirect('/dashboard/admin')
-        break
-      case 'site_manager':
-        redirect('/mobile')
-        break
-      case 'worker':
-        redirect('/mobile')
-        break
-      case 'customer_manager':
-        redirect('/partner/dashboard')
-        break
-      default:
-        // Default to admin dashboard
-        redirect('/dashboard/admin')
-        break
+    // Role-based redirect with proper logging
+    console.log(`Dashboard: User ${profile.full_name} (${profile.role}) accessing /dashboard`)
+    
+    // Redirect based on user role - but only redirect once to prevent loops
+    if (profile.role === 'system_admin') {
+      console.log('Dashboard: Redirecting system_admin to /dashboard/admin')
+      redirect('/dashboard/admin')
+    } else if (['site_manager', 'worker', 'customer_manager'].includes(profile.role)) {
+      console.log(`Dashboard: Redirecting ${profile.role} to /mobile`)  
+      redirect('/mobile')
+    } else {
+      console.log('Dashboard: Unknown role, defaulting to admin')
+      redirect('/dashboard/admin')
     }
+    
   } catch (error) {
-    console.error('Dashboard redirect error:', error)
-    // Fallback to admin dashboard on error
+    console.error('Dashboard: Redirect error occurred:', error)
     redirect('/dashboard/admin')
   }
 }
