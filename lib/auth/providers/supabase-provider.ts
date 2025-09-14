@@ -5,12 +5,8 @@
  * Wraps Supabase Auth API with our abstraction layer.
  */
 
-import {
-  createClientComponentClient,
-  SupabaseClient,
-  Session,
-  User,
-} from '@supabase/auth-helpers-nextjs'
+import { SupabaseClient, Session, User } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 import {
   IAuthProvider,
   AuthUser,
@@ -102,7 +98,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
       this.client = null as any
     } else {
       // Client-side singleton
-      this.client = createClientComponentClient()
+      this.client = createClient()
     }
   }
 
@@ -116,7 +112,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
 
     // Server-side: Return a client-compatible instance
     // Note: Server-side rendering should use createServerSupabaseClient from lib/supabase/server.ts
-    return createClientComponentClient()
+    return createClient()
   }
 
   /**
