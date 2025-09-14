@@ -14,5 +14,10 @@ export * from './components'
 export * from './routing'
 export * from './circuit-breaker'
 
+// Monitoring exports (development tools)
+export { authLogger, AuthEventType, LogLevel } from './monitoring/auth-logger'
+export { authPerformanceMonitor, withPerformanceTracking } from './monitoring/performance-monitor'
+export { AuthDebugPanel } from './components/auth-debug-panel'
+
 // Config exports
 export * from '../config/env'

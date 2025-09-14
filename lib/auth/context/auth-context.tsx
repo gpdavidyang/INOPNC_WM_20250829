@@ -55,7 +55,7 @@ interface AuthContextState {
 /**
  * Auth Context
  */
-const AuthContext = createContext<AuthContextState | undefined>(undefined)
+export const AuthContext = createContext<AuthContextState | undefined>(undefined)
 
 /**
  * Auth Context Provider Props
