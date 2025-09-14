@@ -1,5 +1,8 @@
+
 import { createClient } from "@/lib/supabase/server"
 import SystemManagement from '@/components/admin/SystemManagement'
+
+export const dynamic = "force-dynamic"
 
 export default async function SystemManagementPage() {
   const supabase = createClient()

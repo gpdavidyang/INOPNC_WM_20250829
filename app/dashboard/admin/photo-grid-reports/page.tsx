@@ -1,5 +1,8 @@
+
 import { createClient } from "@/lib/supabase/server"
 import PhotoGridReportsManagement from '@/components/admin/PhotoGridReportsManagement'
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminPhotoGridReportsPage() {
   const supabase = createClient()

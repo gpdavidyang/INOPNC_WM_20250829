@@ -1,6 +1,9 @@
+
 import { createClient } from "@/lib/supabase/server"
 import { Suspense } from 'react'
 import NPCMaterialManagement from '@/components/admin/materials/NPCMaterialManagement'
+
+export const dynamic = "force-dynamic"
 
 // Loading component
 function MaterialsManagementSkeleton() {

@@ -1,6 +1,34 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { useRouter, useParams } from 'next/navigation'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
+import {
+  FileText,
+  Users,
+  Camera,
+  Paperclip,
+  Map,
+  Receipt,
+  ArrowLeft,
+  Package,
+  CheckCircle,
+  AlertCircle,
+  AlertTriangle,
+  Edit,
+  Save,
+  X,
+  Building2,
+  Layers,
+  User,
+} from 'lucide-react'
 import ReceiptsTab from '@/components/admin/daily-reports/ReceiptsTab'
+import WorkerManagementTab from '@/components/admin/daily-reports/WorkerManagementTab'
+import PhotosTab from '@/components/admin/daily-reports/PhotosTab'
+import AttachmentsTab from '@/components/admin/daily-reports/AttachmentsTab'
+import MarkupTab from '@/components/admin/daily-reports/MarkupTab'
+import { getDailyReportById, updateDailyReport } from '@/app/actions/admin/daily-reports'
 
 interface DailyReport {
   id: string
@@ -44,7 +72,7 @@ export default function DailyReportDetailPage() {
   const router = useRouter()
   const params = useParams()
   const reportId = params?.id as string
-  
+
   const [report, setReport] = useState<DailyReport | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
@@ -101,7 +129,7 @@ export default function DailyReportDetailPage() {
         npc1000_used: editedData.npc1000_used,
         npc1000_remaining: editedData.npc1000_remaining,
         issues: editedData.issues,
-        status: editedData.status
+        status: editedData.status,
       })
 
       if (result.success) {
@@ -121,7 +149,7 @@ export default function DailyReportDetailPage() {
   const handleFieldChange = (field: keyof DailyReport, value: unknown) => {
     setEditedData(prev => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }))
   }
 
@@ -151,12 +179,12 @@ export default function DailyReportDetailPage() {
 
   const statusLabels = {
     draft: '임시저장',
-    submitted: '제출됨'
+    submitted: '제출됨',
   }
 
   const statusColors = {
     draft: 'bg-yellow-100 text-yellow-800 border-yellow-300',
-    submitted: 'bg-green-100 text-green-800 border-green-300'
+    submitted: 'bg-green-100 text-green-800 border-green-300',
   }
 
   const tabs = [
@@ -165,13 +193,16 @@ export default function DailyReportDetailPage() {
     { id: 'photos', label: '사진', icon: Camera },
     { id: 'attachments', label: '첨부파일', icon: Paperclip },
     { id: 'markup', label: '도면마킹', icon: Map },
-    { id: 'receipts', label: '영수증정보', icon: Receipt }
+    { id: 'receipts', label: '영수증정보', icon: Receipt },
   ]
 
   // Determine if we're in any editing mode
-  const isInEditMode = activeTab === 'workers' || activeTab === 'photos' || 
-                       activeTab === 'attachments' || activeTab === 'markup' || 
-                       activeTab === 'receipts'
+  const isInEditMode =
+    activeTab === 'workers' ||
+    activeTab === 'photos' ||
+    activeTab === 'attachments' ||
+    activeTab === 'markup' ||
+    activeTab === 'receipts'
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -189,7 +220,9 @@ export default function DailyReportDetailPage() {
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-xl font-bold text-gray-900">작업일지 상세보기</h1>
-                  <span className={`px-2.5 py-1 text-xs font-medium rounded-full border ${statusColors[report.status]}`}>
+                  <span
+                    className={`px-2.5 py-1 text-xs font-medium rounded-full border ${statusColors[report.status]}`}
+                  >
                     {statusLabels[report.status]}
                   </span>
                 </div>
@@ -237,21 +270,21 @@ export default function DailyReportDetailPage() {
         {/* Tabs */}
         <div className="px-6">
           <nav className="-mb-px flex space-x-6" aria-label="Tabs">
-            {tabs.map((tab) => {
+            {tabs.map(tab => {
               const Icon = tab.icon
-              const label = tab.id === 'workers' && tab.count 
-                ? `${tab.label} (${tab.count}명)`
-                : tab.label
-              
+              const label =
+                tab.id === 'workers' && tab.count ? `${tab.label} (${tab.count}명)` : tab.label
+
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
                     flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap
-                    ${activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                     }
                   `}
                 >
@@ -321,7 +354,7 @@ export default function DailyReportDetailPage() {
                     <input
                       type="text"
                       value={editedData.member_name || ''}
-                      onChange={(e) => handleFieldChange('member_name', e.target.value)}
+                      onChange={e => handleFieldChange('member_name', e.target.value)}
                       className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
@@ -334,7 +367,7 @@ export default function DailyReportDetailPage() {
                     <input
                       type="text"
                       value={editedData.process_type || ''}
-                      onChange={(e) => handleFieldChange('process_type', e.target.value)}
+                      onChange={e => handleFieldChange('process_type', e.target.value)}
                       className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
@@ -347,7 +380,7 @@ export default function DailyReportDetailPage() {
                     <input
                       type="text"
                       value={editedData.component_name || ''}
-                      onChange={(e) => handleFieldChange('component_name', e.target.value)}
+                      onChange={e => handleFieldChange('component_name', e.target.value)}
                       className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
@@ -362,7 +395,7 @@ export default function DailyReportDetailPage() {
                     <input
                       type="text"
                       value={editedData.work_section || ''}
-                      onChange={(e) => handleFieldChange('work_section', e.target.value)}
+                      onChange={e => handleFieldChange('work_section', e.target.value)}
                       className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
@@ -377,7 +410,7 @@ export default function DailyReportDetailPage() {
                     <input
                       type="number"
                       value={editedData.total_workers || 0}
-                      onChange={(e) => handleFieldChange('total_workers', parseInt(e.target.value))}
+                      onChange={e => handleFieldChange('total_workers', parseInt(e.target.value))}
                       className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   ) : (
@@ -407,7 +440,9 @@ export default function DailyReportDetailPage() {
                     <input
                       type="number"
                       value={editedData.npc1000_incoming || 0}
-                      onChange={(e) => handleFieldChange('npc1000_incoming', parseInt(e.target.value))}
+                      onChange={e =>
+                        handleFieldChange('npc1000_incoming', parseInt(e.target.value))
+                      }
                       className="w-full text-center text-2xl font-bold text-blue-700 bg-transparent border-b-2 border-blue-300 focus:outline-none focus:border-blue-500"
                     />
                   ) : (
@@ -421,7 +456,7 @@ export default function DailyReportDetailPage() {
                     <input
                       type="number"
                       value={editedData.npc1000_used || 0}
-                      onChange={(e) => handleFieldChange('npc1000_used', parseInt(e.target.value))}
+                      onChange={e => handleFieldChange('npc1000_used', parseInt(e.target.value))}
                       className="w-full text-center text-2xl font-bold text-orange-700 bg-transparent border-b-2 border-orange-300 focus:outline-none focus:border-orange-500"
                     />
                   ) : (
@@ -435,7 +470,9 @@ export default function DailyReportDetailPage() {
                     <input
                       type="number"
                       value={editedData.npc1000_remaining || 0}
-                      onChange={(e) => handleFieldChange('npc1000_remaining', parseInt(e.target.value))}
+                      onChange={e =>
+                        handleFieldChange('npc1000_remaining', parseInt(e.target.value))
+                      }
                       className="w-full text-center text-2xl font-bold text-green-700 bg-transparent border-b-2 border-green-300 focus:outline-none focus:border-green-500"
                     />
                   ) : (
@@ -455,19 +492,17 @@ export default function DailyReportDetailPage() {
               {isEditingOverview ? (
                 <textarea
                   value={editedData.issues || ''}
-                  onChange={(e) => handleFieldChange('issues', e.target.value)}
+                  onChange={e => handleFieldChange('issues', e.target.value)}
                   rows={4}
                   className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                   placeholder="특이사항을 입력하세요..."
                 />
+              ) : report.issues ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.issues}</p>
+                </div>
               ) : (
-                report.issues ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                    <p className="text-sm text-gray-800 whitespace-pre-wrap">{report.issues}</p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">특이사항이 없습니다.</p>
-                )
+                <p className="text-sm text-gray-500">특이사항이 없습니다.</p>
               )}
             </div>
 
@@ -493,10 +528,13 @@ export default function DailyReportDetailPage() {
                 <div>
                   <label className="text-sm text-gray-600">역할</label>
                   <p className="mt-1 text-sm font-medium text-gray-900">
-                    {report.profiles?.role === 'admin' ? '관리자' : 
-                     report.profiles?.role === 'site_manager' ? '현장담당' :
-                     report.profiles?.role === 'worker' ? '작업자' : 
-                     report.profiles?.role || '-'}
+                    {report.profiles?.role === 'admin'
+                      ? '관리자'
+                      : report.profiles?.role === 'site_manager'
+                        ? '현장담당'
+                        : report.profiles?.role === 'worker'
+                          ? '작업자'
+                          : report.profiles?.role || '-'}
                   </p>
                 </div>
                 <div>
@@ -516,7 +554,9 @@ export default function DailyReportDetailPage() {
                   {isEditingOverview ? (
                     <select
                       value={editedData.status || 'draft'}
-                      onChange={(e) => handleFieldChange('status', e.target.value as 'draft' | 'submitted')}
+                      onChange={e =>
+                        handleFieldChange('status', e.target.value as 'draft' | 'submitted')
+                      }
                       className="mt-1 w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="draft">임시저장</option>
@@ -524,7 +564,9 @@ export default function DailyReportDetailPage() {
                     </select>
                   ) : (
                     <p className="mt-1">
-                      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${statusColors[report.status]}`}>
+                      <span
+                        className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${statusColors[report.status]}`}
+                      >
                         {statusLabels[report.status]}
                       </span>
                     </p>

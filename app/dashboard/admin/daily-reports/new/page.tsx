@@ -1,4 +1,10 @@
+
 import { createClient } from "@/lib/supabase/server"
+import { redirect } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminNewDailyReportPage() {
   const supabase = createClient()
@@ -60,13 +66,15 @@ export default async function AdminNewDailyReportPage() {
       </div>
 
       <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <DailyReportForm
-          mode="create"
-          sites={sites || []}
-          currentUser={profile as any}
-          materials={materials || []}
-          workers={workers || []}
-        />
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-lg font-medium mb-4">새 작업일지 작성</h2>
+          <p className="text-gray-600">작업일지 작성 폼이 여기에 표시됩니다.</p>
+          <div className="mt-4 p-4 border border-gray-200 rounded">
+            <p className="text-sm text-gray-500">사이트: {sites?.length || 0}개</p>
+            <p className="text-sm text-gray-500">작업자: {workers?.length || 0}명</p>
+            <p className="text-sm text-gray-500">자재: {materials?.length || 0}개</p>
+          </div>
+        </div>
       </div>
     </div>
   )
