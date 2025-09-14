@@ -14,6 +14,7 @@
     "jsx": "preserve",
     "incremental": true,
     "tsBuildInfoFile": ".tsbuildinfo",
+    "baseUrl": ".",
     "plugins": [
       {
         "name": "next"
