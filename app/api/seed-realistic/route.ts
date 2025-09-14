@@ -1,4 +1,7 @@
 
+import { createClient } from '@supabase/supabase-js'
+import { NextRequest, NextResponse } from 'next/server'
+
 // 현실적인 한국어 이름 매핑 (기존 사용자 → 새 이름)
 const WORKER_NAME_MAPPING = [
   { role: 'worker', newName: '김철수' },
@@ -12,7 +15,7 @@ const WORKER_NAME_MAPPING = [
 export async function POST(request: NextRequest) {
   try {
     // Use service role to bypass RLS
-    const serviceSupabase = require('@supabase/supabase-js').createClient(
+    const serviceSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       {

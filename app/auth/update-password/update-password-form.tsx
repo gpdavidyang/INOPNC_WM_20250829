@@ -1,5 +1,10 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { CheckCircle, Lock, Eye, EyeOff } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function UpdatePasswordForm() {
   const router = useRouter()

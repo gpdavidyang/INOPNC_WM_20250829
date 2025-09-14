@@ -1,4 +1,10 @@
 
+import { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
+import { createClient } from '@/lib/supabase/server'
+import { BusinessAnalyticsDashboard } from '@/components/dashboard/business-analytics-dashboard'
+
 export const metadata: Metadata = {
   title: '비즈니스 분석 | INOPNC 현장관리시스템',
   description: '건설 현장 비즈니스 데이터 분석 및 인사이트',

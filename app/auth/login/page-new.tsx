@@ -1,5 +1,13 @@
 'use client'
 
+import { useState } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+
+// These components would need to be imported from actual component files
+// For now, using regular HTML elements as fallback
+const InputNew = ({ ...props }) => <input {...props} />
+const ButtonNew = ({ children, ...props }) => <button {...props}>{children}</button>
 
 export default function LoginPageNew() {
   const [email, setEmail] = useState('')

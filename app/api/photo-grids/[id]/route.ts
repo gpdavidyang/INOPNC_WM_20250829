@@ -102,7 +102,7 @@ export async function PUT(
     const sanitizeFilename = (filename: string): string => {
       const ext = filename.split('.').pop() || 'jpg'
       const sanitized = filename
-        .replace(/[^\x00-\x7F]/g, '')
+        .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII chars
         .replace(/\s+/g, '_')
         .replace(/[^a-zA-Z0-9._-]/g, '')
       

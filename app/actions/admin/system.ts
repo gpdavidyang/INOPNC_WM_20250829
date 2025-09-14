@@ -330,7 +330,7 @@ export async function performSystemMaintenance(
 
       for (const task of tasks) {
         switch (task) {
-          case 'cleanup_old_logs':
+          case 'cleanup_old_logs': {
             // Clean up audit logs older than 90 days
             const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString()
             await supabase
@@ -339,6 +339,7 @@ export async function performSystemMaintenance(
               .lt('timestamp', ninetyDaysAgo)
             completedTasks.push('cleanup_old_logs')
             break
+          }
 
           case 'cleanup_temp_files':
             // This would normally clean up temporary files from storage

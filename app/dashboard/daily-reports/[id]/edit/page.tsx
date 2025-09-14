@@ -1,4 +1,16 @@
 
+import { notFound, redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { Home, Calendar, FileText, MapPin, FolderOpen } from 'lucide-react'
+import { NavigationController } from '@/components/navigation/navigation-controller'
+import { BottomNavigation } from '@/components/navigation/bottom-navigation'
+import { DailyReportForm } from '@/components/daily-reports/daily-report-form'
+import { Header } from '@/components/layout/header'
+import { getDailyReportById } from '@/app/actions/daily-reports'
+import { getMaterials } from '@/app/actions/materials'
+import { getWorkers } from '@/app/actions/workers'
+import type { BottomNavItem } from '@/types'
+
 export default async function EditDailyReportPage({
   params
 }: {
@@ -57,7 +69,8 @@ export default async function EditDailyReportPage({
       sitesError = regularResult.error
     } else {
       // Fallback to service role
-      const serviceSupabase = require('@supabase/supabase-js').createClient(
+      const { createClient: createServiceClient } = await import('@supabase/supabase-js')
+      const serviceSupabase = createServiceClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         {

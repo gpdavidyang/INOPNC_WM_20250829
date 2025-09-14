@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       const ext = filename.split('.').pop() || 'jpg'
       // Remove all non-ASCII characters and spaces, keep only alphanumeric and basic punctuation
       const sanitized = filename
-        .replace(/[^\x00-\x7F]/g, '') // Remove non-ASCII
+        .replace(/[^\x20-\x7E]/g, '') // Remove non-printable ASCII chars
         .replace(/\s+/g, '_') // Replace spaces with underscores
         .replace(/[^a-zA-Z0-9._-]/g, '') // Keep only safe characters
       
