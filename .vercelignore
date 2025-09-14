@@ -28,7 +28,6 @@ dy_memo
 .eslintrc.json
 .prettierrc
 .prettierignore
-tsconfig.json
 babel.config.js
 
 # Scripts and migrations
