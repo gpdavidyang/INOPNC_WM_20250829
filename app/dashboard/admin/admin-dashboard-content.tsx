@@ -33,38 +33,38 @@ import {
   Camera,
 } from 'lucide-react'
 
-// 아이콘 매핑
-const ICON_MAP = {
-  Users,
-  Building2,
-  DollarSign,
-  Package,
-  FileText,
-  Layers,
-  Home,
-  Search,
-  Calendar,
-  Bell,
-  Shield,
-  Monitor,
-  Database,
-  Settings,
-  HelpCircle,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  Camera,
+// 아이콘 매핑 - explicitly typed to avoid bundling issues
+const ICON_MAP: Record<string, React.ComponentType<any>> = {
+  Users: Users,
+  Building2: Building2,
+  DollarSign: DollarSign,
+  Package: Package,
+  FileText: FileText,
+  Layers: Layers,
+  Home: Home,
+  Search: Search,
+  Calendar: Calendar,
+  Bell: Bell,
+  Shield: Shield,
+  Monitor: Monitor,
+  Database: Database,
+  Settings: Settings,
+  HelpCircle: HelpCircle,
+  TrendingUp: TrendingUp,
+  AlertCircle: AlertCircle,
+  CheckCircle: CheckCircle,
+  Clock: Clock,
+  Camera: Camera,
 }
 
-// 활동 아이콘 매핑
-const ACTIVITY_ICON_MAP = {
-  CheckCircle,
-  AlertCircle,
-  TrendingUp,
-  Camera,
-  Building2,
-  Users,
+// 활동 아이콘 매핑 - explicitly typed to avoid bundling issues
+const ACTIVITY_ICON_MAP: Record<string, React.ComponentType<any>> = {
+  CheckCircle: CheckCircle,
+  AlertCircle: AlertCircle,
+  TrendingUp: TrendingUp,
+  Camera: Camera,
+  Building2: Building2,
+  Users: Users,
 }
 
 export function AdminDashboardContent() {
@@ -295,7 +295,7 @@ export function AdminDashboardContent() {
           ) : Array.isArray(quickActions) && quickActions.length > 0 ? (
             <div className="grid grid-cols-6 gap-2">
               {quickActions.map(action => {
-                const IconComponent = ICON_MAP[action.icon_name as keyof typeof ICON_MAP] || Home
+                const IconComponent = ICON_MAP[action.icon_name] || Home
 
                 return (
                   <Link key={action.id} href={action.link_url}>
@@ -345,9 +345,7 @@ export function AdminDashboardContent() {
               {Array.isArray(dashboardStats.recentActivities) &&
               dashboardStats.recentActivities.length > 0 ? (
                 dashboardStats.recentActivities.map(activity => {
-                  const IconComponent =
-                    ACTIVITY_ICON_MAP[activity.icon as keyof typeof ACTIVITY_ICON_MAP] ||
-                    AlertCircle
+                  const IconComponent = ACTIVITY_ICON_MAP[activity.icon] || AlertCircle
                   return (
                     <div key={activity.id} className="flex items-start gap-3">
                       <IconComponent className={`h-5 w-5 ${activity.iconColor} mt-0.5`} />
