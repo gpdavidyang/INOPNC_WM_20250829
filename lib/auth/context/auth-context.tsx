@@ -23,6 +23,8 @@ import { getAuthProvider } from '../providers'
 import { permissionService } from '../services'
 import { getRoleBasedRoute, AUTH_ROUTES } from '../routing'
 import { AuthCircuitBreaker } from '../circuit-breaker'
+import { authMetrics } from '../monitoring/auth-metrics'
+import { authLogger, AuthEventType } from '../monitoring/auth-logger'
 
 /**
  * Auth Context State
@@ -143,16 +145,38 @@ export function AuthProvider({
         setIsLoading(true)
         setError(null)
 
+        // Log login attempt
+        authLogger.info(AuthEventType.SIGN_IN_ATTEMPT, {
+          email: 'email' in credentials ? credentials.email : undefined,
+        })
+
         const { data: newSession, error: signInError } =
           await authProvider.signInWithPassword(credentials)
 
         if (signInError) {
+          // Record failure metrics
+          authMetrics.recordLoginAttempt(false, { error: signInError.message })
+          authLogger.error(AuthEventType.SIGN_IN_FAILURE, {
+            error: signInError.message,
+          })
           throw new Error(signInError.message)
         }
 
         if (!newSession) {
+          // Record failure metrics
+          authMetrics.recordLoginAttempt(false, { error: 'No session returned' })
+          authLogger.error(AuthEventType.SIGN_IN_FAILURE, {
+            error: 'No session returned',
+          })
           throw new Error('Failed to sign in')
         }
+
+        // Record success metrics
+        authMetrics.recordLoginAttempt(true, { userId: newSession.user.id })
+        authLogger.info(AuthEventType.SIGN_IN_SUCCESS, {
+          userId: newSession.user.id,
+          role: newSession.user.role,
+        })
 
         setSession(newSession)
 
@@ -164,6 +188,10 @@ export function AuthProvider({
           router.push(targetRoute)
         } else {
           console.error('[AuthContext] Redirect blocked by circuit breaker')
+          authMetrics.recordRedirectLoop(targetRoute)
+          authLogger.error(AuthEventType.CIRCUIT_BREAKER_TRIGGERED, {
+            metadata: { targetRoute },
+          })
           setError(new Error('Too many redirects detected. Please refresh the page.'))
         }
       } catch (err) {
@@ -296,10 +324,17 @@ export function AuthProvider({
    */
   const refreshSession = useCallback(async () => {
     try {
+      authLogger.info(AuthEventType.SESSION_REFRESHED, {
+        userId: session?.user?.id,
+      })
+
       const { data: refreshedSession, error: refreshError } = await authProvider.refreshSession()
 
       if (refreshError) {
         console.error('[AuthContext] Session refresh error:', refreshError)
+        authLogger.error(AuthEventType.SESSION_INVALID, {
+          error: refreshError.message,
+        })
         setSession(null)
 
         // Redirect to login if refresh fails
@@ -307,13 +342,20 @@ export function AuthProvider({
           router.push(AUTH_ROUTES.LOGIN)
         }
       } else {
+        authMetrics.recordSessionRefresh({ userId: refreshedSession?.user?.id })
+        authLogger.info(AuthEventType.SESSION_REFRESHED, {
+          userId: refreshedSession?.user?.id,
+        })
         setSession(refreshedSession || null)
       }
     } catch (err) {
       console.error('[AuthContext] Failed to refresh session:', err)
+      authLogger.error(AuthEventType.ERROR_GENERAL, {
+        error: err instanceof Error ? err.message : 'Session refresh failed',
+      })
       setSession(null)
     }
-  }, [authProvider, pathname, router])
+  }, [authProvider, pathname, router, session])
 
   /**
    * Clear error
