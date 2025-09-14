@@ -1,5 +1,6 @@
 import UserManagement from '@/components/admin/UserManagement'
 
+// Force dynamic rendering to avoid static build issues
 export const dynamic = 'force-dynamic'
 
 export default function UserManagementPage() {
