@@ -78,14 +78,9 @@ export async function signIn(email: string, password: string) {
             console.error('[SIGN_IN] Profile update error:', updateError)
           }
 
-          // Determine redirect path based on role
-          if (profile.role === 'admin' || profile.role === 'system_admin') {
-            redirectPath = '/dashboard/admin'
-          } else if (profile.role === 'customer_manager') {
-            redirectPath = '/partner/dashboard'
-          } else {
-            redirectPath = '/dashboard'
-          }
+          // Use centralized routing logic
+          const { getRoleBasedRoute } = await import('@/lib/auth/routing')
+          redirectPath = getRoleBasedRoute(profile.role)
 
           // Set role cookie for UI mode detection
           try {
