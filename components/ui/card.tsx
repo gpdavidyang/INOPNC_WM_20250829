@@ -2,6 +2,8 @@
 
 import * as React from 'react'
 import { useTouchMode } from '@/contexts/TouchModeContext'
+import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
+import { cn } from '@/lib/utils'
 
 const Card = React.forwardRef<
   HTMLDivElement,
