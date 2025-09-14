@@ -78,9 +78,16 @@ export async function signIn(email: string, password: string) {
             console.error('[SIGN_IN] Profile update error:', updateError)
           }
 
-          // Use centralized routing logic
-          const { getRoleBasedRoute } = await import('@/lib/auth/routing')
-          redirectPath = getRoleBasedRoute(profile.role)
+          // Simple role-based routing
+          const roleRoutes: Record<string, string> = {
+            'system_admin': '/dashboard/admin',
+            'admin': '/dashboard/admin', 
+            'customer_manager': '/partner/dashboard',
+            'partner': '/partner/dashboard',
+            'site_manager': '/mobile',
+            'worker': '/mobile'
+          }
+          redirectPath = roleRoutes[profile.role] || '/dashboard/admin'
 
           // Set role cookie for UI mode detection
           try {

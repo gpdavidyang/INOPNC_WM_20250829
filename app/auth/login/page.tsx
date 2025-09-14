@@ -3,19 +3,15 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth'
+import { signIn } from '@/app/auth/actions'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const { signIn } = useAuth()
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+  const handleLogin = async (formData: FormData) => {
+    const email = formData.get('email') as string
+    const password = formData.get('password') as string
 
     if (!email || !password) {
       setError('이메일과 비밀번호를 입력해주세요.')
@@ -26,16 +22,15 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Use new auth system's signIn method
-      // Note: signIn throws an error on failure and returns void on success
-      await signIn({ email, password })
-      
-      // Success - router will handle redirect based on role
-      // The auth context handles role-based routing automatically
+      const result = await signIn(email, password)
+      if (result?.error) {
+        setError(result.error)
+        setIsLoading(false)
+      }
+      // 성공시 Server Action에서 자동 리다이렉트됨
     } catch (error) {
       console.error('Login error:', error)
-      const errorMessage = error instanceof Error ? error.message : '로그인에 실패했습니다.'
-      setError(errorMessage)
+      setError('로그인에 실패했습니다.')
       setIsLoading(false)
     }
   }
@@ -56,7 +51,7 @@ export default function LoginPage() {
           </div>
           <h2 className="text-xl font-semibold text-gray-700 mb-6 text-center">로그인</h2>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form action={handleLogin} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
                 이메일
@@ -66,8 +61,6 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 required
-                value={email}
-                onChange={e => setEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="email@example.com"
                 disabled={isLoading}
@@ -83,8 +76,6 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 required
-                value={password}
-                onChange={e => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="비밀번호를 입력하세요"
                 disabled={isLoading}

@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getRoleBasedRoute, AUTH_ROUTES } from '@/lib/auth/routing'
 
 export const dynamic = 'force-dynamic'
 

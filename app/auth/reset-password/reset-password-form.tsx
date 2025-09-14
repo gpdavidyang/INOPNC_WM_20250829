@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { CheckCircle, Mail, ArrowLeft } from 'lucide-react'
-import { useAuth } from '@/lib/auth'
 
 export default function ResetPasswordForm() {
   const [email, setEmail] = useState('')

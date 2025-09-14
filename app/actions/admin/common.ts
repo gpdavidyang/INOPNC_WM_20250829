@@ -1,4 +1,3 @@
-import { requireAdminAuth } from '@/lib/auth/admin'
 import { createClient } from '@supabase/supabase-js'
 
 /**
