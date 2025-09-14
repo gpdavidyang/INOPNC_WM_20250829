@@ -24,10 +24,10 @@ import {
   User,
 } from 'lucide-react'
 import ReceiptsTab from '@/components/admin/daily-reports/ReceiptsTab'
-import DailyReportWorkersTab from '@/components/admin/daily-reports/DailyReportWorkersTab'
-import DailyReportPhotosTab from '@/components/admin/daily-reports/DailyReportPhotosTab'
-import DailyReportAttachmentsTab from '@/components/admin/daily-reports/DailyReportAttachmentsTab'
-import DailyReportMarkupTab from '@/components/admin/daily-reports/DailyReportMarkupTab'
+import WorkerManagementTab from '@/components/admin/daily-reports/WorkerManagementTab'
+import PhotosTab from '@/components/admin/daily-reports/PhotosTab'
+import AttachmentsTab from '@/components/admin/daily-reports/AttachmentsTab'
+import MarkupTab from '@/components/admin/daily-reports/MarkupTab'
 import { getDailyReportById, updateDailyReport } from '@/app/actions/admin/daily-reports'
 
 interface DailyReport {
@@ -599,7 +599,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'workers' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <DailyReportWorkersTab reportId={reportId} isEditing={true} />
+              <WorkerManagementTab reportId={reportId} isEditing={true} />
             </div>
           </div>
         )}
@@ -607,7 +607,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'photos' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <DailyReportPhotosTab reportId={reportId} isEditing={true} />
+              <PhotosTab reportId={reportId} isEditing={true} />
             </div>
           </div>
         )}
@@ -615,7 +615,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'attachments' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <DailyReportAttachmentsTab reportId={reportId} isEditing={true} />
+              <AttachmentsTab reportId={reportId} isEditing={true} />
             </div>
           </div>
         )}
@@ -623,7 +623,7 @@ export default function DailyReportDetailPage() {
         {activeTab === 'markup' && (
           <div className="max-w-6xl mx-auto">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <DailyReportMarkupTab reportId={reportId} isEditing={true} reportData={report} />
+              <MarkupTab reportId={reportId} isEditing={true} reportData={report} />
             </div>
           </div>
         )}
