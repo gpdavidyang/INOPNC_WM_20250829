@@ -7,7 +7,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 // Simple wrapper for API monitoring
-function withAPIMonitoring(handler: Function) {
+function withAPIMonitoring(handler: (request: NextRequest) => Promise<NextResponse>) {
   return async (request: NextRequest) => {
     return handler(request)
   }
