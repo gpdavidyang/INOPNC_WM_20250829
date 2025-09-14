@@ -10,7 +10,10 @@ import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import { getDashboardStats, type DashboardStats } from '@/app/actions/admin/dashboard-stats'
 import { formatRelativeTime } from '@/lib/utils/format-time'
-import {
+import * as Icons from 'lucide-react'
+
+// Destructure icons to ensure they're properly imported
+const {
   Users,
   Building2,
   DollarSign,
@@ -31,7 +34,7 @@ import {
   CheckCircle,
   Clock,
   Camera,
-} from 'lucide-react'
+} = Icons
 
 // 아이콘 매핑 - explicitly typed to avoid bundling issues
 const ICON_MAP: Record<string, React.ComponentType<any>> = {

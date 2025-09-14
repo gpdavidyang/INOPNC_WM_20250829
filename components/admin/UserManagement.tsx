@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import {
+import * as Icons from 'lucide-react'
+
+// Destructure icons to ensure they're properly imported
+const {
   Users,
   UserPlus,
   Edit,
@@ -20,7 +23,7 @@ import {
   ClipboardCheck,
   Calendar,
   Plus,
-} from 'lucide-react'
+} = Icons
 import { toast } from 'sonner'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
 import AdminDataTable from './AdminDataTable'
@@ -45,8 +48,13 @@ interface UserManagementProps {
 
 export default function UserManagement({ profile }: UserManagementProps) {
   // Debug: Check if icons are loaded
-  if (typeof window !== 'undefined' && !Users) {
-    console.error('Users icon not loaded from lucide-react')
+  if (typeof window !== 'undefined') {
+    if (!Users) {
+      console.error('Users icon not loaded from lucide-react')
+      console.log('Available icons:', Object.keys(Icons))
+    } else {
+      console.log('✅ Users icon loaded successfully')
+    }
   }
 
   const router = useRouter()
@@ -570,7 +578,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
             onClick={() => router.push('/dashboard/admin/assignment')}
             className="inline-flex items-center whitespace-nowrap px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-md transition-colors"
           >
-            <Users className="h-4 w-4 mr-2" />
+            {Users ? <Users className="h-4 w-4 mr-2" /> : <User className="h-4 w-4 mr-2" />}
             통합 배정 관리
           </button>
 
