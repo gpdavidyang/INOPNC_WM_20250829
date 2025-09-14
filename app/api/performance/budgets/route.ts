@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
+
 // Simple wrapper for API monitoring
 function withApiMonitoring(handler: (request: NextRequest) => Promise<NextResponse>) {
   return async (request: NextRequest) => {

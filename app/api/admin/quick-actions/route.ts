@@ -1,4 +1,10 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import type { QuickAction } from '@/types'
+
+export const dynamic = 'force-dynamic'
+
 
 // GET /api/admin/quick-actions - 빠른 작업 목록 조회
 export async function GET() {

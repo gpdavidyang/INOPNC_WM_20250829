@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Poppins, Noto_Sans_KR } from "next/font/google";
+import { cookies } from "next/headers";
 import "./globals.css";
 import "./fonts.css"; // Font optimization for production quality
 

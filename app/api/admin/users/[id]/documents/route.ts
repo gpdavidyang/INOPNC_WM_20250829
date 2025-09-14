@@ -1,3 +1,9 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+
+export const dynamic = 'force-dynamic'
 
 const REQUIRED_DOCUMENTS = [
   'medical_checkup', // 배치전 검진 결과서

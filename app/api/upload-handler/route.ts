@@ -1,3 +1,5 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 
 // This is a special handler for large file uploads
 // It's configured to handle up to 50MB files

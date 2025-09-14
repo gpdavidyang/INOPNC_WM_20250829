@@ -1,5 +1,8 @@
 'use server'
 
+import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 const log = (...args: unknown[]) => {
   console.log('[SITE-INFO-DEPLOYMENT]', ...args)

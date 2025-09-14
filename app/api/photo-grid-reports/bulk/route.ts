@@ -1,4 +1,10 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import type { AsyncState, ApiResponse } from '@/types/utils'
+
+export const dynamic = 'force-dynamic'
+
 
 // POST /api/photo-grid-reports/bulk - 벌크 작업 (삭제, 상태 변경 등)
 export async function POST(request: NextRequest) {

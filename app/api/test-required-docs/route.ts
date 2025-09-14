@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data to match the expected format
-    const transformedDocuments = documents?.map((doc: unknown) => ({
+    const transformedDocuments = documents?.map((doc: any) => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,
