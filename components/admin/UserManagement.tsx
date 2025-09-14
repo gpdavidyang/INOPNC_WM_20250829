@@ -6,7 +6,7 @@ import {
   Users, UserPlus, Edit, Trash2, MoreVertical, Search, Filter, Eye,
   User, Mail, Phone, Building, Shield, FileText, ClipboardCheck, Calendar, Plus
 } from 'lucide-react'
-import { toast } from 'react-hot-toast'
+import { toast } from 'sonner'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
 import AdminDataTable from './AdminDataTable'
 import UserDetail from './users/UserDetail'
