@@ -1,10 +1,15 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import type { QuickAction } from '@/types'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { QuickActionsSettings } from '@/components/admin/quick-actions-settings'
+import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
+import { useTouchMode } from '@/contexts/TouchModeContext'
+import { getDashboardStats, type DashboardStats } from '@/app/actions/admin/dashboard-stats'
+import { formatRelativeTime } from '@/lib/utils/format-time'
 import {
   Users,
   Building2,
