@@ -4,7 +4,7 @@ import { withAdminAuth, AdminActionResult, AdminErrors } from './common'
 import type { MarkupDocument } from '@/types/markup'
 import type { MarkupDocumentPermission } from '@/types'
 
-export interface MarkupDocumentWithStats extends MarkupDocument {
+export interface MarkupDocumentWithStats extends Omit<MarkupDocument, 'permissions'> {
   shared_count?: number
   view_count?: number
   last_accessed?: string
@@ -96,7 +96,7 @@ export async function getMarkupDocuments(
 
       // Transform the data to include stats
       const transformedDocuments =
-        documents?.map((doc: unknown) => ({
+        documents?.map((doc: any) => ({
           ...doc,
           shared_count: 0, // TODO: Get from permissions later
           view_count: 0, // TODO: Implement view tracking
@@ -307,8 +307,8 @@ export async function getMarkupDocumentStats(): Promise<
       const personalDocuments = 0 // No longer applicable
       const sharedDocuments = totalDocuments // All documents are now unified
       const storageUsed =
-        documents?.reduce((sum: number, doc: unknown) => sum + (doc.file_size || 0), 0) || 0
-      const activeUsers = new Set(documents?.map((d: unknown) => d.created_by)).size || 0
+        documents?.reduce((sum: number, doc: any) => sum + (doc.file_size || 0), 0) || 0
+      const activeUsers = new Set(documents?.map((d: any) => d.created_by)).size || 0
 
       const stats = {
         total_documents: totalDocuments,
