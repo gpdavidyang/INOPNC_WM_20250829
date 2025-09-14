@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { Bell } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/lib/auth'
 
 interface NotificationBellProps {
   onClick?: () => void

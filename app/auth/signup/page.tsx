@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import type { UserRole } from '@/types'
-import { useAuth } from '@/lib/auth'
 
 export default function SignupPage() {
   const router = useRouter()

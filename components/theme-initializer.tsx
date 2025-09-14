@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 import { useTheme } from 'next-themes'
-import { useAuth } from '@/lib/auth'
 
 export function ThemeInitializer() {
   const { setTheme } = useTheme()

@@ -2,7 +2,6 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { ProfileManager } from '@/lib/auth/profile-manager'
 import type { UserRole } from '@/types'
 
 export async function signIn(email: string, password: string) {

@@ -1,5 +1,4 @@
 import PhotoGridPreviewPage from '@/components/photo-grid-tool/PhotoGridPreviewPage'
-import { requireAuth } from '@/lib/auth/session'
 
 export const metadata: Metadata = {
   title: '사진대지 미리보기 | INOPNC',
