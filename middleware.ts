@@ -23,8 +23,8 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/manifest') ||
       pathname.includes('.') || // static files
       pathname === '/robots.txt' ||
-      pathname === '/sitemap.xml' ||
-      pathname === '/' // CRITICAL: Skip middleware for home page to prevent loops
+      pathname === '/sitemap.xml'
+      // REMOVED: Home page and mobile skipping to fix infinite loops
     ) {
       return response
     }

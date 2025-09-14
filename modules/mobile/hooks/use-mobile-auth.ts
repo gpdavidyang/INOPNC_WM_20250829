@@ -16,14 +16,20 @@ interface UseMobileAuthReturn {
   user: User | null
   profile: Profile | null
   loading: boolean
+  error: string | null
   signOut: () => Promise<void>
   refreshProfile: () => Promise<void>
+  canAccessMobile: boolean
+  isWorker: boolean
+  isSiteManager: boolean
+  isCustomerManager: boolean
 }
 
 export function useMobileAuth(): UseMobileAuthReturn {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const sessionRefreshing = useRef(false)
   
   const supabase = createClient()
@@ -33,10 +39,12 @@ export function useMobileAuth(): UseMobileAuthReturn {
     
     try {
       sessionRefreshing.current = true
-      const { data: { session }, error } = await supabase.auth.getSession()
+      setError(null)
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
       
-      if (error) {
-        console.error('Session error:', error)
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+        setError(sessionError.message)
         setUser(null)
         setProfile(null)
         return
@@ -49,8 +57,9 @@ export function useMobileAuth(): UseMobileAuthReturn {
         setUser(null)
         setProfile(null)
       }
-    } catch (error) {
-      console.error('Get session error:', error)
+    } catch (err) {
+      console.error('Get session error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to get session')
       setUser(null)
       setProfile(null)
     } finally {
@@ -61,21 +70,24 @@ export function useMobileAuth(): UseMobileAuthReturn {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data, error } = await supabase
+      const { data, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
         .single()
 
-      if (error) {
-        console.error('Profile fetch error:', error)
+      if (profileError) {
+        console.error('Profile fetch error:', profileError)
+        setError(profileError.message)
         setProfile(null)
         return
       }
 
       setProfile(data)
-    } catch (error) {
-      console.error('Profile fetch error:', error)
+      setError(null)
+    } catch (err) {
+      console.error('Profile fetch error:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch profile')
       setProfile(null)
     }
   }
@@ -116,12 +128,23 @@ export function useMobileAuth(): UseMobileAuthReturn {
     }
   }, [getSession])
 
+  // Computed properties for role checks
+  const canAccessMobile = !!(profile?.role && ['worker', 'site_manager', 'customer_manager'].includes(profile.role))
+  const isWorker = profile?.role === 'worker'
+  const isSiteManager = profile?.role === 'site_manager'
+  const isCustomerManager = profile?.role === 'customer_manager'
+
   return {
     user,
     profile,
     loading,
+    error,
     signOut,
-    refreshProfile
+    refreshProfile,
+    canAccessMobile,
+    isWorker,
+    isSiteManager,
+    isCustomerManager
   }
 }
 

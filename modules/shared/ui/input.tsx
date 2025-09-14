@@ -2,11 +2,26 @@
 
 import React from 'react'
 
-export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  size?: 'default' | 'sm' | 'lg'
+}
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, ...props }, ref) => {
-    return <input type={type} className={`input ${className || ''}`} ref={ref} {...props} />
+  ({ className, type, size = 'default', ...props }, ref) => {
+    const sizeClasses = {
+      default: 'ctl',
+      sm: 'ctl text-sm h-9',
+      lg: 'ctl text-lg h-12'
+    }
+    
+    return (
+      <input 
+        type={type} 
+        className={`${sizeClasses[size]} ${className || ''}`} 
+        ref={ref} 
+        {...props} 
+      />
+    )
   }
 )
 Input.displayName = 'Input'

@@ -34,6 +34,32 @@
   user-select: none;
   cursor: pointer;
 }
+
+/* Icon button styles */
+.icon-btn {
+  background: transparent;
+  border: 0;
+  padding: 8px;
+  border-radius: 8px;
+  color: #374151;
+  cursor: pointer;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.icon-btn:hover {
+  color: var(--brand);
+  background: rgba(26, 37, 79, 0.08);
+}
+[data-theme="dark"] .icon-btn {
+  color: #c9d1d9;
+}
+[data-theme="dark"] .icon-btn:hover {
+  color: #3182ce;
+  background: rgba(49, 130, 206, 0.1);
+}
 .btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);

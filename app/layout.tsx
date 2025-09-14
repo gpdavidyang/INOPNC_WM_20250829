@@ -23,7 +23,7 @@ const notoSansKR = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: 'INOPNC Work Management',
   description: '건설 현장 작업 일지 및 자재 관리를 위한 통합 관리 시스템',
-  manifest: '/api/pwa/manifest',
+  manifest: '/manifest.json', // Use static manifest file instead of API route
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
