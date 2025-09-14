@@ -1,7 +1,10 @@
+
 import { redirect } from 'next/navigation'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import TaskDetail from './task-detail'
+
+export const dynamic = "force-dynamic"
 
 export default async function TaskDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()

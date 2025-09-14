@@ -1,5 +1,8 @@
+
 import { createClient } from "@/lib/supabase/server"
 import DocumentManagement from '@/components/admin/DocumentManagement'
+
+export const dynamic = "force-dynamic"
 
 export default async function SharedDocumentsManagementPage() {
   const supabase = createClient()

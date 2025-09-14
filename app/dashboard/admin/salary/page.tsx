@@ -1,5 +1,8 @@
+
 import { createClient } from "@/lib/supabase/server"
 import SalaryManagement from '@/components/admin/SalaryManagement'
+
+export const dynamic = "force-dynamic"
 
 export default async function SalaryManagementPage() {
   const supabase = createClient()
