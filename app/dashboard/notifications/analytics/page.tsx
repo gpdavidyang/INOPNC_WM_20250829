@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 
 export const metadata: Metadata = {
   title: '알림 분석 | INOPNC 작업일지 관리',

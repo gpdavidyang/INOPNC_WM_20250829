@@ -1,3 +1,4 @@
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import ProjectList from './project-list'
 
 export default async function ProjectsPage() {

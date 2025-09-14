@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import SystemManagement from '@/components/admin/SystemManagement'
 
 export default async function SystemManagementPage() {

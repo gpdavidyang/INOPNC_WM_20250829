@@ -1,3 +1,4 @@
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import TaskList from './task-list'
 
 export default async function TasksPage() {

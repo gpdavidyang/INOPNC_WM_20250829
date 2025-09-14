@@ -1,3 +1,6 @@
+import { getAuthenticatedUser } from "@/lib/auth/server"
+import { getProfile } from "@/lib/auth/profile"
+import { createClient } from "@/lib/supabase/server"
 'use server'
 
 import type { Profile } from '@/types'

@@ -6,7 +6,7 @@ export default function TestHomeNewPage() {
         <div className="brand-logo">INOPNC WM</div>
       </header>
       <main style={{ paddingTop: 'var(--header-h, 56px)' }}>
-        <HomeTabNew />
+        <() => <div>Home Test</div> />
       </main>
     </div>
   )

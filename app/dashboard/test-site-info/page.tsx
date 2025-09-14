@@ -1,3 +1,4 @@
+import { getCurrentUserSite } from "@/app/actions/site-info"
 
 export default async function TestSiteInfoPage() {
   console.log('TestSiteInfoPage: Loading...')

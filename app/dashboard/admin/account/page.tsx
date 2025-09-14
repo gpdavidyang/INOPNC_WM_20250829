@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import { AdminAccountSettings } from './admin-account-settings'
 
 export const dynamic = 'force-dynamic'

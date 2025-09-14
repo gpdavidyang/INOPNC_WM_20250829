@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import { DailyReportsPageClient } from '@/components/daily-reports/daily-reports-page-client'
 
 export default async function DailyReportsPage() {

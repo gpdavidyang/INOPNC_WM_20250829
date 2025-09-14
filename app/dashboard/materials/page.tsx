@@ -1,3 +1,5 @@
+import { getCurrentUserSite } from "@/app/actions/site-info"
+import { getProfile } from "@/lib/auth/profile"
 import { Suspense } from 'react'
 import { MaterialManagement } from '@/components/materials/material-management'
 

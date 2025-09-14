@@ -1,3 +1,5 @@
+import { getAuthenticatedUser } from "@/lib/auth/server"
+import { createClient } from "@/lib/supabase/server"
 import { NotificationsPageWrapper } from '@/components/notifications/notifications-page-wrapper'
 
 export const metadata: Metadata = {

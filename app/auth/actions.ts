@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import type { UserRole } from '@/types'
+import { getProfile } from "@/lib/auth/profile"
 
 export async function signIn(email: string, password: string) {
   let shouldRedirect = false

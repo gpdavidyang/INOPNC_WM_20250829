@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import PartnerWorkersClient from './partner-workers-client'
 
 export default async function PartnerWorkersPage() {

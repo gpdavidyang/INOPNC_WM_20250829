@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import PartnerDashboardClient from './partner-dashboard-client'
 
 export default async function PartnerDashboardPage() {

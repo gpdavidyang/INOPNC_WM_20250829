@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import DocumentManagement from '@/components/admin/DocumentManagement'
 
 export default async function SharedDocumentsManagementPage() {

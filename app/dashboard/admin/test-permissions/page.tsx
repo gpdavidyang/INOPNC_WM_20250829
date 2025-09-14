@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import AdminPermissionValidator from '@/components/admin/AdminPermissionValidator'
 
 export default async function TestPermissionsPage() {

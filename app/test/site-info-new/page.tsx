@@ -6,7 +6,7 @@ export default function TestSiteInfoNewPage() {
         <div className="brand-logo">INOPNC WM</div>
       </header>
       <main style={{ paddingTop: 'var(--header-h, 56px)' }}>
-        <SiteInfoTabNew />
+        <() => <div>Site Info Test</div> />
       </main>
     </div>
   )

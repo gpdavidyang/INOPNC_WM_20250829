@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import SignupRequestsClient from './signup-requests-client'
 
 export default async function SignupRequestsPage() {

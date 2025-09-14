@@ -1,4 +1,6 @@
+import { getCurrentUserSite } from "@/app/actions/site-info"
 'use client'
+import { createClient } from '@/lib/supabase/client'
 
 // This file provides client-side wrappers for server actions
 // It handles session verification before calling server actions

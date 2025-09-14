@@ -5,5 +5,5 @@ export const metadata: Metadata = {
 }
 
 export default function NotificationSettingsRoute() {
-  return <NotificationSettingsPage />
+  return <() => <div>Notification Settings</div> />
 }

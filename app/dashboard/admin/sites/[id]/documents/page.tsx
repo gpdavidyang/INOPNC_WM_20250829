@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import { Suspense } from 'react'
 import SiteDocumentManagement from '@/components/admin/SiteDocumentManagement'
 

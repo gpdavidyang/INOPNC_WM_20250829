@@ -1,4 +1,4 @@
 
 export default function NPC1000UsagePage() {
-  return <InventoryRecordPage />
+  return <() => <div>Inventory Record</div> />
 }

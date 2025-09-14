@@ -1,4 +1,6 @@
+import { getCurrentUserSite } from "@/app/actions/site-info"
 'use client'
+import { createClient } from '@/lib/supabase/client'
 
 // Ultimate fallback for production environment
 // Uses client-side Supabase to get user ID, then calls direct server action

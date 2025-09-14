@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import SalaryManagement from '@/components/admin/SalaryManagement'
 
 export default async function SalaryManagementPage() {

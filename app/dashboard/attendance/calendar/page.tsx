@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import { AttendanceCalendarPageClient } from '@/components/attendance/attendance-calendar-page-client'
 
 export default async function AttendanceCalendarPage() {
