@@ -1,6 +1,7 @@
 'use client'
 import { createClient } from '@/lib/supabase/client'
-
+import { useRouter, useParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
 export default function UserDetailPage() {
   const params = useParams()

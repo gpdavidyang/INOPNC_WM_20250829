@@ -5,15 +5,14 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import type { UserRole } from '@/types'
-import { getProfile } from "@/lib/auth/profile"
 
 export async function signIn(email: string, password: string) {
   let shouldRedirect = false
   let redirectPath = '/dashboard'
-  
+
   try {
     console.log('[SIGN_IN] Starting login process for:', email)
-    
+
     const supabase = createClient()
     if (!supabase) {
       console.error('[SIGN_IN] Failed to create Supabase client')
@@ -26,11 +25,11 @@ export async function signIn(email: string, password: string) {
       password,
     })
 
-    console.log('[SIGN_IN] Auth response received:', { 
-      hasData: !!data, 
+    console.log('[SIGN_IN] Auth response received:', {
+      hasData: !!data,
       hasUser: !!data?.user,
       hasSession: !!data?.session,
-      error: error?.message 
+      error: error?.message,
     })
 
     if (error) {
@@ -45,7 +44,7 @@ export async function signIn(email: string, password: string) {
       // } catch (logError) {
       //   console.error('Failed to log auth event:', logError)
       // }
-      
+
       return { error: error.message }
     }
 
@@ -53,41 +52,36 @@ export async function signIn(email: string, password: string) {
     if (data.user) {
       try {
         console.log('[SIGN_IN] Updating user profile and login stats')
-        
+
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('login_count, role')
           .eq('id', data.user.id)
           .single()
-        
+
         if (profileError) {
           console.error('[SIGN_IN] Profile fetch error:', profileError)
         }
-        
+
         if (profile) {
           console.log('[SIGN_IN] Profile found, updating stats')
-          
+
           const { error: updateError } = await supabase
             .from('profiles')
-            .update({ 
+            .update({
               last_login_at: new Date().toISOString(),
-              login_count: (profile.login_count || 0) + 1
+              login_count: (profile.login_count || 0) + 1,
             })
             .eq('id', data.user.id)
-          
+
           if (updateError) {
             console.error('[SIGN_IN] Profile update error:', updateError)
           }
-          
-          // Determine redirect path based on role
-          if (profile.role === 'admin' || profile.role === 'system_admin') {
-            redirectPath = '/dashboard/admin'
-          } else if (profile.role === 'customer_manager') {
-            redirectPath = '/partner/dashboard'
-          } else {
-            redirectPath = '/dashboard'
-          }
-          
+
+          // Use centralized routing logic
+          const { getRoleBasedRoute } = await import('@/lib/auth/routing')
+          redirectPath = getRoleBasedRoute(profile.role)
+
           // Set role cookie for UI mode detection
           try {
             console.log('[SIGN_IN] Setting role cookie:', profile.role)
@@ -97,7 +91,7 @@ export async function signIn(email: string, password: string) {
               secure: process.env.NODE_ENV === 'production',
               sameSite: 'lax',
               maxAge: 60 * 60 * 24 * 7, // 7 days
-              path: '/'
+              path: '/',
             })
             console.log('[SIGN_IN] Role cookie set successfully')
           } catch (cookieError) {
@@ -122,19 +116,22 @@ export async function signIn(email: string, password: string) {
 
     console.log('[SIGN_IN] Login process completed successfully, redirecting to:', redirectPath)
     shouldRedirect = true
-    
   } catch (outerError) {
     console.error('[SIGN_IN] Outer catch - unexpected error during signIn:', outerError)
-    console.error('[SIGN_IN] Stack trace:', outerError instanceof Error ? outerError.stack : 'No stack trace')
-    
+    console.error(
+      '[SIGN_IN] Stack trace:',
+      outerError instanceof Error ? outerError.stack : 'No stack trace'
+    )
+
     // Return user-friendly error message
-    return { 
-      error: process.env.NODE_ENV === 'production' 
-        ? 'Login failed due to a server error. Please try again.' 
-        : `Login error: ${outerError instanceof Error ? outerError.message : 'Unknown error'}`
+    return {
+      error:
+        process.env.NODE_ENV === 'production'
+          ? 'Login failed due to a server error. Please try again.'
+          : `Login error: ${outerError instanceof Error ? outerError.message : 'Unknown error'}`,
     }
   }
-  
+
   // Redirect outside of try-catch
   if (shouldRedirect) {
     redirect(redirectPath)
@@ -170,7 +167,7 @@ export async function signUp(
     // Determine organization_id and site_id using proper UUIDs
     let organizationId = null
     let siteId = null
-    
+
     if (email.includes('@inopnc.com')) {
       organizationId = '11111111-1111-1111-1111-111111111111' // INOPNC
       if (role === 'worker' || role === 'site_manager') {
@@ -187,20 +184,18 @@ export async function signUp(
     }
 
     // Create/update profile
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: data.user.id,
-        email,
-        full_name: fullName,
-        phone,
-        role,
-        organization_id: organizationId,
-        site_id: siteId,
-        status: 'active',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+    const { error: profileError } = await supabase.from('profiles').upsert({
+      id: data.user.id,
+      email,
+      full_name: fullName,
+      phone,
+      role,
+      organization_id: organizationId,
+      site_id: siteId,
+      status: 'active',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
 
     if (profileError) {
       console.error('Profile creation error:', profileError)
@@ -209,25 +204,21 @@ export async function signUp(
 
     // Create user_organizations entry
     if (organizationId) {
-      await supabase
-        .from('user_organizations')
-        .upsert({
-          user_id: data.user.id,
-          organization_id: organizationId,
-          is_primary: true
-        })
+      await supabase.from('user_organizations').upsert({
+        user_id: data.user.id,
+        organization_id: organizationId,
+        is_primary: true,
+      })
     }
 
     // Create site_assignments entry
     if (siteId) {
-      await supabase
-        .from('site_assignments')
-        .upsert({
-          user_id: data.user.id,
-          site_id: siteId,
-          assigned_date: new Date().toISOString().split('T')[0],
-          is_active: true
-        })
+      await supabase.from('site_assignments').upsert({
+        user_id: data.user.id,
+        site_id: siteId,
+        assigned_date: new Date().toISOString().split('T')[0],
+        is_active: true,
+      })
     }
   }
 
@@ -237,10 +228,12 @@ export async function signUp(
 
 export async function signOut() {
   const supabase = createClient()
-  
+
   // Get current user before signing out
-  const { data: { user } } = await supabase.auth.getUser()
-  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
   if (user) {
     // TODO: Log logout event when log_auth_event function is created
     // try {
@@ -252,13 +245,13 @@ export async function signOut() {
     //   console.error('Failed to log logout event:', logError)
     // }
   }
-  
+
   const { error } = await supabase.auth.signOut()
-  
+
   if (error) {
     return { error: error.message }
   }
-  
+
   // Delete role cookie on sign out
   try {
     const cookieStore = cookies()
@@ -267,7 +260,7 @@ export async function signOut() {
     console.error('Failed to delete role cookie:', cookieError)
     // Continue execution - cookie deletion is non-critical
   }
-  
+
   // Return success and let the client handle the redirect
   return { success: true }
 }
@@ -276,8 +269,11 @@ export async function updatePassword(currentPassword: string, newPassword: strin
   const supabase = createClient()
 
   // 먼저 현재 비밀번호로 재인증
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
   if (userError || !user) {
     return { success: false, error: '사용자를 찾을 수 없습니다.' }
   }
@@ -294,7 +290,7 @@ export async function updatePassword(currentPassword: string, newPassword: strin
 
   // 새 비밀번호로 업데이트
   const { error: updateError } = await supabase.auth.updateUser({
-    password: newPassword
+    password: newPassword,
   })
 
   if (updateError) {
@@ -306,18 +302,21 @@ export async function updatePassword(currentPassword: string, newPassword: strin
 
 export async function updateNotificationPreferences(preferences: any) {
   const supabase = createClient()
-  
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
   if (userError || !user) {
     return { success: false, error: '사용자를 찾을 수 없습니다.' }
   }
 
   const { error } = await supabase
     .from('profiles')
-    .update({ 
+    .update({
       notification_preferences: preferences,
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     })
     .eq('id', user.id)
 
@@ -338,11 +337,14 @@ export async function requestPushPermission() {
   }
 
   if (Notification.permission === 'denied') {
-    return { success: false, error: '알림 권한이 거부되었습니다. 브라우저 설정에서 권한을 변경해주세요.' }
+    return {
+      success: false,
+      error: '알림 권한이 거부되었습니다. 브라우저 설정에서 권한을 변경해주세요.',
+    }
   }
 
   const permission = await Notification.requestPermission()
-  
+
   if (permission === 'granted') {
     return { success: true, permission: 'granted' }
   } else {
@@ -375,7 +377,7 @@ export async function updatePasswordWithToken(newPassword: string) {
 
   try {
     const { error } = await supabase.auth.updateUser({
-      password: newPassword
+      password: newPassword,
     })
 
     if (error) {
@@ -412,18 +414,16 @@ export async function requestSignupApproval(formData: {
     }
 
     // Create signup request
-    const { error } = await supabase
-      .from('signup_requests')
-      .insert({
-        full_name: formData.fullName,
-        company: formData.company,
-        job_title: formData.jobTitle,
-        phone: formData.phone,
-        email: formData.email,
-        job_type: 'construction', // Default to construction
-        status: 'pending',
-        requested_at: new Date().toISOString()
-      })
+    const { error } = await supabase.from('signup_requests').insert({
+      full_name: formData.fullName,
+      company: formData.company,
+      job_title: formData.jobTitle,
+      phone: formData.phone,
+      email: formData.email,
+      job_type: 'construction', // Default to construction
+      status: 'pending',
+      requested_at: new Date().toISOString(),
+    })
 
     if (error) {
       console.error('Signup request error:', error)
@@ -438,7 +438,7 @@ export async function requestSignupApproval(formData: {
 }
 
 export async function approveSignupRequest(
-  requestId: string, 
+  requestId: string,
   adminUserId: string,
   organizationId?: string,
   siteIds?: string[]
@@ -449,7 +449,7 @@ export async function approveSignupRequest(
 
   try {
     // console.log('Starting approval process for request:', requestId)
-    
+
     // Get signup request details
     const { data: request, error: fetchError } = await supabase
       .from('signup_requests')
@@ -476,12 +476,12 @@ export async function approveSignupRequest(
     if (request.job_type === 'office') {
       role = 'customer_manager'
     }
-    
+
     // Validate required assignments based on role
     if (role === 'worker' && !organizationId) {
       return { error: '작업자는 소속 업체가 필요합니다.' }
     }
-    
+
     if (role === 'worker' && (!siteIds || siteIds.length === 0)) {
       return { error: '작업자는 최소 1개 이상의 현장 배정이 필요합니다.' }
     }
@@ -497,8 +497,8 @@ export async function approveSignupRequest(
         phone: request.phone,
         role: role,
         company: request.company,
-        job_title: request.job_title
-      }
+        job_title: request.job_title,
+      },
     })
 
     if (authError || !authData.user) {
@@ -510,7 +510,7 @@ export async function approveSignupRequest(
     // Get partner company name for the response message
     let partnerCompanyName = ''
     let siteNames: string[] = []
-    
+
     if (organizationId) {
       // Try to get partner company name first
       const { data: partner } = await supabase
@@ -518,7 +518,7 @@ export async function approveSignupRequest(
         .select('company_name')
         .eq('id', organizationId)
         .single()
-      
+
       if (partner) {
         partnerCompanyName = partner.company_name
       } else {
@@ -531,12 +531,9 @@ export async function approveSignupRequest(
         partnerCompanyName = org?.name || ''
       }
     }
-    
+
     if (siteIds && siteIds.length > 0) {
-      const { data: sites } = await supabase
-        .from('sites')
-        .select('name')
-        .in('id', siteIds)
+      const { data: sites } = await supabase.from('sites').select('name').in('id', siteIds)
       siteNames = sites?.map((s: any) => s.name) || []
     }
 
@@ -552,7 +549,7 @@ export async function approveSignupRequest(
       company: request.company,
       job_title: request.job_title,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      updated_at: new Date().toISOString(),
     }
 
     // Set partner_company_id for customer_manager role
@@ -568,9 +565,7 @@ export async function approveSignupRequest(
       }
     }
 
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .insert(profileData)
+    const { error: profileError } = await supabase.from('profiles').insert(profileData)
 
     if (profileError) {
       console.error('Profile creation error:', profileError)
@@ -583,13 +578,11 @@ export async function approveSignupRequest(
     // Create user_organizations entry
     if (organizationId) {
       // console.log('Assigning to organization...')
-      await supabase
-        .from('user_organizations')
-        .insert({
-          user_id: authData.user.id,
-          organization_id: organizationId,
-          is_primary: true
-        })
+      await supabase.from('user_organizations').insert({
+        user_id: authData.user.id,
+        organization_id: organizationId,
+        is_primary: true,
+      })
     }
 
     // Create site_assignments entries
@@ -599,12 +592,10 @@ export async function approveSignupRequest(
         user_id: authData.user.id,
         site_id: siteId,
         assigned_date: new Date().toISOString().split('T')[0],
-        is_active: true
+        is_active: true,
       }))
-      
-      await supabase
-        .from('site_assignments')
-        .insert(assignments)
+
+      await supabase.from('site_assignments').insert(assignments)
     }
 
     // Update signup request status
@@ -615,7 +606,7 @@ export async function approveSignupRequest(
         status: 'approved',
         approved_by: adminUserId,
         approved_at: new Date().toISOString(),
-        temporary_password: tempPassword
+        temporary_password: tempPassword,
       })
       .eq('id', requestId)
 
@@ -625,7 +616,7 @@ export async function approveSignupRequest(
     }
 
     // console.log('Approval completed successfully')
-    
+
     // Build success message
     let message = `승인 완료: ${request.full_name} (${request.email})\n임시 비밀번호: ${tempPassword}`
     if (partnerCompanyName) {
@@ -634,12 +625,12 @@ export async function approveSignupRequest(
     if (siteNames.length > 0) {
       message += `\n배정 현장: ${siteNames.join(', ')}`
     }
-    
-    return { 
-      success: true, 
+
+    return {
+      success: true,
       temporaryPassword: tempPassword,
       userEmail: request.email,
-      message
+      message,
     }
   } catch (error) {
     console.error('Approve signup request error:', error)
@@ -673,7 +664,7 @@ export async function rejectSignupRequest(requestId: string, adminUserId: string
         status: 'rejected',
         rejected_by: adminUserId,
         rejected_at: new Date().toISOString(),
-        rejection_reason: reason
+        rejection_reason: reason,
       })
       .eq('id', requestId)
 
@@ -691,22 +682,25 @@ export async function rejectSignupRequest(requestId: string, adminUserId: string
 
 export async function getProfile() {
   const supabase = createClient()
-  
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
+
   if (userError || !user) {
     return { error: 'Not authenticated' }
   }
-  
+
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single()
-  
+
   if (profileError || !profile) {
     return { error: 'Profile not found' }
   }
-  
+
   return { data: profile }
 }

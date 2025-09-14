@@ -1,5 +1,8 @@
+
 import { createClient } from "@/lib/supabase/server"
 import AdminMarkupEditor from '@/components/admin/tools/AdminMarkupEditor'
+
+export const dynamic = "force-dynamic"
 
 export default async function AdminMarkupEditorPage() {
   const supabase = createClient()

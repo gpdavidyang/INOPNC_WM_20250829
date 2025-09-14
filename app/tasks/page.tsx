@@ -1,8 +1,11 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from 'next/navigation'
 import TaskList from './task-list'
 
+export const dynamic = 'force-dynamic'
+
 export default async function TasksPage() {
-  const supabase = await createServerSupabaseClient()
+  const supabase = createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   

@@ -1,4 +1,6 @@
 'use client'
+import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 import AdminMarkupTool from '@/components/admin/tools/AdminMarkupTool'
@@ -10,14 +12,12 @@ export default function AdminMarkupToolPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  useEffect(() => {
-    loadProfile()
-  }, [])
-
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       if (!user) {
         router.push('/login')
         return
@@ -43,7 +43,11 @@ export default function AdminMarkupToolPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router, supabase])
+
+  useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
 
   if (loading) {
     return (

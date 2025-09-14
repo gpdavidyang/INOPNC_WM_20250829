@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
+import { AuthCircuitBreaker } from './lib/auth/circuit-breaker'
+import { getRoleBasedRoute, isPublicRoute, isAuthRoute, AUTH_ROUTES } from './lib/auth/routing'
+import { EnvConfig } from './lib/config/env'
 
 export async function middleware(request: NextRequest) {
   try {
     // Create response object first
-    let response = NextResponse.next({
+    const response = NextResponse.next({
       request: {
         headers: request.headers,
       },
@@ -22,41 +26,43 @@ export async function middleware(request: NextRequest) {
       pathname.startsWith('/manifest') ||
       pathname.includes('.') || // static files
       pathname === '/robots.txt' ||
-      pathname === '/sitemap.xml' ||
-      pathname === '/' // CRITICAL: Skip middleware for home page to prevent loops
+      pathname === '/sitemap.xml'
+      // REMOVED: Home page and mobile skipping to fix infinite loops
     ) {
       return response
     }
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return request.cookies.getAll()
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              const cookieOptions = {
-                ...options,
-                sameSite: 'lax' as const,
-                secure: process.env.NODE_ENV === 'production',
-                httpOnly: false,
-                path: '/'
-              }
-              response.cookies.set(name, value, cookieOptions)
-            })
-          },
+    // Use centralized environment configuration
+    const supabase = createServerClient(EnvConfig.supabaseUrl, EnvConfig.supabaseAnonKey, {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
         },
-      }
-    )
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            const cookieOptions = {
+              ...options,
+              sameSite: 'lax' as const,
+              secure: process.env.NODE_ENV === 'production',
+              httpOnly: false,
+              path: '/',
+              // CRITICAL FIX: Set proper max-age for refresh tokens
+              maxAge: name.includes('refresh') ? 60 * 60 * 24 * 30 : 60 * 60 * 24, // 30 days for refresh, 1 day for others
+            }
+            response.cookies.set(name, value, cookieOptions)
+          })
+        },
+      },
+    })
 
     // CRITICAL FIX: Simplified auth check to prevent infinite loops
     // Only get session once and trust its user data
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
     const user = session?.user || null
-    
+
     // If session error or invalid session, clear cookies
     if (sessionError || (session && !session.user)) {
       // Clear potentially invalid cookies
@@ -65,17 +71,13 @@ export async function middleware(request: NextRequest) {
       response.cookies.delete('user-role')
     }
 
-    // Public routes that don't require authentication
-    const publicPaths = ['/auth/login', '/auth/signup', '/auth/signup-request', '/auth/reset-password', '/auth/update-password']
-    const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
-    
+    // Use centralized routing logic
+    const isPublicPath = isPublicRoute(pathname)
+    const isAuthPath = isAuthRoute(pathname)
+
     // Demo pages that are accessible regardless of auth status
     const demoPaths = ['/mobile-demo', '/components', '/test-photo-grid', '/api-test']
     const isDemoPath = demoPaths.some(path => pathname.startsWith(path))
-    
-    // Partner routes (customer_manager only)
-    const partnerPaths = ['/partner']
-    const isPartnerPath = partnerPaths.some(path => pathname.startsWith(path))
 
     // Debug logging - disabled for performance
     // Uncomment only when debugging auth issues
@@ -90,7 +92,7 @@ export async function middleware(request: NextRequest) {
     //     userExists: !!user
     //   })
     // }
-    
+
     // Skip auth check for demo pages
     if (isDemoPath) {
       return response
@@ -106,10 +108,50 @@ export async function middleware(request: NextRequest) {
     }
 
     // If user is signed in and tries to access auth pages
-    if (user && isPublicPath) {
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+    if (user && isAuthPath) {
+      // Get user role from session metadata
+      const userRole = (user as any).role || (user.user_metadata as any)?.role || null
+      const redirectPath = getRoleBasedRoute(userRole)
+
+      // Check circuit breaker before redirecting
+      if (!AuthCircuitBreaker.checkRedirect(redirectPath)) {
+        console.error('[Middleware] Circuit breaker triggered - preventing redirect loop')
+        // Return error page instead of redirecting
+        return new NextResponse(
+          `
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>Redirect Loop Detected</title>
+              <style>
+                body { font-family: system-ui; padding: 2rem; max-width: 600px; margin: 0 auto; }
+                .error { background: #fee; padding: 1rem; border-radius: 0.5rem; margin: 1rem 0; }
+                button { background: #000; color: #fff; padding: 0.5rem 1rem; border: none; border-radius: 0.25rem; cursor: pointer; }
+              </style>
+            </head>
+            <body>
+              <h1>🔄 Redirect Loop Detected</h1>
+              <div class="error">
+                <p>The system detected too many redirects. This is a safety mechanism to prevent infinite loops.</p>
+                <p>Current role: ${userRole || 'unknown'}</p>
+                <p>Attempted redirect: ${redirectPath}</p>
+              </div>
+              <button onclick="sessionStorage.clear(); localStorage.clear(); window.location.href='/auth/login'">
+                Clear Session and Login Again
+              </button>
+            </body>
+          </html>
+          `,
+          {
+            status: 508, // Loop Detected
+            headers: { 'content-type': 'text/html' },
+          }
+        )
+      }
+
+      return NextResponse.redirect(new URL(redirectPath, request.url))
     }
-    
+
     // Skip role verification in middleware to avoid RLS issues
     // Role checking will be handled in components after authentication
 

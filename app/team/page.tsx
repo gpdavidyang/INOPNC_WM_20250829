@@ -1,8 +1,11 @@
-import { createServerSupabaseClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from 'next/navigation'
 import TeamList from './team-list'
 
+export const dynamic = 'force-dynamic'
+
 export default async function TeamPage() {
-  const supabase = await createServerSupabaseClient()
+  const supabase = createClient()
   
   const { data: { user } } = await supabase.auth.getUser()
   

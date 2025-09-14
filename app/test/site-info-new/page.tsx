@@ -1,4 +1,3 @@
-
 export default function TestSiteInfoNewPage() {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -6,7 +5,7 @@ export default function TestSiteInfoNewPage() {
         <div className="brand-logo">INOPNC WM</div>
       </header>
       <main style={{ paddingTop: 'var(--header-h, 56px)' }}>
-        <() => <div>Site Info Test</div> />
+        <div>Site Info Test</div>
       </main>
     </div>
   )

@@ -1,5 +1,8 @@
+
 import { createClient } from "@/lib/supabase/server"
 import OrganizationEditPage from '@/components/admin/organizations/OrganizationEditPage'
+
+export const dynamic = "force-dynamic"
 
 interface PageProps {
   params: { id: string }
