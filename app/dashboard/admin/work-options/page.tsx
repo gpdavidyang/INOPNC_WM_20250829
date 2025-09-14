@@ -1,4 +1,7 @@
 
+import { Metadata } from 'next'
+import { WorkOptionsManagement } from '@/components/admin/work-options/WorkOptionsManagement'
+
 export const metadata: Metadata = {
   title: '작업 옵션 관리',
   description: '작업일지 부재명 및 작업공정 옵션 관리',

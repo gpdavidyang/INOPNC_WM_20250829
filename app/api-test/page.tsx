@@ -1,5 +1,8 @@
 'use client'
 
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 export default function ApiTestPage() {
   const [results, setResults] = useState<any[]>([])
@@ -123,7 +126,7 @@ export default function ApiTestPage() {
           </div>
 
           {results.length === 0 && !loading && (
-            <p className="text-gray-500">Click "Run All Tests" to begin testing API endpoints</p>
+            <p className="text-gray-500">Click &quot;Run All Tests&quot; to begin testing API endpoints</p>
           )}
         </CardContent>
       </Card>

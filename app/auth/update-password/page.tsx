@@ -1,4 +1,8 @@
 
+import Image from 'next/image'
+import { Metadata } from 'next'
+import UpdatePasswordForm from './update-password-form'
+
 export const metadata: Metadata = {
   title: '새 비밀번호 설정 - INOPNC',
   description: '새로운 비밀번호를 설정하여 계정을 안전하게 보호하세요.',

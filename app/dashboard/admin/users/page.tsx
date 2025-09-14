@@ -1,4 +1,6 @@
 
+import { UserManagement } from '@/components/admin/UserManagement'
+
 export default function UserManagementPage() {
   return (
     <div className="px-2 sm:px-3 lg:px-4 py-8">

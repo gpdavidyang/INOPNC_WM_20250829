@@ -1,4 +1,13 @@
+import { notFound, redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { Home, Calendar, FileText, MapPin, FolderOpen } from 'lucide-react'
 import DailyReportDetail from '@/components/daily-reports/daily-report-detail'
+import { DailyReportDetailMobile } from '@/components/daily-reports/daily-report-detail-mobile'
+import { NavigationController } from '@/components/navigation/navigation-controller'
+import { BottomNavigation } from '@/components/navigation/bottom-navigation'
+import { Header } from '@/components/layout/header'
+import { getDailyReportById } from '@/app/actions/daily-reports'
+import type { BottomNavItem } from '@/types'
 
 export default async function DailyReportDetailPage({
   params
@@ -25,11 +34,9 @@ export default async function DailyReportDetailPage({
   }
 
   // Get daily report with all related data
-  console.log('[DailyReportDetailPage] Fetching report with ID:', params.id)
   const result = await getDailyReportById(params.id)
   
   if (!result.success || !result.data) {
-    console.error('[DailyReportDetailPage] Failed to fetch report:', result.error)
     notFound()
   }
 

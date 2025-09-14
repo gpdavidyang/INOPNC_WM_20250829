@@ -1,5 +1,30 @@
 'use client'
 
+import { useState } from 'react'
+import { 
+  Home, FileText, Calendar, Users, BarChart, 
+  FileImage, FolderOpen, CheckCircle, AlertCircle, 
+  XCircle, Settings, Menu
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+
+// Import custom components - these may need to be created if they don't exist
+import { NavigationController } from '@/components/navigation/navigation-controller'
+import { Container } from '@/components/ui/container'
+import { Heading } from '@/components/ui/heading'
+import { Text } from '@/components/ui/text'
+import { NavBar } from '@/components/navigation/nav-bar'
+import { BottomNavigation } from '@/components/navigation/bottom-navigation'
+import { Dropdown } from '@/components/ui/dropdown'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Footer, SimpleFooter } from '@/components/ui/footer'
 
 export default function ComponentsPage() {
   const [inputValue, setInputValue] = useState("")

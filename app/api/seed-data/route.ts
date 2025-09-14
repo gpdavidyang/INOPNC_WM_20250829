@@ -1,4 +1,5 @@
 import type { AsyncState, ApiResponse } from '@/types/utils'
+import { createClient } from '@supabase/supabase-js'
 
 // 현실적인 작업자 데이터
 const WORKERS = [
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
     
     // Check if we need to use service role instead
     const serviceSupabase = process.env.SUPABASE_SERVICE_ROLE_KEY 
-      ? require('@supabase/supabase-js').createClient(
+      ? createClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!,
           {
