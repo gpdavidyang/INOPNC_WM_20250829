@@ -7,7 +7,6 @@
 
 import { Session, User, SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
-import { cookies } from 'next/headers'
 
 export interface ISessionManager {
   getSession(): Promise<Session | null>

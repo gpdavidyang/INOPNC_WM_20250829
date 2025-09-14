@@ -7,12 +7,10 @@
 
 import {
   createClientComponentClient,
-  createServerComponentClient,
   SupabaseClient,
   Session,
   User,
 } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
 import {
   IAuthProvider,
   AuthUser,
@@ -116,9 +114,9 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return this.client
     }
 
-    // Create server client with cookies
-    const cookieStore = cookies()
-    return createServerComponentClient({ cookies: () => cookieStore })
+    // Server-side: Return a client-compatible instance
+    // Note: Server-side rendering should use createServerSupabaseClient from lib/supabase/server.ts
+    return createClientComponentClient()
   }
 
   /**
