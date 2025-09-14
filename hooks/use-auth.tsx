@@ -1,10 +1,5 @@
 'use client'
 
-import { useEffect, useState, createContext, useContext } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { User } from '@supabase/supabase-js'
-import { ProfileManager, UserProfile } from '@/lib/auth/profile-manager'
 
 interface AuthContextType {
   user: User | null

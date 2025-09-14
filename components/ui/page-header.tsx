@@ -1,13 +1,5 @@
 'use client'
 
-import React from 'react'
-import { ChevronRight, Home, ArrowLeft } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Button } from './button'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 
 export interface BreadcrumbItem {
   label: string

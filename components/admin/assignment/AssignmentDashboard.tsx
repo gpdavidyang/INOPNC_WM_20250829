@@ -1,30 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { 
-  Users, 
-  Building2, 
-  MapPin, 
-  TrendingUp, 
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  UserPlus,
-  Wand2,
-  History,
-  MoveRight
-} from 'lucide-react'
-import { WorkflowTooltip, MappingTooltip, AssignmentExplanationTooltip } from './AssignmentTooltip'
-import PartnerSiteMapping from './PartnerSiteMapping'
-import UserAssignmentMatrix from './UserAssignmentMatrix'
-import UserAssignmentMatrixDnD from './UserAssignmentMatrixDnD'
-import AssignmentWizard from './AssignmentWizard'
-import AssignmentHistory from './AssignmentHistory'
 
 interface DashboardStats {
   totalUsers: number

@@ -1,9 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Card } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
 import { 
   MapPin, 
   Package, 
@@ -15,22 +12,13 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { CurrentUserSite, UserSiteHistory } from '@/types'
-import { MaterialManagementSimplified } from '@/components/materials/material-management-simplified'
-import TodaySiteInfo from '@/components/site-info/TodaySiteInfo'
-import { Button } from '@/components/ui/button'
-import { getMaterials, getMaterialCategories, getMaterialInventory } from '@/app/actions/materials'
 import SiteSearchModal from '@/components/site-info/SiteSearchModal'
 import SiteDetailModal from '@/components/site-info/SiteDetailModal'
-import { selectUserSite } from '@/app/actions/site-info'
-import { createClient } from '@/lib/supabase/client'
 
 interface SiteInfoTabsProps {
   initialCurrentSite: CurrentUserSite | null
   initialSiteHistory: UserSiteHistory[]
-  currentUser: any
+  currentUser: unknown
 }
 
 export default function SiteInfoTabs({ 

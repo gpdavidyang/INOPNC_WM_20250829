@@ -1,31 +1,6 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { 
-  Search, 
-  Upload, 
-  Filter, 
-  Download, 
-  Share2, 
-  Trash2, 
-  Archive, 
-  RefreshCw,
-  Grid,
-  List,
-  Eye,
-  Edit,
-  FileText,
-  Image,
-  File
-} from 'lucide-react'
-import { useUnifiedDocuments, type UnifiedDocument, type DocumentFilters } from '@/hooks/use-unified-documents'
-import { formatFileSize, formatDate } from '@/lib/utils'
 
 interface UnifiedDocumentManagerProps {
   defaultCategory?: string
@@ -114,10 +89,10 @@ export default function UnifiedDocumentManager({
   }
 
   // 대량 작업 핸들러
-  const handleBulkAction = async (action: string, updateData?: any) => {
+  const handleBulkAction = async (action: string, updateData?: unknown) => {
     if (selectedDocuments.length === 0) return
 
-    const success = await bulkAction(action as any, selectedDocuments, updateData)
+    const success = await bulkAction(action as unknown, selectedDocuments, updateData)
     if (success) {
       setSelectedDocuments([])
     }
@@ -276,7 +251,7 @@ export default function UnifiedDocumentManager({
               value={`${filters.sortBy}_${filters.sortOrder}`}
               onValueChange={(value) => {
                 const [sortBy, sortOrder] = value.split('_')
-                handleFilterChange({ sortBy: sortBy as any, sortOrder: sortOrder as any })
+                handleFilterChange({ sortBy: sortBy as unknown, sortOrder: sortOrder as unknown })
               }}
             >
               <SelectTrigger className="w-40">

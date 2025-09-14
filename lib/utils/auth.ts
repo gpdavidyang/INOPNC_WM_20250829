@@ -2,12 +2,10 @@
  * Authentication and authorization utilities
  */
 
-import { createClient } from '@/lib/supabase/server'
-import { createErrorResponse, ErrorCodes, ApiResponse } from './error-handling'
 
 export interface AuthResult {
-  user: any
-  profile: any
+  user: unknown
+  profile: unknown
 }
 
 /**

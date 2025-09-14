@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
 interface Profile {
@@ -56,7 +54,7 @@ export function useUser(): UseUserReturn {
 
           setProfile(profileData)
         }
-      } catch (err: any) {
+      } catch (err) {
         setError(err.message)
       } finally {
         setLoading(false)
@@ -84,7 +82,7 @@ export function useUser(): UseUserReturn {
   const signOut = async () => {
     try {
       await supabase.auth.signOut()
-    } catch (err: any) {
+    } catch (err) {
       setError(err.message)
     }
   }

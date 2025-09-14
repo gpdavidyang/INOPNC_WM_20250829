@@ -1,19 +1,11 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
 import type { 
   NotificationExtended, 
   NotificationFilter,
   NotificationStats,
   CreateNotificationRequest 
 } from '@/types/notifications'
-import { 
-  AppError, 
-  ErrorType, 
-  validateSupabaseResponse, 
-  logError 
-} from '@/lib/error-handling'
 
 // 알림 목록 조회
 export async function getNotifications(filter?: NotificationFilter) {
@@ -110,8 +102,8 @@ export async function getNotificationStats(): Promise<{ success: boolean; data?:
       .select('type')
       .eq('user_id', user.id)
 
-    const by_type = typeData?.reduce((acc: any, item: any) => {
-      acc[(item as any).type] = (acc[(item as any).type] || 0) + 1
+    const by_type = typeData?.reduce((acc: unknown, item: unknown) => {
+      acc[(item as unknown).type] = (acc[(item as unknown).type] || 0) + 1
       return acc
     }, {} as Record<string, number>) || {}
 
@@ -251,7 +243,7 @@ export async function createNotification(request: CreateNotificationRequest) {
     }
 
     // 알림 생성 함수 호출
-    const { data, error } = await (supabase as any).rpc('create_notification', {
+    const { data, error } = await (supabase as unknown).rpc('create_notification', {
       p_user_id: request.user_id,
       p_template_code: request.template_code,
       p_variables: request.variables || {},
@@ -286,7 +278,7 @@ export async function getNotificationPreferences() {
     const { data, error } = await (supabase
       .from('user_notification_preferences')
       .select('*')
-      .eq('user_id', user.id) as any)
+      .eq('user_id', user.id) as unknown)
 
     if (error && error.code !== 'PGRST116') throw error // PGRST116: no rows returned
 
@@ -324,11 +316,11 @@ export async function updateNotificationPreference(
         notification_type: notificationType,
         ...settings,
         updated_at: new Date().toISOString()
-      } as any, {
+      } as unknown, {
         onConflict: 'user_id,notification_type'
       })
       .select()
-      .single() as any)
+      .single() as unknown)
 
     validateSupabaseResponse(data, error)
 

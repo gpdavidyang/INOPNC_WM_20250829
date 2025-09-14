@@ -1,7 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import DashboardLayout from '@/components/dashboard/dashboard-layout'
-import DailyReportForm from '@/components/daily-reports/daily-report-form'
 
 export default async function NewDailyReportPage() {
   const supabase = createClient()
@@ -112,7 +108,7 @@ export default async function NewDailyReportPage() {
         sites={sites || []}
         currentUser={profile as any}
         materials={materials || []}
-        workers={workers as any || []}
+        workers={workers as unknown || []}
       />
     </DashboardLayout>
   )

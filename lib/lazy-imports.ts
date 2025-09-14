@@ -1,4 +1,3 @@
-import { lazy } from 'react'
 
 // Lazy load heavy chart components to reduce initial bundle
 export const LazyChart = lazy(() => 

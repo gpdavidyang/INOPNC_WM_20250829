@@ -1,5 +1,3 @@
-import { getProfile } from '@/app/auth/actions'
-import { redirect } from 'next/navigation'
 import CommunicationManagement from '@/components/admin/communication/CommunicationManagement'
 
 export default async function CommunicationManagementPage() {

@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import DailyReportDetailModal from './DailyReportDetailModal'
 
 interface DailyReportDetailModalWrapperProps {
@@ -17,7 +15,7 @@ export default function DailyReportDetailModalWrapper({
   onClose, 
   onReportUpdated 
 }: DailyReportDetailModalWrapperProps) {
-  const [report, setReport] = useState<any>(null)
+  const [report, setReport] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 

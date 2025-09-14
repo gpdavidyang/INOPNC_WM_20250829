@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,7 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get engagement data for these notifications
-    const notificationIds = notifications?.map((n: any) => n.id) || []
+    const notificationIds = notifications?.map((n: unknown) => n.id) || []
     const { data: engagements } = await supabase
       .from('notification_engagement')
       .select('*')
@@ -64,7 +62,7 @@ export async function GET(request: NextRequest) {
       .eq('user_id', user.id)
 
     // Map engagement data to notifications
-    const notificationsWithEngagement = notifications?.map((notification: any) => {
+    const notificationsWithEngagement = notifications?.map((notification: unknown) => {
       const engagement = engagements?.filter((e: Event) => e.notification_id === notification.id) || []
       return {
         ...notification,
@@ -72,7 +70,7 @@ export async function GET(request: NextRequest) {
           clicked: engagement.some((e: Event) => e.engagement_type === 'notification_clicked'),
           deepLinked: engagement.some((e: Event) => e.engagement_type === 'deep_link_navigation'),
           actionPerformed: engagement.some((e: Event) => e.engagement_type === 'action_performed'),
-          lastEngagement: engagement.sort((a: any, b: any) => 
+          lastEngagement: engagement.sort((a: unknown, b: unknown) => 
             new Date(b.engaged_at).getTime() - new Date(a.engaged_at).getTime()
           )[0]?.engaged_at
         }
@@ -116,7 +114,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Update notification log based on action
-    const updates: any = {}
+    const updates: unknown = {}
     
     switch (action) {
       case 'read':

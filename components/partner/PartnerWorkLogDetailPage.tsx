@@ -1,35 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { User } from '@supabase/supabase-js'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  ArrowLeft, 
-  Calendar, 
-  MapPin, 
-  Users, 
-  Clock, 
-  Eye, 
-  FileText,
-  Building2,
-  CloudRain,
-  AlertTriangle,
-  Camera,
-  Upload,
-  Send,
-  Package,
-  Receipt,
-  Image,
-  MessageSquare,
-  Plus,
-  Download,
-  Edit,
-  Trash2
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface PartnerWorkLogDetailPageProps {
   user: User

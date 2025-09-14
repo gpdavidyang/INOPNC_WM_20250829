@@ -1,6 +1,5 @@
 'use client'
 
-import { getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 interface BottomStatusbarProps {
   fileName: string

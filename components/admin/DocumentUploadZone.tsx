@@ -1,10 +1,6 @@
 'use client'
 
 import React, { useState, useRef, useCallback } from 'react'
-import { Upload, File, AlertCircle, CheckCircle, X, Info } from 'lucide-react'
-import { SiteDocumentType } from '@/types'
-import { validateFile, ValidationResult, FileValidationError } from '@/lib/validators/file'
-import { cn } from '@/lib/utils'
 
 interface DocumentUploadZoneProps {
   siteId: string

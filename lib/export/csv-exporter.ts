@@ -1,8 +1,5 @@
 'use client'
 
-import { DailyReport, Site } from '@/types'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 export class CSVExporter {
   static exportDailyReports(
@@ -48,8 +45,8 @@ export class CSVExporter {
             this.getStatusText(report.status || undefined),
             this.escapeCsvField(report.issues || '-'),
             format(new Date(report.created_at), 'yyyy-MM-dd HH:mm'),
-            (report as any).submitted_at ? format(new Date((report as any).submitted_at), 'yyyy-MM-dd HH:mm') : '-',
-            (report as any).approved_at ? format(new Date((report as any).approved_at), 'yyyy-MM-dd HH:mm') : '-'
+            (report as unknown).submitted_at ? format(new Date((report as unknown).submitted_at), 'yyyy-MM-dd HH:mm') : '-',
+            (report as unknown).approved_at ? format(new Date((report as unknown).approved_at), 'yyyy-MM-dd HH:mm') : '-'
           ]
         })
 
@@ -76,9 +73,9 @@ export class CSVExporter {
         // Create and download file
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
         
-        if ((navigator as any).msSaveBlob) {
+        if ((navigator as unknown).msSaveBlob) {
           // IE 10+
-          (navigator as any).msSaveBlob(blob, fileName)
+          (navigator as unknown).msSaveBlob(blob, fileName)
         } else {
           const link = document.createElement('a')
           if (link.download !== undefined) {

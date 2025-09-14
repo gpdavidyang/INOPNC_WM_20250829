@@ -1,26 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { InventoryStatus } from '@/types/materials'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Package, TrendingUp, TrendingDown, AlertTriangle, 
-  Calendar, Building2, Search, Filter, Download,
-  Truck, CheckCircle, XCircle, Clock, FileText,
-  BarChart3, PlusCircle, Edit, Eye, RefreshCw,
-  Database, Zap, Target
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
-import { toast } from 'sonner'
-import { formatDate } from '@/lib/utils'
 
 interface IntegratedInventoryStatusProps {
   profile: Profile
@@ -102,7 +81,7 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
           else if (currentStock < minimumThreshold) status = 'low'
 
           return {
-            location: (item as any).sites?.name || 'Unknown',
+            location: (item as unknown).sites?.name || 'Unknown',
             current_stock: currentStock,
             reserved_stock: reservedStock,
             available_stock: availableStock,
@@ -111,8 +90,8 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             last_updated: item.last_updated,
             site_id: item.site_id,
             material_id: item.material_id,
-            site_name: (item as any).sites?.name || 'Unknown',
-            material_name: (item as any).materials?.name || 'NPC-1000'
+            site_name: (item as unknown).sites?.name || 'Unknown',
+            material_name: (item as unknown).materials?.name || 'NPC-1000'
           }
         })
 

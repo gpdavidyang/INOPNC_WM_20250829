@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { withApiMonitoring } from '@/lib/monitoring/api-monitoring'
 
 export const GET = withApiMonitoring(
   async (request: NextRequest) => {
@@ -71,7 +68,7 @@ export const GET = withApiMonitoring(
         .gte('created_at', fromDate.toISOString())
         .lte('created_at', toDate.toISOString())
 
-      const activeWorkerIds = Array.from(new Set(activeWorkersData?.map((r: any) => r.created_by) || []))
+      const activeWorkerIds = Array.from(new Set(activeWorkersData?.map((r: unknown) => r.created_by) || []))
 
       // Get daily reports count
       const { data: dailyReportsData } = await supabase
@@ -117,7 +114,7 @@ export const GET = withApiMonitoring(
         .gte('created_at', previousFromDate.toISOString())
         .lte('created_at', previousToDate.toISOString())
 
-      const prevActiveWorkerIds = Array.from(new Set(prevActiveWorkersData?.map((r: any) => r.created_by) || []))
+      const prevActiveWorkerIds = Array.from(new Set(prevActiveWorkersData?.map((r: unknown) => r.created_by) || []))
 
       const { data: prevDailyReportsData } = await supabase
         .from('daily_reports')

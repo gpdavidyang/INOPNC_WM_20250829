@@ -1,16 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { X } from 'lucide-react'
-import { createSite, CreateSiteData } from '@/app/actions/admin/sites'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
-import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface CreateSiteModalProps {
   onClose: () => void
@@ -108,7 +97,7 @@ export default function CreateSiteModal({ onClose, onSuccess }: CreateSiteModalP
                   </label>
                   <select
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as unknown })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   >
                     <option value="active">활성</option>

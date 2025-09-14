@@ -1,8 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import DailyReportForm from '@/components/daily-reports/daily-report-form'
-import { ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
 
 export default async function AdminNewDailyReportPage() {
   const supabase = createClient()

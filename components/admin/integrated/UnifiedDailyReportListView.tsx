@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { FileText, Calendar, Users, MapPin, Eye, Edit } from 'lucide-react'
-import Link from 'next/link'
 
 interface DailyReport {
   id: string

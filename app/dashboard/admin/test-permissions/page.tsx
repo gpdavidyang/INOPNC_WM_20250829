@@ -1,6 +1,4 @@
 import AdminPermissionValidator from '@/components/admin/AdminPermissionValidator'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export default async function TestPermissionsPage() {
   const supabase = createClient()

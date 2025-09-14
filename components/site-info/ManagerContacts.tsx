@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Phone, Copy, Mail, User, Check, ChevronDown, ChevronUp } from 'lucide-react'
-import { ManagerContact } from '@/types/site-info'
-import { useFontSize, getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface ManagerContactsProps {
   managers: ManagerContact[]
@@ -138,7 +133,7 @@ export default function ManagerContacts({
           <div className={`${
             touchMode === 'glove' ? 'p-6 pt-0' : touchMode === 'precision' ? 'p-3 pt-0' : 'p-4 pt-0'
           } space-y-3 animate-in slide-in-from-top-1 duration-200`}>
-            {managers.map((manager: any) => (
+            {managers.map((manager: unknown) => (
               <ContactCard
                 key={`${manager.role}-${manager.name}`}
                 manager={manager}

@@ -1,7 +1,5 @@
 'use client'
 
-import { forwardRef, KeyboardEvent, HTMLAttributes } from 'react'
-import { cn } from '@/lib/utils'
 
 interface FocusableComponentProps extends HTMLAttributes<HTMLDivElement> {
   onActivate?: () => void

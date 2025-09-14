@@ -1,19 +1,11 @@
 'use client'
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 
 interface ShareDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onShare: (permissions: any) => void
-  currentPermissions?: any
+  onShare: (permissions: unknown) => void
+  currentPermissions?: unknown
 }
 
 export function ShareDialog({ open, onOpenChange, onShare, currentPermissions }: ShareDialogProps) {

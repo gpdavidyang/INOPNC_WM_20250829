@@ -1,26 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Users, 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Save, 
-  X, 
-  Clock, 
-  User,
-  CheckCircle,
-  AlertTriangle,
-  Check
-} from 'lucide-react'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
 
 interface Worker {
   id: string

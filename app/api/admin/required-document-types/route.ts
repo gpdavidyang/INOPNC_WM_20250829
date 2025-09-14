@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,17 +57,17 @@ export async function GET(request: NextRequest) {
     let filteredData = data || []
 
     if (roleType || siteId) {
-      filteredData = data?.filter((docType: any) => {
+      filteredData = data?.filter((docType: unknown) => {
         if (roleType) {
           const hasRoleMapping = docType.role_mappings?.some(
-            (mapping: any) => mapping.role_type === roleType && mapping.is_required
+            (mapping: unknown) => mapping.role_type === roleType && mapping.is_required
           )
           if (!hasRoleMapping) return false
         }
 
         if (siteId) {
           const hasSiteCustomization = docType.site_customizations?.some(
-            (customization: any) => customization.site_id === siteId && customization.is_required
+            (customization: unknown) => customization.site_id === siteId && customization.is_required
           )
           if (!hasSiteCustomization) return false
         }
@@ -154,7 +152,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (role_mappings && role_mappings.length > 0) {
-      const roleInserts = role_mappings.map((mapping: any) => ({
+      const roleInserts = role_mappings.map((mapping: unknown) => ({
         document_type_id: newDocType.id,
         role_type: mapping.role_type,
         is_required: mapping.is_required
@@ -170,7 +168,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (site_customizations && site_customizations.length > 0) {
-      const siteInserts = site_customizations.map((customization: any) => ({
+      const siteInserts = site_customizations.map((customization: unknown) => ({
         document_type_id: newDocType.id,
         site_id: customization.site_id,
         is_required: customization.is_required,

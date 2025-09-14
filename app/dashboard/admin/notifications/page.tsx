@@ -1,5 +1,3 @@
-import { getProfile } from '@/app/auth/actions'
-import { redirect } from 'next/navigation'
 import NotificationCenter from '@/components/admin/notifications/NotificationCenter'
 
 export default async function NotificationCenterPage() {

@@ -1,7 +1,5 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired } from './common'
-import { DocumentFile, DocumentType, ApprovalStatus } from '@/types'
 
 export interface CreateDocumentData {
   title: string
@@ -88,7 +86,7 @@ export async function getDocuments(
       }
 
       // Transform the data to include approval status
-      const transformedDocuments = documents?.map((doc: any) => ({
+      const transformedDocuments = documents?.map((doc: unknown) => ({
         ...doc,
         approval_status: doc.approval_requests?.[0]?.status,
         approval_requested_at: doc.approval_requests?.[0]?.requested_at,
@@ -274,9 +272,9 @@ export async function getDocumentApprovalStats(): Promise<AdminActionResult<{
       }
 
       const stats = {
-        pending: approvalStats?.filter((a: any) => a.status === 'pending').length || 0,
-        approved: approvalStats?.filter((a: any) => a.status === 'approved').length || 0,
-        rejected: approvalStats?.filter((a: any) => a.status === 'rejected').length || 0,
+        pending: approvalStats?.filter((a: unknown) => a.status === 'pending').length || 0,
+        approved: approvalStats?.filter((a: unknown) => a.status === 'approved').length || 0,
+        rejected: approvalStats?.filter((a: unknown) => a.status === 'rejected').length || 0,
         total_documents: totalDocuments || 0
       }
 

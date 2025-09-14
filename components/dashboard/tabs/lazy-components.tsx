@@ -1,7 +1,5 @@
 'use client'
 
-import dynamic from 'next/dynamic'
-import { ComponentType } from 'react'
 
 // 로딩 컴포넌트
 const LoadingSpinner = () => (
@@ -65,7 +63,7 @@ export const preloadMarkup = () => import('../../markup/markup-editor')
 // 개선된 사용자 역할에 따른 프리로드 - 지연된 프리로딩으로 성능 최적화
 export const preloadForRole = (role: string) => {
   // 사용자가 페이지에 있을 때만 프리로드하는 지연 함수
-  const delayedPreload = (preloadFn: () => Promise<any>, delay: number = 2000) => {
+  const delayedPreload = (preloadFn: () => Promise<unknown>, delay: number = 2000) => {
     setTimeout(() => {
       if (document.visibilityState === 'visible' && !document.hidden) {
         preloadFn().catch(() => {

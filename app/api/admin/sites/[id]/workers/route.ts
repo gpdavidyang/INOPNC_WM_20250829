@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
 export async function GET(
   request: Request,
@@ -19,7 +17,7 @@ export async function GET(
         setTimeout(() => reject(new Error('Auth timeout')), 10000) // 10 second timeout
       })
       
-      const authResult = await Promise.race([authPromise, timeoutPromise]) as any
+      const authResult = await Promise.race([authPromise, timeoutPromise]) as unknown
       user = authResult.data?.user
       authError = authResult.error
     } catch (error) {
@@ -99,7 +97,7 @@ export async function GET(
     }
 
     // Get worker details from profiles table
-    const workerIds = assignments?.map((a: any) => a.user_id) || []
+    const workerIds = assignments?.map((a: unknown) => a.user_id) || []
     let workers = []
     
     
@@ -116,8 +114,8 @@ export async function GET(
       // Remove duplicates and prioritize higher-level roles
       const workerMap = new Map()
       
-      assignments?.forEach((assignment: any) => {
-        const user = userDetails?.find((u: any) => u.id === assignment.user_id)
+      assignments?.forEach((assignment: unknown) => {
+        const user = userDetails?.find((u: unknown) => u.id === assignment.user_id)
         const finalRole = user?.role || assignment.role || 'worker'
         
         

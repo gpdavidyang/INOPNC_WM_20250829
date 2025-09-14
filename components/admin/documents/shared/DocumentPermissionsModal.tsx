@@ -1,13 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { SharedDocument, DocumentPermission } from '@/types/shared-documents'
-import {
-  X, Plus, Trash2, Save, AlertCircle, Users, User, Building2, 
-  Shield, Eye, Edit, Download, Share2, Calendar, Check, ChevronDown,
-  Copy, Link, Clock, ExternalLink
-} from 'lucide-react'
 
 interface DocumentPermissionsModalProps {
   document: SharedDocument

@@ -7,8 +7,6 @@
 
 import type { User, Session } from '@supabase/supabase-js'
 import type { Profile } from '@/types'
-import { faker } from '@faker-js/faker'
-import { createMockSupabaseClient, triggerAuthStateChange } from '@/lib/test-utils/mocks/supabase.mock'
 
 // Auth state types
 export type AuthState = 'loading' | 'authenticated' | 'unauthenticated' | 'error'

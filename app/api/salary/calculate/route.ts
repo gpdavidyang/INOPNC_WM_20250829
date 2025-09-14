@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
 
 export async function POST(request: NextRequest) {
   try {

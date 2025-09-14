@@ -3,7 +3,7 @@
  * Generates realistic data for workers, daily reports, and construction activities
  */
 
-import { faker } from '@faker-js/faker';
+;
 
 export interface WorkerProfile {
   name: string;

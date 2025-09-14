@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import DashboardLayout from '@/components/dashboard/dashboard-layout'
 import { AttendancePageClient } from '@/components/attendance/attendance-page-client'
 

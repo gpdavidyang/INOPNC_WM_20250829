@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import webpush from 'web-push'
 
 // Configure VAPID details
 const vapidDetails = {
@@ -20,7 +17,7 @@ interface PushNotificationPayload {
   body: string
   icon?: string
   badge?: string
-  data?: any
+  data?: unknown
   actions?: Array<{
     action: string
     title: string
@@ -140,16 +137,16 @@ export async function POST(request: NextRequest) {
       .from('notification_logs')
       .select('user_id')
       .gte('sent_at', oneHourAgo)
-      .in('user_id', targetUsers.map((u: any) => u.id))
+      .in('user_id', targetUsers.map((u: unknown) => u.id))
     
     // Count notifications per user
     const notificationCounts: Record<string, number> = {}
-    recentNotifications?.forEach((log: any) => {
+    recentNotifications?.forEach((log: unknown) => {
       notificationCounts[log.user_id] = (notificationCounts[log.user_id] || 0) + 1
     })
 
     // Filter users based on their notification preferences
-    const eligibleUsers = targetUsers.filter((user: any) => {
+    const eligibleUsers = targetUsers.filter((user: unknown) => {
       if (!user.push_subscription) return false
       
       const prefs = user.notification_preferences || {}
@@ -203,8 +200,8 @@ export async function POST(request: NextRequest) {
         const currentMinutes = now.getMinutes()
         const currentTime = currentHour * 60 + currentMinutes
         
-        const [startHour, startMin] = (prefs.quiet_hours_start || '22:00').split(':').map((x: any) => Number(x))
-        const [endHour, endMin] = (prefs.quiet_hours_end || '08:00').split(':').map((x: any) => Number(x))
+        const [startHour, startMin] = (prefs.quiet_hours_start || '22:00').split(':').map((x: unknown) => Number(x))
+        const [endHour, endMin] = (prefs.quiet_hours_end || '08:00').split(':').map((x: unknown) => Number(x))
         const startTime = startHour * 60 + startMin
         const endTime = endHour * 60 + endMin
         
@@ -224,7 +221,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Send push notifications
-    const notificationPromises = eligibleUsers.map(async (user: any) => {
+    const notificationPromises = eligibleUsers.map(async (user: unknown) => {
       try {
         const subscription = JSON.parse(user.push_subscription)
         const prefs = user.notification_preferences || {}
@@ -305,7 +302,7 @@ export async function POST(request: NextRequest) {
     })
 
     const results = await Promise.allSettled(notificationPromises)
-    const successCount = results.filter((r: any) => r.status === 'fulfilled' && r.value.success).length
+    const successCount = results.filter((r: unknown) => r.status === 'fulfilled' && r.value.success).length
     const failureCount = results.length - successCount
 
     return NextResponse.json({
@@ -328,7 +325,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getNotificationUrl(type: string, data?: any): string {
+function getNotificationUrl(type: string, data?: unknown): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'
   
   switch (type) {

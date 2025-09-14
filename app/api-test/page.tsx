@@ -1,14 +1,11 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function ApiTestPage() {
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
-  const addResult = (test: string, result: any) => {
+  const addResult = (test: string, result: unknown) => {
     setResults(prev => [...prev, { test, result, timestamp: new Date().toISOString() }])
   }
 

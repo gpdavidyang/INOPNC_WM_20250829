@@ -1,23 +1,12 @@
 'use client'
 
-import { useState } from 'react'
-import { User } from '@supabase/supabase-js'
-import { Profile } from '@/types'
-import PartnerSidebar from './PartnerSidebar'
-import PartnerHeader from './PartnerHeader'
-import PartnerHomeTab from './tabs/PartnerHomeTab'
-import PartnerPrintStatusTab from './tabs/PartnerPrintStatusTab'
-import PartnerWorkLogsTab from './tabs/PartnerWorkLogsTab'
-import PartnerSiteInfoTab from './tabs/PartnerSiteInfoTab'
-import PartnerDocumentsTab from './tabs/PartnerDocumentsTab'
-import PartnerMyInfoTab from './tabs/PartnerMyInfoTab'
 import PartnerBottomNavigation from './PartnerBottomNavigation'
 
 interface PartnerDashboardProps {
   user: User
   profile: Profile
   sites: unknown[]
-  organization: any
+  organization: unknown
 }
 
 export default function PartnerDashboard({ 

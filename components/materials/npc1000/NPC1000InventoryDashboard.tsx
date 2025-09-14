@@ -1,34 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { useFontSize, getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { 
-  Package, 
-  TrendingUp, 
-  TrendingDown, 
-  AlertTriangle,
-  Building2,
-  Calendar,
-  Clock,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
-  PlusCircle
-} from 'lucide-react'
-import { getNPC1000Inventory, getMaterialTransactions } from '@/app/actions/materials'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
 import { NPC1000RequestForm } from './NPC1000RequestForm'
 
 interface NPC1000InventoryDashboardProps {
   sites: unknown[]
-  currentUser: any
+  currentUser: unknown
 }
 
 export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000InventoryDashboardProps) {
@@ -75,7 +52,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
       // Load recent transactions for NPC-1000
       const transactionsResult = await getMaterialTransactions({
         site_id: selectedSite,
-        material_id: (inventoryResult.data as any)?.[0]?.material_id,
+        material_id: (inventoryResult.data as unknown)?.[0]?.material_id,
         date_from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       })
       if (transactionsResult.success && transactionsResult.data) {
@@ -148,7 +125,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
             className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
           >
             <option value="">전체 현장</option>
-            {sites.map((site: any) => (
+            {sites.map((site: unknown) => (
               <option key={site.id} value={site.id}>
                 {site.name}
               </option>
@@ -346,7 +323,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
                   </tr>
                 </thead>
                 <tbody>
-                  {inventory.map((item: any) => {
+                  {inventory.map((item: unknown) => {
                     const status = getStockStatus(item.current_stock, item.minimum_stock || 1000)
                     return (
                       <tr key={item.id} className="border-b hover:bg-gray-50">
@@ -415,7 +392,7 @@ export function NPC1000InventoryDashboard({ sites, currentUser }: NPC1000Invento
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {recentTransactions.map((transaction: any) => (
+            {recentTransactions.map((transaction: unknown) => (
               <div key={transaction.id} className={cn(
                 "flex items-center justify-between border-b pb-3",
                 touchMode === 'glove' ? 'py-4' : 

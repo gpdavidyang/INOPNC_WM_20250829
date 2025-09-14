@@ -1,14 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { Profile, UserRole } from '@/types'
-import { getAuthenticatedUser } from './session'
 
 /**
  * Admin authentication wrapper for admin pages
  * Ensures only admin users (본사관리자/시스템관리자) can access admin functionality
  * Note: admin role now includes all system_admin privileges
  */
-export async function requireAdminAuth(): Promise<{ user: any; profile: Profile }> {
+export async function requireAdminAuth(): Promise<{ user: unknown; profile: Profile }> {
   const supabase = createClient()
   
   // Get authenticated user

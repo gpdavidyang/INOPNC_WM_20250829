@@ -1,22 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Trash2, 
-  Plus, 
-  Clock,
-  User,
-  Calendar,
-  ArrowDownTrayIcon
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { getPhotoGridReports, trackPhotoGridReportDownload, deletePhotoGridReport } from '@/lib/supabase/photo-grid-reports'
-import { formatDate } from '@/lib/utils'
 import type { PhotoGridReport, PhotoGroup } from '@/types'
-import PDFReportGenerator from './pdf-report-generator'
 
 interface PhotoGridReportSectionProps {
   dailyReportId: string

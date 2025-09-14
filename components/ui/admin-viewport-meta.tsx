@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-import { getClientUserRole } from '@/lib/auth/role-detection'
 
 /**
  * Dynamic viewport meta tag adjustment based on user role

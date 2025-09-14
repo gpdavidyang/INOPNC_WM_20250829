@@ -1,15 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Search, Calculator, Info, Settings } from 'lucide-react'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
 
 type SalaryType = '4대보험직원' | '프리랜서' | '일용직'
 

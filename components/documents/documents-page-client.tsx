@@ -1,17 +1,10 @@
 'use client'
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MyDocuments } from '@/components/documents/my-documents'
 import { SharedDocuments } from '@/components/documents/shared-documents'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { DocumentsPageHeader } from '@/components/ui/page-header'
 import { Suspense, useState, useEffect } from 'react'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Plus, Search, RefreshCw } from 'lucide-react'
 
 interface DocumentsPageClientProps {
-  profile: any
+  profile: unknown
   searchParams?: { [key: string]: string | string[] | undefined }
 }
 

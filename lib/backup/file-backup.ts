@@ -1,12 +1,4 @@
-import { logError, AppError } from '@/lib/error-handling'
 import type { FileBackupOptions, BackupLocation } from './types'
-import { promises as fs } from 'fs'
-import path from 'path'
-import { spawn } from 'child_process'
-import { createReadStream, createWriteStream } from 'fs'
-import { createGzip } from 'zlib'
-import { pipeline } from 'stream/promises'
-import { glob } from 'glob'
 
 export class FileBackupService {
   private backupDir = process.env.BACKUP_DIR || './backups/files'

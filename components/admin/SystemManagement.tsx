@@ -1,39 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import AdminDataTable from './AdminDataTable'
-import { 
-  getSystemConfigurations,
-  getSystemStats,
-  getAuditLogs,
-  getConfigurationCategories,
-  updateSystemConfiguration,
-  performSystemMaintenance,
-  createSystemBackup,
-  SystemConfiguration,
-  SystemStats,
-  AuditLog
-} from '@/app/actions/admin/system'
-import { 
-  Search, 
-  Settings, 
-  Activity, 
-  BarChart3, 
-  Database, 
-  Shield, 
-  Monitor, 
-  HardDrive, 
-  Users, 
-  FileText, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle,
-  Play,
-  Download,
-  RefreshCw,
-  Server
-} from 'lucide-react'
 
 interface SystemManagementProps {
   profile: Profile
@@ -196,7 +162,7 @@ export default function SystemManagement({ profile }: SystemManagementProps) {
   }
 
   // Handle configuration update
-  const handleConfigurationUpdate = async (config: SystemConfiguration, newValue: any) => {
+  const handleConfigurationUpdate = async (config: SystemConfiguration, newValue: unknown) => {
     try {
       const result = await updateSystemConfiguration(
         config.setting_key,
@@ -276,7 +242,7 @@ export default function SystemManagement({ profile }: SystemManagementProps) {
     {
       key: 'setting_value',
       label: '현재 값',
-      render: (value: any, config: SystemConfiguration) => {
+      render: (value: unknown, config: SystemConfiguration) => {
         const displayValue = config.data_type === 'json' ? JSON.stringify(value) : String(value)
         return (
           <div className="max-w-xs">

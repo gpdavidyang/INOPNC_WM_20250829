@@ -1,22 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Camera, 
-  FileImage, 
-  Settings, 
-  Archive,
-  Trash2,
-  RefreshCw,
-  Activity,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  XCircle,
-  ChevronRight
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { formatDateTime } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 interface PhotoGridToolManagementProps {
@@ -151,7 +134,7 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
     }
   }
 
-  const handleSettingChange = (key: string, value: any) => {
+  const handleSettingChange = (key: string, value: unknown) => {
     setSettings(prev => ({
       ...prev,
       [key]: value

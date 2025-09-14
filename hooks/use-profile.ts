@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
 
 interface NotificationPreferences {
@@ -89,7 +87,7 @@ export function useProfile() {
       // Prepare update data, converting notification_preferences to JSON if needed
       const updateData = { ...updates }
       if (updateData.notification_preferences) {
-        updateData.notification_preferences = updateData.notification_preferences as any
+        updateData.notification_preferences = updateData.notification_preferences as unknown
       }
 
       const { data, error: updateError } = await supabase

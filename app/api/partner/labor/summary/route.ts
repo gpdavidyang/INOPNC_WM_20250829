@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,21 +36,24 @@ export async function GET(request: NextRequest) {
     
     const now = new Date()
     switch (period) {
-      case 'daily':
+      case 'daily': {
         startDate = now.toISOString().split('T')[0]
         endDate = startDate
         break
-      case 'weekly':
+        }
+      case 'weekly': {
         const weekStart = new Date(now)
         weekStart.setDate(now.getDate() - now.getDay())
         startDate = weekStart.toISOString().split('T')[0]
         endDate = now.toISOString().split('T')[0]
         break
+        }
       case 'monthly':
-      default:
+      default: {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
         endDate = now.toISOString().split('T')[0]
         break
+        }
     }
 
     // Get partner's accessible sites
@@ -69,9 +70,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch sites' }, { status: 500 })
     }
 
-    const siteIds = partnerSites?.map((sp: any) => sp.site_id) || []
+    const siteIds = partnerSites?.map((sp: unknown) => sp.site_id) || []
     const totalSites = partnerSites?.length || 0
-    const activeSites = partnerSites?.filter((sp: any) => sp.sites?.status === 'active').length || 0
+    const activeSites = partnerSites?.filter((sp: unknown) => sp.sites?.status === 'active').length || 0
 
     if (siteIds.length === 0) {
       return NextResponse.json({
@@ -98,12 +99,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate statistics
-    const totalWorkHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.work_hours) || 0), 0) || 0
-    const totalLaborHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.labor_hours) || 0), 0) || 0
-    const totalOvertimeHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.overtime_hours) || 0), 0) || 0
+    const totalWorkHours = laborData?.reduce((sum: number, record: unknown) => sum + (Number(record.work_hours) || 0), 0) || 0
+    const totalLaborHours = laborData?.reduce((sum: number, record: unknown) => sum + (Number(record.labor_hours) || 0), 0) || 0
+    const totalOvertimeHours = laborData?.reduce((sum: number, record: unknown) => sum + (Number(record.overtime_hours) || 0), 0) || 0
     
     // Get unique work dates for calculating working days
-    const uniqueDates = new Set(laborData?.map((record: any) => record.work_date) || [])
+    const uniqueDates = new Set(laborData?.map((record: unknown) => record.work_date) || [])
     const workingDays = uniqueDates.size
 
     // Calculate average daily hours

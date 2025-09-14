@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Edit, Trash2, Settings, FileText, Eye, EyeOff, X } from 'lucide-react'
 
 interface RequiredDocumentType {
   id: string

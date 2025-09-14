@@ -3,7 +3,6 @@
  * 작업자와 현장관리자의 급여 화면이 제대로 표시되는지 확인
  */
 
-import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!

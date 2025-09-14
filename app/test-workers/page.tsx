@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 
 export default function TestWorkersPage() {
-  const [testResults, setTestResults] = useState<any>(null)
+  const [testResults, setTestResults] = useState<unknown>(null)
   const [loading, setLoading] = useState(false)
 
   const runGetTest = async () => {

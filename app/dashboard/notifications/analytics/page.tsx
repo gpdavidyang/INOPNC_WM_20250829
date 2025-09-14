@@ -1,7 +1,3 @@
-import { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { NotificationAnalyticsDashboard } from '@/components/notifications/notification-analytics-dashboard'
 
 export const metadata: Metadata = {
   title: '알림 분석 | INOPNC 작업일지 관리',

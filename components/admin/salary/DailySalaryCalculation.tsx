@@ -1,35 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Search, 
-  Download, 
-  Calendar,
-  Users,
-  Clock,
-  DollarSign,
-  Filter,
-  ChevronDown,
-  ChevronRight,
-  FileText,
-  Calculator,
-  PlayCircle
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import * as XLSX from 'xlsx'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
-import MultiSelectFilter from './components/MultiSelectFilter'
-import DateRangeSelector from './components/DateRangeSelector'
-import SummaryCards from './components/SummaryCards'
-import { WorkerSalaryChart, SiteSalaryChart } from './SalaryChart'
 
 interface DailySalaryData {
   id: string

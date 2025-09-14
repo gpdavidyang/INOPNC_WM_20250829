@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 
 export default async function TestSitePage() {
   const supabase = createClient()

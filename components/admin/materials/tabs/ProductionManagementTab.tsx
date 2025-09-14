@@ -1,28 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { ProductionRecord } from '@/types/materials'
-import { 
-  createProductionRecord,
-  updateProductionRecord,
-  deleteProductionRecord,
-  getProductionHistory
-} from '@/app/actions/admin/production'
-import { 
-  TrendingUp, Calendar, Search, 
-  Download, PlusCircle, BarChart3, Factory,
-  DollarSign
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent } from '@/components/ui/card'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { toast } from 'sonner'
-import { formatDate } from '@/lib/utils'
 
 interface ProductionManagementTabProps {
   profile: Profile
@@ -60,7 +37,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
   const fetchProductions = async () => {
     setLoading(true)
     try {
-      const filters: any = {}
+      const filters: unknown = {}
       
       // Date range filter
       const now = new Date()

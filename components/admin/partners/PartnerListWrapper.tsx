@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Profile } from '@/types'
 import PartnerList from './PartnerList'
 
 export default function PartnerListWrapper() {

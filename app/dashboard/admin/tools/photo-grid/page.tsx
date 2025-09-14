@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import PhotoGridToolMain from '@/components/photo-grid-tool/PhotoGridToolMain'
 
 export default async function PhotoGridToolPage() {
   const supabase = await createClient()

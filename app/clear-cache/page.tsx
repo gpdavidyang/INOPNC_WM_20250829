@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Trash2, RefreshCw } from 'lucide-react'
 
 export default function ClearCachePage() {
   const [isClearing, setIsClearing] = useState(false)

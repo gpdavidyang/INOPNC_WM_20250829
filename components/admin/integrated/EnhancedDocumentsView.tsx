@@ -1,22 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  FileText, Package, Shield, Image, Briefcase, 
-  Search, Filter, Calendar, User,
-  Building2, ChevronRight, File, FileImage, FileType,
-  FileSpreadsheet, FileArchive, Folder, Grid, List
-} from 'lucide-react'
-import { 
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
-import Link from 'next/link'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface Document {
   id: string

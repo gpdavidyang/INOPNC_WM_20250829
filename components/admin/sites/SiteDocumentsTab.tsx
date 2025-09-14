@@ -1,22 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  FileText, 
-  Image, 
-  Package, 
-  Download, 
-  Eye, 
-  Upload, 
-  Search, 
-  Filter,
-  Calendar,
-  Users,
-  FolderOpen
-} from 'lucide-react'
-import Link from 'next/link'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface Document {
   id: string
@@ -328,7 +311,7 @@ export default function SiteDocumentsTab({ siteId, siteName }: SiteDocumentsTabP
             <Filter className="h-4 w-4 text-gray-500" />
             <select 
               value={filter} 
-              onChange={(e) => setFilter(e.target.value as any)}
+              onChange={(e) => setFilter(e.target.value as unknown)}
               className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-1 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">모든 유형</option>

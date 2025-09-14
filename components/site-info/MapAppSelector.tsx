@@ -1,8 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { MapPin, X } from 'lucide-react'
-import { getAvailableMapApps, navigateWithMapApp, MapAppOption } from '@/lib/external-apps'
 
 interface MapAppSelectorProps {
   isOpen: boolean
@@ -76,7 +73,7 @@ export default function MapAppSelector({ isOpen, onClose, location }: MapAppSele
 
         {/* Map app options */}
         <div className="space-y-2">
-          {mapApps.filter(app => app.available).map((app: any) => (
+          {mapApps.filter(app => app.available).map((app: unknown) => (
             <button
               key={app.id}
               onClick={() => handleNavigate(app.id)}

@@ -1,6 +1,3 @@
-import { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { EquipmentManagement } from '@/components/equipment/equipment-management'
 
 export const metadata: Metadata = {

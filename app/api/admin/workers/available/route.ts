@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
-import { createClient } from '@/lib/supabase/server'
 
 
 export async function GET(request: NextRequest) {
@@ -34,8 +32,8 @@ export async function GET(request: NextRequest) {
 
       if (!siteError && siteWorkers && siteWorkers.length > 0) {
         const profiles = siteWorkers
-          ?.map((sw: any) => sw.profiles)
-          .filter((p: any) => p)
+          ?.map((sw: unknown) => sw.profiles)
+          .filter((p: unknown) => p)
         return NextResponse.json({ data: profiles })
       }
     }

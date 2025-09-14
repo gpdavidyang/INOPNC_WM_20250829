@@ -1,12 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { User } from '@supabase/supabase-js'
 
 export default function MobileAuthTestPage() {
   const [user, setUser] = useState<User | null>(null)
-  const [profile, setProfile] = useState<any>(null)
+  const [profile, setProfile] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 

@@ -1,14 +1,5 @@
 'use client'
 
-import React from 'react'
-import { 
-  PageHeader, 
-  DashboardPageHeader, 
-  AdminPageHeader, 
-  ReportsPageHeader, 
-  DocumentsPageHeader 
-} from '@/components/ui/page-header'
-import { Save, Edit, Trash2, Plus, Settings, RefreshCw } from 'lucide-react'
 
 export default function PageHeaderDemoPage() {
   const handleAction = (action: string) => {

@@ -2,7 +2,6 @@
  * 컴포넌트 Props 타입 정의
  */
 
-import { ReactNode, HTMLAttributes, CSSProperties } from 'react'
 
 // 기본 컴포넌트 Props
 export interface BaseComponentProps {

@@ -1,20 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { approveSignupRequest, rejectSignupRequest } from '@/app/auth/actions'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
-import ApprovalModal from '@/components/admin/ApprovalModal'
-import { 
-  CheckCircle, 
-  XCircle, 
-  Clock, 
-  Filter,
-  ChevronUp,
-  ChevronDown
-} from 'lucide-react'
 
 interface SignupRequest {
   id: string
@@ -38,7 +24,7 @@ interface SignupRequest {
 
 interface SignupRequestsClientProps {
   requests: SignupRequest[]
-  currentUser: any
+  currentUser: unknown
 }
 
 export default function SignupRequestsClient({ requests, currentUser }: SignupRequestsClientProps) {
@@ -80,7 +66,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
       company_name: request.company,
       requested_role: request.job_type === 'construction' ? 'worker' : 'site_manager'
     }
-    setApprovalRequest(modalRequest as any)
+    setApprovalRequest(modalRequest as unknown)
     setShowApprovalModal(true)
   }
 
@@ -199,7 +185,7 @@ export default function SignupRequestsClient({ requests, currentUser }: SignupRe
           ].map(tab => (
             <button
               key={tab.key}
-              onClick={() => setFilter(tab.key as any)}
+              onClick={() => setFilter(tab.key as unknown)}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 filter === tab.key
                   ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm'

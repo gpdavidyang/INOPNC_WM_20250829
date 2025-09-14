@@ -1,8 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { Document, DocumentType, FileAttachment, DocumentPermission } from '@/types'
-import { revalidatePath } from 'next/cache'
 
 // ==========================================
 // DOCUMENT ACTIONS
@@ -268,7 +265,7 @@ export async function getMyDocuments(params?: {
     }
 
     // Transform documents to match the expected format
-    const transformedDocuments = documents?.map((doc: any) => ({
+    const transformedDocuments = documents?.map((doc: unknown) => ({
       id: doc.id,
       category: doc.document_type || 'personal',
       name: doc.file_name || doc.title,
@@ -514,7 +511,7 @@ export async function shareDocument(params: {
     }
 
     // Create permission records for each user
-    const permissionsToInsert = userIds.map((userId: any) => ({
+    const permissionsToInsert = userIds.map((userId: unknown) => ({
       document_id: documentId,
       user_id: userId,
       permission_type: permissionType,
@@ -644,14 +641,14 @@ export async function getSharedDocuments(params: {
     // Combine and transform documents
     const allSharedDocs = [
       ...(documents || []),
-      ...(sharedWithMe?.map((share: any) => share.document).filter(Boolean) || [])
+      ...(sharedWithMe?.map((share: unknown) => share.document).filter(Boolean) || [])
     ]
 
     // Remove duplicates
-    const uniqueDocs = Array.from(new Map(allSharedDocs.map((doc: any) => [doc.id, doc])).values())
+    const uniqueDocs = Array.from(new Map(allSharedDocs.map((doc: unknown) => [doc.id, doc])).values())
 
     // Transform documents to match the expected format
-    const transformedDocuments = uniqueDocs.map((doc: any) => ({
+    const transformedDocuments = uniqueDocs.map((doc: unknown) => ({
       id: doc.id,
       category: doc.document_type || 'shared',
       name: doc.file_name || doc.title,

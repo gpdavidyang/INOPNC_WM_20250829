@@ -1,16 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
-import { Calendar, Download, TrendingUp, TrendingDown, Users, FileText, Package, AlertCircle } from 'lucide-react'
-import { BusinessKPICards } from '@/components/dashboard/business-kpi-cards'
-import { BusinessTrendChart } from '@/components/dashboard/business-trend-chart'
-import { SiteComparisonChart } from '@/components/dashboard/site-comparison-chart'
-import { DateRangePicker } from '@/components/ui/date-range-picker'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface User {
   id: string

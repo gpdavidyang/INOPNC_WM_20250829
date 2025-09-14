@@ -1,14 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { User, Session } from '@supabase/supabase-js'
 
 interface TestResult {
   name: string
   status: 'pending' | 'success' | 'error'
   message?: string
-  details?: any
+  details?: unknown
 }
 
 const TEST_USER = {
@@ -24,7 +21,7 @@ export default function AuthTestPage() {
 
   const supabase = createClient()
 
-  const updateResult = (name: string, status: 'pending' | 'success' | 'error', message?: string, details?: any) => {
+  const updateResult = (name: string, status: 'pending' | 'success' | 'error', message?: string, details?: unknown) => {
     setResults(prev => {
       const existing = prev.find(r => r.name === name)
       if (existing) {

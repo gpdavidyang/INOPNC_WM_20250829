@@ -1,33 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import {
-  Calendar,
-  MapPin,
-  User,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  FileText,
-  Package,
-  Users,
-  Shield,
-  Wrench,
-  Camera,
-  Download,
-  Printer,
-  Share2,
-  Edit,
-  Trash2,
-  Building2
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import type { DailyReport, Site, Profile } from '@/types'
 import type { DailyReportFormData } from '@/types/daily-reports'
 
@@ -279,9 +251,9 @@ export function DailyReportDetailView({
                   <Users className="w-5 h-5 text-gray-600" />
                   작업자 입력
                 </h3>
-                {(formData as any).workers && (formData as any).workers.length > 0 ? (
+                {(formData as unknown).workers && (formData as unknown).workers.length > 0 ? (
                   <div className="space-y-3">
-                    {(formData as any).workers.map((worker: any, index: number) => (
+                    {(formData as unknown).workers.map((worker: unknown, index: number) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
                           <User className="w-5 h-5 text-gray-500" />
@@ -298,9 +270,9 @@ export function DailyReportDetailView({
                     ))}
                     <div className="border-t pt-3 mt-3">
                       <div className="flex justify-between items-center">
-                        <span className="font-semibold">총 작업인원: {(formData as any).workers.length}명</span>
+                        <span className="font-semibold">총 작업인원: {(formData as unknown).workers.length}명</span>
                         <span className="font-semibold text-lg">
-                          총 {(formData as any).workers.reduce((sum: number, worker: any) => sum + (worker.hours || 8), 0)}시간
+                          총 {(formData as unknown).workers.reduce((sum: number, worker: unknown) => sum + (worker.hours || 8), 0)}시간
                         </span>
                       </div>
                     </div>
@@ -332,7 +304,7 @@ export function DailyReportDetailView({
           {activeTab === 'details' && (
             <div className="space-y-6">
               {/* Work Logs */}
-              {(formData as any).work_logs && (formData as any).work_logs.length > 0 && (
+              {(formData as unknown).work_logs && (formData as unknown).work_logs.length > 0 && (
                 <Card className="p-4">
                   <h3 className="font-semibold mb-3">작업 내역</h3>
                   <div className="overflow-x-auto">
@@ -346,7 +318,7 @@ export function DailyReportDetailView({
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {(formData as any).work_logs.map((log: any, index: number) => (
+                        {(formData as unknown).work_logs.map((log: unknown, index: number) => (
                           <tr key={index}>
                             <td className="px-4 py-2">{log.work_type}</td>
                             <td className="px-4 py-2">{log.location}</td>
@@ -361,14 +333,14 @@ export function DailyReportDetailView({
               )}
 
               {/* Subcontractor Workers */}
-              {(formData as any).subcontractor_workers && (formData as any).subcontractor_workers.length > 0 && (
+              {(formData as unknown).subcontractor_workers && (formData as unknown).subcontractor_workers.length > 0 && (
                 <Card className="p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Building2 className="w-5 h-5 text-gray-600" />
                     협력업체 작업인원
                   </h3>
                   <div className="space-y-2">
-                    {(formData as any).subcontractor_workers.map((sub: any, index: number) => (
+                    {(formData as unknown).subcontractor_workers.map((sub: unknown, index: number) => (
                       <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
                         <div>
                           <p className="font-medium">{sub.subcontractor_name}</p>
@@ -389,7 +361,7 @@ export function DailyReportDetailView({
           {activeTab === 'materials' && (
             <div className="space-y-6">
               {/* Material Usage */}
-              {(formData as any).material_usage && (formData as any).material_usage.length > 0 && (
+              {(formData as unknown).material_usage && (formData as unknown).material_usage.length > 0 && (
                 <Card className="p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Package className="w-5 h-5 text-gray-600" />
@@ -406,7 +378,7 @@ export function DailyReportDetailView({
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {(formData as any).material_usage.map((material: any, index: number) => (
+                        {(formData as unknown).material_usage.map((material: unknown, index: number) => (
                           <tr key={index}>
                             <td className="px-4 py-2">{material.material_name}</td>
                             <td className="px-4 py-2">{material.quantity}</td>
@@ -421,7 +393,7 @@ export function DailyReportDetailView({
               )}
 
               {/* Equipment Usage */}
-              {(formData as any).equipment_usage && (formData as any).equipment_usage.length > 0 && (
+              {(formData as unknown).equipment_usage && (formData as unknown).equipment_usage.length > 0 && (
                 <Card className="p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Wrench className="w-5 h-5 text-gray-600" />
@@ -438,7 +410,7 @@ export function DailyReportDetailView({
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {(formData as any).equipment_usage.map((equipment: any, index: number) => (
+                        {(formData as unknown).equipment_usage.map((equipment: unknown, index: number) => (
                           <tr key={index}>
                             <td className="px-4 py-2">{equipment.equipment_name}</td>
                             <td className="px-4 py-2">{equipment.hours_used}시간</td>
@@ -458,14 +430,14 @@ export function DailyReportDetailView({
           {activeTab === 'safety' && (
             <div className="space-y-6">
               {/* Safety Incidents */}
-              {(formData as any).safety_incidents && (formData as any).safety_incidents.length > 0 && (
+              {(formData as unknown).safety_incidents && (formData as unknown).safety_incidents.length > 0 && (
                 <Card className="p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <Shield className="w-5 h-5 text-red-600" />
                     안전 사고
                   </h3>
                   <div className="space-y-3">
-                    {(formData as any).safety_incidents.map((incident: any, index: number) => (
+                    {(formData as unknown).safety_incidents.map((incident: unknown, index: number) => (
                       <div key={index} className="border rounded-lg p-4">
                         <div className="flex justify-between items-start mb-2">
                           <Badge className={cn(
@@ -492,14 +464,14 @@ export function DailyReportDetailView({
               )}
 
               {/* Quality Inspections */}
-              {(formData as any).quality_inspections && (formData as any).quality_inspections.length > 0 && (
+              {(formData as unknown).quality_inspections && (formData as unknown).quality_inspections.length > 0 && (
                 <Card className="p-4">
                   <h3 className="font-semibold mb-3 flex items-center gap-2">
                     <FileText className="w-5 h-5 text-blue-600" />
                     품질 검사
                   </h3>
                   <div className="space-y-3">
-                    {(formData as any).quality_inspections.map((inspection: any, index: number) => (
+                    {(formData as unknown).quality_inspections.map((inspection: unknown, index: number) => (
                       <div key={index} className="border rounded-lg p-4">
                         <div className="flex justify-between items-center mb-2">
                           <span className="font-medium">{inspection.inspection_type}</span>
@@ -534,9 +506,9 @@ export function DailyReportDetailView({
                   <Camera className="w-5 h-5 text-blue-600" />
                   작업전 사진
                 </h3>
-                {(formData as any).before_photos && (formData as any).before_photos.length > 0 ? (
+                {(formData as unknown).before_photos && (formData as unknown).before_photos.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {(formData as any).before_photos.map((photo: any, index: number) => (
+                    {(formData as unknown).before_photos.map((photo: unknown, index: number) => (
                       <div key={index} className="relative group">
                         <img
                           src={photo.url || photo.path}
@@ -567,9 +539,9 @@ export function DailyReportDetailView({
                   <Camera className="w-5 h-5 text-green-600" />
                   작업후 사진
                 </h3>
-                {(formData as any).after_photos && (formData as any).after_photos.length > 0 ? (
+                {(formData as unknown).after_photos && (formData as unknown).after_photos.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {(formData as any).after_photos.map((photo: any, index: number) => (
+                    {(formData as unknown).after_photos.map((photo: unknown, index: number) => (
                       <div key={index} className="relative group">
                         <img
                           src={photo.url || photo.path}
@@ -600,9 +572,9 @@ export function DailyReportDetailView({
                   <FileText className="w-5 h-5 text-purple-600" />
                   영수증 첨부
                 </h3>
-                {(formData as any).receipts && (formData as any).receipts.length > 0 ? (
+                {(formData as unknown).receipts && (formData as unknown).receipts.length > 0 ? (
                   <div className="space-y-3">
-                    {(formData as any).receipts.map((receipt: any, index: number) => (
+                    {(formData as unknown).receipts.map((receipt: unknown, index: number) => (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                         <div className="flex items-center gap-3">
                           <FileText className="w-8 h-8 text-gray-500" />

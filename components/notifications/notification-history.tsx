@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Bell, Clock, CheckCircle, XCircle, AlertTriangle, Package, Wrench, Megaphone, ChevronRight, Filter, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface NotificationLog {
   id: string

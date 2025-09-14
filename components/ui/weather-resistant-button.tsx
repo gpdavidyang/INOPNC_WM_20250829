@@ -1,7 +1,5 @@
 'use client'
 
-import { ButtonHTMLAttributes, forwardRef } from 'react'
-import { cn } from '@/lib/utils'
 
 interface WeatherResistantButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'danger' | 'success'

@@ -1,26 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Edit3, 
-  FileImage, 
-  Search,
-  Filter,
-  Eye,
-  Download,
-  Trash2,
-  RefreshCw,
-  Users,
-  Calendar,
-  ChevronRight,
-  Palette,
-  FolderOpen,
-  User,
-  Plus,
-  ExternalLink
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { formatDateTime } from '@/lib/utils'
 import type { Profile } from '@/types'
 
 interface MarkupToolManagementProps {
@@ -231,7 +210,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
           <div>
             <select
               value={filterLocation}
-              onChange={(e) => setFilterLocation(e.target.value as any)}
+              onChange={(e) => setFilterLocation(e.target.value as unknown)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">전체 위치</option>

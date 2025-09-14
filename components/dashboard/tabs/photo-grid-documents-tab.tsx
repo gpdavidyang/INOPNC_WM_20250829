@@ -1,26 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Search, Eye, Download, Camera } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useRouter } from 'next/navigation'
 
 interface PhotoGridDocumentsTabProps {
   profile: Profile
@@ -103,7 +82,7 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
     setFilteredDocuments(filtered)
   }
 
-  const handleDownload = async (doc: any) => {
+  const handleDownload = async (doc: unknown) => {
     try {
       const metadata = doc.metadata || {}
       const photoGridId = metadata.photo_grid_id
@@ -127,7 +106,7 @@ export default function PhotoGridDocumentsTab({ profile }: PhotoGridDocumentsTab
     }
   }
 
-  const handlePreview = (doc: any) => {
+  const handlePreview = (doc: unknown) => {
     const metadata = doc.metadata || {}
     const photoGridId = metadata.photo_grid_id
     if (photoGridId) {

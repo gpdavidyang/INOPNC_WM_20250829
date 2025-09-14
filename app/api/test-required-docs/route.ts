@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -50,7 +47,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform data to match the expected format
-    const transformedDocuments = documents?.map((doc: any) => ({
+    const transformedDocuments = documents?.map((doc: unknown) => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,

@@ -1,10 +1,5 @@
 'use client'
 
-import { useSearchParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Profile } from '@/types'
-import DocumentsTabNew from '@/components/dashboard/tabs/documents-tab-new'
 
 export default function DocumentsPage() {
   const searchParams = useSearchParams()

@@ -1,8 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { AttendanceRecord, AttendanceStatus, AttendanceLocation } from '@/types'
-import { revalidatePath } from 'next/cache'
 
 // ==========================================
 // ATTENDANCE ACTIONS
@@ -95,7 +92,7 @@ export async function getAttendanceRecords(params: {
 
     // Step 4: Transform data to match expected interface
     // Client expects `date` field but DB has `work_date`
-    const transformedData = data?.map((record: any) => ({
+    const transformedData = data?.map((record: unknown) => ({
       ...record,
       date: record.work_date, // Add date field for compatibility
       site_name: record.sites?.name || 'Unknown Site',
@@ -149,8 +146,8 @@ export async function getCompanyAttendanceSummary(params: {
     }
 
     const totalDays = dates.length
-    const totalWorkers = Math.max(...dates.map((d: any) => d.totalWorkers))
-    const totalHours = dates.reduce((sum: any, d: any) => sum + d.totalHours, 0)
+    const totalWorkers = Math.max(...dates.map((d: unknown) => d.totalWorkers))
+    const totalHours = dates.reduce((sum: unknown, d: unknown) => sum + d.totalHours, 0)
 
     return { 
       success: true, 
@@ -456,11 +453,11 @@ export async function getMyAttendance(filters: {
     // Calculate summary
     const summary = {
       total_days: data?.length || 0,
-      total_hours: data?.reduce((sum: any, record: any) => sum + (record.work_hours || 0), 0) || 0,
-      total_overtime: data?.reduce((sum: any, record: any) => sum + (record.overtime_hours || 0), 0) || 0,
-      days_present: data?.filter((r: any) => r.status === 'present').length || 0,
-      days_absent: data?.filter((r: any) => r.status === 'absent').length || 0,
-      days_holiday: data?.filter((r: any) => r.status === 'holiday').length || 0
+      total_hours: data?.reduce((sum: unknown, record: unknown) => sum + (record.work_hours || 0), 0) || 0,
+      total_overtime: data?.reduce((sum: unknown, record: unknown) => sum + (record.overtime_hours || 0), 0) || 0,
+      days_present: data?.filter((r: unknown) => r.status === 'present').length || 0,
+      days_absent: data?.filter((r: unknown) => r.status === 'absent').length || 0,
+      days_holiday: data?.filter((r: unknown) => r.status === 'holiday').length || 0
     }
 
     return { success: true, data, summary }
@@ -525,7 +522,7 @@ export async function addBulkAttendance(
     }
 
     // Prepare work records
-    const workRecords = workers.map((worker: any) => {
+    const workRecords = workers.map((worker: unknown) => {
       const checkIn = new Date(`2000-01-01T${worker.check_in_time}`)
       const checkOut = worker.check_out_time ? new Date(`2000-01-01T${worker.check_out_time}`) : null
       const hoursWorked = checkOut ? (checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60) : 0
@@ -596,7 +593,7 @@ export async function getMonthlyAttendance(year: number, month: number) {
     }
 
     // Transform data to include date field for calendar
-    const transformedData = data?.map((record: any) => ({
+    const transformedData = data?.map((record: unknown) => ({
       ...record,
       date: record.work_date
     })) || []
@@ -650,7 +647,7 @@ export async function getAttendanceSummary(filters: {
     }
 
     // Group by worker
-    const workerSummary = data?.reduce((acc: any, record: any) => {
+    const workerSummary = data?.reduce((acc: unknown, record: unknown) => {
       const workerId = record.user_id || record.profile_id
       if (!workerId) return acc // Skip if no worker ID
       

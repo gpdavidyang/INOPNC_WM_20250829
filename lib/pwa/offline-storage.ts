@@ -14,7 +14,7 @@ export interface OfflineAction {
 
 export interface PendingData {
   id: string
-  data: any
+  data: unknown
   timestamp: string
   type: string
 }
@@ -29,7 +29,7 @@ class OfflineStorageManager {
   }
 
   // Store data for offline submission
-  async storePendingData(type: keyof typeof this.STORAGE_KEYS, data: any): Promise<string> {
+  async storePendingData(type: keyof typeof this.STORAGE_KEYS, data: unknown): Promise<string> {
     try {
       const storageKey = this.STORAGE_KEYS[type]
       const existing = this.getStoredData(storageKey)
@@ -123,7 +123,7 @@ class OfflineStorageManager {
   }
 
   // Cache data for offline access
-  cacheData(key: string, data: any, ttl?: number): void {
+  cacheData(key: string, data: unknown, ttl?: number): void {
     try {
       const cached = this.getStoredData(this.STORAGE_KEYS.CACHED_DATA)
       const cacheItem = {
@@ -134,7 +134,7 @@ class OfflineStorageManager {
       }
       
       // Remove existing entry if any
-      const filtered = cached.filter((item: any) => item.key !== key)
+      const filtered = cached.filter((item: unknown) => item.key !== key)
       filtered.push(cacheItem)
       
       localStorage.setItem(this.STORAGE_KEYS.CACHED_DATA, JSON.stringify(filtered))
@@ -144,10 +144,10 @@ class OfflineStorageManager {
   }
 
   // Get cached data
-  getCachedData(key: string): any | null {
+  getCachedData(key: string): unknown | null {
     try {
       const cached = this.getStoredData(this.STORAGE_KEYS.CACHED_DATA)
-      const item = cached.find((item: any) => item.key === key)
+      const item = cached.find((item: unknown) => item.key === key)
       
       if (!item) return null
       
@@ -168,7 +168,7 @@ class OfflineStorageManager {
   removeCachedData(key: string): void {
     try {
       const cached = this.getStoredData(this.STORAGE_KEYS.CACHED_DATA)
-      const filtered = cached.filter((item: any) => item.key !== key)
+      const filtered = cached.filter((item: unknown) => item.key !== key)
       localStorage.setItem(this.STORAGE_KEYS.CACHED_DATA, JSON.stringify(filtered))
     } catch (error) {
       console.error('Failed to remove cached data:', error)
@@ -203,7 +203,7 @@ class OfflineStorageManager {
       const cached = this.getStoredData(this.STORAGE_KEYS.CACHED_DATA)
       const now = Date.now()
       
-      const valid = cached.filter((item: any) => {
+      const valid = cached.filter((item: unknown) => {
         return now - item.timestamp <= item.ttl
       })
       
@@ -265,7 +265,7 @@ export const offlineStorage = new OfflineStorageManager()
 export async function submitDataOffline(
   url: string,
   method: string,
-  data: any,
+  data: unknown,
   type: 'daily-report' | 'attendance' | 'material-request' = 'general'
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   try {

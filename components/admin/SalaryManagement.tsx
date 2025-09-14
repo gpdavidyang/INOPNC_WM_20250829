@@ -1,12 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Profile } from '@/types'
-import DailySalaryCalculation from './salary/DailySalaryCalculation'
-import IndividualMonthlySalary from './salary/IndividualMonthlySalary'
-import SalaryStatementManager from './salary/SalaryStatementManager'
-import IndividualSalarySettings from './salary/IndividualSalarySettings'
-import SalaryStatsDashboard from './salary/SalaryStatsDashboard'
 
 interface SalaryManagementProps {
   profile: Profile

@@ -1,28 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  ArrowUpCircle,
-  ArrowDownCircle,
-  RefreshCw,
-  Download,
-  Calendar,
-  Search,
-  Filter,
-  FileText,
-  User,
-  Building2,
-  Package,
-  TrendingUp,
-  TrendingDown
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface Transaction {
   id: string
@@ -285,7 +262,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredTransactions.map((transaction: any) => (
+                {filteredTransactions.map((transaction: unknown) => (
                   <tr key={transaction.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <div>

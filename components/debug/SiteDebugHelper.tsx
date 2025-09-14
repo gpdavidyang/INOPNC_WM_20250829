@@ -1,12 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { getCurrentUserSiteWithAuth } from '@/app/actions/site-info-client'
-import { forceSiteRefresh } from '@/app/actions/force-site-refresh'
 
 export default function SiteDebugHelper() {
-  const [debug, setDebug] = useState<any>({})
+  const [debug, setDebug] = useState<unknown>({})
   const [isVisible, setIsVisible] = useState(false)
 
   const runDebugCheck = async () => {

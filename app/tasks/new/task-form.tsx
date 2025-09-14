@@ -1,13 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
-import Navbar from '@/components/navbar'
 
 interface TaskFormProps {
-  currentUser: any
-  currentProfile: any
+  currentUser: unknown
+  currentProfile: unknown
   projects: unknown[]
   users: unknown[]
 }

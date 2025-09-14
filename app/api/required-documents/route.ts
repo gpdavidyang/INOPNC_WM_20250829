@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -107,7 +105,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform database data to match expected format
-    const transformedData = requirements?.map((req: any) => ({
+    const transformedData = requirements?.map((req: unknown) => ({
       id: req.id,
       requirement_name: req.requirement_name,
       document_type: req.document_type,

@@ -1,16 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { 
-  X, Users, Clock, 
-  CheckCircle, Camera, ChevronRight
-} from 'lucide-react'
-import { formatDate, formatDateTime } from '@/lib/utils'
 
 interface WorkLogDetailModalProps {
   isOpen: boolean
   onClose: () => void
-  workLog: any
+  workLog: unknown
 }
 
 export default function WorkLogDetailModal({ isOpen, onClose, workLog }: WorkLogDetailModalProps) {

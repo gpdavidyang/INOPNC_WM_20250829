@@ -1,4 +1,3 @@
-import SiteInfoTabNew from '@/components/dashboard/tabs/site-info-tab-new'
 
 export default function TestSiteInfoNewPage() {
   return (

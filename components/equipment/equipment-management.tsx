@@ -1,41 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { 
-  Package,
-  Calendar,
-  Wrench,
-  Users,
-  Plus,
-  RefreshCw,
-  CheckCircle,
-  Clock,
-  AlertCircle
-} from 'lucide-react'
-import { Equipment, EquipmentCheckout, EquipmentStats } from '@/types/equipment'
-import { 
-  getEquipment, 
-  getEquipmentCategories, 
-  getEquipmentStats,
-  getEquipmentCheckouts
-} from '@/app/actions/equipment'
-import { getAllSites } from '@/app/actions/site-info'
-import { useToast } from '@/components/ui/use-toast'
-import { EquipmentList } from './equipment-list'
 import { EquipmentCheckoutDialog } from './equipment-checkout-dialog'
 import { EquipmentReturnDialog } from './equipment-return-dialog'
 import { ResourceAllocationComponent } from './resource-allocation'
-import { EquipmentMaintenanceComponent } from './equipment-maintenance'
-import { EquipmentCalendar } from './equipment-calendar'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface EquipmentManagementProps {
-  currentUser: any
+  currentUser: unknown
 }
 
 export function EquipmentManagement({ currentUser }: EquipmentManagementProps) {

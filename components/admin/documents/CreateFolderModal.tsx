@@ -1,9 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { X, Folder, Building2, FileText } from 'lucide-react'
 
 interface CreateFolderModalProps {
   category: string

@@ -1,12 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 import {
   Select,
   SelectContent,
@@ -14,22 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/custom-select'
-import { 
-  ChevronLeft,
-  ChevronRight,
-  Calendar,
-  Package,
-  Wrench,
-  User,
-  MapPin,
-  Clock,
-  AlertCircle
-} from 'lucide-react'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, addMonths, subMonths, getDay } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { Equipment, EquipmentCheckout, EquipmentMaintenance } from '@/types/equipment'
-import { getEquipment, getEquipmentCheckouts, getEquipmentMaintenance } from '@/app/actions/equipment'
-import { cn } from '@/lib/utils'
 
 interface CalendarEvent {
   id: string

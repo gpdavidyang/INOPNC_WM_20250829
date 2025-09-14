@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // GET /api/unified-documents/v2/[id] - 개별 문서 조회
 export async function GET(
@@ -237,7 +235,7 @@ export async function PUT(
     }
     
     // 변경 이력 기록
-    const changes: any = {}
+    const changes: unknown = {}
     Object.keys(updateData).forEach(key => {
       if (existingDoc[key] !== updateData[key]) {
         changes[key] = {

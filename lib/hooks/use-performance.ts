@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useRef, useCallback, useState } from 'react'
-import { performanceTracker } from '@/lib/monitoring/performance-metrics'
 import * as Sentry from '@sentry/nextjs'
 
 // Component performance metrics interface
@@ -85,7 +83,7 @@ export function useComponentPerformance(options: UsePerformanceOptions = {}) {
 
     // Memory tracking if enabled
     if (enableMemoryTracking && 'memory' in performance) {
-      const memoryInfo = (performance as any).memory
+      const memoryInfo = (performance as unknown).memory
       currentMetrics.memoryUsage = memoryInfo.usedJSHeapSize
       
       performanceTracker.recordMetric('componentMemoryUsage', memoryInfo.usedJSHeapSize, {

@@ -1,7 +1,3 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { canAccessDocumentCategory } from '@/lib/document-permissions'
-import PhotoGridDocumentsManagement from '@/components/admin/documents/PhotoGridDocumentsManagement'
 
 export default async function AdminPhotoGridDocumentsPage() {
   const supabase = createClient()
@@ -24,7 +20,7 @@ export default async function AdminPhotoGridDocumentsPage() {
     }
 
     // 사진대지문서함 접근 권한 확인
-    if (!canAccessDocumentCategory(profile.role as any, 'photo_grid')) {
+    if (!canAccessDocumentCategory(profile.role as unknown, 'photo_grid')) {
       redirect('/dashboard')
     }
 

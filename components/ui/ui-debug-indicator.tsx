@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getClientUserRole, isRoleMobileUI, isRoleDesktopUI } from '@/lib/auth/role-detection'
-import { Monitor, Smartphone, Settings } from 'lucide-react'
 
 /**
  * Debug indicator showing current UI mode

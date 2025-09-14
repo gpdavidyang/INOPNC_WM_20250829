@@ -1,8 +1,3 @@
-import { Suspense } from 'react'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { getProfile } from '@/app/actions/profile'
-import DashboardLayout from '@/components/dashboard/dashboard-layout'
 import { ProfilePageClient } from '@/components/profile/ProfilePageClient'
 
 export default async function ProfilePage() {

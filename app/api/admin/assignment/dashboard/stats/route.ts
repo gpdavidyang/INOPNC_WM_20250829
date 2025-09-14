@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +33,7 @@ export async function GET(request: NextRequest) {
       .select('user_id', { count: 'exact' })
       .eq('is_active', true)
 
-    const assignedUserIds = new Set(assignedUsersData?.map((a: any) => a.user_id) || [])
+    const assignedUserIds = new Set(assignedUsersData?.map((a: unknown) => a.user_id) || [])
     const assignedUsers = assignedUserIds.size
     const unassignedUsers = (totalUsers || 0) - assignedUsers
 

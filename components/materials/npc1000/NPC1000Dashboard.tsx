@@ -1,36 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Package,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  Calendar,
-  FileText,
-  PlusCircle,
-  BarChart3,
-  Activity,
-  Clock,
-  Building2
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useFontSize, getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 import type { Site } from '@/types'
 import type { NPC1000Data } from '@/types/materials'
-import { NPC1000InventoryManagement } from './NPC1000InventoryManagement'
-import { NPC1000TransactionHistory } from './NPC1000TransactionHistory'
-import { NPC1000Analytics } from './NPC1000Analytics'
 import { NPC1000RequestForm } from './NPC1000RequestForm'
 
 interface NPC1000DashboardProps {
   sites: Site[]
-  currentUser: any
+  currentUser: unknown
 }
 
 export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) {
@@ -103,7 +81,7 @@ export function NPC1000Dashboard({ sites, currentUser }: NPC1000DashboardProps) 
             className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
           >
             <option value="">현장 선택</option>
-            {sites.map((site: any) => (
+            {sites.map((site: unknown) => (
               <option key={site.id} value={site.id}>
                 {site.name}
               </option>

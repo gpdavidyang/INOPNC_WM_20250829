@@ -1,34 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { 
-  Wrench,
-  Calendar,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
-  Plus,
-  Filter,
-  Search
-} from 'lucide-react'
-import { Equipment, EquipmentMaintenance } from '@/types/equipment'
-import { 
-  getEquipment,
-  getEquipmentMaintenance,
-  getEquipmentCategories
-} from '@/app/actions/equipment'
-import { useToast } from '@/components/ui/use-toast'
-import { formatDate } from '@/lib/utils'
-import { EquipmentMaintenanceDialog } from './equipment-maintenance-dialog'
-import { EquipmentMaintenanceUpdateDialog } from './equipment-maintenance-update-dialog'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
 
 interface EquipmentMaintenanceProps {
-  currentUser: any
+  currentUser: unknown
 }
 
 export function EquipmentMaintenanceComponent({ currentUser }: EquipmentMaintenanceProps) {

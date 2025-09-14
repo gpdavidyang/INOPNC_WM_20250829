@@ -1,25 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { SharedDocument } from '@/types/shared-documents'
-import { Share2, Copy, Mail, Link, Users, Check, AlertCircle } from 'lucide-react'
 
-interface DocumentShareButtonProps {
-  document: SharedDocument
-  size?: 'sm' | 'md' | 'lg'
-  variant?: 'default' | 'outline' | 'ghost'
-  showLabel?: boolean
-  onShare?: () => void
-}
 
-export default function DocumentShareButton({
-  document,
-  size = 'md',
-  variant = 'default',
-  showLabel = false,
-  onShare
-}: DocumentShareButtonProps) {
+
+export default function DocumentShareButton({ children, variant = "primary", size = "md", disabled = false, loading = false, onClick, className, ...props }: ButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -217,4 +201,5 @@ export default function DocumentShareButton({
       )}
     </div>
   )
+import type { ButtonProps } from '@/types/components'
 }

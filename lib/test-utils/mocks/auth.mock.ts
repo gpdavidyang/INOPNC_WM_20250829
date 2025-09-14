@@ -5,8 +5,6 @@
  * with comprehensive cookie handling and error simulation.
  */
 
-import { User, Session, AuthResponse, AuthError } from '@supabase/supabase-js'
-import { faker } from '@faker-js/faker'
 import type { NextRequest, NextResponse } from 'next/server'
 import type { Profile } from '@/types'
 
@@ -49,7 +47,7 @@ export interface MockAuthResponse extends AuthResponse {
 }
 
 export interface MockCookieStore {
-  cookies: Map<string, { value: string; options?: any }>
+  cookies: Map<string, { value: string; options?: unknown }>
   getAll: jest.Mock
   get: jest.Mock
   set: jest.Mock
@@ -144,7 +142,7 @@ export function createMockAuthError(
 
 // Mock cookie store factory
 export function createMockCookieStore(): MockCookieStore {
-  const cookies = new Map<string, { value: string; options?: any }>()
+  const cookies = new Map<string, { value: string; options?: unknown }>()
   
   const mockStore = {
     cookies,
@@ -159,7 +157,7 @@ export function createMockCookieStore(): MockCookieStore {
       const cookie = cookies.get(name)
       return cookie ? { name, value: cookie.value, ...cookie.options } : undefined
     }),
-    set: jest.fn().mockImplementation((name: string, value: string, options?: any) => {
+    set: jest.fn().mockImplementation((name: string, value: string, options?: unknown) => {
       cookies.set(name, { value, options })
     }),
     delete: jest.fn().mockImplementation((name: string) => {

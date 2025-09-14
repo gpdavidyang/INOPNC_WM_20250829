@@ -1,21 +1,5 @@
 'use client'
 
-import { 
-  X, 
-  Edit, 
-  Building2,
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  CreditCard,
-  FileText,
-  Calendar,
-  Hash,
-  Briefcase
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface Organization {
   id: string

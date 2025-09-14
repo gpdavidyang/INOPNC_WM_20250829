@@ -5,32 +5,6 @@
  * auth helpers, render helpers, async helpers, and test data builders.
  */
 
-import React from 'react'
-import { screen, waitFor, userEvent } from '@testing-library/react'
-import {
-  // Auth helpers
-  mockAuthState,
-  createMockProfile,
-  authScenarios,
-  
-  // Render helpers
-  renderWithProviders,
-  renderForWorker,
-  renderForManager,
-  renderForAdmin,
-  renderUnauthenticated,
-  
-  // Async helpers
-  waitForLoadingToFinish,
-  waitForElement,
-  waitForFormSubmission,
-  asyncTestUtils,
-  
-  // Test data builders
-  ProfileBuilder,
-  TestScenarioBuilder,
-  quickBuilders
-} from '@/lib/test-utils'
 
 // Example 1: Testing with different auth states
 export function testAuthStates() {

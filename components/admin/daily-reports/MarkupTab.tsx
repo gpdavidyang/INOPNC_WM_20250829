@@ -1,21 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Upload, 
-  Download, 
-  Trash2, 
-  FileImage,
-  Eye,
-  X,
-  CheckCircle,
-  AlertTriangle,
-  PenTool,
-  ZoomIn
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface MarkupFile {
   id: string
@@ -28,14 +12,14 @@ interface MarkupFile {
   created_at: string
   created_by: string
   title?: string
-  metadata?: any
+  metadata?: unknown
 }
 
 interface MarkupTabProps {
   reportId: string
   isEditing: boolean
   onSaveComplete?: () => void
-  reportData?: any // Daily report data for auto-population
+  reportData?: unknown // Daily report data for auto-population
 }
 
 export default function MarkupTab({ 

@@ -1,13 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Users, UserPlus, UserMinus, Search, Filter, 
-  CheckCircle, XCircle, AlertCircle, Building2,
-  Phone, Mail, Calendar, Shield, HardHat, User
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface Worker {
   id: string

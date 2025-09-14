@@ -1,20 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Site, Profile, SiteAssignment } from '@/types'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Building2, Edit, Users, MapPin, Calendar, Phone, User, Home, Wrench, Save, X } from 'lucide-react'
-import { toast } from '@/hooks/use-toast'
-import { getSiteAssignments, updateSite } from '@/app/actions/admin/sites'
 import AssignWorkerModal from './modals/AssignWorkerModal'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
 
 interface SiteUnifiedManagementProps {
   site: Site
@@ -395,7 +381,7 @@ function SiteEditTab({
         name: formData.name,
         address: formData.address,
         description: formData.description || null,
-        status: formData.status as any,
+        status: formData.status as unknown,
         start_date: formData.start_date,
         end_date: formData.end_date || null,
         manager_name: formData.manager_name || null,

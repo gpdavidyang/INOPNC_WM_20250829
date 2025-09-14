@@ -1,8 +1,3 @@
-import { Suspense } from 'react'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { BackupDashboard } from '@/components/backup/BackupDashboard'
-import { Card } from '@/components/ui/card'
 
 export default async function BackupPage() {
   const supabase = createClient()

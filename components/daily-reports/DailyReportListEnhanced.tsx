@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { 
   CustomSelect,
   CustomSelectContent,
@@ -12,44 +7,9 @@ import {
   CustomSelectTrigger,
   CustomSelectValue,
 } from '@/components/ui/custom-select'
-import {
-  Calendar,
-  Search,
-  Filter,
-  Download,
-  RefreshCw,
-  Plus,
-  FileText,
-  Users,
-  Package,
-  TrendingUp,
-  Building2,
-  CheckCircle,
-  XCircle,
-  Clock,
-  AlertTriangle,
-  BarChart3,
-  PieChart,
-  X
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format, startOfMonth, endOfMonth, subDays } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 import type { DailyReport, Site, Profile } from '@/types'
-import Link from 'next/link'
-import { showErrorNotification } from '@/lib/error-handling'
-import { getDailyReports } from '@/app/actions/daily-reports'
-import { searchDailyReports, getQuickFilterResults } from '@/app/actions/search'
-import { CompactReportCard } from './CompactReportCard'
 import { DailyReportDetailDialog } from './DailyReportDetailDialog'
-import { ExportButton } from '@/components/export/export-button'
-import { SearchInterface } from '@/components/search/SearchInterface'
-import { dailyReportSearchConfig } from '@/lib/search/daily-report-config'
 import type { SearchOptions, SearchResult } from '@/lib/search/types'
-import { ViewToggle, useViewMode, CardView, ListView } from '@/components/ui/view-toggle'
-import { useSortableData } from '@/components/ui/sortable-table'
 import type { SortConfig } from '@/components/ui/sortable-table'
 
 interface DailyReportListEnhancedProps {
@@ -186,7 +146,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
   const loadReports = useCallback(async () => {
     setLoading(true)
     try {
-      const filters: any = {}
+      const filters: unknown = {}
       
       if (selectedSite !== 'all') {
         filters.site_id = selectedSite
@@ -216,7 +176,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         setReports(reportData)
 
         // Calculate stats
-        const statsData = reportData.reduce((acc: any, report: any) => {
+        const statsData = reportData.reduce((acc: unknown, report: unknown) => {
           acc.totalReports++
           acc[`${report.status}Reports` as keyof ReportStats]++
           acc.totalWorkers += report.total_workers || 0
@@ -284,7 +244,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         setReports(result.data.items)
         
         // Calculate stats for search results
-        const statsData = result.data.items.reduce((acc: any, report: any) => {
+        const statsData = result.data.items.reduce((acc: unknown, report: unknown) => {
           acc.totalReports++
           acc[`${report.status}Reports` as keyof ReportStats]++
           acc.totalWorkers += report.total_workers || 0
@@ -330,7 +290,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
         setReports(result.data.items)
         
         // Calculate stats for filtered results
-        const statsData = result.data.items.reduce((acc: any, report: any) => {
+        const statsData = result.data.items.reduce((acc: unknown, report: unknown) => {
           acc.totalReports++
           acc[`${report.status}Reports` as keyof ReportStats]++
           acc.totalWorkers += report.total_workers || 0
@@ -400,7 +360,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       sortable: true,
       render: (value: string, report: DailyReport) => {
         // report.site가 join으로 이미 포함되어 있음
-        const siteName = (report as any).site?.name || sites?.find(s => s.id === value)?.name || '미지정'
+        const siteName = (report as unknown).site?.name || sites?.find(s => s.id === value)?.name || '미지정'
         return (
           <div className="text-sm text-gray-900 dark:text-gray-100">
             {siteName}
@@ -467,7 +427,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       label: '작업',
       width: '120px',
       align: 'center' as const,
-      render: (value: any, report: DailyReport) => {
+      render: (value: unknown, report: DailyReport) => {
         const canEdit = currentUser.id === report.created_by && report.status === 'draft'
         return (
           <div className="flex items-center justify-center gap-2">
@@ -584,7 +544,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
                 <CustomSelectContent>
                   <CustomSelectItem value="all">전체 현장</CustomSelectItem>
                   {sites && sites.length > 0 ? (
-                    sites.map((site: any) => (
+                    sites.map((site: unknown) => (
                       <CustomSelectItem key={site.id} value={site.id}>
                         {site.name}
                       </CustomSelectItem>
@@ -836,7 +796,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       ) : viewMode === 'card' ? (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {sortedReports.map((report: any) => {
+            {sortedReports.map((report: unknown) => {
               // report.site가 join으로 이미 포함되어 있음
               const site = report.site || sites?.find(s => s.id === report.site_id)
               const canEdit = currentUser.id === report.created_by && report.status === 'draft'
@@ -872,7 +832,7 @@ export function DailyReportListEnhanced({ currentUser, sites = [] }: DailyReport
       {/* Detail Dialog */}
       <DailyReportDetailDialog
         report={selectedReport}
-        site={selectedReport ? (selectedReport as any).site || sites?.find(s => s.id === selectedReport.site_id) : undefined}
+        site={selectedReport ? (selectedReport as unknown).site || sites?.find(s => s.id === selectedReport.site_id) : undefined}
         currentUser={currentUser}
         open={showDetailDialog}
         onOpenChange={setShowDetailDialog}

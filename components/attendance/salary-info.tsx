@@ -1,30 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  DollarSign,
-  Building2,
-  Calendar,
-  Download,
-  FileText,
-  TrendingUp,
-  Users,
-  Wallet,
-  CreditCard,
-  Receipt
-} from 'lucide-react'
-import { getSalaryInfo, getCompanySalarySummary, getPayslips } from '@/app/actions/salary'
-import { getSites } from '@/app/actions/sites'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useFontSize, getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 
 interface SalaryInfoProps {
-  profile: any
+  profile: unknown
   isPartnerView?: boolean
 }
 
@@ -109,7 +88,7 @@ export function SalaryInfo({ profile, isPartnerView }: SalaryInfoProps) {
         })
         
         if (result.success && result.data) {
-          setSalaryData((result.data.details || []) as any)
+          setSalaryData((result.data.details || []) as unknown)
           setCompanySummary({
             totalWorkers: result.data.totalWorkers || 0,
             totalAmount: result.data.totalAmount || 0,
@@ -132,7 +111,7 @@ export function SalaryInfo({ profile, isPartnerView }: SalaryInfoProps) {
         ])
         
         if (salaryResult.success && salaryResult.data) {
-          setSalaryData(salaryResult.data as any)
+          setSalaryData(salaryResult.data as unknown)
         }
         
         if (payslipResult.success && payslipResult.data) {
@@ -170,9 +149,9 @@ export function SalaryInfo({ profile, isPartnerView }: SalaryInfoProps) {
   }
 
   // Calculate totals for individual view
-  const totalSalary = salaryData.reduce((sum: any, item: any) => sum + item.net_salary, 0)
-  const totalDays = salaryData.reduce((sum: any, item: any) => sum + item.total_days, 0)
-  const totalHours = salaryData.reduce((sum: any, item: any) => sum + item.total_hours, 0)
+  const totalSalary = salaryData.reduce((sum: unknown, item: unknown) => sum + item.net_salary, 0)
+  const totalDays = salaryData.reduce((sum: unknown, item: unknown) => sum + item.total_days, 0)
+  const totalHours = salaryData.reduce((sum: unknown, item: unknown) => sum + item.total_hours, 0)
 
   return (
     <div className="space-y-6">
@@ -349,7 +328,7 @@ export function SalaryInfo({ profile, isPartnerView }: SalaryInfoProps) {
                     <td className="py-3 px-4">
                       {isPartnerView ? (
                         <div>
-                          <p className="font-medium">{(item as any).worker_name}</p>
+                          <p className="font-medium">{(item as unknown).worker_name}</p>
                           <p className="text-sm text-gray-600 dark:text-gray-400">{item.site_name}</p>
                         </div>
                       ) : (
@@ -404,7 +383,7 @@ export function SalaryInfo({ profile, isPartnerView }: SalaryInfoProps) {
           </h3>
           
           <div className="space-y-3">
-            {payslips.map((payslip: any) => (
+            {payslips.map((payslip: unknown) => (
               <div
                 key={payslip.id}
                 className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"

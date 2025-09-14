@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 
 // POST /api/photo-grid-reports/bulk - 벌크 작업 (삭제, 상태 변경 등)
 export async function POST(request: NextRequest) {
@@ -25,7 +24,7 @@ export async function POST(request: NextRequest) {
     let results: unknown[] = []
 
     switch (action) {
-      case 'delete':
+      case 'delete': {
         // 벌크 소프트 삭제
         const { error: deleteError } = await supabase
           .from('photo_grid_reports')
@@ -43,10 +42,11 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map((id: any) => ({ id, action: 'deleted', success: true }))
+        results = reportIds.map((id: unknown) => ({ id, action: 'deleted', success: true }))
         break
 
-      case 'archive':
+}
+      case 'archive': {
         // 벌크 아카이브
         const { error: archiveError } = await supabase
           .from('photo_grid_reports')
@@ -64,10 +64,11 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map((id: any) => ({ id, action: 'archived', success: true }))
+        results = reportIds.map((id: unknown) => ({ id, action: 'archived', success: true }))
         break
 
-      case 'restore':
+}
+      case 'restore': {
         // 벌크 복원 (삭제된 것을 활성으로)
         const { error: restoreError } = await supabase
           .from('photo_grid_reports')
@@ -86,10 +87,11 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map((id: any) => ({ id, action: 'restored', success: true }))
+        results = reportIds.map((id: unknown) => ({ id, action: 'restored', success: true }))
         break
 
-      case 'permanent_delete':
+}
+      case 'permanent_delete': {
         // 벌크 영구 삭제 (시스템 관리자만 가능)
         const { data: profile } = await supabase
           .from('profiles')
@@ -118,7 +120,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Storage에서 파일들 삭제
-        const filePaths = reports.map((r: any) => `photo-grid-reports/${r.file_name}`)
+        const filePaths = reports.map((r: unknown) => `photo-grid-reports/${r.file_name}`)
         const { error: storageError } = await supabase.storage
           .from('documents')
           .remove(filePaths)
@@ -142,10 +144,11 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map((id: any) => ({ id, action: 'permanently_deleted', success: true }))
+        results = reportIds.map((id: unknown) => ({ id, action: 'permanently_deleted', success: true }))
         break
 
-      case 'update_metadata':
+}
+      case 'update_metadata': {
         // 벌크 메타데이터 업데이트
         if (!actionData) {
           return NextResponse.json(
@@ -156,11 +159,11 @@ export async function POST(request: NextRequest) {
 
         const allowedFields = ['title', 'notes', 'status']
         const updates = Object.keys(actionData)
-          .filter((key: any) => allowedFields.includes(key))
-          .reduce((obj: any, key: any) => {
+          .filter((key: unknown) => allowedFields.includes(key))
+          .reduce((obj: unknown, key: unknown) => {
             obj[key] = actionData[key]
             return obj
-          }, {} as any)
+          }, {} as unknown)
 
         if (Object.keys(updates).length === 0) {
           return NextResponse.json(
@@ -184,9 +187,10 @@ export async function POST(request: NextRequest) {
           )
         }
 
-        results = reportIds.map((id: any) => ({ id, action: 'updated', success: true, updates }))
+        results = reportIds.map((id: unknown) => ({ id, action: 'updated', success: true, updates }))
         break
 
+}
       default:
         return NextResponse.json(
           { error: `지원하지 않는 작업입니다: ${action}` },
@@ -198,7 +202,7 @@ export async function POST(request: NextRequest) {
       message: `벌크 ${action} 작업이 완료되었습니다.`,
       results,
       total: reportIds.length,
-      successful: results.filter((r: any) => r.success).length
+      successful: results.filter((r: unknown) => r.success).length
     })
   } catch (error) {
     console.error('API 오류:', error)

@@ -1,13 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Calendar, Building2, Search, Download, TrendingUp, 
-  TrendingDown, Package, AlertTriangle, FileText,
-  ChevronUp, ChevronDown, ChevronsUpDown
-} from 'lucide-react'
 
 interface InventoryUsageTabProps {
   profile: Profile
@@ -131,7 +123,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
             aggregatedData.set(key, {
               id: key,
               site_id: trans.site_id,
-              site_name: (trans as any).sites?.name || '알 수 없음',
+              site_name: (trans as unknown).sites?.name || '알 수 없음',
               work_date: trans.transaction_date,
               incoming: 0,
               used: 0,
@@ -235,8 +227,8 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
   }
 
   const sortedData = [...inventoryData].sort((a, b) => {
-    let aValue: any = a[sortField]
-    let bValue: any = b[sortField]
+    let aValue: unknown = a[sortField]
+    let bValue: unknown = b[sortField]
     
     if (sortField === 'status') {
       const statusOrder = { critical: 0, low: 1, normal: 2 }

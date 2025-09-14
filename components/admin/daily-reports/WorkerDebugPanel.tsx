@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { AlertCircle, CheckCircle, Loader } from 'lucide-react'
 
 interface WorkerDebugPanelProps {
   reportId: string
@@ -10,7 +8,7 @@ interface WorkerDebugPanelProps {
 
 export default function WorkerDebugPanel({ reportId, onClose }: WorkerDebugPanelProps) {
   const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<any>(null)
+  const [testResult, setTestResult] = useState<unknown>(null)
   const [error, setError] = useState<string | null>(null)
 
   const runServerSideTest = async () => {

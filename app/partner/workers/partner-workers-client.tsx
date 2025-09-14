@@ -1,17 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Profile } from '@/types'
-import { 
-  Users, User, Phone, Mail, Building2, Calendar,
-  Search, Filter, ChevronRight, HardHat, Briefcase,
-  CheckCircle, AlertCircle, Clock
-} from 'lucide-react'
-import Link from 'next/link'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 interface PartnerWorkersClientProps {
-  profile: Profile & { partner_companies?: any }
+  profile: Profile & { partner_companies?: unknown }
   workers: {
     site_managers: unknown[]
     workers: unknown[]
@@ -58,11 +49,11 @@ export default function PartnerWorkersClient({
     // Status filter
     if (statusFilter === 'active') {
       filtered = filtered.filter(w => 
-        w.site_assignments?.some((a: any) => a.is_active)
+        w.site_assignments?.some((a: unknown) => a.is_active)
       )
     } else if (statusFilter === 'inactive') {
       filtered = filtered.filter(w => 
-        !w.site_assignments?.some((a: any) => a.is_active)
+        !w.site_assignments?.some((a: unknown) => a.is_active)
       )
     }
 
@@ -74,7 +65,7 @@ export default function PartnerWorkersClient({
   // Statistics
   const totalWorkers = workers.all.length
   const activeWorkers = workers.all.filter(w => 
-    w.site_assignments?.some((a: any) => a.is_active)
+    w.site_assignments?.some((a: unknown) => a.is_active)
   ).length
   const siteManagers = workers.site_managers.length
 
@@ -208,7 +199,7 @@ export default function PartnerWorkersClient({
           {/* Role Filter */}
           <select
             value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value as any)}
+            onChange={(e) => setRoleFilter(e.target.value as unknown)}
             className={`px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg ${
               getTypographyClass('body', 'sm')
             } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
@@ -221,7 +212,7 @@ export default function PartnerWorkersClient({
           {/* Status Filter */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+            onChange={(e) => setStatusFilter(e.target.value as unknown)}
             className={`px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg ${
               getTypographyClass('body', 'sm')
             } bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
@@ -240,7 +231,7 @@ export default function PartnerWorkersClient({
             {filteredWorkers.map((worker) => {
               const attendanceStatus = getAttendanceStatus(worker.id)
               const AttendanceIcon = attendanceStatus.icon
-              const activeSite = worker.site_assignments?.find((a: any) => a.is_active)
+              const activeSite = worker.site_assignments?.find((a: unknown) => a.is_active)
 
               return (
                 <div key={worker.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">

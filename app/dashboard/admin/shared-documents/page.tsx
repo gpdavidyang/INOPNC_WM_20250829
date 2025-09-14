@@ -1,6 +1,4 @@
 import DocumentManagement from '@/components/admin/DocumentManagement'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export default async function SharedDocumentsManagementPage() {
   const supabase = createClient()

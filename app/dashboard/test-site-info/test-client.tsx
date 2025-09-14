@@ -1,11 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { getCurrentUserSite, forceAssignCurrentUserToTestSite } from '@/app/actions/site-info'
 
 interface TestSiteInfoClientProps {
-  initialCurrentSite: any
-  initialHistory: any
+  initialCurrentSite: unknown
+  initialHistory: unknown
 }
 
 export default function TestSiteInfoClient({ initialCurrentSite, initialHistory }: TestSiteInfoClientProps) {

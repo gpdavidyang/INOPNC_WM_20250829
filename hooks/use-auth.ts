@@ -1,9 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { User } from '@supabase/supabase-js'
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null)

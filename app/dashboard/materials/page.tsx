@@ -1,11 +1,5 @@
 import { Suspense } from 'react'
-import { getMaterials, getMaterialCategories, getMaterialInventory } from '@/app/actions/materials'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { PageLayout } from '@/components/dashboard/page-layout'
 import { MaterialManagement } from '@/components/materials/material-management'
-import { getProfile } from '@/app/actions/profile'
-import { getCurrentUserSite } from '@/app/actions/site-info'
-import { redirect } from 'next/navigation'
 
 export default async function MaterialsPage() {
   const profileResult = await getProfile()

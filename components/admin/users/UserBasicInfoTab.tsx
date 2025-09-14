@@ -1,11 +1,8 @@
 'use client'
 
-import { User, Mail, Phone, Shield, Building, Calendar, ClipboardCheck, FileText, Activity, CheckCircle } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface UserBasicInfoTabProps {
-  user: any
+  user: unknown
   statistics: {
     total_sites: number
     total_daily_reports: number
@@ -271,7 +268,7 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
                 </tr>
               </thead>
               <tbody>
-                {user.site_assignments.map((assignment: any, index: number) => (
+                {user.site_assignments.map((assignment: unknown, index: number) => (
                   <tr key={index} className="border-b border-gray-100 dark:border-gray-700">
                     <td className="py-2 px-4 text-sm text-gray-900 dark:text-gray-100">
                       {assignment.site_name}

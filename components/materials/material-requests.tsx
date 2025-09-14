@@ -1,26 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { 
-  FileText,
-  Plus,
-  Calendar,
-  Building2,
-  User,
-  AlertCircle,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Package,
-  Truck,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -29,20 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { 
-  createMaterialRequest, 
-  getMaterialRequests,
-  updateMaterialRequestStatus 
-} from '@/app/actions/materials'
-import { getSites } from '@/app/actions/sites'
-import { toast } from '@/components/ui/use-toast'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface MaterialRequestsProps {
   materials: unknown[]
-  currentUser: any
-  currentSite?: any
+  currentUser: unknown
+  currentSite?: unknown
 }
 
 export function MaterialRequests({ materials, currentUser, currentSite }: MaterialRequestsProps) {
@@ -82,7 +53,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
   const loadRequests = async () => {
     setLoading(true)
     try {
-      const filters: any = {}
+      const filters: unknown = {}
       if (selectedSite) filters.site_id = selectedSite
       if (statusFilter !== 'all') filters.status = statusFilter
 
@@ -161,7 +132,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
     })
   }
 
-  const updateRequestItem = (index: number, field: string, value: any) => {
+  const updateRequestItem = (index: number, field: string, value: unknown) => {
     const newItems = [...requestForm.items]
     newItems[index] = { ...newItems[index], [field]: value }
     setRequestForm({ ...requestForm, items: newItems })
@@ -208,7 +179,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
     }
   }
 
-  const handleStatusUpdate = async (requestId: string, newStatus: any, notes?: string) => {
+  const handleStatusUpdate = async (requestId: string, newStatus: unknown, notes?: string) => {
     try {
       const result = await updateMaterialRequestStatus(requestId, newStatus, notes)
       if (result.success) {
@@ -357,7 +328,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
                   <div className="mb-4">
                     <h4 className="text-sm font-medium text-gray-700 mb-2">요청 품목</h4>
                     <div className="space-y-2">
-                      {request.items?.map((item: any, index: number) => (
+                      {request.items?.map((item: unknown, index: number) => (
                         <div key={index} className="flex items-center justify-between p-2 bg-white rounded border border-gray-200">
                           <div className="flex-1">
                             <p className="font-medium text-sm">{item.material?.name}</p>
@@ -477,7 +448,7 @@ export function MaterialRequests({ materials, currentUser, currentSite }: Materi
               <select
                 id="priority"
                 value={requestForm.priority}
-                onChange={(e) => setRequestForm({ ...requestForm, priority: e.target.value as any })}
+                onChange={(e) => setRequestForm({ ...requestForm, priority: e.target.value as unknown })}
                 className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               >
                 <option value="low">낮음</option>

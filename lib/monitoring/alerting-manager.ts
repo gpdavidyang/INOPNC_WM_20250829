@@ -4,7 +4,6 @@
  */
 
 import * as Sentry from '@sentry/nextjs'
-import { createClient } from '@/lib/supabase/client'
 
 export enum AlertChannel {
   EMAIL = 'EMAIL',

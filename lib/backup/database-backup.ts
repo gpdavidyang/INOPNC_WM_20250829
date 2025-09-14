@@ -1,11 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { logError, AppError } from '@/lib/error-handling'
 import type { DatabaseBackupOptions, BackupJob, BackupLocation } from './types'
-import { promises as fs } from 'fs'
-import path from 'path'
-import { spawn } from 'child_process'
-import { createGzip } from 'zlib'
-import { pipeline } from 'stream/promises'
 
 export class DatabaseBackupService {
   private supabase = createClient()
@@ -240,7 +233,7 @@ export class DatabaseBackupService {
     for (const table of tables) {
       try {
         // Check if table has records modified since last backup
-        const { data, error } = await (this.supabase as any)
+        const { data, error } = await (this.supabase as unknown)
           .from(table)
           .select('id')
           .gte('updated_at', since)
@@ -267,7 +260,7 @@ export class DatabaseBackupService {
 
     for (const table of tables) {
       try {
-        const { data, error } = await (this.supabase as any)
+        const { data, error } = await (this.supabase as unknown)
           .from(table)
           .select('*')
           .gte('updated_at', since)

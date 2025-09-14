@@ -1,7 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 const log = (...args: unknown[]) => {
   console.log('[SITE-INFO-DIRECT]', ...args)
@@ -175,7 +173,7 @@ export async function getUserSiteHistoryDirect(userId?: string) {
       return { success: false, error: error.message }
     }
     
-    const history = assignments?.map((a: any) => ({
+    const history = assignments?.map((a: unknown) => ({
       site_id: a.sites?.id,
       site_name: a.sites?.name,
       site_address: a.sites?.address,

@@ -1,13 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Calendar as CalendarIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface DateRange {
   from: Date
@@ -46,7 +38,7 @@ export function DateRangePicker({
     }
   }
 
-  const handleSelect = (range: any) => {
+  const handleSelect = (range: unknown) => {
     if (range?.from && range?.to) {
       onChange({
         from: range.from,

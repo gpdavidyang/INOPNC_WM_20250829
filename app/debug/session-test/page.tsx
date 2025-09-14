@@ -1,8 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { signInWithSync, syncSession } from '@/lib/supabase/session-sync'
 
 export default function SessionTestPage() {
   const [results, setResults] = useState<string[]>([])

@@ -52,32 +52,32 @@ class Logger {
     return true
   }
 
-  debug(message: string, data?: any, module?: keyof LoggerConfig['modules']) {
+  debug(message: string, data?: unknown, module?: keyof LoggerConfig['modules']) {
     if (this.shouldLog('debug', module)) {
       console.debug(`[DEBUG]${module ? `[${module.toUpperCase()}]` : ''}`, message, data || '')
     }
   }
 
-  info(message: string, data?: any, module?: keyof LoggerConfig['modules']) {
+  info(message: string, data?: unknown, module?: keyof LoggerConfig['modules']) {
     if (this.shouldLog('info', module)) {
       console.info(`[INFO]${module ? `[${module.toUpperCase()}]` : ''}`, message, data || '')
     }
   }
 
-  warn(message: string, data?: any, module?: keyof LoggerConfig['modules']) {
+  warn(message: string, data?: unknown, module?: keyof LoggerConfig['modules']) {
     if (this.shouldLog('warn', module)) {
       console.warn(`[WARN]${module ? `[${module.toUpperCase()}]` : ''}`, message, data || '')
     }
   }
 
-  error(message: string, error?: any, module?: keyof LoggerConfig['modules']) {
+  error(message: string, error?: unknown, module?: keyof LoggerConfig['modules']) {
     if (this.shouldLog('error', module)) {
       console.error(`[ERROR]${module ? `[${module.toUpperCase()}]` : ''}`, message, error || '')
     }
   }
 
   // Special method for production-safe logging
-  production(message: string, data?: any) {
+  production(message: string, data?: unknown) {
     if (process.env.NODE_ENV === 'production' && this.config.level === 'error') {
       // Only log critical errors in production
       return

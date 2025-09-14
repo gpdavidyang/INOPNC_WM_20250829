@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export default async function TestPermissionsPage() {
   const supabase = createClient()
@@ -104,7 +102,7 @@ export default async function TestPermissionsPage() {
   )
 }
 
-async function testQuery(supabase: any, table: string, operation: string, data?: any, filter?: any) {
+async function testQuery(supabase: unknown, table: string, operation: string, data?: unknown, filter?: unknown) {
   try {
     let query = supabase.from(table)
     

@@ -1,7 +1,6 @@
 'use client'
 
 import React, { forwardRef, ReactNode } from 'react'
-import { cn } from '@/lib/utils'
 
 export interface LiveRegionProps {
   children: ReactNode

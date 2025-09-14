@@ -1,14 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { NotificationHistory } from './notification-history'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 import {
   Select,
   SelectContent,
@@ -16,37 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/custom-select'
-import {
-  Bell,
-  Search,
-  CheckCheck,
-  Trash2,
-  RefreshCw,
-  AlertCircle,
-  CheckCircle,
-  Info,
-  AlertTriangle,
-  BellOff,
-  Loader2,
-  Filter,
-  X,
-  Mail,
-  Archive,
-  MailOpen,
-  History,
-  Settings
-} from 'lucide-react'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
 import type { NotificationExtended, NotificationType, NotificationFilter } from '@/types/notifications'
-import {
-  getNotifications,
-  markNotificationAsRead,
-  markAllNotificationsAsRead,
-  deleteNotification
-} from '@/app/actions/notifications'
-import { toast } from 'sonner'
 import { NotificationSettings } from './notification-settings'
 
 export function NotificationsContent() {

@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useTheme } from 'next-themes'
-import { useAuthContext } from '@/providers/auth-provider'
 
 export function ThemeInitializer() {
   const { setTheme } = useTheme()

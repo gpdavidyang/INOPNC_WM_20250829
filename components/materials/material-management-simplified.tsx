@@ -6,8 +6,8 @@ interface MaterialManagementSimplifiedProps {
   materials: unknown[]
   categories: unknown[]
   initialInventory: unknown[]
-  currentUser: any
-  currentSite?: any
+  currentUser: unknown
+  currentSite?: unknown
 }
 
 export function MaterialManagementSimplified({ 

@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Download, X } from 'lucide-react'
 
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[]
@@ -26,7 +24,7 @@ export function InstallPrompt() {
 
     // iOS detection
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-    const isInStandaloneMode = (window.navigator as any).standalone
+    const isInStandaloneMode = (window.navigator as unknown).standalone
 
     if (isIOS && isInStandaloneMode) {
       setIsInstalled(true)
@@ -140,7 +138,7 @@ export function useIsInstalled() {
 
       // iOS check
       const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-      const isInStandaloneMode = (window.navigator as any).standalone
+      const isInStandaloneMode = (window.navigator as unknown).standalone
       
       return isIOS && isInStandaloneMode
     }

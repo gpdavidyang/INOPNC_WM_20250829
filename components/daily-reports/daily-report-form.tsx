@@ -1,56 +1,5 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { createDailyReport, submitDailyReport, updateDailyReport } from '@/app/actions/daily-reports'
-import { uploadPhotoToStorage } from '@/app/actions/simple-upload'
-import { addBulkAttendance } from '@/app/actions/attendance'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Card } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { CustomSelect, CustomSelectContent, CustomSelectItem, CustomSelectTrigger, CustomSelectValue } from '@/components/ui/custom-select'
-import { 
-  Calendar, 
-  Cloud, 
-  Thermometer, 
-  Plus, 
-  Trash2, 
-  Save, 
-  Send,
-  Upload,
-  Users,
-  Package,
-  Clock,
-  ChevronDown,
-  ChevronUp,
-  MapPin,
-  FileText,
-  Camera,
-  Receipt,
-  Map,
-  MessageSquare,
-  AlertCircle,
-  Check,
-  X,
-  Image as ImageIcon,
-  MoreHorizontal,
-  FolderOpen,
-  CameraIcon,
-  Eye,
-  ArrowLeft,
-  Settings,
-  Shield
-} from 'lucide-react'
-import { Site, Profile, Material, DailyReport } from '@/types'
-import { AdditionalPhotoData } from '@/types/daily-reports'
-import AdditionalPhotoUploadSection from './additional-photo-upload-section'
-import { cn } from '@/lib/utils'
-import { showErrorNotification } from '@/lib/error-handling'
-import { toast } from 'sonner'
-import { useWorkOptions } from '@/hooks/use-work-options'
 
 // 통합된 Props 인터페이스
 interface DailyReportFormProps {
@@ -60,9 +9,9 @@ interface DailyReportFormProps {
   materials?: Material[]
   workers?: Profile[]
   reportData?: DailyReport & {
-    site?: any
+    site?: unknown
     work_logs?: unknown[]
-    weather_conditions?: any
+    weather_conditions?: unknown
     photo_groups?: unknown[]
     worker_entries?: unknown[]
     receipts?: unknown[]
@@ -267,7 +216,7 @@ export default function DailyReportForm({
   const [formData, setFormData] = useState(() => {
     if (mode === 'edit' && reportData) {
       return {
-        site_id: reportData.site_id || (currentUser as any).site_id || '',
+        site_id: reportData.site_id || (currentUser as unknown).site_id || '',
         partner_company_id: reportData.partner_company_id || '',
         work_date: reportData.work_date || new Date().toISOString().split('T')[0],
         member_name: reportData.member_name || '',
@@ -285,7 +234,7 @@ export default function DailyReportForm({
       }
     }
     return {
-      site_id: (currentUser as any).site_id || '',
+      site_id: (currentUser as unknown).site_id || '',
       partner_company_id: '',
       work_date: new Date().toISOString().split('T')[0],
       member_name: '',
@@ -363,7 +312,7 @@ export default function DailyReportForm({
   // Work content entries
   const [workEntries, setWorkEntries] = useState<WorkContentEntry[]>(() => {
     if (mode === 'edit' && reportData?.work_logs?.length) {
-      return reportData.work_logs.map((log: any) => ({
+      return reportData.work_logs.map((log: unknown) => ({
         id: log.id || `work-${Date.now()}`,
         memberName: log.component_type || '',
         memberNameOther: log.component_type_other || '',
@@ -393,7 +342,7 @@ export default function DailyReportForm({
   // Worker entries
   const [workerEntries, setWorkerEntries] = useState<WorkerEntry[]>(() => {
     if (mode === 'edit' && reportData?.worker_entries?.length) {
-      return reportData.worker_entries.map((entry: any) => ({
+      return reportData.worker_entries.map((entry: unknown) => ({
         id: entry.id || `worker-${Date.now()}`,
         worker_id: entry.worker_id || '',
         labor_hours: entry.labor_hours || 0,
@@ -413,7 +362,7 @@ export default function DailyReportForm({
   // Receipt entries
   const [receiptEntries, setReceiptEntries] = useState<ReceiptEntry[]>(() => {
     if (mode === 'edit' && reportData?.receipts?.length) {
-      return reportData.receipts.map((receipt: any) => ({
+      return reportData.receipts.map((receipt: unknown) => ({
         id: receipt.id || `receipt-${Date.now()}`,
         category: receipt.category || '',
         amount: receipt.amount || '',
@@ -451,7 +400,7 @@ export default function DailyReportForm({
   // Additional photos
   const [additionalPhotos, setAdditionalPhotos] = useState<AdditionalPhotoData[]>(() => {
     if (mode === 'edit' && reportData?.additional_photos?.length) {
-      return reportData.additional_photos.map((photo: any) => ({
+      return reportData.additional_photos.map((photo: unknown) => ({
         id: photo.id,
         type: photo.photo_type,
         category: photo.category,

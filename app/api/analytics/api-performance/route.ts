@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { withApiMonitoring } from '@/lib/monitoring/api-monitoring'
 
 interface ApiPerformance {
   endpoint: string
@@ -70,7 +67,7 @@ export const GET = withApiMonitoring(
       }>()
 
       // Process response time metrics
-      apiMetrics?.forEach((metric: any) => {
+      apiMetrics?.forEach((metric: unknown) => {
         const endpoint = metric.dimensions?.endpoint || 'unknown'
         const responseTime = metric.metric_value
         const count = metric.metric_count || 1
@@ -92,7 +89,7 @@ export const GET = withApiMonitoring(
       })
 
       // Process error metrics
-      errorMetrics?.forEach((event: any) => {
+      errorMetrics?.forEach((event: unknown) => {
         const endpoint = event.event_data?.endpoint || 'unknown'
         const endpointData = endpointMetrics.get(endpoint)
         if (endpointData) {

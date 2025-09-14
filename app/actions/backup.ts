@@ -1,8 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { validateSupabaseResponse, logError, AppError } from '@/lib/error-handling'
-import { BackupScheduler } from '@/lib/backup/backup-scheduler'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 import type { 
   BackupConfig, 
   BackupJob, 
@@ -11,7 +9,6 @@ import type {
   BackupMonitoring,
   BackupRestoreRequest
 } from '@/lib/backup/types'
-import { revalidatePath } from 'next/cache'
 
 // Global backup scheduler instance
 let backupScheduler: BackupScheduler | null = null
@@ -34,7 +31,7 @@ export async function getBackupConfigs(): Promise<{
     const { data, error } = await (supabase
       .from('backup_configs')
       .select('*')
-      .order('created_at', { ascending: false }) as any)
+      .order('created_at', { ascending: false }) as unknown)
     
     validateSupabaseResponse(data, error)
     
@@ -56,9 +53,9 @@ export async function createBackupConfig(
     
     const { data, error } = await (supabase
       .from('backup_configs')
-      .insert(config as any)
+      .insert(config as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
     
     validateSupabaseResponse(data, error)
     
@@ -68,7 +65,7 @@ export async function createBackupConfig(
       await scheduler.addSchedule({
         name: `${config.name} 스케줄`,
         cron_expression: config.schedule,
-        config_id: (data as any)?.id,
+        config_id: (data as unknown)?.id,
         enabled: true,
         timezone: 'Asia/Seoul'
       })
@@ -95,10 +92,10 @@ export async function updateBackupConfig(
     
     const { data, error } = await (supabase
       .from('backup_configs')
-      .update(updates as any)
+      .update(updates as unknown)
       .eq('id', id)
       .select()
-      .single() as any)
+      .single() as unknown)
     
     validateSupabaseResponse(data, error)
     
@@ -122,12 +119,12 @@ export async function deleteBackupConfig(id: string): Promise<{ success: boolean
     const { data: schedules } = await (supabase
       .from('backup_schedules')
       .select('id')
-      .eq('config_id', id) as any)
+      .eq('config_id', id) as unknown)
     
     if (schedules) {
       const scheduler = getBackupScheduler()
       for (const schedule of schedules) {
-        await scheduler.removeSchedule((schedule as any).id)
+        await scheduler.removeSchedule((schedule as unknown).id)
       }
     }
     
@@ -135,7 +132,7 @@ export async function deleteBackupConfig(id: string): Promise<{ success: boolean
     const { error } = await (supabase
       .from('backup_configs')
       .delete()
-      .eq('id', id) as any)
+      .eq('id', id) as unknown)
     
     validateSupabaseResponse(null, error)
     
@@ -180,7 +177,7 @@ export async function getBackupJobs(
     const supabase = createClient()
     
     let query = (supabase
-      .from('backup_jobs') as any)
+      .from('backup_jobs') as unknown)
       .select(`
         *,
         backup_configs(name)
@@ -224,7 +221,7 @@ export async function getBackupJob(jobId: string): Promise<{
         backup_configs(name, description)
       `)
       .eq('id', jobId)
-      .single() as any)
+      .single() as unknown)
     
     validateSupabaseResponse(data, error)
     
@@ -266,23 +263,23 @@ export async function getBackupStats(): Promise<{
     // Get overall stats
     const { data: jobs, error: jobsError } = await (supabase
       .from('backup_jobs')
-      .select('status, file_size, completed_at, started_at') as any)
+      .select('status, file_size, completed_at, started_at') as unknown)
     
     validateSupabaseResponse(jobs, jobsError)
     
     const stats: BackupStats = {
       total_backups: jobs?.length || 0,
-      successful_backups: jobs?.filter((j: any) => j.status === 'completed').length || 0,
-      failed_backups: jobs?.filter((j: any) => j.status === 'failed').length || 0,
-      total_size: jobs?.reduce((sum: number, j: any) => sum + (j.file_size || 0), 0) || 0,
-      compressed_size: jobs?.reduce((sum: number, j: any) => sum + (j.file_size || 0), 0) || 0, // Simplified
+      successful_backups: jobs?.filter((j: unknown) => j.status === 'completed').length || 0,
+      failed_backups: jobs?.filter((j: unknown) => j.status === 'failed').length || 0,
+      total_size: jobs?.reduce((sum: number, j: unknown) => sum + (j.file_size || 0), 0) || 0,
+      compressed_size: jobs?.reduce((sum: number, j: unknown) => sum + (j.file_size || 0), 0) || 0, // Simplified
       average_duration: 0
     }
     
     // Calculate average duration
-    const completedJobs = jobs?.filter((j: any) => j.status === 'completed' && j.started_at && j.completed_at) || []
+    const completedJobs = jobs?.filter((j: unknown) => j.status === 'completed' && j.started_at && j.completed_at) || []
     if (completedJobs.length > 0) {
-      const totalDuration = completedJobs.reduce((sum: number, j: any) => {
+      const totalDuration = completedJobs.reduce((sum: number, j: unknown) => {
         const start = new Date(j.started_at).getTime()
         const end = new Date(j.completed_at).getTime()
         return sum + (end - start)
@@ -293,8 +290,8 @@ export async function getBackupStats(): Promise<{
     // Get latest and oldest backups
     if (jobs && jobs.length > 0) {
       const sortedJobs = jobs
-        .filter((j: any) => j.status === 'completed')
-        .sort((a: any, b: any) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
+        .filter((j: unknown) => j.status === 'completed')
+        .sort((a: unknown, b: unknown) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime())
       
       if (sortedJobs.length > 0) {
         stats.latest_backup = sortedJobs[0] as unknown as BackupJob
@@ -326,7 +323,7 @@ export async function getBackupSchedules(): Promise<{
         *,
         backup_configs(name, description)
       `)
-      .order('created_at', { ascending: false }) as any)
+      .order('created_at', { ascending: false }) as unknown)
     
     validateSupabaseResponse(data, error)
     
@@ -356,7 +353,7 @@ export async function createBackupSchedule(
     const { data, error } = await (supabase
       .from('backup_schedules')
       .select('*')
-      .eq('id', result.id) as any)
+      .eq('id', result.id) as unknown)
       .single()
     
     validateSupabaseResponse(data, error)
@@ -435,9 +432,9 @@ export async function restoreBackup(
         restore_point: request.restore_point,
         status: 'pending',
         created_by: user.id
-      } as any)
+      } as unknown)
       .select('id')
-      .single() as any)
+      .single() as unknown)
     
     validateSupabaseResponse(data, error)
     
@@ -450,12 +447,12 @@ export async function restoreBackup(
         progress: 100,
         completed_at: new Date().toISOString(),
         restored_items: ['demo_restore']
-      } as any)
-      .eq('id', (data as any)?.id) as any)
+      } as unknown)
+      .eq('id', (data as unknown)?.id) as unknown)
     
     revalidatePath('/dashboard/admin/backup')
     
-    return { success: true, jobId: (data as any)?.id }
+    return { success: true, jobId: (data as unknown)?.id }
   } catch (error) {
     logError(error, 'restoreBackup')
     return { 

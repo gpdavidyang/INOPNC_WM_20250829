@@ -1,19 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
 import FileUploadComponent, { UploadMetadata, UploadResult } from '@/components/documents/common/FileUploadComponent'
-import DocumentCard from '@/components/documents/common/DocumentCard'
-import DocumentFilters from '@/components/documents/common/DocumentFilters'
 import ShareDialog from '@/components/documents/share-dialog'
-import {
-  Upload, Folder, AlertCircle, Share2, X, ChevronUp, ChevronDown
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { getFileTypeStyle, getStatusStyle } from '@/components/documents/design-tokens'
 
 interface SharedDocument {
   id: string
@@ -431,7 +420,7 @@ export default function SharedDocumentsTabUpdated({
             </div>
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredAndSortedDocuments.map((document: any, index: number) => (
+              {filteredAndSortedDocuments.map((document: unknown, index: number) => (
                 <DocumentCard
                   key={document.id || `doc-grid-${index}`}
                   document={document}
@@ -450,7 +439,7 @@ export default function SharedDocumentsTabUpdated({
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredAndSortedDocuments.map((document: any, index: number) => (
+              {filteredAndSortedDocuments.map((document: unknown, index: number) => (
                 <DocumentCard
                   key={document.id || `doc-list-${index}`}
                   document={document}

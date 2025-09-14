@@ -1,19 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, User, Mail, Phone, Shield, Building, Calendar, FileText, ClipboardCheck, Edit, Key, UserCheck, UserX, Printer, CheckCircle, AlertCircle } from 'lucide-react'
-import { UserWithSites, getUser, updateUser, resetUserPassword, updateUserStatus } from '@/app/actions/admin/users'
-import { UserRole, UserStatus } from '@/types'
-import { toast } from 'sonner'
-import Link from 'next/link'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import UserBasicInfoTab from '@/components/admin/users/UserBasicInfoTab'
-import UserSitesPrintsTab from '@/components/admin/users/UserSitesPrintsTab'
-import UserWorkLogsTab from '@/components/admin/users/UserWorkLogsTab'
-import UserDocumentsTab from '@/components/admin/users/UserDocumentsTab'
-import { createClient } from '@/lib/supabase/client'
 
 export default function UserDetailPage() {
   const params = useParams()
@@ -67,7 +53,7 @@ export default function UserDetailPage() {
         .select('work_hours')
         .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
       
-      const totalWorkHours = attendanceData?.reduce((sum: number, record: any) => sum + (record.work_hours || 0), 0) || 0
+      const totalWorkHours = attendanceData?.reduce((sum: number, record: unknown) => sum + (record.work_hours || 0), 0) || 0
       
       // Get total daily reports count
       const { count: reportsCount } = await supabase
@@ -92,7 +78,7 @@ export default function UserDetailPage() {
     }
   }
 
-  const handleUpdateUser = async (formData: any) => {
+  const handleUpdateUser = async (formData: unknown) => {
     if (!user) return
     
     setEditLoading(true)
@@ -294,7 +280,7 @@ export default function UserDetailPage() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
+                  onClick={() => setActiveTab(tab.key as unknown)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                     activeTab === tab.key
                       ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -362,7 +348,7 @@ function EditUserModal({
 }: {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (formData: any) => void
+  onSubmit: (formData: unknown) => void
   loading: boolean
   userData: UserWithSites
 }) {

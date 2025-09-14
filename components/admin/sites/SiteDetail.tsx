@@ -1,25 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Building2, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Users, 
-  FileText, 
-  Calendar,
-  User,
-  Shield,
-  CheckCircle,
-  Clock,
-  Edit,
-  X,
-  AlertCircle
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface Site {
   id: string
@@ -354,7 +334,7 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
             ].map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
+                onClick={() => setActiveTab(tab.key as unknown)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                   activeTab === tab.key
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'

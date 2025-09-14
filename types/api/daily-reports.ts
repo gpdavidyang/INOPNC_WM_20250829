@@ -2,7 +2,6 @@
  * 일일 보고서 관련 API 타입 정의
  */
 
-import { DocumentCategory } from './documents'
 
 // 일일 보고서
 export interface DailyReport {

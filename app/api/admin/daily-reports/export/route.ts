@@ -1,13 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
-import { createClient } from '@/lib/supabase/server'
 
-import { getDailyReports } from '@/app/actions/admin/daily-reports'
 import * as XLSX from 'xlsx'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface DailyReport {
   id: string
@@ -243,7 +238,7 @@ export async function GET(request: NextRequest) {
             record_count: totalReports,
             filters: filters
           }
-        } as any) as any)
+        } as unknown) as unknown)
     } catch (logError) {
       // Don't fail the export if logging fails
       console.warn('Failed to log export activity:', logError)

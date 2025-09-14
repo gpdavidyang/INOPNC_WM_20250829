@@ -1,10 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { payslipGeneratorKorean } from '@/lib/services/payslip-generator-korean'
-import { calculateMonthlySalary } from '@/app/actions/salary'
-import { createClient } from '@/lib/supabase/client'
 
 interface Profile {
   id: string

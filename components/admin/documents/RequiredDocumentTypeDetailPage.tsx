@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, FileCheck, Search, Download, Eye, RefreshCw, AlertCircle, CheckCircle, XCircle, Clock, Filter, CheckSquare, Square, User, Calendar } from 'lucide-react'
 
 interface RequiredDocument {
   id: string

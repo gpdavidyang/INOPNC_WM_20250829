@@ -1,7 +1,3 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { canAccessDocumentCategory } from '@/lib/document-permissions'
-import MarkupDocumentsManagement from '@/components/admin/documents/MarkupDocumentsManagement'
 
 export default async function AdminMarkupDocumentsPage() {
   const supabase = createClient()
@@ -24,7 +20,7 @@ export default async function AdminMarkupDocumentsPage() {
     }
 
     // 도면마킹문서함 접근 권한 확인
-    if (!canAccessDocumentCategory(profile.role as any, 'markup')) {
+    if (!canAccessDocumentCategory(profile.role as unknown, 'markup')) {
       redirect('/dashboard')
     }
 

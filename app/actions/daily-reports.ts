@@ -1,35 +1,12 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { 
-  DailyReport, 
-  DailyReportStatus, 
-  WorkLog, 
-  AttendanceRecord,
-  Material,
-  WorkLogMaterial
-} from '@/types'
-import { AdditionalPhotoData } from '@/types/daily-reports'
-import { revalidatePath } from 'next/cache'
-import { 
-  AppError, 
-  ErrorType, 
-  validateSupabaseResponse, 
-  logError,
-  handleAsync 
-} from '@/lib/error-handling'
-import {
-  notifyDailyReportSubmitted,
-  notifyDailyReportApproved,
-  notifyDailyReportRejected
-} from '@/lib/notifications/triggers'
 
 // ==========================================
 // HELPER FUNCTIONS
 // ==========================================
 
 async function createHeadquartersRequest(
-  supabase: any, 
+  supabase: unknown, 
   requesterId: string, 
   siteId: string, 
   content: string, 
@@ -120,8 +97,8 @@ export async function createDailyReport(data: {
         // Insert new worker details
         if (workerDetails.length > 0) {
           const workerInserts = workerDetails
-            .filter((worker: any) => worker.worker_name && worker.labor_hours > 0)
-            .map((worker: any) => ({
+            .filter((worker: unknown) => worker.worker_name && worker.labor_hours > 0)
+            .map((worker: unknown) => ({
               daily_report_id: report.id,
               worker_name: worker.worker_name,
               work_hours: worker.labor_hours,
@@ -165,8 +142,8 @@ export async function createDailyReport(data: {
     // Save worker details if provided
     if (workerDetails && workerDetails.length > 0 && report) {
       const workerInserts = workerDetails
-        .filter((worker: any) => worker.worker_name && worker.labor_hours > 0)
-        .map((worker: any) => ({
+        .filter((worker: unknown) => worker.worker_name && worker.labor_hours > 0)
+        .map((worker: unknown) => ({
           daily_report_id: report.id,
           worker_name: worker.worker_name,
           work_hours: worker.labor_hours,
@@ -444,15 +421,15 @@ export async function getDailyReportById(id: string) {
       .order('created_at')
 
     // Separate documents by type
-    const beforePhotos = documents?.filter((doc: any) => 
+    const beforePhotos = documents?.filter((doc: unknown) => 
       doc.document_type === 'before_photo' || doc.category === 'before'
     ) || []
     
-    const afterPhotos = documents?.filter((doc: any) => 
+    const afterPhotos = documents?.filter((doc: unknown) => 
       doc.document_type === 'after_photo' || doc.category === 'after'
     ) || []
     
-    const receipts = documents?.filter((doc: any) => 
+    const receipts = documents?.filter((doc: unknown) => 
       doc.document_type === 'receipt' || doc.file_type === 'receipt'
     ) || []
 
@@ -937,7 +914,7 @@ export async function getAdditionalPhotos(reportId: string) {
     const beforePhotos: AdditionalPhotoData[] = []
     const afterPhotos: AdditionalPhotoData[] = []
 
-    photos?.forEach((photo: any) => {
+    photos?.forEach((photo: unknown) => {
       const photoData: AdditionalPhotoData = {
         id: photo.id,
         filename: photo.file_name,

@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
-import { createClient } from '@/lib/supabase/server'
 
 
 export async function GET(request: NextRequest) {
@@ -168,7 +166,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // Build update object
-    const updateData: any = {}
+    const updateData: unknown = {}
     if (option_label !== undefined) updateData.option_label = option_label
     if (display_order !== undefined) updateData.display_order = display_order
     if (is_active !== undefined) updateData.is_active = is_active

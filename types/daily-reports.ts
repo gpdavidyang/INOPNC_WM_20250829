@@ -1,6 +1,5 @@
 // Daily Report-specific type definitions
 
-import { DailyReportStatus } from './index'
 
 export interface DailyReportFormData {
   id?: string

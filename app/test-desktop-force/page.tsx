@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { getClientUserRole } from '@/lib/auth/role-detection'
 
 export default function TestDesktopForce() {
-  const [debugInfo, setDebugInfo] = useState<any>({})
+  const [debugInfo, setDebugInfo] = useState<unknown>({})
   const [viewportContent, setViewportContent] = useState('')
   const [cookies, setCookies] = useState('')
   

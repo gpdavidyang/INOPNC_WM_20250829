@@ -1,5 +1,3 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { redirect, notFound } from 'next/navigation'
 import TaskDetail from './task-detail'
 
 export default async function TaskDetailPage({ params }: { params: { id: string } }) {

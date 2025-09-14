@@ -1,8 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 export type SortDirection = 'asc' | 'desc' | null
 export type SortConfig<T> = {
@@ -16,7 +14,7 @@ interface Column<T> {
   sortable?: boolean
   width?: string
   align?: 'left' | 'center' | 'right'
-  render?: (value: any, item: T, index: number) => React.ReactNode
+  render?: (value: unknown, item: T, index: number) => React.ReactNode
   className?: string
   headerClassName?: string
 }
@@ -109,9 +107,9 @@ export function SortableTable<T extends Record<string, any>>({
     }
   }
 
-  const getValue = (item: T, key: keyof T | string): any => {
+  const getValue = (item: T, key: keyof T | string): unknown => {
     const keys = String(key).split('.')
-    let value: any = item
+    let value: unknown = item
     
     for (const k of keys) {
       value = value?.[k]

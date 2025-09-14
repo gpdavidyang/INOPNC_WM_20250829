@@ -1,9 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { DocumentWithPermissions, Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { X, User, Users, Building2, Share2, Lock, Unlock, Check, AlertCircle } from 'lucide-react'
 
 interface DocumentPermissionManagerProps {
   document: DocumentWithPermissions
@@ -57,22 +53,22 @@ export default function DocumentPermissionManager({
       const basicPermissions: PermissionEntry[] = []
       
       // Add owner permission
-      if (document.owner_id && (document as any).profiles) {
+      if (document.owner_id && (document as unknown).profiles) {
         basicPermissions.push({
           id: 'owner',
           user_id: document.owner_id,
           permission_level: 'admin',
-          user_name: (document as any).profiles?.name || '문서 소유자'
+          user_name: (document as unknown).profiles?.name || '문서 소유자'
         })
       }
       
       // Add site-wide permission if public
-      if ((document as any).is_public && document.site_id && (document as any).sites) {
+      if ((document as unknown).is_public && document.site_id && (document as unknown).sites) {
         basicPermissions.push({
           id: 'site-public',
           site_id: document.site_id,
           permission_level: 'view',
-          site_name: (document as any).sites?.name || '현장 전체'
+          site_name: (document as unknown).sites?.name || '현장 전체'
         })
       }
 
@@ -307,7 +303,7 @@ export default function DocumentPermissionManager({
               ].map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
-                  onClick={() => setPermissionType(key as any)}
+                  onClick={() => setPermissionType(key as unknown)}
                   className={`p-3 rounded-lg border-2 transition-colors ${
                     permissionType === key
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
@@ -389,7 +385,7 @@ export default function DocumentPermissionManager({
               </label>
               <select
                 value={newPermission.permission_level}
-                onChange={(e) => setNewPermission({ ...newPermission, permission_level: e.target.value as any })}
+                onChange={(e) => setNewPermission({ ...newPermission, permission_level: e.target.value as unknown })}
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="view">보기만</option>

@@ -7,7 +7,7 @@ export async function GET() {
     '';
 
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
-  const payload: any = {
+  const payload: unknown = {
     url,
     anonPrefix: anon ? anon.slice(0, 10) + '…' : '(empty)',
     nodeEnv: process.env.NODE_ENV,

@@ -1,9 +1,6 @@
 'use client'
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import { SiteInfo, SiteSearchResult, SiteSearchFilters } from '@/types/site-info'
-import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/hooks/use-auth'
 
 interface SiteContextValue {
   // Current site state
@@ -147,19 +144,19 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      const site = assignment.site as any
+      const site = assignment.site as unknown
 
       // Fetch related data in parallel
       const [addressResult, accommodationResult, latestReportResult] = await Promise.all([
         // Site address
-        (supabase as any)
+        (supabase as unknown)
           .from('site_addresses')
           .select('*')
           .eq('site_id', site.id)
           .single(),
         
         // Accommodation address
-        (supabase as any)
+        (supabase as unknown)
           .from('accommodation_addresses')
           .select('*')
           .eq('site_id', site.id)
@@ -182,9 +179,9 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
       // Create process info
       const processInfo = latestReport ? {
-        member_name: (latestReport as any).member_name || '미정',
-        work_process: (latestReport as any).work_process || '미정',
-        work_section: (latestReport as any).work_section || '미정',
+        member_name: (latestReport as unknown).member_name || '미정',
+        work_process: (latestReport as unknown).work_process || '미정',
+        work_section: (latestReport as unknown).work_section || '미정',
         drawing_id: undefined
       } : {
         member_name: '미정',

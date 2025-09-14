@@ -1,12 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient, forceSessionRefresh } from '@/lib/supabase/client'
 
 interface AutoLoginResult {
   isLoading: boolean
   isAuthenticated: boolean
-  user: any | null
+  user: unknown | null
   error: string | null
 }
 
@@ -196,7 +194,7 @@ export function useAutoLogin(
  * Force session synchronization after manual login
  * Call this after any manual authentication to ensure server-side session is synced
  */
-export async function syncSessionAfterAuth(session: any) {
+export async function syncSessionAfterAuth(session: unknown) {
   if (!session || !session.access_token || !session.refresh_token) {
     console.error('[SYNC-SESSION] Invalid session provided')
     return { success: false, error: 'Invalid session' }

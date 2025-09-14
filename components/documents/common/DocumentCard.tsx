@@ -1,14 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { 
-  Eye, Download, Share2, Trash2, MoreVertical, 
-  FileText, Image, File, CheckCircle, Clock, 
-  AlertCircle, Users, Building, Calendar 
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +7,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { getFileTypeStyle, getStatusStyle } from '../design-tokens'
 
 interface Document {
   id: string

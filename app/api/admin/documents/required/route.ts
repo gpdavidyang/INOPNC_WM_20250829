@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -81,10 +78,10 @@ export async function GET(request: NextRequest) {
 
     console.log('Required documents API - Documents found:', documentsWithProfiles?.length || 0)
     console.log('Required documents API - Sample document:', documentsWithProfiles?.[0])
-    console.log('Required documents API - All document titles:', documentsWithProfiles?.map((d: any) => d.title))
+    console.log('Required documents API - All document titles:', documentsWithProfiles?.map((d: unknown) => d.title))
 
     // Transform data to match the expected format
-    const transformedDocuments = documentsWithProfiles?.map((doc: any) => ({
+    const transformedDocuments = documentsWithProfiles?.map((doc: unknown) => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,

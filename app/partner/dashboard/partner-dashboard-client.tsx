@@ -1,12 +1,8 @@
 'use client'
 
-import { Profile } from '@/types'
-import { Building2, Users, FileText, TrendingUp, Calendar, MapPin, User } from 'lucide-react'
-import Link from 'next/link'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 interface PartnerDashboardClientProps {
-  profile: Profile & { partner_companies?: any }
+  profile: Profile & { partner_companies?: unknown }
   statistics: {
     totalSites: number
     activeSites: number

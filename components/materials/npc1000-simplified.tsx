@@ -1,31 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { ChevronRight, ChevronDown, Package, FileText, RefreshCw, ArrowUpDown, ArrowUp, ArrowDown, Plus, Minus } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { getNPC1000Records, getNPC1000Summary, type NPC1000DailyRecord } from '@/app/actions/npc1000'
 
 interface NPC1000SimplifiedProps {
-  currentSite?: any
-  currentUser?: any
+  currentSite?: unknown
+  currentUser?: unknown
 }
 
 type SortField = 'date' | 'incoming' | 'used' | 'stock'
@@ -188,8 +166,8 @@ export function NPC1000Simplified({ currentSite, currentUser }: NPC1000Simplifie
   }
 
   const sortedRecords = [...records].sort((a, b) => {
-    let aValue: any
-    let bValue: any
+    let aValue: unknown
+    let bValue: unknown
 
     switch (sortField) {
       case 'date':

@@ -1,20 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Upload, 
-  Download, 
-  Trash2, 
-  Camera,
-  Eye,
-  X,
-  CheckCircle,
-  AlertTriangle,
-  ZoomIn
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface PhotoFile {
   id: string

@@ -1,9 +1,6 @@
 'use client'
 
 import * as React from "react"
-import { cn } from "@/lib/utils"
-import { useFontSize,  getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 export interface InputProps
   extends React.InputHTMLAttributes<HTMLInputElement> {}

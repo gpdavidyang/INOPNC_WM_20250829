@@ -1,6 +1,4 @@
-import { onCLS, onFCP, onINP, onLCP, onTTFB, Metric } from 'web-vitals'
 import * as Sentry from '@sentry/nextjs'
-import { checkPerformanceBudget } from './performance-budgets'
 
 // Performance thresholds based on Google's recommendations
 const THRESHOLDS = {
@@ -184,7 +182,7 @@ export function observePerformance() {
   try {
     const layoutShiftObserver = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
-        const layoutShift = entry as any
+        const layoutShift = entry as unknown
         if (layoutShift.value > 0.1 && !layoutShift.hadRecentInput) {
           Sentry.addBreadcrumb({
             category: 'performance',
@@ -192,7 +190,7 @@ export function observePerformance() {
             level: 'warning',
             data: {
               value: layoutShift.value,
-              sources: layoutShift.sources?.map((source: any) => ({
+              sources: layoutShift.sources?.map((source: unknown) => ({
                 node: source.node?.nodeName,
                 previousRect: source.previousRect,
                 currentRect: source.currentRect,

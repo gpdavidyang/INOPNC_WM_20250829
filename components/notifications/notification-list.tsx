@@ -1,29 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import {
-  AlertCircle,
-  CheckCircle,
-  Info,
-  AlertTriangle,
-  X,
-  ExternalLink,
-  Loader2,
-  BellOff
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { cn } from '@/lib/utils'
 import type { NotificationExtended, NotificationType } from '@/types/notifications'
-import {
-  getNotifications,
-  markNotificationAsRead,
-  deleteNotification
-} from '@/app/actions/notifications'
-import { showErrorNotification } from '@/lib/error-handling'
-import { toast } from 'sonner'
 
 interface NotificationListProps {
   className?: string

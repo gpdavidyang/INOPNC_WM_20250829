@@ -1,14 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Profile } from '@/types'
-import Sidebar from '@/components/dashboard/sidebar'
-import Header from '@/components/dashboard/header'
-import { BottomNavigation, BottomNavItem } from '@/components/ui/bottom-navigation'
-import { DailyReportListMobile } from '@/components/daily-reports/DailyReportListMobile'
-import { DailyReportListEnhanced } from '@/components/daily-reports/DailyReportListEnhanced'
-import { ReportsPageHeader } from '@/components/ui/page-header'
-import { Home, Calendar, FileText, FolderOpen, MapPin } from 'lucide-react'
 
 interface DailyReportsPageClientProps {
   profile: Profile

@@ -1,22 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  LineChart,
-  Line,
-  Legend
-} from 'recharts'
-import { TrendingUp, Users, DollarSign, Clock, Calendar } from 'lucide-react'
 
 interface SalaryChartData {
   name: string
@@ -64,7 +47,7 @@ export default function SalaryChart({
     return `₩${value.toLocaleString()}`
   }
 
-  const formatTooltip = (value: any, name: string, props: any) => {
+  const formatTooltip = (value: unknown, name: string, props: unknown) => {
     if (name === 'value' || name === '급여') {
       return [formatCurrency(value), '급여']
     }

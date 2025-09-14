@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -55,9 +53,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate metrics
     const totalSent = logs?.length || 0
-    const delivered = logs?.filter((log: any) => log.status === 'delivered').length || 0
-    const failed = logs?.filter((log: any) => log.status === 'failed').length || 0
-    const clicked = logs?.filter((log: any) => log.clicked_at).length || 0
+    const delivered = logs?.filter((log: unknown) => log.status === 'delivered').length || 0
+    const failed = logs?.filter((log: unknown) => log.status === 'failed').length || 0
+    const clicked = logs?.filter((log: unknown) => log.clicked_at).length || 0
 
     // Get engagement data
     let engagementQuery = supabase
@@ -78,7 +76,7 @@ export async function GET(request: NextRequest) {
 
     // Group by notification type
     const byType: Record<string, unknown> = {}
-    logs?.forEach((log: any) => {
+    logs?.forEach((log: unknown) => {
       if (!byType[log.notification_type]) {
         byType[log.notification_type] = {
           sent: 0,
@@ -113,7 +111,7 @@ export async function GET(request: NextRequest) {
       const nextDate = new Date(date)
       nextDate.setDate(nextDate.getDate() + 1)
       
-      const dayLogs = logs?.filter((log: any) => {
+      const dayLogs = logs?.filter((log: unknown) => {
         const logDate = new Date(log.sent_at)
         return logDate >= date && logDate < nextDate
       }) || []
@@ -121,8 +119,8 @@ export async function GET(request: NextRequest) {
       timeSeries.push({
         date: date.toISOString().split('T')[0],
         sent: dayLogs.length,
-        delivered: dayLogs.filter((log: any) => log.status === 'delivered').length,
-        clicked: dayLogs.filter((log: any) => log.clicked_at).length
+        delivered: dayLogs.filter((log: unknown) => log.status === 'delivered').length,
+        clicked: dayLogs.filter((log: unknown) => log.clicked_at).length
       })
     }
 

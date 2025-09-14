@@ -1,12 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
 
 interface DashboardContentProps {
-  user: any
-  profile: any
+  user: unknown
+  profile: unknown
   taskStats: {
     total: number
     pending: number

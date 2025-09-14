@@ -2,7 +2,6 @@
  * 차트 컴포넌트 Props 타입 정의
  */
 
-import { BaseComponentProps } from './index'
 
 // Chart Data Types
 export interface ChartDataPoint {

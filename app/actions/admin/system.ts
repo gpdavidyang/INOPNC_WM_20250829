@@ -1,12 +1,11 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired } from './common'
 
 export interface SystemConfiguration {
   id: string
   category: string
   setting_key: string
-  setting_value: any
+  setting_value: unknown
   data_type: 'string' | 'number' | 'boolean' | 'json'
   description?: string
   is_public: boolean
@@ -37,8 +36,8 @@ export interface AuditLog {
   action: string
   table_name: string
   record_id?: string
-  old_values?: any
-  new_values?: any
+  old_values?: unknown
+  new_values?: unknown
   timestamp: string
   ip_address?: string
   user_agent?: string
@@ -98,7 +97,7 @@ export async function getSystemConfigurations(
  */
 export async function updateSystemConfiguration(
   setting_key: string,
-  setting_value: any,
+  setting_value: unknown,
   data_type: 'string' | 'number' | 'boolean' | 'json'
 ): Promise<AdminActionResult<SystemConfiguration>> {
   return withAdminAuth(async (supabase, profile) => {
@@ -155,7 +154,7 @@ export async function getSystemStats(): Promise<AdminActionResult<SystemStats>> 
         .select('id, last_seen_at')
 
       const totalUsers = userStats?.length || 0
-      const activeUsers = userStats?.filter((u: any) => {
+      const activeUsers = userStats?.filter((u: unknown) => {
         if (!u.last_seen_at) return false
         const lastSeen = new Date(u.last_seen_at)
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -168,7 +167,7 @@ export async function getSystemStats(): Promise<AdminActionResult<SystemStats>> 
         .select('id, is_active')
 
       const totalSites = siteStats?.length || 0
-      const activeSites = siteStats?.filter((s: any) => s.is_active).length || 0
+      const activeSites = siteStats?.filter((s: unknown) => s.is_active).length || 0
 
       // Get document statistics
       const { data: documentStats } = await supabase
@@ -176,7 +175,7 @@ export async function getSystemStats(): Promise<AdminActionResult<SystemStats>> 
         .select('id, file_size')
 
       const totalDocuments = documentStats?.length || 0
-      const storageUsed = documentStats?.reduce((sum: number, doc: any) => sum + (doc.file_size || 0), 0) || 0
+      const storageUsed = documentStats?.reduce((sum: number, doc: unknown) => sum + (doc.file_size || 0), 0) || 0
 
       // Get daily report statistics
       const { data: reportStats } = await supabase
@@ -454,7 +453,7 @@ export async function getConfigurationCategories(): Promise<AdminActionResult<st
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
-      const uniqueCategories = Array.from(new Set(categories?.map((c: any) => c.category) || [])) as string[]
+      const uniqueCategories = Array.from(new Set(categories?.map((c: unknown) => c.category) || [])) as string[]
 
       return {
         success: true,

@@ -1,15 +1,10 @@
 'use client'
 
-import { User } from '@supabase/supabase-js'
-import { Profile } from '@/types'
-import DashboardLayout from './dashboard-layout'
-import { useRealtimeNotifications } from '@/hooks/use-realtime-notifications'
-import { ErrorBoundary } from './error-boundary'
 
 interface DashboardWithNotificationsProps {
   user: User
   profile: Profile
-  initialCurrentSite?: any
+  initialCurrentSite?: unknown
   initialSiteHistory?: unknown[]
 }
 

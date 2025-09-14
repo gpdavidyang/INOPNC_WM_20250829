@@ -42,7 +42,7 @@ export function OptimizedContextProvider({ children }: OptimizedContextProviderP
     try {
       const preferences = {
         isLargeFont: localStorage.getItem('inopnc-font-size') === 'large',
-        touchMode: (localStorage.getItem('inopnc-touch-mode') as any) || 'normal',
+        touchMode: (localStorage.getItem('inopnc-touch-mode') as unknown) || 'normal',
         isHighContrast: localStorage.getItem('inopnc-contrast-mode') === 'high',
         isSunlightMode: localStorage.getItem('inopnc-sunlight-mode') === 'true',
       }

@@ -1,6 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 
 export async function getNPCMaterialsData(siteId: string) {
   try {
@@ -107,7 +106,7 @@ export async function getSitesForMaterials() {
     // console.log('[getSitesForMaterials] User sites data:', userSites)
     
     // Transform data to expected format
-    const sites = userSites?.map((us: any) => ({
+    const sites = userSites?.map((us: unknown) => ({
       id: us.sites?.id || us.site_id,
       name: us.sites?.name || 'Unknown Site'
     })) || []

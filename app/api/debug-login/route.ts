@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { signIn } from '@/app/auth/actions'
 
 export async function POST(request: NextRequest) {
   try {

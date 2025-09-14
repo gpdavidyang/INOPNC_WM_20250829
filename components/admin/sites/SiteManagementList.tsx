@@ -1,13 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Site, SiteStatus } from '@/types'
-import { getSites, deleteSites, updateSiteStatus } from '@/app/actions/admin/sites'
-import { 
-  Search, Plus, Edit2, Trash2, MapPin, Calendar, Users, 
-  CheckCircle, XCircle, Clock, Filter, Building2, ChevronRight
-} from 'lucide-react'
-import SiteUnifiedManagement from '../SiteUnifiedManagement'
 import CreateSiteModal from './CreateSiteModal'
 
 export default function SiteManagementList() {

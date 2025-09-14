@@ -1,10 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { requestSignupApproval } from '@/app/auth/actions'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { UserRole } from '@/types'
 
 export default function SignupRequestPage() {
   const router = useRouter()

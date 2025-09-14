@@ -1,38 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Database,
-  HardDrive,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  Play,
-  Pause,
-  Settings,
-  Download,
-  Upload,
-  BarChart3,
-  Calendar,
-  RefreshCw
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import type { BackupConfig, BackupJob, BackupStats } from '@/lib/backup/types'
-import { 
-  getBackupConfigs, 
-  getBackupJobs, 
-  getBackupStats, 
-  executeManualBackup,
-  getRunningBackupJobs
-} from '@/app/actions/backup'
-import { showErrorNotification } from '@/lib/error-handling'
-import { toast } from 'sonner'
 
 interface BackupDashboardProps {
   className?: string
@@ -261,7 +229,7 @@ export function BackupDashboard({ className }: BackupDashboardProps) {
           </div>
           
           <div className="space-y-3">
-            {configs.map((config: any) => {
+            {configs.map((config: unknown) => {
               const isRunning = runningJobs.includes(config.id)
               
               return (
@@ -321,7 +289,7 @@ export function BackupDashboard({ className }: BackupDashboardProps) {
           </div>
           
           <div className="space-y-3">
-            {recentJobs.map((job: any) => (
+            {recentJobs.map((job: unknown) => (
               <div key={job.id} className="flex items-center justify-between p-3 border rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">

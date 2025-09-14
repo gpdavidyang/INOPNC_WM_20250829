@@ -1,15 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { CurrentUserSite, UserSiteHistory, SiteInfo } from '@/types'
-import { getCurrentUserSite, getUserSiteHistory } from '@/app/actions/site-info'
-import TodaySiteInfo from '@/components/site-info/TodaySiteInfo'
-import { RefreshCw, Clock, Search } from 'lucide-react'
 import SiteSearchModal from '@/components/site-info/SiteSearchModal'
-import { assignUserToSite } from '@/app/actions/site-info'
-import { createClient } from '@/lib/supabase/client'
-import { useFontSize, getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface SiteInfoContentProps {
   initialCurrentSite: CurrentUserSite | null

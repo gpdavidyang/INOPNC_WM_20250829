@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -142,7 +140,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    const updateData: any = {
+    const updateData: unknown = {
       submission_status: status,
       updated_at: new Date().toISOString()
     }

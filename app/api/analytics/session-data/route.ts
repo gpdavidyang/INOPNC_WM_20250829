@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { withApiMonitoring } from '@/lib/monitoring/api-monitoring'
 
 interface SessionData {
   activeUsers: number
@@ -59,7 +56,7 @@ export const GET = withApiMonitoring(
       let totalSessionTime = 0
       let sessionsWithDuration = 0
 
-      sessionEvents?.forEach((event: any) => {
+      sessionEvents?.forEach((event: unknown) => {
         const eventData = event.event_data
         
         if (event.event_type === 'rum_session_update' && eventData.id) {
@@ -88,11 +85,11 @@ export const GET = withApiMonitoring(
       // Calculate active users (sessions updated in last 30 minutes)
       const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000)
       const activeUsers = Array.from(sessions.values()).filter(
-        (session: any) => new Date(session.lastUpdate) > thirtyMinutesAgo
+        (session: unknown) => new Date(session.lastUpdate) > thirtyMinutesAgo
       ).length
 
       // Calculate average session duration and device breakdown
-      sessions.forEach((session: any) => {
+      sessions.forEach((session: unknown) => {
         if (session.duration > 0) {
           totalSessionTime += session.duration
           sessionsWithDuration++

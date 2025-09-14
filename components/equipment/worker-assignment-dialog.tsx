@@ -1,22 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import { useFontSize, getTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Calendar, Clock, DollarSign, MapPin } from 'lucide-react'
-import { useToast } from '@/components/ui/use-toast'
-import { createResourceAllocation } from '@/app/actions/equipment'
-import { WorkerSkill, WorkerSkillAssignment } from '@/types/equipment'
 
 interface WorkerAssignmentDialogProps {
-  worker: any
+  worker: unknown
   sites: unknown[]
   skills: WorkerSkill[]
   skillAssignments: WorkerSkillAssignment[]

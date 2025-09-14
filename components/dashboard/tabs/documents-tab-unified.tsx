@@ -1,15 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Profile } from '@/types'
-import { FolderOpen, Share2, Edit3, FileCheck } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import DocumentsTab from './documents-tab'
-import SharedDocumentsTabUpdated from './shared-documents-tab-updated'
 import { MarkupEditor } from '@/components/markup/markup-editor'
-import { documentDesignTokens } from '@/components/documents/design-tokens'
 
 interface DocumentsTabUnifiedProps {
   profile: Profile

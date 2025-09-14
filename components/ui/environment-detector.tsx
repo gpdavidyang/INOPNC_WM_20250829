@@ -1,9 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Cloud, Sun, Snowflake, Wind, AlertTriangle } from 'lucide-react'
-import { useEnvironmental, EnvironmentalCondition } from '@/contexts/EnvironmentalContext'
-import { cn } from '@/lib/utils'
 
 interface EnvironmentDetectorProps {
   className?: string
@@ -51,7 +47,7 @@ export function EnvironmentDetector({ className, showDetails = false }: Environm
 
       // Network speed (construction sites often have poor connectivity)
       if ('connection' in navigator) {
-        const connection = (navigator as any).connection
+        const connection = (navigator as unknown).connection
         if (connection && connection.effectiveType) {
           if (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g') {
             conditions.push('낮은 네트워크 품질')
@@ -75,7 +71,7 @@ export function EnvironmentDetector({ className, showDetails = false }: Environm
       // Ambient Light Sensor (if available)
       if ('AmbientLightSensor' in window) {
         try {
-          const sensor = new (window as any).AmbientLightSensor()
+          const sensor = new (window as unknown).AmbientLightSensor()
           sensor.addEventListener('reading', () => {
             if (sensor.illuminance > 1000) {
               conditions.push('높은 조도 (>1000 lux)')
@@ -96,7 +92,7 @@ export function EnvironmentDetector({ className, showDetails = false }: Environm
       // Battery level (outdoor work drains battery faster)
       if ('getBattery' in navigator) {
         try {
-          const battery = await (navigator as any).getBattery()
+          const battery = await (navigator as unknown).getBattery()
           if (battery.level < 0.3) {
             conditions.push('낮은 배터리 (< 30%)')
             confidenceScore += 20

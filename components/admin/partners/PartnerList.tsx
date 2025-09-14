@@ -1,15 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { 
-  Plus, Search, Filter, Building2, 
-  Calendar, DollarSign, MapPin, Phone, Mail, FileText,
-  Users, Grid3x3, List, ChevronUp, ChevronDown, ChevronsUpDown
-} from 'lucide-react'
-import PartnerForm from './PartnerForm'
-import PartnerDetail from './PartnerDetail'
-import { createClient } from '@/lib/supabase/client'
 
 interface Partner {
   id: string

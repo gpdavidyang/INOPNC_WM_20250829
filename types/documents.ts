@@ -1,6 +1,5 @@
 // Document-specific type definitions
 
-import { DocumentType } from './index'
 
 export interface DocumentFile {
   id: string

@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
 export async function GET(
   request: Request,
@@ -83,9 +81,9 @@ export async function GET(
 
     const statistics = {
       total_reports: statsData?.length || 0,
-      submitted_reports: statsData?.filter((r: any) => r.status === 'submitted').length || 0,
-      draft_reports: statsData?.filter((r: any) => r.status === 'draft').length || 0,
-      total_workers: statsData?.reduce((sum: any, r: any) => sum + (r.total_workers || 0), 0) || 0
+      submitted_reports: statsData?.filter((r: unknown) => r.status === 'submitted').length || 0,
+      draft_reports: statsData?.filter((r: unknown) => r.status === 'draft').length || 0,
+      total_workers: statsData?.reduce((sum: unknown, r: unknown) => sum + (r.total_workers || 0), 0) || 0
     }
 
     return NextResponse.json({

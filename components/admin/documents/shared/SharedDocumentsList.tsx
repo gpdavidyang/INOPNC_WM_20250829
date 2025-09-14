@@ -1,22 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  SharedDocument, 
-  DocumentFilters, 
-  DocumentSortOptions,
-  DocumentCategory,
-  FILE_TYPE_ICONS,
-  formatFileSize
-} from '@/types/shared-documents'
-import {
-  Search, Filter, Upload, Download, Eye, Edit, Trash2, Share2,
-  FileText, MoreVertical, Calendar, User, Building2, Tag,
-  FolderOpen, ChevronDown, X, CheckCircle
-} from 'lucide-react'
-import DocumentCard from './DocumentCard'
-import DocumentFiltersPanel from './DocumentFilters'
 import DocumentUploadModal from './DocumentUploadModal'
 import DocumentPermissionsModal from './DocumentPermissionsModal'
 import DocumentPreviewModal from './DocumentPreviewModal'

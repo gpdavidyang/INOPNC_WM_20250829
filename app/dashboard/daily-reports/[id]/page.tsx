@@ -1,13 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
-import { getDailyReportById } from '@/app/actions/daily-reports'
-import DailyReportDetail from '@/components/daily-reports/daily-report-detail-new'
-import DailyReportDetailMobile from '@/components/daily-reports/DailyReportDetailMobile-new'
-import Sidebar from '@/components/dashboard/sidebar'
-import Header from '@/components/dashboard/header'
-import { BottomNavigation, BottomNavItem } from '@/components/ui/bottom-navigation'
-import { NavigationController } from '@/components/navigation/navigation-controller'
-import { Home, Calendar, FileText, FolderOpen, MapPin } from 'lucide-react'
+import DailyReportDetail from '@/components/daily-reports/daily-report-detail'
 
 export default async function DailyReportDetailPage({
   params

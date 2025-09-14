@@ -4,9 +4,6 @@
  */
 
 import * as Sentry from '@sentry/nextjs'
-import { createClient } from '@/lib/supabase/client'
-import { performanceTracker, PerformanceMetrics } from './performance-metrics'
-import { securityManager } from '@/lib/security/production-security-manager'
 
 // Monitoring event types for construction industry
 export enum MonitoringEventType {

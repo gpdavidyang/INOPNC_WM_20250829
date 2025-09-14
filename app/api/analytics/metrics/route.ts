@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // Helper function to check if table exists
-async function tableExists(supabase: any, tableName: string): Promise<boolean> {
+async function tableExists(supabase: unknown, tableName: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
       .from('information_schema.tables')
@@ -129,7 +127,7 @@ export async function GET(request: NextRequest) {
           console.warn('Site membership lookup failed, falling back to organization filter:', sitesError)
           // Fall back to organization-level access
         } else if (assignedSites && assignedSites.length > 0) {
-          const siteIds = assignedSites.map((s: any) => s.site_id)
+          const siteIds = assignedSites.map((s: unknown) => s.site_id)
           query = query.in('site_id', siteIds)
         } else {
           // Site manager with no assigned sites - return empty result
@@ -155,8 +153,8 @@ export async function GET(request: NextRequest) {
         stack: error.stack,
         name: error.name,
         cause: error.cause,
-        code: (error as any).code,
-        details: (error as any).details
+        code: (error as unknown).code,
+        details: (error as unknown).details
       } : {
         message: String(error),
         stack: 'No stack trace available',
@@ -192,7 +190,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Group metrics by type if no specific type requested
-    const groupedMetrics = metricType ? data : data?.reduce((acc: any, metric: any) => {
+    const groupedMetrics = metricType ? data : data?.reduce((acc: unknown, metric: unknown) => {
       if (!acc[metric.metric_type]) {
         acc[metric.metric_type] = []
       }
@@ -453,7 +451,7 @@ export async function POST(request: NextRequest) {
         p_organization_id: profile.organization_id,
         p_site_id: siteId || null,
         p_date: date || new Date().toISOString().split('T')[0]
-      } as any) as any)
+      } as unknown) as unknown)
 
       if (error) {
         const errorInfo = error instanceof Error ? {
@@ -461,8 +459,8 @@ export async function POST(request: NextRequest) {
           stack: error.stack,
           name: error.name,
           cause: error.cause,
-          code: (error as any).code,
-          hint: (error as any).hint
+          code: (error as unknown).code,
+          hint: (error as unknown).hint
         } : {
           message: String(error),
           stack: 'No stack trace available',

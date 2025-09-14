@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
 
 // GET /api/unified-documents/v2 - 통합 문서 목록 조회
@@ -292,7 +290,7 @@ export async function PATCH(request: NextRequest) {
     let result
     
     switch (action) {
-      case 'delete':
+      case 'delete': {
         // 소프트 삭제
         result = await supabase
           .from('unified_documents')
@@ -303,7 +301,8 @@ export async function PATCH(request: NextRequest) {
           .in('id', documentIds)
         break
         
-      case 'archive':
+        }
+      case 'archive': {
         // 보관
         result = await supabase
           .from('unified_documents')
@@ -315,7 +314,8 @@ export async function PATCH(request: NextRequest) {
           .in('id', documentIds)
         break
         
-      case 'restore':
+        }
+      case 'restore': {
         // 복원
         result = await supabase
           .from('unified_documents')
@@ -327,7 +327,8 @@ export async function PATCH(request: NextRequest) {
           .in('id', documentIds)
         break
         
-      case 'approve':
+        }
+      case 'approve': {
         // 승인 (관리자만)
         if (!['admin', 'system_admin'].includes(profile.role)) {
           return NextResponse.json(
@@ -346,7 +347,8 @@ export async function PATCH(request: NextRequest) {
           .in('id', documentIds)
         break
         
-      case 'reject':
+        }
+      case 'reject': {
         // 반려 (관리자만)
         if (!['admin', 'system_admin'].includes(profile.role)) {
           return NextResponse.json(
@@ -364,7 +366,8 @@ export async function PATCH(request: NextRequest) {
           .in('id', documentIds)
         break
         
-      case 'change_category':
+        }
+      case 'change_category': {
         // 카테고리 변경
         if (!updateData?.category_type) {
           return NextResponse.json(
@@ -381,7 +384,8 @@ export async function PATCH(request: NextRequest) {
           .in('id', documentIds)
         break
         
-      case 'update':
+        }
+      case 'update': {
         // 일반 업데이트
         result = await supabase
           .from('unified_documents')
@@ -392,6 +396,7 @@ export async function PATCH(request: NextRequest) {
           .in('id', documentIds)
         break
         
+        }
       default:
         return NextResponse.json(
           { error: 'Invalid action' },

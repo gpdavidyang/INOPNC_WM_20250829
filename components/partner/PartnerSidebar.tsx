@@ -1,14 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { Profile, UserRole } from '@/types'
-import { 
-  Home, FileText, FolderOpen, X, LogOut,
-  Building2, Printer, User
-} from 'lucide-react'
-import { signOut } from '@/app/auth/actions'
-import { useRouter, usePathname } from 'next/navigation'
-import { useRovingTabIndex } from '@/hooks/use-keyboard-navigation'
 
 interface PartnerSidebarProps {
   profile: Profile
@@ -21,7 +13,7 @@ interface PartnerSidebarProps {
 interface MenuItem {
   id: string
   label: string
-  icon: any
+  icon: unknown
   badge?: string
 }
 
@@ -151,7 +143,7 @@ function SidebarContent({
   onClose,
   menuItems,
   handleLogout 
-}: any) {
+}: unknown) {
   const totalItems = menuItems.length + 1 // +1 for logout
   const { focusedIndex, getRovingProps } = useRovingTabIndex(totalItems)
 

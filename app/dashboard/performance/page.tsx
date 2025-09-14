@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { PerformanceDashboard } from '@/components/dashboard/performance-dashboard'
 
 export default async function PerformancePage() {
   const supabase = createClient()

@@ -1,29 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Mail, 
-  Send, 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle,
-  Plus,
-  History,
-  FileText,
-  Filter,
-  Search
-} from 'lucide-react'
-import { 
-  sendEmailNotification,
-  sendBulkEmailNotifications,
-  getEmailTemplates,
-  getEmailNotificationHistory,
-  EmailNotificationData,
-  BulkEmailData
-} from '@/app/actions/admin/email-notifications'
-import { UserRole, EmailNotificationStatus, EmailNotificationType, EmailNotificationPriority } from '@/types'
 
 export default function EmailNotifications() {
   const [activeTab, setActiveTab] = useState<'send' | 'bulk' | 'templates' | 'history'>('send')
@@ -164,7 +140,7 @@ export default function EmailNotifications() {
     }
   }
 
-  const useTemplate = (template: any) => {
+  const useTemplate = (template: unknown) => {
     if (activeTab === 'send') {
       setSingleEmail({
         ...singleEmail,
@@ -240,7 +216,7 @@ export default function EmailNotifications() {
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
+                onClick={() => setActiveTab(tab.key as unknown)}
                 className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2 ${
                   activeTab === tab.key
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -496,7 +472,7 @@ export default function EmailNotifications() {
                 <Filter className="h-4 w-4 text-gray-400" />
                 <select
                   value={historyFilter}
-                  onChange={(e) => setHistoryFilter(e.target.value as any)}
+                  onChange={(e) => setHistoryFilter(e.target.value as unknown)}
                   className="p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 >
                   <option value="">모든 상태</option>

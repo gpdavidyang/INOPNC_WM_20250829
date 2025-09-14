@@ -1,14 +1,10 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { X, Filter } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { AppliedFilter } from '@/lib/search/types'
 
 interface AppliedFiltersBarProps {
   filters: AppliedFilter[]
-  onRemoveFilter: (field: string, operator: string, value: any) => void
+  onRemoveFilter: (field: string, operator: string, value: unknown) => void
   onClearAll: () => void
   className?: string
 }

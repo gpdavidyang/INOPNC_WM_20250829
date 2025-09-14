@@ -11,12 +11,8 @@
  * - Request signing validation
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import { withRateLimit, getRateLimitIdentifier, getRateLimitType } from './rate-limiter'
-import { getAPISecurityHeaders, logSecurityEvent } from './security-headers'
 import { z } from 'zod'
-import crypto from 'crypto'
 
 export interface SecurityConfig {
   requireAuth?: boolean
@@ -29,8 +25,8 @@ export interface SecurityConfig {
 }
 
 export interface ApiContext {
-  user?: any
-  profile?: any
+  user?: unknown
+  profile?: unknown
   ip: string
   userAgent: string
   requestId: string
@@ -41,7 +37,7 @@ export interface ApiError {
   code: string
   message: string
   statusCode: number
-  details?: any
+  details?: unknown
 }
 
 // Common API errors
@@ -295,7 +291,7 @@ export function withSecurity(
 function createErrorResponse(
   error: ApiError,
   context: ApiContext,
-  details?: any
+  details?: unknown
 ): NextResponse {
   const response = NextResponse.json(
     {
@@ -378,12 +374,12 @@ export const sanitizeString = (input: string): string => {
     .substring(0, 1000) // Limit length
 }
 
-export const sanitizeNumber = (input: any): number | null => {
+export const sanitizeNumber = (input: unknown): number | null => {
   const num = parseFloat(input)
   return !isNaN(num) && isFinite(num) ? num : null
 }
 
-export const sanitizeBoolean = (input: any): boolean => {
+export const sanitizeBoolean = (input: unknown): boolean => {
   return Boolean(input && input !== 'false' && input !== '0')
 }
 

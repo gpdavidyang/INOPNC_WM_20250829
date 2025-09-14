@@ -2,7 +2,7 @@
 import React, { createContext, useContext, ReactNode } from 'react'
 
 interface AuthContextType {
-  user: any | null
+  user: unknown | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>

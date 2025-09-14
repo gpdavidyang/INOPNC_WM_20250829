@@ -1,7 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export async function getSignupRequests() {
   const supabase = createClient()
@@ -70,9 +68,9 @@ export async function getSignupRequestStats() {
   
   const counts = {
     total: stats?.length || 0,
-    pending: stats?.filter((s: any) => s.status === 'pending').length || 0,
-    approved: stats?.filter((s: any) => s.status === 'approved').length || 0,
-    rejected: stats?.filter((s: any) => s.status === 'rejected').length || 0
+    pending: stats?.filter((s: unknown) => s.status === 'pending').length || 0,
+    approved: stats?.filter((s: unknown) => s.status === 'approved').length || 0,
+    rejected: stats?.filter((s: unknown) => s.status === 'rejected').length || 0
   }
   
   return { stats: counts }

@@ -1,9 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { ArrowLeft, Save, X, Plus, Minus } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Partner {
   id: string
@@ -113,7 +109,7 @@ export default function PartnerForm({ partner, profile, onSave, onCancel }: Part
     }
   }
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       [field]: value

@@ -2,8 +2,6 @@
  * 내비게이션 컴포넌트 Props 타입 정의
  */
 
-import { ReactNode } from 'react'
-import { BaseComponentProps } from './index'
 
 // Navigation Item
 export interface NavItem {

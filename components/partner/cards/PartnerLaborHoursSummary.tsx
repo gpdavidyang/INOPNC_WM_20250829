@@ -1,8 +1,5 @@
 'use client'
 
-import React from 'react'
-import { Clock, TrendingUp, Calendar, Users } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
 
 interface LaborStats {
   totalSites: number

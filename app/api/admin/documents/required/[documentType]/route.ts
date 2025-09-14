@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -81,7 +78,7 @@ export async function GET(request: NextRequest, { params }: DocumentTypeRoutePar
 
     // Filter documents by document type
     // Check both tags and sub_category for document type matching
-    const filteredDocuments = documents?.filter((doc: any) => {
+    const filteredDocuments = documents?.filter((doc: unknown) => {
       const docType = (doc.tags && doc.tags.length > 0) ? doc.tags[0] : (doc.sub_category || 'unknown')
       return docType === documentType
     }) || []
@@ -90,7 +87,7 @@ export async function GET(request: NextRequest, { params }: DocumentTypeRoutePar
     console.log('Document type filter API - Sample filtered document:', filteredDocuments[0])
 
     // Transform data to match the expected format
-    const transformedDocuments = filteredDocuments.map((doc: any) => ({
+    const transformedDocuments = filteredDocuments.map((doc: unknown) => ({
       id: doc.id,
       title: doc.title,
       description: doc.description,

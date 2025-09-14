@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // GET /api/markup-documents/[id] - 특정 마킹 도면 조회
 export async function GET(
@@ -33,7 +31,7 @@ export async function GET(
       
       // 후진적 호환성을 위해 markup_documents 테이블도 확인
       const { data: legacyDocument, error: legacyError } = await supabase
-        .from('markup_documents' as any)
+        .from('markup_documents' as unknown)
         .select(`
           *,
           profiles!markup_documents_created_by_fkey(full_name, email),
@@ -50,10 +48,10 @@ export async function GET(
       
       // legacy document를 새로운 형식으로 변환
       const transformedDocument = {
-        ...(legacyDocument as any),
-        file_url: (legacyDocument as any).original_blueprint_url || (legacyDocument as any).file_url,
-        original_blueprint_url: (legacyDocument as any).original_blueprint_url,
-        original_blueprint_filename: (legacyDocument as any).original_blueprint_filename
+        ...(legacyDocument as unknown),
+        file_url: (legacyDocument as unknown).original_blueprint_url || (legacyDocument as unknown).file_url,
+        original_blueprint_url: (legacyDocument as unknown).original_blueprint_url,
+        original_blueprint_filename: (legacyDocument as unknown).original_blueprint_filename
       }
       
       return NextResponse.json({
@@ -108,10 +106,10 @@ export async function PUT(
         preview_image_url,
         markup_count,
         updated_at: new Date().toISOString()
-      } as any)
+      } as unknown)
       .eq('id', params.id)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) {
       console.error('Error updating markup document:', error)
@@ -176,8 +174,8 @@ export async function DELETE(
       .update({
         is_deleted: true,
         updated_at: new Date().toISOString()
-      } as any)
-      .eq('id', params.id) as any)
+      } as unknown)
+      .eq('id', params.id) as unknown)
 
     if (error) {
       console.error('Error deleting markup document:', error)

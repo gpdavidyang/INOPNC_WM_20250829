@@ -1,8 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { LayoutGrid, List, Grid3x3, TableProperties } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 export type ViewMode = 'card' | 'list' | 'grid'
 

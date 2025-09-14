@@ -6,45 +6,6 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Activity, 
-  AlertTriangle, 
-  CheckCircle, 
-  Clock, 
-  Database, 
-  Globe, 
-  HardDrive, 
-  Monitor, 
-  Server, 
-  TrendingUp, 
-  Users, 
-  Zap,
-  Construction,
-  FileText,
-  UserCheck,
-  FolderOpen,
-  MapPin
-} from 'lucide-react'
-import { Line, Bar, Doughnut } from 'react-chartjs-2'
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement,
-} from 'chart.js'
-import { monitoringManager } from '@/lib/monitoring/monitoring-manager'
-import { apiMonitor } from '@/lib/monitoring/api-monitoring'
-import { performanceTracker } from '@/lib/monitoring/performance-metrics'
 
 // Register Chart.js components
 ChartJS.register(
@@ -213,7 +174,7 @@ export default function MonitoringDashboard() {
         },
         alerts: alerts.map(alert => ({
           id: alert.id,
-          severity: alert.severity.toLowerCase() as any,
+          severity: alert.severity.toLowerCase() as unknown,
           message: alert.message,
           timestamp: alert.timestamp,
           resolved: alert.resolved

@@ -1,37 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Switch } from '@/components/ui/switch'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
-import { 
-  Settings, 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Move,
-  Users,
-  Building2,
-  DollarSign,
-  Package,
-  FileText,
-  Layers,
-  Home,
-  Search,
-  Calendar,
-  Bell,
-  Shield,
-  Monitor,
-  Database,
-  Settings as SettingsIcon,
-  HelpCircle
-} from 'lucide-react'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 import type { QuickAction } from '@/types'
 
 interface QuickActionsSettingsProps {

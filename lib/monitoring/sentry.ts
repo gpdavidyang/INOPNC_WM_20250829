@@ -107,7 +107,7 @@ export const measurePerformance = {
   },
   
   // Measure API call performance
-  measureApiCall: async (url: string, fn: () => Promise<any>) => {
+  measureApiCall: async (url: string, fn: () => Promise<unknown>) => {
     try {
       return await Sentry.startSpan({
         name: `API Call: ${url}`,
@@ -165,7 +165,7 @@ export const measurePerformance = {
 }
 
 // User context
-export const setUserContext = (user: any) => {
+export const setUserContext = (user: unknown) => {
   if (user) {
     Sentry.setUser({
       id: user.id,

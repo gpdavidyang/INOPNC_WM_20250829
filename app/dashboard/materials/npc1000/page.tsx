@@ -1,8 +1,4 @@
-import { getProfile } from '@/app/actions/profile'
-import { getSites } from '@/app/actions/sites'
 import { NPC1000InventoryDashboard } from '@/components/materials/npc1000/NPC1000InventoryDashboard'
-import { redirect } from 'next/navigation'
-import { PageLayout } from '@/components/dashboard/page-layout'
 
 export default async function NPC1000Page() {
   const profileResult = await getProfile()

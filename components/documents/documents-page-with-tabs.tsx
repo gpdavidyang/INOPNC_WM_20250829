@@ -1,27 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  FileText, 
-  Share2, 
-  FolderOpen,
-  Users,
-  Settings,
-  Plus,
-  PenTool
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { MyDocuments } from './my-documents'
-import { SharedDocuments } from './shared-documents'
 import { MarkupEditor } from '@/components/markup/markup-editor'
-import { useFontSize } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface DocumentsPageWithTabsProps {
-  profile: any
+  profile: unknown
   searchParams?: { [key: string]: string | string[] | undefined }
 }
 

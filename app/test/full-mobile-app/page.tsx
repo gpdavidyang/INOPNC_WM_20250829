@@ -1,13 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import MobileHeader from '@/components/dashboard/mobile-header'
-import MobileBottomNav from '@/components/dashboard/mobile-bottom-nav'
-import HomeTabNew from '@/components/dashboard/tabs/home-tab-new'
-import DailyReportsTabNew from '@/components/dashboard/tabs/daily-reports-tab-new'
-import DocumentsTabNew from '@/components/dashboard/tabs/documents-tab-new'
-import SiteInfoTabNew from '@/components/dashboard/tabs/site-info-tab-new'
 
 export default function FullMobileAppTestPage() {
   const [currentView, setCurrentView] = useState<'home' | 'daily-reports' | 'documents' | 'site-info' | 'more'>('home')

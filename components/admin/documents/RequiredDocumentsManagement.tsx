@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { FileCheck, Search, Download, Eye, Trash2, User, Calendar, RefreshCw, Upload, AlertCircle, CheckCircle, X } from 'lucide-react'
 import RequiredDocumentUploadModal from './RequiredDocumentUploadModal'
 import RequiredDocumentDetailModal from './RequiredDocumentDetailModal'
 
@@ -16,7 +13,7 @@ interface RequiredDocument {
   file_size: number
   mime_type: string
   status: string
-  metadata?: any
+  metadata?: unknown
   created_at: string
   uploaded_by: string
   approved_by?: string
@@ -125,7 +122,7 @@ export default function RequiredDocumentsManagement() {
       if (error) throw error
 
       // Map data to match API response format
-      const mappedData = (data || []).map((doc: any) => ({
+      const mappedData = (data || []).map((doc: unknown) => ({
         ...doc,
         uploader: doc.profiles,
         approver: doc.reviewer_profile

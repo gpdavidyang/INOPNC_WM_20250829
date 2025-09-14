@@ -1,10 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 import { 
   Package, 
   TrendingUp, 
@@ -17,11 +13,6 @@ import {
   ChevronUp,
   ChevronDown
 } from 'lucide-react'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { createClient } from '@/lib/supabase/client'
-import { getNPCMaterialsData, getSitesForMaterials } from '@/app/actions/npc-materials'
-import { useRouter } from 'next/navigation'
 
 interface DailyStatus {
   incoming: number
@@ -135,20 +126,20 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
         const today = new Date().toISOString().split('T')[0]
         
         // Calculate total current inventory
-        const totalInventory = inventory.reduce((sum: number, item: any) => sum + (item.current_stock || 0), 0)
+        const totalInventory = inventory.reduce((sum: number, item: unknown) => sum + (item.current_stock || 0), 0)
         
         // Calculate today's transactions
-        const todayTransactions = transactions.filter((t: any) => 
+        const todayTransactions = transactions.filter((t: unknown) => 
           t.created_at && t.created_at.split('T')[0] === today
         )
         
         const todayIncoming = todayTransactions
-          .filter((t: any) => t.transaction_type === 'in')
-          .reduce((sum: number, t: any) => sum + (t.quantity || 0), 0)
+          .filter((t: unknown) => t.transaction_type === 'in')
+          .reduce((sum: number, t: unknown) => sum + (t.quantity || 0), 0)
         
         const todayUsed = todayTransactions
-          .filter((t: any) => t.transaction_type === 'out')
-          .reduce((sum: number, t: any) => sum + (t.quantity || 0), 0)
+          .filter((t: unknown) => t.transaction_type === 'out')
+          .reduce((sum: number, t: unknown) => sum + (t.quantity || 0), 0)
         
         setDailyStatus({
           incoming: todayIncoming,
@@ -157,11 +148,11 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
         })
         
         // Calculate cumulative status from all transactions
-        const allIncoming = transactions.filter((t: any) => t.transaction_type === 'in')
-          .reduce((sum: number, t: any) => sum + (t.quantity || 0), 0)
+        const allIncoming = transactions.filter((t: unknown) => t.transaction_type === 'in')
+          .reduce((sum: number, t: unknown) => sum + (t.quantity || 0), 0)
         
-        const allUsed = transactions.filter((t: any) => t.transaction_type === 'out')
-          .reduce((sum: number, t: any) => sum + (t.quantity || 0), 0)
+        const allUsed = transactions.filter((t: unknown) => t.transaction_type === 'out')
+          .reduce((sum: number, t: unknown) => sum + (t.quantity || 0), 0)
         
         setCumulativeStatus({
           totalIncoming: allIncoming,
@@ -172,7 +163,7 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
         // Group transactions by date for movements table
         const movementsByDate = new Map<string, { incoming: number, used: number, inventory: number }>()
         
-        transactions.forEach((t: any) => {
+        transactions.forEach((t: unknown) => {
           if (!t.created_at) return
           const date = t.created_at.split('T')[0]
           const existing = movementsByDate.get(date) || { incoming: 0, used: 0, inventory: 0 }
@@ -244,7 +235,7 @@ export default function NPC1000DailyDashboard({ currentSiteId, currentSiteName }
   }
 
   const sortedMovements = [...movements].sort((a, b) => {
-    let valueA: any, valueB: any
+    let valueA: unknown, valueB: unknown
     
     switch (sortField) {
       case 'date':

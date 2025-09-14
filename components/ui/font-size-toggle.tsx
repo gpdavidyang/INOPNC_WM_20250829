@@ -1,6 +1,5 @@
 'use client'
 
-import { useFontSize } from '@/contexts/FontSizeContext'
 
 export function FontSizeToggle() {
   const { isLargeFont, toggleFontSize } = useFontSize()

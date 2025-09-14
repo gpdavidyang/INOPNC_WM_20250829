@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // GET /api/shared-documents/[id] - 특정 문서 조회
 export async function GET(
@@ -64,13 +62,13 @@ export async function PUT(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'edit'
-    } as any)
+    } as unknown)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    const updateData: any = {}
+    const updateData: unknown = {}
     if (title !== undefined) updateData.title = title
     if (description !== undefined) updateData.description = description
     if (category !== undefined) updateData.category = category
@@ -128,7 +126,7 @@ export async function DELETE(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'delete'
-    } as any)
+    } as unknown)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })

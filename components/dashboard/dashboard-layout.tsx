@@ -1,22 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { usePathname, useRouter } from 'next/navigation'
-import { User } from '@supabase/supabase-js'
-import { Profile } from '@/types'
-import { Home, Calendar, FileText, FolderOpen, User as UserIcon, MapPin } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import Sidebar from './sidebar'
-import Header from './header'
-import HomeTabNew from './tabs/home-tab-new'
-import MobileDashboardLayout from './mobile-dashboard-layout'
-import {
-  LazyWorkLogsTab,
-  LazyDocumentsTabUnified,
-  LazyAttendanceTab,
-  preloadForRole
-} from './tabs/lazy-components'
-// import SiteInfoTab from './tabs/site-info-tab' // Moved to dedicated page: /dashboard/site-info
+//  // Moved to dedicated page: /dashboard/site-info
 // Removed UnifiedMobileNav - will be replaced with new design later
 
 interface DashboardLayoutProps {
@@ -25,7 +10,7 @@ interface DashboardLayoutProps {
   children?: React.ReactNode
   initialActiveTab?: string
   useConstructionMode?: boolean // 건설 현장 모드 옵션
-  initialCurrentSite?: any
+  initialCurrentSite?: unknown
   initialSiteHistory?: unknown[]
 }
 

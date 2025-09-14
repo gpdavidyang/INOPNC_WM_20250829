@@ -1,8 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Save, Building2 } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Organization {
   id?: string

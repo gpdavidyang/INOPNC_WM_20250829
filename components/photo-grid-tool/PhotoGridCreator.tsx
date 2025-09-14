@@ -1,26 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
-import { ArrowLeft, Save, Upload, X, Image as ImageIcon } from 'lucide-react'
-import { useToast } from '@/components/ui/use-toast'
-import Image from 'next/image'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface PhotoGridCreatorProps {
-  document?: any
+  document?: unknown
   onBack: () => void
   onSave: () => void
 }
@@ -111,16 +93,16 @@ export default function PhotoGridCreator({ document, onBack, onSave }: PhotoGrid
       if (response.ok) {
         const images = await response.json()
         
-        const beforeImages = images.filter((img: any) => img.photo_type === 'before')
-          .sort((a: any, b: any) => a.photo_order - b.photo_order)
-        const afterImages = images.filter((img: any) => img.photo_type === 'after')
-          .sort((a: any, b: any) => a.photo_order - b.photo_order)
+        const beforeImages = images.filter((img: unknown) => img.photo_type === 'before')
+          .sort((a: unknown, b: unknown) => a.photo_order - b.photo_order)
+        const afterImages = images.filter((img: unknown) => img.photo_type === 'after')
+          .sort((a: unknown, b: unknown) => a.photo_order - b.photo_order)
         
         setPhotos({
           before: [],
           after: [],
-          beforePreviews: beforeImages.map((img: any) => img.photo_url),
-          afterPreviews: afterImages.map((img: any) => img.photo_url),
+          beforePreviews: beforeImages.map((img: unknown) => img.photo_url),
+          afterPreviews: afterImages.map((img: unknown) => img.photo_url),
         })
       }
     } catch (error) {

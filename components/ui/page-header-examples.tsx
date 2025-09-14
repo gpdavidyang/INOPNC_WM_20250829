@@ -3,25 +3,6 @@
 // This file contains usage examples for the PageHeader component
 // These examples show different use cases and configurations
 
-import { 
-  PageHeader, 
-  DashboardPageHeader, 
-  AdminPageHeader, 
-  ReportsPageHeader, 
-  DocumentsPageHeader 
-} from './page-header'
-import { 
-  Save, 
-  Send, 
-  Edit, 
-  Trash2, 
-  Settings, 
-  Plus, 
-  Download,
-  Share,
-  RefreshCw,
-  Search
-} from 'lucide-react'
 
 // Example 1: Basic page header with title only
 export function BasicPageHeaderExample() {

@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { getMonthlyAttendance } from '@/app/actions/attendance'
 import { AttendanceCalendarPageClient } from '@/components/attendance/attendance-calendar-page-client'
 
 export default async function AttendanceCalendarPage() {

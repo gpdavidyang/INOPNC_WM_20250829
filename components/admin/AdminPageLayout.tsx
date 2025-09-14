@@ -1,10 +1,5 @@
 'use client'
 
-import { Profile } from '@/types'
-import { ArrowLeft, Shield } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { useFontSize,  getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface AdminPageLayoutProps {
   profile: Profile

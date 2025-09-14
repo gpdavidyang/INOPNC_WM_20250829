@@ -1,36 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Settings, 
-  AlertTriangle, 
-  CheckCircle, 
-  XCircle, 
-  Save, 
-  RotateCcw,
-  Download,
-  Upload
-} from 'lucide-react'
-import { 
-  PerformanceBudget, 
-  PerformanceAlert,
-  performanceBudgetManager,
-  onPerformanceAlert,
-  getPerformanceBudgetStatus 
-} from '@/lib/monitoring/performance-budgets'
 
 export function PerformanceBudgetConfig() {
   const [budgets, setBudgets] = useState<PerformanceBudget[]>([])
   const [recentAlerts, setRecentAlerts] = useState<PerformanceAlert[]>([])
-  const [budgetStatus, setBudgetStatus] = useState<any>(null)
+  const [budgetStatus, setBudgetStatus] = useState<unknown>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [hasChanges, setHasChanges] = useState(false)
   const [activeTab, setActiveTab] = useState('budgets')
@@ -69,7 +43,7 @@ export function PerformanceBudgetConfig() {
     setBudgetStatus(status)
   }
 
-  const handleBudgetChange = (index: number, field: string, value: any) => {
+  const handleBudgetChange = (index: number, field: string, value: unknown) => {
     const newBudgets = [...budgets]
     if (field.includes('threshold.')) {
       const thresholdField = field.split('.')[1]

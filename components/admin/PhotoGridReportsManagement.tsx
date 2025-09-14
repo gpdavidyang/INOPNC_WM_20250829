@@ -1,33 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Trash2, 
-  Search,
-  Filter,
-  Calendar,
-  User,
-  Building,
-  BarChart3,
-  Download as ArrowDownTrayIcon,
-  Plus,
-  RefreshCw
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  getPhotoGridReports, 
-  trackPhotoGridReportDownload, 
-  deletePhotoGridReport,
-  permanentlyDeletePhotoGridReport,
-  getPhotoGridReportStats,
-  updateDailyReportPdfCounts
-} from '@/lib/supabase/photo-grid-reports'
-import { formatDate, formatDateTime } from '@/lib/utils'
 import type { PhotoGridReport, PhotoGridReportStats, Profile } from '@/types'
 
 interface PhotoGridReportsManagementProps {

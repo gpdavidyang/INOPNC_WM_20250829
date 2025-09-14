@@ -1,7 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { withApiMonitoring } from '@/lib/monitoring/api-monitoring'
-import { parseISO } from 'date-fns'
 
 export const GET = withApiMonitoring(
   async (request: NextRequest) => {
@@ -63,11 +59,11 @@ export const GET = withApiMonitoring(
         })
       }
 
-      const siteNames = sites.map((site: any) => site.name)
-      const siteIds = sites.map((site: any) => site.id)
+      const siteNames = sites.map((site: unknown) => site.name)
+      const siteIds = sites.map((site: unknown) => site.id)
 
       // Get worker count per site
-      const workerCountPromises = siteIds.map(async (siteId: any) => {
+      const workerCountPromises = siteIds.map(async (siteId: unknown) => {
         const { data: reports } = await supabase
           .from('daily_reports')
           .select('created_by')
@@ -75,12 +71,12 @@ export const GET = withApiMonitoring(
           .gte('created_at', fromDate.toISOString())
           .lte('created_at', toDate.toISOString())
 
-        const uniqueWorkers = new Set(reports?.map((r: any) => r.created_by) || [])
+        const uniqueWorkers = new Set(reports?.map((r: unknown) => r.created_by) || [])
         return uniqueWorkers.size
       })
 
       // Get daily reports count per site
-      const dailyReportsPromises = siteIds.map(async (siteId: any) => {
+      const dailyReportsPromises = siteIds.map(async (siteId: unknown) => {
         const { data: reports } = await supabase
           .from('daily_reports')
           .select('id')
@@ -98,8 +94,8 @@ export const GET = withApiMonitoring(
       ])
 
       // Generate mock data for material usage and productivity
-      const materialUsage = siteIds.map((_: any) => Math.floor(Math.random() * 30) + 70) // 70-100%
-      const productivity = siteIds.map((_: any) => Math.floor(Math.random() * 20) + 80) // 80-100 points
+      const materialUsage = siteIds.map((_: unknown) => Math.floor(Math.random() * 30) + 70) // 70-100%
+      const productivity = siteIds.map((_: unknown) => Math.floor(Math.random() * 20) + 80) // 80-100 points
 
       const comparisonData = {
         siteNames,

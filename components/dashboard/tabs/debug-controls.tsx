@@ -1,7 +1,5 @@
 'use client'
 
-import React from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export function DebugControls() {
   const supabase = createClient()

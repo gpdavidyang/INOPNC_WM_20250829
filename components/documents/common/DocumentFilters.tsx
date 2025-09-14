@@ -1,16 +1,5 @@
 'use client'
 
-import { Search, Filter, Grid, List, ChevronDown, Upload, X } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 
 interface DocumentFiltersProps {
   // Search
@@ -19,7 +8,7 @@ interface DocumentFiltersProps {
   searchPlaceholder?: string
 
   // Category filter
-  categories: Array<{ id: string; label: string; icon?: any }>
+  categories: Array<{ id: string; label: string; icon?: unknown }>
   selectedCategory: string
   onCategoryChange: (category: string) => void
 

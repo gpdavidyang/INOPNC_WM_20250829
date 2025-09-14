@@ -6,18 +6,6 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { render, fireEvent, waitFor } from '@testing-library/react'
-import {
-  MockAnalyticsAPI,
-  MockMetricsCollector,
-  MockRealtimeAnalytics,
-  MockVercelAnalytics,
-  MockGoogleAnalytics,
-  MockAnalyticsBatcher,
-  createMockAnalyticsEvent,
-  createMockPageView,
-  generateTimeSeriesData
-} from '@/lib/test-utils'
 
 // Example 1: Testing basic event tracking
 export function testEventTracking() {
@@ -26,7 +14,7 @@ export function testEventTracking() {
   const EventTracker = () => {
     const [events, setEvents] = useState<any[]>([])
 
-    const trackEvent = (eventName: string, properties?: any) => {
+    const trackEvent = (eventName: string, properties?: unknown) => {
       analytics.track(eventName, properties)
       setEvents(analytics.getEvents())
     }
@@ -103,7 +91,7 @@ export function testWebVitalsTracking() {
   const collector = new MockMetricsCollector()
 
   const WebVitalsMonitor = () => {
-    const [metrics, setMetrics] = useState<any>(null)
+    const [metrics, setMetrics] = useState<unknown>(null)
 
     const measurePerformance = () => {
       const vitals = collector.generateRealisticMetrics('good')
@@ -146,7 +134,7 @@ export function testRealtimeAnalyticsDashboard() {
   const realtime = new MockRealtimeAnalytics(analytics)
 
   const RealtimeDashboard = () => {
-    const [data, setData] = useState<any>(null)
+    const [data, setData] = useState<unknown>(null)
 
     useEffect(() => {
       // Simulate some activity
@@ -172,7 +160,7 @@ export function testRealtimeAnalyticsDashboard() {
             <p>Events: {data.events}</p>
             <div>
               <h3>Top Pages</h3>
-              {data.topPages.map((page: any, idx: number) => (
+              {data.topPages.map((page: unknown, idx: number) => (
                 <div key={idx}>{page.path}: {page.views}</div>
               ))}
             </div>
@@ -394,14 +382,14 @@ export function testPerformanceMetricsByPage() {
   const collector = new MockMetricsCollector()
 
   const PerformanceMonitor = () => {
-    const [pageMetrics, setPageMetrics] = useState<any>({})
+    const [pageMetrics, setPageMetrics] = useState<unknown>({})
 
     const measurePagePerformance = (page: string, quality: 'good' | 'needs-improvement' | 'poor') => {
       const metrics = collector.generateRealisticMetrics(quality)
       analytics.webVitals(metrics)
       analytics.pageView(page)
       
-      setPageMetrics((prev: any) => ({
+      setPageMetrics((prev: unknown) => ({
         ...prev,
         [page]: metrics
       }))

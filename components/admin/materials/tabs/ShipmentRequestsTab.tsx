@@ -1,14 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  FileText, Clock, CheckCircle, XCircle, AlertCircle,
-  User, Building2, Calendar, Package, Eye, MessageSquare,
-  TrendingUp, Filter, Search,
-  ChevronUp, ChevronDown, ChevronsUpDown
-} from 'lucide-react'
 
 interface ShipmentRequestsTabProps {
   profile: Profile
@@ -115,24 +106,24 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
         const formattedData: ShipmentRequest[] = data
           .filter(item => {
             // Filter for NPC-1000 requests
-            const hasNPCItem = (item as any).material_request_items?.some(
-              (mri: any) => mri.materials?.code?.includes('NPC-1000')
+            const hasNPCItem = (item as unknown).material_request_items?.some(
+              (mri: unknown) => mri.materials?.code?.includes('NPC-1000')
             )
             return hasNPCItem
           })
           .map(item => {
-            const npcItem = (item as any).material_request_items?.find(
-              (mri: any) => mri.materials?.code?.includes('NPC-1000')
+            const npcItem = (item as unknown).material_request_items?.find(
+              (mri: unknown) => mri.materials?.code?.includes('NPC-1000')
             )
             
             return {
               id: item.id,
               request_date: item.created_at.split('T')[0],
               site_id: item.site_id,
-              site_name: (item as any).sites?.name || '알 수 없음',
+              site_name: (item as unknown).sites?.name || '알 수 없음',
               requester_id: item.requested_by,
-              requester_name: (item as any).profiles?.full_name || '알 수 없음',
-              requester_role: (item as any).profiles?.role || 'worker',
+              requester_name: (item as unknown).profiles?.full_name || '알 수 없음',
+              requester_role: (item as unknown).profiles?.role || 'worker',
               requested_amount: npcItem?.requested_quantity || 0,
               urgency: item.urgency || item.priority || 'normal',
               reason: item.notes || '자재 요청',
@@ -195,7 +186,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
     if (!selectedRequest) return
 
     try {
-      const updateData: any = {
+      const updateData: unknown = {
         status: responseForm.status,
         approved_by: profile.id,
         approved_at: new Date().toISOString(),
@@ -287,8 +278,8 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
   }
 
   const sortedRequests = [...requests].sort((a, b) => {
-    let aValue: any = a[sortField]
-    let bValue: any = b[sortField]
+    let aValue: unknown = a[sortField]
+    let bValue: unknown = b[sortField]
     
     if (sortField === 'urgency') {
       const urgencyOrder = { normal: 0, urgent: 1, critical: 2 }
@@ -634,7 +625,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                       </label>
                       <select
                         value={responseForm.status}
-                        onChange={(e) => setResponseForm({ ...responseForm, status: e.target.value as any })}
+                        onChange={(e) => setResponseForm({ ...responseForm, status: e.target.value as unknown })}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
                         <option value="approved">승인</option>

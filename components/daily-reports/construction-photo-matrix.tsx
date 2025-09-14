@@ -1,30 +1,5 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Camera, 
-  Upload, 
-  X, 
-  Plus, 
-  Check,
-  AlertCircle,
-  FileImage,
-  Grid3X3,
-  Download
-} from 'lucide-react'
-import { 
-  ConstructionPhoto, 
-  PhotoGroup, 
-  ConstructionProcessType, 
-  ComponentType,
-  PhotoProgress 
-} from '@/types'
 
 interface ConstructionPhotoMatrixProps {
   dailyReportId: string

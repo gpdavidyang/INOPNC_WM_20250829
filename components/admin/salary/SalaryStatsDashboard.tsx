@@ -1,19 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  TrendingUp, 
-  Users, 
-  DollarSign, 
-  Clock, 
-  Calendar,
-  Building2,
-  FileText,
-  Download
-} from 'lucide-react'
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import * as XLSX from 'xlsx'
 import SalaryChart, { 
   WorkerSalaryChart, 
@@ -26,7 +12,7 @@ interface StatsCard {
   value: string
   change?: string
   changeType?: 'increase' | 'decrease' | 'neutral'
-  icon: any
+  icon: unknown
   color: string
 }
 

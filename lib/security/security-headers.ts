@@ -11,7 +11,6 @@
  * - Permissions Policy
  */
 
-import { NextRequest, NextResponse } from 'next/server'
 
 // CSP directives for construction management application
 const CSP_DIRECTIVES = {
@@ -292,8 +291,8 @@ export function logSecurityEvent(event: SecurityEvent): void {
   console.warn('SECURITY EVENT:', event)
   
   // Send to Sentry or other monitoring service
-  if (typeof window !== 'undefined' && (window as any).Sentry) {
-    (window as any).Sentry.captureMessage(
+  if (typeof window !== 'undefined' && (window as unknown).Sentry) {
+    (window as unknown).Sentry.captureMessage(
       `Security Event: ${event.type}`,
       {
         level: event.severity,

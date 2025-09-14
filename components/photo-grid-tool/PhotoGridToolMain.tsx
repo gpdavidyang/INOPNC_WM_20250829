@@ -1,16 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Plus, FileText, Calendar, Building2 } from 'lucide-react'
 import PhotoGridCreator from './PhotoGridCreator'
 import PhotoGridList from './PhotoGridList'
-import { useToast } from '@/components/ui/use-toast'
 
 export default function PhotoGridToolMain() {
   const [view, setView] = useState<'list' | 'create'>('list')
-  const [selectedDocument, setSelectedDocument] = useState<any>(null)
+  const [selectedDocument, setSelectedDocument] = useState<unknown>(null)
   const { toast } = useToast()
 
   const handleCreate = () => {
@@ -18,7 +14,7 @@ export default function PhotoGridToolMain() {
     setView('create')
   }
 
-  const handleEdit = (document: any) => {
+  const handleEdit = (document: unknown) => {
     setSelectedDocument(document)
     setView('create')
   }

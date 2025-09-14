@@ -1,7 +1,3 @@
-import { Metadata } from 'next'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getAuthenticatedUser } from '@/lib/auth/session'
 import { NotificationsPageWrapper } from '@/components/notifications/notifications-page-wrapper'
 
 export const metadata: Metadata = {

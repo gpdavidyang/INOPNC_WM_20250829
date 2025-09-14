@@ -1,8 +1,5 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired, validateEmail } from './common'
-import { Profile, UserRole, UserStatus, UserRequiredDocument } from '@/types'
-import { sendWelcomeEmail, sendPasswordResetEmail } from './email-notifications'
 
 export interface CreateUserData {
   email: string
@@ -97,7 +94,7 @@ export async function getUsers(
 
       // Fetch site assignments, required documents, and work log stats for each user
       const transformedUsers = await Promise.all(
-        (users || []).map(async (user: any) => {
+        (users || []).map(async (user: unknown) => {
           // Get site assignments for this user
           const { data: assignments } = await supabase
             .from('site_assignments')
@@ -131,7 +128,7 @@ export async function getUsers(
 
             // Create status for each required document type
             requiredDocuments = REQUIRED_DOCUMENT_TYPES.map(docType => {
-              const doc = userDocs?.find((d: any) => d.document_type === docType)
+              const doc = userDocs?.find((d: unknown) => d.document_type === docType)
               return {
                 document_type: docType,
                 status: doc ? 'submitted' : 'pending',
@@ -177,7 +174,7 @@ export async function getUsers(
 
           return {
             ...user,
-            site_assignments: assignments?.map((assignment: any) => ({
+            site_assignments: assignments?.map((assignment: unknown) => ({
               site_id: assignment.site_id,
               site_name: assignment.sites?.name || '',
               role: assignment.role || user.role, // Fallback to user's global role
@@ -281,7 +278,7 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
 
       // Create status for each required document type
       const documents = REQUIRED_DOCUMENT_TYPES.map(docType => {
-        const doc = userDocs?.find((d: any) => d.document_type === docType)
+        const doc = userDocs?.find((d: unknown) => d.document_type === docType)
         return {
           document_type: docType,
           document_name: doc?.original_filename || null,
@@ -301,21 +298,21 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
         .eq('user_id', user.id)
         .order('report_date', { ascending: false })
 
-      const thisMonthReports = workLogs?.filter((log: any) => 
+      const thisMonthReports = workLogs?.filter((log: unknown) => 
         new Date(log.report_date) >= startOfMonth
       ).length || 0
 
       const transformedUser: UserWithSites = {
         ...user,
         organization: user.organizations || null,
-        site_assignments: assignments?.map((a: any) => ({
+        site_assignments: assignments?.map((a: unknown) => ({
           site_id: a.site_id,
-          site_name: (a.sites as any)?.name || 'Unknown',
+          site_name: (a.sites as unknown)?.name || 'Unknown',
           role: a.role,
           assigned_at: a.assigned_at,
           is_active: a.is_active
         })) || [],
-        required_documents: documents?.map((d: any) => ({
+        required_documents: documents?.map((d: unknown) => ({
           document_type: d.document_type,
           document_name: d.document_name,
           status: d.status,
@@ -518,7 +515,7 @@ export async function deleteUsers(userIds: string[]): Promise<AdminActionResult<
       }
 
       // Filter out test accounts from protection
-      const protectedAdmins = adminUsers?.filter((user: any) => {
+      const protectedAdmins = adminUsers?.filter((user: unknown) => {
         const isTestAccount = 
           user.full_name?.toLowerCase().includes('테스트') ||
           user.full_name?.toLowerCase().includes('test') ||

@@ -1,21 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import AdminDataTable from './AdminDataTable'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
-import { 
-  getMaterials,
-  getMaterialRequests,
-  processMaterialRequestApprovals,
-  getNPC1000Summary,
-  getNPC1000BySite,
-  updateMaterialInventory,
-  MaterialWithStats,
-  NPC1000Summary
-} from '@/app/actions/admin/materials'
-import { MaterialRequestData } from '@/types'
-import { Search, Package, TrendingUp, TrendingDown, AlertTriangle, CheckCircle, XCircle, Settings } from 'lucide-react'
 
 interface MaterialsManagementProps {
   profile: Profile
@@ -106,7 +91,7 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
         currentPage,
         pageSize,
         searchTerm,
-        statusFilter as any
+        statusFilter as unknown
       )
       
       if (result.success && result.data) {
@@ -185,7 +170,7 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
 
   // Handle status filter
   const handleStatusFilter = (status: string) => {
-    setStatusFilter(status as any)
+    setStatusFilter(status as unknown)
     setCurrentPage(1)
   }
 
@@ -398,7 +383,7 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
     {
       key: 'site_name',
       label: '현장',
-      render: (value: string, site: any) => (
+      render: (value: string, site: unknown) => (
         <div>
           <div className="font-medium text-gray-900 dark:text-gray-100">{value}</div>
           <div className="text-xs text-gray-400">
@@ -410,7 +395,7 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
     {
       key: 'status',
       label: '상태',
-      render: (value: 'normal' | 'low' | 'critical', site: any) => {
+      render: (value: 'normal' | 'low' | 'critical', site: unknown) => {
         const statusConfig = {
           normal: { text: '정상', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
           low: { text: '부족', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300' },
@@ -653,7 +638,7 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
         selectable={activeTab !== 'npc1000'}
         selectedIds={selectedIds}
         onSelectionChange={setSelectedIds}
-        getRowId={(item: any) => item.id || item.site_id}
+        getRowId={(item: unknown) => item.id || item.site_id}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}

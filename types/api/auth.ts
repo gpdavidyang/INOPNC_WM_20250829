@@ -2,7 +2,6 @@
  * 인증 관련 API 타입 정의
  */
 
-import { Database } from '../database'
 
 // 사용자 역할
 export type UserRole = 'admin' | 'site_manager' | 'worker' | 'customer_manager' | 'partner' | 'accountant' | 'executive'

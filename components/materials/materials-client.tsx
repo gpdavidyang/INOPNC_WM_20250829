@@ -1,8 +1,5 @@
 'use client'
 
-import { useFontSize, getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Package, AlertTriangle, Clock, Building2 } from 'lucide-react'
 
 export function MaterialsClient() {
   const { isLargeFont } = useFontSize()

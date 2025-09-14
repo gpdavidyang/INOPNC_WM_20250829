@@ -1,11 +1,5 @@
 'use client'
 
-import { Profile } from '@/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  User, Mail, Phone, Building2, Shield, Calendar, LogOut 
-} from 'lucide-react'
-import { signOut } from '@/app/auth/actions'
 
 interface PartnerMyInfoTabProps {
   profile: Profile

@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Profile } from '@/types'
-import DocumentUploadZone from './DocumentUploadZone'
-import { FileText, Download, Eye, Trash2, Upload, Settings, ExternalLink, Search, Filter, CheckSquare, Square, X, AlertCircle, Share2, FileImage, Receipt, Building2, Users, Calendar, RefreshCw, Edit3, PenTool, DollarSign, Clock } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 // 공유문서함 문서
 interface SharedDocument {

@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { notificationHelpers } from '@/lib/push-notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,7 +110,7 @@ export async function POST(request: NextRequest) {
         .eq('status', 'active')
 
       if (siteManagers?.length) {
-        const urgentNotifications = siteManagers.map((manager: any) => ({
+        const urgentNotifications = siteManagers.map((manager: unknown) => ({
           user_id: manager.id,
           type: 'warning',
           title: `⚠️ 긴급 장비 점검 필요`,

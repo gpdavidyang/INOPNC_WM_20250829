@@ -1,19 +1,5 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  SharedDocument, 
-  ALLOWED_MIME_TYPES, 
-  MAX_FILE_SIZE, 
-  DocumentCategory,
-  formatFileSize,
-  FILE_TYPE_ICONS
-} from '@/types/shared-documents'
-import { 
-  X, Upload, FileText, AlertCircle, CheckCircle, 
-  Building2, Tag, User, Loader2, File, Trash2
-} from 'lucide-react'
 
 interface DocumentUploadModalProps {
   document?: SharedDocument | null

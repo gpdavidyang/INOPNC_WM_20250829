@@ -1,17 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { 
-  Download, 
-  FileText, 
-  Loader2,
-  CheckCircle,
-  AlertCircle
-} from 'lucide-react'
-import { PhotoGroup, PhotoGridPDFOptions } from '@/types'
-import { generatePDFWithCanvas, generateHTMLBasedPDF } from '@/lib/pdf-generator-canvas'
-import { createPhotoGridReport } from '@/lib/supabase/photo-grid-reports'
 
 interface PDFReportGeneratorProps {
   photoGroups: PhotoGroup[]

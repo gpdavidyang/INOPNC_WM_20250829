@@ -10,15 +10,15 @@ interface HapticOptions {
 
 class HapticFeedbackManager {
   private isSupported: boolean = false
-  private vibrationAPI: any = null
+  private vibrationAPI: unknown = null
 
   constructor() {
     if (typeof window !== 'undefined') {
       // Check for vibration API support
       this.vibrationAPI = navigator.vibrate || 
-                         (navigator as any).webkitVibrate || 
-                         (navigator as any).mozVibrate || 
-                         (navigator as any).msVibrate
+                         (navigator as unknown).webkitVibrate || 
+                         (navigator as unknown).mozVibrate || 
+                         (navigator as unknown).msVibrate
 
       this.isSupported = !!this.vibrationAPI && 'vibrate' in navigator
 
@@ -104,7 +104,7 @@ class HapticFeedbackManager {
   private async advancedHapticFeedback(pattern: HapticPattern, options: HapticOptions): Promise<void> {
     // For iOS Safari and supported browsers
     if ('Taptic' in window) {
-      const taptic = (window as any).Taptic
+      const taptic = (window as unknown).Taptic
       
       switch (pattern) {
         case 'light':
@@ -137,7 +137,7 @@ class HapticFeedbackManager {
         }
         
         if ('createEffect' in navigator) {
-          const effect = (navigator as any).createEffect(vibrationEffect)
+          const effect = (navigator as unknown).createEffect(vibrationEffect)
           await effect.play()
         }
       } catch (error) {

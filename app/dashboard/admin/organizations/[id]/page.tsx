@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import OrganizationDetailPage from '@/components/admin/organizations/OrganizationDetailPage'
 
 interface PageProps {

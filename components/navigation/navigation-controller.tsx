@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useCallback, useRef, createContext, useContext } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
 
 interface NavigationControllerProps {
   children: React.ReactNode

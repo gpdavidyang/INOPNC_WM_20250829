@@ -1,9 +1,5 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { Switch } from '@/components/ui/switch'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { UserIcon } from 'lucide-react'
 
 interface Worker {
   id: string

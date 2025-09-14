@@ -3,8 +3,6 @@
  * jsPDF 대신 HTML/CSS 기반으로 생성하여 한글 깨짐 문제 해결
  */
 
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import type { MonthlySalary } from './salary-calculation.service'
 
 export interface PayslipData {

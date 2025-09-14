@@ -1,8 +1,5 @@
 'use server'
 
-import { createClient as createServerClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-import { createClient } from '@/lib/supabase/server'
 
 const log = (...args: unknown[]) => {
   console.log('[SITE-INFO-DEPLOYMENT]', ...args)
@@ -91,7 +88,7 @@ export async function getCurrentUserSiteDeploymentSafe() {
     const allCookies = cookieStore.getAll()
     
     // Find the Supabase auth token cookie
-    const authCookie = allCookies.find((c: any) => 
+    const authCookie = allCookies.find((c: unknown) => 
       c.name.includes('sb-') && c.name.includes('-auth-token')
     )
     
@@ -259,7 +256,7 @@ async function fetchWithServiceRole(userId: string, userEmail?: string) {
 /**
  * Format site data to expected structure
  */
-function formatSiteData(site: any, assignment: any) {
+function formatSiteData(site: unknown, assignment: unknown) {
   return {
     site_id: site.id,
     site_name: site.name,
@@ -339,7 +336,7 @@ export async function getUserSiteHistoryDeploymentSafe() {
       if (!error && data) {
         return {
           success: true,
-          data: data.map((assignment: any) => formatSiteData(assignment.sites, assignment))
+          data: data.map((assignment: unknown) => formatSiteData(assignment.sites, assignment))
         }
       }
     }

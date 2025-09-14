@@ -3,7 +3,7 @@ export type SearchOperator = 'contains' | 'equals' | 'startsWith' | 'endsWith' |
 export interface SearchFilter {
   field: string
   operator: SearchOperator
-  value: any
+  value: unknown
   values?: unknown[] // For 'between' operator
 }
 
@@ -26,7 +26,7 @@ export interface SearchResult<T> {
 export interface AppliedFilter {
   field: string
   operator: SearchOperator
-  value: any
+  value: unknown
   values?: unknown[]
   label: string
   displayValue: string
@@ -37,7 +37,7 @@ export interface SearchFieldConfig {
   label: string
   type: 'text' | 'number' | 'date' | 'select' | 'boolean'
   operators: SearchOperator[]
-  options?: { value: any; label: string }[] // For select fields
+  options?: { value: unknown; label: string }[] // For select fields
   placeholder?: string
 }
 

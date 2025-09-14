@@ -1,7 +1,5 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired } from './common'
-import { MarkupDocument, MarkupDocumentPermission } from '@/types'
 
 export interface MarkupDocumentWithStats extends MarkupDocument {
   shared_count?: number
@@ -83,7 +81,7 @@ export async function getMarkupDocuments(
       }
 
       // Transform the data to include stats
-      const transformedDocuments = documents?.map((doc: any) => ({
+      const transformedDocuments = documents?.map((doc: unknown) => ({
         ...doc,
         shared_count: 0, // TODO: Get from permissions later
         view_count: 0, // TODO: Implement view tracking
@@ -291,8 +289,8 @@ export async function getMarkupDocumentStats(): Promise<AdminActionResult<{
       // Note: personal/shared distinction removed from schema
       const personalDocuments = 0 // No longer applicable
       const sharedDocuments = totalDocuments // All documents are now unified
-      const storageUsed = documents?.reduce((sum: number, doc: any) => sum + (doc.file_size || 0), 0) || 0
-      const activeUsers = new Set(documents?.map((d: any) => d.created_by)).size || 0
+      const storageUsed = documents?.reduce((sum: number, doc: unknown) => sum + (doc.file_size || 0), 0) || 0
+      const activeUsers = new Set(documents?.map((d: unknown) => d.created_by)).size || 0
 
       const stats = {
         total_documents: totalDocuments,

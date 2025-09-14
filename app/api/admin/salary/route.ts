@@ -1,18 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
 
-import { 
-  getSalaryRules, 
-  getSalaryRecords, 
-  getSalaryStats,
-  getOutputSummary,
-  getWorkerCalendarData,
-  getAvailableSitesForSalary,
-  getAvailableWorkersForSalary,
-  calculateSalaries
-} from '@/app/actions/admin/salary'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,7 +18,7 @@ export async function POST(request: NextRequest) {
     let result
 
     switch (action) {
-      case 'getOutputSummary':
+      case 'getOutputSummary': {
         const { year, month, site_id, worker_id } = params
         if (!year || !month) {
           return NextResponse.json(
@@ -40,7 +29,8 @@ export async function POST(request: NextRequest) {
         result = await getOutputSummary(year, month, site_id, worker_id)
         break
 
-      case 'getWorkerCalendarData':
+}
+      case 'getWorkerCalendarData': {
         const { worker_id: wid, year: cy, month: cm } = params
         if (!wid || !cy || !cm) {
           return NextResponse.json(
@@ -51,28 +41,34 @@ export async function POST(request: NextRequest) {
         result = await getWorkerCalendarData(wid, cy, cm)
         break
 
-      case 'getSalaryRules':
+}
+      case 'getSalaryRules': {
         result = await getSalaryRules()
         break
 
-      case 'getSalaryRecords':
+}
+      case 'getSalaryRecords': {
         const { filters, page, pageSize } = params
         result = await getSalaryRecords(filters, page, pageSize)
         break
 
-      case 'getSalaryStats':
+}
+      case 'getSalaryStats': {
         result = await getSalaryStats()
         break
 
-      case 'getAvailableSites':
+}
+      case 'getAvailableSites': {
         result = await getAvailableSitesForSalary()
         break
 
-      case 'getAvailableWorkers':
+}
+      case 'getAvailableWorkers': {
         result = await getAvailableWorkersForSalary()
         break
 
-      case 'calculateSalaries':
+}
+      case 'calculateSalaries': {
         const { site_id: calc_site_id, worker_id: calc_worker_id, date_from, date_to } = params
         if (!date_from || !date_to) {
           return NextResponse.json(
@@ -83,6 +79,7 @@ export async function POST(request: NextRequest) {
         result = await calculateSalaries(calc_site_id, calc_worker_id, date_from, date_to)
         break
 
+}
       default:
         return NextResponse.json(
           { success: false, error: `Unknown action: ${action}` },

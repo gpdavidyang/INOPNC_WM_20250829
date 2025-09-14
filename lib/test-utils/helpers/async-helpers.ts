@@ -5,7 +5,6 @@
  * waiting for loading states, elements, and promise resolution.
  */
 
-import { waitFor, screen } from '@testing-library/react'
 
 // Wait for loading to finish by waiting for loading indicators to disappear
 export async function waitForLoadingToFinish(options: {
@@ -100,7 +99,7 @@ export async function waitForElement(
         if (element) {
           throw new Error(`Element should not exist but was found: ${selector}`)
         }
-        return null as any // Type assertion for consistent return type
+        return null as unknown // Type assertion for consistent return type
       }
 
       if (!element) {
@@ -368,7 +367,7 @@ export async function waitForInputDebounce(
 
 // Wait for multiple conditions to be met
 export async function waitForAll(
-  conditions: Array<() => Promise<any> | any>,
+  conditions: Array<() => Promise<unknown> | any>,
   options: { timeout?: number } = {}
 ): Promise<any[]> {
   const { timeout = 5000 } = options
@@ -392,9 +391,9 @@ export async function waitForAll(
 
 // Wait for any of multiple conditions to be met
 export async function waitForAny(
-  conditions: Array<() => Promise<any> | any>,
+  conditions: Array<() => Promise<unknown> | any>,
   options: { timeout?: number } = {}
-): Promise<{ index: number; result: any }> {
+): Promise<{ index: number; result: unknown }> {
   const { timeout = 5000 } = options
   const startTime = Date.now()
 

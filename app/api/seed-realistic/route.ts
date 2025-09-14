@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
 
 // 현실적인 한국어 이름 매핑 (기존 사용자 → 새 이름)
 const WORKER_NAME_MAPPING = [
@@ -52,15 +50,15 @@ export async function POST(request: NextRequest) {
     console.log(`👥 ${existingProfiles.length}명의 기존 사용자 발견`)
 
     // 역할별로 그룹화하고 현실적인 이름으로 업데이트
-    const workers = existingProfiles.filter((p: any) => p.role === 'worker')
-    const managers = existingProfiles.filter((p: any) => p.role === 'site_manager')
+    const workers = existingProfiles.filter((p: unknown) => p.role === 'worker')
+    const managers = existingProfiles.filter((p: unknown) => p.role === 'site_manager')
     
     let mappingIndex = 0
     
     // 작업자 이름 업데이트
     for (let i = 0; i < workers.length && mappingIndex < WORKER_NAME_MAPPING.length; i++) {
       const worker = workers[i]
-      const mapping = WORKER_NAME_MAPPING.find((m: any, idx: number) => idx >= mappingIndex && m.role === 'worker')
+      const mapping = WORKER_NAME_MAPPING.find((m: unknown, idx: number) => idx >= mappingIndex && m.role === 'worker')
       
       if (mapping) {
         const { error: updateError } = await serviceSupabase
@@ -84,7 +82,7 @@ export async function POST(request: NextRequest) {
     // 관리자 이름 업데이트  
     for (let i = 0; i < managers.length && mappingIndex < WORKER_NAME_MAPPING.length; i++) {
       const manager = managers[i]
-      const mapping = WORKER_NAME_MAPPING.find((m: any, idx: number) => idx >= mappingIndex && m.role === 'site_manager')
+      const mapping = WORKER_NAME_MAPPING.find((m: unknown, idx: number) => idx >= mappingIndex && m.role === 'site_manager')
       
       if (mapping) {
         const { error: updateError } = await serviceSupabase
@@ -116,7 +114,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '활성 사이트가 없습니다.' }, { status: 400 })
     }
 
-    console.log(`🏗️ ${sites.length}개 활성 사이트 발견: ${sites.map((s: any) => s.name).join(', ')}`)
+    console.log(`🏗️ ${sites.length}개 활성 사이트 발견: ${sites.map((s: unknown) => s.name).join(', ')}`)
 
     // 3. 기존 사용자를 사이트에 배정 (기존 배정이 있으면 건너뜀)
     const updatedProfiles = await serviceSupabase
@@ -248,7 +246,7 @@ export async function POST(request: NextRequest) {
         .eq('profiles.role', 'site_manager')
         .limit(1)
 
-      const managerId = siteManagers && siteManagers.length > 0 ? siteManagers[0].user_id : allUsers.find((u: any) => u.role === 'site_manager')?.id
+      const managerId = siteManagers && siteManagers.length > 0 ? siteManagers[0].user_id : allUsers.find((u: unknown) => u.role === 'site_manager')?.id
 
       if (!managerId) continue
 
@@ -346,6 +344,6 @@ export async function GET() {
       '실제 건설 공정을 반영한 작업일지 생성',
       '기존 데이터와 충돌하지 않는 안전한 업데이트'
     ],
-    target_names: WORKER_NAME_MAPPING.map((m: any) => `${m.newName} (${m.role})`)
+    target_names: WORKER_NAME_MAPPING.map((m: unknown) => `${m.newName} (${m.role})`)
   })
 }

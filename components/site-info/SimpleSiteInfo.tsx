@@ -1,13 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { ChevronDown, ChevronUp, MapPin, Phone, Building2, HardHat, FileText, Image, Copy, Navigation, Check, X, Eye } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { useFontSize, getTypographyClass } from '@/contexts/FontSizeContext'
-import { toast } from 'sonner'
-import { TMap } from '@/lib/external-apps'
-import { getSiteDocumentsPTWAndBlueprint, SiteDocument } from '@/app/actions/site-documents'
 
 interface SimpleSiteInfoProps {
   userId: string
@@ -17,7 +10,7 @@ interface SimpleSiteInfoProps {
 export default function SimpleSiteInfo({ userId, userRole }: SimpleSiteInfoProps) {
   const { isLargeFont } = useFontSize()
   const [isExpanded, setIsExpanded] = useState(false)
-  const [siteData, setSiteData] = useState<any>(null)
+  const [siteData, setSiteData] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copiedField, setCopiedField] = useState<string | null>(null)

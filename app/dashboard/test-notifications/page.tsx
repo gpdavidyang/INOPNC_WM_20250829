@@ -1,7 +1,3 @@
-import { Metadata } from 'next'
-import { TestNotificationsPage } from '@/components/test/test-notifications-page'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export const metadata: Metadata = {
   title: '알림 테스트 | INOPNC 작업일지 관리',

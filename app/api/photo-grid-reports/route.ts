@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import type { PhotoGridReport } from '@/types'
 
 // GET /api/photo-grid-reports - PDF 보고서 목록 조회

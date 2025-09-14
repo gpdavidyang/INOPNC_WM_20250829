@@ -2,7 +2,6 @@
  * 급여 관리 UI 기능 테스트 스크립트
  */
 
-import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!

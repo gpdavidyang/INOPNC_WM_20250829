@@ -1,4 +1,3 @@
-import OrganizationList from '@/components/admin/organizations/OrganizationList'
 
 export default function OrganizationsPage() {
   return (

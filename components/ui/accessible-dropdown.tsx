@@ -1,11 +1,6 @@
 'use client'
 
 import React, { forwardRef, useState, useRef, useEffect, ReactNode } from 'react'
-import { cn } from '@/lib/utils'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
-import { ChevronDown, Check } from 'lucide-react'
 
 export interface DropdownOption {
   value: string

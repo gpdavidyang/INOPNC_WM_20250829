@@ -113,7 +113,7 @@ export const typography = {
 
 // 폰트 크기 유틸리티 함수
 export const getTextSize = (size: keyof typeof fontSize, isLargeFont: boolean = false) => {
-  return isLargeFont ? (fontSize as any).large[size] : fontSize[size]
+  return isLargeFont ? (fontSize as unknown).large[size] : fontSize[size]
 }
 
 // Tailwind 클래스 유틸리티 함수
@@ -122,7 +122,7 @@ export const getTextClass = (
   isLargeFont: boolean = false
 ) => {
   const category = preset.startsWith('h') ? 'heading' : 'body'
-  return (typography as any)[category][preset][isLargeFont ? 'large' : 'normal']
+  return (typography as unknown)[category][preset][isLargeFont ? 'large' : 'normal']
 }
 
 // 반응형 텍스트 클래스

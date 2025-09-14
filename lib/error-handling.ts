@@ -1,4 +1,3 @@
-import { toast } from 'sonner'
 
 // Error types
 export enum ErrorType {
@@ -17,7 +16,7 @@ export class AppError extends Error {
     message: string,
     public type: ErrorType = ErrorType.UNKNOWN,
     public statusCode?: number,
-    public details?: any
+    public details?: unknown
   ) {
     super(message)
     this.name = 'AppError'
@@ -143,7 +142,7 @@ export async function retryOperation<T>(
 // Validate Supabase response
 export function validateSupabaseResponse<T>(
   data: T | null,
-  error: any
+  error: unknown
 ): T {
   if (error) {
     if (error.code === 'PGRST301') {

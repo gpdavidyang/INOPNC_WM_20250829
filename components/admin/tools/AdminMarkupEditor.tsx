@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { ArrowLeft, Home, Settings, Users, Eye, Edit, Trash2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import MarkupEditor from '@/components/markup/markup-editor'
 import type { Profile } from '@/types'
 import type { MarkupDocument } from '@/types/markup'
 

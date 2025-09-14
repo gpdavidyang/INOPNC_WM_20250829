@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
 
 export default async function TestDatabasePage() {
   const supabase = createClient()
@@ -24,7 +23,7 @@ export default async function TestDatabasePage() {
   
   if (user) {
     const { data, error } = await supabase
-      .rpc('get_current_user_site' as any, { user_uuid: user.id })
+      .rpc('get_current_user_site' as unknown, { user_uuid: user.id })
     functionResult = data
     functionError = error
   }

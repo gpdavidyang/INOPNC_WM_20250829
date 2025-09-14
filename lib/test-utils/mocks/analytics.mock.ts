@@ -9,7 +9,6 @@
  * - Integration with Vercel Analytics and Google Analytics
  */
 
-import { faker } from '@faker-js/faker'
 
 // Core Web Vitals types
 export interface WebVitalsMetrics {
@@ -493,24 +492,27 @@ export class MockGoogleAnalytics {
 
   gtag(command: string, ...args: unknown[]): void {
     switch (command) {
-      case 'event':
+      case 'event': {
         const [eventName, parameters] = args
         this.analytics.track(eventName, { ...parameters, ga_measurement_id: this.measurementId }, 'google')
         break
+      }
       
-      case 'config':
+      case 'config': {
         const [, config] = args
         if (config?.page_path) {
           this.analytics.pageView(config.page_path, config.page_title)
         }
         break
+      }
       
-      case 'set':
+      case 'set': {
         const [properties] = args
         if (properties.user_id) {
           this.analytics.setUser(properties.user_id)
         }
         break
+      }
     }
   }
 }

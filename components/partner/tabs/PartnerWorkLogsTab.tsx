@@ -1,20 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Profile, DailyReport } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { getPartnerDailyReports } from '@/lib/supabase/daily-reports'
-import { Search, Calendar, FileText, Eye, RefreshCw, Building2, Users, Package, Filter, X, ChevronDown, ChevronUp } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
 
 interface PartnerWorkLogsTabProps {
   profile: Profile

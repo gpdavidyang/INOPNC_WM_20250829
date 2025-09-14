@@ -1,7 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { getAuthenticatedUser } from '@/lib/auth/session'
 import type { Profile } from '@/types'
 
 export async function getProfile() {

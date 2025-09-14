@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
 export async function GET(
   request: Request,
@@ -55,9 +53,9 @@ export async function GET(
     }
 
     // Add is_assigned flag for each partner
-    const partnersWithStatus = partners?.map((partner: any) => ({
+    const partnersWithStatus = partners?.map((partner: unknown) => ({
       ...partner,
-      is_assigned: partner.site_partners?.some((sp: any) => sp.site_id === siteId && sp.partner_company_id === partner.id) || false
+      is_assigned: partner.site_partners?.some((sp: unknown) => sp.site_id === siteId && sp.partner_company_id === partner.id) || false
     })) || []
 
     return NextResponse.json({

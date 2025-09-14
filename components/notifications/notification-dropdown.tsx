@@ -1,13 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import { NotificationBell } from './notification-bell'
-import { NotificationList } from './notification-list'
-import { markAllNotificationsAsRead } from '@/app/actions/notifications'
-import { toast } from 'sonner'
-import { CheckCheck, Settings, X } from 'lucide-react'
-import { createPortal } from 'react-dom'
 
 export function NotificationDropdown() {
   const [open, setOpen] = useState(false)

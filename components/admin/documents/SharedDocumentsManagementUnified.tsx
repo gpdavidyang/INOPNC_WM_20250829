@@ -1,16 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Search, Download, Trash2, Building2, Users, Share2, RefreshCw, Upload, X, FileText, Calendar, User, MapPin, Edit2 } from 'lucide-react'
-import UnifiedDocumentManager from '@/components/unified-documents/UnifiedDocumentManager'
-import LegacyDocumentAdapter from '@/components/unified-documents/LegacyDocumentAdapter'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { useUnifiedDocuments, type UnifiedDocument } from '@/hooks/use-unified-documents'
 
 interface SharedDocumentsManagementUnifiedProps {
   siteId?: string

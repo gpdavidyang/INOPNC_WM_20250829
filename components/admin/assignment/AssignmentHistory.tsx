@@ -1,26 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { 
-  Calendar,
-  Search,
-  Filter,
-  Download,
-  Users,
-  MapPin,
-  Building2,
-  Clock,
-  ArrowUpDown,
-  RefreshCw,
-  Eye
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface AssignmentHistoryRecord {
   id: string
@@ -355,7 +334,7 @@ export default function AssignmentHistory() {
                 const [sortBy, sortOrder] = value.split('_')
                 setFilters(prev => ({ 
                   ...prev, 
-                  sortBy: sortBy as any, 
+                  sortBy: sortBy as unknown, 
                   sortOrder: sortOrder as 'asc' | 'desc' 
                 }))
               }}

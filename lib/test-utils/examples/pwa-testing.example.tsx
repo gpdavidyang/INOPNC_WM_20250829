@@ -5,16 +5,6 @@
  * for testing Progressive Web App features in your application.
  */
 
-import {
-  setupPWAEnvironment,
-  triggerBeforeInstallPrompt,
-  simulateAppInstallation,
-  getPWAInstallationState,
-  setNotificationPermission,
-  simulatePushNotification,
-  simulateServiceWorkerUpdate,
-  simulateBackgroundSync
-} from '@/lib/test-utils/pwa-setup'
 
 // Example 1: Testing PWA installation flow
 export async function testPWAInstallation() {
@@ -27,7 +17,7 @@ export async function testPWAInstallation() {
   // Component that shows install button
   const InstallButton = () => {
     const [canInstall, setCanInstall] = useState(false)
-    const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
+    const [deferredPrompt, setDeferredPrompt] = useState<unknown>(null)
 
     useEffect(() => {
       const handler = (e: Event) => {
@@ -255,7 +245,7 @@ export async function testBackgroundSync() {
   const OfflineForm = () => {
     const [syncStatus, setSyncStatus] = useState<'idle' | 'pending' | 'synced'>('idle')
 
-    const submitForm = async (data: any) => {
+    const submitForm = async (data: unknown) => {
       // Save to IndexedDB
       await saveToIndexedDB(data)
       
@@ -446,6 +436,6 @@ export async function testPWAIntegration() {
 }
 
 // Helper function for IndexedDB (mock)
-async function saveToIndexedDB(data: any) {
+async function saveToIndexedDB(data: unknown) {
   return Promise.resolve()
 }

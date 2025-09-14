@@ -1,6 +1,5 @@
 'use client'
 
-import { useEffect, useRef, useCallback, useState } from 'react'
 
 interface KeyboardNavigationOptions {
   onEscape?: () => void

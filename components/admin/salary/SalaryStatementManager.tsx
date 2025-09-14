@@ -1,16 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { FileText, ExternalLink, Trash2, Eye, Plus, Calendar } from 'lucide-react'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
-import MultiSelectFilter from './components/MultiSelectFilter'
 
 interface SalaryStatement {
   id: string

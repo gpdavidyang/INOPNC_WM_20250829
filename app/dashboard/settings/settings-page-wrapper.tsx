@@ -1,10 +1,6 @@
 'use client'
 
-import { User } from '@supabase/supabase-js'
-import { Profile } from '@/types'
 import SettingsForm from './settings-form'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface SettingsPageWrapperProps {
   user: User

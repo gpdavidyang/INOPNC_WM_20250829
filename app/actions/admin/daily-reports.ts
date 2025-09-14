@@ -1,7 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { withAdminAuth } from './common'
 
 interface DailyReportsFilter {
   site?: string
@@ -143,7 +141,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
 
     // Enrich with additional data
     const enrichedReports = await Promise.all(
-      (data || []).map(async (report: any) => {
+      (data || []).map(async (report: unknown) => {
         try {
           // Get profile data
           const { data: profile } = await supabase
@@ -165,7 +163,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
             .eq('daily_report_id', report.id)
           
           const totalManhours = workerAssignments 
-            ? workerAssignments.reduce((sum: number, w: any) => sum + (Number(w.labor_hours) || 0), 0)
+            ? workerAssignments.reduce((sum: number, w: unknown) => sum + (Number(w.labor_hours) || 0), 0)
             : 0
           
           // Get documents count for that day
@@ -271,7 +269,7 @@ export async function getDailyReportById(id: string) {
   })
 }
 
-export async function createDailyReport(reportData: any) {
+export async function createDailyReport(reportData: unknown) {
   return withAdminAuth(async (supabase) => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
@@ -312,7 +310,7 @@ export async function createDailyReport(reportData: any) {
   })
 }
 
-export async function updateDailyReport(id: string, updates: any) {
+export async function updateDailyReport(id: string, updates: unknown) {
   return withAdminAuth(async (supabase) => {
     const { data, error } = await supabase
       .from('daily_reports')

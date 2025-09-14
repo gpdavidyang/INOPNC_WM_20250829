@@ -1,10 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { getCurrentUserSiteWithAuth } from '@/app/actions/site-info-client'
-import { syncSessionAfterAuth } from '@/hooks/use-auto-login'
-import { SessionDiagnosticsPanel } from '@/components/debug/session-diagnostics'
 
 export default function TestSessionPage() {
   const [testResults, setTestResults] = useState<any[]>([])

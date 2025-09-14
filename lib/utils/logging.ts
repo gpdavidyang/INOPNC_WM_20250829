@@ -2,14 +2,13 @@
  * Logging and monitoring utilities for NPC-1000 management system
  */
 
-import { createClient } from '@/lib/supabase/server'
 
 export interface AuditLogData {
   tableName: string
   operation: 'INSERT' | 'UPDATE' | 'DELETE'
   recordId?: string
-  oldValues?: any
-  newValues?: any
+  oldValues?: unknown
+  newValues?: unknown
   operationType?: 'production' | 'shipment' | 'inventory' | 'request'
   description?: string
 }
@@ -22,7 +21,7 @@ export interface ErrorLogData {
   tableName?: string
   recordId?: string
   stackTrace?: string
-  requestData?: any
+  requestData?: unknown
   severity?: 'low' | 'medium' | 'high' | 'critical'
 }
 
@@ -159,7 +158,7 @@ export class PerformanceTimer {
  * Decorator to automatically log function performance
  */
 export function withPerformanceLogging(metricName?: string) {
-  return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
+  return function (target: unknown, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value
     const finalMetricName = metricName || `${target.constructor.name}.${propertyName}`
 
@@ -236,7 +235,7 @@ export async function logInventoryChange(
 export async function checkSystemHealth(): Promise<{
   status: 'healthy' | 'warning' | 'critical'
   issues: string[]
-  metrics: any
+  metrics: unknown
 }> {
   try {
     const supabase = await createClient()

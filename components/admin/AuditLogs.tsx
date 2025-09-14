@@ -1,27 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  FileText, 
-  User, 
-  Calendar, 
-  Activity,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Filter,
-  Download,
-  Search,
-  ChevronDown,
-  ChevronUp,
-  Shield,
-  Building,
-  AlertCircle,
-  RefreshCw
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface AuditLog {
   id: string
@@ -33,8 +11,8 @@ interface AuditLog {
   entity_type: string
   entity_id: string
   entity_name?: string
-  changes?: any
-  metadata?: any
+  changes?: unknown
+  metadata?: unknown
   ip_address?: string
   user_agent?: string
   status: 'success' | 'failed' | 'pending'
@@ -491,4 +469,3 @@ export default function AuditLogs() {
   )
 }
 
-import React from 'react'

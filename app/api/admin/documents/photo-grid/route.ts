@@ -1,4 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
 
 // DEPRECATED: 통합 API(/api/unified-documents)를 사용하세요
 // 이 엔드포인트는 하위 호환성을 위해 리다이렉트합니다

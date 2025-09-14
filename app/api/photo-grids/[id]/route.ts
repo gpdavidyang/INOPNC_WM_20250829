@@ -1,7 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { getAuthenticatedUser } from '@/lib/auth/session'
 
 // Handle GET request for a specific photo grid
 export async function GET(
@@ -190,9 +186,9 @@ export async function PUT(
         updated_at: new Date().toISOString(),
         // Update backward compatibility fields with first photos
         before_photo_url: uploadedPhotos.find(p => p.type === 'before' && p.order === 0)?.url || 
-                         existingBefore.find((p: any) => p.order === 0)?.url || null,
+                         existingBefore.find((p: unknown) => p.order === 0)?.url || null,
         after_photo_url: uploadedPhotos.find(p => p.type === 'after' && p.order === 0)?.url || 
-                        existingAfter.find((p: any) => p.order === 0)?.url || null,
+                        existingAfter.find((p: unknown) => p.order === 0)?.url || null,
       })
       .eq('id', params.id)
       .select()
@@ -212,8 +208,8 @@ export async function PUT(
     // Insert all photos (both new and existing) into photo_grid_images table
     const allPhotos = [
       ...uploadedPhotos,
-      ...existingBefore.map((p: any) => ({ type: 'before' as const, url: p.url, order: p.order })),
-      ...existingAfter.map((p: any) => ({ type: 'after' as const, url: p.url, order: p.order }))
+      ...existingBefore.map((p: unknown) => ({ type: 'before' as const, url: p.url, order: p.order })),
+      ...existingAfter.map((p: unknown) => ({ type: 'after' as const, url: p.url, order: p.order }))
     ]
 
     if (allPhotos.length > 0) {

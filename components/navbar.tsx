@@ -1,12 +1,9 @@
 'use client'
 
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
 
 interface NavbarProps {
-  user: any
-  profile: any
+  user: unknown
+  profile: unknown
 }
 
 export default function Navbar({ user, profile }: NavbarProps) {
@@ -36,7 +33,7 @@ export default function Navbar({ user, profile }: NavbarProps) {
               <h1 className="text-xl font-bold text-gray-900">INOPNC WM</h1>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-              {navigation.map((item: any) => (
+              {navigation.map((item: unknown) => (
                 <Link
                   key={item.name}
                   href={item.href}

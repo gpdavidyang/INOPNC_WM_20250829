@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/client'
 import type { PhotoGridReport, PhotoGridPDFOptions, PhotoGridReportStats, Document } from '@/types'
 
 const supabase = createClient()

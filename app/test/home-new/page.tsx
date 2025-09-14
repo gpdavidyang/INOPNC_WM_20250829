@@ -1,4 +1,3 @@
-import HomeTabNew from '@/components/dashboard/tabs/home-tab-new'
 
 export default function TestHomeNewPage() {
   return (

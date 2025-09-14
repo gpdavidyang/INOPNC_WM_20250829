@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // PUT /api/shared-documents/[id]/permissions/[permissionId] - 권한 수정
 export async function PUT(
@@ -41,7 +39,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
-    const updateData: any = {}
+    const updateData: unknown = {}
     if (can_view !== undefined) updateData.can_view = can_view
     if (can_edit !== undefined) updateData.can_edit = can_edit
     if (can_delete !== undefined) updateData.can_delete = can_delete

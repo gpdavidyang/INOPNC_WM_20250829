@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -66,7 +65,7 @@ export async function GET(request: NextRequest) {
         .eq('role', 'site_manager')
 
       if (assignedSites && assignedSites.length > 0) {
-        const siteIds = assignedSites.map((s: any) => s.site_id)
+        const siteIds = assignedSites.map((s: unknown) => s.site_id)
         query = query.in('site_id', siteIds)
       }
     }
@@ -80,18 +79,18 @@ export async function GET(request: NextRequest) {
 
     // Calculate summary statistics
     const summary = {
-      totalReports: data?.reduce((sum: any, d: any) => sum + d.total_reports, 0) || 0,
+      totalReports: data?.reduce((sum: unknown, d: unknown) => sum + d.total_reports, 0) || 0,
       avgCompletionRate: data?.length > 0 
-        ? (data.reduce((sum: any, d: any) => sum + d.report_completion_rate, 0) / data.length).toFixed(2)
+        ? (data.reduce((sum: unknown, d: unknown) => sum + d.report_completion_rate, 0) / data.length).toFixed(2)
         : 0,
       avgAttendanceRate: data?.length > 0
-        ? (data.reduce((sum: any, d: any) => sum + d.attendance_rate, 0) / data.length).toFixed(2)
+        ? (data.reduce((sum: unknown, d: unknown) => sum + d.attendance_rate, 0) / data.length).toFixed(2)
         : 0,
-      totalLaborHours: data?.reduce((sum: any, d: any) => sum + Number(d.total_labor_hours), 0).toFixed(2) || 0,
+      totalLaborHours: data?.reduce((sum: unknown, d: unknown) => sum + Number(d.total_labor_hours), 0).toFixed(2) || 0,
       avgProductivityScore: data?.length > 0
-        ? (data.reduce((sum: any, d: any) => sum + d.productivity_score, 0) / data.length).toFixed(2)
+        ? (data.reduce((sum: unknown, d: unknown) => sum + d.productivity_score, 0) / data.length).toFixed(2)
         : 0,
-      totalNPC1000Used: data?.reduce((sum: any, d: any) => sum + Number(d.npc1000_used), 0).toFixed(2) || 0,
+      totalNPC1000Used: data?.reduce((sum: unknown, d: unknown) => sum + Number(d.npc1000_used), 0).toFixed(2) || 0,
     }
 
     return NextResponse.json({

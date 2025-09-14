@@ -9,7 +9,6 @@
  * - Distributed rate limiting (Redis-compatible)
  */
 
-import { NextRequest } from 'next/server'
 
 // Rate limiting configuration for different endpoint types
 export const RATE_LIMIT_CONFIG = {
@@ -121,9 +120,9 @@ class MemoryStore {
 
 // Redis store for production/distributed deployments
 class RedisStore {
-  private redis: any // Redis client would be injected
+  private redis: unknown // Redis client would be injected
 
-  constructor(redisClient?: any) {
+  constructor(redisClient?: unknown) {
     this.redis = redisClient
   }
 
@@ -168,7 +167,7 @@ class RedisStore {
 export class RateLimiter {
   private store: MemoryStore | RedisStore
   
-  constructor(redisClient?: any) {
+  constructor(redisClient?: unknown) {
     this.store = redisClient ? new RedisStore(redisClient) : new MemoryStore()
     
     // Cleanup memory store every 5 minutes
@@ -304,7 +303,7 @@ export function getRateLimitIdentifier(request: NextRequest, userId?: string): s
 // Singleton instance
 let rateLimiterInstance: RateLimiter | null = null
 
-export function getRateLimiter(redisClient?: any): RateLimiter {
+export function getRateLimiter(redisClient?: unknown): RateLimiter {
   if (!rateLimiterInstance) {
     rateLimiterInstance = new RateLimiter(redisClient)
   }

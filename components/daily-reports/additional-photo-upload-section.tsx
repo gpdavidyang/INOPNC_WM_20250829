@@ -1,9 +1,5 @@
 'use client'
 
-import { useState, useCallback, useRef } from 'react'
-import { Camera, Upload, X, Plus, ImageIcon, AlertCircle } from 'lucide-react'
-import { AdditionalPhotoData } from '@/types/daily-reports'
-import { validateFiles, FileValidationError } from '@/lib/file-validation'
 
 interface AdditionalPhotoUploadSectionProps {
   beforePhotos: AdditionalPhotoData[]

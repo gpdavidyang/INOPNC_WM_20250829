@@ -1,23 +1,5 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  FileText, 
-  Download, 
-  Eye, 
-  Grid3X3,
-  Calendar,
-  Building,
-  User,
-  Camera,
-  ZoomIn,
-  X
-} from 'lucide-react'
-import { PhotoGroup, ConstructionProcessType, ComponentType } from '@/types'
-import { cn } from '@/lib/utils'
 
 interface PhotoGridPreviewProps {
   photoGroups: PhotoGroup[]

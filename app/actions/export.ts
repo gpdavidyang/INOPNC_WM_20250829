@@ -1,14 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { getDailyReports } from './daily-reports'
 import type { ExportOptions, ExportFormat } from '@/lib/export/types'
-import { 
-  AppError, 
-  ErrorType, 
-  validateSupabaseResponse, 
-  logError 
-} from '@/lib/error-handling'
 
 export async function prepareExportData(options: ExportOptions) {
   try {
@@ -32,7 +24,7 @@ export async function prepareExportData(options: ExportOptions) {
     }
 
     // Prepare filters for getDailyReports
-    const filters: any = {}
+    const filters: unknown = {}
     
     if (options.dateRange) {
       filters.start_date = options.dateRange.start
@@ -134,7 +126,7 @@ export async function logExportActivity(
           site_ids: options.siteIds,
           status_filter: options.status
         }
-      } as any) as any)
+      } as unknown) as unknown)
 
     if (error) {
       logError(error, 'logExportActivity')
@@ -165,13 +157,13 @@ export async function validateExportPermissions(targetSiteIds?: string[]) {
     }
 
     // System admin and admin can export all data
-    if (['admin', 'system_admin'].includes((profile as any).role)) {
+    if (['admin', 'system_admin'].includes((profile as unknown).role)) {
       return { success: true, canExportAll: true }
     }
 
     // Site managers can only export their assigned sites
-    if ((profile as any).role === 'site_manager') {
-      const userSiteIds = (profile as any).site_ids || []
+    if ((profile as unknown).role === 'site_manager') {
+      const userSiteIds = (profile as unknown).site_ids || []
       
       if (targetSiteIds && targetSiteIds.length > 0) {
         const hasPermission = targetSiteIds.every(siteId => userSiteIds.includes(siteId))

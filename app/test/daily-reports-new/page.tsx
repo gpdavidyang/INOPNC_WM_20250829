@@ -1,4 +1,3 @@
-import DailyReportsTabNew from '@/components/dashboard/tabs/daily-reports-tab-new'
 
 export default function TestDailyReportsNewPage() {
   return (

@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import type { SiteInfo } from '@/types/site-info'
 
 export const runtime = 'nodejs'
@@ -62,7 +60,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const site = assignment.site as any
+    const site = assignment.site as unknown
 
     // Fetch latest daily report for process info
     const { data: latestReport } = await supabase
@@ -75,9 +73,9 @@ export async function GET(request: NextRequest) {
 
     // Create process info
     const processInfo = latestReport ? {
-      member_name: (latestReport as any).member_name || '미정',
-      work_process: (latestReport as any).work_process || '미정',
-      work_section: (latestReport as any).work_section || '미정',
+      member_name: (latestReport as unknown).member_name || '미정',
+      work_process: (latestReport as unknown).work_process || '미정',
+      work_section: (latestReport as unknown).work_section || '미정',
       drawing_id: undefined
     } : {
       member_name: '미정',

@@ -1,5 +1,3 @@
-import { redirect } from 'next/navigation'
-import { createServerClient } from '@/lib/supabase/server'
 
 export default async function HomePage() {
   // Server-side authentication check

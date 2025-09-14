@@ -1,24 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import {
-  BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Calendar,
-  Download,
-  Filter,
-  Activity,
-  PieChart,
-  Building2,
-  AlertTriangle
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, subMonths } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface UsageData {
   date: string
@@ -140,7 +121,7 @@ export function NPC1000Analytics({ siteId }: NPC1000AnalyticsProps) {
       setForecastData(forecast)
 
       // Calculate stats
-      const totalUsage = usage.reduce((sum: any, day: any) => sum + day.usage, 0)
+      const totalUsage = usage.reduce((sum: unknown, day: unknown) => sum + day.usage, 0)
       const peakDay = usage.reduce((peak, day) => 
         day.usage > peak.usage ? day : peak
       )
@@ -295,7 +276,7 @@ export function NPC1000Analytics({ siteId }: NPC1000AnalyticsProps) {
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-4">현장별 사용 비율</h3>
           <div className="space-y-4">
-            {siteUsageData.map((site: any) => (
+            {siteUsageData.map((site: unknown) => (
               <div key={site.site_id}>
                 <div className="flex justify-between items-center mb-2">
                   <div className="flex items-center gap-2">

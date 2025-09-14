@@ -1,6 +1,5 @@
 'use client'
 
-import { Profile } from '@/types'
 import WorkLogsTab from './work-logs-tab'
 
 interface DailyReportTabProps {

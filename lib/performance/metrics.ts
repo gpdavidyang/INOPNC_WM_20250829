@@ -63,7 +63,7 @@ export const performanceMetrics = new PerformanceMetrics()
 
 // 컴포넌트 렌더링 시간 측정 데코레이터
 export const measureRenderTime = (componentName: string) => {
-  return (target: any, propertyKey: string, descriptor: PropertyDescriptor) => {
+  return (target: unknown, propertyKey: string, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value
 
     descriptor.value = function (...args: unknown[]) {
@@ -124,8 +124,8 @@ export const initWebVitals = () => {
   let clsValue = 0
   const clsObserver = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
-      if (!(entry as any).hadRecentInput) {
-        clsValue += (entry as any).value
+      if (!(entry as unknown).hadRecentInput) {
+        clsValue += (entry as unknown).value
       }
     }
     performanceMetrics.recordMetric('cumulative-layout-shift', clsValue)
@@ -136,7 +136,7 @@ export const initWebVitals = () => {
   // First Input Delay (FID) 측정
   const fidObserver = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
-      performanceMetrics.recordMetric('first-input-delay', (entry as any).processingStart - entry.startTime)
+      performanceMetrics.recordMetric('first-input-delay', (entry as unknown).processingStart - entry.startTime)
     }
   })
 

@@ -5,7 +5,6 @@
 
 import * as fs from 'fs'
 import * as path from 'path'
-import { glob } from 'glob'
 
 interface FixPattern {
   name: string
@@ -77,6 +76,55 @@ const fixPatterns: FixPattern[] = [
     pattern: /\):\s*any\s*{/g,
     replacement: '): unknown {',
     description: 'Replace function return type any with unknown'
+  },
+  // New aggressive patterns
+  {
+    name: 'simple-any-type',
+    pattern: /:\s*any(?=\s|,|\)|;|$)/g,
+    replacement: ': unknown',
+    description: 'Replace simple : any with : unknown'
+  },
+  {
+    name: 'function-param-any',
+    pattern: /\(([^:)]+):\s*any\)/g,
+    replacement: '($1: unknown)',
+    description: 'Replace function parameter any with unknown'
+  },
+  {
+    name: 'as-any-cast',
+    pattern: /\s+as\s+any(?=\s|,|\)|;|$)/g,
+    replacement: ' as unknown',
+    description: 'Replace as any with as unknown'
+  },
+  {
+    name: 'useState-any',
+    pattern: /useState<any>/g,
+    replacement: 'useState<unknown>',
+    description: 'Replace useState<any> with useState<unknown>'
+  },
+  {
+    name: 'useRef-any',
+    pattern: /useRef<any>/g,
+    replacement: 'useRef<unknown>',
+    description: 'Replace useRef<any> with useRef<unknown>'
+  },
+  {
+    name: 'generic-any',
+    pattern: /<any>/g,
+    replacement: '<unknown>',
+    description: 'Replace generic <any> with <unknown>'
+  },
+  {
+    name: 'let-any',
+    pattern: /let\s+(\w+):\s*any/g,
+    replacement: 'let $1: unknown',
+    description: 'Replace let variable: any with unknown'
+  },
+  {
+    name: 'const-any',
+    pattern: /const\s+(\w+):\s*any/g,
+    replacement: 'const $1: unknown',
+    description: 'Replace const variable: any with unknown'
   }
 ]
 

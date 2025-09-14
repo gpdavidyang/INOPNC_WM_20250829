@@ -5,15 +5,7 @@
  * This should be imported in test setup files or at the beginning of PWA-related tests.
  */
 
-import {
-  createMockServiceWorkerRegistration,
-  createMockNotificationConstructor,
-  createMockCacheStorage,
-  createMockBeforeInstallPromptEvent,
-  createInstallationStateHelpers,
-  type MockServiceWorkerRegistration,
-  type MockBeforeInstallPromptEvent
-} from './mocks/pwa.mock'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 
 // Global PWA state for tests
 let mockRegistration: MockServiceWorkerRegistration | null = null
@@ -45,7 +37,7 @@ export function setupPWAEnvironment(options?: {
 
   // Service Worker API
   if (serviceWorkerSupported) {
-    const mockNavigator = global.navigator as any
+    const mockNavigator = global.navigator as unknown
     
     mockNavigator.serviceWorker = {
       ready: Promise.resolve(createMockServiceWorkerRegistration()),
@@ -91,13 +83,13 @@ export function setupPWAEnvironment(options?: {
     }
   } else {
     // Remove service worker support
-    const mockNavigator = global.navigator as any
+    const mockNavigator = global.navigator as unknown
     delete mockNavigator.serviceWorker
   }
 
   // Notification API
   if (!global.Notification) {
-    (global as any).Notification = createMockNotificationConstructor(notificationPermission)
+    (global as unknown).Notification = createMockNotificationConstructor(notificationPermission)
   } else {
     // Notification already exists, just update permission
     Object.defineProperty(global.Notification, 'permission', {
@@ -105,12 +97,12 @@ export function setupPWAEnvironment(options?: {
       writable: true,
       configurable: true
     })
-    ;(global.Notification as any).requestPermission = jest.fn().mockResolvedValue(notificationPermission)
+    ;(global.Notification as unknown).requestPermission = jest.fn().mockResolvedValue(notificationPermission)
   }
 
   // Cache API
   if (!global.caches) {
-    (global as any).caches = createMockCacheStorage()
+    (global as unknown).caches = createMockCacheStorage()
   }
 
   // Install prompt event
@@ -144,9 +136,9 @@ export async function simulateAppInstallation(accept = true) {
   }
 
   if (accept) {
-    (mockInstallPrompt as any).simulateUserAccept()
+    (mockInstallPrompt as unknown).simulateUserAccept()
   } else {
-    (mockInstallPrompt as any).simulateUserDismiss()
+    (mockInstallPrompt as unknown).simulateUserDismiss()
   }
 
   const outcome = await installationHelpers.simulateInstallation()
@@ -180,7 +172,7 @@ export function setNotificationPermission(permission: NotificationPermission) {
       writable: true,
       configurable: true
     })
-    ;(global.Notification as any).requestPermission = jest.fn().mockResolvedValue(permission)
+    ;(global.Notification as unknown).requestPermission = jest.fn().mockResolvedValue(permission)
   }
 }
 
@@ -234,7 +226,7 @@ export async function simulatePushNotification(data: {
   icon?: string
   badge?: string
   tag?: string
-  data?: any
+  data?: unknown
 }) {
   if (!mockRegistration) {
     throw new Error('No service worker registration found')
@@ -256,7 +248,7 @@ export async function simulatePushNotification(data: {
 
   // Simulate push event in service worker
   if (mockRegistration.active) {
-    const pushEvent = new Event('push') as any
+    const pushEvent = new Event('push') as unknown
     pushEvent.data = {
       json: () => data,
       text: () => JSON.stringify(data)
@@ -291,7 +283,7 @@ export async function simulateBackgroundSync(tag: string) {
 
   // Simulate sync event
   if (mockRegistration.active) {
-    const syncEvent = new Event('sync') as any
+    const syncEvent = new Event('sync') as unknown
     syncEvent.tag = tag
     syncEvent.lastChance = false
     
@@ -308,19 +300,19 @@ export async function simulateBackgroundSync(tag: string) {
  */
 export function cleanupPWAEnvironment() {
   // Reset navigator.serviceWorker
-  const mockNavigator = global.navigator as any
+  const mockNavigator = global.navigator as unknown
   if (mockNavigator.serviceWorker) {
     delete mockNavigator.serviceWorker
   }
 
   // Reset Notification
   if (global.Notification) {
-    (global.Notification as any).permission = 'default'
+    (global.Notification as unknown).permission = 'default'
   }
 
   // Reset caches
   if (global.caches) {
-    delete (global as any).caches
+    delete (global as unknown).caches
   }
 
   // Clear state

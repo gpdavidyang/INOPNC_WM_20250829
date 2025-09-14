@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Check, FileText, User, Building2 } from 'lucide-react'
 
 interface DocumentType {
   id: string

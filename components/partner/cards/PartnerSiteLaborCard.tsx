@@ -1,8 +1,5 @@
 'use client'
 
-import React from 'react'
-import { Clock, MapPin, TrendingUp } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
 
 interface SiteLaborData {
   id: string

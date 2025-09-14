@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { X, Send, Users, User, Bell } from 'lucide-react'
 
 interface NotificationCreateModalProps {
   isOpen: boolean
@@ -52,7 +50,7 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
 
     setLoading(true)
     try {
-      const payload: any = {
+      const payload: unknown = {
         title: form.title,
         message: form.message,
         type: form.type,

@@ -1,23 +1,5 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  Search, 
-  X, 
-  Users, 
-  Building2, 
-  FileText, 
-  Activity,
-  Loader2,
-  Clock,
-  TrendingUp
-} from 'lucide-react'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 
 interface SearchResult {
   id: string
@@ -26,7 +8,7 @@ interface SearchResult {
   subtitle?: string
   description?: string
   url: string
-  metadata?: any
+  metadata?: unknown
 }
 
 interface RecentSearch {
@@ -55,7 +37,7 @@ export default function GlobalSearch() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored)
-        setRecentSearches(parsed.map((s: any) => ({
+        setRecentSearches(parsed.map((s: unknown) => ({
           ...s,
           timestamp: new Date(s.timestamp)
         })))

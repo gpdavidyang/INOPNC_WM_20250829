@@ -1,18 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { X, Calendar, Building2, User, Users, Package, AlertCircle, Save, FileText, Plus, Trash2 } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { createDailyReport } from '@/app/actions/admin/daily-reports'
-import { getUsers } from '@/app/actions/admin/users'
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/custom-select'
 
 interface Site {
   id: string
@@ -112,7 +99,7 @@ export default function DailyReportCreateModal({ sites, onClose, onCreated }: Da
           const allWorkers = data.data || []
           
           // Filter to show workers, site managers, and admins (exclude customer_managers and system_admins)
-          const filteredWorkers = allWorkers.filter((worker: any) => 
+          const filteredWorkers = allWorkers.filter((worker: unknown) => 
             worker.role === 'worker' || 
             worker.role === 'site_manager' || 
             worker.role === 'admin'

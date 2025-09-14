@@ -3,7 +3,6 @@
  * RLS 정책과 함께 효율적으로 작동하는 쿼리들
  */
 
-import { createClient } from '@/lib/supabase/server'
 
 export interface AttendanceQueryOptions {
   siteId?: string
@@ -299,7 +298,7 @@ export async function getDashboardMetrics(siteId?: string) {
 /**
  * 성능 모니터링용 쿼리 실행 시간 측정
  */
-export function withPerformanceLogging<T extends (...args: unknown[]) => Promise<any>>(
+export function withPerformanceLogging<T extends (...args: unknown[]) => Promise<unknown>>(
   queryFunction: T,
   queryName: string
 ): T {

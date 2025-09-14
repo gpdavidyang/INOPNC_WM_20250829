@@ -1,34 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
-import { 
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Building2,
-  MapPin,
-  CalendarDays,
-  Users,
-  Clock,
-  FileText
-} from 'lucide-react'
-import { getAttendanceRecords, getCompanyAttendanceSummary } from '@/app/actions/attendance'
-import { getSites } from '@/app/actions/sites'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isSameDay } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
-import { useFontSize, getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 import type { AttendanceCalendarProps, AttendanceRecord } from '@/types/attendance'
 import type { Site } from '@/types'
 
@@ -117,7 +88,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
     // })
     
     if (result.success && result.data) {
-      setSites(result.data as any)
+      setSites(result.data as unknown)
       // Auto-select first site for partner view or user's assigned site
       if (isPartnerView && result.data.length > 0) {
         // console.log('🏢 Partner view - selecting first site:', result.data[0].id)
@@ -162,7 +133,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
         })
         
         if (result.success && result.data) {
-          setAttendanceData((result.data.records || []) as any)
+          setAttendanceData((result.data.records || []) as unknown)
           setSummary({
             totalDays: result.data.totalDays || 0,
             totalHours: result.data.totalHours || 0,
@@ -173,7 +144,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
         // Load individual attendance records
         const params = {
           user_id: profile.id,
-          site_id: selectedSite || (profile as any).site_id,
+          site_id: selectedSite || (profile as unknown).site_id,
           date_from: format(startDate, 'yyyy-MM-dd'),
           date_to: format(endDate, 'yyyy-MM-dd')
         }
@@ -189,7 +160,7 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
         
         if (result.success && result.data) {
           // console.log('🔄 Transforming records:', result.data.length, 'records')
-          const records = result.data.map((record: any) => {
+          const records = result.data.map((record: unknown) => {
             const transformed = {
               id: record.id,
               date: record.work_date,  // Fixed: changed from attendance_date to work_date
@@ -209,8 +180,8 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
           setAttendanceData(records)
           
           // Calculate summary for individual
-          const totalDays = records.filter((r: any) => r.status === 'present').length
-          const totalHours = records.reduce((sum: number, r: any) => sum + (r.work_hours || 0), 0)
+          const totalDays = records.filter((r: unknown) => r.status === 'present').length
+          const totalHours = records.reduce((sum: number, r: unknown) => sum + (r.work_hours || 0), 0)
           const summaryData = {
             totalDays,
             totalHours,
@@ -582,8 +553,8 @@ export function AttendanceCalendar({ profile, isPartnerView }: AttendanceCalenda
             <div>
               <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-600`}>현장명</p>
               <p className={`${getFullTypographyClass('body', 'base', isLargeFont)} font-medium`}>{selectedSiteInfo.name}</p>
-              {(selectedSiteInfo as any).code && (
-                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>({(selectedSiteInfo as any).code})</p>
+              {(selectedSiteInfo as unknown).code && (
+                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>({(selectedSiteInfo as unknown).code})</p>
               )}
             </div>
             

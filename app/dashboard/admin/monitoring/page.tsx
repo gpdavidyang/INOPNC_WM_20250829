@@ -3,9 +3,6 @@
  * Displays comprehensive system monitoring and performance metrics
  */
 
-import React from 'react'
-import { Metadata } from 'next'
-import MonitoringDashboard from '@/components/monitoring/monitoring-dashboard'
 
 export const metadata: Metadata = {
   title: 'System Monitoring - INOPNC Admin',

@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Search, Filter, Building2, Calendar, User } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface EnhancedDocumentFiltersProps {
   onFilterChange: (filters: DocumentFilters) => void
@@ -74,7 +72,7 @@ export default function EnhancedDocumentFilters({ onFilterChange, currentFilters
     }
   }
 
-  const handleFilterUpdate = (key: keyof DocumentFilters, value: any) => {
+  const handleFilterUpdate = (key: keyof DocumentFilters, value: unknown) => {
     const newFilters = { ...currentFilters, [key]: value }
     onFilterChange(newFilters)
   }

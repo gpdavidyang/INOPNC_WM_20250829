@@ -1,7 +1,6 @@
-import { SupabaseClient } from '@supabase/supabase-js'
 
 interface CacheEntry {
-  data: any
+  data: unknown
   timestamp: number
 }
 
@@ -13,7 +12,7 @@ class QueryCache {
     if (ttl) this.ttl = ttl
   }
 
-  get(key: string): any | null {
+  get(key: string): unknown | null {
     const entry = this.cache.get(key)
     if (!entry) return null
 
@@ -26,7 +25,7 @@ class QueryCache {
     return entry.data
   }
 
-  set(key: string, data: any): void {
+  set(key: string, data: unknown): void {
     this.cache.set(key, {
       data,
       timestamp: Date.now()

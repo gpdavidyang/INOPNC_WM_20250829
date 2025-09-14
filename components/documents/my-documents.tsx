@@ -1,32 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  FileText, Upload, Download, Search, Eye, Trash2, MoreVertical,
-  Clock, ChevronDown, Grid3x3, List, Check, X, File, FileImage,
-  FileSpreadsheet, FileArchive, AlertCircle, CheckCircle2, 
-  PlusCircle, User, Award, Shield, Briefcase, Calendar, Filter,
-  CalendarDays, SortAsc, FileType, HardDrive, Share2
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { 
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
-import { getMyDocuments, uploadDocument, deleteDocument } from '@/app/actions/documents'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useFontSize,  getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface MyDocumentsProps {
-  profile: any
+  profile: unknown
 }
 
 interface Document {
@@ -45,7 +21,7 @@ interface RequiredDocument {
   id: string
   title: string
   category: string
-  icon: any
+  icon: unknown
   description: string
   required: boolean
   uploaded: boolean
@@ -75,7 +51,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
   const [selectedShareDoc, setSelectedShareDoc] = useState<RequiredDocument | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const requiredDocInputRef = useRef<HTMLInputElement>(null)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<unknown>(null)
 
   useEffect(() => {
     loadDocuments()
@@ -93,7 +69,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       
       if (result.success && result.data) {
         // Sort documents
-        const sorted = [...result.data].sort((a: any, b: any) => {
+        const sorted = [...result.data].sort((a: unknown, b: unknown) => {
           if (sortBy === 'date') {
             return new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
           } else if (sortBy === 'name') {
@@ -163,7 +139,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
 
   const handleBulkDownload = () => {
     selectedDocs.forEach(docId => {
-      const doc = documents.find((d: any) => d.id === docId)
+      const doc = documents.find((d: unknown) => d.id === docId)
       if (doc?.url) {
         window.open(doc.url, '_blank')
       }
@@ -322,7 +298,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     }
   }
 
-  const filteredDocuments = documents.filter((doc: any) => {
+  const filteredDocuments = documents.filter((doc: unknown) => {
     // Text search filter
     const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (doc.description && doc.description.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -359,7 +335,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
     if (selectedDocs.length === filteredDocuments.length) {
       setSelectedDocs([])
     } else {
-      setSelectedDocs(filteredDocuments.map((d: any) => d.id))
+      setSelectedDocs(filteredDocuments.map((d: unknown) => d.id))
     }
   }
 
@@ -955,7 +931,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
           </div>
 
           {/* Enhanced Document Items */}
-          {filteredDocuments.map((doc: any) => {
+          {filteredDocuments.map((doc: unknown) => {
             const fileConfig = getFileTypeConfig(doc.name)
             const FileIcon = fileConfig.icon
             const isRecent = new Date().getTime() - new Date(doc.uploadDate).getTime() < 24 * 60 * 60 * 1000 // Last 24 hours
@@ -1080,7 +1056,7 @@ export function MyDocuments({ profile }: MyDocumentsProps) {
       ) : (
         /* Enhanced Grid View */
         <div className="grid grid-cols-2 gap-3">
-          {filteredDocuments.map((doc: any) => {
+          {filteredDocuments.map((doc: unknown) => {
             const fileConfig = getFileTypeConfig(doc.name)
             const FileIcon = fileConfig.icon
             const isRecent = new Date().getTime() - new Date(doc.uploadDate).getTime() < 24 * 60 * 60 * 1000 // Last 24 hours

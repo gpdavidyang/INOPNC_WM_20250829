@@ -1,10 +1,5 @@
 'use client'
 
-import { DocumentWithPermissions, Profile } from '@/types'
-import { 
-  FileText, Download, Eye, Edit, Trash2, Share2, 
-  Calendar, User, Users, Building2, FolderOpen, Lock, Unlock
-} from 'lucide-react'
 
 interface DocumentListProps {
   documents: DocumentWithPermissions[]
@@ -164,20 +159,20 @@ export default function DocumentList({
                   
                   <div className="flex items-center gap-1">
                     <User className="h-4 w-4" />
-                    {(document as any).profiles?.name || '알 수 없음'}
+                    {(document as unknown).profiles?.name || '알 수 없음'}
                   </div>
                   
-                  {(document as any).sites?.name && (
+                  {(document as unknown).sites?.name && (
                     <div className="flex items-center gap-1">
                       <Building2 className="h-4 w-4" />
-                      {(document as any).sites.name}
+                      {(document as unknown).sites.name}
                     </div>
                   )}
                   
-                  {(document as any).document_folders?.name && (
+                  {(document as unknown).document_folders?.name && (
                     <div className="flex items-center gap-1">
                       <FolderOpen className="h-4 w-4" />
-                      {(document as any).document_folders.name}
+                      {(document as unknown).document_folders.name}
                     </div>
                   )}
                   

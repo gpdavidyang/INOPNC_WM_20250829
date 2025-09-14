@@ -1,6 +1,3 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import MyDocumentsManagement from '@/components/admin/documents/MyDocumentsManagement'
 
 export default async function AdminMyDocumentsPage() {
   const supabase = createClient()

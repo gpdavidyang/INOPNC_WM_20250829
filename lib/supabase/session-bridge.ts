@@ -1,8 +1,7 @@
-import { createClient } from './client'
 
 export interface SessionBridgeResult {
   success: boolean
-  session?: any
+  session?: unknown
   error?: string
 }
 

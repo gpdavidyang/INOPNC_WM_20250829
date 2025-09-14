@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { MarkupEditor } from './markup-editor'
 import type { MarkupDocument } from '@/types/markup'
 import type { Profile } from '@/types'

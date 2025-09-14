@@ -1,7 +1,7 @@
 'use client'
 
+import type { AsyncState, ApiResponse } from '@/types/utils'
 import React, { useEffect, useState } from 'react'
-import { useUnifiedDocuments, type UnifiedDocument, type DocumentFilters } from '@/hooks/use-unified-documents'
 
 interface LegacyDocumentAdapterProps {
   // 레거시 컴포넌트 props
@@ -17,8 +17,8 @@ interface LegacyDocumentAdapterProps {
     documents: UnifiedDocument[]
     loading: boolean
     error: string | null
-    onUpload: (file: File, metadata?: any) => Promise<void>
-    onUpdate: (id: string, updates: any) => Promise<void>
+    onUpload: (file: File, metadata?: unknown) => Promise<void>
+    onUpdate: (id: string, updates: unknown) => Promise<void>
     onDelete: (id: string) => Promise<void>
     refetch: () => Promise<void>
   }) => React.ReactNode
@@ -63,7 +63,7 @@ export default function LegacyDocumentAdapter({
   } = useUnifiedDocuments(filters)
 
   // 레거시 업로드 핸들러
-  const handleLegacyUpload = async (file: File, metadata: any = {}) => {
+  const handleLegacyUpload = async (file: File, metadata: unknown = {}) => {
     setAdapterLoading(true)
     try {
       // 레거시 메타데이터를 통합 시스템 형식으로 변환
@@ -81,7 +81,7 @@ export default function LegacyDocumentAdapter({
   }
 
   // 레거시 업데이트 핸들러
-  const handleLegacyUpdate = async (id: string, updates: any) => {
+  const handleLegacyUpdate = async (id: string, updates: unknown) => {
     setAdapterLoading(true)
     try {
       // 레거시 업데이트 데이터를 통합 시스템 형식으로 변환
@@ -123,7 +123,7 @@ export default function LegacyDocumentAdapter({
 }
 
 // 레거시 메타데이터를 통합 시스템 형식으로 변환
-function mapLegacyMetadata(legacyType?: string, legacyCategory?: string, metadata: any = {}) {
+function mapLegacyMetadata(legacyType?: string, legacyCategory?: string, metadata: unknown = {}) {
   const base = {
     legacy_type: legacyType,
     legacy_category: legacyCategory,
@@ -172,8 +172,8 @@ function mapLegacyMetadata(legacyType?: string, legacyCategory?: string, metadat
 }
 
 // 레거시 업데이트를 통합 시스템 형식으로 변환
-function mapLegacyUpdates(updates: any) {
-  const mapped: any = {}
+function mapLegacyUpdates(updates: unknown) {
+  const mapped: unknown = {}
   
   // 직접 매핑 가능한 필드들
   const directMappings = {
@@ -217,7 +217,7 @@ export function withUnifiedDocuments<T extends object>(
   adapterConfig: {
     categoryType: string
     subCategory?: string
-    mapProps?: (unifiedProps: any) => Partial<T>
+    mapProps?: (unifiedProps: unknown) => Partial<T>
   }
 ) {
   return function UnifiedDocumentWrapper(props: T) {
@@ -250,7 +250,7 @@ export function withUnifiedDocuments<T extends object>(
 
 // 레거시 컴포넌트 예제 래핑
 export const LegacySharedDocuments = withUnifiedDocuments(
-  (props: any) => <div>Legacy Shared Documents Component</div>,
+  (props: unknown) => <div>Legacy Shared Documents Component</div>,
   {
     categoryType: 'shared',
     mapProps: (unifiedProps) => ({
@@ -261,7 +261,7 @@ export const LegacySharedDocuments = withUnifiedDocuments(
 )
 
 export const LegacyMarkupDocuments = withUnifiedDocuments(
-  (props: any) => <div>Legacy Markup Documents Component</div>,
+  (props: unknown) => <div>Legacy Markup Documents Component</div>,
   {
     categoryType: 'markup',
     mapProps: (unifiedProps) => ({
@@ -272,7 +272,7 @@ export const LegacyMarkupDocuments = withUnifiedDocuments(
 )
 
 export const LegacyRequiredDocuments = withUnifiedDocuments(
-  (props: any) => <div>Legacy Required Documents Component</div>,
+  (props: unknown) => <div>Legacy Required Documents Component</div>,
   {
     categoryType: 'required',
     mapProps: (unifiedProps) => ({
@@ -283,7 +283,7 @@ export const LegacyRequiredDocuments = withUnifiedDocuments(
 )
 
 export const LegacyInvoiceDocuments = withUnifiedDocuments(
-  (props: any) => <div>Legacy Invoice Documents Component</div>,
+  (props: unknown) => <div>Legacy Invoice Documents Component</div>,
   {
     categoryType: 'invoice',
     mapProps: (unifiedProps) => ({
@@ -294,7 +294,7 @@ export const LegacyInvoiceDocuments = withUnifiedDocuments(
 )
 
 export const LegacyPhotoGridDocuments = withUnifiedDocuments(
-  (props: any) => <div>Legacy Photo Grid Documents Component</div>,
+  (props: unknown) => <div>Legacy Photo Grid Documents Component</div>,
   {
     categoryType: 'photo_grid',
     mapProps: (unifiedProps) => ({

@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Edit3, Search, Download, Trash2, Building2, RefreshCw, PenTool, GitBranch } from 'lucide-react'
 import MarkupDocumentVersionModal from './MarkupDocumentVersionModal'
 
 interface MarkupDocument {

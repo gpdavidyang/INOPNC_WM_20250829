@@ -1,6 +1,3 @@
-import { Metadata } from 'next'
-import ResetPasswordForm from './reset-password-form'
-import Image from 'next/image'
 
 export const metadata: Metadata = {
   title: '비밀번호 찾기 - INOPNC',

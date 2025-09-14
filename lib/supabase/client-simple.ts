@@ -1,5 +1,3 @@
-import { createBrowserClient } from '@supabase/ssr'
-import { Database } from '@/types/database'
 
 let client: ReturnType<typeof createBrowserClient<Database>> | null = null
 
@@ -48,7 +46,7 @@ export function createSimpleClient() {
             .find((row) => row.startsWith(`${name}=`))
             ?.split('=')[1]
         },
-        set(name: string, value: string, options: any) {
+        set(name: string, value: string, options: unknown) {
           if (typeof document === 'undefined') return
           const cookieOptions = [
             `${name}=${value}`,
@@ -62,7 +60,7 @@ export function createSimpleClient() {
           document.cookie = cookieOptions
           console.log('🍪 Setting cookie:', name, '=', value.substring(0, 20) + '...')
         },
-        remove(name: string, options: any) {
+        remove(name: string, options: unknown) {
           if (typeof document === 'undefined') return
           document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=lax;`
         },

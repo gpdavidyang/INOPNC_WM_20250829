@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -26,27 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { 
-  Users, 
-  UserPlus, 
-  UserMinus, 
-  Search, 
-  Calendar,
-  FileText,
-  Phone,
-  Mail,
-  Building2,
-  MapPin
-} from 'lucide-react'
-import { getSiteAssignments, assignUserToSite, removeUserFromSite } from '@/app/actions/admin/sites'
-import { getUsers, getAvailableSites } from '@/app/actions/admin/users'
 import type { UserWithSites } from '@/app/actions/admin/users'
 import type { Site, UserRole } from '@/types'
 

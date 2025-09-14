@@ -1,24 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Building2,
-  Calendar,
-  BarChart3,
-  X
-} from 'lucide-react'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
 
 interface PartnerPrintStatusTabProps {
   profile: Profile

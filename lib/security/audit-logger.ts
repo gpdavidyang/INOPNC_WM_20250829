@@ -136,7 +136,7 @@ export class AuditLogger {
         trace_id: crypto.randomUUID(),
         organization_id: context.organization_id,
         site_id: context.site_id,
-        environment: process.env.NODE_ENV as any || 'development',
+        environment: process.env.NODE_ENV as unknown || 'development',
         version: process.env.APP_VERSION || '1.0.0'
       }
     }

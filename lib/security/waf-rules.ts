@@ -13,7 +13,6 @@
  */
 
 import { NextRequest } from 'next/server'
-import { logSecurityEvent } from './security-headers'
 
 export interface WAFRule {
   id: string

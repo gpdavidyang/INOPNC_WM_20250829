@@ -1,12 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { 
-  ArrowLeft, Edit, Trash2, Building2, MapPin, Phone, Mail,
-  Users, DollarSign, Calendar, FileText, Settings, Plus
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Partner {
   id: string
@@ -236,7 +229,7 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as unknown)}
                   className={`flex items-center gap-2 py-4 px-6 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600 dark:text-blue-400'

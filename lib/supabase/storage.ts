@@ -34,7 +34,6 @@ export class FileValidationError extends Error {
 }
 
 // Import the comprehensive validation system
-import { validateFileStrict, FileValidationError as ValidationError } from '@/lib/validators/file'
 
 // Re-export for backward compatibility
 export { FileValidationError } from '@/lib/validators/file'

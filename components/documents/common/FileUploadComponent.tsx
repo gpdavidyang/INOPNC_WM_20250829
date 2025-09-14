@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Upload, X, CheckCircle, AlertCircle, FileText, File } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 
 export interface FileUploadProps {
   onUpload: (file: File, metadata?: UploadMetadata) => Promise<UploadResult>
@@ -33,7 +28,7 @@ export interface UploadMetadata {
 
 export interface UploadResult {
   success: boolean
-  data?: any
+  data?: unknown
   error?: string
 }
 
@@ -42,7 +37,7 @@ interface UploadProgress {
   progress: number
   status: 'uploading' | 'completed' | 'error'
   error?: string
-  uploadedData?: any
+  uploadedData?: unknown
 }
 
 export default function FileUploadComponent({

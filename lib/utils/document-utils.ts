@@ -501,7 +501,7 @@ export function validateBulkAction(
   
   // 권한 검증
   const unauthorizedDocs = selectedDocs.filter(doc => 
-    !hasDocumentPermission(doc, userId, userRole, action as any)
+    !hasDocumentPermission(doc, userId, userRole, action as unknown)
   )
   
   if (unauthorizedDocs.length > 0) {
@@ -515,7 +515,7 @@ export function validateBulkAction(
 }
 
 // 문서 메타데이터 스키마 검증
-export function validateDocumentMetadata(metadata: any, categoryType: string): { valid: boolean; error?: string } {
+export function validateDocumentMetadata(metadata: unknown, categoryType: string): { valid: boolean; error?: string } {
   try {
     // 카테고리별 필수 메타데이터 검증
     switch (categoryType) {

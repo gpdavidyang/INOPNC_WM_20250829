@@ -1,47 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import {
-  User,
-  Mail,
-  Phone,
-  Building2,
-  Briefcase,
-  Calendar,
-  Lock,
-  Eye,
-  EyeOff,
-  LogOut,
-  Settings,
-  Moon,
-  Sun,
-  Type,
-  Hand,
-  Save,
-  X,
-  CheckCircle,
-  AlertCircle,
-  Bell,
-  BellOff,
-  Volume2,
-  Vibrate,
-  Clock
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useFontSize, FontSize } from '@/contexts/FontSizeContext'
-import { useTouchMode, TouchMode } from '@/contexts/TouchModeContext'
-import { useTheme } from 'next-themes'
-import { signOut, updatePassword, updateNotificationPreferences } from '@/app/auth/actions'
-import { useRouter } from 'next/navigation'
-import { cn } from '@/lib/utils'
 import type { User } from '@supabase/supabase-js'
 import type { Profile } from '@/types'
 
@@ -141,7 +99,7 @@ export function ProfilePageClient({ user, profile }: ProfilePageClientProps) {
     router.push('/auth/login')
   }
 
-  const handleNotificationSettingChange = (key: string, value: any) => {
+  const handleNotificationSettingChange = (key: string, value: unknown) => {
     setNotificationSettings(prev => ({
       ...prev,
       [key]: value

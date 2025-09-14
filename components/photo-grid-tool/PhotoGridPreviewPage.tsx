@@ -1,15 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, Printer, Calendar, Building2, User, Wrench, MapPin } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useToast } from '@/components/ui/use-toast'
-import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 
 interface PhotoGridPreviewPageProps {
   photoGridId: string
@@ -18,7 +8,7 @@ interface PhotoGridPreviewPageProps {
 export default function PhotoGridPreviewPage({ photoGridId }: PhotoGridPreviewPageProps) {
   const router = useRouter()
   const { toast } = useToast()
-  const [photoGrid, setPhotoGrid] = useState<any>(null)
+  const [photoGrid, setPhotoGrid] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
 

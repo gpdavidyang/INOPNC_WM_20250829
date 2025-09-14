@@ -5,7 +5,7 @@ interface PushNotificationPayload {
   body: string
   icon?: string
   badge?: string
-  data?: any
+  data?: unknown
   actions?: Array<{
     action: string
     title: string

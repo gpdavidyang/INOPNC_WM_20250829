@@ -1,10 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { ButtonNew } from '@/components/ui/button-new'
-import { InputNew } from '@/components/ui/input-new'
 
 export default function LoginPageNew() {
   const [email, setEmail] = useState('')

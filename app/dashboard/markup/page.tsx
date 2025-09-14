@@ -1,16 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { Profile } from '@/types'
-import MarkupEditor from '@/components/markup/markup-editor'
 
 export default function MarkupPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   const [documentLoading, setDocumentLoading] = useState(false)
-  const [documentToOpen, setDocumentToOpen] = useState<any>(null)
+  const [documentToOpen, setDocumentToOpen] = useState<unknown>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const fileId = searchParams.get('file') || searchParams.get('open') || searchParams.get('document')
@@ -48,7 +43,7 @@ export default function MarkupPage() {
           return
         }
 
-        setProfile(profile as any)
+        setProfile(profile as unknown)
       } catch (error) {
         if (!isCancelled) {
           console.error('Error loading profile:', error)

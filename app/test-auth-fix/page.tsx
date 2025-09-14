@@ -1,12 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { useSalaryRealtime } from '@/hooks/useSalaryRealtime'
 
 export default function TestAuthFix() {
   const [status, setStatus] = useState<string>('Checking...')
-  const [sessionInfo, setSessionInfo] = useState<any>(null)
+  const [sessionInfo, setSessionInfo] = useState<unknown>(null)
   const [errors, setErrors] = useState<string[]>([])
   
   // Test that useSalaryRealtime doesn't crash

@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { WifiOff, RefreshCw, Home, FileText, Calendar } from 'lucide-react'
-import { useRouter } from 'next/navigation'
 
 export default function OfflinePage() {
   const [isOnline, setIsOnline] = useState(false)

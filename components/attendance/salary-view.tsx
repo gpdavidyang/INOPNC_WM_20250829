@@ -1,38 +1,5 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
-import { 
-  ChevronLeft,
-  ChevronRight,
-  DollarSign,
-  FileText,
-  Calculator,
-  TrendingUp,
-  Download,
-  Calendar,
-  Clock,
-  CheckCircle,
-  ExternalLink
-} from 'lucide-react'
-import { getSalaryInfo, calculateMonthlySalary } from '@/app/actions/salary'
-import { getUserSiteHistory } from '@/app/actions/site-info'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
-import { useFontSize } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { useSalaryRealtime } from '@/hooks/useSalaryRealtime'
-import { payslipGenerator } from '@/lib/services/payslip-generator'
 import type { Profile, UserSiteHistory } from '@/types'
 
 interface SalaryViewProps {
@@ -85,7 +52,7 @@ export function SalaryView({ profile }: SalaryViewProps) {
   const [monthlyHistoryList, setMonthlyHistoryList] = useState<any[]>([])
   const [selectedSite, setSelectedSite] = useState<string>('all')
   const [selectedDateRange, setSelectedDateRange] = useState<string>('최근3개월')
-  const [selectedMonthDetails, setSelectedMonthDetails] = useState<any>(null)
+  const [selectedMonthDetails, setSelectedMonthDetails] = useState<unknown>(null)
   const [loading, setLoading] = useState(false)
   const [siteHistory, setSiteHistory] = useState<UserSiteHistory[]>([])
   
@@ -270,12 +237,12 @@ export function SalaryView({ profile }: SalaryViewProps) {
     return amount.toLocaleString('ko-KR') + '원'
   }
 
-  const handleRowClick = (salaryItem: any) => {
+  const handleRowClick = (salaryItem: unknown) => {
     // Set the selected month details and load full calculation data
     setSelectedMonthDetails(salaryItem.fullData)
   }
 
-  const handleViewPayslip = (salaryItem: any) => {
+  const handleViewPayslip = (salaryItem: unknown) => {
     // 급여명세서가 생성 가능한지 확인
     if (!salaryItem.fullData || !salaryItem.year || !salaryItem.monthNum) {
       alert('급여명세서가 아직 생성되지 않았습니다. 급여 처리가 완료된 후 다시 시도해주세요.');

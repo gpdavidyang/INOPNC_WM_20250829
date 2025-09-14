@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import DashboardLayout from '@/components/dashboard/dashboard-layout'
 import { SalaryView } from '@/components/attendance/salary-view'
 
 export default async function SalaryPage() {

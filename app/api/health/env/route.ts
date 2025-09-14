@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
-import { createClient } from '@/lib/supabase/server'
 
 
 interface EnvironmentCheck {
@@ -10,7 +9,7 @@ interface EnvironmentCheck {
   status: 'pass' | 'fail' | 'warn'
   value?: string
   error?: string
-  details?: any
+  details?: unknown
 }
 
 interface HealthCheckResult {
@@ -100,8 +99,8 @@ export async function GET(request: NextRequest) {
         checks.push({
           name: 'supabase_auth_connection',
           status: 'fail',
-          error: (error as any)?.message || 'Unknown error',
-          details: { code: (error as any)?.status, name: (error as any)?.name }
+          error: (error as unknown)?.message || 'Unknown error',
+          details: { code: (error as unknown)?.status, name: (error as unknown)?.name }
         })
       } else {
         checks.push({
@@ -132,8 +131,8 @@ export async function GET(request: NextRequest) {
         checks.push({
           name: 'database_connection',
           status: 'fail',
-          error: (error as any)?.message || 'Unknown error',
-          details: { code: (error as any)?.code, hint: (error as any)?.hint }
+          error: (error as unknown)?.message || 'Unknown error',
+          details: { code: (error as unknown)?.code, hint: (error as unknown)?.hint }
         })
       } else {
         checks.push({
@@ -175,7 +174,7 @@ export async function GET(request: NextRequest) {
             checks.push({
               name: `table_${tableName}`,
               status: 'fail',
-              error: `Table check failed: ${(error as any)?.message || 'Unknown error'}`
+              error: `Table check failed: ${(error as unknown)?.message || 'Unknown error'}`
             })
           } else if (!data) {
             checks.push({

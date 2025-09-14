@@ -1,8 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { ShipmentRecord, ShipmentAnalytics } from '@/types/materials'
 
 // 출고 처리
 export async function processShipment(data: {
@@ -126,7 +123,7 @@ export async function updateShipmentStatus(id: string, status: 'preparing' | 'sh
     }
 
     // 상태별 추가 업데이트 데이터
-    const updateData: any = { 
+    const updateData: unknown = { 
       status, 
       updated_at: new Date().toISOString() 
     }
@@ -196,7 +193,7 @@ export async function updateShipmentInfo(id: string, updates: Partial<{
     }
 
     // 수정할 데이터 준비
-    const updateData: any = { updated_at: new Date().toISOString() }
+    const updateData: unknown = { updated_at: new Date().toISOString() }
     if (updates.planned_delivery_date !== undefined) updateData.planned_delivery_date = updates.planned_delivery_date
     if (updates.tracking_number !== undefined) updateData.tracking_number = updates.tracking_number
     if (updates.carrier !== undefined) updateData.carrier = updates.carrier
@@ -378,9 +375,9 @@ export async function getPendingShipmentRequests() {
     }
 
     // 긴급도별 분류
-    const urgentRequests = pendingRequests?.filter((req: any) => req.urgency === 'emergency') || []
-    const highPriorityRequests = pendingRequests?.filter((req: any) => req.urgency === 'urgent') || []
-    const normalRequests = pendingRequests?.filter((req: any) => req.urgency === 'normal') || []
+    const urgentRequests = pendingRequests?.filter((req: unknown) => req.urgency === 'emergency') || []
+    const highPriorityRequests = pendingRequests?.filter((req: unknown) => req.urgency === 'urgent') || []
+    const normalRequests = pendingRequests?.filter((req: unknown) => req.urgency === 'normal') || []
 
     return {
       success: true,

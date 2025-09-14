@@ -96,7 +96,7 @@ export function EnvironmentalProvider({ children }: EnvironmentalProviderProps) 
       // Check for ambient light sensor if available
       if ('AmbientLightSensor' in window) {
         try {
-          const sensor = new (window as any).AmbientLightSensor()
+          const sensor = new (window as unknown).AmbientLightSensor()
           sensor.addEventListener('reading', () => {
             if (sensor.illuminance > 1000) {
               setEnvironmentalCondition('bright-sun')

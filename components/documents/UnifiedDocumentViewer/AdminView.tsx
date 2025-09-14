@@ -1,16 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { 
-  Download, Eye, Share2, Edit3, Trash2, 
-  MoreVertical, FileText, Image, Clock,
-  CheckCircle, XCircle, AlertCircle, Shield,
-  Building2, User, Calendar, Filter
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,9 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
-import { formatDistanceToNow, format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
 
 interface AdminViewProps {
@@ -38,7 +25,7 @@ interface AdminViewProps {
   viewMode: 'list' | 'grid'
   selectedDocuments: string[]
   onSelectionChange: (ids: string[]) => void
-  onDocumentAction: (action: string, documentIds: string[], data?: any) => void
+  onDocumentAction: (action: string, documentIds: string[], data?: unknown) => void
   onDocumentClick: (document: UnifiedDocument) => void
   pagination: {
     page: number

@@ -1,16 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Shield, User, Clock, Activity, Filter, Search, Download,
-  FileText, Database, Key, UserCheck, AlertTriangle, Settings,
-  Calendar, ChevronDown, ChevronUp, Eye, RefreshCw, CheckCircle,
-  XCircle, Edit, Trash2, LogIn, LogOut, UserPlus, Lock,
-  File, Folder, Mail, Globe, Server, Cpu, HardDrive, Package,
-  Bell, Users
-} from 'lucide-react'
 
 interface AuditLogSystemProps {
   profile?: Profile
@@ -28,8 +17,8 @@ interface AuditLog {
   user_role: string
   ip_address?: string
   user_agent?: string
-  details?: any
-  changes?: any
+  details?: unknown
+  changes?: unknown
   status: 'success' | 'failure' | 'warning'
   error_message?: string
   created_at: string

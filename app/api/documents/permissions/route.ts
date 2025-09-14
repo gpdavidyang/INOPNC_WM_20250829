@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
   try {
@@ -49,7 +47,7 @@ export async function GET(request: Request) {
       }
 
       // Check access based on category and user role
-      const categoryRule = accessRules?.find((rule: any) => rule.category_type === document.category_type)
+      const categoryRule = accessRules?.find((rule: unknown) => rule.category_type === document.category_type)
       
       let hasAccess = false
       
@@ -85,7 +83,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       user_role: profile.role,
       access_rules: accessRules || [],
-      permissions_by_category: accessRules?.reduce((acc: any, rule: any) => {
+      permissions_by_category: accessRules?.reduce((acc: unknown, rule: unknown) => {
         acc[rule.category_type] = {
           can_view: rule.can_view,
           can_download: rule.can_download,

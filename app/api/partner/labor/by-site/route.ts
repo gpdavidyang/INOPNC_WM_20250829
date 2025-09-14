@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,21 +36,24 @@ export async function GET(request: NextRequest) {
     
     const now = new Date()
     switch (period) {
-      case 'daily':
+      case 'daily': {
         startDate = now.toISOString().split('T')[0]
         endDate = startDate
         break
-      case 'weekly':
+        }
+      case 'weekly': {
         const weekStart = new Date(now)
         weekStart.setDate(now.getDate() - now.getDay())
         startDate = weekStart.toISOString().split('T')[0]
         endDate = now.toISOString().split('T')[0]
         break
+        }
       case 'monthly':
-      default:
+      default: {
         startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
         endDate = now.toISOString().split('T')[0]
         break
+        }
     }
 
     // Get partner's sites with contract information
@@ -83,7 +84,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get labor data for each site
-    const siteLaborPromises = partnerSites.map(async (sitePartner: any) => {
+    const siteLaborPromises = partnerSites.map(async (sitePartner: unknown) => {
       const site = sitePartner.sites
       if (!site) return null
 
@@ -102,11 +103,11 @@ export async function GET(request: NextRequest) {
       }
 
       // Calculate totals
-      const totalWorkHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.work_hours) || 0), 0) || 0
-      const totalLaborHours = laborData?.reduce((sum: number, record: any) => sum + (Number(record.labor_hours) || 0), 0) || 0
+      const totalWorkHours = laborData?.reduce((sum: number, record: unknown) => sum + (Number(record.work_hours) || 0), 0) || 0
+      const totalLaborHours = laborData?.reduce((sum: number, record: unknown) => sum + (Number(record.labor_hours) || 0), 0) || 0
 
       // Get unique work dates for calculating working days
-      const uniqueDates = new Set(laborData?.map((record: any) => record.work_date) || [])
+      const uniqueDates = new Set(laborData?.map((record: unknown) => record.work_date) || [])
       const workingDays = uniqueDates.size
 
       // Calculate average daily hours
@@ -133,7 +134,7 @@ export async function GET(request: NextRequest) {
     })
 
     const siteLabor = await Promise.all(siteLaborPromises)
-    const validSiteLabor = siteLabor.filter((site: any) => site !== null)
+    const validSiteLabor = siteLabor.filter((site: unknown) => site !== null)
 
     // Sort by total labor hours descending
     validSiteLabor.sort((a, b) => (b?.totalLaborHours || 0) - (a?.totalLaborHours || 0))

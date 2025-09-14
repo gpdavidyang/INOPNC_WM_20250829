@@ -1,15 +1,11 @@
 'use client'
 
-import jsPDF from 'jspdf'
 import 'jspdf-autotable'
-import { DailyReport, Site } from '@/types'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
   interface jsPDF {
-    autoTable: (options: any) => jsPDF
+    autoTable: (options: unknown) => jsPDF
   }
 }
 
@@ -150,8 +146,8 @@ export class PDFExporter {
     const totalReports = reports.length
     const approvedReports = reports.filter(r => r.status === 'approved').length
     const rejectedReports = reports.filter(r => r.status === 'rejected').length
-    const totalWorkers = reports.reduce((sum: any, r: any) => sum + (r.total_workers || 0), 0)
-    const totalNPC1000Used = reports.reduce((sum: any, r: any) => sum + (r.npc1000_used || 0), 0)
+    const totalWorkers = reports.reduce((sum: unknown, r: unknown) => sum + (r.total_workers || 0), 0)
+    const totalNPC1000Used = reports.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_used || 0), 0)
     const approvalRate = totalReports > 0 ? Math.round((approvedReports / totalReports) * 100) : 0
 
     return [

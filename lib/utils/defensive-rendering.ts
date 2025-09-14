@@ -1,4 +1,4 @@
-import React from 'react';
+;
 
 /**
  * Defensive Rendering Utilities
@@ -150,7 +150,7 @@ export function renderArray<T>(
  */
 export function safeGet<T>(obj: unknown, key: string | number, fallback: T): T {
   if (obj && typeof obj === 'object' && key in obj) {
-    return (obj as any)[key] ?? fallback;
+    return (obj as unknown)[key] ?? fallback;
   }
   return fallback;
 }

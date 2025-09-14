@@ -1,5 +1,3 @@
-import { getCurrentUserSite, getUserSiteHistory } from '@/app/actions/site-info'
-import TestSiteInfoClient from './test-client'
 
 export default async function TestSiteInfoPage() {
   console.log('TestSiteInfoPage: Loading...')

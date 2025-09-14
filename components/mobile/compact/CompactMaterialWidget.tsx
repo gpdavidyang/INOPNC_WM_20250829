@@ -1,12 +1,5 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { 
-  TrendingUpIcon, 
-  TrendingDownIcon, 
-  AlertCircleIcon,
-  PackageIcon
-} from 'lucide-react'
 
 interface MaterialData {
   name: string
@@ -60,7 +53,7 @@ export function CompactMaterialWidget({
 
   return (
     <div className={cn("grid grid-cols-2 gap-2", className)}>
-      {materials.slice(0, 4).map((material: any) => (
+      {materials.slice(0, 4).map((material: unknown) => (
         <button
           key={material.code}
           onClick={() => onMaterialClick?.(material)}
