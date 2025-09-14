@@ -1,4 +1,14 @@
 
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+// Simple wrapper for API monitoring
+function withApiMonitoring(handler: Function) {
+  return async (request: NextRequest) => {
+    return handler(request)
+  }
+}
+
 interface CustomMetric {
   name: string
   value: number

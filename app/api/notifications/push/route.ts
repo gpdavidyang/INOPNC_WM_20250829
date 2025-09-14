@@ -1,4 +1,6 @@
 
+import webpush from 'web-push'
+
 // Configure VAPID details
 const vapidDetails = {
   subject: process.env.VAPID_SUBJECT || 'mailto:admin@inopnc.com',

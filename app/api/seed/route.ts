@@ -1,3 +1,6 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
 // TODO: Seed route disabled due to database schema mismatches
 
 export async function GET() {
