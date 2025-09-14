@@ -2,6 +2,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic'
+
+
 // 현실적인 한국어 이름 매핑 (기존 사용자 → 새 이름)
 const WORKER_NAME_MAPPING = [
   { role: 'worker', newName: '김철수' },

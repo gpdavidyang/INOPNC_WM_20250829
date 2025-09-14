@@ -1,3 +1,9 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+
+export const dynamic = 'force-dynamic'
 
 // GET /api/shared-documents/[id] - 특정 문서 조회
 export async function GET(

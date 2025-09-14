@@ -1,4 +1,8 @@
+import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server';
+
+export const dynamic = 'force-dynamic'
+
 ;
 
 // GET /api/users/[id]/sites - 특정 사용자의 현장 목록 조회

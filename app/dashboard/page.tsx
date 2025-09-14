@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server'
 
 // 배포 환경에서 동적 렌더링 강제 - 현장 정보 로딩 문제 해결
 export const dynamic = 'force-dynamic'

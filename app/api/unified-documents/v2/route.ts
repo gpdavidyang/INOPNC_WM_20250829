@@ -1,4 +1,9 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
+
+export const dynamic = 'force-dynamic'
+
 
 // GET /api/unified-documents/v2 - 통합 문서 목록 조회
 export async function GET(request: NextRequest) {

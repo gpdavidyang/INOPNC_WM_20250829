@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 export default function TestAuthFix() {
   const [status, setStatus] = useState<string>('Checking...')

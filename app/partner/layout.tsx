@@ -1,3 +1,4 @@
+import { createClient } from '@/lib/supabase/server'
 import PartnerDashboardLayout from '@/components/partner/PartnerDashboardLayout'
 
 export const dynamic = 'force-dynamic'

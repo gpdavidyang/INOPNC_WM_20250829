@@ -1,3 +1,9 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+
+export const dynamic = 'force-dynamic'
 
 // POST /api/photo-grid-reports/[id]/download - PDF 다운로드 추적
 export async function POST(

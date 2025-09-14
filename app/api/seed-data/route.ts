@@ -1,5 +1,10 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import type { AsyncState, ApiResponse } from '@/types/utils'
 import { createClient } from '@supabase/supabase-js'
+
+export const dynamic = 'force-dynamic'
+
 
 // 현실적인 작업자 데이터
 const WORKERS = [

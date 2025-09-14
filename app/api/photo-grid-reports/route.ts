@@ -1,4 +1,10 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import type { PhotoGridReport } from '@/types'
+
+export const dynamic = 'force-dynamic'
+
 
 // GET /api/photo-grid-reports - PDF 보고서 목록 조회
 export async function GET(request: NextRequest) {

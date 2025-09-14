@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     // site_partners 관계를 제거하고 깨끗한 sites 데이터만 반환
-    const cleanSites = sites?.map((site: unknown) => ({
+    const cleanSites = sites?.map((site: any) => ({
       id: site.id,
       name: site.name,
       address: site.address,

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
+
 // TODO: Seed route disabled due to database schema mismatches
 
 export async function GET() {

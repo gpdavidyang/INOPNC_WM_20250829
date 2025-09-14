@@ -1,5 +1,9 @@
 'use server'
 
+import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import type { UserRole } from '@/types'
 
 export async function signIn(email: string, password: string) {

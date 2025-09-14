@@ -1,4 +1,10 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import type { ManagerContact } from '@/types/site-info'
+
+export const dynamic = 'force-dynamic'
+
 
 /**
  * GET /api/sites/[id]/managers

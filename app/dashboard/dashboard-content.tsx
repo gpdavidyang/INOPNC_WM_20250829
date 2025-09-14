@@ -1,5 +1,7 @@
 'use client'
 
+import { createClient } from '@/lib/supabase/client'
+
 
 interface DashboardContentProps {
   user: unknown

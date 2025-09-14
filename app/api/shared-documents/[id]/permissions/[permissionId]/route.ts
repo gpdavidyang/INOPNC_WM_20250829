@@ -1,3 +1,9 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+
+
+export const dynamic = 'force-dynamic'
 
 // PUT /api/shared-documents/[id]/permissions/[permissionId] - 권한 수정
 export async function PUT(

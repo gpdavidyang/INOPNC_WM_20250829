@@ -1,5 +1,11 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 import webpush from 'web-push'
+
+export const dynamic = 'force-dynamic'
+
 
 // Configure VAPID details
 const vapidDetails = {

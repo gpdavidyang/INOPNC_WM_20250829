@@ -1,5 +1,7 @@
 'use client'
 
+import { createClient } from '@/lib/supabase/client'
+
 
 export default function TestAttendancePage() {
   const [data, setData] = useState<unknown>(null)
