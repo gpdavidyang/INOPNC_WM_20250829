@@ -1,6 +1,28 @@
 'use client'
 
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { 
+  Users, UserPlus, Edit, Trash2, MoreVertical, Search, Filter, Eye,
+  User, Mail, Phone, Building, Shield, FileText, ClipboardCheck, Calendar, Plus
+} from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
+import AdminDataTable from './AdminDataTable'
+import UserDetail from './users/UserDetail'
+import CreateUserModal from './users/CreateUserModal'
+import EditUserModal from './users/EditUserModal'
+import UserDetailModal from './UserDetailModal'
+import { 
+  getUsers, 
+  createUser, 
+  updateUser, 
+  deleteUsers, 
+  updateUserRole,
+  updateUserStatus,
+  exportUsers 
+} from '@/app/actions/admin/users'
+import type { UserWithSites, UserRole, UserStatus, Profile } from '@/types'
 
 interface UserManagementProps {
   profile?: Profile
@@ -34,7 +56,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
   const [detailUser, setDetailUser] = useState<UserWithSites | null>(null)
 
   // Load users data
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true)
     setError(null)
     
@@ -72,7 +94,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, pageSize, searchTerm, roleFilter, statusFilter])
 
   // Load data on mount and when filters change with debouncing
   useEffect(() => {
@@ -81,7 +103,7 @@ export default function UserManagement({ profile }: UserManagementProps) {
     }, searchTerm ? 300 : 0) // Only debounce search, not pagination/filters
 
     return () => clearTimeout(handler)
-  }, [currentPage, searchTerm, roleFilter, statusFilter])
+  }, [currentPage, searchTerm, roleFilter, statusFilter, loadUsers])
 
   // Handle search
   const handleSearch = (term: string) => {

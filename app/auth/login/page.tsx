@@ -27,18 +27,15 @@ export default function LoginPage() {
 
     try {
       // Use new auth system's signIn method
-      const result = await signIn({ email, password })
-
-      if (!result.success) {
-        setError(result.error || '로그인에 실패했습니다.')
-        setIsLoading(false)
-      } else {
-        // Success - router will handle redirect based on role
-        // The auth context handles role-based routing automatically
-      }
+      // Note: signIn throws an error on failure and returns void on success
+      await signIn({ email, password })
+      
+      // Success - router will handle redirect based on role
+      // The auth context handles role-based routing automatically
     } catch (error) {
       console.error('Login error:', error)
-      setError('로그인 서비스를 사용할 수 없습니다. 잠시 후 다시 시도해주세요.')
+      const errorMessage = error instanceof Error ? error.message : '로그인에 실패했습니다.'
+      setError(errorMessage)
       setIsLoading(false)
     }
   }
