@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useState } from 'react'
+
+export const dynamic = 'force-dynamic'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
