@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import { EquipmentManagement } from '@/components/equipment/equipment-management'
 
 export const metadata: Metadata = {

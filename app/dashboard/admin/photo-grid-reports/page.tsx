@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import PhotoGridReportsManagement from '@/components/admin/PhotoGridReportsManagement'
 
 export default async function AdminPhotoGridReportsPage() {

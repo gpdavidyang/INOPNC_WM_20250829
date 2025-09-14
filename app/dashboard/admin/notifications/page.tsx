@@ -1,3 +1,4 @@
+import { getProfile } from "@/lib/auth/profile"
 import NotificationCenter from '@/components/admin/notifications/NotificationCenter'
 
 export default async function NotificationCenterPage() {

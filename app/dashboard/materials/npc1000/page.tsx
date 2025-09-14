@@ -1,3 +1,4 @@
+import { getProfile } from "@/lib/auth/profile"
 import { NPC1000InventoryDashboard } from '@/components/materials/npc1000/NPC1000InventoryDashboard'
 
 export default async function NPC1000Page() {

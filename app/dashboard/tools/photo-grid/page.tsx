@@ -1,3 +1,4 @@
+import { getAuthenticatedUser } from "@/lib/auth/server"
 
 export const metadata: Metadata = {
   title: '사진대지 도구 | INOPNC WM',

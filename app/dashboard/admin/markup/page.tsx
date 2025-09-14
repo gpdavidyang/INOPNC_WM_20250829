@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import MarkupManagement from '@/components/admin/MarkupManagement'
 
 export default async function MarkupManagementPage() {

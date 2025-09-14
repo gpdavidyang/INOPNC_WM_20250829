@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import OrganizationEditPage from '@/components/admin/organizations/OrganizationEditPage'
 
 interface PageProps {

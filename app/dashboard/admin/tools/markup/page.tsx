@@ -1,4 +1,5 @@
 'use client'
+import { createClient } from '@/lib/supabase/client'
 
 import AdminMarkupTool from '@/components/admin/tools/AdminMarkupTool'
 import type { Profile } from '@/types'

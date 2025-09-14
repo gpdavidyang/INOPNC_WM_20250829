@@ -1,3 +1,5 @@
+import { getAuthenticatedUser } from "@/lib/auth/server"
+import { getCurrentUserSite } from "@/app/actions/site-info"
 import { createClient } from '@/lib/supabase/server'
 
 // 배포 환경에서 동적 렌더링 강제 - 현장 정보 로딩 문제 해결

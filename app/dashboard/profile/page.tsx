@@ -1,3 +1,5 @@
+import { getProfile } from "@/lib/auth/profile"
+import { createClient } from "@/lib/supabase/server"
 import { ProfilePageClient } from '@/components/profile/ProfilePageClient'
 
 export default async function ProfilePage() {

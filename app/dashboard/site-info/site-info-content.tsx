@@ -1,4 +1,6 @@
+import { getCurrentUserSite } from "@/app/actions/site-info"
 'use client'
+import { createClient } from '@/lib/supabase/client'
 
 import SiteSearchModal from '@/components/site-info/SiteSearchModal'
 

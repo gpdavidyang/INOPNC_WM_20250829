@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 
 interface SharedDocumentPageProps {
   params: { id: string }

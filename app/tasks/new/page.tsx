@@ -1,3 +1,4 @@
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import TaskForm from './task-form'
 
 export default async function NewTaskPage() {

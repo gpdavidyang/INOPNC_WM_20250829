@@ -1,3 +1,5 @@
+import { getAuthenticatedUser } from "@/lib/auth/server"
+import { createClient } from "@/lib/supabase/server"
 import PartnerWorkLogDetailPage from '@/components/partner/PartnerWorkLogDetailPage'
 
 interface PartnerWorkLogDetailPageProps {

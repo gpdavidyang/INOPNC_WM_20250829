@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 
 export default async function AdminMyDocumentsPage() {
   const supabase = createClient()

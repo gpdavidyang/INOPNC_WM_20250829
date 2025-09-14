@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import { SettingsPageWrapper } from './settings-page-wrapper'
 
 export default async function SettingsPage() {

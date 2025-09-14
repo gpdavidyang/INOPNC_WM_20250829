@@ -1,3 +1,4 @@
+import { createServerSupabaseClient } from "@/lib/supabase/server"
 import TeamList from './team-list'
 
 export default async function TeamPage() {

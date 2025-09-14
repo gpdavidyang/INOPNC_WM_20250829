@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 
 export default async function DocumentRequirementsPage() {
   const supabase = await createClient()

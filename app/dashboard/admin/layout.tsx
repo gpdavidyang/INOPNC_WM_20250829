@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server"
 import AdminDashboardLayout from '@/components/admin/AdminDashboardLayout'
 
 export const dynamic = 'force-dynamic'

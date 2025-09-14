@@ -6,7 +6,7 @@ export default function TestDailyReportsNewPage() {
         <div className="brand-logo">INOPNC WM</div>
       </header>
       <main style={{ paddingTop: 'var(--header-h, 56px)' }}>
-        <DailyReportsTabNew />
+        <() => <div>Daily Reports Test</div> />
       </main>
     </div>
   )
