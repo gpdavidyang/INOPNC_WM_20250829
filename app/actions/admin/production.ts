@@ -1,27 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { ProductionRecord, ProductionAnalytics } from '@/types/materials'
-import { 
-  handleError, 
-  validateRequired, 
-  validateNumber, 
-  validateDate,
-  createSuccessResponse,
-  createErrorResponse,
-  ErrorCodes,
-  withRetry,
-  ApiResponse
-} from '@/lib/utils/error-handling'
-import { 
-  logAuditTrail, 
-  recordMetric, 
-  PerformanceTimer,
-  MetricNames,
-  ErrorTypes 
-} from '@/lib/utils/logging'
-import { requireAdminAuth, isAuthError } from '@/lib/utils/auth'
 
 // 생산 기록 생성
 export async function createProductionRecord(data: {
@@ -144,7 +122,7 @@ export async function updateProductionRecord(id: string, updates: Partial<{
     }
 
     // 수정할 데이터 준비
-    const updateData: any = { updated_at: new Date().toISOString() }
+    const updateData: unknown = { updated_at: new Date().toISOString() }
     if (updates.production_date !== undefined) updateData.production_date = updates.production_date
     if (updates.quantity_produced !== undefined) updateData.quantity_produced = updates.quantity_produced
     if (updates.unit_cost !== undefined) updateData.unit_cost = updates.unit_cost
@@ -361,8 +339,8 @@ export async function getDailyProductionStatus(date?: string) {
     }
 
     // 통계 계산
-    const totalProduced = dailyProduction?.reduce((sum: number, record: any) => sum + Number(record.quantity_produced), 0) || 0
-    const totalCost = dailyProduction?.reduce((sum: number, record: any) => sum + Number(record.total_cost || 0), 0) || 0
+    const totalProduced = dailyProduction?.reduce((sum: number, record: unknown) => sum + Number(record.quantity_produced), 0) || 0
+    const totalCost = dailyProduction?.reduce((sum: number, record: unknown) => sum + Number(record.total_cost || 0), 0) || 0
     const avgUnitCost = totalProduced > 0 ? totalCost / totalProduced : 0
 
     return {

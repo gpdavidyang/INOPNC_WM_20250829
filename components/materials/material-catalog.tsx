@@ -1,51 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { 
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
-import { useFontSize,  getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { 
-  Plus,
-  Edit2,
-  MoreVertical,
-  Package,
-  DollarSign,
-  Building,
-  Hash,
-  ChevronRight,
-  ChevronDown,
-  FolderOpen,
-  Folder
-} from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { createMaterial, updateMaterial } from '@/app/actions/materials'
-import { useToast } from '@/components/ui/use-toast'
-import { ViewToggle, useViewMode, CardView, ListView } from '@/components/ui/view-toggle'
-import { useSortableData } from '@/components/ui/sortable-table'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 import type { SortConfig } from '@/components/ui/sortable-table'
 
 interface MaterialCatalogProps {
@@ -61,7 +16,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
   const [showAddDialog, setShowAddDialog] = useState(false)
-  const [editingMaterial, setEditingMaterial] = useState<any>(null)
+  const [editingMaterial, setEditingMaterial] = useState<unknown>(null)
   const [formData, setFormData] = useState({
     category_id: '',
     name: '',
@@ -124,7 +79,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
       key: 'name',
       label: '자재명',
       sortable: true,
-      render: (value: string, material: any) => (
+      render: (value: string, material: unknown) => (
         <div>
           <div className="font-medium text-gray-900">{value}</div>
           {material.description && (
@@ -137,7 +92,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
       key: 'category.name',
       label: '카테고리',
       sortable: true,
-      render: (value: string, material: any) => (
+      render: (value: string, material: unknown) => (
         <Badge variant="outline" className="text-xs">
           {material.category?.name || '-'}
         </Badge>
@@ -166,7 +121,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
       sortable: true,
       align: 'center' as const,
       width: '100px',
-      render: (value: number, material: any) => {
+      render: (value: number, material: unknown) => {
         if (value === undefined) return '-'
         
         const stockColor = value <= (material.minimum_stock || 0) 
@@ -188,7 +143,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
       sortable: true,
       align: 'center' as const,
       width: '100px',
-      render: (value: number, material: any) => 
+      render: (value: number, material: unknown) => 
         value ? `${value} ${material.unit}` : '-'
     },
     {
@@ -197,7 +152,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
       sortable: false,
       align: 'center' as const,
       width: '80px',
-      render: (value: any, material: any) => (
+      render: (value: unknown, material: unknown) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="compact" className="h-8 w-8 p-0">
@@ -257,7 +212,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
           ...formData,
           code: formData.material_code,
           unit_price: formData.unit_price ? parseFloat(formData.unit_price) : undefined
-        } as any)
+        } as unknown)
         if (result.success) {
           toast({
             title: '자재 추가 완료',
@@ -295,7 +250,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
     })
   }
 
-  const handleEdit = (material: any) => {
+  const handleEdit = (material: unknown) => {
     setEditingMaterial(material)
     setFormData({
       category_id: material.category_id || '',
@@ -352,7 +307,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
                   
                   {expandedCategories.has(rootCategory.id) && Array.isArray(rootCategory.children) && (
                     <div className="ml-6 space-y-1">
-                      {rootCategory.children.map((subCategory: any) => (
+                      {rootCategory.children.map((subCategory: unknown) => (
                         <button
                           key={subCategory.id}
                           onClick={() => setSelectedCategory(subCategory.id)}
@@ -562,7 +517,7 @@ export function MaterialCatalog({ materials, categories, searchQuery }: Material
                 </CustomSelectTrigger>
                 <CustomSelectContent>
                   {Array.from(categoryHierarchy.values()).map(rootCategory => (
-                    Array.isArray(rootCategory.children) && rootCategory.children.map((subCategory: any) => (
+                    Array.isArray(rootCategory.children) && rootCategory.children.map((subCategory: unknown) => (
                       <CustomSelectItem key={subCategory.id} value={subCategory.id}>
                         {rootCategory.name} - {subCategory.name} ({subCategory.code})
                       </CustomSelectItem>

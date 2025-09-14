@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
 interface AnalyticsEvent {
@@ -10,7 +9,7 @@ interface AnalyticsEvent {
   organization_id: string
   site_id?: string
   user_id?: string
-  event_data: any
+  event_data: unknown
   event_timestamp: string
 }
 
@@ -102,7 +101,7 @@ export function useAnalyticsRealtime(options: UseAnalyticsRealtimeOptions = {}) 
 
   const emitEvent = useCallback(async (
     eventType: string,
-    eventData: any,
+    eventData: unknown,
     siteId?: string
   ) => {
     try {

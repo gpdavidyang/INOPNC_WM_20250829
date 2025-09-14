@@ -3,7 +3,6 @@
  * 재사용 가능한 컴포넌트 스타일 정의
  */
 
-import { cn } from '@/lib/utils'
 
 // 카드 스타일
 export const cardStyles = {

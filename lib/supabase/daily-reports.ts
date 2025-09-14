@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/client'
-import { DailyReport } from '@/types'
 
 export async function getDailyReports(siteId?: string) {
   const supabase = createClient()
@@ -169,8 +167,8 @@ export async function createDailyReport(report: Partial<DailyReport>, workerDeta
       npc1000_remaining: report.npc1000_remaining || 0,
       issues: report.issues,
       created_by: userData.user.id,
-      status: 'draft' as any
-    } as any)
+      status: 'draft' as unknown
+    } as unknown)
     .select()
     .single()
   

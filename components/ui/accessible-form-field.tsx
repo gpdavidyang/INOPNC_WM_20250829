@@ -1,9 +1,6 @@
 'use client'
 
 import React, { forwardRef, ReactNode } from 'react'
-import { cn } from '@/lib/utils'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 export interface AccessibleFormFieldProps {
   children: ReactNode
@@ -65,7 +62,7 @@ export const AccessibleFormField = forwardRef<HTMLDivElement, AccessibleFormFiel
         <div>
           {React.Children.map(children, (child) => {
             if (React.isValidElement(child) && typeof child.type !== 'string') {
-              return React.cloneElement(child as React.ReactElement<any>, {
+              return React.cloneElement(child as React.ReactElement<unknown>, {
                 id: fieldId,
                 'aria-describedby': cn(
                   descriptionId,

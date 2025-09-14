@@ -1,24 +1,15 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Share2, Edit3, FileCheck, FileText, Image, BarChart3, Settings } from 'lucide-react'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 // 각 탭의 컴포넌트들을 임시로 import (기존 컴포넌트들 활용)
-import DocumentOverviewManagement from './DocumentOverviewManagement'
-import SharedDocumentsManagement from './SharedDocumentsManagement'
-import MarkupDocumentsManagement from './MarkupDocumentsManagement' 
-import RealRequiredDocumentsManagement from './RealRequiredDocumentsManagement'
-import InvoiceDocumentsManagement from './InvoiceDocumentsManagement'
-import PhotoGridDocumentsManagement from './PhotoGridDocumentsManagement'
-import RequiredDocumentTypesAdmin from './RequiredDocumentTypesAdmin'
+ 
 
 interface Tab {
   id: string
   label: string
   icon: React.ComponentType<{ className?: string }>
-  component: React.ComponentType<any>
+  component: React.ComponentType<unknown>
   count?: number
 }
 

@@ -1,8 +1,6 @@
 'use client'
 
-import { forwardRef, useEffect, useRef, useState, useCallback } from 'react'
 import type { MarkupEditorState, MarkupObject, BoxMarkup, TextMarkup, DrawingMarkup } from '@/types/markup'
-import { TextInputDialog } from '../dialogs/text-input-dialog'
 
 interface MarkupCanvasProps {
   editorState: MarkupEditorState
@@ -407,7 +405,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
           }
         }
       } else if (obj.type === 'stamp') {
-        const stamp = obj as any // StampMarkup
+        const stamp = obj as unknown // StampMarkup
         const size = stamp.size === 'small' ? 20 : stamp.size === 'large' ? 60 : 40
         
         ctx.fillStyle = stamp.color
@@ -625,9 +623,9 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       // console.log('🔥 Mouse move:', { activeTool, coords, currentDrawing: !!currentDrawing }) // 디버깅용
 
       // 선택 도구로 객체 이동
-      if (activeTool === 'select' && editorState.selectedObjects.length > 0 && (editorState as any).dragStart) {
-        const deltaX = coords.x - (editorState as any).dragStart.x
-        const deltaY = coords.y - (editorState as any).dragStart.y
+      if (activeTool === 'select' && editorState.selectedObjects.length > 0 && (editorState as unknown).dragStart) {
+        const deltaX = coords.x - (editorState as unknown).dragStart.x
+        const deltaY = coords.y - (editorState as unknown).dragStart.y
         
         // 선택된 모든 객체 이동
         onStateChange(prev => {
@@ -808,7 +806,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
             return obj
           }
         } else if (obj.type === 'stamp') {
-          const stamp = obj as any
+          const stamp = obj as unknown
           // 스탬프 크기 계산
           const sizeMap = { small: 20, medium: 30, large: 40 }
           const size = sizeMap[stamp.size] || 30
@@ -933,7 +931,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
             currentTarget: e.currentTarget,
             preventDefault: () => {},
             stopPropagation: () => e.stopPropagation()
-          } as any
+          } as unknown
           setIsMouseDown(true) // 터치 시작 시 마우스 다운 상태로 설정
           handleMouseDown(mouseEvent)
         }
@@ -1013,7 +1011,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
             currentTarget: e.currentTarget,
             preventDefault: () => {},
             stopPropagation: () => e.stopPropagation()
-          } as any
+          } as unknown
           handleMouseMove(mouseEvent)
         }
       }

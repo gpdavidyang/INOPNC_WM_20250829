@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // GET /api/notifications - 알림 목록 조회
 export async function GET(request: NextRequest) {
@@ -69,12 +67,12 @@ export async function GET(request: NextRequest) {
       if (allNotifications) {
         adminStats = {
           total: allNotifications.length,
-          unread: allNotifications.filter((n: any) => !n.is_read).length,
-          byType: allNotifications.reduce((acc: any, n: any) => {
+          unread: allNotifications.filter((n: unknown) => !n.is_read).length,
+          byType: allNotifications.reduce((acc: unknown, n: unknown) => {
             acc[n.type] = (acc[n.type] || 0) + 1
             return acc
           }, {}),
-          recent: allNotifications.filter((n: any) => 
+          recent: allNotifications.filter((n: unknown) => 
             new Date().getTime() - new Date(n.created_at).getTime() < 24 * 60 * 60 * 1000
           ).length
         }
@@ -158,14 +156,14 @@ export async function POST(request: NextRequest) {
         .select('id')
         .eq('role', target_role)
       
-      targetUsers = roleUsers?.map((u: any) => ({ user_id: u.id })) || []
+      targetUsers = roleUsers?.map((u: unknown) => ({ user_id: u.id })) || []
     } else {
       // 전체 공지 (user_id = null)
       targetUsers = [{ user_id: null }]
     }
 
     // 알림 생성
-    const notifications = targetUsers.map((target: any) => ({
+    const notifications = targetUsers.map((target: unknown) => ({
       title,
       message,
       type,

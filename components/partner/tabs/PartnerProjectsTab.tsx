@@ -1,8 +1,5 @@
 'use client'
 
-import { Profile } from '@/types'
-import { Building2, MapPin, Calendar, Users, TrendingUp, MoreVertical } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface PartnerProjectsTabProps {
   profile: Profile

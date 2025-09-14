@@ -1,6 +1,5 @@
 'use client'
 
-import { QuickActionsSettings } from '@/components/admin/quick-actions-settings'
 
 export default function TestModalPage() {
   return (

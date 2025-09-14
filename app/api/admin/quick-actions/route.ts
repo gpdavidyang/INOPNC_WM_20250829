@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getAuthenticatedUser } from '@/lib/auth/session'
 import type { QuickAction } from '@/types'
 
 // GET /api/admin/quick-actions - 빠른 작업 목록 조회

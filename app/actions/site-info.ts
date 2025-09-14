@@ -1,6 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 
 const log = (...args: unknown[]) => {
   // Enable logging to debug site info issues
@@ -135,7 +134,7 @@ export async function getCurrentUserSite() {
 
     // Convert to the expected format
     const site = assignment.sites
-    const siteData: any = {
+    const siteData: unknown = {
       site_id: site.id,
       site_name: site.name,
       site_address: site.address,
@@ -182,11 +181,11 @@ export async function getCurrentUserSite() {
         log('getCurrentUserSite: Found documents:', documents?.length || 0)
         
         // Add documents to site data using the getSiteDocumentsPTWAndBlueprint logic
-        const ptwDocument = documents?.find((doc: any) => 
+        const ptwDocument = documents?.find((doc: unknown) => 
           doc.document_type === 'ptw' ||
           (doc.title && (doc.title.includes('PTW') || doc.title.includes('작업허가서')))
         )
-        const blueprintDocument = documents?.find((doc: any) => 
+        const blueprintDocument = documents?.find((doc: unknown) => 
           doc.document_type === 'blueprint' ||
           doc.document_type === 'drawing' ||
           (doc.title && (doc.title.includes('도면') || doc.title.includes('blueprint')))
@@ -300,7 +299,7 @@ export async function getUserSiteHistory() {
     }
 
     // Convert to the expected format
-    const historyData = data?.map((assignment: any) => {
+    const historyData = data?.map((assignment: unknown) => {
       const site = assignment.sites
       return {
         site_id: site.id,

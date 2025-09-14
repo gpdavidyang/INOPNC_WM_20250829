@@ -1,6 +1,5 @@
 // Test file to verify invoice document queries with unified_document_system table
 
-import { createClient } from '@/lib/supabase/client'
 
 // Test function to verify invoice document queries
 export async function testInvoiceDocumentQueries() {

@@ -1,4 +1,3 @@
-import DailyReportsManagement from '@/components/admin/daily-reports/DailyReportsManagement'
 
 export default function AdminDailyReportsPage() {
   return (

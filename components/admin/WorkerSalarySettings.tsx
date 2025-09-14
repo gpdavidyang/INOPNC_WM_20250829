@@ -1,33 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile, EmploymentType, WorkerSalarySetting, TaxRate } from '@/types'
-import { 
-  getWorkersForSalarySettings,
-  getWorkerSalarySettings,
-  setWorkerSalarySetting,
-  getTaxRates,
-  updateTaxRate
-} from '@/app/actions/admin/worker-salary-settings'
-import { 
-  EMPLOYMENT_TYPE_LABELS,
-  DEFAULT_TAX_RATES,
-  getDefaultEmploymentSettings
-} from '@/lib/salary/enhanced-calculator'
-import { 
-  Search, Settings, Users, DollarSign, Edit2, Save, X, Plus,
-  AlertCircle, CheckCircle, User, Calendar, Building2, Percent
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
 
 interface WorkerSalarySettingsProps {
   profile: Profile
@@ -238,7 +210,7 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
           </div>
         </div>
         
-        <CustomSelect value={employmentFilter} onValueChange={(value) => setEmploymentFilter(value as any)}>
+        <CustomSelect value={employmentFilter} onValueChange={(value) => setEmploymentFilter(value as unknown)}>
           <CustomSelectTrigger className="w-40">
             <CustomSelectValue placeholder="고용형태 선택" />
           </CustomSelectTrigger>

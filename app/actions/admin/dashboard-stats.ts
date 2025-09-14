@@ -1,7 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { withAdminAuth, AdminActionResult } from './common'
 
 export interface DashboardStats {
   totalUsers: number
@@ -66,9 +64,9 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
         .limit(3)
 
       if (recentReports) {
-        recentReports.forEach((report: any) => {
-          const profile = report.profiles as any
-          const site = report.sites as any
+        recentReports.forEach((report: unknown) => {
+          const profile = report.profiles as unknown
+          const site = report.sites as unknown
           activities.push({
             id: `report-${report.id}`,
             type: 'report_approval',
@@ -89,7 +87,7 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
         .limit(2)
 
       if (recentUsers) {
-        recentUsers.forEach((user: any) => {
+        recentUsers.forEach((user: unknown) => {
           activities.push({
             id: `user-${user.id}`,
             type: 'user_registration',
@@ -117,8 +115,8 @@ export async function getDashboardStats(): Promise<AdminActionResult<DashboardSt
         .limit(2)
 
       if (recentPhotos) {
-        recentPhotos.forEach((photo: any) => {
-          const profile = photo.profiles as any
+        recentPhotos.forEach((photo: unknown) => {
+          const profile = photo.profiles as unknown
           activities.push({
             id: `photo-${photo.id}`,
             type: 'photo_upload',

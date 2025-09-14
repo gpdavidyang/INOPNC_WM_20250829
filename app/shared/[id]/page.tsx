@@ -1,6 +1,3 @@
-import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import SharedDocumentViewer from '@/components/shared/SharedDocumentViewer'
 
 interface SharedDocumentPageProps {
   params: { id: string }

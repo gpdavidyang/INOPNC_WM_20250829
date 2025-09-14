@@ -1,19 +1,5 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { CustomSelect } from '@/components/ui/custom-select'
-import { 
-  Eye, Edit, Trash2, Search, Filter, Calendar,
-  ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  FileText, Clock, CheckCircle, XCircle, AlertTriangle,
-  Building2, MoreHorizontal, Download, Copy
-} from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { useNewDesign } from '@/lib/feature-flags'
 
 interface WorkLogsTabProps {
   profile: Profile
@@ -486,7 +472,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
                 <CustomSelect
                   options={[
                     { value: 'all', label: '전체 현장' },
-                    ...sites.map((site: any) => ({
+                    ...sites.map((site: unknown) => ({
                       value: site.id,
                       label: site.name
                     }))
@@ -568,7 +554,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
       <Card variant={newDesign ? "work-card" : "default"} className="overflow-hidden">
         {/* Mobile Card View */}
         <div className="block sm:hidden">
-          {paginatedLogs.map((log: any) => (
+          {paginatedLogs.map((log: unknown) => (
             <div key={log.id} className="p-3 border-b border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-start mb-1.5">
                 <div className="flex-1">
@@ -716,7 +702,7 @@ export default function WorkLogsTab({ profile }: WorkLogsTabProps) {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {paginatedLogs.map((log: any) => (
+              {paginatedLogs.map((log: unknown) => (
                 <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                     {formatDate(log.work_date)}

@@ -1,7 +1,5 @@
 'use client'
 
-import { usePathname, useRouter } from 'next/navigation'
-import { Home, Calendar, FileText, MapPin, MoreHorizontal } from 'lucide-react'
 
 export default function MobileBottomNav() {
   const pathname = usePathname()

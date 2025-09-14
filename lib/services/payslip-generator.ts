@@ -2,9 +2,6 @@
  * 급여명세서 PDF 생성 서비스
  */
 
-import { jsPDF } from 'jspdf'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import type { MonthlySalary } from './salary-calculation.service'
 
 export interface PayslipData {
@@ -83,7 +80,7 @@ export class PayslipGenerator {
   /**
    * 표준 헤더 추가 (제목 중심)
    */
-  private addStandardHeader(doc: jsPDF, company: any, salary: MonthlySalary) {
+  private addStandardHeader(doc: jsPDF, company: unknown, salary: MonthlySalary) {
     // 문서 제목
     doc.setFontSize(20)
     doc.setFont('helvetica', 'bold')
@@ -124,7 +121,7 @@ export class PayslipGenerator {
   /**
    * 직원 기본 정보
    */
-  private addEmployeeBasicInfo(doc: jsPDF, employee: any, site: any, yPos: number) {
+  private addEmployeeBasicInfo(doc: jsPDF, employee: unknown, site: unknown, yPos: number) {
     // 박스 그리기
     doc.setDrawColor(0, 0, 0)
     doc.rect(15, yPos, 180, 20)
@@ -319,7 +316,7 @@ export class PayslipGenerator {
   /**
    * 표준 하단 정보
    */
-  private addStandardFooter(doc: jsPDF, company: any) {
+  private addStandardFooter(doc: jsPDF, company: unknown) {
     const footerY = 270
     
     // 회사 정보

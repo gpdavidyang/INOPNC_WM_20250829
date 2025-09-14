@@ -1,9 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Bell, X, Shield, Clock, AlertTriangle, Wrench, Megaphone } from 'lucide-react'
-import { useProfile } from '@/hooks/use-profile'
-import { pushNotificationService } from '@/lib/push-notifications'
 
 interface NotificationPermissionState {
   permission: NotificationPermission

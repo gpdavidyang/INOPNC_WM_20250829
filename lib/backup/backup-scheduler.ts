@@ -1,7 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { logError, AppError } from '@/lib/error-handling'
-import { DatabaseBackupService } from './database-backup'
-import { FileBackupService } from './file-backup'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 import type { 
   BackupConfig, 
   BackupJob, 
@@ -11,7 +8,6 @@ import type {
   DatabaseBackupOptions,
   FileBackupOptions
 } from './types'
-import { CronJob } from 'cron'
 
 export class BackupScheduler {
   private supabase = createClient()
@@ -27,7 +23,7 @@ export class BackupScheduler {
   async initializeScheduler() {
     try {
       // Load existing schedules from database
-      const { data: schedules, error } = await (this.supabase as any)
+      const { data: schedules, error } = await (this.supabase as unknown)
         .from('backup_schedules')
         .select(`
           *,
@@ -51,7 +47,7 @@ export class BackupScheduler {
     }
   }
 
-  private async createScheduledJob(schedule: any) {
+  private async createScheduledJob(schedule: unknown) {
     try {
       const job = new CronJob(
         schedule.cron_expression,
@@ -81,7 +77,7 @@ export class BackupScheduler {
       }
 
       // Get backup configuration
-      const { data: config, error: configError } = await (this.supabase as any)
+      const { data: config, error: configError } = await (this.supabase as unknown)
         .from('backup_configs')
         .select('*')
         .eq('id', configId)
@@ -138,7 +134,7 @@ export class BackupScheduler {
       }
 
       // Get backup configuration
-      const { data: config, error: configError } = await (this.supabase as any)
+      const { data: config, error: configError } = await (this.supabase as unknown)
         .from('backup_configs')
         .select('*')
         .eq('id', configId)
@@ -319,7 +315,7 @@ export class BackupScheduler {
 
   private async createBackupJobRecord(config: BackupConfig, trigger: 'manual' | 'scheduled'): Promise<string | null> {
     try {
-      const { data, error } = await (this.supabase as any)
+      const { data, error } = await (this.supabase as unknown)
         .from('backup_jobs')
         .insert({
           config_id: config.id,
@@ -351,7 +347,7 @@ export class BackupScheduler {
     metadata?: Record<string, unknown>
   ) {
     try {
-      const updates: any = {
+      const updates: unknown = {
         status,
         progress
       }
@@ -368,7 +364,7 @@ export class BackupScheduler {
         updates.metadata = metadata
       }
 
-      const { error } = await (this.supabase as any)
+      const { error } = await (this.supabase as unknown)
         .from('backup_jobs')
         .update(updates)
         .eq('id', jobId)
@@ -383,7 +379,7 @@ export class BackupScheduler {
 
   private async getLastBackupTime(configId: string): Promise<string> {
     try {
-      const { data, error } = await (this.supabase as any)
+      const { data, error } = await (this.supabase as unknown)
         .from('backup_jobs')
         .select('completed_at')
         .eq('config_id', configId)
@@ -407,7 +403,7 @@ export class BackupScheduler {
   private async updateScheduleLastRun(scheduleId: string) {
     try {
       const now = new Date()
-      const { error } = await (this.supabase as any)
+      const { error } = await (this.supabase as unknown)
         .from('backup_schedules')
         .update({
           last_run: now.toISOString(),
@@ -445,7 +441,7 @@ export class BackupScheduler {
       }
 
       // Log validation result
-      const { error } = await (this.supabase as any)
+      const { error } = await (this.supabase as unknown)
         .from('backup_jobs')
         .update({
           metadata: {
@@ -478,7 +474,7 @@ export class BackupScheduler {
       cutoffDate.setDate(cutoffDate.getDate() - config.retention_days)
 
       // Get old backup jobs
-      const { data: oldJobs, error } = await (this.supabase as any)
+      const { data: oldJobs, error } = await (this.supabase as unknown)
         .from('backup_jobs')
         .select('id, file_path')
         .eq('config_id', config.id)
@@ -500,7 +496,7 @@ export class BackupScheduler {
           }
 
           // Delete database record
-          await (this.supabase as any)
+          await (this.supabase as unknown)
             .from('backup_jobs')
             .delete()
             .eq('id', job.id)
@@ -517,7 +513,7 @@ export class BackupScheduler {
 
   async addSchedule(schedule: Omit<BackupSchedule, 'id' | 'last_run' | 'next_run'>): Promise<{ success: boolean; id?: string; error?: string }> {
     try {
-      const { data, error } = await (this.supabase as any)
+      const { data, error } = await (this.supabase as unknown)
         .from('backup_schedules')
         .insert({
           ...schedule,
@@ -556,7 +552,7 @@ export class BackupScheduler {
       }
 
       // Delete from database
-      const { error } = await (this.supabase as any)
+      const { error } = await (this.supabase as unknown)
         .from('backup_schedules')
         .delete()
         .eq('id', scheduleId)
@@ -593,7 +589,7 @@ export class BackupScheduler {
   async cancelJob(jobId: string): Promise<{ success: boolean; error?: string }> {
     try {
       // Update job status to cancelled
-      const { error } = await (this.supabase as any)
+      const { error } = await (this.supabase as unknown)
         .from('backup_jobs')
         .update({
           status: 'cancelled',

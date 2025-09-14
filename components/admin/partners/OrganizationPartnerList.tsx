@@ -1,12 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Plus, Search, Filter, MoreHorizontal, Building2, 
-  Calendar, MapPin, Phone, Mail, Users, Edit, Trash2, CheckCircle, XCircle,
-  LayoutGrid, List
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Organization {
   id: string

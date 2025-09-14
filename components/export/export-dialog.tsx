@@ -1,40 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
 // Using regular HTML select for compatibility
-import {
-  Download,
-  FileSpreadsheet,
-  FileText,
-  Calendar,
-  Filter,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  Building2,
-  X
-} from 'lucide-react'
-import { format, subDays, startOfMonth, endOfMonth } from 'date-fns'
-import { ExcelExporter } from '@/lib/export/excel-exporter'
-import { PDFExporter } from '@/lib/export/pdf-exporter'
-import { CSVExporter } from '@/lib/export/csv-exporter'
-import { prepareExportData, getExportFormats, logExportActivity } from '@/app/actions/export'
 import type { ExportFormat, ExportOptions } from '@/lib/export/types'
 import type { Site } from '@/types'
-import { toast } from 'sonner'
 
 interface ExportDialogProps {
   sites: Site[]
@@ -109,14 +77,14 @@ export function ExportDialog({ sites, trigger }: ExportDialogProps) {
 
       switch (selectedFormat) {
         case 'excel':
-          result = await ExcelExporter.exportDailyReports(reports as any, sitesData as any, {
+          result = await ExcelExporter.exportDailyReports(reports as unknown, sitesData as unknown, {
             includePhotos,
             includeDrawings,
             fileName: `${fileName}.xlsx`
           })
           break
         case 'pdf':
-          result = await PDFExporter.exportDailyReports(reports as any, sitesData as any, {
+          result = await PDFExporter.exportDailyReports(reports as unknown, sitesData as unknown, {
             includePhotos,
             includeDrawings,
             fileName: `${fileName}.pdf`,
@@ -124,7 +92,7 @@ export function ExportDialog({ sites, trigger }: ExportDialogProps) {
           })
           break
         case 'csv':
-          result = await CSVExporter.exportDailyReports(reports as any, sitesData as any, {
+          result = await CSVExporter.exportDailyReports(reports as unknown, sitesData as unknown, {
             fileName: `${fileName}.csv`
           })
           break
@@ -244,7 +212,7 @@ export function ExportDialog({ sites, trigger }: ExportDialogProps) {
           <div>
             <Label className="text-sm font-medium mb-3 block">내보내기 형식</Label>
             <div className="grid gap-3">
-              {exportFormats.map((formatInfo: any) => (
+              {exportFormats.map((formatInfo: unknown) => (
                 <Card 
                   key={formatInfo.format}
                   className={`p-4 cursor-pointer transition-all ${
@@ -341,7 +309,7 @@ export function ExportDialog({ sites, trigger }: ExportDialogProps) {
               현장 선택 (선택 안함 = 전체)
             </Label>
             <div className="space-y-2 max-h-32 overflow-y-auto">
-              {sites.map((site: any) => (
+              {sites.map((site: unknown) => (
                 <div key={site.id} className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -388,7 +356,7 @@ export function ExportDialog({ sites, trigger }: ExportDialogProps) {
                 { value: 'submitted', label: '제출됨' },
                 { value: 'approved', label: '승인됨' },
                 { value: 'rejected', label: '반려됨' }
-              ].map((status: any) => (
+              ].map((status: unknown) => (
                 <div key={status.value} className="flex items-center gap-2">
                   <input
                     type="checkbox"

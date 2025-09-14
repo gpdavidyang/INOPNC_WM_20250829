@@ -1,15 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Calendar, ChevronRight, Package, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { getNPC1000Records, getNPC1000Summary, type NPC1000DailyRecord } from '@/app/actions/npc1000'
 
 interface NPC1000Record {
   id: string
@@ -25,8 +15,8 @@ interface NPC1000Record {
 }
 
 interface NPC1000ManagementProps {
-  currentSite?: any
-  currentUser?: any
+  currentSite?: unknown
+  currentUser?: unknown
 }
 
 export function NPC1000Management({ currentSite, currentUser }: NPC1000ManagementProps) {

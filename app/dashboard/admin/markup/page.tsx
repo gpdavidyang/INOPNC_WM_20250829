@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import MarkupManagement from '@/components/admin/MarkupManagement'
 
 export default async function MarkupManagementPage() {

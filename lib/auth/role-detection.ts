@@ -1,4 +1,3 @@
-import { UserRole } from '@/types'
 
 /**
  * Get user role from cookie (server-side)

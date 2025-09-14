@@ -1,17 +1,5 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { 
-  Calendar,
-  Clock,
-  CheckCircle,
-  AlertTriangle,
-  Users,
-  Package,
-  Filter,
-  X
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
 import type { QuickFilter, SearchOptions } from '@/lib/search/types'
 
 interface QuickFilterButtonsProps {
@@ -57,7 +45,7 @@ export function QuickFilterButtons({
       </div>
       
       <div className="flex flex-wrap gap-2">
-        {quickFilters.map((filter: any) => {
+        {quickFilters.map((filter: unknown) => {
           const isActive = activeFilters.includes(filter.id)
           const IconComponent = filter.icon ? iconMap[filter.icon as keyof typeof iconMap] : Filter
           

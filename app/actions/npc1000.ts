@@ -1,6 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 
 export interface NPC1000DailyRecord {
   id: string
@@ -74,7 +73,7 @@ export async function getNPC1000Records(siteId: string, period?: 'today' | '7day
     }
 
     // Transform data to match the expected format
-    const records: NPC1000DailyRecord[] = data?.map((report: any) => ({
+    const records: NPC1000DailyRecord[] = data?.map((report: unknown) => ({
       id: report.id,
       site_id: report.site_id,
       date: report.work_date,
@@ -95,7 +94,7 @@ export async function getNPC1000Records(siteId: string, period?: 'today' | '7day
     })) || []
 
     // Calculate cumulative totals
-    const totals = records.reduce((acc: any, record: any) => ({
+    const totals = records.reduce((acc: unknown, record: unknown) => ({
       totalIncoming: acc.totalIncoming + record.incoming_qty,
       totalUsed: acc.totalUsed + record.used_qty,
       currentStock: records.length > 0 ? records[0].stock_qty : 0 // Latest stock
@@ -143,8 +142,8 @@ export async function getNPC1000Summary(siteId: string) {
         stock: todayData?.npc1000_remaining || 0
       },
       cumulative: {
-        totalIncoming: allData?.reduce((sum: any, r: any) => sum + (r.npc1000_incoming || 0), 0) || 0,
-        totalUsed: allData?.reduce((sum: any, r: any) => sum + (r.npc1000_used || 0), 0) || 0,
+        totalIncoming: allData?.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_incoming || 0), 0) || 0,
+        totalUsed: allData?.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_used || 0), 0) || 0,
         currentStock: allData && allData.length > 0 ? (allData[0].npc1000_remaining || 0) : 0
       }
     }

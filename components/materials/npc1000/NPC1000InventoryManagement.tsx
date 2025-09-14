@@ -1,29 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  Package,
-  Plus,
-  Minus,
-  RefreshCw,
-  Download,
-  Upload,
-  Search,
-  Filter,
-  Calendar,
-  AlertCircle,
-  TrendingUp,
-  TrendingDown,
-  Building2,
-  MapPin
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface InventoryItem {
   id: string
@@ -43,7 +19,7 @@ interface InventoryItem {
 
 interface NPC1000InventoryManagementProps {
   siteId: string
-  currentUser: any
+  currentUser: unknown
 }
 
 export function NPC1000InventoryManagement({ siteId, currentUser }: NPC1000InventoryManagementProps) {
@@ -208,7 +184,7 @@ export function NPC1000InventoryManagement({ siteId, currentUser }: NPC1000Inven
             <p className="text-gray-600">재고 정보가 없습니다.</p>
           </Card>
         ) : (
-          filteredInventory.map((item: any) => (
+          filteredInventory.map((item: unknown) => (
             <Card key={item.id} className="p-6">
               <div className="flex flex-col lg:flex-row justify-between gap-4">
                 {/* Site Info */}

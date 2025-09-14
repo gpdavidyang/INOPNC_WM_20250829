@@ -1,8 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import DashboardWithNotifications from '@/components/dashboard/dashboard-with-notifications'
-import { getAuthenticatedUser } from '@/lib/auth/session'
-import { getCurrentUserSite, getUserSiteHistory } from '@/app/actions/site-info'
 
 // 배포 환경에서 동적 렌더링 강제 - 현장 정보 로딩 문제 해결
 export const dynamic = 'force-dynamic'

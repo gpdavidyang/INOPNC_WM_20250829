@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { X, Upload, FileText, DollarSign, Building2, Calendar, AlertCircle } from 'lucide-react'
 
 interface Site {
   id: string

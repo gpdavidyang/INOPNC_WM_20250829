@@ -1,14 +1,6 @@
 'use server'
 
 import type { AsyncState, ApiResponse } from '@/types/utils'
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { 
-  AppError, 
-  ErrorType, 
-  validateSupabaseResponse, 
-  logError 
-} from '@/lib/error-handling'
 
 // Get all equipment
 export async function getEquipment(filters?: {
@@ -26,7 +18,7 @@ export async function getEquipment(filters?: {
         category:equipment_categories(id, name),
         site:sites(id, name)
       `)
-      .eq('is_active', true)) as any
+      .eq('is_active', true)) as unknown
     
     if (filters?.site_id) {
       query = query.eq('site_id', filters.site_id)
@@ -60,7 +52,7 @@ export async function getEquipmentCategories() {
     const { data, error } = await (supabase
       .from('equipment_categories')
       .select('*')
-      .order('name') as any)
+      .order('name') as unknown)
 
     validateSupabaseResponse(data, error)
 
@@ -93,14 +85,14 @@ export async function createEquipmentCheckout(checkoutData: {
       .from('equipment')
       .select('status')
       .eq('id', checkoutData.equipment_id)
-      .single() as any)
+      .single() as unknown)
 
     if (equipmentError || !equipment) {
       throw new Error('장비를 찾을 수 없습니다.')
     }
 
     // Cast to any to bypass type issues
-    const equipmentData = equipment as any
+    const equipmentData = equipment as unknown
     if (equipmentData.status !== 'available') {
       throw new Error('장비가 사용 가능한 상태가 아닙니다.')
     }
@@ -111,9 +103,9 @@ export async function createEquipmentCheckout(checkoutData: {
         ...checkoutData,
         checked_out_by: user.id,
         checked_out_at: new Date().toISOString()
-      } as any)
+      } as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 
@@ -146,8 +138,8 @@ export async function returnEquipment(
         checked_in_at: new Date().toISOString(),
         condition_in: returnData.condition_in,
         damage_notes: returnData.damage_notes
-      } as any)
-      .eq('id', checkoutId) as any)
+      } as unknown)
+      .eq('id', checkoutId) as unknown)
       .select()
       .single()
 
@@ -179,7 +171,7 @@ export async function getEquipmentCheckouts(filters?: {
         checked_out_user:checked_out_by(id, full_name),
         checked_in_user:checked_in_by(id, full_name),
         site:sites(id, name)
-      `)) as any
+      `)) as unknown
 
     if (filters?.equipment_id) {
       query = query.eq('equipment_id', filters.equipment_id)
@@ -226,9 +218,9 @@ export async function createEquipmentMaintenance(maintenanceData: {
 
     const { data, error } = await (supabase
       .from('equipment_maintenance')
-      .insert(maintenanceData as any)
+      .insert(maintenanceData as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 
@@ -255,10 +247,10 @@ export async function updateEquipmentMaintenance(
     
     const { data, error } = await (supabase
       .from('equipment_maintenance')
-      .update(updates as any)
+      .update(updates as unknown)
       .eq('id', maintenanceId)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 
@@ -285,7 +277,7 @@ export async function getEquipmentMaintenance(filters?: {
         *,
         equipment:equipment_id(id, code, name),
         performed_by_user:performed_by(id, full_name)
-      `)) as any
+      `)) as unknown
 
     if (filters?.equipment_id) {
       query = query.eq('equipment_id', filters.equipment_id)
@@ -318,7 +310,7 @@ export async function getWorkerSkills() {
     const supabase = createClient()
     
     const { data, error } = await supabase
-      .from('worker_skills' as any)
+      .from('worker_skills' as unknown)
       .select('*')
       .order('category, name')
 
@@ -341,7 +333,7 @@ export async function getWorkerSkillAssignments(workerId?: string) {
         *,
         worker:profiles!worker_id(id, full_name),
         skill:worker_skills(id, name, category)
-      `)) as any
+      `)) as unknown
 
     if (workerId) {
       query = query.eq('worker_id', workerId)
@@ -373,9 +365,9 @@ export async function upsertWorkerSkillAssignment(assignmentData: {
     
     const { data, error } = await (supabase
       .from('worker_skill_assignments')
-      .upsert(assignmentData as any)
+      .upsert(assignmentData as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 
@@ -408,7 +400,7 @@ export async function createResourceAllocation(allocationData: {
     if (!user) throw new Error('Unauthorized')
 
     // Calculate hours and costs
-    let calculatedData: any = {
+    let calculatedData: unknown = {
       ...allocationData,
       created_by: user.id
     }
@@ -426,9 +418,9 @@ export async function createResourceAllocation(allocationData: {
 
     const { data, error } = await (supabase
       .from('resource_allocations')
-      .insert(calculatedData as any)
+      .insert(calculatedData as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 
@@ -458,7 +450,7 @@ export async function getResourceAllocations(filters?: {
         site:sites(id, name),
         created_by_user:created_by(id, full_name),
         approved_by_user:approved_by(id, full_name)
-      `)) as any
+      `)) as unknown
 
     if (filters?.allocation_type) {
       query = query.eq('allocation_type', filters.allocation_type)
@@ -488,33 +480,33 @@ export async function getResourceAllocations(filters?: {
 
     // Fetch worker/equipment details based on allocation type
     if (data && data.length > 0) {
-      const workerAllocations = data.filter((a: any) => a.allocation_type === 'worker')
-      const equipmentAllocations = data.filter((a: any) => a.allocation_type === 'equipment')
+      const workerAllocations = data.filter((a: unknown) => a.allocation_type === 'worker')
+      const equipmentAllocations = data.filter((a: unknown) => a.allocation_type === 'equipment')
 
       // Get worker details
       if (workerAllocations.length > 0) {
-        const workerIds = Array.from(new Set(workerAllocations.map((a: any) => a.resource_id)))
+        const workerIds = Array.from(new Set(workerAllocations.map((a: unknown) => a.resource_id)))
         const { data: workers } = await supabase
-          .from('profiles' as any)
+          .from('profiles' as unknown)
           .select('id, full_name')
           .in('id', workerIds)
 
-        const workersMap = new Map(workers?.map((w: any) => [w.id, w]))
-        workerAllocations.forEach((a: any) => {
+        const workersMap = new Map(workers?.map((w: unknown) => [w.id, w]))
+        workerAllocations.forEach((a: unknown) => {
           a.worker = workersMap.get(a.resource_id)
         })
       }
 
       // Get equipment details
       if (equipmentAllocations.length > 0) {
-        const equipmentIds = Array.from(new Set(equipmentAllocations.map((a: any) => a.resource_id)))
+        const equipmentIds = Array.from(new Set(equipmentAllocations.map((a: unknown) => a.resource_id)))
         const { data: equipment } = await supabase
-          .from('equipment' as any)
+          .from('equipment' as unknown)
           .select('id, code, name')
           .in('id', equipmentIds)
 
         const equipmentMap = new Map(equipment?.map((e: Event) => [e.id, e]))
-        equipmentAllocations.forEach((a: any) => {
+        equipmentAllocations.forEach((a: unknown) => {
           a.equipment = equipmentMap.get(a.resource_id)
         })
       }
@@ -531,7 +523,7 @@ export async function getEquipmentStats(siteId?: string) {
   try {
     const supabase = createClient()
     
-    let baseQuery = (supabase.from('equipment').select('status', { count: 'exact' }) as any)
+    let baseQuery = (supabase.from('equipment').select('status', { count: 'exact' }) as unknown)
     if (siteId) {
       baseQuery = baseQuery.eq('site_id', siteId)
     }
@@ -552,7 +544,7 @@ export async function getEquipmentStats(siteId?: string) {
 
     // Get active checkouts
     let checkoutsQuery = supabase
-      .from('equipment_checkouts' as any)
+      .from('equipment_checkouts' as unknown)
       .select('id', { count: 'exact' })
       .is('actual_return_date', null)
     
@@ -565,7 +557,7 @@ export async function getEquipmentStats(siteId?: string) {
     // Get overdue returns
     const today = new Date().toISOString().split('T')[0]
     let overdueQuery = supabase
-      .from('equipment_checkouts' as any)
+      .from('equipment_checkouts' as unknown)
       .select('id', { count: 'exact' })
       .is('actual_return_date', null)
       .lt('expected_return_date', today)
@@ -580,7 +572,7 @@ export async function getEquipmentStats(siteId?: string) {
     const nextWeek = new Date()
     nextWeek.setDate(nextWeek.getDate() + 7)
     const upcomingMaintenanceResult = await supabase
-      .from('equipment_maintenance' as any)
+      .from('equipment_maintenance' as unknown)
       .select('id', { count: 'exact' })
       .eq('status', 'scheduled')
       .lte('scheduled_date', nextWeek.toISOString().split('T')[0])

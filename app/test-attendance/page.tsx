@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 export default function TestAttendancePage() {
-  const [data, setData] = useState<any>(null)
-  const [error, setError] = useState<any>(null)
+  const [data, setData] = useState<unknown>(null)
+  const [error, setError] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

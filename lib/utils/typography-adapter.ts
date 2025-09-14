@@ -5,7 +5,6 @@
  * to prevent breaking changes during refactoring.
  */
 
-import { getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 /**
  * @deprecated Use getFullTypographyClass instead

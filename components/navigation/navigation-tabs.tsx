@@ -1,11 +1,5 @@
 'use client'
 
-import React from 'react'
-import { useRouter } from 'next/navigation'
-import { Home, Calendar, FileText, FolderOpen, User as UserIcon, MapPin } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { useNavigation } from './navigation-context'
 
 interface NavigationTab {
   id: string

@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
 
 /**
  * 기존 마킹 문서를 unified_document_system에 동기화하는 스크립트

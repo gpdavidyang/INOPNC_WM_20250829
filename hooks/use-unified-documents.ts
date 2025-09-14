@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useToast } from '@/hooks/use-toast'
 
 export interface UnifiedDocument {
   id: string
@@ -29,10 +28,10 @@ export interface UnifiedDocument {
   access_level?: string
   approved_by?: string
   approved_at?: string
-  metadata?: Record<string, any>
-  photo_metadata?: Record<string, any>
-  markup_data?: any[]
-  receipt_metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
+  photo_metadata?: Record<string, unknown>
+  markup_data?: unknown[]
+  receipt_metadata?: Record<string, unknown>
   tags?: string[]
   folder_path?: string
   legacy_table?: string
@@ -131,7 +130,7 @@ interface UseUnifiedDocumentsReturn {
   uploadDocument: (file: File, metadata: Partial<UnifiedDocument>) => Promise<UnifiedDocument | null>
   updateDocument: (id: string, updates: Partial<UnifiedDocument>) => Promise<UnifiedDocument | null>
   deleteDocument: (id: string, hardDelete?: boolean) => Promise<boolean>
-  bulkAction: (action: 'delete' | 'archive' | 'restore' | 'update' | 'change_category', documentIds: string[], updateData?: any) => Promise<boolean>
+  bulkAction: (action: 'delete' | 'archive' | 'restore' | 'update' | 'change_category', documentIds: string[], updateData?: unknown) => Promise<boolean>
   
   // Utility functions
   getDocumentsByCategory: (categoryType: string) => UnifiedDocument[]
@@ -362,7 +361,7 @@ export function useUnifiedDocuments(initialFilters?: DocumentFilters): UseUnifie
   const bulkAction = useCallback(async (
     action: 'delete' | 'archive' | 'restore' | 'update' | 'change_category',
     documentIds: string[],
-    updateData?: any
+    updateData?: unknown
   ): Promise<boolean> => {
     setError(null)
 

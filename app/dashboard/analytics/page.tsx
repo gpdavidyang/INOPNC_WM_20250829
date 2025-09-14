@@ -1,8 +1,3 @@
-import { Suspense } from 'react'
-import { Metadata } from 'next'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { BusinessAnalyticsDashboard } from '@/components/dashboard/business-analytics-dashboard'
 
 export const metadata: Metadata = {
   title: '비즈니스 분석 | INOPNC 현장관리시스템',

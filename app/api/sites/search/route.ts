@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 import type { SiteSearchResult } from '@/types/site-info'
 
 export const runtime = 'nodejs'
@@ -86,7 +84,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Format results
-    const results: SiteSearchResult[] = (sites || []).map((site: any) => ({
+    const results: SiteSearchResult[] = (sites || []).map((site: unknown) => ({
       id: site.id,
       name: site.name,
       address: site.address || '주소 정보 없음',

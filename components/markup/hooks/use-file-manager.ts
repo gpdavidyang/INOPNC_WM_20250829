@@ -1,4 +1,3 @@
-import { useCallback } from 'react'
 import type { MarkupEditorState } from '@/types/markup'
 import type { MarkupDocument } from '@/types'
 

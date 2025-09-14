@@ -1,6 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 
 export interface SiteDocument {
   id: string
@@ -41,7 +40,7 @@ export async function getSiteDocuments(siteId: string, documentType?: 'ptw' | 'b
     }
 
     // Convert documents table format to SiteDocument format
-    const siteDocuments = data?.map((doc: any) => ({
+    const siteDocuments = data?.map((doc: unknown) => ({
       id: doc.id,
       site_id: doc.site_id,
       document_type: doc.document_type,
@@ -150,12 +149,12 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
 
     if (documents && documents.length > 0) {
       // Find blueprint document by sub_type
-      const blueprintDoc = documents.find((doc: any) => 
+      const blueprintDoc = documents.find((doc: unknown) => 
         doc.sub_type === 'technical_drawing'
       )
 
       // Find PTW document by sub_type
-      const ptwDoc = documents.find((doc: any) => 
+      const ptwDoc = documents.find((doc: unknown) => 
         doc.sub_type === 'safety_certificate'
       )
 

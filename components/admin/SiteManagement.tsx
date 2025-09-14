@@ -1,22 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile, Site, SiteStatus } from '@/types'
-import AdminDataTable from './AdminDataTable'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
-import { 
-  getSites, 
-  createSite, 
-  updateSite, 
-  deleteSites, 
-  updateSiteStatus,
-  CreateSiteData,
-  UpdateSiteData 
-} from '@/app/actions/admin/sites'
-import { Plus, Search, Filter, Eye, Edit, MapPin, Calendar, Phone, Users, FileText, Grid, List, MoreVertical, Activity } from 'lucide-react'
-import SiteDetail from './sites/SiteDetail'
-import SiteWorkersModal from './SiteWorkersModal'
-import UnifiedSiteView from './integrated/UnifiedSiteView'
 
 interface SiteManagementProps {
   profile?: Profile

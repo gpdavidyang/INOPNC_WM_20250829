@@ -1,13 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Profile } from '@/types'
-import { 
-  X, FileText, Download, Eye, Edit, Trash2, 
-  Calendar, User, Building2, MapPin, Tag,
-  ExternalLink, Share2, Archive, CheckCircle
-} from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
 
 interface DocumentDetailModalProps {

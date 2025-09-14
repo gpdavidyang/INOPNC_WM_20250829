@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/nextjs'
-import { performanceTracker } from './performance-metrics'
 
 // Real User Monitoring configuration
 export interface RUMConfig {
@@ -180,7 +179,7 @@ class RealUserMonitoring {
   
   // Get connection information
   private getConnectionInfo() {
-    const nav = navigator as any
+    const nav = navigator as unknown
     const connection = nav.connection || nav.mozConnection || nav.webkitConnection
     
     return {
@@ -226,7 +225,7 @@ class RealUserMonitoring {
     try {
       this.interactionObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
-          const interaction = entry as any
+          const interaction = entry as unknown
           
           if (this.session) {
             this.session.interactions++
@@ -343,7 +342,7 @@ class RealUserMonitoring {
   }
   
   // Send event to analytics
-  private async sendEvent(eventType: string, data: any) {
+  private async sendEvent(eventType: string, data: unknown) {
     try {
       await fetch('/api/analytics/realtime', {
         method: 'POST',

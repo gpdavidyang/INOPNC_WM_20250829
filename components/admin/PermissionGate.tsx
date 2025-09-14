@@ -1,6 +1,5 @@
 'use client'
 
-import { Profile, UserRole } from '@/types'
 
 export type AdminAction = 
   | 'manage_sites'

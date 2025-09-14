@@ -1,9 +1,5 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Upload, FileImage, X } from 'lucide-react'
-import { getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 interface BlueprintUploadProps {
   onImageUpload: (imageUrl: string, fileName: string) => void

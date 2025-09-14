@@ -1,25 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { useFontSize, getTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { 
-  Package,
-  AlertTriangle,
-  TrendingUp,
-  TrendingDown,
-  Building2,
-  Edit2,
-  ArrowUpRight,
-  ArrowDownRight,
-  BarChart3,
-  Plus
-} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -28,16 +9,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getMaterialInventory, updateMaterialStock } from '@/app/actions/materials'
-import { getSites } from '@/app/actions/sites'
-import { toast } from '@/components/ui/use-toast'
-import { Progress } from '@/components/ui/progress'
 
 interface MaterialInventoryProps {
   materials: unknown[]
   initialInventory: unknown[]
-  currentUser: any
-  currentSite?: any
+  currentUser: unknown
+  currentSite?: unknown
   searchQuery: string
 }
 
@@ -49,7 +26,7 @@ export function MaterialInventory({ materials, initialInventory, currentUser, cu
   const [inventory, setInventory] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showUpdateDialog, setShowUpdateDialog] = useState(false)
-  const [selectedItem, setSelectedItem] = useState<any>(null)
+  const [selectedItem, setSelectedItem] = useState<unknown>(null)
   const [stockData, setStockData] = useState({
     current_stock: '',
     minimum_stock: '',
@@ -101,7 +78,7 @@ export function MaterialInventory({ materials, initialInventory, currentUser, cu
   })
 
   // Calculate stock status
-  const getStockStatus = (item: any) => {
+  const getStockStatus = (item: unknown) => {
     if (!item.minimum_stock || !item.current_stock) return 'normal'
     if (item.current_stock <= 0) return 'out'
     if (item.current_stock <= item.minimum_stock) return 'low'
@@ -133,7 +110,7 @@ export function MaterialInventory({ materials, initialInventory, currentUser, cu
           current_stock: parseFloat(stockData.current_stock),
           minimum_stock: stockData.minimum_stock ? parseFloat(stockData.minimum_stock) : undefined,
           maximum_stock: stockData.maximum_stock ? parseFloat(stockData.maximum_stock) : undefined
-        } as any
+        } as unknown
       )
 
       if (result.success) {
@@ -159,7 +136,7 @@ export function MaterialInventory({ materials, initialInventory, currentUser, cu
     }
   }
 
-  const openUpdateDialog = (item: any) => {
+  const openUpdateDialog = (item: unknown) => {
     setSelectedItem(item)
     setStockData({
       current_stock: item.current_stock?.toString() || '0',

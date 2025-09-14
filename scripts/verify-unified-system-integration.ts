@@ -11,7 +11,6 @@
  * 5. 필수 필드 누락 여부
  */
 
-import { createClient } from '@supabase/supabase-js'
 import * as fs from 'fs'
 import * as path from 'path'
 

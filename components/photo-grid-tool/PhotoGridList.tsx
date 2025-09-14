@@ -1,31 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { Search, Filter, Eye, Edit, Trash2, Download } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useRouter } from 'next/navigation'
 
 interface PhotoGridListProps {
-  onEdit: (document: any) => void
+  onEdit: (document: unknown) => void
 }
 
 export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
@@ -164,7 +141,7 @@ export default function PhotoGridList({ onEdit }: PhotoGridListProps) {
     }
   }
 
-  const handlePreview = (doc: any) => {
+  const handlePreview = (doc: unknown) => {
     router.push(`/dashboard/admin/tools/photo-grids/preview/${doc.id}`)
   }
 

@@ -1,7 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
 
 // 현장관리자는 본인 급여만 조회 가능 - 작업자와 동일한 급여 조회 API 사용
 // getTeamSalaryData 함수는 제거됨

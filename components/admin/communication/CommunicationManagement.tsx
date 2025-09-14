@@ -1,14 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Bell, MessageSquare, PlusCircle, Edit, Trash2, 
-  CheckCircle, Clock, AlertCircle, User, Building2,
-  Calendar, Eye, Reply, Search, Filter
-} from 'lucide-react'
-import AnnouncementsTab from './tabs/AnnouncementsTab'
 import RequestsTab from './tabs/RequestsTab'
 
 interface CommunicationManagementProps {
@@ -60,7 +51,7 @@ export default function CommunicationManagement({ profile }: CommunicationManage
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
+                  onClick={() => setActiveTab(tab.key as unknown)}
                   className={`
                     group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm
                     ${isActive

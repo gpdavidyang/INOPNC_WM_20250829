@@ -1,6 +1,3 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import RequiredDocumentTypesAdmin from '@/components/admin/documents/RequiredDocumentTypesAdmin'
 
 export default async function DocumentRequirementsPage() {
   const supabase = await createClient()

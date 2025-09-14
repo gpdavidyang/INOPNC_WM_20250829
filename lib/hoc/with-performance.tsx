@@ -1,7 +1,6 @@
 'use client'
 
 import React, { ComponentType, useEffect, forwardRef } from 'react'
-import { useComponentPerformance, useApiPerformance, useInteractionPerformance } from '@/lib/hooks/use-performance'
 import * as Sentry from '@sentry/nextjs'
 
 // HOC options for performance monitoring
@@ -280,10 +279,10 @@ export function withLazyPerformance<P extends object>(
 
 // Helper component for lazy loading with performance monitoring
 const LazyComponentWrapper = forwardRef<any, {
-  LazyComponent: React.LazyExoticComponent<ComponentType<any>>
+  LazyComponent: React.LazyExoticComponent<ComponentType<unknown>>
   onLoaded: () => void
   performanceOptions: WithPerformanceOptions
-  [key: string]: any
+  [key: string]: unknown
 }>(({ LazyComponent, onLoaded, performanceOptions, ...props }, ref) => {
   useEffect(() => {
     onLoaded()

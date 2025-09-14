@@ -1,26 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile, UserRole, UserStatus } from '@/types'
-import AdminDataTable from './AdminDataTable'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
-import { 
-  getUsers, 
-  createUser, 
-  updateUser, 
-  deleteUsers, 
-  updateUserRole,
-  updateUserStatus,
-  resetUserPassword,
-  getAvailableSites,
-  CreateUserData,
-  UpdateUserData,
-  UserWithSites 
-} from '@/app/actions/admin/users'
-import { Plus, Search, User, Phone, Mail, Shield, Key, UserCheck, UserX, FileText, ClipboardCheck, Calendar, Building, Users } from 'lucide-react'
-import { toast } from 'sonner'
-import UserDetailModal from './UserDetailModal'
-import { useRouter } from 'next/navigation'
 
 interface UserManagementProps {
   profile?: Profile

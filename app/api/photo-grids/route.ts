@@ -1,7 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { createServiceClient } from '@/lib/supabase/service'
-import { getAuthenticatedUser } from '@/lib/auth/session'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -253,7 +249,7 @@ export async function GET(request: NextRequest) {
 
     // For each photo grid, fetch associated images from photo_grid_images table
     const photoGridsWithImages = await Promise.all(
-      photoGrids.map(async (grid: any) => {
+      photoGrids.map(async (grid: unknown) => {
         const { data: images } = await supabase
           .from('photo_grid_images')
           .select('*')

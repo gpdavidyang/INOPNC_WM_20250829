@@ -1,30 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { MarkupDocument } from '@/types'
-import { 
-  FileText, 
-  Search, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Share2, 
-  Calendar,
-  User,
-  Building2,
-  Eye,
-  List,
-  Grid,
-  CheckCircle,
-  X,
-  Mail,
-  MessageSquare,
-  Link2,
-  AlertTriangle,
-  RefreshCw,
-  Wifi,
-  WifiOff
-} from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -85,7 +60,7 @@ export function MarkupDocumentList({
       if (result.success && result.data) {
         const siteOptions = [
           { id: 'all', name: '전체 현장' },
-          ...result.data.map((site: any) => ({
+          ...result.data.map((site: unknown) => ({
             id: site.id,
             name: site.name
           }))
@@ -505,7 +480,7 @@ export function MarkupDocumentList({
         ) : viewMode === 'grid' ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 p-4">
-              {documents.map((doc: any) => (
+              {documents.map((doc: unknown) => (
                 <div
                   key={doc.id}
                   className={`relative border rounded-lg p-4 hover:shadow-md transition-all cursor-pointer ${
@@ -600,7 +575,7 @@ export function MarkupDocumentList({
             {/* 리스트 뷰 - 모든 화면 크기에서 카드 스타일 */}
             <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
               <div className="space-y-2 p-4">
-                {documents.map((doc: any) => {
+                {documents.map((doc: unknown) => {
                   const getFileTypeDisplay = () => '도면'
                   const getFileTypeColor = () => 'bg-purple-100 text-purple-700 border-purple-200'
 

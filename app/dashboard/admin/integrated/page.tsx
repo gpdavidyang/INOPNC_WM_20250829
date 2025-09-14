@@ -1,5 +1,3 @@
-import { Suspense } from 'react'
-import IntegratedDashboard from '@/components/admin/integrated/IntegratedDashboard'
 
 export default function IntegratedViewPage() {
   return (

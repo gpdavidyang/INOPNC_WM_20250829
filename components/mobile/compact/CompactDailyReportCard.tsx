@@ -1,8 +1,5 @@
 'use client'
 
-import { cn } from '@/lib/utils'
-import { ChevronRightIcon, EditIcon, CheckCircleIcon } from 'lucide-react'
-import { DailyReport } from '@/types'
 
 interface CompactDailyReportCardProps {
   report: DailyReport

@@ -1,11 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import TodaySiteInfo from '@/components/site-info/TodaySiteInfo'
 import SiteSearchModal from '@/components/site-info/SiteSearchModal'
-import { useCurrentSite, useSiteContext } from '@/contexts/SiteContext'
-import { Profile } from '@/types'
-import { Search, RefreshCw } from 'lucide-react'
 
 interface SiteInfoTabProps {
   profile: Profile

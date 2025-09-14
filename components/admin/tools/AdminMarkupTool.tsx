@@ -1,23 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Edit3, 
-  FileImage,
-  FolderOpen,
-  Plus,
-  ArrowLeft,
-  FileText,
-  Grid3x3,
-  List,
-  Calendar,
-  Clock
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { MarkupEditor } from '@/components/markup/markup-editor'
 import type { Profile } from '@/types'
 import type { MarkupDocument } from '@/types/markup'
-import { createClient } from '@/lib/supabase/client'
 
 interface AdminMarkupToolProps {
   profile: Profile

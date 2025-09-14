@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { notificationHelpers } from '@/lib/push-notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     if (targetWorkers?.length) {
       // Create notifications for all target workers
-      const notifications = targetWorkers.map((worker: any) => ({
+      const notifications = targetWorkers.map((worker: unknown) => ({
         user_id: worker.id,
         type: priority === 'urgent' ? 'error' : priority === 'high' ? 'warning' : 'info',
         title: `📢 ${title}`,
@@ -98,7 +95,7 @@ export async function POST(request: NextRequest) {
       // Send push notifications
       try {
         await notificationHelpers.sendSiteAnnouncement(
-          targetWorkers.map((w: any) => w.id),
+          targetWorkers.map((w: unknown) => w.id),
           title,
           content,
           priority,
@@ -206,14 +203,14 @@ export async function GET(request: NextRequest) {
 
     // Mark announcements as read for the user
     const unreadIds = announcements
-      ?.filter((a: any) => !a.read_status?.length)
-      .map((a: any) => a.id) || []
+      ?.filter((a: unknown) => !a.read_status?.length)
+      .map((a: unknown) => a.id) || []
 
     if (unreadIds.length > 0) {
       await supabase
         .from('announcement_reads')
         .insert(
-          unreadIds.map((announcementId: any) => ({
+          unreadIds.map((announcementId: unknown) => ({
             announcement_id: announcementId,
             user_id: user.id,
             read_at: new Date().toISOString()

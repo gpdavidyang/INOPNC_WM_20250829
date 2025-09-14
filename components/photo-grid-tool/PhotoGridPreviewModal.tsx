@@ -1,22 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Download, Printer, X } from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface PhotoGridPreviewModalProps {
   isOpen: boolean
   onClose: () => void
-  photoGrid: any
+  photoGrid: unknown
 }
 
 export default function PhotoGridPreviewModal({

@@ -1,13 +1,5 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors } from './common'
-import { 
-  EmploymentType, 
-  TaxRate, 
-  WorkerSalarySetting, 
-  EnhancedSalaryCalculationResult,
-  PersonalSalaryCalculationParams
-} from '@/types'
 
 /**
  * 세율 관리 API
@@ -391,7 +383,7 @@ export async function getPersonalMonthlySalarySummary(
         }
       }
 
-      const summary = records.reduce((acc: any, record: any) => {
+      const summary = records.reduce((acc: unknown, record: unknown) => {
         acc.total_records += 1
         acc.total_labor_hours += record.labor_hours || 0
         acc.total_gross_pay += (record.base_pay + record.overtime_pay + record.bonus_pay)
@@ -456,8 +448,8 @@ export async function getWorkersForSalarySettings(): Promise<AdminActionResult<A
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
-      const formatted_workers = workers?.map((worker: any) => {
-        const active_setting = worker.salary_settings?.find((s: any) => s.is_active)
+      const formatted_workers = workers?.map((worker: unknown) => {
+        const active_setting = worker.salary_settings?.find((s: unknown) => s.is_active)
         return {
           id: worker.id,
           full_name: worker.full_name,

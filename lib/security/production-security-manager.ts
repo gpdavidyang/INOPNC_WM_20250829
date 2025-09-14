@@ -3,7 +3,6 @@
  * Implements comprehensive security monitoring, threat detection, and incident response
  */
 
-import { createClient } from '@/lib/supabase/client'
 import * as Sentry from '@sentry/nextjs'
 
 // Security threat levels

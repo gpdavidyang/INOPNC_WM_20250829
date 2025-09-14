@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import React from 'react'
 
 /**
  * Mobile UI Upgrade Feature Flag System

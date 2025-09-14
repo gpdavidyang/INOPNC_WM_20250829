@@ -1,205 +1,273 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import TodaySiteInfo from '@/components/site-info/TodaySiteInfo'
-import SiteSearchModal from '@/components/site-info/SiteSearchModal'
-import { SiteInfo } from '@/types/site-info'
-import { getCurrentUserSite, getUserSiteHistory, assignUserToSite } from '@/app/actions/site-info'
-import { Profile } from '@/types'
-import { Search, RefreshCw } from 'lucide-react'
 
-interface SiteInfoTabProps {
-  profile: Profile
-}
-
-export default function SiteInfoTab({ profile }: SiteInfoTabProps) {
-  const [siteInfo, setSiteInfo] = useState<SiteInfo | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<Error | null>(null)
-  const [showSearchModal, setShowSearchModal] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-
-  useEffect(() => {
-    if (profile && profile.id) {
-      // Add a small delay to ensure auth is fully established
-      const timeoutId = setTimeout(() => {
-        fetchCurrentSiteInfo()
-      }, 100)
-      
-      return () => clearTimeout(timeoutId)
-    } else {
-      setLoading(false)
-    }
-  }, [profile])
-
-  const fetchCurrentSiteInfo = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // console.log('SiteInfoTab: Fetching current site info...')
-      
-      // Use the new server action instead of direct database queries
-      const result = await getCurrentUserSite()
-      
-      // console.log('SiteInfoTab: Server action result:', result)
-
-      if (!result.success) {
-        console.error('SiteInfoTab: Failed to fetch site info:', result.error)
-        setError(new Error(`현장 정보 조회 실패: ${result.error}`))
-        setSiteInfo(null)
-        return
-      }
-
-      const currentSite = result.data
-      // console.log('SiteInfoTab: Received site data:', currentSite)
-
-      if (!currentSite) {
-        // console.log('SiteInfoTab: No current site assignment found - showing empty state')
-        setSiteInfo(null)
-        return
-      }
-
-      // Convert the CurrentUserSite data to SiteInfo format
-      const siteData: SiteInfo = {
-        id: currentSite.site_id,
-        name: currentSite.site_name,
-        address: {
-          id: currentSite.site_id,
-          site_id: currentSite.site_id,
-          full_address: currentSite.site_address || '주소 정보 없음',
-          latitude: undefined,
-          longitude: undefined,
-          postal_code: undefined
-        },
-        accommodation: currentSite.accommodation_address ? {
-          id: currentSite.site_id,
-          site_id: currentSite.site_id,
-          accommodation_name: currentSite.accommodation_name || '숙소',
-          full_address: currentSite.accommodation_address,
-          latitude: undefined,
-          longitude: undefined
-        } : undefined,
-        process: {
-          member_name: currentSite.component_name || '미정',
-          work_process: currentSite.work_process || '미정',
-          work_section: currentSite.work_section || '미정',
-          drawing_id: undefined
-        },
-        managers: [
-          ...(currentSite.construction_manager_phone ? [{
-            role: 'construction_manager' as const,
-            name: currentSite.manager_name || '현장 소장',
-            phone: currentSite.construction_manager_phone
-          }] : []),
-          ...(currentSite.assistant_manager_phone ? [{
-            role: 'assistant_manager' as const,
-            name: currentSite.assistant_manager_name || '부담당자',
-            phone: currentSite.assistant_manager_phone
-          }] : []),
-          ...(currentSite.safety_manager_phone ? [{
-            role: 'safety_manager' as const,
-            name: currentSite.safety_manager_name || '안전 관리자',
-            phone: currentSite.safety_manager_phone
-          }] : [])
-        ],
-        construction_period: {
-          start_date: currentSite.start_date,
-          end_date: currentSite.end_date
-        },
-        is_active: currentSite.site_status === 'active'
-      }
-
-      // console.log('SiteInfoTab: Converted site data:', siteData)
-      setSiteInfo(siteData)
-    } catch (err) {
-      console.error('SiteInfoTab: Error fetching site info:', err)
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-      setIsRefreshing(false)
-    }
+export default function SiteInfoTabNew() {
+  const [showDetails, setShowDetails] = useState(false)
+  
+  // 현장 정보 (예시)
+  const siteInfo = {
+    name: '강남 현장',
+    company: '현대건설',
+    manager: '김현장',
+    phone: '010-1234-5678',
+    address: '서울특별시 강남구 테헤란로 123',
+    accommodation: '서울시 강남구 논현동 123-45 원룸',
+    safetyManager: '박안전',
+    safetyPhone: '010-8765-4321',
+    startDate: '2025-01-01',
+    endDate: '2025-12-31',
+    workers: 25,
+    currentPhase: '골조공사'
   }
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    await fetchCurrentSiteInfo()
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+    // TODO: Show toast notification
   }
 
-  const handleSelectSite = async (siteId: string) => {
-    try {
-      setShowSearchModal(false)
-      setLoading(true)
-      setError(null)
-      
-      // console.log('SiteInfoTab: Assigning user to site:', { userId: profile.id, siteId })
-      
-      // Use server action to assign user to site
-      const result = await assignUserToSite(profile.id, siteId, 'worker')
-      
-      if (!result.success) {
-        console.error('SiteInfoTab: Failed to assign site:', result.error)
-        setError(new Error(result.error))
-        return
-      }
-
-      // console.log('SiteInfoTab: Site assignment successful, refreshing data...')
-      
-      // Refresh site info
-      await fetchCurrentSiteInfo()
-    } catch (err) {
-      console.error('SiteInfoTab: Error switching site:', err)
-      setError(err as Error)
-    } finally {
-      setLoading(false)
-    }
+  const openTmap = (address: string) => {
+    // T맵 앱 또는 웹 열기
+    const tmapUrl = `tmap://search?name=${encodeURIComponent(address)}`
+    window.location.href = tmapUrl
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">
-            현장정보
-          </h2>
-          <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-            현재 배정된 현장의 정보를 확인하세요
-          </p>
-        </div>
-        
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowSearchModal(true)}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm"
+    <div className="container" style={{ padding: '20px', paddingTop: '20px' }}>
+      {/* 현장 정보 카드 */}
+      <div className="card">
+        {/* 헤더 */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          marginBottom: '16px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <img 
+              src="/images/brand/현장정보.png" 
+              alt="현장정보" 
+              style={{ width: '20px', height: '20px' }}
+            />
+            <h3 className="section-title" style={{ margin: 0 }}>
+              {siteInfo.name}
+            </h3>
+          </div>
+          <button 
+            className="btn btn--outline"
+            onClick={() => setShowDetails(!showDetails)}
+            style={{ 
+              padding: '6px 12px',
+              minHeight: 'unset',
+              height: 'auto',
+              fontSize: '14px'
+            }}
           >
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">현장 변경</span>
+            {showDetails ? '간단히' : '상세'}
           </button>
-          
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 text-sm"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">새로고침</span>
+        </div>
+
+        {/* 기본 정보 */}
+        <div className="stack" style={{ gap: '12px' }}>
+          {/* 소속 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Building size={18} color="var(--muted)" />
+            <div style={{ flex: 1 }}>
+              <div className="t-cap">소속</div>
+              <div style={{ fontWeight: 600 }}>{siteInfo.company}</div>
+            </div>
+          </div>
+
+          {/* 현장 담당자 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Phone size={18} color="var(--muted)" />
+            <div style={{ flex: 1 }}>
+              <div className="t-cap">현장 담당자</div>
+              <div style={{ fontWeight: 600 }}>
+                {siteInfo.manager} ({siteInfo.phone})
+              </div>
+            </div>
+            <button 
+              className="btn btn--ghost"
+              onClick={() => window.location.href = `tel:${siteInfo.phone}`}
+              style={{ 
+                padding: '6px',
+                minHeight: 'unset',
+                height: 'auto'
+              }}
+            >
+              <Phone size={16} />
+            </button>
+          </div>
+
+          {/* 안전 담당자 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <Phone size={18} color="var(--muted)" />
+            <div style={{ flex: 1 }}>
+              <div className="t-cap">안전 담당자</div>
+              <div style={{ fontWeight: 600 }}>
+                {siteInfo.safetyManager} ({siteInfo.safetyPhone})
+              </div>
+            </div>
+            <button 
+              className="btn btn--ghost"
+              onClick={() => window.location.href = `tel:${siteInfo.safetyPhone}`}
+              style={{ 
+                padding: '6px',
+                minHeight: 'unset',
+                height: 'auto'
+              }}
+            >
+              <Phone size={16} />
+            </button>
+          </div>
+
+          {/* 주소 */}
+          <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+            <MapPin size={18} color="var(--muted)" style={{ marginTop: '2px' }} />
+            <div style={{ flex: 1 }}>
+              <div className="t-cap">주소</div>
+              <div style={{ fontWeight: 600 }}>{siteInfo.address}</div>
+            </div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button 
+                className="btn btn--ghost"
+                onClick={() => copyToClipboard(siteInfo.address)}
+                style={{ 
+                  padding: '6px',
+                  minHeight: 'unset',
+                  height: 'auto'
+                }}
+                title="복사"
+              >
+                <Copy size={16} />
+              </button>
+              <button 
+                className="btn btn--ghost"
+                onClick={() => openTmap(siteInfo.address)}
+                style={{ 
+                  padding: '6px',
+                  minHeight: 'unset',
+                  height: 'auto'
+                }}
+                title="T맵"
+              >
+                <Navigation size={16} />
+              </button>
+            </div>
+          </div>
+
+          {/* 숙소 */}
+          <div style={{ display: 'flex', alignItems: 'start', gap: '12px' }}>
+            <MapPin size={18} color="var(--muted)" style={{ marginTop: '2px' }} />
+            <div style={{ flex: 1 }}>
+              <div className="t-cap">숙소</div>
+              <div style={{ fontWeight: 600 }}>{siteInfo.accommodation}</div>
+            </div>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button 
+                className="btn btn--ghost"
+                onClick={() => copyToClipboard(siteInfo.accommodation)}
+                style={{ 
+                  padding: '6px',
+                  minHeight: 'unset',
+                  height: 'auto'
+                }}
+                title="복사"
+              >
+                <Copy size={16} />
+              </button>
+              <button 
+                className="btn btn--ghost"
+                onClick={() => openTmap(siteInfo.accommodation)}
+                style={{ 
+                  padding: '6px',
+                  minHeight: 'unset',
+                  height: 'auto'
+                }}
+                title="T맵"
+              >
+                <Navigation size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* 상세 정보 (토글) */}
+        {showDetails && (
+          <div style={{ 
+            marginTop: '16px',
+            paddingTop: '16px',
+            borderTop: '1px solid var(--line)'
+          }}>
+            <div className="stack" style={{ gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <div className="t-cap">공사 기간</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {siteInfo.startDate} ~ {siteInfo.endDate}
+                  </div>
+                </div>
+                <div>
+                  <div className="t-cap">작업 인원</div>
+                  <div style={{ fontWeight: 600 }}>{siteInfo.workers}명</div>
+                </div>
+              </div>
+              <div>
+                <div className="t-cap">현재 공정</div>
+                <div style={{ fontWeight: 600 }}>{siteInfo.currentPhase}</div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 현장 자료 */}
+      <div className="card" style={{ marginTop: '16px' }}>
+        <h3 className="section-title" style={{ marginBottom: '12px' }}>현장 자료</h3>
+        <div className="stack" style={{ gap: '8px' }}>
+          <button className="btn btn--outline" style={{ width: '100%', justifyContent: 'start' }}>
+            <FileText size={18} />
+            도면 자료
+          </button>
+          <button className="btn btn--outline" style={{ width: '100%', justifyContent: 'start' }}>
+            <FileText size={18} />
+            안전 수칙
+          </button>
+          <button className="btn btn--outline" style={{ width: '100%', justifyContent: 'start' }}>
+            <FileText size={18} />
+            작업 지침서
           </button>
         </div>
       </div>
 
-      <TodaySiteInfo 
-        siteInfo={siteInfo}
-        loading={loading}
-        error={error}
-      />
-
-      {/* Site Search Modal */}
-      <SiteSearchModal
-        isOpen={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
-        onSelectSite={handleSelectSite}
-        currentSiteId={siteInfo?.id}
-      />
+      {/* 최근 작업 현장 */}
+      <div className="card" style={{ marginTop: '16px' }}>
+        <h3 className="section-title" style={{ marginBottom: '12px' }}>최근 작업 현장</h3>
+        <div className="stack" style={{ gap: '8px' }}>
+          <div 
+            style={{
+              padding: '12px',
+              borderBottom: '1px solid var(--line)',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: '4px' }}>판교 현장</div>
+            <div className="t-cap">2025.01.10 작업</div>
+          </div>
+          <div 
+            style={{
+              padding: '12px',
+              borderBottom: '1px solid var(--line)',
+              cursor: 'pointer'
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: '4px' }}>송도 현장</div>
+            <div className="t-cap">2025.01.08 작업</div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
+
+// Missing import

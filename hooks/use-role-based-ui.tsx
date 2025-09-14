@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { UserRole } from '@/types'
 
 export type UIMode = 'auto' | 'mobile' | 'desktop'
 

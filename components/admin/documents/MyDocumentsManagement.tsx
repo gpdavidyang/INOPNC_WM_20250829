@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { FileText, Search, Download, Eye, Trash2, User, Calendar, FileIcon, Filter, RefreshCw } from 'lucide-react'
 
 interface Document {
   id: string

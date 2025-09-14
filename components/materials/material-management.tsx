@@ -1,33 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { useFontSize, getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { 
-  Search, 
-  Filter,
-  ArrowUpDown,
-  Building2,
-  FileText,
-  Truck,
-  Package
-} from 'lucide-react'
-import { MaterialInventory } from './material-inventory'
-import { MaterialRequests } from './material-requests'
 import { MaterialTransactions } from './material-transactions'
-import { NPC1000Management } from './npc1000-management'
 
 interface MaterialManagementProps {
   materials: unknown[]
   categories: unknown[]
   initialInventory: unknown[]
-  currentUser: any
-  currentSite?: any
+  currentUser: unknown
+  currentSite?: unknown
 }
 
 export function MaterialManagement({ materials, categories, initialInventory, currentUser, currentSite }: MaterialManagementProps) {

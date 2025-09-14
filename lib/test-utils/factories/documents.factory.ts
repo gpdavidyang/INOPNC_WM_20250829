@@ -1,4 +1,3 @@
-import { faker } from '@faker-js/faker'
 import type { 
   DocumentFile, 
   DocumentType, 
@@ -257,7 +256,7 @@ export function createMockDocumentCard(options?: {
     location = faker.helpers.arrayElement(['personal', 'shared'])
   } = options || {}
   
-  let document: any
+  let document: unknown
   let cardData: {
     id: string
     title: string
@@ -413,18 +412,18 @@ export function createMockDocumentCardList(options?: {
 }
 
 // Type guards for document types
-export function isDailyReport(doc: any): doc is DailyReport {
+export function isDailyReport(doc: unknown): doc is DailyReport {
   return doc !== null && doc !== undefined && 'work_date' in doc && 'member_name' in doc && 'process_type' in doc
 }
 
-export function isApprovalDocument(doc: any): doc is ApprovalDocument {
+export function isApprovalDocument(doc: unknown): doc is ApprovalDocument {
   return doc && doc.document_type === 'approval' && 'approver_id' in doc
 }
 
-export function isMaterialDocument(doc: any): doc is MaterialManagementDocument {
+export function isMaterialDocument(doc: unknown): doc is MaterialManagementDocument {
   return doc && doc.document_type === 'material' && 'material_type' in doc
 }
 
-export function isMarkupDocument(doc: any): doc is MarkupDocument {
+export function isMarkupDocument(doc: unknown): doc is MarkupDocument {
   return doc && 'original_blueprint_url' in doc && 'markup_data' in doc
 }

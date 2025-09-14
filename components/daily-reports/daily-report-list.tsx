@@ -1,254 +1,344 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Eye, Edit, Trash2, FileText, Download } from 'lucide-react'
-import { getDailyReports } from '@/lib/supabase/daily-reports'
-import { getPhotoGridReports, trackPhotoGridReportDownload } from '@/lib/supabase/photo-grid-reports'
-import { formatDate } from '@/lib/utils'
-import Link from 'next/link'
-import type { PhotoGridReport } from '@/types'
 
 interface DailyReportListProps {
-  siteId?: string
-  canCreate?: boolean
+  sites: Site[]
+  initialReports?: DailyReport[]
+  currentUserRole?: string
 }
 
-export default function DailyReportList({ siteId, canCreate = false }: DailyReportListProps) {
-  const [reports, setReports] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [photoGridReports, setPhotoGridReports] = useState<Record<string, PhotoGridReport[]>>({})
+export default function DailyReportList({ 
+  sites, 
+  initialReports = [],
+  currentUserRole 
+}: DailyReportListProps) {
+  const router = useRouter()
+  const [reports, setReports] = useState<DailyReport[]>(initialReports)
+  const [loading, setLoading] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
+  
+  // Filters
+  const [filters, setFilters] = useState({
+    site_id: '',
+    status: '' as DailyReportStatus | '',
+    start_date: '',
+    end_date: '',
+    search: ''
+  })
+  
+  // Pagination
+  const [page, setPage] = useState(1)
+  const limit = 20
 
   useEffect(() => {
-    loadReports()
-  }, [siteId])
+    fetchReports()
+  }, [filters, page])
 
-  const loadReports = async () => {
+  const fetchReports = async () => {
+    setLoading(true)
     try {
-      setLoading(true)
-      const data = await getDailyReports(siteId)
-      setReports(data || [])
-      
-      // 각 작업일지의 PDF 보고서 조회
-      if (data && data.length > 0) {
-        const pdfReportsMap: Record<string, PhotoGridReport[]> = {}
-        
-        await Promise.all(
-          data.map(async (report: any) => {
-            const pdfReports = await getPhotoGridReports({ 
-              dailyReportId: report.id,
-              status: 'active'
-            })
-            pdfReportsMap[report.id] = pdfReports
-          })
-        )
-        
-        setPhotoGridReports(pdfReportsMap)
+      const result = await getDailyReports({
+        ...filters,
+        status: filters.status || undefined,
+        limit,
+        offset: (page - 1) * limit
+      })
+
+      if (result.success && result.data) {
+        setReports(result.data as DailyReport[])
+        setTotalCount(result.count || 0)
       }
-    } catch (err) {
-      setError('작업일지를 불러오는데 실패했습니다.')
-      console.error(err)
+    } catch (error) {
+      console.error('Error fetching reports:', error)
     } finally {
       setLoading(false)
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    const statusMap = {
-      draft: { label: '작성중', className: 'bg-gray-100 text-gray-800' },
-      submitted: { label: '제출됨', className: 'bg-blue-100 text-blue-800' },
-      completed: { label: '완료', className: 'bg-green-100 text-green-800' }
+  const handleFilterChange = (key: string, value: string) => {
+    setFilters({ ...filters, [key]: value })
+    setPage(1) // Reset to first page when filters change
+  }
+
+  const getStatusBadge = (status: DailyReportStatus) => {
+    const statusConfig = {
+      draft: { label: '임시저장', variant: 'secondary' as const, icon: Clock },
+      submitted: { label: '제출됨', variant: 'outline' as const, icon: CheckCircle }
     }
-    
-    const statusInfo = statusMap[status as keyof typeof statusMap] || statusMap.draft
-    
+
+    const config = statusConfig[status]
+    const Icon = config.icon
+
     return (
-      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusInfo.className}`}>
-        {statusInfo.label}
-      </span>
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
     )
   }
 
-  // PDF 다운로드 핸들러
-  const handleDownloadPDF = async (report: PhotoGridReport) => {
-    try {
-      // 다운로드 추적
-      await trackPhotoGridReportDownload(report.id)
-      
-      // 파일 다운로드
-      const link = document.createElement('a')
-      link.href = report.file_url
-      link.download = report.file_name
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      
-      // 다운로드 카운트 업데이트를 위해 목록 새로고침
-      loadReports()
-    } catch (error) {
-      console.error('PDF 다운로드 오류:', error)
-    }
-  }
+  const canCreateReport = ['worker', 'site_manager', 'admin', 'system_admin'].includes(currentUserRole || '')
 
-  // PDF 상태 표시 컴포넌트
-  const PDFStatus = ({ dailyReportId }: { dailyReportId: string }) => {
-    const pdfReports = photoGridReports[dailyReportId] || []
-    
-    if (pdfReports.length === 0) {
-      return (
-        <div className="flex items-center text-gray-400" title="PDF 없음">
-          <FileText className="h-4 w-4" />
-        </div>
-      )
-    }
-    
-    return (
-      <div className="flex items-center gap-1" title={`PDF ${pdfReports.length}개`}>
-        <div className="flex items-center text-blue-600">
-          <FileText className="h-4 w-4" />
-          <span className="ml-1 text-xs font-medium">{pdfReports.length}</span>
-        </div>
-        <div className="flex gap-1">
-          {Array.isArray(pdfReports) && pdfReports.slice(0, 2).map((report) => (
-            <button
-              key={report.id}
-              onClick={() => handleDownloadPDF(report)}
-              className="text-gray-400 hover:text-blue-600 transition-colors"
-              title={`${report.title} 다운로드`}
-            >
-              <Download className="h-3 w-3" />
-            </button>
-          ))}
-          {pdfReports.length > 2 && (
-            <span className="text-xs text-gray-500">+{pdfReports.length - 2}</span>
-          )}
-        </div>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-        {error}
-      </div>
-    )
-  }
+  const totalPages = Math.ceil(totalCount / limit)
 
   return (
-    <div className="bg-white shadow overflow-hidden sm:rounded-md">
-      <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-        <h3 className="text-lg leading-6 font-medium text-gray-900">
-          작업일지 목록
-        </h3>
-        {canCreate && (
-          <Link
-            href="/dashboard/daily-reports/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-          >
-            <Plus className="mr-2 h-4 w-4" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">작업일지 목록</h1>
+        {canCreateReport && (
+          <Button onClick={() => router.push('/dashboard/daily-reports/new')}>
+            <Plus className="h-4 w-4 mr-2" />
             새 작업일지
-          </Link>
+          </Button>
         )}
       </div>
-      
-      {reports.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">작업일지가 없습니다.</p>
+
+      {/* Filters */}
+      <Card className="p-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Filter className="h-4 w-4 text-gray-500" />
+          <span className="text-xs font-medium">필터</span>
         </div>
-      ) : (
-        <ul className="divide-y divide-gray-200">
-          {reports.map((report: any) => (
-            <li key={report.id}>
-              <div className="px-4 py-4 sm:px-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-indigo-600 truncate">
-                        {formatDate(report.report_date)}
-                      </p>
-                      {getStatusBadge(report.status)}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+          {/* 현장 선택 */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">현장</label>
+            <CustomSelect
+              options={[
+                { value: '', label: '전체 현장' },
+                ...sites.map(site => ({
+                  value: site.id,
+                  label: site.name
+                }))
+              ]}
+              value={filters.site_id}
+              onChange={(value) => handleFilterChange('site_id', value)}
+              placeholder="현장 선택"
+              icon={<Building2 className="h-4 w-4" />}
+            />
+          </div>
+
+          {/* 상태 선택 */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">상태</label>
+            <div className="flex gap-1 p-1 bg-gray-100 dark:bg-gray-700 rounded-md">
+              <button
+                onClick={() => handleFilterChange('status', '')}
+                className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  filters.status === '' 
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+              >
+                전체
+              </button>
+              <button
+                onClick={() => handleFilterChange('status', 'draft')}
+                className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  filters.status === 'draft' 
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+              >
+                임시저장
+              </button>
+              <button
+                onClick={() => handleFilterChange('status', 'submitted')}
+                className={`flex-1 px-2 py-1 text-xs font-medium rounded transition-colors ${
+                  filters.status === 'submitted' 
+                    ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm' 
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
+              >
+                제출됨
+              </button>
+            </div>
+          </div>
+
+          {/* 기간 선택 */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">기간</label>
+            <div className="flex items-center gap-1.5">
+              <Input
+                type="date"
+                value={filters.start_date}
+                onChange={(e) => handleFilterChange('start_date', e.target.value)}
+                className="text-xs h-8"
+              />
+              <span className="text-gray-400 text-xs">~</span>
+              <Input
+                type="date"
+                value={filters.end_date}
+                onChange={(e) => handleFilterChange('end_date', e.target.value)}
+                className="text-xs h-8"
+              />
+            </div>
+          </div>
+
+          {/* 검색 */}
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-gray-600 dark:text-gray-400">검색</label>
+            <div className="relative">
+              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
+              <Input
+                value={filters.search}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
+                placeholder="검색..."
+                className="pl-8 text-sm h-8"
+              />
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Reports List */}
+      <div className="space-y-3">
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+            <p className="mt-2 text-gray-500">로딩중...</p>
+          </div>
+        ) : reports.length === 0 ? (
+          <Card className="p-12 text-center">
+            <FileText className="mx-auto h-12 w-12 text-gray-400" />
+            <p className="mt-4 text-gray-500">작업일지가 없습니다</p>
+            {canCreateReport && (
+              <Button 
+                onClick={() => router.push('/dashboard/daily-reports/new')}
+                className="mt-4"
+              >
+                첫 작업일지 작성하기
+              </Button>
+            )}
+          </Card>
+        ) : (
+          reports.map(report => (
+            <Card 
+              key={report.id} 
+              className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => router.push(`/dashboard/daily-reports/${report.id}`)}
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="font-semibold">
+                      {(report as unknown).site?.name || '현장 정보 없음'}
+                    </h3>
+                    <span className="text-sm text-gray-500">
+                      <Calendar className="inline h-3 w-3 mr-1" />
+                      {new Date((report as unknown).report_date || report.work_date).toLocaleDateString('ko-KR')}
+                    </span>
+                    {getStatusBadge(report.status || 'draft')}
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500">작성자:</span>
+                      <span className="ml-1 font-medium">
+                        {(report as unknown).created_by_profile?.full_name || '-'}
+                      </span>
                     </div>
-                    <div className="mt-2 sm:flex sm:justify-between">
-                      <div className="sm:flex">
-                        <p className="flex items-center text-sm text-gray-500">
-                          현장: {report.site?.name}
-                        </p>
-                        <p className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                          작성자: {report.created_by_profile?.full_name}
-                        </p>
+                    {(report as unknown).weather && (
+                      <div>
+                        <span className="text-gray-500">날씨:</span>
+                        <span className="ml-1">{(report as unknown).weather}</span>
                       </div>
-                      <div className="mt-2 sm:mt-0">
-                        <PDFStatus dailyReportId={report.id} />
+                    )}
+                    {((report as unknown).temperature_high || (report as unknown).temperature_low) && (
+                      <div>
+                        <span className="text-gray-500">기온:</span>
+                        <span className="ml-1">
+                          {(report as unknown).temperature_high}°C ~ {(report as unknown).temperature_low}°C
+                        </span>
                       </div>
-                    </div>
-                    {report.work_content && (
-                      <p className="mt-2 text-sm text-gray-600 line-clamp-2">
-                        {report.work_content}
-                      </p>
+                    )}
+                    {(report as unknown).approved_by_profile && (
+                      <div>
+                        <span className="text-gray-500">승인자:</span>
+                        <span className="ml-1 font-medium">
+                          {(report as unknown).approved_by_profile.full_name}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  
-                  <div className="ml-4 flex items-center space-x-2">
-                    {/* PDF 빠른 다운로드 */}
-                    {photoGridReports[report.id]?.length > 0 && (
-                      <div className="flex items-center space-x-1">
-                        {photoGridReports[report.id].slice(0, 1).map((pdfReport) => (
-                          <button
-                            key={pdfReport.id}
-                            onClick={() => handleDownloadPDF(pdfReport)}
-                            className="text-blue-400 hover:text-blue-600"
-                            title="최신 PDF 다운로드"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <Link
-                      href={`/dashboard/daily-reports/${report.id}`}
-                      className="text-gray-400 hover:text-gray-500"
-                      title="상세보기"
-                    >
-                      <Eye className="h-5 w-5" />
-                    </Link>
-                    {report.status === 'draft' && (
-                      <>
-                        <Link
-                          href={`/dashboard/daily-reports/${report.id}/edit`}
-                          className="text-gray-400 hover:text-gray-500"
-                          title="편집"
-                        >
-                          <Edit className="h-5 w-5" />
-                        </Link>
-                        <button
-                          onClick={() => {
-                            if (confirm('정말 삭제하시겠습니까?')) {
-                              // TODO: Implement delete
-                            }
-                          }}
-                          className="text-gray-400 hover:text-red-500"
-                          title="삭제"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
-                      </>
-                    )}
-                  </div>
+
+                  {(report as unknown).notes && (
+                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                      {(report as unknown).notes}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 ml-4">
+                  <Button
+                    variant="ghost"
+                    size="compact"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      router.push(`/dashboard/daily-reports/${report.id}`)
+                    }}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="compact"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      // TODO: Implement download functionality
+                    }}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-            </li>
-          ))}
-        </ul>
+            </Card>
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <Button
+            variant="outline"
+            size="compact"
+            onClick={() => setPage(page - 1)}
+            disabled={page === 1}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const pageNum = page > 3 ? page - 2 + i : i + 1
+              if (pageNum > totalPages) return null
+              
+              return (
+                <Button
+                  key={pageNum}
+                  variant={pageNum === page ? 'primary' : 'outline'}
+                  size="compact"
+                  onClick={() => setPage(pageNum)}
+                  className="w-10"
+                >
+                  {pageNum}
+                </Button>
+              )
+            })}
+          </div>
+
+          <Button
+            variant="outline"
+            size="compact"
+            onClick={() => setPage(page + 1)}
+            disabled={page === totalPages}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       )}
     </div>
   )

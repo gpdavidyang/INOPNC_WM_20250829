@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Transform assignment data
-    const assignmentActivities = (assignments || []).map((assignment: any) => ({
+    const assignmentActivities = (assignments || []).map((assignment: unknown) => ({
       id: `assignment-${assignment.id}`,
       type: assignment.is_active ? 'assignment' : 'unassignment',
       description: assignment.is_active 
@@ -75,7 +73,7 @@ export async function GET(request: NextRequest) {
     }))
 
     // Transform mapping data
-    const mappingActivities = (mappings || []).map((mapping: any) => ({
+    const mappingActivities = (mappings || []).map((mapping: unknown) => ({
       id: `mapping-${mapping.id}`,
       type: 'mapping' as const,
       description: `${mapping.partner_company?.company_name}와 ${mapping.site?.name} 현장이 매핑되었습니다`,

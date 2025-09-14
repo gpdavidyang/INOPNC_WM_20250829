@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { FileText, Image, Shield, Package, Download, Eye, Users } from 'lucide-react'
 
 interface DocumentsByCategory {
   shared?: unknown[]

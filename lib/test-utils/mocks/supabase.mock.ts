@@ -128,32 +128,32 @@ export function createMockSupabaseClient(
     // Make all query methods return the builder for chaining
     Object.keys(queryBuilder).forEach(key => {
       if (key !== 'single' && key !== 'maybeSingle') {
-        ;(queryBuilder as any)[key].mockReturnValue(queryBuilder)
+        ;(queryBuilder as unknown)[key].mockReturnValue(queryBuilder)
       }
     })
 
     // Default resolved value for terminal operations but also return 'this' for chaining
     queryBuilder.select.mockImplementation(() => {
       // Store the promise for later resolution
-      ;(queryBuilder as any).__promise = Promise.resolve({ data: [], error: null })
+      ;(queryBuilder as unknown).__promise = Promise.resolve({ data: [], error: null })
       // But return the builder for chaining
       return queryBuilder
     })
     
     // Make other operations also support both chaining and promise resolution
     ;['insert', 'update', 'upsert', 'delete'].forEach(method => {
-      ;(queryBuilder as any)[method].mockImplementation(() => {
-        ;(queryBuilder as any).__promise = Promise.resolve({ data: null, error: null })
+      ;(queryBuilder as unknown)[method].mockImplementation(() => {
+        ;(queryBuilder as unknown).__promise = Promise.resolve({ data: null, error: null })
         return queryBuilder
       })
     })
 
     // Add then/catch to make it thenable
-    ;(queryBuilder as any).then = function(onFulfilled: any, onRejected: any) {
-      return ((queryBuilder as any).__promise || Promise.resolve({ data: null, error: null })).then(onFulfilled, onRejected)
+    ;(queryBuilder as unknown).then = function(onFulfilled: unknown, onRejected: unknown) {
+      return ((queryBuilder as unknown).__promise || Promise.resolve({ data: null, error: null })).then(onFulfilled, onRejected)
     }
-    ;(queryBuilder as any).catch = function(onRejected: any) {
-      return ((queryBuilder as any).__promise || Promise.resolve({ data: null, error: null })).catch(onRejected)
+    ;(queryBuilder as unknown).catch = function(onRejected: unknown) {
+      return ((queryBuilder as unknown).__promise || Promise.resolve({ data: null, error: null })).catch(onRejected)
     }
 
     return queryBuilder
@@ -242,9 +242,9 @@ export function triggerAuthStateChange(
   event: AuthChangeEvent,
   session: Session | null
 ) {
-  const onAuthStateChange = client.auth.onAuthStateChange as any
+  const onAuthStateChange = client.auth.onAuthStateChange as unknown
   if (onAuthStateChange.mock.calls.length > 0) {
-    onAuthStateChange.mock.calls.forEach((call: any) => {
+    onAuthStateChange.mock.calls.forEach((call: unknown) => {
       const callback = call[0]
       callback(event, session)
     })

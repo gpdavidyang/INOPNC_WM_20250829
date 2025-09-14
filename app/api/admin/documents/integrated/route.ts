@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -125,7 +123,7 @@ export async function GET(request: Request) {
       .select('category_type')
       .eq('is_archived', false)
 
-    const statisticsByCategory = categoryStats?.reduce((acc: any, doc: any) => {
+    const statisticsByCategory = categoryStats?.reduce((acc: unknown, doc: unknown) => {
       const category = doc.category_type
       acc[category] = (acc[category] || 0) + 1
       return acc
@@ -137,14 +135,14 @@ export async function GET(request: Request) {
       .select('status')
       .eq('is_archived', false)
 
-    const statisticsByStatus = statusStats?.reduce((acc: any, doc: any) => {
+    const statisticsByStatus = statusStats?.reduce((acc: unknown, doc: unknown) => {
       const docStatus = doc.status
       acc[docStatus] = (acc[docStatus] || 0) + 1
       return acc
     }, {} as Record<string, number>) || {}
 
     // Group documents by category
-    const documentsByCategory = documents?.reduce((acc: any, doc: any) => {
+    const documentsByCategory = documents?.reduce((acc: unknown, doc: unknown) => {
       const category = doc.category_type
       if (!acc[category]) acc[category] = []
       acc[category].push(doc)

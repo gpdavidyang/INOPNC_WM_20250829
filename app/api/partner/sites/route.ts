@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -93,25 +91,30 @@ export async function GET(request: Request) {
     const recent24Months = new Date(now.getFullYear(), now.getMonth() - 24, 1)
 
     switch (period) {
-      case 'current_month':
+      case 'current_month': {
         query = query.gte('assigned_date', currentMonth.toISOString().split('T')[0])
         break
-      case 'recent_3':
+        }
+      case 'recent_3': {
         query = query.gte('assigned_date', recent3Months.toISOString().split('T')[0])
         break
-      case 'recent_6':
+        }
+      case 'recent_6': {
         query = query.gte('assigned_date', recent6Months.toISOString().split('T')[0])
         break
-      case 'recent_12':
+        }
+      case 'recent_12': {
         query = query.gte('assigned_date', recent12Months.toISOString().split('T')[0])
         break
-      case 'recent_24':
+        }
+      case 'recent_24': {
         query = query.gte('assigned_date', recent24Months.toISOString().split('T')[0])
         break
+        }
       case 'all':
       default:
         break
-    }
+      }
 
     // Apply status filter
     if (status && status !== 'all') {
@@ -158,7 +161,7 @@ export async function GET(request: Request) {
     }
 
     // Transform data for frontend consumption - with safe property access
-    const transformedParticipations = (participations || []).map((p: any) => {
+    const transformedParticipations = (participations || []).map((p: unknown) => {
       try {
         return {
           id: p.sites?.id || '',
@@ -186,10 +189,10 @@ export async function GET(request: Request) {
 
     // Calculate statistics
     const totalSites = transformedParticipations.length
-    const activeSites = transformedParticipations.filter((p: any) => 
+    const activeSites = transformedParticipations.filter((p: unknown) => 
       p.contractStatus === 'active' && (p.siteStatus === 'active' || p.siteStatus === 'in_progress')
     ).length
-    const completedSites = transformedParticipations.filter((p: any) => 
+    const completedSites = transformedParticipations.filter((p: unknown) => 
       p.contractStatus === 'completed' || p.siteStatus === 'completed'
     ).length
 

@@ -1,12 +1,6 @@
 'use client'
 
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { Profile } from '@/types'
-import { 
-  X, Upload, FileText, AlertCircle, CheckCircle, 
-  Loader2, File, Trash2, Building2, MapPin
-} from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
 
 interface DocumentUploadModalProps {

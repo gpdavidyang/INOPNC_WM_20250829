@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import { Bell, TrendingUp, TrendingDown, Package, Clock, AlertTriangle, Wrench, Megaphone, Calendar, Download } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format, subDays, startOfDay, endOfDay } from 'date-fns'
 
 interface NotificationMetrics {
   summary: {

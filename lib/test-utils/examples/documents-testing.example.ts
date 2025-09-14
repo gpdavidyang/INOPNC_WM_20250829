@@ -5,17 +5,6 @@
  * the unified documents system with card-based UI.
  */
 
-import { 
-  createMockDocumentFile,
-  createMockDailyReport,
-  createMockApprovalDocument,
-  createMockMaterialDocument,
-  createMockMarkupDocument,
-  createMockDocumentCard,
-  createMockDocumentCardList,
-  getFileTypeInfo,
-  FILE_TYPE_COLORS
-} from '@/lib/test-utils'
 
 // Example 1: Testing document upload functionality
 export function testDocumentUpload() {

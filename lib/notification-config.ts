@@ -304,7 +304,7 @@ export function getNotificationConfig(type: string): NotificationConfig | null {
 }
 
 // Validate notification payload
-export function validateNotificationPayload(payload: any): { valid: boolean; errors: string[] } {
+export function validateNotificationPayload(payload: unknown): { valid: boolean; errors: string[] } {
   const errors: string[] = []
   
   if (!payload.title) {
@@ -320,7 +320,7 @@ export function validateNotificationPayload(payload: any): { valid: boolean; err
   }
   
   if (payload.actions && Array.isArray(payload.actions)) {
-    payload.actions.forEach((action: any, index: number) => {
+    payload.actions.forEach((action: unknown, index: number) => {
       if (!action.action) {
         errors.push(`Action ${index + 1} is missing action property`)
       }
@@ -337,7 +337,7 @@ export function validateNotificationPayload(payload: any): { valid: boolean; err
 }
 
 // Get deep link URL for notification
-export function getNotificationDeepLink(type: string, data?: any): string {
+export function getNotificationDeepLink(type: string, data?: unknown): string {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://localhost:3000'
   
   switch (type) {

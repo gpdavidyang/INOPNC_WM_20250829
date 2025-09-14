@@ -1,19 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import AdminDataTable from './AdminDataTable'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
-import { 
-  getMarkupDocuments,
-  deleteMarkupDocuments,
-  updateMarkupDocumentProperties,
-  manageMarkupDocumentPermissions,
-  getMarkupDocumentStats,
-  getAvailableUsersForPermissions,
-  MarkupDocumentWithStats
-} from '@/app/actions/admin/markup'
-import { Search, FileImage, Users, Eye, Share2, Lock, Unlock, UserPlus, UserMinus, Palette, Edit, Download, Trash2 } from 'lucide-react'
 
 interface MarkupManagementProps {
   profile: Profile

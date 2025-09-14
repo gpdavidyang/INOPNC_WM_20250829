@@ -1,5 +1,3 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { redirect } from 'next/navigation'
 import TaskList from './task-list'
 
 export default async function TasksPage() {

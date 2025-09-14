@@ -1,9 +1,6 @@
 'use client'
 
 import * as XLSX from 'xlsx'
-import { DailyReport, Site, Profile } from '@/types'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 export class ExcelExporter {
   static exportDailyReports(
@@ -36,8 +33,8 @@ export class ExcelExporter {
             '상태': this.getStatusText(report.status || undefined),
             '특이사항': report.issues || '-',
             '작성일': format(new Date(report.created_at), 'yyyy-MM-dd HH:mm'),
-            '제출일': (report as any).submitted_at ? format(new Date((report as any).submitted_at), 'yyyy-MM-dd HH:mm') : '-',
-            '승인일': (report as any).approved_at ? format(new Date((report as any).approved_at), 'yyyy-MM-dd HH:mm') : '-'
+            '제출일': (report as unknown).submitted_at ? format(new Date((report as unknown).submitted_at), 'yyyy-MM-dd HH:mm') : '-',
+            '승인일': (report as unknown).approved_at ? format(new Date((report as unknown).approved_at), 'yyyy-MM-dd HH:mm') : '-'
           }
         })
 
@@ -122,9 +119,9 @@ export class ExcelExporter {
     const totalReports = reports.length
     const approvedReports = reports.filter(r => r.status === 'approved').length
     const rejectedReports = reports.filter(r => r.status === 'rejected').length
-    const totalWorkers = reports.reduce((sum: any, r: any) => sum + (r.total_workers || 0), 0)
-    const totalNPC1000Used = reports.reduce((sum: any, r: any) => sum + (r.npc1000_used || 0), 0)
-    const totalNPC1000Incoming = reports.reduce((sum: any, r: any) => sum + (r.npc1000_incoming || 0), 0)
+    const totalWorkers = reports.reduce((sum: unknown, r: unknown) => sum + (r.total_workers || 0), 0)
+    const totalNPC1000Used = reports.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_used || 0), 0)
+    const totalNPC1000Incoming = reports.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_incoming || 0), 0)
     const approvalRate = totalReports > 0 ? Math.round((approvedReports / totalReports) * 100) : 0
 
     return [

@@ -1,30 +1,5 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { 
-  Calendar,
-  Cloud,
-  Thermometer,
-  FileText,
-  Users,
-  Package,
-  Clock,
-  CheckCircle,
-  XCircle,
-  Download,
-  Edit,
-  Building2,
-  AlertTriangle,
-  Eye
-} from 'lucide-react'
-import { DailyReport, Profile, Site } from '@/types'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import Link from 'next/link'
 
 interface DailyReportDetailDialogProps {
   report: DailyReport | null
@@ -44,7 +19,7 @@ export function DailyReportDetailDialog({
   if (!report) return null
 
   const getStatusBadge = (status: string) => {
-    const statusConfig: any = {
+    const statusConfig: unknown = {
       draft: { label: '임시저장', variant: 'secondary', icon: Clock, className: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300' },
       submitted: { label: '제출됨', variant: 'primary', icon: FileText, className: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
       approved: { label: '승인됨', variant: 'success', icon: CheckCircle, className: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },

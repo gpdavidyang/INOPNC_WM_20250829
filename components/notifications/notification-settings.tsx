@@ -1,43 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Badge } from '@/components/ui/badge'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/custom-select'
-import {
-  Bell,
-  Mail,
-  Smartphone,
-  Clock,
-  Shield,
-  Volume2,
-  VolumeX,
-  Settings2,
-  Save,
-  RotateCcw,
-  Info,
-  CheckCircle2
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { cn } from '@/lib/utils'
 
 interface NotificationSettings {
   // 푸시 알림 설정
@@ -196,7 +158,7 @@ export function NotificationSettings({ isOpen, onClose }: NotificationSettingsPr
   }: { 
     title: string
     description?: string
-    icon: any
+    icon: unknown
     children: React.ReactNode 
   }) => (
     <Card className="p-5 sm:p-6 border-gray-200 dark:border-gray-700">

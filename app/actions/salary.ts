@@ -1,7 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
 
 interface SalaryInfo {
   id: string
@@ -78,7 +76,7 @@ export async function calculateMonthlySalary(params: { user_id: string; year: nu
     )
 
     // 기존 인터페이스에 맞게 변환 - result의 모든 필드 포함
-    const calculation: any = {
+    const calculation: unknown = {
       base_salary: 0, // 서비스에서 직접 계산
       hourly_rate: 0, // 서비스에서 직접 계산
       overtime_rate: 0, // 서비스에서 직접 계산
@@ -154,13 +152,13 @@ export async function getCompanySalarySummary(params: {
       status: Math.random() > 0.7 ? 'pending' : 'paid'
     }))
     
-    const totalAmount = details.reduce((sum: any, d: any) => sum + d.net_salary, 0)
+    const totalAmount = details.reduce((sum: unknown, d: unknown) => sum + d.net_salary, 0)
     const pendingAmount = details
       .filter(d => d.status === 'pending')
-      .reduce((sum: any, d: any) => sum + d.net_salary, 0)
+      .reduce((sum: unknown, d: unknown) => sum + d.net_salary, 0)
     const paidAmount = details
       .filter(d => d.status === 'paid')
-      .reduce((sum: any, d: any) => sum + d.net_salary, 0)
+      .reduce((sum: unknown, d: unknown) => sum + d.net_salary, 0)
 
     return { 
       success: true, 

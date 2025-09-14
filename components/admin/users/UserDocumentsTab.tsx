@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { FileText, Download, Eye, Upload, CheckCircle, XCircle, Clock, AlertTriangle, Search, Filter } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface UserDocumentsTabProps {
   userId: string
@@ -299,7 +294,7 @@ export default function UserDocumentsTab({ userId, userName }: UserDocumentsTabP
             <Filter className="h-4 w-4 text-gray-400" />
             <select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => setStatusFilter(e.target.value as unknown)}
               className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="all">전체 상태</option>

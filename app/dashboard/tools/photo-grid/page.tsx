@@ -1,7 +1,3 @@
-import { Metadata } from 'next'
-import { getAuthenticatedUser } from '@/lib/auth/session'
-import { redirect } from 'next/navigation'
-import PhotoGridToolMain from '@/components/photo-grid-tool/PhotoGridToolMain'
 
 export const metadata: Metadata = {
   title: '사진대지 도구 | INOPNC WM',

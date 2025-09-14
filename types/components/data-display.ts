@@ -2,8 +2,6 @@
  * 데이터 디스플레이 컴포넌트 Props 타입 정의
  */
 
-import { ReactNode } from 'react'
-import { BaseComponentProps } from './index'
 
 // Table Column Definition
 export interface TableColumn<T = Record<string, unknown>> {

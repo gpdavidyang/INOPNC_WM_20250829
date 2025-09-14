@@ -1,24 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { 
-  Calculator, 
-  DollarSign, 
-  Users, 
-  Calendar,
-  Percent,
-  FileText,
-  Download,
-  CheckCircle
-} from 'lucide-react'
-import { 
-  calculateSalary, 
-  calculateMonthlySalary,
-  calculateSalaryByLaborHours,
-  formatSalary,
-  generateSalarySummary,
-  SalaryCalculationResult
-} from '@/lib/salary/calculator'
 
 interface SalaryCalculatorProps {
   siteId?: string

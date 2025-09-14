@@ -18,20 +18,7 @@ export * from '@/lib/test-utils/mocks/analytics.mock'
 export * from './auth-helpers'
 export * from './async-helpers'
 
-import { faker } from '@faker-js/faker'
 import type { Profile, Organization, Site } from '@/types'
-import { 
-  createMockAttendanceWithLaborHours, 
-  createMockPayslip,
-  STANDARD_LABOR_HOUR,
-  HOURS_PER_LABOR
-} from '@/lib/test-utils/factories/attendance.factory'
-import {
-  createMockDocumentCard,
-  createMockMarkupDocument,
-  FILE_TYPE_COLORS
-} from '@/lib/test-utils/factories/documents.factory'
-import { mockAuthState, createMockProfile } from './auth-helpers'
 
 // Builder interface for fluent API
 export interface TestDataBuilder<T> {

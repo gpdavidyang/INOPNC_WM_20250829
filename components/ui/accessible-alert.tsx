@@ -1,10 +1,6 @@
 'use client'
 
 import React, { forwardRef, ReactNode } from 'react'
-import { cn } from '@/lib/utils'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { AlertCircle, CheckCircle, Info, XCircle, X } from 'lucide-react'
 
 export type AlertVariant = 'info' | 'success' | 'warning' | 'error'
 export type AlertRole = 'alert' | 'status' | 'alertdialog'

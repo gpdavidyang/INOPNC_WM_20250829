@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { notificationHelpers } from '@/lib/push-notifications'
 
 export async function POST(request: NextRequest) {
   try {
@@ -69,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (siteWorkers?.length) {
       // Create notifications for all site workers
-      const notifications = siteWorkers.map((worker: any) => ({
+      const notifications = siteWorkers.map((worker: unknown) => ({
         user_id: worker.id,
         type: severity === 'critical' ? 'error' : 'warning',
         title: `⚠️ ${title}`,

@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Profile } from '@/types'
-import { User, Settings, LogOut, ChevronDown } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 
 interface ProfileDropdownProps {
   profile: Profile

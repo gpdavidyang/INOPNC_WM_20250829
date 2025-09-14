@@ -1,18 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Activity, 
-  Users, 
-  Database, 
-  HardDrive,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  TrendingUp,
-  Shield,
-  Settings
-} from 'lucide-react'
 
 interface SystemStatus {
   status: 'healthy' | 'degraded' | 'down'

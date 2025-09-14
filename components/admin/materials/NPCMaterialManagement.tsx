@@ -1,20 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Package, TrendingUp, TrendingDown, AlertTriangle, 
-  Calendar, Building2, Search, Filter, Download,
-  Truck, CheckCircle, XCircle, Clock, FileText,
-  BarChart3, PlusCircle, Edit, Eye, RefreshCw,
-  Database
-} from 'lucide-react'
-import InventoryUsageTab from './tabs/InventoryUsageTab'
-import ProductionManagementTab from './tabs/ProductionManagementTab'
-import ShipmentManagementTab from './tabs/ShipmentManagementTab'
 import ShipmentRequestsTab from './tabs/ShipmentRequestsTab'
-import IntegratedInventoryStatus from './IntegratedInventoryStatus'
 
 interface NPCMaterialManagementProps {
   profile?: Profile
@@ -102,7 +88,7 @@ export default function NPCMaterialManagement({ profile }: NPCMaterialManagement
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
+                  onClick={() => setActiveTab(tab.key as unknown)}
                   className={`
                     group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm
                     ${isActive

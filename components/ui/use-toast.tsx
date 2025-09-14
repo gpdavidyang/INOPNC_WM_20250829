@@ -14,9 +14,9 @@ interface ToastState {
 const listeners: Array<(state: ToastState) => void> = []
 let memoryState: ToastState = { toasts: [] }
 
-function dispatch(action: any) {
+function dispatch(action: unknown) {
   memoryState = action(memoryState)
-  listeners.forEach((listener: any) => {
+  listeners.forEach((listener: unknown) => {
     listener(memoryState)
   })
 }
@@ -38,7 +38,7 @@ export function toast(toast: Toast) {
 export function dismiss(toastId?: string) {
   dispatch((state: ToastState) => ({
     ...state,
-    toasts: state.toasts.filter((toast: any) => toast.id !== toastId),
+    toasts: state.toasts.filter((toast: unknown) => toast.id !== toastId),
   }))
 }
 

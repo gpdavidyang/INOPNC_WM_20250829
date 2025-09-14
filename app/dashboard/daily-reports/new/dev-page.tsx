@@ -1,7 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
-import { redirect } from 'next/navigation'
-import DashboardLayout from '@/components/dashboard/dashboard-layout'
-import DailyReportForm from '@/components/daily-reports/daily-report-form'
 
 // 개발용 페이지 - SERVICE ROLE KEY 사용으로 RLS 우회
 export default async function NewDailyReportDevPage() {
@@ -72,7 +68,7 @@ export default async function NewDailyReportDevPage() {
         sites={sites || []}
         currentUser={profile as any}
         materials={materials || []}
-        workers={workers as any || []}
+        workers={workers as unknown || []}
       />
     </DashboardLayout>
   )

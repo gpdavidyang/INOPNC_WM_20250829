@@ -1,24 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  X, 
-  MapPin, 
-  Calendar, 
-  Phone, 
-  Home, 
-  User, 
-  Shield, 
-  Clock,
-  Building2,
-  FileText,
-  Download
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { UserSiteHistory } from '@/types'
 
 interface SiteDetailModalProps {
   isOpen: boolean

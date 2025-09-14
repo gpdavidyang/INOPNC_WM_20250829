@@ -3,13 +3,6 @@
  * Provides real-time metrics for the monitoring dashboard
  */
 
-import { NextRequest, NextResponse } from 'next/server'
-import { monitoringManager } from '@/lib/monitoring/monitoring-manager'
-import { apiMonitor } from '@/lib/monitoring/api-monitoring'
-import { performanceTracker } from '@/lib/monitoring/performance-metrics'
-import { alertingManager } from '@/lib/monitoring/alerting-manager'
-import { securityManager } from '@/lib/security/production-security-manager'
-import { withAPIMonitoring } from '@/lib/monitoring/api-monitoring'
 
 export const GET = withAPIMonitoring(
   async (request: NextRequest) => {
@@ -18,42 +11,42 @@ export const GET = withAPIMonitoring(
       const metricType = searchParams.get('type') || 'all'
       const timeRange = searchParams.get('range') || '1h'
 
-      const response: any = {
+      const response: unknown = {
         timestamp: new Date().toISOString(),
         timeRange,
         system: 'inopnc-construction-management'
       }
 
       switch (metricType) {
-        case 'system':
+        case 'system': {
           response.data = await monitoringManager.getSystemHealth()
           break
-
-        case 'api':
+        }
+        case 'api': {
           response.data = apiMonitor.getMetrics()
           break
-
-        case 'performance':
+        }
+        case 'performance': {
           response.data = performanceTracker.getPerformanceSummary()
           break
-
-        case 'construction':
+        }
+        case 'construction': {
           response.data = apiMonitor.getConstructionMetrics()
           break
-
-        case 'alerts':
+        }
+        case 'alerts': {
           response.data = {
             active: alertingManager.getActiveAlerts(),
             rules: alertingManager.getAlertRules()
           }
           break
-
-        case 'security':
+        }
+        case 'security': {
           response.data = await securityManager.getSecurityMetrics()
           break
-
+        }
         case 'all':
-        default:
+        default: {
           // Get comprehensive metrics
           const [
             systemHealth,
@@ -81,6 +74,7 @@ export const GET = withAPIMonitoring(
             }
           }
           break
+        }
       }
 
       return NextResponse.json(response)
@@ -107,30 +101,30 @@ export const POST = withAPIMonitoring(
       const { type, data } = body
 
       switch (type) {
-        case 'web_vitals':
+        case 'web_vitals': {
           // Store web vitals data
           if (data.metric && data.value !== undefined) {
             // Would store in analytics database
             console.log(`Web Vitals - ${data.metric}: ${data.value}`)
           }
           break
-
-        case 'performance_metric':
+        }
+        case 'performance_metric': {
           // Store custom performance metric
           if (data.name && data.value !== undefined) {
             // Would store in analytics database
             console.log(`Performance Metric - ${data.name}: ${data.value}`)
           }
           break
-
-        case 'user_action':
+        }
+        case 'user_action': {
           // Track user actions for analytics
           if (data.action) {
             // Would store in analytics database
             console.log(`User Action: ${data.action}`)
           }
           break
-
+        }
         default:
           return NextResponse.json(
             { error: 'Unknown metric type' },

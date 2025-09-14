@@ -1,22 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
-import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { useFontSize, getTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Settings, Plus, Trash2, Award, DollarSign, Calendar } from 'lucide-react'
-import { useToast } from '@/components/ui/use-toast'
-import { upsertWorkerSkillAssignment } from '@/app/actions/equipment'
-import { WorkerSkill, WorkerSkillAssignment } from '@/types/equipment'
 
 interface SkillManagementDialogProps {
-  worker: any
+  worker: unknown
   skills: WorkerSkill[]
   skillAssignments: WorkerSkillAssignment[]
   open: boolean
@@ -316,7 +302,7 @@ export function SkillManagementDialog({
                   </Label>
                   <Select 
                     value={formData.proficiency_level} 
-                    onValueChange={(value: any) => setFormData({...formData, proficiency_level: value})}
+                    onValueChange={(value: unknown) => setFormData({...formData, proficiency_level: value})}
                   >
                     <SelectTrigger>
                       <SelectValue />

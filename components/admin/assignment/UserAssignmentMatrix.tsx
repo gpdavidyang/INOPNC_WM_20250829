@@ -1,11 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -21,23 +17,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Users, 
-  UserPlus, 
-  UserMinus,
-  MapPin, 
-  Search, 
-  Filter,
-  Building2,
-  Calendar,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  User
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { AssignmentExplanationTooltip } from './AssignmentTooltip'
 
 interface User {
   id: string
@@ -604,7 +583,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>배정 유형</Label>
                 <Select
                   value={assignmentData.assignment_type}
-                  onValueChange={(value: any) => setAssignmentData(prev => ({ ...prev, assignment_type: value }))}
+                  onValueChange={(value: unknown) => setAssignmentData(prev => ({ ...prev, assignment_type: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -621,7 +600,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>현장 역할</Label>
                 <Select
                   value={assignmentData.role}
-                  onValueChange={(value: any) => setAssignmentData(prev => ({ ...prev, role: value }))}
+                  onValueChange={(value: unknown) => setAssignmentData(prev => ({ ...prev, role: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -716,7 +695,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>배정 유형</Label>
                 <Select
                   value={bulkAssignmentData.assignment_type}
-                  onValueChange={(value: any) => setBulkAssignmentData(prev => ({ ...prev, assignment_type: value }))}
+                  onValueChange={(value: unknown) => setBulkAssignmentData(prev => ({ ...prev, assignment_type: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -733,7 +712,7 @@ export default function UserAssignmentMatrix({ onUpdate }: UserAssignmentMatrixP
                 <Label>현장 역할</Label>
                 <Select
                   value={bulkAssignmentData.role}
-                  onValueChange={(value: any) => setBulkAssignmentData(prev => ({ ...prev, role: value }))}
+                  onValueChange={(value: unknown) => setBulkAssignmentData(prev => ({ ...prev, role: value }))}
                 >
                   <SelectTrigger>
                     <SelectValue />

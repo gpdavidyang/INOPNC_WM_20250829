@@ -1,7 +1,3 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { canAccessDocumentCategory } from '@/lib/document-permissions'
-import RequiredDocumentTypeDetailPage from '@/components/admin/documents/RequiredDocumentTypeDetailPage'
 
 interface DocumentTypePageProps {
   params: { documentType: string }
@@ -28,7 +24,7 @@ export default async function DocumentTypeDetailPage({ params }: DocumentTypePag
     }
 
     // 필수제출서류함 접근 권한 확인
-    if (!canAccessDocumentCategory(profile.role as any, 'required')) {
+    if (!canAccessDocumentCategory(profile.role as unknown, 'required')) {
       redirect('/dashboard')
     }
 

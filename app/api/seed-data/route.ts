@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextRequest, NextResponse } from 'next/server'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 
 // 현실적인 작업자 데이터
 const WORKERS = [
@@ -61,7 +60,7 @@ export async function POST(request: NextRequest) {
         .upsert({
           ...worker,
           status: 'active'
-        } as any, {
+        } as unknown, {
           onConflict: 'id'
         })
       
@@ -112,7 +111,7 @@ export async function POST(request: NextRequest) {
     const sites = []
     
     for (const targetName of targetSites) {
-      const site = allSites.find((s: any) => s.name === targetName)
+      const site = allSites.find((s: unknown) => s.name === targetName)
       if (site) {
         sites.push(site)
       }
@@ -132,7 +131,7 @@ export async function POST(request: NextRequest) {
     
     for (let i = 0; i < assignments.length && i < sites.length; i++) {
       const assignment = assignments[i]
-      const site = sites.find((s: any) => s.name === assignment.targetName) || sites[i] // 매칭되는 사이트가 없으면 인덱스로 선택
+      const site = sites.find((s: unknown) => s.name === assignment.targetName) || sites[i] // 매칭되는 사이트가 없으면 인덱스로 선택
 
       // 작업자들 배정
       for (const workerId of assignment.workerIds) {
@@ -146,7 +145,7 @@ export async function POST(request: NextRequest) {
             assigned_date: assignedDate,
             role: 'worker',
             is_active: true
-          } as any, {
+          } as unknown, {
             onConflict: 'site_id,user_id'
           })
 
@@ -168,7 +167,7 @@ export async function POST(request: NextRequest) {
           assigned_date: assignedDate,
           role: 'site_manager',
           is_active: true
-        } as any, {
+        } as unknown, {
           onConflict: 'site_id,user_id'
         })
 
@@ -182,7 +181,7 @@ export async function POST(request: NextRequest) {
     // 4. 출근 기록 생성 (최근 30일, 평일만)
     for (let i = 0; i < assignments.length && i < sites.length; i++) {
       const assignment = assignments[i]
-      const site = sites.find((s: any) => s.name === assignment.targetName) || sites[i]
+      const site = sites.find((s: unknown) => s.name === assignment.targetName) || sites[i]
       if (!site) continue
 
       const allWorkers = [...assignment.workerIds, assignment.managerId]
@@ -246,7 +245,7 @@ export async function POST(request: NextRequest) {
     
     for (let i = 0; i < assignments.length && i < sites.length; i++) {
       const assignment = assignments[i]
-      const site = sites.find((s: any) => s.name === assignment.targetName) || sites[i]
+      const site = sites.find((s: unknown) => s.name === assignment.targetName) || sites[i]
       if (!site) continue
 
       for (let j = 0; j < 15; j++) {
@@ -300,7 +299,7 @@ export async function POST(request: NextRequest) {
     const notifications = []
     
     // 작업자들에게 작업 지시 알림
-    for (const worker of WORKERS.filter((w: any) => w.role === 'worker')) {
+    for (const worker of WORKERS.filter((w: unknown) => w.role === 'worker')) {
       notifications.push({
         user_id: worker.id,
         title: '새로운 작업 지시',
@@ -312,7 +311,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 관리자들에게 검토 알림
-    for (const manager of WORKERS.filter((w: any) => w.role === 'site_manager')) {
+    for (const manager of WORKERS.filter((w: unknown) => w.role === 'site_manager')) {
       notifications.push({
         user_id: manager.id,
         title: '작업 일지 검토',
@@ -340,9 +339,9 @@ export async function POST(request: NextRequest) {
       message: '현실적인 건설 현장 데이터 시딩 완료!',
       results,
       summary: {
-        workers: WORKERS.filter((w: any) => w.role === 'worker').map((w: any) => w.full_name),
-        managers: WORKERS.filter((w: any) => w.role === 'site_manager').map((w: any) => w.full_name),
-        sites: sites.map((s: any) => s.name)
+        workers: WORKERS.filter((w: unknown) => w.role === 'worker').map((w: unknown) => w.full_name),
+        managers: WORKERS.filter((w: unknown) => w.role === 'site_manager').map((w: unknown) => w.full_name),
+        sites: sites.map((s: unknown) => s.name)
       }
     })
 
@@ -358,11 +357,11 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   return NextResponse.json({
     message: 'POST 요청을 통해 현실적인 건설 현장 데이터를 시딩할 수 있습니다.',
-    workers: WORKERS.map((w: any) => ({ name: w.full_name, role: w.role })),
-    sites: SITE_ASSIGNMENTS.map((s: any) => ({ 
+    workers: WORKERS.map((w: unknown) => ({ name: w.full_name, role: w.role })),
+    sites: SITE_ASSIGNMENTS.map((s: unknown) => ({ 
       name: s.siteName, 
       workers: s.workerIds.length, 
-      manager: WORKERS.find((w: any) => w.id === s.managerId)?.full_name 
+      manager: WORKERS.find((w: unknown) => w.id === s.managerId)?.full_name 
     }))
   })
 }

@@ -1,38 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { 
-  Building2, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  Users, 
-  FileText, 
-  Calendar,
-  User,
-  Shield,
-  CheckCircle,
-  Clock,
-  Edit,
-  AlertCircle,
-  ArrowLeft,
-  Briefcase,
-  Package,
-  Upload,
-  File,
-  Eye,
-  Trash2,
-  Image
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import Link from 'next/link'
-import SiteDailyReportsTab from '@/components/admin/sites/SiteDailyReportsTab'
-import SiteDocumentsTab from '@/components/admin/sites/SiteDocumentsTab'
-import SitePartnersTab from '@/components/admin/sites/SitePartnersTab'
-import SiteWorkersTab from '@/components/admin/sites/SiteWorkersTab'
 
 interface Site {
   id: string
@@ -59,10 +26,10 @@ interface Site {
 interface IntegratedSiteData {
   site: Site
   customers: unknown[]
-  primary_customer: any
+  primary_customer: unknown
   daily_reports: unknown[]
   documents_by_category: Record<string, any[]>
-  statistics: any
+  statistics: unknown
   recent_activities: unknown[]
   assigned_workers: unknown[]
   document_category_counts: Record<string, number>
@@ -369,7 +336,7 @@ export default function SiteDetailPage() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}
+                  onClick={() => setActiveTab(tab.key as unknown)}
                   className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                     activeTab === tab.key
                       ? 'border-blue-500 text-blue-600 dark:text-blue-400'
@@ -645,8 +612,8 @@ function CoreFilesSection({
   const [blueprintFile, setBlueprintFile] = useState<File | null>(null)
   const [ptwFile, setPtwFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState<'blueprint' | 'ptw' | null>(null)
-  const [blueprintDoc, setBlueprintDoc] = useState<any>(null)
-  const [ptwDoc, setPtwDoc] = useState<any>(null)
+  const [blueprintDoc, setBlueprintDoc] = useState<unknown>(null)
+  const [ptwDoc, setPtwDoc] = useState<unknown>(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -804,7 +771,7 @@ function CoreFilesSection({
     }
   }
 
-  const handlePreview = (doc: any) => {
+  const handlePreview = (doc: unknown) => {
     if (!doc) return
     console.log('Previewing document:', doc)
     window.open(`/api/unified-documents/${doc.id}/file`, '_blank')
@@ -987,7 +954,7 @@ function EditSiteModal({
 }: {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (formData: any) => void
+  onSubmit: (formData: unknown) => void
   loading: boolean
   siteData: Site
 }) {

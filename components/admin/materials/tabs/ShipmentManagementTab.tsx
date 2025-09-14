@@ -1,32 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { ShipmentRecord } from '@/types/materials'
-import { 
-  processShipment,
-  updateShipmentStatus,
-  updateShipmentInfo,
-  getShipmentHistory,
-  getPendingShipmentRequests
-} from '@/app/actions/admin/shipments'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Truck, Package, Calendar, Building2, Search, 
-  Download, PlusCircle, CheckCircle, 
-  XCircle, Clock, AlertTriangle, ChevronUp, ChevronDown
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CustomSelect, CustomSelectTrigger, CustomSelectValue, CustomSelectContent, CustomSelectItem } from '@/components/ui/custom-select'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { toast } from 'sonner'
-import { formatDate } from '@/lib/utils'
 
 interface ShipmentManagementTabProps {
   profile: Profile
@@ -99,7 +72,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
   const fetchShipments = async () => {
     setLoading(true)
     try {
-      const filters: any = {}
+      const filters: unknown = {}
       
       // Date range filter
       const now = new Date()
@@ -318,8 +291,8 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
 
   // Sort shipments
   const sortedShipments = [...filteredShipments].sort((a, b) => {
-    let aVal: any = a[sortField as keyof ExtendedShipmentRecord]
-    let bVal: any = b[sortField as keyof ExtendedShipmentRecord]
+    let aVal: unknown = a[sortField as keyof ExtendedShipmentRecord]
+    let bVal: unknown = b[sortField as keyof ExtendedShipmentRecord]
     
     if (aVal === null || aVal === undefined) aVal = ''
     if (bVal === null || bVal === undefined) bVal = ''

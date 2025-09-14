@@ -1,12 +1,5 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  Search, X, Users, Building2, FileText, Activity, Clock, TrendingUp,
-  ArrowRight, Loader2, Home, BarChart3, Package, DollarSign, Hash,
-  Calendar, MapPin, FolderOpen, Shield, AlertCircle, CheckCircle
-} from 'lucide-react'
 
 interface SearchResult {
   id: string
@@ -15,10 +8,10 @@ interface SearchResult {
   subtitle?: string
   description?: string
   url: string
-  icon?: any
+  icon?: unknown
   badge?: string
   badgeColor?: string
-  metadata?: any
+  metadata?: unknown
 }
 
 interface RecentSearch {
@@ -100,7 +93,7 @@ export default function GlobalSearchModal({ isOpen, onClose }: GlobalSearchModal
       if (stored) {
         try {
           const parsed = JSON.parse(stored)
-          setRecentSearches(parsed.map((s: any) => ({
+          setRecentSearches(parsed.map((s: unknown) => ({
             ...s,
             timestamp: new Date(s.timestamp)
           })).slice(0, 5))

@@ -1,4 +1,3 @@
-import DocumentUploadPage from '@/components/admin/documents/DocumentUploadPage'
 
 export default function AdminDocumentUploadPage() {
   return (

@@ -1,4 +1,3 @@
-import { Metadata } from 'next'
 import PhotoGridPreviewPage from '@/components/photo-grid-tool/PhotoGridPreviewPage'
 import { requireAuth } from '@/lib/auth/session'
 

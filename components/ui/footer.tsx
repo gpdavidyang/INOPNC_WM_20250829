@@ -1,8 +1,4 @@
 import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Container } from "@/components/ui/container"
-import Link from "next/link"
-import { Text } from "@/components/ui/typography"
 
 export interface FooterLink {
   label: string

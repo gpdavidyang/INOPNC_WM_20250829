@@ -1,4 +1,3 @@
-import jsPDF from 'jspdf'
 
 export interface PDFGeneratorOptions {
   title: string

@@ -1,7 +1,5 @@
 'use client'
 
-import { DocumentCategory } from '@/types'
-import { LucideIcon } from 'lucide-react'
 
 interface DocumentCategoryCardProps {
   category: DocumentCategory

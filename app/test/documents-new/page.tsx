@@ -1,4 +1,3 @@
-import DocumentsTabNew from '@/components/dashboard/tabs/documents-tab-new'
 
 export default function TestDocumentsNewPage() {
   return (

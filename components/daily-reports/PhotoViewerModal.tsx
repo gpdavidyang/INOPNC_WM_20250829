@@ -1,9 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { X, ChevronLeft, ChevronRight, Download, Share, RotateCw } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface Photo {
   id?: string

@@ -18,7 +18,7 @@ interface AppLinkResult {
 
 // Platform detection utilities
 export const Platform = {
-  isIOS: () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream,
+  isIOS: () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as unknown).MSStream,
   isAndroid: () => /Android/.test(navigator.userAgent),
   isMobile: () => Platform.isIOS() || Platform.isAndroid(),
   isDesktop: () => !Platform.isMobile()
@@ -26,8 +26,8 @@ export const Platform = {
 
 // Analytics tracking (can be replaced with actual analytics implementation)
 const trackAppLaunch = (appName: string, success: boolean) => {
-  if (typeof window !== 'undefined' && (window as any).gtag) {
-    (window as any).gtag('event', 'external_app_launch', {
+  if (typeof window !== 'undefined' && (window as unknown).gtag) {
+    (window as unknown).gtag('event', 'external_app_launch', {
       app_name: appName,
       success: success,
       platform: Platform.isIOS() ? 'ios' : Platform.isAndroid() ? 'android' : 'web'

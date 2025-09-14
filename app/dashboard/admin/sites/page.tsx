@@ -1,4 +1,3 @@
-import SiteManagementList from '@/components/admin/SiteManagementList'
 
 export default function SiteManagementPage() {
   return (

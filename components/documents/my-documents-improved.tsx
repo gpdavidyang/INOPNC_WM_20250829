@@ -1,21 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  FileText, Upload, Download, Search, Filter, Eye, Trash2, MoreVertical,
-  Clock, ChevronDown, Grid3x3, List, Check, X, File, FileImage,
-  FileSpreadsheet, FileArchive, AlertCircle
-} from 'lucide-react'
-import { getMyDocuments, uploadDocument, deleteDocument } from '@/app/actions/documents'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
 
 interface MyDocumentsImprovedProps {
-  profile: any
+  profile: unknown
 }
 
 // File type configurations

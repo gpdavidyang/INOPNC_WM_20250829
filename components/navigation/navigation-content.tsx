@@ -1,8 +1,6 @@
 'use client'
 
 import React, { Suspense } from 'react'
-import { useNavigation } from './navigation-context'
-import { Profile } from '@/types'
 import HomeTab from '@/components/dashboard/tabs/home-tab'
 import {
   LazyWorkLogsTab,

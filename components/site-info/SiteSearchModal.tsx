@@ -1,12 +1,5 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { X, Search, Clock, MapPin, Building2, ChevronRight } from 'lucide-react'
-import { SiteSearchResult } from '@/types/site-info'
-import { createClient } from '@/lib/supabase/client'
-import { debounce } from 'lodash'
-import { useFontSize, getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface SiteSearchModalProps {
   isOpen: boolean
@@ -66,25 +59,25 @@ export default function SiteSearchModal({
 
         if (error) throw error
 
-        const formattedSites = data?.map((site: any) => ({
-          id: (site as any).id,
-          name: (site as any).name,
-          address: (site as any).full_address?.[0]?.full_address || '주소 정보 없음',
+        const formattedSites = data?.map((site: unknown) => ({
+          id: (site as unknown).id,
+          name: (site as unknown).name,
+          address: (site as unknown).full_address?.[0]?.full_address || '주소 정보 없음',
           construction_period: {
-            start_date: new Date((site as any).construction_start_date),
-            end_date: new Date((site as any).construction_end_date)
+            start_date: new Date((site as unknown).construction_start_date),
+            end_date: new Date((site as unknown).construction_end_date)
           },
           progress_percentage: calculateProgress(
-            (site as any).construction_start_date, 
-            (site as any).construction_end_date
+            (site as unknown).construction_start_date, 
+            (site as unknown).construction_end_date
           ),
           participant_count: 0, // TODO: Get actual count
-          is_active: (site as any).is_active
+          is_active: (site as unknown).is_active
         })) || []
 
         // Sort by the order in recentIds to maintain recency
         const sortedSites = recentIds
-          .map(id => formattedSites.find((site: any) => site.id === id))
+          .map(id => formattedSites.find((site: unknown) => site.id === id))
           .filter(Boolean) as SiteSearchResult[]
 
         setRecentSites(sortedSites.slice(0, RECENT_SITES_LIMIT))
@@ -126,20 +119,20 @@ export default function SiteSearchModal({
 
         if (error) throw error
 
-        const formattedResults = data?.map((site: any) => ({
-          id: (site as any).id,
-          name: (site as any).name,
-          address: (site as any).full_address?.[0]?.full_address || '주소 정보 없음',
+        const formattedResults = data?.map((site: unknown) => ({
+          id: (site as unknown).id,
+          name: (site as unknown).name,
+          address: (site as unknown).full_address?.[0]?.full_address || '주소 정보 없음',
           construction_period: {
-            start_date: new Date((site as any).construction_start_date),
-            end_date: new Date((site as any).construction_end_date)
+            start_date: new Date((site as unknown).construction_start_date),
+            end_date: new Date((site as unknown).construction_end_date)
           },
           progress_percentage: calculateProgress(
-            (site as any).construction_start_date, 
-            (site as any).construction_end_date
+            (site as unknown).construction_start_date, 
+            (site as unknown).construction_end_date
           ),
           participant_count: 0, // TODO: Get actual count
-          is_active: (site as any).is_active
+          is_active: (site as unknown).is_active
         })) || []
 
         setSearchResults(formattedResults)
@@ -283,7 +276,7 @@ export default function SiteSearchModal({
                   최근 방문한 현장
                 </h3>
                 <div className="space-y-2">
-                  {recentSites.map((site: any) => (
+                  {recentSites.map((site: unknown) => (
                     <SiteCard
                       key={site.id}
                       site={site}
@@ -304,7 +297,7 @@ export default function SiteSearchModal({
                   검색 결과 ({searchResults.length}개)
                 </h3>
                 <div className="space-y-2">
-                  {searchResults.map((site: any) => (
+                  {searchResults.map((site: unknown) => (
                     <SiteCard
                       key={site.id}
                       site={site}

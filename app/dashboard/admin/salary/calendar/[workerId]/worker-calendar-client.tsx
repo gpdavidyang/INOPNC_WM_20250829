@@ -1,11 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
-import { getWorkerCalendarData, WorkerCalendarData } from '@/app/actions/admin/salary'
 import WorkerCalendar from '@/components/admin/WorkerCalendar'
-import { PageHeader } from '@/components/ui/page-header'
-import { ArrowLeft } from 'lucide-react'
 
 interface WorkerCalendarClientProps {
   workerId: string

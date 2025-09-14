@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/client'
-import { User } from '@supabase/supabase-js'
 
 export interface UserProfile {
   id: string
@@ -204,7 +202,7 @@ export class ProfileManager {
   async logAuthEvent(
     userId: string,
     eventType: 'login' | 'logout' | 'login_failed' | 'password_changed' | 'profile_updated',
-    details?: any
+    details?: unknown
   ): Promise<void> {
     try {
       // TODO: Enable when auth_audit_logs table is available

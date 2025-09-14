@@ -2,10 +2,10 @@
 
 // 간단한 메모리 캐시 구현
 class PerformanceCache {
-  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+  private cache = new Map<string, { data: unknown; timestamp: number; ttl: number }>()
   private maxSize = 100 // 최대 캐시 항목 수
 
-  set(key: string, data: any, ttlMs: number = 5 * 60 * 1000) { // 기본 5분
+  set(key: string, data: unknown, ttlMs: number = 5 * 60 * 1000) { // 기본 5분
     // 캐시 크기 제한
     if (this.cache.size >= this.maxSize) {
       const firstKey = this.cache.keys().next().value

@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import PartnerWorkersClient from './partner-workers-client'
 
 export default async function PartnerWorkersPage() {

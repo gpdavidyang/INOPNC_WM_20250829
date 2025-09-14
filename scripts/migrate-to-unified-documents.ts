@@ -12,7 +12,6 @@
  * NEXT_PUBLIC_SUPABASE_URL="your-url" SUPABASE_SERVICE_ROLE_KEY="your-key" npx tsx scripts/migrate-to-unified-documents.ts
  */
 
-import { createClient } from '@supabase/supabase-js'
 
 // 환경 변수 확인
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

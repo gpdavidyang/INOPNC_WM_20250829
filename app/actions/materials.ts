@@ -1,14 +1,6 @@
 'use server'
 
 import type { AsyncState, ApiResponse } from '@/types/utils'
-import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
-import { 
-  AppError, 
-  ErrorType, 
-  validateSupabaseResponse, 
-  logError 
-} from '@/lib/error-handling'
 
 // Get all materials
 export async function getMaterials() {
@@ -22,7 +14,7 @@ export async function getMaterials() {
         category:material_categories(id, name)
       `)
       .eq('is_active', true)
-      .order('name') as any)
+      .order('name') as unknown)
 
     validateSupabaseResponse(data, error)
 
@@ -44,7 +36,7 @@ export async function getMaterialCategories() {
     const { data, error } = await (supabase
       .from('material_categories')
       .select('*')
-      .order('name') as any)
+      .order('name') as unknown)
 
     validateSupabaseResponse(data, error)
 
@@ -75,9 +67,9 @@ export async function createMaterial(materialData: {
     
     const { data, error } = await (supabase
       .from('materials')
-      .insert(materialData as any)
+      .insert(materialData as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 
@@ -105,10 +97,10 @@ export async function updateMaterial(id: string, updates: Partial<{
     
     const { data, error } = await (supabase
       .from('materials')
-      .update(updates as any)
+      .update(updates as unknown)
       .eq('id', id)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 
@@ -131,7 +123,7 @@ export async function getMaterialInventory(siteId: string) {
         material:materials(id, name, code, specification, unit, min_stock_level)
       `)
       .eq('site_id', siteId)
-      .order('material_id') as any)
+      .order('material_id') as unknown)
 
     if (error) throw error
 
@@ -151,7 +143,7 @@ export async function getNPC1000Inventory(siteId?: string) {
       .from('materials')
       .select('id')
       .eq('code', 'NPC-1000')
-      .single() as any)
+      .single() as unknown)
 
     if (!npcMaterial) {
       return { success: false, error: 'NPC-1000 material not found' }
@@ -164,7 +156,7 @@ export async function getNPC1000Inventory(siteId?: string) {
         material:materials(name, code, specification, unit),
         site:sites(id, name, address)
       `)
-      .eq('material_id', (npcMaterial as any).id)) as any
+      .eq('material_id', (npcMaterial as unknown).id)) as unknown
 
     if (siteId) {
       query = query.eq('site_id', siteId)
@@ -199,9 +191,9 @@ export async function updateMaterialStock(
       .select('current_stock')
       .eq('site_id', siteId)
       .eq('material_id', materialId)
-      .single() as any)
+      .single() as unknown)
 
-    const currentStock = (currentInventory as any)?.current_stock || 0
+    const currentStock = (currentInventory as unknown)?.current_stock || 0
     const difference = newStock - currentStock
 
     // Create adjustment transaction
@@ -215,7 +207,7 @@ export async function updateMaterialStock(
         notes: notes || `Stock adjustment: ${currentStock} → ${newStock}`,
         transaction_date: new Date().toISOString().split('T')[0],
         created_by: user.id
-      } as any) as any)
+      } as unknown) as unknown)
 
     if (transactionError) throw transactionError
 
@@ -260,9 +252,9 @@ export async function createMaterialTransaction(transactionData: {
         transaction_date: new Date().toISOString().split('T')[0],
         created_by: user.id,
         total_price: transactionData.unit_price ? transactionData.unit_price * transactionData.quantity : undefined
-      } as any)
+      } as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 
@@ -294,7 +286,7 @@ export async function getMaterialTransactions(filters: {
         to_site:to_site_id(name),
         creator:created_by(full_name),
         approver:approved_by(full_name)
-      `)) as any
+      `)) as unknown
 
     if (filters.site_id) {
       query = query.or(`site_id.eq.${filters.site_id},from_site_id.eq.${filters.site_id},to_site_id.eq.${filters.site_id}`)
@@ -357,9 +349,9 @@ export async function createMaterialRequest(requestData: {
         priority: requestData.priority || 'normal',
         needed_by: requestData.needed_by,
         notes: requestData.notes
-      } as any)
+      } as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (requestError) throw requestError
 
@@ -367,13 +359,13 @@ export async function createMaterialRequest(requestData: {
     const { error: itemsError } = await (supabase
       .from('material_request_items')
       .insert(
-        requestData.items.map((item: any) => ({
-          request_id: (request as any).id,
+        requestData.items.map((item: unknown) => ({
+          request_id: (request as unknown).id,
           material_id: item.material_id,
           requested_quantity: item.requested_quantity,
           notes: item.notes
-        })) as any
-      ) as any)
+        })) as unknown
+      ) as unknown)
 
     if (itemsError) throw itemsError
 
@@ -405,7 +397,7 @@ export async function getMaterialRequests(filters: {
           *,
           material:materials(name, code, specification, unit)
         )
-      `)) as any
+      `)) as unknown
 
     if (filters.site_id) {
       query = query.eq('site_id', filters.site_id)
@@ -444,7 +436,7 @@ export async function updateMaterialRequestStatus(
     
     if (!user) throw new Error('Unauthorized')
 
-    const updates: any = {
+    const updates: unknown = {
       status,
       notes: notes ? `${notes}\n\n---\nStatus update` : undefined
     }
@@ -458,10 +450,10 @@ export async function updateMaterialRequestStatus(
 
     const { data, error } = await (supabase
       .from('material_requests')
-      .update(updates as any)
+      .update(updates as unknown)
       .eq('id', requestId)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) throw error
 

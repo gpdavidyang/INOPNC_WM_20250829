@@ -3,7 +3,7 @@
 interface ValidationResult {
   isValid: boolean
   error?: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 // Korean holidays for 2024 (would normally be fetched from a service)

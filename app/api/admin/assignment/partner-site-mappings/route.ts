@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -63,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     // Get assigned users count for each mapping
     const mappingsWithUserCounts = await Promise.all(
-      (mappings || []).map(async (mapping: any) => {
+      (mappings || []).map(async (mapping: unknown) => {
         const { count } = await supabase
           .from('unified_user_assignments')
           .select('id', { count: 'exact' })

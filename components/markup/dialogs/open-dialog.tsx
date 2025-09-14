@@ -1,6 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -9,16 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/custom-select'
-import { MarkupDocument } from '@/types'
-import { FileText, Calendar, Edit } from 'lucide-react'
 
 interface OpenDialogProps {
   open: boolean
@@ -84,7 +73,7 @@ export function OpenDialog({ open, onOpenChange, onOpen }: OpenDialogProps) {
                 저장된 문서가 없습니다
               </div>
             ) : (
-              documents.map((doc: any) => (
+              documents.map((doc: unknown) => (
                 <Button
                   key={doc.id}
                   variant="outline"

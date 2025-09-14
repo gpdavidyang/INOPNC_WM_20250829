@@ -1,15 +1,5 @@
 'use client'
 
-import React from 'react'
-import { 
-  Download, Eye, Share2, Edit3, Trash2, 
-  MoreVertical, FileText, Image, Clock,
-  CheckCircle, XCircle, AlertCircle
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,8 +7,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { formatDistanceToNow } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
 
 interface GeneralUserViewProps {

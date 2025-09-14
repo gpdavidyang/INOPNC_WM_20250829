@@ -3,7 +3,6 @@
  * 2025-08-22: admin과 system_admin 권한 통합
  */
 
-import { Profile, UserRole } from '@/types'
 
 /**
  * UI 접근 권한 체크

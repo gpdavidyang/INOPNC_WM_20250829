@@ -1,15 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
 import NotificationCreateModal from './NotificationCreateModal'
-import { 
-  Bell, MessageSquare, AlertCircle, Info, CheckCircle, 
-  Clock, Calendar, User, Building2, Filter, Search,
-  Archive, Trash2, Eye, EyeOff, RefreshCw, Settings,
-  ChevronRight, X, FileText, Package, DollarSign, UserPlus, Plus
-} from 'lucide-react'
 
 interface NotificationCenterProps {
   profile: Profile
@@ -30,7 +21,7 @@ interface SystemNotification {
   created_at: string
   read_at?: string
   action_url?: string
-  metadata?: any
+  metadata?: unknown
 }
 
 const notificationTypes = [
@@ -138,7 +129,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
       }
       
       // 데이터 변환
-      const transformedNotifications: SystemNotification[] = result.data.map((notification: any) => ({
+      const transformedNotifications: SystemNotification[] = result.data.map((notification: unknown) => ({
         id: notification.id,
         type: getNotificationTypeFromString(notification.type),
         title: notification.title,

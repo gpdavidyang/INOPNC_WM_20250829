@@ -1,9 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { Home, MapPin, FileText, FolderOpen, Calendar } from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { usePathname, useRouter } from 'next/navigation'
 
 interface PartnerBottomNavigationProps {
   activeTab: string

@@ -1,6 +1,3 @@
-import PDFDocument from 'pdfkit'
-import path from 'path'
-import fs from 'fs'
 
 interface PhotoGridData {
   id: string

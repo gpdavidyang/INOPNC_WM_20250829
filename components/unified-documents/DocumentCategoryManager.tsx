@@ -1,26 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Share2, 
-  Edit, 
-  FileText, 
-  AlertCircle, 
-  Receipt, 
-  Image, 
-  User,
-  Award,
-  BarChart,
-  Folder,
-  Plus,
-  Settings
-} from 'lucide-react'
-import { useUnifiedDocuments, type UnifiedDocument } from '@/hooks/use-unified-documents'
-import { DOCUMENT_CATEGORIES, getCategoryInfo } from '@/lib/utils/document-utils'
 
 interface DocumentCategoryManagerProps {
   siteId?: string

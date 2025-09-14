@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { AlertTriangle, CheckCircle, X, RefreshCw } from 'lucide-react'
 
 interface EnvVarStatus {
   exists: boolean

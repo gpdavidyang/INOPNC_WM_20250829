@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import MobileDashboardLayout from '@/components/dashboard/mobile-dashboard-layout'
 
 export default function TestMobileIntegrationPage() {
@@ -14,7 +13,7 @@ export default function TestMobileIntegrationPage() {
     updated_at: '2025-01-01T00:00:00Z',
     app_metadata: {},
     user_metadata: {}
-  } as any
+  } as unknown
 
   const mockProfile = {
     id: 'test-user-id',
@@ -42,7 +41,7 @@ export default function TestMobileIntegrationPage() {
       }}>
         <select 
           value={currentRole} 
-          onChange={(e) => setCurrentRole(e.target.value as any)}
+          onChange={(e) => setCurrentRole(e.target.value as unknown)}
           style={{
             padding: '4px 8px',
             borderRadius: '4px',

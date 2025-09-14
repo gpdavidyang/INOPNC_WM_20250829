@@ -1,4 +1,3 @@
-import { createClient } from '@/lib/supabase/client'
 
 async function testNavigation() {
   console.log('🧪 Testing navigation refactoring implementation...\n')

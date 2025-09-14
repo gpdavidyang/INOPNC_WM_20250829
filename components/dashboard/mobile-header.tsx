@@ -1,8 +1,5 @@
 'use client'
 
-import { Bell, Search, User } from 'lucide-react'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 
 interface MobileHeaderProps {
   userName?: string

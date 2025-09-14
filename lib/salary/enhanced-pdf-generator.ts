@@ -3,13 +3,6 @@
  * 고용형태별 급여명세서 PDF 생성기
  */
 
-import jsPDF from 'jspdf'
-import { 
-  EmploymentType, 
-  EnhancedSalaryCalculationResult,
-  WorkerSalarySetting 
-} from '@/types'
-import { EMPLOYMENT_TYPE_LABELS } from '@/lib/salary/enhanced-calculator'
 
 // 한글 폰트 설정 (실제 환경에서는 폰트 파일이 필요)
 declare module 'jspdf' {

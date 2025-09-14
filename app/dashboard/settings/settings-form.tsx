@@ -1,14 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { User } from '@supabase/supabase-js'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useFontSize, getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { useContrastMode } from '@/contexts/ContrastModeContext'
-import { useKeyboardNavigation } from '@/hooks/use-keyboard-navigation'
 
 interface SettingsFormProps {
   user: User

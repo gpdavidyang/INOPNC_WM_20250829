@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { WorkOptionSetting } from '@/types'
 
 interface UseWorkOptionsReturn {
   componentTypes: WorkOptionSetting[]

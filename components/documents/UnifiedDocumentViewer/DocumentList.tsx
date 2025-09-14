@@ -1,6 +1,5 @@
 'use client'
 
-import React from 'react'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
 
 interface DocumentListProps {

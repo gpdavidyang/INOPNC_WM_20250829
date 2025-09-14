@@ -1,9 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { ArrowLeft, Download, Edit2, Trash2, GitBranch, PenTool, FileText, User, MapPin, Calendar, Eye } from 'lucide-react'
 
 interface MarkupDocument {
   id: string

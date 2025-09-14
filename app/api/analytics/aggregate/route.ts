@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +31,7 @@ export async function POST(request: NextRequest) {
     // Run the daily aggregation for all sites
     const { error } = await (supabase.rpc('run_daily_analytics_aggregation', {
       p_date: date || new Date().toISOString().split('T')[0]
-    } as any) as any)
+    } as unknown) as unknown)
 
     if (error) {
       console.error('Error running full aggregation:', error)
@@ -103,7 +101,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Count sites that have been aggregated today
-    const aggregatedSites = new Set(data?.map((d: any) => d.site_id) || [])
+    const aggregatedSites = new Set(data?.map((d: unknown) => d.site_id) || [])
     
     // Get total sites count
     let sitesQuery = supabase

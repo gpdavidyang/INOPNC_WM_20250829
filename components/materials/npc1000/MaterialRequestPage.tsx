@@ -1,20 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
-import { Card } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/client'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Package, ArrowLeft } from 'lucide-react'
-import { toast } from 'sonner'
-import { createMaterialRequest } from '@/app/actions/npc-materials'
-import { getCurrentUserSite } from '@/app/actions/site-info'
 
 export default function MaterialRequestPage() {
   const router = useRouter()

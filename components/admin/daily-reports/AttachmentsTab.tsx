@@ -1,21 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Upload, 
-  Download, 
-  Trash2, 
-  File, 
-  FileText, 
-  FileImage,
-  Eye,
-  X,
-  CheckCircle,
-  AlertTriangle
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface AttachmentFile {
   id: string

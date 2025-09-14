@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import { SettingsPageWrapper } from './settings-page-wrapper'
 
 export default async function SettingsPage() {

@@ -1,47 +1,6 @@
 'use client'
 
 import React, { useState, useEffect, DragEvent } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Users, 
-  UserPlus, 
-  UserMinus,
-  MapPin, 
-  Search, 
-  Filter,
-  Building2,
-  Calendar,
-  AlertCircle,
-  CheckCircle,
-  Clock,
-  User,
-  GripVertical,
-  MoveRight,
-  RefreshCw
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { AssignmentExplanationTooltip } from './AssignmentTooltip'
-import { cn } from '@/lib/utils'
 
 interface User {
   id: string

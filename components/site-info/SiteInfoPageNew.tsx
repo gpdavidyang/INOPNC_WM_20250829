@@ -1,32 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
-import { cn } from '@/lib/utils'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { 
-  MapPin, 
-  Users,
-  Building,
-  Clock,
-  FileText,
-  Download,
-  ExternalLink,
-  Package,
-  Search,
-  Copy,
-  Phone,
-  Navigation,
-  Calendar
-} from 'lucide-react'
-import { CurrentUserSite, UserSiteHistory, Profile } from '@/types'
-import { selectUserSite } from '@/app/actions/site-info'
-import { MaterialManagementSimplified } from '@/components/materials/material-management-simplified'
-import { getMaterials, getMaterialCategories, getMaterialInventory } from '@/app/actions/materials'
-import { LoadingState, EmptyState } from '@/components/dashboard/page-layout'
 
 interface SiteInfoPageNewProps {
   initialCurrentSite: CurrentUserSite | null

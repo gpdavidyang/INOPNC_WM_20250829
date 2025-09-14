@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 /**
  * POST /api/sites/switch
@@ -106,7 +104,7 @@ export async function POST(request: NextRequest) {
         .eq('user_id', user.id)
         .single()
 
-      let recentSites = (preferences as any)?.recent_site_ids || []
+      let recentSites = (preferences as unknown)?.recent_site_ids || []
       
       // Add current site to the beginning, remove duplicates, keep max 5
       recentSites = [siteId, ...recentSites.filter((id: string) => id !== siteId)].slice(0, 5)
@@ -119,7 +117,7 @@ export async function POST(request: NextRequest) {
             recent_site_ids: recentSites,
             last_site_id: siteId,
             updated_at: new Date().toISOString()
-          } as any)
+          } as unknown)
           .eq('user_id', user.id)
       } else {
         await supabase
@@ -128,7 +126,7 @@ export async function POST(request: NextRequest) {
             user_id: user.id,
             recent_site_ids: recentSites,
             last_site_id: siteId
-          } as any)
+          } as unknown)
       }
     } catch (prefError) {
       // Don't fail the request if preferences update fails

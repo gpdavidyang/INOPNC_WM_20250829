@@ -1,28 +1,5 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { 
-  Users, 
-  Plus, 
-  Edit2, 
-  Trash2, 
-  Save, 
-  X, 
-  Clock, 
-  User,
-  CheckCircle,
-  AlertTriangle,
-  AlertCircle
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
-import WorkerDebugPanel from './WorkerDebugPanel'
 
 interface Worker {
   id: string

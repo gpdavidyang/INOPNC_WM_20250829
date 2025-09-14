@@ -1,8 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { X, Download, FileText, User, Calendar, CheckCircle, XCircle, Clock, AlertTriangle, Edit2, Save } from 'lucide-react'
 
 interface User {
   id: string
@@ -151,7 +149,7 @@ export default function RequiredDocumentDetailModal({
       const now = new Date().toISOString()
 
       // Update submission status
-      const updateData: any = {
+      const updateData: unknown = {
         submission_status: newStatus,
         reviewed_by: currentUser.data.user?.id,
         review_date: now

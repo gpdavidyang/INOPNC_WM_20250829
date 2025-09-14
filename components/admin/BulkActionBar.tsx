@@ -1,12 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Trash2, Edit, Archive, CheckCircle, XCircle, MoreHorizontal } from 'lucide-react'
 
 interface BulkAction {
   id: string
   label: string
-  icon: any
+  icon: unknown
   variant?: 'default' | 'destructive' | 'secondary'
   onClick: (selectedIds: string[]) => void | Promise<void>
   confirmMessage?: string

@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Check, ChevronDown, X } from 'lucide-react'
-import { createPortal } from 'react-dom'
 
 interface Option {
   value: string

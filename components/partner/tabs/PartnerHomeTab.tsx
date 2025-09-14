@@ -1,21 +1,11 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  FileText, Calendar, MapPin, FolderOpen, 
-  Megaphone, ChevronDown, ChevronUp, Settings,
-  X, Check, GripVertical, ArrowUp, ArrowDown, Plus
-} from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import PartnerLaborHoursSummary from '../cards/PartnerLaborHoursSummary'
-import PartnerSiteLaborCard from '../cards/PartnerSiteLaborCard'
 
 interface PartnerHomeTabProps {
   profile: Profile
   sites: unknown[]
-  organization: any
+  organization: unknown
   onTabChange?: (tab: string) => void
 }
 
@@ -49,7 +39,7 @@ export default function PartnerHomeTab({ profile, sites, organization, onTabChan
   const [dragOverItem, setDragOverItem] = useState<string | null>(null)
   
   // Labor data states
-  const [laborStats, setLaborStats] = useState<any>({})
+  const [laborStats, setLaborStats] = useState<unknown>({})
   const [laborSites, setLaborSites] = useState<any[]>([])
   const [laborPeriod, setLaborPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly')
   const [laborLoading, setLaborLoading] = useState(true)
@@ -476,7 +466,7 @@ export default function PartnerHomeTab({ profile, sites, organization, onTabChan
                 <div className="space-y-2">
                   {availableQuickMenuItems
                     .filter(item => !selectedQuickMenuItems.includes(item.id))
-                    .map((item: any) => (
+                    .map((item: unknown) => (
                     <div
                       key={item.id}
                       className="flex items-center p-2 rounded-lg border-2 border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 transition-all cursor-pointer"

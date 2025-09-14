@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server'
 
 export const runtime = 'edge' // Use edge runtime for better performance
 

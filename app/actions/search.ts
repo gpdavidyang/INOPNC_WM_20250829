@@ -1,7 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
-import { validateSupabaseResponse, logError, AppError } from '@/lib/error-handling'
 import type { 
   SearchOptions, 
   SearchResult, 
@@ -238,7 +236,7 @@ function getFieldLabel(field: string): string {
   return labels[field] || field
 }
 
-function formatValue(field: string, value: any): string {
+function formatValue(field: string, value: unknown): string {
   if (field.includes('date') || field.includes('_at')) {
     return new Date(value).toLocaleDateString('ko-KR')
   }
@@ -251,7 +249,7 @@ function formatValue(field: string, value: any): string {
   return String(value)
 }
 
-function getDisplayValue(field: string, value: any): string {
+function getDisplayValue(field: string, value: unknown): string {
   // Handle select field display values
   const selectValues: Record<string, Record<string, string>> = {
     status: {

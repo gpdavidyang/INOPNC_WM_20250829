@@ -1,5 +1,3 @@
-import { createCanvas, loadImage, registerFont } from 'canvas'
-import path from 'path'
 
 // Register fonts if needed
 try {

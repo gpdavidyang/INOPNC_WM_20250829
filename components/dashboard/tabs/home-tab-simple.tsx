@@ -1,27 +1,12 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, memo, useMemo } from 'react'
-import { Profile, UserSiteHistory } from '@/types'
-import { NotificationExtended } from '@/types/notifications'
-import { createClient } from '@/lib/supabase/client'
-import SimpleSiteInfo from '@/components/site-info/SimpleSiteInfo'
-import { useFontSize, getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  Calendar, FileText, MapPin, FolderOpen, 
-  Edit3, ChevronDown, ChevronUp, Phone, Copy, Navigation,
-  Building2, Megaphone, Settings, X, Check, Users, BarChart3,
-  ClipboardList, Bell, MessageSquare, DollarSign, HardHat, Plus, GripVertical,
-  ArrowUp, ArrowDown
-} from 'lucide-react'
-import { useRouter } from 'next/navigation'
 
 interface HomeTabProps {
   profile: Profile
   onTabChange?: (tabId: string) => void
   onDocumentsSearch?: (searchTerm: string) => void
-  initialCurrentSite?: any
+  initialCurrentSite?: unknown
   initialSiteHistory?: unknown[]
 }
 

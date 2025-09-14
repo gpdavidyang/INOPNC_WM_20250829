@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createClient, resetClient, forceSessionRefresh } from '@/lib/supabase/client'
-import { bridgeSession, ensureClientSession } from '@/lib/supabase/session-bridge'
 
 export default function DebugSessionPage() {
   const [logs, setLogs] = useState<string[]>([])

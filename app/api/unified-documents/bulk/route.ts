@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,8 +50,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 찾은 문서 ID와 요청된 ID 비교
-    const foundIds = documents.map((d: any) => d.id)
-    const missingIds = documentIds.filter((id: any) => !foundIds.includes(id))
+    const foundIds = documents.map((d: unknown) => d.id)
+    const missingIds = documentIds.filter((id: unknown) => !foundIds.includes(id))
     
     if (missingIds.length > 0) {
       return NextResponse.json({ 
@@ -64,7 +62,7 @@ export async function POST(request: NextRequest) {
     let result
 
     switch (action) {
-      case 'delete':
+      case 'delete': {
         // 대량 소프트 삭제
         const { data: deletedDocuments, error: deleteError } = await supabase
           .from('unified_document_system')
@@ -87,7 +85,8 @@ export async function POST(request: NextRequest) {
         }
         break
 
-      case 'archive':
+}
+      case 'archive': {
         // 대량 아카이브
         const { data: archivedDocuments, error: archiveError } = await supabase
           .from('unified_document_system')
@@ -111,7 +110,8 @@ export async function POST(request: NextRequest) {
         }
         break
 
-      case 'restore':
+}
+      case 'restore': {
         // 대량 복구
         const { data: restoredDocuments, error: restoreError } = await supabase
           .from('unified_document_system')
@@ -135,7 +135,8 @@ export async function POST(request: NextRequest) {
         }
         break
 
-      case 'update':
+}
+      case 'update': {
         // 대량 업데이트
         if (!updateData) {
           return NextResponse.json({ error: 'Update data required' }, { status: 400 })
@@ -163,7 +164,8 @@ export async function POST(request: NextRequest) {
         }
         break
 
-      case 'change_category':
+}
+      case 'change_category': {
         // 카테고리 변경
         const { category_type, sub_category } = updateData || {}
         
@@ -194,6 +196,7 @@ export async function POST(request: NextRequest) {
         }
         break
 
+}
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -226,7 +229,7 @@ export async function PATCH(request: NextRequest) {
 
     // 특별한 작업들 처리
     switch (action) {
-      case 'approve':
+      case 'approve': {
         // 문서 승인
         if (!actionData.approved_by) {
           actionData.approved_by = user.id
@@ -235,24 +238,28 @@ export async function PATCH(request: NextRequest) {
         actionData.status = 'active'
         break
 
-      case 'reject':
+}
+      case 'reject': {
         // 문서 거부
         actionData.status = 'rejected'
         actionData.approved_by = user.id
         actionData.approved_at = new Date().toISOString()
         break
 
-      case 'share':
+}
+      case 'share': {
         // 문서 공유
         actionData.is_public = true
         break
 
-      case 'unshare':
+}
+      case 'unshare': {
         // 문서 공유 해제
         actionData.is_public = false
         break
 
-      case 'add_markup':
+}
+      case 'add_markup': {
         // 마킹 데이터 추가
         const { markup_data } = actionData
         if (!markup_data) {
@@ -271,6 +278,7 @@ export async function PATCH(request: NextRequest) {
           ...markup_data
         ]
         break
+        }
     }
 
     // 업데이트 실행

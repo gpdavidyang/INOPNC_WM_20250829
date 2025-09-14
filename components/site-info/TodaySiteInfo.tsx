@@ -1,17 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import {
-  MapPin, Home, Wrench, Copy, Navigation, User, Phone,
-  ChevronDown, ChevronUp, Check, ExternalLink, ShieldCheck, Building2,
-  FileText, Map, Download, X, Eye, Share2, Calendar
-} from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { SiteInfo, AccommodationAddress, ProcessInfo } from '@/types/site-info'
-import ManagerContacts from './ManagerContacts'
-import { TMap } from '@/lib/external-apps'
-import { getSiteDocumentsPTWAndBlueprint, SiteDocument } from '@/app/actions/site-documents'
-import { toast } from 'sonner'
 
 interface TodaySiteInfoProps {
   siteInfo: SiteInfo | null
@@ -311,7 +299,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
           {Array.isArray(siteInfo.managers) && siteInfo.managers.length > 0 && (
             <>
               {/* Construction Manager first */}
-              {siteInfo.managers.filter((manager: any) => manager?.role === 'construction_manager' && manager?.name && manager?.phone).map((manager: any, index: number) => (
+              {siteInfo.managers.filter((manager: unknown) => manager?.role === 'construction_manager' && manager?.name && manager?.phone).map((manager: unknown, index: number) => (
                 <div key={index} className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -338,7 +326,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                 </div>
               ))}
               {/* Assistant Manager second */}
-              {siteInfo.managers.filter((manager: any) => manager?.role === 'assistant_manager' && manager?.name && manager?.phone).map((manager: any, index: number) => (
+              {siteInfo.managers.filter((manager: unknown) => manager?.role === 'assistant_manager' && manager?.name && manager?.phone).map((manager: unknown, index: number) => (
                 <div key={index} className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -365,7 +353,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                 </div>
               ))}
               {/* Safety Manager third */}
-              {siteInfo.managers.filter((manager: any) => manager?.role === 'safety_manager' && manager?.name && manager?.phone).map((manager: any, index: number) => (
+              {siteInfo.managers.filter((manager: unknown) => manager?.role === 'safety_manager' && manager?.name && manager?.phone).map((manager: unknown, index: number) => (
                 <div key={index} className="space-y-1 text-sm">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -562,7 +550,7 @@ export default function TodaySiteInfo({ siteInfo, loading, error }: TodaySiteInf
                     
                     // PWA 환경 감지 (더 정확한 방법)
                     const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                                  (window.navigator as any).standalone === true ||
+                                  (window.navigator as unknown).standalone === true ||
                                   document.referrer.includes('android-app://') ||
                                   window.location.protocol === 'https:' && 
                                   window.location.hostname !== 'localhost';

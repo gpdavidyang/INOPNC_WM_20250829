@@ -1,10 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Download, Share2, ZoomIn, ZoomOut, RotateCw, X, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { toast } from 'sonner'
 
 export default function PDFViewerPage() {
   const router = useRouter()
@@ -94,7 +90,7 @@ export default function PDFViewerPage() {
     try {
       // PWA 환경에서는 window.close() 시도
       const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                    (window.navigator as any).standalone === true
+                    (window.navigator as unknown).standalone === true
 
       if (isPWA && window.opener) {
         window.close()

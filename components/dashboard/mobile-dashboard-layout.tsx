@@ -1,14 +1,5 @@
 'use client'
 
-import { User } from '@supabase/supabase-js'
-import { Profile } from '@/types'
-import { usePathname } from 'next/navigation'
-import MobileHeader from './mobile-header'
-import MobileBottomNav from './mobile-bottom-nav'
-import HomeTabNew from './tabs/home-tab-new'
-import DailyReportsTabNew from './tabs/daily-reports-tab-new'
-import DocumentsTabNew from './tabs/documents-tab-new'
-import SiteInfoTabNew from './tabs/site-info-tab-new'
 import { ErrorBoundary } from './error-boundary'
 
 interface MobileDashboardLayoutProps {

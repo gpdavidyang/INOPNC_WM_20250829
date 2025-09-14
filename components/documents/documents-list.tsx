@@ -1,22 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { 
-  FileText, 
-  Download, 
-  Trash2, 
-  Search,
-  Filter,
-  Calendar,
-  File,
-  FileImage,
-  FileSpreadsheet,
-  FileArchive
-} from 'lucide-react'
-import { Document } from '@/types'
 
 interface DocumentsListProps {
   documents: Document[]
@@ -137,7 +120,7 @@ export default function DocumentsList({ documents }: DocumentsListProps) {
                     variant="outline"
                     size="compact"
                     className="flex-1"
-                    onClick={() => window.open((document as any).file_path, '_blank')}
+                    onClick={() => window.open((document as unknown).file_path, '_blank')}
                   >
                     <Download className="h-4 w-4 mr-1" />
                     다운로드

@@ -1,9 +1,5 @@
 import { Suspense } from 'react'
-import { notFound, redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import SiteDocumentManagement from '@/components/admin/SiteDocumentManagement'
-import { ArrowLeft, FileText, Building2, MapPin } from 'lucide-react'
-import Link from 'next/link'
 
 interface PageProps {
   params: {

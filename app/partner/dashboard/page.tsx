@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import PartnerDashboardClient from './partner-dashboard-client'
 
 export default async function PartnerDashboardPage() {

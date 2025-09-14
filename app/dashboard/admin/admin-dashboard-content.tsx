@@ -1,22 +1,16 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { Suspense } from 'react'
+import type { QuickAction } from '@/types'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { QuickActionsSettings } from '@/components/admin/quick-actions-settings'
-import { 
-  Users, 
-  Building2, 
-  FileText, 
+import BackupDashboard from '@/components/admin/dashboard/BackupDashboard'
+import {
+  Users,
+  Building2,
   DollarSign,
   Package,
+  FileText,
   Layers,
-  TrendingUp,
-  AlertCircle,
-  CheckCircle,
-  Clock,
   Home,
   Search,
   Calendar,
@@ -26,12 +20,12 @@ import {
   Database,
   Settings,
   HelpCircle,
+  TrendingUp,
+  AlertCircle,
+  CheckCircle,
+  Clock,
   Camera
 } from 'lucide-react'
-import Link from 'next/link'
-import type { QuickAction } from '@/types'
-import { getDashboardStats, type DashboardStats, type RecentActivity } from '@/app/actions/admin/dashboard-stats'
-import { formatRelativeTime } from '@/lib/utils/format-time'
 
 // 아이콘 매핑
 const ICON_MAP = {
@@ -103,7 +97,7 @@ export function AdminDashboardContent() {
       const response = await fetch('/api/notifications/history')
       if (response.ok) {
         const data = await response.json()
-        const unreadCount = data.notifications?.filter((n: any) => !n.is_read).length || 0
+        const unreadCount = data.notifications?.filter((n: unknown) => !n.is_read).length || 0
         setUnreadNotifications(unreadCount)
       }
     } catch (error) {

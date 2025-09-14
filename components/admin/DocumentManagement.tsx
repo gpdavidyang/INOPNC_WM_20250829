@@ -1,19 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile, DocumentType, ApprovalStatus } from '@/types'
-import AdminDataTable from './AdminDataTable'
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
-import { 
-  getDocuments, 
-  processDocumentApprovals,
-  deleteDocuments,
-  updateDocumentProperties,
-  getDocumentApprovalStats,
-  getAvailableSitesForDocuments,
-  DocumentWithApproval
-} from '@/app/actions/admin/documents'
-import { Search, Filter, FileText, Download, Eye, Clock, CheckCircle, XCircle, AlertCircle, Shield, Package, Image, FolderOpen } from 'lucide-react'
 
 interface DocumentManagementProps {
   profile: Profile
@@ -21,7 +8,7 @@ interface DocumentManagementProps {
 
 export default function DocumentManagement({ profile }: DocumentManagementProps) {
   const [documents, setDocuments] = useState<DocumentWithApproval[]>([])
-  const [integratedDocuments, setIntegratedDocuments] = useState<any>(null)
+  const [integratedDocuments, setIntegratedDocuments] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'legacy' | 'integrated'>('integrated')

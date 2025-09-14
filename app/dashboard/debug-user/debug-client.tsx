@@ -1,12 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { forceAssignCurrentUserToTestSite } from '@/app/actions/site-info'
-import { Button } from '@/components/ui/button'
 
 export default function DebugUserClient() {
   const [isLoading, setIsLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<unknown>(null)
 
   const handleForceAssign = async () => {
     setIsLoading(true)

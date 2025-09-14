@@ -1,6 +1,3 @@
-import { useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { QueryClient, useQueryClient } from '@tanstack/react-query'
 
 interface UseSalaryRealtimeProps {
   userId?: string
@@ -29,7 +26,7 @@ export function useSalaryRealtime({
   
   const supabase = createClient()
 
-  const handleSalaryUpdate = useCallback((payload: any) => {
+  const handleSalaryUpdate = useCallback((payload: unknown) => {
     console.log('급여 데이터 업데이트 감지:', payload)
     
     // Only invalidate if queryClient is available
@@ -52,7 +49,7 @@ export function useSalaryRealtime({
   useEffect(() => {
     if (!enabled || !queryClient) return
 
-    const channels: any[] = []
+    const channels: unknown[] = []
 
     // salary_records 테이블 구독
     if (userId) {

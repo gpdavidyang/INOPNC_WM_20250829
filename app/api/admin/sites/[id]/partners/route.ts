@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
 export async function GET(
   request: Request,
@@ -93,7 +91,7 @@ export async function GET(
     const totalPartners = partners?.length || 0
     const totalInvoiceDocuments = invoiceDocuments?.length || 0
     
-    const documentsByPartner = invoiceDocuments?.reduce((acc: any, doc: any) => {
+    const documentsByPartner = invoiceDocuments?.reduce((acc: unknown, doc: unknown) => {
       const partnerId = doc.customer_company_id || 'unassigned'
       const partnerName = partnerId === 'unassigned' ? '미배정' : `Partner ${partnerId.slice(0, 8)}`
       

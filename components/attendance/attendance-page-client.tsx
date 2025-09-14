@@ -1,15 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { AttendanceView } from './attendance-view'
 import { SalaryView } from './salary-view'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useFontSize } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { cn } from '@/lib/utils'
 
 interface AttendancePageClientProps {
-  profile: any
+  profile: unknown
   isPartnerCompany: boolean
 }
 

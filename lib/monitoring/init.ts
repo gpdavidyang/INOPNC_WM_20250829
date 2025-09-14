@@ -3,11 +3,6 @@
  * Bootstraps all monitoring components for the INOPNC Work Management System
  */
 
-import { monitoringManager } from './monitoring-manager'
-import { alertingManager } from './alerting-manager'
-import { securityManager } from '@/lib/security/production-security-manager'
-import { initWebVitals, observePerformance } from './web-vitals'
-import { initSentry } from './sentry'
 
 let isInitialized = false
 
@@ -102,7 +97,7 @@ export async function initializeMonitoring(): Promise<void> {
  */
 function setupMonitoringIntegration(): void {
   // Create alerts for monitoring events
-  const createMonitoringAlert = async (event: any) => {
+  const createMonitoringAlert = async (event: unknown) => {
     try {
       await alertingManager.createAlert({
         ruleId: event.type,
@@ -119,7 +114,7 @@ function setupMonitoringIntegration(): void {
   // Set up event listeners for cross-system integration
   if (typeof window !== 'undefined') {
     // Listen for performance budget violations
-    window.addEventListener('performance-budget-violation', (event: any) => {
+    window.addEventListener('performance-budget-violation', (event: unknown) => {
       createMonitoringAlert({
         type: 'performance_budget_violation',
         title: 'Performance Budget Violation',
@@ -130,7 +125,7 @@ function setupMonitoringIntegration(): void {
     })
 
     // Listen for security events
-    window.addEventListener('security-event', (event: any) => {
+    window.addEventListener('security-event', (event: unknown) => {
       createMonitoringAlert({
         type: 'security_event',
         title: 'Security Event Detected',

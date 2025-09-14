@@ -1,19 +1,5 @@
 'use client'
 
-import { Profile } from '@/types'
-import { 
-  Shield, Menu, X, Home, Users, Building2, FolderCheck, 
-  DollarSign, Package, Layers, Settings, LogOut, BarChart3, Bell,
-  ChevronDown, ChevronRight, User, Key, UserPlus, FileText, MessageSquare,
-  FolderOpen, FileImage, FileCheck, Camera, Edit3, Share2, Layout
-} from 'lucide-react'
-import { useRouter, usePathname } from 'next/navigation'
-import { useState, useEffect, useRef } from 'react'
-import { signOut } from '@/app/auth/actions'
-import Link from 'next/link'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import AdminHeader from '@/components/admin/AdminHeader'
 
 interface AdminDashboardLayoutProps {
   children: React.ReactNode
@@ -259,10 +245,10 @@ function Sidebar({ profile, pathname, onItemClick, isCollapsed }: {
         {/* Mini Navigation - Icons only */}
         <div className="flex-1 overflow-y-auto py-3">
           <nav className="space-y-1 px-2">
-            {allCategories.map((category: any) => {
+            {allCategories.map((category: unknown) => {
               return (
                 <div key={category.id}>
-                  {category.items.filter((item: any) => !item.hidden).map((item: any) => {
+                  {category.items.filter((item: unknown) => !item.hidden).map((item: unknown) => {
                     const Icon = item.icon
                     const isActive = pathname === item.href
                     
@@ -342,9 +328,9 @@ function Sidebar({ profile, pathname, onItemClick, isCollapsed }: {
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto py-3">
         <nav className="space-y-3 px-2">
-          {allCategories.map((category: any, categoryIndex: number) => {
+          {allCategories.map((category: unknown, categoryIndex: number) => {
             const isCollapsed = collapsedCategories.has(category.id)
-            const hasActiveItem = category.items.some((item: any) => pathname === item.href)
+            const hasActiveItem = category.items.some((item: unknown) => pathname === item.href)
             
             return (
               <div key={category.id}>
@@ -372,7 +358,7 @@ function Sidebar({ profile, pathname, onItemClick, isCollapsed }: {
                 {/* Category items - show if not collapsed or has active item */}
                 {(!category.collapsible || !isCollapsed || hasActiveItem) && (
                   <div className="space-y-1">
-                    {category.items.filter((item: any) => !item.hidden).map((item: any) => {
+                    {category.items.filter((item: unknown) => !item.hidden).map((item: unknown) => {
                       const Icon = item.icon
                       const isActive = pathname === item.href
                       

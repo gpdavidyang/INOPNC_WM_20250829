@@ -203,7 +203,7 @@ export function createMockNotificationConstructor(
 
   const MockNotificationClass = function(title: string, options?: NotificationOptions) {
     return createMockNotification(title, options)
-  } as any
+  } as unknown
 
   MockNotificationClass.permission = currentPermission
   MockNotificationClass.requestPermission = jest.fn().mockImplementation(async () => {
@@ -266,12 +266,12 @@ export function createMockBeforeInstallPromptEvent(
   })
 
   // Helper to simulate user accepting the prompt
-  ;(event as any).simulateUserAccept = () => {
+  ;(event as unknown).simulateUserAccept = () => {
     userChoiceOutcome = 'accepted'
   }
 
   // Helper to simulate user dismissing the prompt
-  ;(event as any).simulateUserDismiss = () => {
+  ;(event as unknown).simulateUserDismiss = () => {
     userChoiceOutcome = 'dismissed'
   }
 

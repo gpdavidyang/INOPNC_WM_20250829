@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { Profile } from '@/types'
 
 /**
  * Data Access Service

@@ -1,14 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
-import Navbar from '@/components/navbar'
-import Link from 'next/link'
 
 interface TaskListProps {
-  currentUser: any
-  currentProfile: any
+  currentUser: unknown
+  currentProfile: unknown
   tasks: unknown[]
   projects: unknown[]
   users: unknown[]
@@ -183,7 +178,7 @@ export default function TaskList({ currentUser, currentProfile, tasks, projects,
                   작업이 없습니다.
                 </li>
               ) : (
-                filteredTasks.map((task: any) => (
+                filteredTasks.map((task: unknown) => (
                   <li key={task.id}>
                     <div className="px-4 py-4 sm:px-6">
                       <div className="flex items-center justify-between">

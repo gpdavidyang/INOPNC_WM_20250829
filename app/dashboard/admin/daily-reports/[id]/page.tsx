@@ -1,21 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
-import { 
-  ArrowLeft, Edit, FileText, Users, Calendar, Building2, 
-  AlertTriangle, Camera, Paperclip, Receipt, Map, User,
-  MapPin, Phone, HardHat, Shield, Clock, Hash, Layers,
-  Package, CheckCircle, XCircle, Save, X
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import PhotosTab from '@/components/admin/daily-reports/PhotosTab'
-import AttachmentsTab from '@/components/admin/daily-reports/AttachmentsTab'
-import WorkerManagementTab from '@/components/admin/daily-reports/WorkerManagementTab'
-import MarkupTab from '@/components/admin/daily-reports/MarkupTab'
 import ReceiptsTab from '@/components/admin/daily-reports/ReceiptsTab'
-import { getDailyReportById, updateDailyReport } from '@/app/actions/admin/daily-reports'
 
 interface DailyReport {
   id: string
@@ -133,7 +118,7 @@ export default function DailyReportDetailPage() {
     setSaving(false)
   }
 
-  const handleFieldChange = (field: keyof DailyReport, value: any) => {
+  const handleFieldChange = (field: keyof DailyReport, value: unknown) => {
     setEditedData(prev => ({
       ...prev,
       [field]: value

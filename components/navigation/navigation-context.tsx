@@ -1,7 +1,6 @@
 'use client'
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react'
-import { usePathname, useSearchParams } from 'next/navigation'
 
 interface NavigationContextType {
   activeTab: string

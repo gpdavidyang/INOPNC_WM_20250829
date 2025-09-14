@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // GET /api/photo-grid-reports/[id] - 특정 PDF 보고서 조회
 export async function GET(
@@ -81,7 +79,7 @@ export async function PUT(
       .reduce((obj, key) => {
         obj[key] = body[key]
         return obj
-      }, {} as any)
+      }, {} as unknown)
 
     if (Object.keys(updates).length === 0) {
       return NextResponse.json(

@@ -1,10 +1,6 @@
 'use client'
 
 import React, { useState } from 'react'
-import { 
-  X, Share2, Copy, Check, MessageSquare, Mail, 
-  Smartphone, Link2, QrCode, Users, ExternalLink
-} from 'lucide-react'
 
 interface ShareDialogProps {
   isOpen: boolean

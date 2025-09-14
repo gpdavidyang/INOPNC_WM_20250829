@@ -1,26 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 import type { ToolType, StampToolState } from '@/types/markup'
-import { getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
-import {
-  MousePointer,
-  Square,
-  Type,
-  Pencil,
-  Stamp,
-  Circle,
-  Triangle,
-  Star,
-  Undo2,
-  Redo2,
-  Trash2,
-  Move,
-  ZoomIn,
-  ZoomOut
-} from 'lucide-react'
 
 interface ToolPaletteProps {
   activeTool: ToolType

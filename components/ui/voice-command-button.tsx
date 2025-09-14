@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import { Mic, MicOff, Volume2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface VoiceCommandButtonProps {
   onCommand?: (command: string) => void
@@ -41,12 +38,12 @@ export function VoiceCommandButton({
 }: VoiceCommandButtonProps) {
   const [isListening, setIsListening] = useState(false)
   const [isSupported, setIsSupported] = useState(false)
-  const recognition = useRef<any>(null)
+  const recognition = useRef<unknown>(null)
 
   useEffect(() => {
     // Check if Web Speech API is supported
     if (typeof window !== 'undefined') {
-      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition
+      const SpeechRecognition = window.SpeechRecognition || (window as unknown).webkitSpeechRecognition
       if (SpeechRecognition) {
         setIsSupported(true)
         recognition.current = new SpeechRecognition()
@@ -65,7 +62,7 @@ export function VoiceCommandButton({
           setIsListening(false)
         }
 
-        recognition.current.onresult = (event: any) => {
+        recognition.current.onresult = (event: unknown) => {
           const transcript = event.results[0][0].transcript.trim()
           
           // Find matching Korean command
@@ -82,7 +79,7 @@ export function VoiceCommandButton({
           }
         }
 
-        recognition.current.onerror = (event: any) => {
+        recognition.current.onerror = (event: unknown) => {
           setIsListening(false)
           onError?.(`음성 인식 오류: ${event.error}`)
           playErrorSound()

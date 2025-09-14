@@ -1,14 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Search, Filter, Upload, Download, Eye, Edit, Trash2, Share2,
-  FileText, MoreVertical, Calendar, User, Building2, Tag,
-  FolderOpen, ChevronDown, X, CheckCircle
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { getSharedDocuments, DocumentWithApproval } from '@/app/actions/admin/documents'
 
 interface UnifiedSharedDocument {
   id: string

@@ -1,8 +1,5 @@
 'use client'
 
-import { Profile } from '@/types'
-import { FileText, Download, Eye, Calendar, Building2, CheckCircle, Clock, XCircle } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface PartnerReportsTabProps {
   profile: Profile

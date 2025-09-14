@@ -1,15 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase'
-import Navbar from '@/components/navbar'
-import Link from 'next/link'
 
 interface TaskDetailProps {
-  currentUser: any
-  currentProfile: any
-  task: any
+  currentUser: unknown
+  currentProfile: unknown
+  task: unknown
   comments: unknown[]
   users: unknown[]
   projects: unknown[]
@@ -394,7 +389,7 @@ export default function TaskDetail({
 
                   {/* Comments List */}
                   <ul className="divide-y divide-gray-200">
-                    {Array.isArray(comments) && comments.map((comment: any) => (
+                    {Array.isArray(comments) && comments.map((comment: unknown) => (
                       <li key={comment.id} className="px-4 py-4">
                         <div className="flex space-x-3">
                           <div className="flex-1 space-y-1">

@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,7 +26,7 @@ export async function POST(request: NextRequest) {
     
     console.log('[TEST-PROD-LOGIN] Sample users:', { 
       count: users?.length || 0,
-      users: users?.map((u: any) => ({ email: u.email, role: u.role })),
+      users: users?.map((u: unknown) => ({ email: u.email, role: u.role })),
       error: usersError?.message
     })
     
@@ -40,7 +38,7 @@ export async function POST(request: NextRequest) {
       hasSupabaseKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       databaseConnected: !testError,
       userCount: users?.length || 0,
-      sampleUsers: users?.map((u: any) => u.email) || [],
+      sampleUsers: users?.map((u: unknown) => u.email) || [],
       timestamp: new Date().toISOString()
     })
     

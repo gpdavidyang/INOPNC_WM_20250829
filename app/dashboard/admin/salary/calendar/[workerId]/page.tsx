@@ -1,4 +1,3 @@
-import { Suspense } from 'react'
 import WorkerCalendarClient from './worker-calendar-client'
 
 interface PageProps {

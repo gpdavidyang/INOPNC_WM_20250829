@@ -1,19 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { 
-  Search, 
-  Filter, 
-  Zap,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-react'
-import { SearchBuilder } from './SearchBuilder'
-import { QuickFilterButtons } from './QuickFilterButtons'
-import { AppliedFiltersBar } from './AppliedFiltersBar'
-import { cn } from '@/lib/utils'
 import type { 
   SearchOptions, 
   SearchResult, 
@@ -91,7 +77,7 @@ export function SearchInterface({
     if (!isExpanded) setIsExpanded(false) // Collapse after search
   }
 
-  const handleRemoveAppliedFilter = async (field: string, operator: string, value: any) => {
+  const handleRemoveAppliedFilter = async (field: string, operator: string, value: unknown) => {
     const newFilters = appliedFilters.filter(f => 
       !(f.field === field && f.operator === operator && f.value === value)
     )

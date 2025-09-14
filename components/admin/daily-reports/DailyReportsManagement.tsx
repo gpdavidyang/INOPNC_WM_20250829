@@ -1,39 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  CustomSelect as Select,
-  CustomSelectContent as SelectContent,
-  CustomSelectItem as SelectItem,
-  CustomSelectTrigger as SelectTrigger,
-  CustomSelectValue as SelectValue
-} from '@/components/ui/custom-select'
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  Plus,
-  Calendar,
-  Building2,
-  User,
-  Users,
-  FileImage,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 import DailyReportDetailModal from './DailyReportDetailModal'
 import UnifiedDailyReportView from '../integrated/UnifiedDailyReportView'
-import { getDailyReports, getSites, deleteDailyReport } from '@/app/actions/admin/daily-reports'
 
 interface DailyReport {
   id: string
@@ -682,7 +650,7 @@ export default function DailyReportsManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {reports.map((report: any) => (
+                {reports.map((report: unknown) => (
                   <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <div 

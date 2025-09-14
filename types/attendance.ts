@@ -1,6 +1,5 @@
 // Attendance-specific type definitions
 
-import { AttendanceStatus } from './index'
 
 export interface AttendanceCalendarProps {
   profile: {

@@ -1,12 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { SharedDocument, FILE_TYPE_ICONS, formatFileSize } from '@/types/shared-documents'
-import { 
-  X, Download, Share2, Eye, Calendar, User, Building2, 
-  Tag, ExternalLink, FileText
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface DocumentPreviewModalProps {
   document: SharedDocument

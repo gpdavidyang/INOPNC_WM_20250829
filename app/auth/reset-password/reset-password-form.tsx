@@ -1,9 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import Link from 'next/link'
-import { ArrowLeft, CheckCircle, Mail } from 'lucide-react'
 
 export default function ResetPasswordForm() {
   const [email, setEmail] = useState('')

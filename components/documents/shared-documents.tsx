@@ -1,51 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { 
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
-import { cn } from '@/lib/utils'
-import {
-  FileText,
-  Search,
-  Filter,
-  Calendar,
-  Building2,
-  Users,
-  Eye,
-  Download,
-  ChevronRight,
-  Clock,
-  User,
-  FolderOpen,
-  Shield,
-  HardHat,
-  FileSpreadsheet,
-  AlertCircle,
-  ClipboardList,
-  Grid3x3,
-  List,
-  File,
-  FileImage,
-  FileArchive,
-  ChevronDown
-} from 'lucide-react'
-import { getSharedDocuments } from '@/app/actions/documents'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { useFontSize,  getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface SharedDocumentsProps {
-  profile: any
+  profile: unknown
   initialSearch?: string
 }
 
@@ -228,7 +185,7 @@ export function SharedDocuments({ profile, initialSearch }: SharedDocumentsProps
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          {accessibleCategories.map((category: any) => {
+          {accessibleCategories.map((category: unknown) => {
             const Icon = category.icon
             return (
               <Card
@@ -373,7 +330,7 @@ export function SharedDocuments({ profile, initialSearch }: SharedDocumentsProps
       ) : viewMode === 'list' ? (
         /* Mobile-Optimized List View */
         <div className="bg-white dark:bg-gray-800 rounded-lg border divide-y">
-          {filteredDocuments.map((doc: any) => {
+          {filteredDocuments.map((doc: unknown) => {
             const fileConfig = getFileTypeConfig(doc.name)
             const FileIcon = fileConfig.icon
             
@@ -434,7 +391,7 @@ export function SharedDocuments({ profile, initialSearch }: SharedDocumentsProps
       ) : (
         /* Mobile-Optimized Grid View */
         <div className="grid grid-cols-2 gap-2">
-          {filteredDocuments.map((doc: any) => {
+          {filteredDocuments.map((doc: unknown) => {
             const fileConfig = getFileTypeConfig(doc.name)
             const FileIcon = fileConfig.icon
             

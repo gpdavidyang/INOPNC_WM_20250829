@@ -1,9 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft, Save, X } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Organization {
   id: string

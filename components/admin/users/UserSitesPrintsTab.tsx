@@ -1,10 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Building2, Calendar, MapPin, User, CheckCircle, AlertCircle, Clock } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface UserSitesPrintsTabProps {
   userId: string

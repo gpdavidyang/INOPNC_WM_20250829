@@ -1,15 +1,10 @@
 'use client'
 
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download, FileText } from 'lucide-react'
-import Link from 'next/link'
 import { AttendanceCalendar } from '@/components/attendance/attendance-calendar'
-import { useFontSize, getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface AttendanceCalendarPageClientProps {
-  profile: any
+  profile: unknown
   showNoSiteMessage: boolean
 }
 

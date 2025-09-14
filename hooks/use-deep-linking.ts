@@ -1,15 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { deepLinkHandler } from '@/lib/deep-linking'
 
 export function useDeepLinking() {
   const router = useRouter()
 
   useEffect(() => {
     // Set the router in the deep link handler
-    deepLinkHandler.setRouter(router as any)
+    deepLinkHandler.setRouter(router as unknown)
 
     // Check for pending deep links
     deepLinkHandler.checkPendingDeepLink()

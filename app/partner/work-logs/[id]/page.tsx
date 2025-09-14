@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
-import { getAuthenticatedUser } from '@/lib/auth/session'
 import PartnerWorkLogDetailPage from '@/components/partner/PartnerWorkLogDetailPage'
 
 interface PartnerWorkLogDetailPageProps {

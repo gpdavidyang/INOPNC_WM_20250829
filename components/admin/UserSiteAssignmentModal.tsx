@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -25,27 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { 
-  Building2, 
-  MapPin,
-  UserPlus, 
-  UserMinus, 
-  Search, 
-  Calendar,
-  FileText,
-  Phone,
-  Mail,
-  User,
-  CheckCircle,
-  XCircle
-} from 'lucide-react'
 import type { UserWithSites, Site } from '@/types'
 
 interface UserSiteAssignment {

@@ -1,20 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  BarChart3, TrendingUp, TrendingDown, Users, Building2, 
-  FileText, Package, DollarSign, Calendar, Clock, Activity,
-  ArrowUp, ArrowDown, Minus, Filter, Download, RefreshCw,
-  ChevronLeft, ChevronRight, Eye
-} from 'lucide-react'
-import {
-  AreaChart, Area, BarChart, Bar, LineChart, Line,
-  PieChart, Pie, Cell, RadarChart, Radar, PolarGrid,
-  PolarAngleAxis, PolarRadiusAxis, CartesianGrid,
-  XAxis, YAxis, Tooltip, Legend, ResponsiveContainer
-} from 'recharts'
 
 interface AnalyticsDashboardProps {
   profile?: Profile
@@ -163,7 +148,7 @@ export default function AnalyticsDashboard({ profile }: AnalyticsDashboardProps)
     setTimeout(() => setRefreshing(false), 500)
   }
 
-  const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
+  const StatCard = ({ title, value, change, icon: Icon, color }: unknown) => (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
         <div>

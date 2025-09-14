@@ -1,11 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
-import { getDailyReportById } from '@/app/actions/daily-reports'
-import DailyReportForm from '@/components/daily-reports/daily-report-form'
-import Header from '@/components/dashboard/header'
-import { BottomNavigation, BottomNavItem } from '@/components/ui/bottom-navigation'
-import { NavigationController } from '@/components/navigation/navigation-controller'
-import { Home, Calendar, FileText, FolderOpen, MapPin } from 'lucide-react'
 
 export default async function EditDailyReportPage({
   params
@@ -143,7 +135,7 @@ export default async function EditDailyReportPage({
             currentUser={profile as any}
             sites={sites || []}
             materials={materials || []}
-            workers={workers as any || []}
+            workers={workers as unknown || []}
           />
         </div>
         <BottomNavigation items={bottomNavItems} />
@@ -160,7 +152,7 @@ export default async function EditDailyReportPage({
               currentUser={profile as any}
               sites={sites || []}
               materials={materials || []}
-              workers={workers as any || []}
+              workers={workers as unknown || []}
             />
           </div>
         </main>

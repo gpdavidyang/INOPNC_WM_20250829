@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { RefreshCw, Download, AlertTriangle } from 'lucide-react'
 
 interface ServiceWorkerState {
   registration: ServiceWorkerRegistration | null
@@ -367,7 +365,7 @@ export function useOfflineStatus() {
 export function useBackgroundSync() {
   const [pendingSync, setPendingSync] = useState(false)
 
-  const addToSync = async (data: any, type: string) => {
+  const addToSync = async (data: unknown, type: string) => {
     try {
       // Store data locally for sync when online
       const stored = localStorage.getItem(`sw-pending-${type}`) || '[]'

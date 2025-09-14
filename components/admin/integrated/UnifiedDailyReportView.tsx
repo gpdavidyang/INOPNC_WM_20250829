@@ -1,30 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle 
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { 
-  X, 
-  Calendar, 
-  MapPin, 
-  Users, 
-  FileText, 
-  Building2,
-  User,
-  Phone,
-  Mail,
-  Activity,
-  Clock,
-  Package,
-  AlertCircle
-} from 'lucide-react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface UnifiedDailyReportViewProps {
   reportId: string
@@ -33,17 +8,17 @@ interface UnifiedDailyReportViewProps {
 }
 
 interface IntegratedReportData {
-  daily_report: any
-  site: any
-  primary_customer: any
+  daily_report: unknown
+  site: unknown
+  primary_customer: unknown
   all_customers: unknown[]
   worker_assignments: unknown[]
-  worker_statistics: any
+  worker_statistics: unknown
   documents: Record<string, any[]>
   document_counts: Record<string, number>
-  material_usage: any
+  material_usage: unknown
   related_reports: unknown[]
-  report_author: any
+  report_author: unknown
 }
 
 export default function UnifiedDailyReportView({ reportId, isOpen, onClose }: UnifiedDailyReportViewProps) {

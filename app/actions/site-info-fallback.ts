@@ -3,9 +3,6 @@
 // Ultimate fallback for production environment
 // Uses client-side Supabase to get user ID, then calls direct server action
 
-import { createClient } from '@/lib/supabase/client'
-import { getCurrentUserSiteDirect, getUserSiteHistoryDirect } from './site-info-direct'
-import { getCurrentUserSite, getUserSiteHistory } from './site-info'
 
 const log = (...args: unknown[]) => {
   console.log('[SITE-INFO-FALLBACK]', ...args)
@@ -157,7 +154,7 @@ export async function getUserSiteHistoryUltimate() {
       return { success: false, error: error.message }
     }
     
-    const history = assignments?.map((a: any) => ({
+    const history = assignments?.map((a: unknown) => ({
       site_id: a.sites?.id,
       site_name: a.sites?.name,
       site_address: a.sites?.address,

@@ -1,14 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Building2, Users, FileText, MapPin, Calendar, Eye, Edit, 
-  ChevronRight, Package, Briefcase, Clock, CheckCircle,
-  TrendingUp, AlertCircle, Filter, Search
-} from 'lucide-react'
-import Link from 'next/link'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface Site {
   id: string
@@ -34,7 +25,7 @@ export default function EnhancedSiteView() {
   const [sites, setSites] = useState<SiteWithStats[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSite, setSelectedSite] = useState<string | null>(null)
-  const [siteDetails, setSiteDetails] = useState<any>(null)
+  const [siteDetails, setSiteDetails] = useState<unknown>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -70,8 +61,8 @@ export default function EnhancedSiteView() {
         
         // Enhance sites with statistics
         const enhancedSites = sites.map((site: Site) => {
-          const siteReports = reports.filter((r: any) => r.site_id === site.id)
-          const siteDocs = docsData.data?.filter((d: any) => d.site_id === site.id) || []
+          const siteReports = reports.filter((r: unknown) => r.site_id === site.id)
+          const siteDocs = docsData.data?.filter((d: unknown) => d.site_id === site.id) || []
           
           return {
             ...site,

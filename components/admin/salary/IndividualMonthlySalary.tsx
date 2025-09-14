@@ -1,18 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { FileDown, Search, ChevronDown, ChevronUp, Calculator } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
-import MultiSelectFilter from './components/MultiSelectFilter'
-import SummaryCards from './components/SummaryCards'
 
 interface WorkerMonthlySalary {
   worker_id: string

@@ -1,13 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Bell, Megaphone, Info, AlertTriangle, AlertCircle,
-  PlusCircle, Edit, Trash2, Save, X, Eye, EyeOff,
-  Calendar, User, Clock, CheckCircle
-} from 'lucide-react'
 
 interface AnnouncementsTabProps {
   profile: Profile
@@ -281,7 +273,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
               </label>
               <select
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+                onChange={(e) => setFormData({ ...formData, priority: e.target.value as unknown })}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="low">낮음</option>

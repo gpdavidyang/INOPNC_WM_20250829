@@ -1,41 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Building2, 
-  Users, 
-  FileText, 
-  Image, 
-  Calendar,
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  TrendingUp,
-  Eye,
-  Edit,
-  ExternalLink,
-  ChevronRight,
-  Briefcase,
-  Shield,
-  Package
-} from 'lucide-react'
-import Link from 'next/link'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface UnifiedSiteViewProps {
   siteId: string
 }
 
 interface IntegratedSiteData {
-  site: any
+  site: unknown
   customers: unknown[]
-  primary_customer: any
+  primary_customer: unknown
   daily_reports: unknown[]
   documents: Record<string, any[]>
   documents_by_category: Record<string, any[]>
-  statistics: any
+  statistics: unknown
   recent_activities: unknown[]
   assigned_workers: unknown[]
   document_counts: Record<string, number>
@@ -92,7 +69,7 @@ export default function UnifiedSiteView({ siteId }: UnifiedSiteViewProps) {
     { id: 'customers', label: '고객사', icon: Briefcase, count: data.customers.length }
   ]
 
-  const StatCard = ({ title, value, icon: Icon, color = 'blue' }: any) => (
+  const StatCard = ({ title, value, icon: Icon, color = 'blue' }: unknown) => (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-center">
         <div className={`p-3 bg-${color}-50 rounded-lg`}>

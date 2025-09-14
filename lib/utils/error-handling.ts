@@ -154,7 +154,7 @@ export function validateRequired<T>(
  * Validate numeric values
  */
 export function validateNumber(
-  value: any,
+  value: unknown,
   fieldName: string,
   options: { min?: number; max?: number; integer?: boolean } = {}
 ): ApiResponse | null {
@@ -248,7 +248,7 @@ export async function withRetry<T>(
   maxRetries: number = 3,
   delay: number = 1000
 ): Promise<T> {
-  let lastError: any
+  let lastError: unknown
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -274,8 +274,8 @@ export async function withRetry<T>(
  * Transaction wrapper with automatic rollback
  */
 export async function withTransaction<T>(
-  supabase: any,
-  operation: (client: any) => Promise<T>
+  supabase: unknown,
+  operation: (client: unknown) => Promise<T>
 ): Promise<T> {
   // Note: Supabase doesn't support explicit transactions in the client
   // This is a placeholder for when we need to implement transaction logic

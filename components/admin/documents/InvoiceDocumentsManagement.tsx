@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { FileText, Search, Download, Eye, Trash2, Building2, Users, Calendar, RefreshCw, Upload, DollarSign, Clock } from 'lucide-react'
 import InvoiceDocumentUploadModal from './InvoiceDocumentUploadModal'
 import InvoiceDocumentDetailModal from './InvoiceDocumentDetailModal'
 

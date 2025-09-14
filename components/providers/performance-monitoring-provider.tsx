@@ -1,11 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
-import { initWebVitals, observePerformance, performanceMark } from '@/lib/monitoring/web-vitals'
-import { setUserContext } from '@/lib/monitoring/sentry'
-import { initRUM, rum } from '@/lib/monitoring/rum'
-import { initializeMonitoring, isMonitoringInitialized, checkMonitoringHealth } from '@/lib/monitoring/init'
 import * as Sentry from '@sentry/nextjs'
 
 // Safe import with fallback
@@ -21,7 +15,7 @@ try {
 
 interface PerformanceMonitoringProviderProps {
   children: React.ReactNode
-  user?: any
+  user?: unknown
 }
 
 export function PerformanceMonitoringProvider({ 
@@ -150,7 +144,7 @@ export function PerformanceMonitoringProvider({
     rum.trackPageView()
     
     // Create span for page load using modern Sentry API
-    let span: any = null
+    let span: unknown = null
     
     try {
       const client = Sentry.getClient()

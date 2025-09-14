@@ -1,6 +1,5 @@
 'use client'
 
-import { Calendar } from 'lucide-react'
 
 interface DateRangeSelectorProps {
   startDate: string

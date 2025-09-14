@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // Helper function to check if table exists
-async function tableExists(supabase: any, tableName: string): Promise<boolean> {
+async function tableExists(supabase: unknown, tableName: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
       .from('information_schema.tables')
@@ -246,9 +244,9 @@ export async function POST(request: NextRequest) {
       if (error) {
         const errorInfo = error instanceof Error ? {
           message: error.message,
-          code: (error as any).code,
-          details: (error as any).details,
-          hint: (error as any).hint
+          code: (error as unknown).code,
+          details: (error as unknown).details,
+          hint: (error as unknown).hint
         } : { message: String(error) }
 
         console.error('Error creating analytics event:', {
@@ -316,9 +314,9 @@ export async function POST(request: NextRequest) {
         p_organization_id: profile.organization_id,
         p_site_id: siteId,
         p_date: new Date().toISOString().split('T')[0]
-      } as any) as any).then(() => {
+      } as unknown) as unknown).then(() => {
         console.log('Analytics aggregation triggered')
-      }).catch((err: any) => {
+      }).catch((err: unknown) => {
         console.error('Analytics aggregation failed:', err)
       })
     }

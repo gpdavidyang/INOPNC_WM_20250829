@@ -1,7 +1,4 @@
 import * as Sentry from '@sentry/nextjs'
-import { performanceMark } from './web-vitals'
-import { checkPerformanceBudget } from './performance-budgets'
-import React from 'react'
 
 // Custom performance metrics for construction app
 export interface PerformanceMetrics {
@@ -149,7 +146,7 @@ class PerformanceTracker {
   // Record a metric value
   private recordMetric(key: string, value: number) {
     const keys = key.split('.')
-    let target: any = this.metrics
+    let target: unknown = this.metrics
     
     for (let i = 0; i < keys.length - 1; i++) {
       target = target[keys[i]]

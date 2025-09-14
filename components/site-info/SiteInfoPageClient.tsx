@@ -1,9 +1,6 @@
 'use client'
 
-import { User } from '@supabase/supabase-js'
-import DashboardLayout from '@/components/dashboard/dashboard-layout'
 import SiteInfoTabs from './SiteInfoTabs'
-import { Profile, CurrentUserSite, UserSiteHistory } from '@/types'
 
 interface SiteInfoPageClientProps {
   user: User

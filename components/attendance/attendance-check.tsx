@@ -1,21 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { checkIn, checkOut, getTodayAttendance } from '@/app/actions/attendance'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Clock, 
-  MapPin, 
-  LogIn, 
-  LogOut,
-  CheckCircle,
-  XCircle,
-  Loader2,
-  AlertCircle
-} from 'lucide-react'
-import { Site, AttendanceRecord } from '@/types'
 
 interface AttendanceCheckProps {
   site: Site
@@ -54,7 +38,7 @@ export default function AttendanceCheck({ site }: AttendanceCheckProps) {
       const result = await getTodayAttendance(site.id)
       if (result.success && result.data && result.data.length > 0) {
         // Find current user's attendance
-        setTodayAttendance(result.data[0] as any) // This should be filtered by current user
+        setTodayAttendance(result.data[0] as unknown) // This should be filtered by current user
       }
     } catch (error) {
       console.error('Error fetching attendance:', error)
@@ -118,7 +102,7 @@ export default function AttendanceCheck({ site }: AttendanceCheckProps) {
       })
 
       if (result.success && result.data) {
-        setTodayAttendance(result.data as any)
+        setTodayAttendance(result.data as unknown)
       } else {
         alert(result.error || '출근 체크에 실패했습니다')
       }
@@ -145,7 +129,7 @@ export default function AttendanceCheck({ site }: AttendanceCheckProps) {
       })
 
       if (result.success && result.data) {
-        setTodayAttendance(result.data as any)
+        setTodayAttendance(result.data as unknown)
       } else {
         alert(result.error || '퇴근 체크에 실패했습니다')
       }

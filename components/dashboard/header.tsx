@@ -1,9 +1,5 @@
 'use client'
 
-import Link from 'next/link'
-import { Menu } from 'lucide-react'
-import { NotificationDropdown } from '@/components/notifications/notification-dropdown'
-import { FontSizeToggle } from '@/components/ui/font-size-toggle'
 
 interface HeaderProps {
   onMenuClick?: () => void

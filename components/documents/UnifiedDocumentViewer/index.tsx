@@ -1,17 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useToast } from '@/components/ui/use-toast'
-import { Profile } from '@/types'
-import { 
-  FileText, Image, Shield, Package, FolderOpen, 
-  Share2, Search, Filter, Download, Eye, 
-  Grid, List, ChevronDown, Plus, RefreshCw,
-  CheckCircle, XCircle, Clock
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -19,14 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import GeneralUserView from './GeneralUserView'
-import PartnerView from './PartnerView'
-import AdminView from './AdminView'
-import DocumentList from './DocumentList'
-import DocumentFilters from './DocumentFilters'
-import DocumentUploadModal from './DocumentUploadModal'
 import DocumentDetailModal from './DocumentDetailModal'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
 
@@ -120,7 +101,7 @@ export default function UnifiedDocumentViewer({
   })
   
   // 통계
-  const [statistics, setStatistics] = useState<any>(null)
+  const [statistics, setStatistics] = useState<unknown>(null)
   
   // 역할 확인
   const isAdmin = ['admin', 'system_admin'].includes(profile.role)
@@ -181,7 +162,7 @@ export default function UnifiedDocumentViewer({
       const formData = new FormData()
       formData.append('file', file)
       Object.keys(metadata).forEach(key => {
-        formData.append(key, (metadata as any)[key])
+        formData.append(key, (metadata as unknown)[key])
       })
       
       const response = await fetch('/api/unified-documents/v2/upload', {

@@ -1,19 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card } from '@/components/ui/card'
-import { 
-  Plus, Search, Upload, FileText, File, Download, Eye, Trash2,
-  FolderOpen, Share2, Clock, Filter, Grid3x3, List,
-  ChevronDown, MoreVertical, X, Check, Image, FileSpreadsheet
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface DocumentsPageImprovedProps {
-  profile: any
+  profile: unknown
 }
 
 // Modern tab data structure

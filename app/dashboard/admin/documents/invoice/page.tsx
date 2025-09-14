@@ -1,7 +1,3 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { canAccessDocumentCategory } from '@/lib/document-permissions'
-import InvoiceDocumentsManagement from '@/components/admin/documents/InvoiceDocumentsManagement'
 
 export default async function AdminInvoiceDocumentsPage() {
   const supabase = createClient()
@@ -24,7 +20,7 @@ export default async function AdminInvoiceDocumentsPage() {
     }
 
     // 기성청구함 접근 권한 확인
-    if (!canAccessDocumentCategory(profile.role as any, 'invoice')) {
+    if (!canAccessDocumentCategory(profile.role as unknown, 'invoice')) {
       redirect('/dashboard')
     }
 

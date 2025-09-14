@@ -1,7 +1,5 @@
 'use client'
 
-import React from 'react'
-import { HelpCircle, Info } from 'lucide-react'
 import {
   Tooltip,
   TooltipContent,

@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { FileCheck, Search, Download, Eye, Trash2, User, Calendar, RefreshCw, Upload, AlertCircle, CheckCircle, XCircle, Clock, Edit2, Plus, Filter } from 'lucide-react'
 
 interface RequiredDocument {
   id: string

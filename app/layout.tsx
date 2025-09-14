@@ -1,32 +1,48 @@
 import type { Metadata } from "next";
+import { Poppins, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import "./fonts.css"; // Font optimization for production quality
+
+// Font configurations
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-poppins',
+  display: 'swap',
+});
+
+const notoSansKR = Noto_Sans_KR({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-noto-sans-kr',
+  display: 'swap',
+});
 // import "@/styles/sunlight-mode.css"; // Sunlight Mode CSS 비활성화
 // import "@/styles/font-optimization.css"; // 폰트 최적화 CSS 비활성화
-import { AuthProvider } from "@/providers/auth-provider";
-import { QueryProvider } from "@/providers/query-provider";
-import { ErrorBoundary } from "@/components/error-boundary";
-import { FontSizeProvider } from "@/contexts/FontSizeContext";
-import { TouchModeProvider } from "@/contexts/TouchModeContext";
-import { ContrastModeProvider } from "@/contexts/ContrastModeContext";
-import { SunlightModeProvider } from "@/contexts/SunlightModeContext";
-import { EnvironmentalProvider } from "@/contexts/EnvironmentalContext";
-import { SkipNavigation } from "@/components/ui/skip-navigation";
-import { Toaster } from 'sonner';
-import { ThemeInitializer } from "@/components/theme-initializer";
-import { InstallPrompt } from "@/components/pwa/install-prompt";
-import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
-import { OfflineIndicator } from "@/components/pwa/offline-indicator";
-import { NotificationPermission } from "@/components/pwa/notification-permission";
-import { DeepLinkProvider } from "@/components/providers/deep-link-provider";
-import { PerformanceMonitoringProvider } from "@/components/providers/performance-monitoring-provider";
-import { ThemeProvider } from "next-themes";
-import { ProductionQualityOptimizer } from "@/components/production-quality-optimizer";
-import { EnvironmentStatus } from "@/components/debug/environment-status";
-import { ViewportController } from "@/components/ui/viewport-controller";
-import { UIDebugIndicator } from "@/components/ui/ui-debug-indicator";
-import { AdminViewportMeta } from "@/components/ui/admin-viewport-meta";
-import { cookies } from "next/headers";
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
+;
 
 export const metadata: Metadata = {
   title: "INOPNC Work Management",

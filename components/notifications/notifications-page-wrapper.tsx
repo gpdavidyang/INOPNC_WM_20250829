@@ -1,13 +1,6 @@
 'use client'
 
-import { User } from '@supabase/supabase-js'
-import { Profile } from '@/types'
-import { useState } from 'react'
-import Sidebar from '@/components/dashboard/sidebar'
-import Header from '@/components/dashboard/header'
 import { BottomNavigation, BottomNavItem } from '@/components/ui/bottom-navigation'
-import { NotificationsContent } from './notifications-content'
-import { Home, Calendar, FileText, FileImage, FolderOpen } from 'lucide-react'
 
 interface NotificationsPageWrapperProps {
   user: User

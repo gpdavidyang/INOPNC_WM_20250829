@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -98,7 +96,7 @@ export async function PUT(
       site_customizations
     } = body
 
-    const updateData: any = {
+    const updateData: unknown = {
       updated_at: new Date().toISOString()
     }
 
@@ -133,7 +131,7 @@ export async function PUT(
         .eq('document_type_id', params.id)
 
       if (role_mappings.length > 0) {
-        const roleInserts = role_mappings.map((mapping: any) => ({
+        const roleInserts = role_mappings.map((mapping: unknown) => ({
           document_type_id: params.id,
           role_type: mapping.role_type,
           is_required: mapping.is_required
@@ -156,7 +154,7 @@ export async function PUT(
         .eq('document_type_id', params.id)
 
       if (site_customizations.length > 0) {
-        const siteInserts = site_customizations.map((customization: any) => ({
+        const siteInserts = site_customizations.map((customization: unknown) => ({
           document_type_id: params.id,
           site_id: customization.site_id,
           is_required: customization.is_required,

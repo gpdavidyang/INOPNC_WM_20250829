@@ -1,20 +1,9 @@
 'use client'
 
-import { Profile } from '@/types'
-import { 
-  Building2, Menu, X, Home, Users, FileText, 
-  Package, LogOut, BarChart3, Bell, User, FolderOpen
-} from 'lucide-react'
-import { useRouter, usePathname } from 'next/navigation'
-import { useState, useEffect, useRef } from 'react'
-import { signOut } from '@/app/auth/actions'
-import Link from 'next/link'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface PartnerDashboardLayoutProps {
   children: React.ReactNode
-  profile: Profile & { partner_companies?: any }
+  profile: Profile & { partner_companies?: unknown }
 }
 
 // Partner-specific menu structure (simplified for customer_manager)

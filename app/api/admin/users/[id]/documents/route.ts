@@ -1,6 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { NextRequest, NextResponse } from 'next/server'
 
 const REQUIRED_DOCUMENTS = [
   'medical_checkup', // 배치전 검진 결과서
@@ -62,7 +59,7 @@ export async function GET(
 
     // Create a map of document status
     const documentStatus = REQUIRED_DOCUMENTS.reduce((acc, docType) => {
-      const doc = documents?.find((d: any) => d.document_type === docType)
+      const doc = documents?.find((d: unknown) => d.document_type === docType)
       acc[docType] = {
         label: DOCUMENT_LABELS[docType],
         uploaded: !!doc,

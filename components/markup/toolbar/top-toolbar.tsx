@@ -1,8 +1,5 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Home, FolderOpen, Save, Share2, X } from 'lucide-react'
-import { getTypographyClass , getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 interface TopToolbarProps {
   fileName: string

@@ -1,16 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { CheckCircle, XCircle, AlertTriangle, Play, RefreshCw } from 'lucide-react'
 
 // Import all admin server actions
-import { getSites, createSite, updateSite, deleteSites } from '@/app/actions/admin/sites'
-import { getUsers, createUser, updateUser, deleteUsers } from '@/app/actions/admin/users'
-import { getDocuments, processDocumentApprovals } from '@/app/actions/admin/documents'
-import { getMaterials, updateMaterialInventory } from '@/app/actions/admin/materials'
-import { getMarkupDocuments, manageMarkupDocumentPermissions } from '@/app/actions/admin/markup'
-import { getSalaryRules, calculateSalaries } from '@/app/actions/admin/salary'
-import { getSystemStats, getSystemConfigurations } from '@/app/actions/admin/system'
 
 interface TestResult {
   id: string

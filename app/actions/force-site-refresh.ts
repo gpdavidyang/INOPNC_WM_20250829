@@ -1,6 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 
 // 관리자나 현장관리자가 자신의 현장 정보를 강제로 새로고침하는 함수
 export async function forceSiteRefresh() {
@@ -65,7 +64,7 @@ export async function forceSiteRefresh() {
     }
 
     // 활성 배정 찾기
-    const activeAssignment = allAssignments?.find((a: any) => a.is_active) || null
+    const activeAssignment = allAssignments?.find((a: unknown) => a.is_active) || null
     console.log('🔧 [FORCE-REFRESH] Active assignment:', { 
       found: !!activeAssignment, 
       siteName: activeAssignment?.sites?.name 

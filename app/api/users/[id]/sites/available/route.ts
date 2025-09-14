@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+;
 
 // GET /api/users/[id]/sites/available - 사용자에게 배정 가능한 현장 목록
 export async function GET(
@@ -33,7 +33,7 @@ export async function GET(
       .eq('user_id', params.id)
       .eq('is_active', true);
 
-    const assignedSiteIds = assignedSites?.map((a: any) => a.site_id) || [];
+    const assignedSiteIds = assignedSites?.map((a: unknown) => a.site_id) || [];
     
     if (assignedSiteIds.length > 0) {
       query = query.not('id', 'in', `(${assignedSiteIds.join(',')})`);

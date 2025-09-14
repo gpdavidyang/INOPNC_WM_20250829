@@ -1,8 +1,5 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { WifiOff, Wifi, CloudOff, Clock } from 'lucide-react'
-import { getPendingOfflineCount } from '@/lib/pwa/offline-storage'
 
 export function OfflineIndicator() {
   const [isOffline, setIsOffline] = useState(false)

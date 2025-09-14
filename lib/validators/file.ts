@@ -116,7 +116,7 @@ export function validateFileSize(file: File, documentType?: SiteDocumentType): v
  */
 export function validateFileType(file: File, documentType?: SiteDocumentType): void {
   // Check MIME type
-  if (!FILE_VALIDATION_CONFIG.ALLOWED_MIME_TYPES.includes(file.type as any)) {
+  if (!FILE_VALIDATION_CONFIG.ALLOWED_MIME_TYPES.includes(file.type as unknown)) {
     throw new FileValidationError(
       `지원하지 않는 파일 형식입니다. (${file.type})\n허용된 형식: PDF, JPG, PNG, GIF, WebP`,
       'INVALID_MIME_TYPE',
@@ -126,7 +126,7 @@ export function validateFileType(file: File, documentType?: SiteDocumentType): v
 
   // Check file extension
   const extension = getFileExtension(file.name)
-  if (!extension || !FILE_VALIDATION_CONFIG.ALLOWED_EXTENSIONS.includes(extension as any)) {
+  if (!extension || !FILE_VALIDATION_CONFIG.ALLOWED_EXTENSIONS.includes(extension as unknown)) {
     throw new FileValidationError(
       `허용되지 않는 파일 확장자입니다. (.${extension})\n허용된 확장자: ${FILE_VALIDATION_CONFIG.ALLOWED_EXTENSIONS.join(', ')}`,
       'INVALID_EXTENSION',
@@ -147,7 +147,7 @@ export function validateFileType(file: File, documentType?: SiteDocumentType): v
   // Document type specific validation
   if (documentType) {
     const rules = FILE_VALIDATION_CONFIG.DOCUMENT_TYPE_RULES[documentType]
-    if (!rules.preferredTypes.includes(file.type as any)) {
+    if (!rules.preferredTypes.includes(file.type as unknown)) {
       throw new FileValidationError(
         `${rules.description}은(는) ${rules.preferredTypes.join(', ')} 형식만 허용됩니다.`,
         'DOCUMENT_TYPE_MISMATCH',

@@ -1,8 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, Users, FileText, Package, Settings, AlertTriangle, CheckCircle } from 'lucide-react'
-import { cn } from '@/lib/utils'
 
 interface BusinessMetrics {
   totalWorkers: number

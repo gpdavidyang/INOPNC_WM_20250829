@@ -1,9 +1,5 @@
 'use client'
 
-import { useState, useRef } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { X, Upload, File, Building2, Folder, AlertCircle } from 'lucide-react'
 
 interface UploadDocumentModalProps {
   category: string

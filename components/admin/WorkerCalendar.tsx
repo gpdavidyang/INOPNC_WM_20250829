@@ -1,8 +1,5 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { WorkerCalendarData } from '@/app/actions/admin/salary'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface WorkerCalendarProps {
   calendarData: WorkerCalendarData[]

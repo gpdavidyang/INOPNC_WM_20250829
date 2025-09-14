@@ -1,7 +1,5 @@
 'use client'
 
-import { Sun, SunMedium } from 'lucide-react'
-import { useSunlightMode } from '@/contexts/SunlightModeContext'
 
 export function SunlightToggle() {
   const { isSunlightMode, toggleSunlightMode, isAutoDetection } = useSunlightMode()

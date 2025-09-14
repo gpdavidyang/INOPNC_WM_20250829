@@ -1,8 +1,6 @@
 // Client-side environment validation with production error handling
 'use client'
 
-import React from 'react'
-import { createLogger } from '@/lib/utils/logger'
 
 const logger = createLogger('ENV-VALIDATION-CLIENT')
 

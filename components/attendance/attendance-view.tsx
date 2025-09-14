@@ -1,32 +1,7 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { 
-  CustomSelect,
-  CustomSelectContent,
-  CustomSelectItem,
-  CustomSelectTrigger,
-  CustomSelectValue,
-} from '@/components/ui/custom-select'
-import { 
-  ChevronLeft,
-  ChevronRight,
-  Building2,
-  BarChart3,
-  Calendar
-} from 'lucide-react'
-import { getAttendanceRecords } from '@/app/actions/attendance'
-import { getUserSiteHistory } from '@/app/actions/site-info'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameMonth, isSameDay, isToday } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { cn } from '@/lib/utils'
-import { useFontSize } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 import type { Profile, UserSiteHistory } from '@/types'
 import type { AttendanceRecord } from '@/types/attendance'
-import { SalaryView } from './salary-view'
 
 interface AttendanceViewProps {
   profile: Profile

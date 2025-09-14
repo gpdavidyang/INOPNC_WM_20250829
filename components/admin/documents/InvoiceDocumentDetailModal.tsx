@@ -1,12 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  X, Download, FileText, DollarSign, Building2, Users, 
-  Calendar, Clock, CheckCircle, XCircle, AlertCircle, 
-  Edit2, Save, RotateCcw 
-} from 'lucide-react'
 
 interface InvoiceDocument {
   id: string
@@ -86,7 +79,7 @@ export default function InvoiceDocumentDetailModal({
 }: InvoiceDocumentDetailModalProps) {
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState(false)
-  const [editData, setEditData] = useState<any>({})
+  const [editData, setEditData] = useState<unknown>({})
   
   const supabase = createClient()
   const isAdmin = userRole === 'admin' || userRole === 'system_admin'

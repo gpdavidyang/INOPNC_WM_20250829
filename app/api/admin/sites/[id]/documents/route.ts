@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { NextResponse } from 'next/server'
 
 export async function GET(
   request: Request,
@@ -90,7 +88,7 @@ export async function GET(
 
     const statistics = {
       total_documents: statsData?.length || 0,
-      by_type: statsData?.reduce((acc: any, doc: any) => {
+      by_type: statsData?.reduce((acc: unknown, doc: unknown) => {
         const type = getDocumentType(doc.mime_type || '')
         acc[type] = (acc[type] || 0) + 1
         return acc

@@ -171,7 +171,7 @@ export const getPadding = (
   isLargeFont: boolean = false
 ) => {
   const sizeKey = isLargeFont ? 'large' : size
-  return (padding[component] as any)[sizeKey] || (padding[component] as any)['normal']
+  return (padding[component] as unknown)[sizeKey] || (padding[component] as unknown)['normal']
 }
 
 // Type exports

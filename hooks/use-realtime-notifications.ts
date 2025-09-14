@@ -1,9 +1,5 @@
 'use client'
 
-import { useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 import type { NotificationExtended } from '@/types/notifications'
 
 interface UseRealtimeNotificationsOptions {

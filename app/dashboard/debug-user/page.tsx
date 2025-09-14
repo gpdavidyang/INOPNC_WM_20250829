@@ -1,6 +1,3 @@
-import { getCurrentUserSite, forceAssignCurrentUserToTestSite } from '@/app/actions/site-info'
-import { createClient } from '@/lib/supabase/server'
-import DebugUserClient from './debug-client'
 
 export const dynamic = 'force-dynamic'
 

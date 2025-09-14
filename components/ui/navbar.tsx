@@ -1,12 +1,6 @@
 'use client'
 
 import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Container } from "@/components/ui/container"
-import { Menu, X, Home, FileText, Calendar, Users, Settings, Bell, User as UserIcon } from "lucide-react"
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
 
 export interface NavItem {
   label: string

@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getAuthenticatedUser } from '@/lib/auth/session'
 
 export async function GET(
   request: NextRequest,
@@ -43,18 +40,18 @@ export async function GET(
     }
 
     // Separate before and after images
-    const beforeImages = images?.filter((img: any) => img.photo_type === 'before') || []
-    const afterImages = images?.filter((img: any) => img.photo_type === 'after') || []
+    const beforeImages = images?.filter((img: unknown) => img.photo_type === 'before') || []
+    const afterImages = images?.filter((img: unknown) => img.photo_type === 'after') || []
 
     // Ensure we have exactly 3 slots for each type (fill empty slots)
     const beforePhotos = []
     const afterPhotos = []
     
     for (let i = 0; i < 3; i++) {
-      const beforeImg = beforeImages.find((img: any) => img.photo_order === i)
+      const beforeImg = beforeImages.find((img: unknown) => img.photo_order === i)
       beforePhotos.push(beforeImg ? { url: beforeImg.photo_url, order: i } : null)
       
-      const afterImg = afterImages.find((img: any) => img.photo_order === i)
+      const afterImg = afterImages.find((img: unknown) => img.photo_order === i)
       afterPhotos.push(afterImg ? { url: afterImg.photo_url, order: i } : null)
     }
 
@@ -283,7 +280,7 @@ export async function GET(
           <!-- 좌측: 작업 전 -->
           <div class="photo-column">
             <div class="column-header before-header">작업 전</div>
-            ${beforePhotos.map((photo: any, index: number) => `
+            ${beforePhotos.map((photo: unknown, index: number) => `
               <div class="photo-item">
                 <span class="photo-number">${index + 1}</span>
                 ${photo && photo.url ? 
@@ -297,7 +294,7 @@ export async function GET(
           <!-- 우측: 작업 후 -->
           <div class="photo-column">
             <div class="column-header after-header">작업 후</div>
-            ${afterPhotos.map((photo: any, index: number) => `
+            ${afterPhotos.map((photo: unknown, index: number) => `
               <div class="photo-item">
                 <span class="photo-number">${index + 1}</span>
                 ${photo && photo.url ? 

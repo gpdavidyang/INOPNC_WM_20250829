@@ -1,44 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  X, 
-  User, 
-  Mail, 
-  Phone, 
-  Shield, 
-  MapPin, 
-  Building, 
-  Calendar, 
-  FileText, 
-  ClipboardCheck, 
-  Edit3,
-  Save,
-  AlertTriangle,
-  CheckCircle,
-  Key,
-  Upload,
-  Trash2,
-  UserCheck,
-  Clock,
-  Activity,
-  Briefcase,
-  CreditCard,
-  FileCheck,
-  BarChart3,
-  Download,
-  Eye,
-  Plus
-} from 'lucide-react'
-import { UserWithSites, UpdateUserData, updateUser, resetUserPassword, deleteUsers } from '@/app/actions/admin/users'
-import { UserRole, UserStatus } from '@/types'
-import {
-  CustomSelect as Select,
-  CustomSelectContent as SelectContent,
-  CustomSelectItem as SelectItem,
-  CustomSelectTrigger as SelectTrigger,
-  CustomSelectValue as SelectValue
-} from '@/components/ui/custom-select'
 
 interface UserDetailModalProps {
   isOpen: boolean
@@ -60,7 +21,7 @@ export default function UserDetailModal({
   const [editData, setEditData] = useState<Partial<UpdateUserData>>({})
   const [organizations, setOrganizations] = useState<any[]>([])
   const [loadingOrgs, setLoadingOrgs] = useState(false)
-  const [userDocuments, setUserDocuments] = useState<any>({})
+  const [userDocuments, setUserDocuments] = useState<unknown>({})
   const [loadingDocs, setLoadingDocs] = useState(false)
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null)
 

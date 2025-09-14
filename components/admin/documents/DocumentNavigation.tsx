@@ -1,22 +1,5 @@
 'use client'
 
-import { useUser } from '@/hooks/useUser'
-import { 
-  getAccessibleDocumentCategories, 
-  getDocumentCategoryLabel, 
-  getDocumentCategoryPath,
-  DocumentCategory 
-} from '@/lib/document-permissions'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { 
-  FileText, 
-  PenTool, 
-  CheckSquare, 
-  Receipt, 
-  Image,
-  Shield 
-} from 'lucide-react'
 
 const categoryIcons: Record<DocumentCategory, React.ElementType> = {
   shared: FileText,
@@ -38,7 +21,7 @@ export default function DocumentNavigation() {
     )
   }
 
-  const accessibleCategories = getAccessibleDocumentCategories(profile.role as any)
+  const accessibleCategories = getAccessibleDocumentCategories(profile.role as unknown)
   
   if (accessibleCategories.length === 0) {
     return (

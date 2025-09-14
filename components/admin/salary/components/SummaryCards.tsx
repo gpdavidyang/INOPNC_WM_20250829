@@ -1,6 +1,5 @@
 'use client'
 
-import { Users, Calculator, DollarSign, Calendar } from 'lucide-react'
 
 interface SummaryCardsProps {
   totalWorkers: number

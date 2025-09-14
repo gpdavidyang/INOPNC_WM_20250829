@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { AppError, ErrorType, logError } from '@/lib/error-handling'
 import type { DailyReport } from '@/types'
 
 // 일일보고서 제출 시 알림 생성
@@ -15,7 +13,7 @@ export async function notifyDailyReportSubmitted(report: DailyReport, submitterI
       .contains('site_ids', [report.site_id])
 
     if (siteManagers && siteManagers.length > 0) {
-      const notifications = siteManagers.map((manager: any) => ({
+      const notifications = siteManagers.map((manager: unknown) => ({
         user_id: manager.id,
         type: 'info',
         title: '새로운 작업일지 제출됨',
@@ -129,7 +127,7 @@ export async function notifyLowNPC1000Stock(
       .contains('site_ids', [siteId])
 
     if (siteManagers && siteManagers.length > 0) {
-      const notifications = siteManagers.map((manager: any) => ({
+      const notifications = siteManagers.map((manager: unknown) => ({
         user_id: manager.id,
         type: 'warning' as const,
         title: 'NPC-1000 재고 부족',
@@ -174,7 +172,7 @@ export async function notifySystemAnnouncement(
     const { data: users } = await query
 
     if (users && users.length > 0) {
-      const notifications = users.map((user: any) => ({
+      const notifications = users.map((user: unknown) => ({
         user_id: user.id,
         type: 'system' as const,
         title,
@@ -222,7 +220,7 @@ export async function notifyWorkerCheckIn(
       .contains('site_ids', [siteId])
 
     if (siteManagers && siteManagers.length > 0) {
-      const notifications = siteManagers.map((manager: any) => ({
+      const notifications = siteManagers.map((manager: unknown) => ({
         user_id: manager.id,
         type: 'info' as const,
         title: '작업자 출근',

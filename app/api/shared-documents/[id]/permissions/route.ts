@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 // GET /api/shared-documents/[id]/permissions - 문서 권한 목록 조회
 export async function GET(
@@ -56,7 +54,7 @@ export async function POST(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'share'
-    } as any)
+    } as unknown)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })

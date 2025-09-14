@@ -1,11 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Bell, BellOff, Shield, Clock, AlertTriangle, Wrench, Megaphone, Volume2, VolumeX, Moon, Sun, ChevronDown, ChevronUp, Building2, Filter, TestTube, ToggleLeft, ToggleRight } from 'lucide-react'
-import { useProfile } from '@/hooks/use-profile'
-import { useNotificationPermission } from './notification-permission'
-import { pushNotificationService } from '@/lib/push-notifications'
-import { createClient } from '@/lib/supabase/client'
 import type { Site } from '@/types'
 
 interface NotificationPreferences {

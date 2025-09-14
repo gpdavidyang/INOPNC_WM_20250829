@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +43,7 @@ export async function GET(request: NextRequest) {
       const { data: statsData, error: statsError } = await statsQuery
 
       if (!statsError && statsData) {
-        categoryStats = statsData.reduce((acc: Record<string, { total: number; active: number }>, doc: any) => {
+        categoryStats = statsData.reduce((acc: Record<string, { total: number; active: number }>, doc: unknown) => {
           if (!acc[doc.category_type]) {
             acc[doc.category_type] = {
               total: 0,
@@ -62,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 카테고리와 통계 결합
-    const categoriesWithStats = categories?.map((category: any) => ({
+    const categoriesWithStats = categories?.map((category: unknown) => ({
       ...category,
       stats: categoryStats[category.category_type] || { total: 0, active: 0 }
     }))

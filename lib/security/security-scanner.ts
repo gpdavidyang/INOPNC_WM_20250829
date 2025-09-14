@@ -9,8 +9,6 @@
  * - API security testing
  */
 
-import { NextRequest } from 'next/server'
-import { logSecurityEvent } from './security-headers'
 
 export interface SecurityScanResult {
   scan_id: string

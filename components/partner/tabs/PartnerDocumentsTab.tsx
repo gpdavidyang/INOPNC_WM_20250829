@@ -1,20 +1,6 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  Upload, Download, Eye, Share2, Trash2,
-  Search, Grid, List, ChevronUp, CheckCircle,
-  X, Mail, MessageSquare, Link2
-} from 'lucide-react'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/custom-select'
 
 interface PartnerDocumentsTabProps {
   profile: Profile
@@ -490,7 +476,7 @@ export default function PartnerDocumentsTab({ profile, sites }: PartnerDocuments
 
     // Create a synthetic event for handleFileUpload
     const syntheticEvent = {
-      target: { files: files as any }
+      target: { files: files as unknown }
     } as React.ChangeEvent<HTMLInputElement>
 
     await handleFileUpload(syntheticEvent)

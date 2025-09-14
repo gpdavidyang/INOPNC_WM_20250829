@@ -1,4 +1,3 @@
-import { faker } from '@faker-js/faker'
 import type { AttendanceRecord, AttendanceStatus, AttendanceCheckData, SalaryData } from '@/types/attendance'
 
 // Labor hours constants

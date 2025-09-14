@@ -1,37 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  X, 
-  Edit, 
-  Save, 
-  Upload, 
-  Download, 
-  Trash2, 
-  Plus,
-  Building2,
-  Calendar,
-  User,
-  Users,
-  FileImage,
-  Eye
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { 
-  CustomSelect, 
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
-import WorkerManagementTab from './WorkerManagementTab'
-import AttachmentsTab from './AttachmentsTab'
-import PhotosTab from './PhotosTab'
-import ReceiptsTab from './ReceiptsTab'
-import MarkupTab from './MarkupTab'
-import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface DailyReport {
   id: string
@@ -729,7 +697,7 @@ export default function DailyReportDetailModal({ report: initialReport, onClose,
                           <td className="px-4 py-3 text-sm text-gray-900">
                             <select
                               value={editData.status}
-                              onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value as any }))}
+                              onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value as unknown }))}
                               className="px-2 py-1 border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                             >
                               <option value="draft">임시저장</option>

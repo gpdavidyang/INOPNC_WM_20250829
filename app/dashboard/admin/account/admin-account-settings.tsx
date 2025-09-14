@@ -1,33 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import {
-  User,
-  Mail,
-  Phone,
-  Building2,
-  Calendar,
-  Lock,
-  Eye,
-  EyeOff,
-  Save,
-  X,
-  CheckCircle,
-  AlertCircle,
-  Shield,
-  Key,
-  UserCheck
-} from 'lucide-react'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { updatePassword } from '@/app/auth/actions'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 import type { Profile } from '@/types'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
 

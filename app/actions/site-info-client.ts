@@ -3,9 +3,7 @@
 // This file provides client-side wrappers for server actions
 // It handles session verification before calling server actions
 
-import { createClient } from '@/lib/supabase/client'
 // Import server actions - they can be called from client components
-import { getCurrentUserSite, getUserSiteHistory } from './site-info'
 
 // Client-side wrapper for getCurrentUserSite that ensures session is valid before calling server action
 export async function getCurrentUserSiteWithAuth() {

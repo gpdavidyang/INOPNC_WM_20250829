@@ -1,16 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Search, Filter, Plus, FolderPlus, Users, Lock, Unlock,
-  FileText, FolderOpen, Eye, Download, Edit, Trash2, Share2,
-  User, Building2, DollarSign, File, FileCheck, FileImage,
-  Camera, Edit3, History, BarChart3, AlertCircle, CheckCircle,
-  Upload, Clock, ChevronDown, MoreVertical, X, Calendar
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 // Define document category types based on requirements
 type DocumentCategoryType = 
@@ -141,7 +130,7 @@ export default function EnhancedDocumentManagement() {
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([])
   const [filterStatus, setFilterStatus] = useState<string>('all')
   const [filterUser, setFilterUser] = useState<string>('all')
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<unknown>(null)
 
   const supabase = createClient()
 

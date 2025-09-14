@@ -1,6 +1,4 @@
 import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
 
 const headingVariants = cva(
   "text-toss-gray-900 dark:text-toss-gray-100 font-semibold",

@@ -1,7 +1,5 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors } from './common'
-import { UserRole } from '@/types'
 
 export interface EmailNotificationData {
   recipient_email: string
@@ -12,7 +10,7 @@ export interface EmailNotificationData {
   sender_id: string
   priority: 'low' | 'normal' | 'high' | 'urgent'
   scheduled_at?: string | null
-  metadata?: any
+  metadata?: unknown
 }
 
 export interface BulkEmailData {
@@ -109,7 +107,7 @@ export async function sendBulkEmailNotifications(
           .eq('status', 'active')
 
         if (users) {
-          recipients = users.map((user: any) => ({
+          recipients = users.map((user: unknown) => ({
             email: user.email,
             name: user.full_name,
             role: user.role
@@ -128,7 +126,7 @@ export async function sendBulkEmailNotifications(
           .eq('is_active', true)
 
         if (siteUsers) {
-          recipients = siteUsers.map((assignment: any) => ({
+          recipients = siteUsers.map((assignment: unknown) => ({
             email: assignment.profiles.email,
             name: assignment.profiles.full_name,
             role: assignment.profiles.role
@@ -144,7 +142,7 @@ export async function sendBulkEmailNotifications(
       }
 
       // Create bulk email notifications
-      const notifications = recipients.map((recipient: any) => ({
+      const notifications = recipients.map((recipient: unknown) => ({
         recipient_email: recipient.email,
         recipient_name: recipient.name,
         subject: data.subject,
@@ -392,7 +390,7 @@ export async function getEmailNotificationHistory(
  * Simulate email sending (for development)
  * In production, replace with actual email service integration
  */
-async function simulateEmailSend(notification: any): Promise<void> {
+async function simulateEmailSend(notification: unknown): Promise<void> {
   return new Promise((resolve, reject) => {
     // Simulate network delay
     setTimeout(() => {

@@ -1,32 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { 
-  Briefcase, 
-  Building2, 
-  Phone, 
-  Mail, 
-  User, 
-  Calendar,
-  DollarSign,
-  Package,
-  FileText,
-  Eye,
-  Download,
-  Upload,
-  TrendingUp,
-  Users,
-  Star,
-  Plus,
-  UserMinus,
-  Search,
-  Filter,
-  XCircle,
-  CheckCircle
-} from 'lucide-react'
-import Link from 'next/link'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface AssignedPartner {
   id: string

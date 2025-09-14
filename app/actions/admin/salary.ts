@@ -1,6 +1,6 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired } from './common'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 
 export interface SalaryCalculationRule {
   id: string
@@ -8,7 +8,7 @@ export interface SalaryCalculationRule {
   rule_type: 'hourly_rate' | 'daily_rate' | 'overtime_multiplier' | 'bonus_calculation'
   base_amount: number
   multiplier?: number
-  conditions?: any
+  conditions?: unknown
   site_id?: string
   role?: string
   is_active: boolean
@@ -266,7 +266,7 @@ export async function upsertSalaryRule(
               id: data.id || '1',
               ...ruleData,
               created_at: new Date().toISOString()
-            } as any,
+            } as unknown,
             message: data.id ? '급여 규칙이 업데이트되었습니다.' : '급여 규칙이 생성되었습니다.'
           }
         }
@@ -386,10 +386,10 @@ export async function getSalaryRecords(
       const salaryRecords: SalaryRecord[] = []
       
       for (const report of dailyReports || []) {
-        const site = sites.find((s: any) => s.id === report.site_id)
+        const site = sites.find((s: unknown) => s.id === report.site_id)
         
         for (const workerEntry of report.daily_report_workers || []) {
-          const worker = profiles.find((p: any) => p.full_name === workerEntry.worker_name)
+          const worker = profiles.find((p: unknown) => p.full_name === workerEntry.worker_name)
           
           if (worker) {
             const workHours = parseFloat(workerEntry.work_hours) || 0
@@ -535,7 +535,7 @@ export async function calculateSalaries(
       for (const report of dailyReportsData || []) {
         for (const workerEntry of report.daily_report_workers || []) {
           // Find worker profile by name
-          const worker = workers.find((w: any) => w.full_name === workerEntry.worker_name)
+          const worker = workers.find((w: unknown) => w.full_name === workerEntry.worker_name)
           if (!worker) {
             console.warn(`Worker not found: ${workerEntry.worker_name}`)
             continue
@@ -565,19 +565,19 @@ export async function calculateSalaries(
           const overtimeHours = Math.max(actualHours - 8, 0)
 
           // Find applicable rules
-          const hourlyRule = rules.find((r: any) => 
+          const hourlyRule = rules.find((r: unknown) => 
             r.rule_type === 'hourly_rate' && 
             (!r.site_id || r.site_id === report.site_id) &&
             (!r.role || r.role === worker.role)
           )
           
-          const dailyRule = rules.find((r: any) => 
+          const dailyRule = rules.find((r: unknown) => 
             r.rule_type === 'daily_rate' && 
             (!r.site_id || r.site_id === report.site_id) &&
             (!r.role || r.role === worker.role)
           )
           
-          const overtimeRule = rules.find((r: any) => 
+          const overtimeRule = rules.find((r: unknown) => 
             r.rule_type === 'overtime_multiplier' && 
             (!r.site_id || r.site_id === report.site_id)
           )
@@ -799,13 +799,13 @@ export async function getSalaryStats(
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
-      const totalWorkers = new Set(records?.map((r: any) => r.worker_id)).size
-      const pendingCalculations = records?.filter((r: any) => r.status === 'calculated').length || 0
-      const approvedPayments = records?.filter((r: any) => r.status === 'approved').length || 0
-      const totalPayroll = records?.reduce((sum: number, r: any) => sum + (r.total_pay || 0), 0) || 0
+      const totalWorkers = new Set(records?.map((r: unknown) => r.worker_id)).size
+      const pendingCalculations = records?.filter((r: unknown) => r.status === 'calculated').length || 0
+      const approvedPayments = records?.filter((r: unknown) => r.status === 'approved').length || 0
+      const totalPayroll = records?.reduce((sum: number, r: unknown) => sum + (r.total_pay || 0), 0) || 0
       const averageDailyPay = records?.length ? totalPayroll / records.length : 0
-      const totalHours = records?.reduce((sum: number, r: any) => sum + (r.regular_hours || 0) + (r.overtime_hours || 0), 0) || 0
-      const overtimeHours = records?.reduce((sum: number, r: any) => sum + (r.overtime_hours || 0), 0) || 0
+      const totalHours = records?.reduce((sum: number, r: unknown) => sum + (r.regular_hours || 0) + (r.overtime_hours || 0), 0) || 0
+      const overtimeHours = records?.reduce((sum: number, r: unknown) => sum + (r.overtime_hours || 0), 0) || 0
       const overtimePercentage = totalHours > 0 ? (overtimeHours / totalHours) * 100 : 0
 
       const stats: SalaryStats = {
@@ -913,7 +913,7 @@ export async function getAvailableWorkersForSalary(): Promise<AdminActionResult<
       }
 
       // Transform data to match expected format
-      const transformedWorkers = (workers || []).map((worker: any) => ({
+      const transformedWorkers = (workers || []).map((worker: unknown) => ({
         id: worker.id,
         name: worker.full_name
       }))
@@ -1011,8 +1011,8 @@ export async function getOutputSummary(
 
       // Group work data by worker and site
       const workSummary: Record<string, {
-        worker: any
-        site: any
+        worker: unknown
+        site: unknown
         work_days: Set<string>
         total_labor_hours: number  // 총 공수
         total_work_hours: number
@@ -1026,11 +1026,11 @@ export async function getOutputSummary(
       }> = {}
 
       for (const report of reports) {
-        const site = sites.find((s: any) => s.id === report.site_id)
+        const site = sites.find((s: unknown) => s.id === report.site_id)
         if (!site) continue
 
         for (const workerEntry of report.daily_report_workers || []) {
-          const worker = workers.find((w: any) => w.full_name === workerEntry.worker_name)
+          const worker = workers.find((w: unknown) => w.full_name === workerEntry.worker_name)
           if (!worker) continue
 
           // Apply search filter if specified
@@ -1080,7 +1080,7 @@ export async function getOutputSummary(
       }
 
       // Transform to output format 
-      const outputData: OutputSummary[] = Object.values(workSummary).map((item: any) => {
+      const outputData: OutputSummary[] = Object.values(workSummary).map((item: unknown) => {
         const workDatesArray: string[] = Array.from(item.work_days as Set<string>).sort()
         
         return {
@@ -1178,7 +1178,7 @@ export async function getWorkerCalendarData(
       const calendarData: WorkerCalendarData[] = []
 
       for (const report of reports) {
-        const site = sites.find((s: any) => s.id === report.site_id)
+        const site = sites.find((s: unknown) => s.id === report.site_id)
         
         for (const workerEntry of report.daily_report_workers || []) {
           if (workerEntry.worker_name === workerData.full_name) {

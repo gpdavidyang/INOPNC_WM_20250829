@@ -2,7 +2,6 @@
  * UI 컴포넌트 Props 타입 정의
  */
 
-import { MouseEventHandler, ReactNode } from 'react'
 import { BaseComponentProps } from './index'
 
 // Button Props

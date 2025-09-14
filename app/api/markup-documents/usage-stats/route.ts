@@ -1,8 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
-import { createClient } from '@/lib/supabase/server'
 
 
 // GET /api/markup-documents/usage-stats - 도구 사용 통계 조회

@@ -1,28 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { 
-  FileText, 
-  Package, 
-  Shield, 
-  Image, 
-  Building2,
-  Calendar,
-  User,
-  Grid,
-  List,
-  Search,
-  Download,
-  Eye,
-  BarChart3
-} from 'lucide-react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 // Helper function to get typography class
 function getTypographyClass(type: string, size: string = 'base', isLargeFont: boolean = false): string {
@@ -86,7 +64,7 @@ export default function DocumentOverviewManagement() {
         // Flatten all documents from different categories
         const allDocuments: Document[] = []
         if (data.documents_by_category) {
-          Object.values(data.documents_by_category).forEach((categoryDocs: any) => {
+          Object.values(data.documents_by_category).forEach((categoryDocs: unknown) => {
             allDocuments.push(...categoryDocs)
           })
         }

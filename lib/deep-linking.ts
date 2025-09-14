@@ -3,7 +3,6 @@
  * Handles navigation from notification clicks to specific app sections
  */
 
-import { NextRouter } from 'next/router'
 
 export interface DeepLinkParams {
   url: string
@@ -176,7 +175,7 @@ export class DeepLinkHandler {
   /**
    * Log notification engagement metrics
    */
-  private async logNotificationEngagement(data: any): Promise<void> {
+  private async logNotificationEngagement(data: unknown): Promise<void> {
     try {
       await fetch('/api/notifications/analytics/engagement', {
         method: 'POST',
@@ -193,7 +192,7 @@ export class DeepLinkHandler {
   /**
    * Handle notification received in foreground
    */
-  handleForegroundNotification(notification: any): void {
+  handleForegroundNotification(notification: unknown): void {
     // Show in-app notification UI
     const event = new CustomEvent('foregroundNotification', {
       detail: notification

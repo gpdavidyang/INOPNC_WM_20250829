@@ -1,8 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-import { Bell, Send, Users, MapPin, Shield, Clock, AlertTriangle, Wrench, Megaphone } from 'lucide-react'
-import { pushNotificationService, notificationHelpers } from '@/lib/push-notifications'
 
 interface NotificationTest {
   type: 'material_approval' | 'daily_report_reminder' | 'safety_alert' | 'equipment_maintenance' | 'site_announcement'
@@ -82,7 +79,7 @@ export function NotificationTester() {
     targetIds: []
   })
   const [isLoading, setIsLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
+  const [result, setResult] = useState<unknown>(null)
 
   const handleTypeChange = (type: typeof test.type) => {
     const template = NOTIFICATION_TYPES.find(t => t.type === type)
@@ -274,7 +271,7 @@ export function NotificationTester() {
             </label>
             <select
               value={test.urgency}
-              onChange={(e) => setTest(prev => ({ ...prev, urgency: e.target.value as any }))}
+              onChange={(e) => setTest(prev => ({ ...prev, urgency: e.target.value as unknown }))}
               className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             >
               <option value="low">낮음</option>
@@ -309,7 +306,7 @@ export function NotificationTester() {
                 name="targetType"
                 value="users"
                 checked={test.targetType === 'users'}
-                onChange={(e) => setTest(prev => ({ ...prev, targetType: e.target.value as any, targetIds: [] }))}
+                onChange={(e) => setTest(prev => ({ ...prev, targetType: e.target.value as unknown, targetIds: [] }))}
                 className="mr-2"
               />
               <Users className="h-4 w-4 mr-1" />
@@ -321,7 +318,7 @@ export function NotificationTester() {
                 name="targetType"
                 value="sites"
                 checked={test.targetType === 'sites'}
-                onChange={(e) => setTest(prev => ({ ...prev, targetType: e.target.value as any, targetIds: [] }))}
+                onChange={(e) => setTest(prev => ({ ...prev, targetType: e.target.value as unknown, targetIds: [] }))}
                 className="mr-2"
               />
               <MapPin className="h-4 w-4 mr-1" />
@@ -333,7 +330,7 @@ export function NotificationTester() {
                 name="targetType"
                 value="roles"
                 checked={test.targetType === 'roles'}
-                onChange={(e) => setTest(prev => ({ ...prev, targetType: e.target.value as any, targetIds: [] }))}
+                onChange={(e) => setTest(prev => ({ ...prev, targetType: e.target.value as unknown, targetIds: [] }))}
                 className="mr-2"
               />
               역할

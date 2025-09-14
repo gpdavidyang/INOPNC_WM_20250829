@@ -1,9 +1,4 @@
-import { getCurrentUserSite, getUserSiteHistory } from '@/app/actions/site-info'
-import { getProfile } from '@/app/actions/profile'
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
 import DashboardLayout from '@/components/dashboard/dashboard-layout'
-import SiteInfoTabNew from '@/components/dashboard/tabs/site-info-tab-new'
 
 export default async function SiteInfoPage() {
   // Get user profile for authentication

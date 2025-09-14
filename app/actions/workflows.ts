@@ -1,6 +1,5 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
 import type { Database } from '@/types/database'
 
 type Tables = Database['public']['Tables']
@@ -125,7 +124,7 @@ export async function rejectWorkflow(
 export async function handleConcurrentEdit(
   reportId: string,
   expectedVersion: number,
-  updates: any
+  updates: unknown
 ): Promise<WorkflowResult> {
   const supabase = await createClient()
   
@@ -303,7 +302,7 @@ export async function rollbackTransaction(
   operations: Array<{
     table: string
     action: 'insert' | 'update' | 'delete'
-    data: any
+    data: unknown
   }>
 ): Promise<WorkflowResult> {
   const supabase = await createClient()

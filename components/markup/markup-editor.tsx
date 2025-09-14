@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
 import type { 
   MarkupDocument, 
   MarkupObject, 
@@ -10,27 +8,15 @@ import type {
   ViewerState,
   MarkupEditorState 
 } from '@/types/markup'
-import { ToolPalette } from './toolbar/tool-palette'
-import { TopToolbar } from './toolbar/top-toolbar'
-import { BottomStatusbar } from './toolbar/bottom-statusbar'
-import { MarkupCanvas } from './canvas/markup-canvas'
-import { SavePage } from './pages/save-page'
 import { OpenDialog } from './dialogs/open-dialog'
 import { ShareDialog } from './dialogs/share-dialog'
-import { useMarkupTools } from './hooks/use-markup-tools'
-import { useCanvasState } from './hooks/use-canvas-state'
-import { useFileManager } from './hooks/use-file-manager'
-import { BlueprintUpload } from './upload/blueprint-upload'
-import { MarkupDocumentList } from './list/markup-document-list'
-import { useFontSize } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 interface MarkupEditorProps {
   initialFile?: MarkupDocument
   blueprintUrl?: string
   onSave?: (document: MarkupDocument) => void
   onClose?: () => void
-  profile?: any
+  profile?: unknown
   initialView?: 'list' | 'editor'
   embedded?: boolean
 }
@@ -216,7 +202,7 @@ export function MarkupEditor({
     }))
   }
 
-  const handleStampSettingsChange = (settings: any) => {
+  const handleStampSettingsChange = (settings: unknown) => {
     setEditorState(prev => ({
       ...prev,
       toolState: {
@@ -259,7 +245,7 @@ export function MarkupEditor({
   }
 
   const handleOpen = async (fileId: string) => {
-    await fileManager.openDocument(fileId as any)
+    await fileManager.openDocument(fileId as unknown)
   }
 
   const handleOpenDocument = async (document: MarkupDocument) => {
@@ -267,7 +253,7 @@ export function MarkupEditor({
       // 로딩 상태 즉시 설정
       setEditorState(prev => ({ ...prev, isLoading: true }))
       
-      const result = await fileManager.openDocument(document as any)
+      const result = await fileManager.openDocument(document as unknown)
       if (result) {
         setBlueprintUrl(result.blueprintUrl)
         setBlueprintFileName(result.blueprintFileName)
@@ -303,7 +289,7 @@ export function MarkupEditor({
     setCurrentView('list')
   }
 
-  const handleShare = async (permissions: any) => {
+  const handleShare = async (permissions: unknown) => {
     // 공유 로직 구현
     console.log('Sharing with permissions:', permissions)
   }
@@ -383,7 +369,7 @@ export function MarkupEditor({
       {/* 상단 툴바 - embedded 모드에서는 간소화 */}
       {!embedded && (
         <TopToolbar
-          fileName={blueprintFileName || (editorState.currentFile as any)?.title || '새 마킹'}
+          fileName={blueprintFileName || (editorState.currentFile as unknown)?.title || '새 마킹'}
           onHome={handleBackToList}
           onOpen={() => setEditorState(prev => ({ ...prev, showOpenDialog: true }))}
           onSave={() => setEditorState(prev => ({ ...prev, showSavePage: true }))}

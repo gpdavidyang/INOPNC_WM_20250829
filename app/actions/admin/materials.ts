@@ -1,7 +1,5 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired } from './common'
-import { MaterialInventoryItem, MaterialRequestData, MaterialTransactionData, NPC1000Data } from '@/types'
 
 export interface MaterialWithStats extends MaterialInventoryItem {
   total_requests?: number
@@ -118,7 +116,7 @@ export async function getMaterials(
       }
 
       // Transform the data to include stats
-      const transformedMaterials = materials?.map((material: any) => ({
+      const transformedMaterials = materials?.map((material: unknown) => ({
         ...material,
         total_requests: material.material_requests?.[0]?.count || 0,
         recent_transactions: material.material_transactions?.[0]?.count || 0,
@@ -211,7 +209,7 @@ export async function getMaterialRequests(
         }
       }
 
-      const transformedRequests = requests?.map((request: any) => ({
+      const transformedRequests = requests?.map((request: unknown) => ({
         ...request,
         items: request.material_request_items || []
       })) || []
@@ -308,7 +306,7 @@ export async function getNPC1000Summary(): Promise<AdminActionResult<NPC1000Summ
       const siteData = new Map<string, any>()
       
       // Get latest data per site
-      npcData?.forEach((item: any) => {
+      npcData?.forEach((item: unknown) => {
         if (!siteData.has(item.site_id)) {
           siteData.set(item.site_id, item)
         }
@@ -376,13 +374,13 @@ export async function getNPC1000BySite(
 
       // Apply search filter
       if (search.trim()) {
-        filteredData = filteredData.filter((item: any) => 
+        filteredData = filteredData.filter((item: unknown) => 
           item.site_name.toLowerCase().includes(search.toLowerCase())
         )
       }
 
       // Transform and add status
-      const transformedData = filteredData.map((item: any) => ({
+      const transformedData = filteredData.map((item: unknown) => ({
         ...item,
         efficiency: item.incoming > 0 ? Math.round((item.used / item.incoming) * 10000) / 100 : 0,
         status: item.remaining < 20 ? 'critical' : item.remaining < 50 ? 'low' : 'normal'
@@ -764,7 +762,7 @@ export async function updateShipmentStatus(
 ): Promise<AdminActionResult<void>> {
   return withAdminAuth(async (supabase) => {
     try {
-      const updateData: any = {
+      const updateData: unknown = {
         status,
         updated_at: new Date().toISOString()
       }
@@ -810,7 +808,7 @@ export async function processMaterialRequest(
 ): Promise<AdminActionResult<void>> {
   return withAdminAuth(async (supabase, profile) => {
     try {
-      const updateData: any = {
+      const updateData: unknown = {
         status: action,
         approved_by: profile.id,
         approved_at: new Date().toISOString(),

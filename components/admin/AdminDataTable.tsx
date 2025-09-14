@@ -1,17 +1,12 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { ChevronUp, ChevronDown, Search, Filter, MoreHorizontal } from 'lucide-react'
-import { useFontSize,  getTypographyClass, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Button } from '@/components/ui/button'
 
 interface Column<T> {
   key: keyof T | string
   label: string
   sortable?: boolean
   filterable?: boolean
-  render?: (value: any, row: T) => React.ReactNode
+  render?: (value: unknown, row: T) => React.ReactNode
   width?: string
   align?: 'left' | 'center' | 'right'
 }
@@ -31,7 +26,7 @@ interface AdminDataTableProps<T> {
   onEdit?: (row: T) => void
   onDelete?: (row: T) => void
   customActions?: Array<{
-    icon: any
+    icon: unknown
     label: string
     onClick: (row: T) => void
     show?: (row: T) => boolean

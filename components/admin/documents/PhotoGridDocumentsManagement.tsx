@@ -1,27 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Search, 
-  Filter, 
-  Eye, 
-  Download, 
-  Upload, 
-  Image,
-  Calendar,
-  User,
-  Building2,
-  Grid3x3,
-  List,
-  MoreVertical
-} from 'lucide-react'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { useRouter } from 'next/navigation'
 
 // Helper function to get typography class
 function getTypographyClass(type: string, size: string = 'base', isLargeFont: boolean = false): string {
@@ -67,7 +46,7 @@ export default function PhotoGridDocumentsManagement() {
       if (response.ok) {
         const result = await response.json()
         const data = result.documents || []
-        const formattedDocs = data.map((doc: any) => {
+        const formattedDocs = data.map((doc: unknown) => {
           return {
             id: doc.id,
             title: doc.title,
@@ -100,7 +79,7 @@ export default function PhotoGridDocumentsManagement() {
 
   const handlePreview = (doc: PhotoGridDocument) => {
     // Extract photo_grid_id from the document metadata (same logic as the dashboard tab)
-    const metadata = (doc as any).metadata || {}
+    const metadata = (doc as unknown).metadata || {}
     const photoGridId = metadata.photo_grid_id
     if (photoGridId) {
       router.push(`/dashboard/admin/tools/photo-grids/preview/${photoGridId}`)
@@ -110,7 +89,7 @@ export default function PhotoGridDocumentsManagement() {
   const handleDownload = async (doc: PhotoGridDocument) => {
     try {
       // Extract photo_grid_id from the document metadata (same logic as the dashboard tab) 
-      const metadata = (doc as any).metadata || {}
+      const metadata = (doc as unknown).metadata || {}
       const photoGridId = metadata.photo_grid_id
       if (photoGridId) {
         const response = await fetch(`/api/photo-grids/${photoGridId}/download`)

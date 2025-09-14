@@ -1,26 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Plus,
-  Trash2,
-  Search,
-  X,
-  Calendar,
-  Filter,
-  RotateCcw
-} from 'lucide-react'
 import type { 
   SearchFilter, 
   SearchFieldConfig, 
   SearchOperator,
   SearchOptions 
 } from '@/lib/search/types'
-import { cn } from '@/lib/utils'
 
 interface SearchBuilderProps {
   fields: SearchFieldConfig[]
@@ -33,7 +18,7 @@ interface FilterRow {
   id: string
   field: string
   operator: SearchOperator
-  value: any
+  value: unknown
   values?: unknown[] // For 'between' operator
 }
 

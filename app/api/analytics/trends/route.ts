@@ -1,7 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { withApiMonitoring } from '@/lib/monitoring/api-monitoring'
-import { format, eachDayOfInterval, parseISO } from 'date-fns'
+import type { AsyncState, ApiResponse } from '@/types/utils'
 
 export const GET = withApiMonitoring(
   async (request: NextRequest) => {
@@ -45,7 +42,7 @@ export const GET = withApiMonitoring(
 
       // Generate date labels for the chart
       const dateLabels = eachDayOfInterval({ start: fromDate, end: toDate })
-        .map((date: any) => format(date, 'M/d'))
+        .map((date: unknown) => format(date, 'M/d'))
 
       // Build site filter based on user role and request
       let siteCondition = ''
@@ -55,7 +52,7 @@ export const GET = withApiMonitoring(
         siteCondition = `AND site_id = '${siteFilter}'`
       }
 
-      let trendData: any = {
+      let trendData: unknown = {
         labels: dateLabels,
         datasets: [{
           data: []
@@ -72,9 +69,9 @@ export const GET = withApiMonitoring(
             .lte('created_at', toDate.toISOString())
 
           // Group by day and count
-          const countsByDay = dateLabels.map((label: any) => {
+          const countsByDay = dateLabels.map((label: unknown) => {
             const day = format(parseISO(from), 'yyyy-MM-dd')
-            const dayReports = reports?.filter((r: any) => 
+            const dayReports = reports?.filter((r: unknown) => 
               format(new Date(r.created_at), 'M/d') === label
             ) || []
             return dayReports.length
@@ -87,7 +84,7 @@ export const GET = withApiMonitoring(
         case 'worker_count': {
           // Get unique active workers per day
           const countsByDay = await Promise.all(
-            dateLabels.map(async (label: any, index: any) => {
+            dateLabels.map(async (label: unknown, index: unknown) => {
               const targetDate = eachDayOfInterval({ start: fromDate, end: toDate })[index]
               const dayStart = new Date(targetDate)
               dayStart.setHours(0, 0, 0, 0)
@@ -101,7 +98,7 @@ export const GET = withApiMonitoring(
                 .gte('created_at', dayStart.toISOString())
                 .lte('created_at', dayEnd.toISOString())
 
-              const uniqueWorkers = new Set(dayReports?.map((r: any) => r.created_by) || [])
+              const uniqueWorkers = new Set(dayReports?.map((r: unknown) => r.created_by) || [])
               return uniqueWorkers.size
             })
           )
@@ -112,28 +109,28 @@ export const GET = withApiMonitoring(
 
         case 'material_usage': {
           // Mock data for material usage trend
-          const mockData = dateLabels.map((_: any) => Math.floor(Math.random() * 20) + 70)
+          const mockData = dateLabels.map((_: unknown) => Math.floor(Math.random() * 20) + 70)
           trendData.datasets[0].data = mockData
           break
         }
 
         case 'equipment_utilization': {
           // Mock data for equipment utilization trend
-          const mockData = dateLabels.map((_: any) => Math.floor(Math.random() * 25) + 65)
+          const mockData = dateLabels.map((_: unknown) => Math.floor(Math.random() * 25) + 65)
           trendData.datasets[0].data = mockData
           break
         }
 
         case 'productivity_score': {
           // Mock data for productivity score trend
-          const mockData = dateLabels.map((_: any) => Math.floor(Math.random() * 30) + 70)
+          const mockData = dateLabels.map((_: unknown) => Math.floor(Math.random() * 30) + 70)
           trendData.datasets[0].data = mockData
           break
         }
 
         case 'task_completion_rate': {
           // Mock data for task completion rate trend
-          const mockData = dateLabels.map((_: any) => Math.floor(Math.random() * 20) + 75)
+          const mockData = dateLabels.map((_: unknown) => Math.floor(Math.random() * 20) + 75)
           trendData.datasets[0].data = mockData
           break
         }
@@ -148,8 +145,8 @@ export const GET = withApiMonitoring(
             .gte('created_at', fromDate.toISOString())
             .lte('created_at', toDate.toISOString())
 
-          const countsByDay = dateLabels.map((label: any) => {
-            const dayIncidents = incidents?.filter((i: any) => 
+          const countsByDay = dateLabels.map((label: unknown) => {
+            const dayIncidents = incidents?.filter((i: unknown) => 
               format(new Date(i.created_at), 'M/d') === label
             ) || []
             return dayIncidents.length
@@ -161,7 +158,7 @@ export const GET = withApiMonitoring(
 
         case 'safety_inspection_rate': {
           // Mock data for safety inspection rate trend
-          const mockData = dateLabels.map((_: any) => Math.floor(Math.random() * 15) + 85)
+          const mockData = dateLabels.map((_: unknown) => Math.floor(Math.random() * 15) + 85)
           trendData.datasets[0].data = mockData
           break
         }

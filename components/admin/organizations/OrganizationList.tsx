@@ -1,28 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { 
-  Building2, 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Eye,
-  Phone,
-  Mail,
-  MapPin,
-  CreditCard,
-  FileText,
-  CheckCircle,
-  XCircle,
-  LayoutGrid,
-  List,
-  ChevronUp,
-  ChevronDown,
-  ChevronsUpDown
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Organization {
   id: string
@@ -155,8 +132,8 @@ export default function OrganizationList() {
   }
 
   const sortedAndFilteredOrganizations = [...filteredOrganizations].sort((a, b) => {
-    let aValue: any
-    let bValue: any
+    let aValue: unknown
+    let bValue: unknown
     
     switch (sortField) {
       case 'name':

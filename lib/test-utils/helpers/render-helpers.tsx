@@ -6,12 +6,9 @@
  */
 
 import React, { ReactElement, ReactNode } from 'react'
-import { render, RenderOptions, RenderResult } from '@testing-library/react'
-import { createMockSupabaseClient, type MockSupabaseClient } from '@/lib/test-utils/mocks/supabase.mock'
-import { mockAuthState, type AuthState, type MockAuthContext } from './auth-helpers'
 
 // Optional theme provider import
-let ThemeProvider: React.ComponentType<any> | null = null
+let ThemeProvider: React.ComponentType<unknown> | null = null
 try {
   const nextThemes = require('next-themes')
   ThemeProvider = nextThemes.ThemeProvider

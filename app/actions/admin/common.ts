@@ -1,6 +1,3 @@
-import { createClient as createServerClient } from '@/lib/supabase/server'
-import { createClient } from '@supabase/supabase-js'
-import { requireAdminAuth } from '@/lib/auth/admin'
 
 /**
  * Base admin action result type
@@ -16,7 +13,7 @@ export interface AdminActionResult<T = any> {
  * Wrapper function for admin actions that ensures proper authentication and error handling
  */
 export async function withAdminAuth<T>(
-  action: (supabase: any, profile: any) => Promise<AdminActionResult<T>>
+  action: (supabase: unknown, profile: unknown) => Promise<AdminActionResult<T>>
 ): Promise<AdminActionResult<T>> {
   try {
     // Verify admin authentication
@@ -62,7 +59,7 @@ function shouldLogAction(actionName: string): boolean {
  * Log admin actions for audit trail (async, non-blocking)
  */
 function logAdminActionAsync(
-  supabase: any,
+  supabase: unknown,
   adminId: string,
   actionName: string,
   success: boolean
@@ -103,7 +100,7 @@ export const AdminErrors = {
 /**
  * Validation helpers
  */
-export const validateRequired = (value: any, fieldName: string): string | null => {
+export const validateRequired = (value: unknown, fieldName: string): string | null => {
   if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
     return `${fieldName}는 필수 입력 항목입니다`
   }

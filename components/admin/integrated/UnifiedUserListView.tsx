@@ -1,8 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import UserManagement from '@/components/admin/UserManagement'
-import { getProfile } from '@/app/actions/profile'
 import type { Profile } from '@/types'
 
 export default function UnifiedUserListView() {

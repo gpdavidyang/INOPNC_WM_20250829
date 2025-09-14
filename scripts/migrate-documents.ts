@@ -8,9 +8,6 @@
  * npm run migrate:documents -- --env=production --backup
  */
 
-import { createClient } from '@supabase/supabase-js'
-import fs from 'fs/promises'
-import path from 'path'
 
 interface MigrationConfig {
   env: 'development' | 'production'

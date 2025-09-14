@@ -1,5 +1,3 @@
-import { createServerSupabaseClient } from '@/lib/supabase-server'
-import { redirect } from 'next/navigation'
 import TeamList from './team-list'
 
 export default async function TeamPage() {

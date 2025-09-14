@@ -1,11 +1,10 @@
-import { test as base } from '@playwright/test'
 
 // Define custom fixtures for authentication
 export type AuthFixtures = {
-  authenticatedPage: any
-  adminAuth: any
-  workerAuth: any
-  managerAuth: any
+  authenticatedPage: unknown
+  adminAuth: unknown
+  workerAuth: unknown
+  managerAuth: unknown
 }
 
 export const test = base.extend<AuthFixtures>({

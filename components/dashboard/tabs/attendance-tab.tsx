@@ -1,25 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  ChevronUp,
-  ChevronDown,
-  Download,
-  Building2
-} from 'lucide-react'
-import jsPDF from 'jspdf'
-import { SortableTable, useSortableData, type SortConfig } from '@/components/ui/sortable-table'
-import { 
-  CustomSelect,
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
 
 interface AttendanceTabProps {
   profile: Profile
@@ -539,7 +519,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
 
     return [...filteredRecords].sort((a, b) => {
       const { key, direction } = sortConfig
-      let aValue: any, bValue: any
+      let aValue: unknown, bValue: unknown
 
       switch (key) {
         case 'work_date':
@@ -730,7 +710,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
                 </CustomSelectTrigger>
                 <CustomSelectContent>
                   <CustomSelectItem value="all">전체 현장</CustomSelectItem>
-                  {sites.map((site: any) => (
+                  {sites.map((site: unknown) => (
                     <CustomSelectItem key={site.id} value={site.id}>
                       {site.name}
                     </CustomSelectItem>
@@ -828,7 +808,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
 
                 {/* Calendar Header */}
                 <div className="grid grid-cols-7 gap-1 mb-2">
-                  {['일', '월', '화', '수', '목', '금', '토'].map((day: any) => (
+                  {['일', '월', '화', '수', '목', '금', '토'].map((day: unknown) => (
                     <div key={day} className="h-6 flex items-center justify-center text-xs font-medium text-gray-500 dark:text-gray-400">
                       {day}
                     </div>
@@ -1040,7 +1020,7 @@ export default function AttendanceTab({ profile }: AttendanceTabProps) {
                         </tr>
                       </thead>
                       <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                        {filteredSalaryInfo.map((salary: any) => (
+                        {filteredSalaryInfo.map((salary: unknown) => (
                           <tr 
                             key={salary.id} 
                             onClick={() => setSelectedSalaryMonth(salary.month)}

@@ -1,42 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/custom-select'
-import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { 
-  Users,
-  Settings,
-  Plus,
-  Search,
-  DollarSign,
-  Clock,
-  Calendar,
-  Award,
-  RefreshCw
-} from 'lucide-react'
-import { useToast } from '@/components/ui/use-toast'
-import { 
-  getResourceAllocations,
-  getWorkerSkills,
-  getWorkerSkillAssignments,
-  upsertWorkerSkillAssignment,
-  createResourceAllocation
-} from '@/app/actions/equipment'
-import { getAllSites } from '@/app/actions/site-info'
-import { getProfiles } from '@/app/actions/profile'
-import { ResourceAllocation, WorkerSkill, WorkerSkillAssignment } from '@/types/equipment'
 import { WorkerAssignmentDialog } from './worker-assignment-dialog'
 import { SkillManagementDialog } from './skill-management-dialog'
 
 interface ResourceAllocationProps {
-  currentUser: any
+  currentUser: unknown
 }
 
 export function ResourceAllocationComponent({ currentUser }: ResourceAllocationProps) {
@@ -59,7 +29,7 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
   // Dialog states
   const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
   const [showSkillDialog, setShowSkillDialog] = useState(false)
-  const [selectedWorker, setSelectedWorker] = useState<any>(null)
+  const [selectedWorker, setSelectedWorker] = useState<unknown>(null)
 
   // Filter states
   const [dateFilter, setDateFilter] = useState(new Date().toISOString().split('T')[0])
@@ -76,12 +46,12 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
       })
       const workersResult = await getProfiles()
       // @ts-ignore - TypeScript incorrectly reports parameter mismatch
-      const skillsResult = await getWorkerSkills() as any
-      const skillAssignmentsResult = await getWorkerSkillAssignments() as any
+      const skillsResult = await getWorkerSkills() as unknown
+      const skillAssignmentsResult = await getWorkerSkillAssignments() as unknown
       const sitesResult = await getAllSites()
 
       if (allocationsResult.success) setAllocations((allocationsResult.data as unknown as ResourceAllocation[]) || [])
-      if (workersResult.success) setWorkers(workersResult.data?.filter((p: any) => p.role === 'worker') || [])
+      if (workersResult.success) setWorkers(workersResult.data?.filter((p: unknown) => p.role === 'worker') || [])
       if (skillsResult.success) setSkills((skillsResult.data as unknown as WorkerSkill[]) || [])
       if (skillAssignmentsResult.success) setSkillAssignments((skillAssignmentsResult.data as unknown as WorkerSkillAssignment[]) || [])
       if (sitesResult.success) setSites(sitesResult.data || [])
@@ -108,12 +78,12 @@ export function ResourceAllocationComponent({ currentUser }: ResourceAllocationP
     setRefreshing(false)
   }
 
-  const handleWorkerAssignment = (worker: any) => {
+  const handleWorkerAssignment = (worker: unknown) => {
     setSelectedWorker(worker)
     setShowAssignmentDialog(true)
   }
 
-  const handleSkillManagement = (worker: any) => {
+  const handleSkillManagement = (worker: unknown) => {
     setSelectedWorker(worker)
     setShowSkillDialog(true)
   }

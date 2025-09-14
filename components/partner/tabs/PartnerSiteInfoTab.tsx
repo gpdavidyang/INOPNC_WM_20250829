@@ -1,35 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { Navigation } from 'lucide-react'
-import { 
-  Building2, Building, MapPin, Phone, Calendar, Users, 
-  FileText, FolderOpen, DollarSign, Camera,
-  CheckSquare, FileSignature, Map, X, Clock,
-  Copy, ExternalLink, ClipboardList, Eye, Download, Share2, MoreVertical,
-  ChevronDown, ChevronUp, Calculator, BarChart3, Shield, CheckCircle,
-  Loader2
-} from 'lucide-react'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { toast } from 'sonner'
-import { 
-  CustomSelect,
-  CustomSelectContent, 
-  CustomSelectItem, 
-  CustomSelectTrigger, 
-  CustomSelectValue 
-} from '@/components/ui/custom-select'
 
 interface PartnerSiteInfoTabProps {
   profile: Profile

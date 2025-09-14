@@ -1,21 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createClient } from '@/lib/supabase/client'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { Package, ArrowDown, ArrowUp, ArrowLeft, AlertCircle, Building } from 'lucide-react'
-import { toast } from 'sonner'
-import { recordInventoryTransaction } from '@/app/actions/npc-materials'
-import { getCurrentUserSite } from '@/app/actions/site-info'
 
 export default function InventoryRecordPage() {
   const router = useRouter()

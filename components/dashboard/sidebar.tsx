@@ -1,17 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { Profile, UserRole } from '@/types'
-import { 
-  Home, FileText, Calendar, FolderOpen, MapPin, Share2, User, Users, 
-  BarChart3, Settings, X, Bell, Building2, FolderCheck, DollarSign, 
-  Package, Layers, MoreHorizontal, Activity 
-} from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter, usePathname } from 'next/navigation'
-import { useOptionalNavigation } from '@/components/navigation/navigation-controller'
-import { signOut } from '@/app/auth/actions'
-import { useRovingTabIndex } from '@/hooks/use-keyboard-navigation'
 
 interface SidebarProps {
   profile: Profile
@@ -24,7 +13,7 @@ interface SidebarProps {
 interface MenuItem {
   id: string
   label: string
-  icon: any
+  icon: unknown
   roles: UserRole[]
   href?: string // Optional href for navigation
   isAdminPage?: boolean // Flag to indicate admin pages
@@ -319,7 +308,7 @@ function SidebarContent({
   mainMenuItems, 
   systemMenuItems,
   handleLogout 
-}: any) {
+}: unknown) {
   const router = useRouter()
   const pathname = usePathname()
   

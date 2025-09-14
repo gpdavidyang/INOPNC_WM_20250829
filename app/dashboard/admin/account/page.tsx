@@ -1,6 +1,4 @@
 import { AdminAccountSettings } from './admin-account-settings'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 

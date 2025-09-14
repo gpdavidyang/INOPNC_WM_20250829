@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 interface EngagementData {
   type: 'deep_link_navigation' | 'notification_received_foreground' | 'notification_clicked' | 'notification_dismissed' | 'action_performed'

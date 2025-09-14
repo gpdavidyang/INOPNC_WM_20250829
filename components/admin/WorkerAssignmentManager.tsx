@@ -1,20 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Site, Profile } from '@/types'
-import { 
-  UserPlusIcon, 
-  UserMinusIcon, 
-  MagnifyingGlassIcon,
-  CheckIcon,
-  XMarkIcon,
-  UsersIcon,
-  BuildingOfficeIcon,
-  PhoneIcon,
-  EnvelopeIcon
-} from '@heroicons/react/24/outline'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface WorkerAssignmentManagerProps {
   site: Site

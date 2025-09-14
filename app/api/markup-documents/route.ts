@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { MarkupDocument } from '@/types'
 
 // GET /api/markup-documents - 마킹 도면 목록 조회
 export async function GET(request: NextRequest) {
@@ -96,7 +93,7 @@ export async function GET(request: NextRequest) {
     }
     
     // 관계 정보를 포함한 문서 포맷팅
-    const formattedDocuments = documents?.map((doc: any) => ({
+    const formattedDocuments = documents?.map((doc: unknown) => ({
       ...doc,
       created_by_name: doc.creator?.full_name || 'Unknown',
       creator_email: doc.creator?.email || '',
@@ -195,12 +192,12 @@ export async function POST(request: NextRequest) {
         markup_data: markup_data || [],
         preview_image_url,
         created_by: user.id,
-        site_id: (profile as any).site_id,
+        site_id: (profile as unknown).site_id,
         markup_count,
         file_size: 0 // TODO: 실제 파일 크기 계산
-      } as any)
+      } as unknown)
       .select()
-      .single() as any)
+      .single() as unknown)
 
     if (error) {
       console.error('Error creating markup document:', error)
@@ -220,7 +217,7 @@ export async function POST(request: NextRequest) {
           mime_type: 'application/markup-document',
           category_type: 'markup',
           uploaded_by: user.id,
-          site_id: (profile as any).site_id,
+          site_id: (profile as unknown).site_id,
           status: 'uploaded',
           is_public: false, // 마킹 문서는 기본적으로 비공개
           metadata: {

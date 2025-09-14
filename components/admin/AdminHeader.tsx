@@ -1,14 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Menu, Search, Bell, Moon, Sun, User, LogOut, Settings, ChevronDown } from 'lucide-react'
-import { useFontSize } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { useTheme } from 'next-themes'
-import { Profile } from '@/types'
-import { signOut } from '@/app/auth/actions'
 import GlobalSearchModal from './GlobalSearchModal'
-import Link from 'next/link'
 
 interface AdminHeaderProps {
   profile?: Profile | null

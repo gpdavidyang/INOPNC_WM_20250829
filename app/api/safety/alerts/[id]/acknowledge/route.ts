@@ -1,5 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
 
 export async function POST(
   request: NextRequest,
@@ -75,7 +73,7 @@ export async function POST(
         .select('user_id')
         .eq('alert_id', alertId)
 
-      const acknowledgedUsers = allAcks?.map((a: any) => a.user_id) || []
+      const acknowledgedUsers = allAcks?.map((a: unknown) => a.user_id) || []
       const allAcknowledged = safetyAlert.affected_workers.every(
         (workerId: string) => acknowledgedUsers.includes(workerId)
       )

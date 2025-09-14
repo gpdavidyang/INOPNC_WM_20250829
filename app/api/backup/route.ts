@@ -1,16 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { logError, AppError } from '@/lib/error-handling'
-import { 
-  getBackupConfigs,
-  createBackupConfig,
-  updateBackupConfig,
-  deleteBackupConfig,
-  executeManualBackup,
-  getBackupJobs,
-  getBackupStats,
-  cancelBackupJob
-} from '@/app/actions/backup'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,21 +24,21 @@ export async function GET(request: NextRequest) {
     const action = searchParams.get('action')
 
     switch (action) {
-      case 'configs':
+      case 'configs': {
         const configsResult = await getBackupConfigs()
         return NextResponse.json(configsResult)
-
-      case 'jobs':
+      }
+      case 'jobs': {
         const configId = searchParams.get('configId')
         const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
         const jobsResult = await getBackupJobs(configId || undefined, limit)
         return NextResponse.json(jobsResult)
-
-      case 'stats':
+      }
+      case 'stats': {
         const statsResult = await getBackupStats()
         return NextResponse.json(statsResult)
-
-      case 'service-health':
+      }
+      case 'service-health': {
         // Check if backup service is running
         try {
           const servicePort = process.env.BACKUP_SERVICE_PORT || 3001
@@ -75,7 +62,7 @@ export async function GET(request: NextRequest) {
             error: 'Backup service is not running' 
           })
         }
-
+      }
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -117,11 +104,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     switch (action) {
-      case 'create-config':
+      case 'create-config': {
         const createResult = await createBackupConfig(body)
         return NextResponse.json(createResult)
-
-      case 'execute':
+      }
+      case 'execute': {
         const configId = body.configId
         if (!configId) {
           return NextResponse.json({ error: 'Config ID is required' }, { status: 400 })
@@ -129,14 +116,14 @@ export async function POST(request: NextRequest) {
         
         const executeResult = await executeManualBackup(configId)
         return NextResponse.json(executeResult)
-
-      case 'start-service':
+      }
+      case 'start-service': {
         // Start backup service (this would typically be done via process management)
         return NextResponse.json({ 
           success: false, 
           error: 'Service management not implemented via API. Use process manager.' 
         })
-
+      }
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -226,14 +213,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     switch (action) {
-      case 'config':
+      case 'config': {
         const deleteResult = await deleteBackupConfig(id)
         return NextResponse.json(deleteResult)
-
-      case 'cancel-job':
+      }
+      case 'cancel-job': {
         const cancelResult = await cancelBackupJob(id)
         return NextResponse.json(cancelResult)
-
+      }
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
     }

@@ -1,7 +1,5 @@
 'use server'
 
-import { withAdminAuth, AdminActionResult, AdminErrors, validateRequired } from './common'
-import { Site, SiteStatus, Profile } from '@/types'
 
 export interface CreateSiteData {
   name: string
@@ -201,7 +199,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
           acc[key] = value
         }
         return acc
-      }, {} as any)
+      }, {} as unknown)
 
       // console.log('[SERVER-UPDATE] Clean update data:', cleanUpdateData)
 

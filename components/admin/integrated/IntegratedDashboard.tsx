@@ -1,12 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
-import { Building2, FileText, Users, BarChart3, Calendar, Package, Shield, Image } from 'lucide-react'
-import SiteManagementList from '@/components/admin/SiteManagementList'
-import EnhancedDailyReportsView from './EnhancedDailyReportsView'
-import EnhancedDocumentsView from './EnhancedDocumentsView'
-import UnifiedUserListView from './UnifiedUserListView'
 
 interface DashboardStats {
   total_sites: number
@@ -96,7 +89,7 @@ export default function IntegratedDashboard() {
     }
   }
 
-  const StatCard = ({ title, value, icon: Icon, color, onClick }: any) => (
+  const StatCard = ({ title, value, icon: Icon, color, onClick }: unknown) => (
     <div 
       className={`bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 cursor-pointer hover:shadow-md transition-shadow ${onClick ? 'hover:bg-gray-50 dark:hover:bg-gray-750' : ''}`}
       onClick={onClick}
@@ -138,7 +131,7 @@ export default function IntegratedDashboard() {
               <button
                 key={tab.id}
                 onClick={() => {
-                  setActiveView(tab.id as any)
+                  setActiveView(tab.id as unknown)
                   // Update URL without page reload
                   const url = tab.id === 'overview' 
                     ? '/dashboard/admin/integrated' 

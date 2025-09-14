@@ -1,4 +1,3 @@
-import { SalaryCalculationResult } from './calculator'
 
 export interface SalaryPDFData {
   // Worker information

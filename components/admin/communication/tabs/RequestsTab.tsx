@@ -1,13 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { createClient } from '@/lib/supabase/client'
-import { 
-  MessageSquare, User, Building2, Calendar, Clock,
-  CheckCircle, XCircle, AlertCircle, MessageCircle,
-  Reply, Eye, Filter, Search, TrendingUp
-} from 'lucide-react'
 
 interface RequestsTabProps {
   profile: Profile
@@ -88,11 +80,11 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
       if (!error && data) {
         const formattedData: HeadquartersRequest[] = data.map(item => ({
           ...item,
-          requester_name: (item as any).profiles?.full_name || '알 수 없음',
-          requester_email: (item as any).profiles?.email || '',
-          requester_role: (item as any).profiles?.role || 'worker',
-          site_name: (item as any).sites?.name || '',
-          assigned_to_name: (item as any).assigned_profile?.full_name || ''
+          requester_name: (item as unknown).profiles?.full_name || '알 수 없음',
+          requester_email: (item as unknown).profiles?.email || '',
+          requester_role: (item as unknown).profiles?.role || 'worker',
+          site_name: (item as unknown).sites?.name || '',
+          assigned_to_name: (item as unknown).assigned_profile?.full_name || ''
         }))
         setRequests(formattedData)
       }
@@ -116,7 +108,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
     if (!selectedRequest) return
 
     try {
-      const updateData: any = {
+      const updateData: unknown = {
         status: responseForm.status,
         response: responseForm.response,
         response_date: new Date().toISOString(),
@@ -505,7 +497,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
                         </label>
                         <select
                           value={responseForm.status}
-                          onChange={(e) => setResponseForm({ ...responseForm, status: e.target.value as any })}
+                          onChange={(e) => setResponseForm({ ...responseForm, status: e.target.value as unknown })}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
                           <option value="in_progress">처리중</option>

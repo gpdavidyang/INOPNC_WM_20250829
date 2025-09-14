@@ -1,25 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  FileText, FolderOpen, Image, FileSpreadsheet, Camera, Edit3,
-  Search, Filter, Download, Upload, Trash2, Share2, Eye,
-  ChevronRight, ChevronDown, MoreVertical, Grid, List,
-  HardDrive, TrendingUp, Clock, AlertCircle, CheckCircle,
-  FolderPlus, Settings, RefreshCw, Archive, Shield
-} from 'lucide-react'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
-import { createClient } from '@/lib/supabase/client'
 import type { Profile } from '@/types'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
-import { getSharedDocuments, getAllUnifiedDocuments, DocumentWithApproval } from '@/app/actions/admin/documents'
-import UnifiedSharedDocumentsList from '@/components/admin/documents/UnifiedSharedDocumentsList'
 
 interface UnifiedDocumentManagementProps {
   profile: Profile
@@ -160,7 +141,7 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
       owner: {
         id: doc.owner_id || '',
         name: doc.owner?.full_name || 'Unknown',
-        email: (doc.owner as any)?.email || ''
+        email: (doc.owner as unknown)?.email || ''
       },
       site: doc.site ? {
         id: doc.site_id!,
@@ -170,9 +151,9 @@ export function UnifiedDocumentManagement({ profile }: UnifiedDocumentManagement
       visibility: doc.is_public ? 'public' : doc.folder_path === '/shared' ? 'shared' : 'private',
       createdAt: doc.created_at,
       updatedAt: doc.updated_at,
-      viewCount: (doc as any).view_count || 0,
-      downloadCount: (doc as any).download_count || 0,
-      tags: (doc as any).tags,
+      viewCount: (doc as unknown).view_count || 0,
+      downloadCount: (doc as unknown).download_count || 0,
+      tags: (doc as unknown).tags,
       folder_path: doc.folder_path || undefined
     }
   }

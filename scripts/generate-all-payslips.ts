@@ -1,7 +1,3 @@
-import { createClient } from '@supabase/supabase-js'
-import { payslipGenerator } from '../lib/services/payslip-generator'
-import { writeFileSync, mkdirSync, existsSync } from 'fs'
-import { join } from 'path'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,

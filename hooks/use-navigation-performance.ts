@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useCallback } from 'react'
-import { usePathname } from 'next/navigation'
 
 interface NavigationMetrics {
   route: string

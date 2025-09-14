@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 export default function DailyReportsTabNew() {
   const [selectedTab, setSelectedTab] = useState<'calendar' | 'list'>('calendar')

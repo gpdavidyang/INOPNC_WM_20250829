@@ -1,5 +1,3 @@
-import { Metadata } from 'next'
-import AssignmentDashboard from '@/components/admin/assignment/AssignmentDashboard'
 
 export const metadata: Metadata = {
   title: '통합 배정 관리 - 관리자',

@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import PartnerDashboardLayout from '@/components/partner/PartnerDashboardLayout'
 
 export const dynamic = 'force-dynamic'

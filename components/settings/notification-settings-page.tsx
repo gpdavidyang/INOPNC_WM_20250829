@@ -1,8 +1,5 @@
 'use client'
 
-import { NotificationPreferences } from '@/components/pwa/notification-preferences'
-import { useFontSize, getFullTypographyClass } from '@/contexts/FontSizeContext'
-import { useTouchMode } from '@/contexts/TouchModeContext'
 
 export function NotificationSettingsPage() {
   const { isLargeFont } = useFontSize()

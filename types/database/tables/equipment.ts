@@ -2,7 +2,6 @@
  * equipment 관련 테이블 타입 정의
  */
 
-import { UUID, Timestamps, Json } from '../index'
 
 // equipment 테이블
 export interface EquipmentTable extends Timestamps {

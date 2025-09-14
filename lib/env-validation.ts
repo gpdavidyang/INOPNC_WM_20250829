@@ -23,7 +23,7 @@ export function validateEnvironmentVariables(): RequiredEnvVars & OptionalEnvVar
   ]
 
   const missing: string[] = []
-  const envVars: any = {}
+  const envVars: unknown = {}
 
   // Check required variables
   for (const varName of requiredVars) {

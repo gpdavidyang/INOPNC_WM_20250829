@@ -1,27 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Card } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
-import {
-  X,
-  Calendar,
-  Package,
-  Building2,
-  User,
-  AlertCircle,
-  Check
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { format, addDays } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface NPC1000RequestFormProps {
   siteId: string
-  currentUser: any
+  currentUser: unknown
   onClose: () => void
   onSuccess: () => void
 }

@@ -1,40 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { 
-  Building2, 
-  MapPin, 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2,
-  Link,
-  Unlink,
-  Calendar,
-  Users
-} from 'lucide-react'
-import { toast } from 'sonner'
-import { MappingTooltip } from './AssignmentTooltip'
 
 interface PartnerCompany {
   id: string

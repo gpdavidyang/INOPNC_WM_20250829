@@ -1,12 +1,10 @@
 // TODO: Seed route disabled due to database schema mismatches
-import { NextResponse } from 'next/server'
 
 export async function GET() {
   return NextResponse.json({ message: 'Seed route disabled' }, { status: 200 })
 }
 
 /*
-import { createClient } from '@/lib/supabase/server'
 
 export async function GET_DISABLED() {
   try {

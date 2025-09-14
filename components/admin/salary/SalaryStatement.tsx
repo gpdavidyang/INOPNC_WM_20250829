@@ -1,24 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Profile } from '@/types'
-import { 
-  Download, FileText, User, MapPin, Calendar, DollarSign, 
-  Printer, Mail, Eye, ArrowLeft, Calculator, Building2,
-  CreditCard, Banknote, Receipt
-} from 'lucide-react'
-import { CustomSelect, CustomSelectContent, CustomSelectItem, CustomSelectTrigger, CustomSelectValue } from '@/components/ui/custom-select'
-import { 
-  calculateSalary, 
-  formatSalary,
-  SalaryCalculationResult
-} from '@/lib/salary/calculator'
-import { 
-  downloadSalaryPDF,
-  getSalaryPDFBlob,
-  SalaryPDFData
-} from '@/lib/salary/pdf-generator-html'
-import { createClient } from '@/lib/supabase/client'
 
 interface Worker {
   id: string

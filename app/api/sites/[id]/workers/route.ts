@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+;
 
 // GET /api/sites/[id]/workers - 특정 현장의 작업자 목록 조회
 export async function GET(
@@ -61,7 +61,7 @@ export async function GET(
       p_role_filter: roleFilter,
       p_limit: limit,
       p_offset: offset
-    } as any);
+    } as unknown);
 
     if (error) throw error;
 
@@ -127,7 +127,7 @@ export async function POST(
       p_assignment_type: assignmentType,
       p_notes: notes,
       p_assigned_by: user?.id || null
-    } as any);
+    } as unknown);
 
     if (error) throw error;
 
@@ -168,7 +168,7 @@ export async function PATCH(
       );
     }
 
-    const updateData: any = {};
+    const updateData: unknown = {};
     if (role !== undefined) updateData.role = role;
     if (assignmentType !== undefined) updateData.assignment_type = assignmentType;
     if (notes !== undefined) updateData.notes = notes;

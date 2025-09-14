@@ -1,26 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { 
-  ArrowUpRight,
-  ArrowDownRight,
-  RotateCcw,
-  Trash2,
-  Settings,
-  Plus,
-  Calendar,
-  Building2,
-  User,
-  Package,
-  FileText,
-  Download,
-  Filter
-} from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -29,20 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { 
-  createMaterialTransaction,
-  getMaterialTransactions,
-  getMaterialInventory
-} from '@/app/actions/materials'
-import { getSites } from '@/app/actions/sites'
-import { toast } from '@/components/ui/use-toast'
-import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
 
 interface MaterialTransactionsProps {
   materials: unknown[]
-  currentUser: any
-  currentSite?: any
+  currentUser: unknown
+  currentSite?: unknown
 }
 
 export function MaterialTransactions({ materials, currentUser, currentSite }: MaterialTransactionsProps) {
@@ -82,7 +53,7 @@ export function MaterialTransactions({ materials, currentUser, currentSite }: Ma
   const loadTransactions = async () => {
     setLoading(true)
     try {
-      const filters: any = {
+      const filters: unknown = {
         date_from: dateRange.from,
         date_to: dateRange.to
       }
@@ -147,7 +118,7 @@ export function MaterialTransactions({ materials, currentUser, currentSite }: Ma
       const result = await createMaterialTransaction({
         ...transactionForm,
         quantity: parseFloat(transactionForm.quantity)
-      } as any)
+      } as unknown)
 
       if (result.success) {
         toast({
@@ -186,7 +157,7 @@ export function MaterialTransactions({ materials, currentUser, currentSite }: Ma
   }
 
   // Calculate summary statistics
-  const summary = transactions.reduce((acc: any, transaction: any) => {
+  const summary = transactions.reduce((acc: unknown, transaction: unknown) => {
     if (transaction.transaction_type === 'in') {
       acc.totalIn += transaction.quantity
     } else if (transaction.transaction_type === 'out') {
@@ -385,7 +356,7 @@ export function MaterialTransactions({ materials, currentUser, currentSite }: Ma
               <select
                 id="t_type"
                 value={transactionForm.transaction_type}
-                onChange={(e) => setTransactionForm({ ...transactionForm, transaction_type: e.target.value as any })}
+                onChange={(e) => setTransactionForm({ ...transactionForm, transaction_type: e.target.value as unknown })}
                 className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               >
                 <option value="in">입고</option>

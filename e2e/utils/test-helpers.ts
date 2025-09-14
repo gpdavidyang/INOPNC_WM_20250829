@@ -1,4 +1,3 @@
-import { Page } from '@playwright/test'
 
 /**
  * Test user credentials

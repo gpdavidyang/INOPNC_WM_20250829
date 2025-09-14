@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import SignupRequestsClient from './signup-requests-client'
 
 export default async function SignupRequestsPage() {

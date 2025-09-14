@@ -1,6 +1,3 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { randomBytes } from 'crypto'
 
 // POST /api/shared-documents/[id]/share - Generate sharing token
 export async function POST(
@@ -22,7 +19,7 @@ export async function POST(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'share'
-    } as any)
+    } as unknown)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
@@ -100,7 +97,7 @@ export async function GET(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'share'
-    } as any)
+    } as unknown)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
@@ -130,7 +127,7 @@ export async function GET(
 
     // Generate URLs for each token
     const baseUrl = request.nextUrl.origin
-    const tokensWithUrls = (tokens || []).map((token: any) => ({
+    const tokensWithUrls = (tokens || []).map((token: unknown) => ({
       ...token,
       shareUrl: `${baseUrl}/shared/${params.id}?token=${token.token}`
     }))
@@ -161,7 +158,7 @@ export async function DELETE(
       p_document_id: params.id,
       p_user_id: user.id,
       p_permission_type: 'share'
-    } as any)
+    } as unknown)
 
     if (!hasPermission.data) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })

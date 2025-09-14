@@ -1,5 +1,3 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
 import PhotoGridReportsManagement from '@/components/admin/PhotoGridReportsManagement'
 
 export default async function AdminPhotoGridReportsPage() {
