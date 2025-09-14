@@ -1,5 +1,6 @@
 'use server'
 
+import { withAdminAuth } from './common'
 
 interface DailyReportsFilter {
   site?: string
@@ -17,25 +18,24 @@ interface DailyReportsFilter {
 }
 
 export async function getDailyReports(filters: DailyReportsFilter = {}) {
-  return withAdminAuth(async (supabase) => {
-    const { 
-      site, 
-      status, 
-      dateFrom, 
-      dateTo, 
+  return withAdminAuth(async supabase => {
+    const {
+      site,
+      status,
+      dateFrom,
+      dateTo,
       search,
       component_name,
       work_process,
       work_section,
-      page = 1, 
+      page = 1,
       itemsPerPage = 20,
       sortField = 'work_date',
-      sortDirection = 'desc'
+      sortDirection = 'desc',
     } = filters
 
-    let query = supabase
-      .from('daily_reports')
-      .select(`
+    let query = supabase.from('daily_reports').select(
+      `
         *,
         sites!inner(
           name, 
@@ -46,7 +46,9 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
           manager_name,
           safety_manager_name
         )
-      `, { count: 'exact' })
+      `,
+      { count: 'exact' }
+    )
 
     // Apply filters
     if (site) {
@@ -63,7 +65,8 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
     }
     if (search) {
       // Search in daily_reports fields and joined sites fields
-      query = query.or(`
+      query = query.or(
+        `
         member_name.ilike.%${search}%,
         process_type.ilike.%${search}%,
         issues.ilike.%${search}%,
@@ -74,7 +77,8 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
         sites.address.ilike.%${search}%,
         sites.manager_name.ilike.%${search}%,
         sites.safety_manager_name.ilike.%${search}%
-      `.replace(/\s+/g, ''))
+      `.replace(/\s+/g, '')
+      )
     }
     if (component_name) {
       query = query.ilike('component_name', `%${component_name}%`)
@@ -124,7 +128,7 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
       default:
         query = query.order('work_date', { ascending: false })
     }
-    
+
     // Add secondary sort for stability
     if (sortField !== 'created_at') {
       query = query.order('created_at', { ascending: false })
@@ -134,14 +138,13 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
     const from = (page - 1) * itemsPerPage
     const to = from + itemsPerPage - 1
 
-    const { data, error, count } = await query
-      .range(from, to)
+    const { data, error, count } = await query.range(from, to)
 
     if (error) throw error
 
     // Enrich with additional data
     const enrichedReports = await Promise.all(
-      (data || []).map(async (report: unknown) => {
+      (data || []).map(async (report: any) => {
         try {
           // Get profile data
           const { data: profile } = await supabase
@@ -149,23 +152,26 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
             .select('full_name, email, phone, role, last_login_at')
             .eq('id', report.created_by)
             .single()
-          
+
           // Get worker details count
           const { count: workerCount } = await supabase
             .from('daily_report_workers')
             .select('id', { count: 'exact', head: true })
             .eq('daily_report_id', report.id)
-          
+
           // Get total manhours from worker_assignments
           const { data: workerAssignments } = await supabase
             .from('work_records')
             .select('labor_hours')
             .eq('daily_report_id', report.id)
-          
-          const totalManhours = workerAssignments 
-            ? workerAssignments.reduce((sum: number, w: unknown) => sum + (Number(w.labor_hours) || 0), 0)
+
+          const totalManhours = workerAssignments
+            ? workerAssignments.reduce(
+                (sum: number, w: any) => sum + (Number(w.labor_hours) || 0),
+                0
+              )
             : 0
-          
+
           // Get documents count for that day
           const { count: documentCount } = await supabase
             .from('documents')
@@ -173,13 +179,13 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
             .eq('site_id', report.site_id)
             .gte('created_at', `${report.work_date}T00:00:00`)
             .lt('created_at', `${report.work_date}T23:59:59`)
-          
+
           return {
             ...report,
             profiles: profile,
             worker_details_count: workerCount || 0,
             daily_documents_count: documentCount || 0,
-            total_manhours: totalManhours
+            total_manhours: totalManhours,
           }
         } catch (err) {
           // If profile not found, continue without it
@@ -188,20 +194,21 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
             profiles: null,
             worker_details_count: 0,
             daily_documents_count: 0,
-            total_manhours: 0
+            total_manhours: 0,
           }
         }
       })
     )
 
     // Sort by total_manhours if needed (since it's calculated after the query)
-    const finalReports = sortField === 'total_manhours' 
-      ? enrichedReports.sort((a, b) => {
-          const aValue = a.total_manhours || 0
-          const bValue = b.total_manhours || 0
-          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
-        })
-      : enrichedReports
+    const finalReports =
+      sortField === 'total_manhours'
+        ? enrichedReports.sort((a, b) => {
+            const aValue = a.total_manhours || 0
+            const bValue = b.total_manhours || 0
+            return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
+          })
+        : enrichedReports
 
     return {
       success: true,
@@ -209,20 +216,22 @@ export async function getDailyReports(filters: DailyReportsFilter = {}) {
         reports: finalReports,
         totalCount: count || 0,
         totalPages: Math.ceil((count || 0) / itemsPerPage),
-        currentPage: page
-      }
+        currentPage: page,
+      },
     }
   })
 }
 
 export async function getDailyReportById(id: string) {
-  return withAdminAuth(async (supabase) => {
+  return withAdminAuth(async supabase => {
     const { data, error } = await supabase
       .from('daily_reports')
-      .select(`
+      .select(
+        `
         *,
         sites(name, address)
-      `)
+      `
+      )
       .eq('id', id)
       .single()
 
@@ -263,15 +272,17 @@ export async function getDailyReportById(id: string) {
         ...data,
         profiles: profile,
         workers: workers,
-        worker_details_count: workers.length
-      }
+        worker_details_count: workers.length,
+      },
     }
   })
 }
 
-export async function createDailyReport(reportData: unknown) {
-  return withAdminAuth(async (supabase) => {
-    const { data: { user } } = await supabase.auth.getUser()
+export async function createDailyReport(reportData: any) {
+  return withAdminAuth(async supabase => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (!user) throw new Error('User not authenticated')
 
     const { worker_ids, ...reportFields } = reportData
@@ -283,7 +294,7 @@ export async function createDailyReport(reportData: unknown) {
         ...reportFields,
         created_by: user.id,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .select()
       .single()
@@ -295,28 +306,26 @@ export async function createDailyReport(reportData: unknown) {
       const workerDetails = worker_ids.map((worker_id: string) => ({
         daily_report_id: data.id,
         worker_id,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       }))
 
-      await supabase
-        .from('worker_details')
-        .insert(workerDetails)
+      await supabase.from('worker_details').insert(workerDetails)
     }
 
     return {
       success: true,
-      data
+      data,
     }
   })
 }
 
-export async function updateDailyReport(id: string, updates: unknown) {
-  return withAdminAuth(async (supabase) => {
+export async function updateDailyReport(id: string, updates: any) {
+  return withAdminAuth(async supabase => {
     const { data, error } = await supabase
       .from('daily_reports')
       .update({
         ...updates,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -326,29 +335,26 @@ export async function updateDailyReport(id: string, updates: unknown) {
 
     return {
       success: true,
-      data
+      data,
     }
   })
 }
 
 export async function deleteDailyReport(id: string) {
-  return withAdminAuth(async (supabase) => {
-    const { error } = await supabase
-      .from('daily_reports')
-      .delete()
-      .eq('id', id)
+  return withAdminAuth(async supabase => {
+    const { error } = await supabase.from('daily_reports').delete().eq('id', id)
 
     if (error) throw error
 
     return {
       success: true,
-      message: '작업일지가 삭제되었습니다.'
+      message: '작업일지가 삭제되었습니다.',
     }
   })
 }
 
 export async function getSites() {
-  return withAdminAuth(async (supabase) => {
+  return withAdminAuth(async supabase => {
     const { data, error } = await supabase
       .from('sites')
       .select('id, name')
@@ -359,7 +365,7 @@ export async function getSites() {
 
     return {
       success: true,
-      data: data || []
+      data: data || [],
     }
   })
 }
