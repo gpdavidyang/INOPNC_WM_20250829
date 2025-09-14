@@ -1,6 +1,11 @@
+import Link from "next/link"
+import { ArrowLeft, Building2, MapPin, FileText } from "lucide-react"
+
 import { createClient } from "@/lib/supabase/server"
 import { Suspense } from 'react'
 import SiteDocumentManagement from '@/components/admin/SiteDocumentManagement'
+
+export const dynamic = "force-dynamic"
 
 interface PageProps {
   params: {

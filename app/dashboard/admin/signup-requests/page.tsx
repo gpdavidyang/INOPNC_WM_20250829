@@ -1,5 +1,8 @@
+
 import { createClient } from "@/lib/supabase/server"
 import SignupRequestsClient from './signup-requests-client'
+
+export const dynamic = "force-dynamic"
 
 export default async function SignupRequestsPage() {
   const supabase = createClient()

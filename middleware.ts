@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
 export async function middleware(request: NextRequest) {
   try {
@@ -43,7 +44,9 @@ export async function middleware(request: NextRequest) {
                 sameSite: 'lax' as const,
                 secure: process.env.NODE_ENV === 'production',
                 httpOnly: false,
-                path: '/'
+                path: '/',
+                // CRITICAL FIX: Set proper max-age for refresh tokens
+                maxAge: name.includes('refresh') ? 60 * 60 * 24 * 30 : (options?.maxAge || 60 * 60 * 24) // 30 days for refresh, 1 day for others
               }
               response.cookies.set(name, value, cookieOptions)
             })

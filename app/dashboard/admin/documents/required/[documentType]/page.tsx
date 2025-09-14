@@ -1,4 +1,7 @@
+
 import { createClient } from "@/lib/supabase/server"
+
+export const dynamic = "force-dynamic"
 
 interface DocumentTypePageProps {
   params: { documentType: string }

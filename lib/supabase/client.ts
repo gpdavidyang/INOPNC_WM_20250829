@@ -528,9 +528,11 @@ export function createClient(config?: ClientConfig) {
                     }
                     cookieString += `; samesite=${options?.sameSite || 'lax'}`
                     
-                    // Set max-age for refresh tokens to prevent expiry issues
+                    // CRITICAL FIX: Set proper max-age for all auth cookies
                     if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
-                      cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days
+                      cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
+                    } else if (name.includes('sb-') && !options?.maxAge && !options?.expires) {
+                      cookieString += `; max-age=${60 * 60 * 24}` // 1 day for access tokens
                     }
                     
                     document.cookie = cookieString

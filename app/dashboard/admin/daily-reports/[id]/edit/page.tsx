@@ -1,4 +1,10 @@
+import { redirect } from "next/navigation"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
+
 import { createClient } from "@/lib/supabase/server"
+
+export const dynamic = "force-dynamic"
 
 interface PageProps {
   params: {
