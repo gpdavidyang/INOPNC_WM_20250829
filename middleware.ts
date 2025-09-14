@@ -5,7 +5,7 @@ import { createServerClient } from '@supabase/ssr'
 export async function middleware(request: NextRequest) {
   try {
     // Create response object first
-    let response = NextResponse.next({
+    const response = NextResponse.next({
       request: {
         headers: request.headers,
       },
@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
                 httpOnly: false,
                 path: '/',
                 // CRITICAL FIX: Set proper max-age for refresh tokens
-                maxAge: name.includes('refresh') ? 60 * 60 * 24 * 30 : (options?.maxAge || 60 * 60 * 24) // 30 days for refresh, 1 day for others
+                maxAge: name.includes('refresh') ? 60 * 60 * 24 * 30 : 60 * 60 * 24, // 30 days for refresh, 1 day for others
               }
               response.cookies.set(name, value, cookieOptions)
             })
@@ -57,9 +57,12 @@ export async function middleware(request: NextRequest) {
 
     // CRITICAL FIX: Simplified auth check to prevent infinite loops
     // Only get session once and trust its user data
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
     const user = session?.user || null
-    
+
     // If session error or invalid session, clear cookies
     if (sessionError || (session && !session.user)) {
       // Clear potentially invalid cookies
@@ -69,16 +72,22 @@ export async function middleware(request: NextRequest) {
     }
 
     // Public routes that don't require authentication
-    const publicPaths = ['/auth/login', '/auth/signup', '/auth/signup-request', '/auth/reset-password', '/auth/update-password']
+    const publicPaths = [
+      '/auth/login',
+      '/auth/signup',
+      '/auth/signup-request',
+      '/auth/reset-password',
+      '/auth/update-password',
+    ]
     const isPublicPath = publicPaths.some(path => pathname.startsWith(path))
-    
+
     // Demo pages that are accessible regardless of auth status
     const demoPaths = ['/mobile-demo', '/components', '/test-photo-grid', '/api-test']
     const isDemoPath = demoPaths.some(path => pathname.startsWith(path))
-    
-    // Partner routes (customer_manager only)
-    const partnerPaths = ['/partner']
-    const isPartnerPath = partnerPaths.some(path => pathname.startsWith(path))
+
+    // Partner routes (customer_manager only) - Currently unused but kept for future use
+    // const partnerPaths = ['/partner']
+    // const isPartnerPath = partnerPaths.some(path => pathname.startsWith(path))
 
     // Debug logging - disabled for performance
     // Uncomment only when debugging auth issues
@@ -93,7 +102,7 @@ export async function middleware(request: NextRequest) {
     //     userExists: !!user
     //   })
     // }
-    
+
     // Skip auth check for demo pages
     if (isDemoPath) {
       return response
@@ -112,7 +121,7 @@ export async function middleware(request: NextRequest) {
     if (user && isPublicPath) {
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
-    
+
     // Skip role verification in middleware to avoid RLS issues
     // Role checking will be handled in components after authentication
 

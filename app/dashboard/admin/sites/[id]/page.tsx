@@ -1,7 +1,32 @@
 'use client'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
+import {
+  AlertCircle,
+  ArrowLeft,
+  Building2,
+  Edit,
+  MapPin,
+  Calendar,
+  User,
+  Phone,
+  Shield,
+  FileText,
+  Users,
+  Package,
+  Briefcase,
+  File,
+  Eye,
+  Trash2,
+  Upload,
+} from 'lucide-react'
+import SiteDailyReportsTab from '@/components/admin/sites/SiteDailyReportsTab'
+import SiteDocumentsTab from '@/components/admin/sites/SiteDocumentsTab'
+import SitePartnersTab from '@/components/admin/sites/SitePartnersTab'
+import SiteWorkersTab from '@/components/admin/sites/SiteWorkersTab'
 
 interface Site {
   id: string
@@ -41,10 +66,12 @@ export default function SiteDetailPage() {
   const params = useParams()
   const router = useRouter()
   const siteId = params.id as string
-  
+
   const [data, setData] = useState<IntegratedSiteData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'info' | 'dailyReports' | 'documents' | 'partners' | 'workers'>('info')
+  const [activeTab, setActiveTab] = useState<
+    'info' | 'dailyReports' | 'documents' | 'partners' | 'workers'
+  >('info')
   const [referrer, setReferrer] = useState<string>('sites')
   const [showEditModal, setShowEditModal] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
@@ -59,28 +86,28 @@ export default function SiteDetailPage() {
         setReferrer('integrated')
       }
     }
-    
+
     if (siteId) {
       fetchSiteData()
     }
-  }, [siteId])
+  }, [fetchSiteData, siteId])
 
-  const fetchSiteData = async () => {
+  const fetchSiteData = useCallback(async () => {
     try {
       setLoading(true)
-      
+
       // Fetch site details
       const { data: siteData, error: siteError } = await supabase
         .from('sites')
         .select('*')
         .eq('id', siteId)
         .single()
-      
+
       if (siteError) {
         console.error('Error fetching site:', siteError)
         return
       }
-      
+
       // Fetch statistics in parallel
       const [reportsCount, workersCount, partnersCount, documentsCount] = await Promise.all([
         // Get daily reports count
@@ -103,15 +130,15 @@ export default function SiteDetailPage() {
         supabase
           .from('unified_documents')
           .select('id', { count: 'exact', head: true })
-          .eq('site_id', siteId)
+          .eq('site_id', siteId),
       ])
-      
+
       // Check for any errors in the queries
       if (reportsCount.error) console.error('Reports count error:', reportsCount.error)
       if (workersCount.error) console.error('Workers count error:', workersCount.error)
       if (partnersCount.error) console.error('Partners count error:', partnersCount.error)
       if (documentsCount.error) console.error('Documents count error:', documentsCount.error)
-      
+
       // Create integrated data structure with real statistics
       const integratedData: IntegratedSiteData = {
         site: siteData,
@@ -123,20 +150,20 @@ export default function SiteDetailPage() {
           total_reports: reportsCount.count || 0,
           total_documents: documentsCount.count || 0,
           assigned_workers: workersCount.count || 0,
-          total_partners: partnersCount.count || 0
+          total_partners: partnersCount.count || 0,
         },
         recent_activities: [],
         assigned_workers: [],
-        document_category_counts: {}
+        document_category_counts: {},
       }
-      
+
       setData(integratedData)
     } catch (error) {
       console.error('Error fetching site data:', error)
     } finally {
       setLoading(false)
     }
-  }
+  }, [siteId, supabase])
 
   const handleUpdateSite = async (formData: {
     name: string
@@ -156,7 +183,7 @@ export default function SiteDetailPage() {
   }) => {
     try {
       setEditLoading(true)
-      
+
       const updateData = {
         name: formData.name,
         address: formData.address,
@@ -172,13 +199,10 @@ export default function SiteDetailPage() {
         accommodation_name: formData.accommodation_name || null,
         accommodation_address: formData.accommodation_address || null,
         accommodation_phone: formData.accommodation_phone || null,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
-      const { error } = await supabase
-        .from('sites')
-        .update(updateData)
-        .eq('id', siteId)
+      const { error } = await supabase.from('sites').update(updateData).eq('id', siteId)
 
       if (error) {
         throw error
@@ -187,7 +211,6 @@ export default function SiteDetailPage() {
       // 업데이트 성공 시 데이터 다시 불러오기
       await fetchSiteData()
       setShowEditModal(false)
-      
     } catch (error) {
       console.error('Error updating site:', error)
       alert('현장 정보 업데이트에 실패했습니다.')
@@ -198,17 +221,35 @@ export default function SiteDetailPage() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { text: '진행중', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: CheckCircle },
-      planning: { text: '계획중', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300', icon: Clock },
-      completed: { text: '완료', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: CheckCircle },
-      suspended: { text: '중단', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: AlertCircle }
+      active: {
+        text: '진행중',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+        icon: CheckCircle,
+      },
+      planning: {
+        text: '계획중',
+        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
+        icon: Clock,
+      },
+      completed: {
+        text: '완료',
+        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+        icon: CheckCircle,
+      },
+      suspended: {
+        text: '중단',
+        color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+        icon: AlertCircle,
+      },
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active
     const Icon = config.icon
-    
+
     return (
-      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+      >
         <Icon className="h-3 w-3 mr-1" />
         {config.text}
       </span>
@@ -253,14 +294,14 @@ export default function SiteDetailPage() {
           <nav className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
             {referrer === 'integrated' ? (
               <>
-                <Link 
+                <Link
                   href="/dashboard/admin/integrated"
                   className="hover:text-gray-700 dark:hover:text-gray-300"
                 >
                   통합관리
                 </Link>
                 <span>/</span>
-                <Link 
+                <Link
                   href="/dashboard/admin/integrated?view=sites"
                   className="hover:text-gray-700 dark:hover:text-gray-300"
                 >
@@ -268,7 +309,7 @@ export default function SiteDetailPage() {
                 </Link>
               </>
             ) : (
-              <Link 
+              <Link
                 href="/dashboard/admin/sites"
                 className="hover:text-gray-700 dark:hover:text-gray-300"
               >
@@ -293,7 +334,7 @@ export default function SiteDetailPage() {
               >
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              
+
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
                   <Building2 className="h-8 w-8 text-blue-600 dark:text-blue-400" />
@@ -304,9 +345,7 @@ export default function SiteDetailPage() {
                   </h1>
                   <div className="flex items-center gap-2 mt-1">
                     {getStatusBadge(site.status)}
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      ID: {site.id}
-                    </span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">ID: {site.id}</span>
                   </div>
                 </div>
               </div>
@@ -329,11 +368,31 @@ export default function SiteDetailPage() {
           <nav className="flex space-x-8 px-4 sm:px-6 lg:px-8">
             {[
               { key: 'info', label: '현장 정보', icon: Building2 },
-              { key: 'dailyReports', label: '작업일지', icon: FileText, count: data.statistics?.total_reports },
-              { key: 'workers', label: '작업자', icon: Users, count: data.statistics?.assigned_workers },
-              { key: 'partners', label: '파트너사', icon: Briefcase, count: data.statistics?.total_partners },
-              { key: 'documents', label: '문서함', icon: Package, count: data.statistics?.total_documents }
-            ].map((tab) => {
+              {
+                key: 'dailyReports',
+                label: '작업일지',
+                icon: FileText,
+                count: data.statistics?.total_reports,
+              },
+              {
+                key: 'workers',
+                label: '작업자',
+                icon: Users,
+                count: data.statistics?.assigned_workers,
+              },
+              {
+                key: 'partners',
+                label: '파트너사',
+                icon: Briefcase,
+                count: data.statistics?.total_partners,
+              },
+              {
+                key: 'documents',
+                label: '문서함',
+                icon: Package,
+                count: data.statistics?.total_documents,
+              },
+            ].map(tab => {
               const Icon = tab.icon
               return (
                 <button
@@ -366,7 +425,9 @@ export default function SiteDetailPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* 기본 정보 */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">기본 정보</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  기본 정보
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
@@ -383,8 +444,13 @@ export default function SiteDetailPage() {
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">공사기간</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {site.start_date ? format(new Date(site.start_date), 'yyyy.MM.dd', { locale: ko }) : '-'} ~ 
-                        {site.end_date ? format(new Date(site.end_date), 'yyyy.MM.dd', { locale: ko }) : '진행중'}
+                        {site.start_date
+                          ? format(new Date(site.start_date), 'yyyy.MM.dd', { locale: ko })
+                          : '-'}{' '}
+                        ~
+                        {site.end_date
+                          ? format(new Date(site.end_date), 'yyyy.MM.dd', { locale: ko })
+                          : '진행중'}
                       </p>
                     </div>
                   </div>
@@ -402,13 +468,17 @@ export default function SiteDetailPage() {
 
               {/* 관리자 정보 */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">관리자 정보</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  관리자 정보
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* 현장 책임자 */}
                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <User className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">현장 책임자</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        현장 책임자
+                      </span>
                     </div>
                     {site.manager_name ? (
                       <div className="space-y-2">
@@ -425,7 +495,9 @@ export default function SiteDetailPage() {
                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">건설관리자</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        건설관리자
+                      </span>
                     </div>
                     {site.construction_manager_name ? (
                       <div className="space-y-2">
@@ -448,7 +520,9 @@ export default function SiteDetailPage() {
                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Shield className="h-5 w-5 text-green-600 dark:text-green-400" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">안전관리자</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        안전관리자
+                      </span>
                     </div>
                     {site.safety_manager_name ? (
                       <div className="space-y-2">
@@ -471,7 +545,9 @@ export default function SiteDetailPage() {
 
               {/* 숙소 정보 - 항상 표시하되, 데이터가 없으면 '미등록' 표시 */}
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 lg:col-span-2">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">숙소 정보</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  숙소 정보
+                </h3>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <Building2 className="h-5 w-5 text-gray-400 mt-0.5" />
@@ -526,7 +602,9 @@ export default function SiteDetailPage() {
                     <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="ml-4">
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">배정 작업자</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                      배정 작업자
+                    </p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {data.statistics?.assigned_workers || 0}
                     </p>
@@ -574,19 +652,13 @@ export default function SiteDetailPage() {
         )}
 
         {/* 문서함 탭 */}
-        {activeTab === 'documents' && (
-          <SiteDocumentsTab siteId={siteId} siteName={site.name} />
-        )}
+        {activeTab === 'documents' && <SiteDocumentsTab siteId={siteId} siteName={site.name} />}
 
         {/* 파트너사 탭 */}
-        {activeTab === 'partners' && (
-          <SitePartnersTab siteId={siteId} siteName={site.name} />
-        )}
+        {activeTab === 'partners' && <SitePartnersTab siteId={siteId} siteName={site.name} />}
 
         {/* 작업자 배정 탭 */}
-        {activeTab === 'workers' && (
-          <SiteWorkersTab siteId={siteId} siteName={site.name} />
-        )}
+        {activeTab === 'workers' && <SiteWorkersTab siteId={siteId} siteName={site.name} />}
       </div>
 
       {/* Edit Site Modal */}
@@ -604,13 +676,7 @@ export default function SiteDetailPage() {
 }
 
 // Core Files Section Component
-function CoreFilesSection({ 
-  site, 
-  onUpdate 
-}: { 
-  site: Site
-  onUpdate: () => void 
-}) {
+function CoreFilesSection({ site, onUpdate }: { site: Site; onUpdate: () => void }) {
   const [blueprintFile, setBlueprintFile] = useState<File | null>(null)
   const [ptwFile, setPtwFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState<'blueprint' | 'ptw' | null>(null)
@@ -618,12 +684,7 @@ function CoreFilesSection({
   const [ptwDoc, setPtwDoc] = useState<unknown>(null)
   const supabase = createClient()
 
-  useEffect(() => {
-    // Always fetch documents for the site
-    fetchDocuments()
-  }, [site.id])
-
-  const fetchDocuments = async () => {
+  const fetchDocuments = useCallback(async () => {
     try {
       // Fetch blueprint document (technical_drawing)
       const { data: blueprintData } = await supabase
@@ -634,7 +695,7 @@ function CoreFilesSection({
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-      
+
       if (blueprintData) {
         setBlueprintDoc(blueprintData)
       }
@@ -648,7 +709,7 @@ function CoreFilesSection({
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
-      
+
       if (ptwData) {
         setPtwDoc(ptwData)
       }
@@ -656,7 +717,12 @@ function CoreFilesSection({
       // Ignore errors if documents don't exist
       console.log('Documents fetch error:', error)
     }
-  }
+  }, [site.id, supabase])
+
+  useEffect(() => {
+    // Always fetch documents for the site
+    fetchDocuments()
+  }, [fetchDocuments])
 
   const handleFileUpload = async (type: 'blueprint' | 'ptw', file: File) => {
     if (!file) return
@@ -664,7 +730,10 @@ function CoreFilesSection({
     setUploading(type)
     try {
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
       if (userError || !user) {
         throw new Error('사용자 정보를 가져올 수 없습니다.')
       }
@@ -674,7 +743,7 @@ function CoreFilesSection({
       const timestamp = Date.now()
       const safeFileName = `${type}_${timestamp}.${fileExt}`
       const filePath = `${site.id}/${type}/${safeFileName}`
-      
+
       // Upload file to Supabase Storage with sanitized filename
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('documents')
@@ -687,16 +756,16 @@ function CoreFilesSection({
         .from('unified_documents')
         .insert({
           title: type === 'blueprint' ? '현장 공도면' : 'PTW 작업허가서',
-          file_name: file.name,  // Keep original filename for display
-          file_url: filePath,  // Use sanitized path for storage (stored as URL path)
+          file_name: file.name, // Keep original filename for display
+          file_url: filePath, // Use sanitized path for storage (stored as URL path)
           file_size: file.size,
           mime_type: file.type,
           category_type: 'shared',
           site_id: site.id,
-          document_type: type === 'blueprint' ? 'drawing' : 'certificate',  // Use valid document types
-          sub_type: type === 'blueprint' ? 'technical_drawing' : 'safety_certificate',  // Use valid sub_types
+          document_type: type === 'blueprint' ? 'drawing' : 'certificate', // Use valid document types
+          sub_type: type === 'blueprint' ? 'technical_drawing' : 'safety_certificate', // Use valid sub_types
           is_public: true,
-          uploaded_by: user.id  // Add user ID
+          uploaded_by: user.id, // Add user ID
         })
         .select()
         .single()
@@ -727,7 +796,8 @@ function CoreFilesSection({
   }
 
   const handleFileDelete = async (type: 'blueprint' | 'ptw') => {
-    if (!confirm(`정말 ${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}를 삭제하시겠습니까?`)) return
+    if (!confirm(`정말 ${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}를 삭제하시겠습니까?`))
+      return
 
     try {
       const doc = type === 'blueprint' ? blueprintDoc : ptwDoc
@@ -769,7 +839,9 @@ function CoreFilesSection({
       alert(`${type === 'blueprint' ? '현장 공도면' : 'PTW 문서'}가 삭제되었습니다.`)
     } catch (error) {
       console.error('Delete error:', error)
-      alert(`파일 삭제에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`)
+      alert(
+        `파일 삭제에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`
+      )
     }
   }
 
@@ -782,14 +854,16 @@ function CoreFilesSection({
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mt-6">
       <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">핵심 파일</h3>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 현장 공도면 */}
         <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Image className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">현장 공도면</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                현장 공도면
+              </span>
             </div>
           </div>
 
@@ -830,7 +904,7 @@ function CoreFilesSection({
               <input
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png,.dwg"
-                onChange={(e) => setBlueprintFile(e.target.files?.[0] || null)}
+                onChange={e => setBlueprintFile(e.target.files?.[0] || null)}
                 className="hidden"
                 id="blueprint-file"
               />
@@ -839,14 +913,14 @@ function CoreFilesSection({
                 className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-colors"
               >
                 <Upload className="h-5 w-5 text-gray-400" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  파일 선택
-                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">파일 선택</span>
               </label>
-              
+
               {blueprintFile && (
                 <div className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
-                  <span className="text-sm text-blue-900 dark:text-blue-100">{blueprintFile.name}</span>
+                  <span className="text-sm text-blue-900 dark:text-blue-100">
+                    {blueprintFile.name}
+                  </span>
                   <button
                     onClick={() => handleFileUpload('blueprint', blueprintFile)}
                     disabled={uploading === 'blueprint'}
@@ -865,7 +939,9 @@ function CoreFilesSection({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-green-600 dark:text-green-400" />
-              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">PTW 작업허가서</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                PTW 작업허가서
+              </span>
             </div>
           </div>
 
@@ -906,7 +982,7 @@ function CoreFilesSection({
               <input
                 type="file"
                 accept=".pdf,.doc,.docx"
-                onChange={(e) => setPtwFile(e.target.files?.[0] || null)}
+                onChange={e => setPtwFile(e.target.files?.[0] || null)}
                 className="hidden"
                 id="ptw-file"
               />
@@ -915,11 +991,9 @@ function CoreFilesSection({
                 className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-md cursor-pointer hover:border-green-400 dark:hover:border-green-500 transition-colors"
               >
                 <Upload className="h-5 w-5 text-gray-400" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
-                  파일 선택
-                </span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">파일 선택</span>
               </label>
-              
+
               {ptwFile && (
                 <div className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 rounded">
                   <span className="text-sm text-green-900 dark:text-green-100">{ptwFile.name}</span>
@@ -947,12 +1021,12 @@ function CoreFilesSection({
 }
 
 // Edit Site Modal Component
-function EditSiteModal({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
+function EditSiteModal({
+  isOpen,
+  onClose,
+  onSubmit,
   loading,
-  siteData
+  siteData,
 }: {
   isOpen: boolean
   onClose: () => void
@@ -974,7 +1048,7 @@ function EditSiteModal({
     safety_manager_phone: siteData.safety_manager_phone || '',
     accommodation_name: siteData.accommodation_name || '',
     accommodation_address: siteData.accommodation_address || '',
-    accommodation_phone: siteData.accommodation_phone || ''
+    accommodation_phone: siteData.accommodation_phone || '',
   })
 
   // Reset form data when siteData changes
@@ -993,7 +1067,7 @@ function EditSiteModal({
       safety_manager_phone: siteData.safety_manager_phone || '',
       accommodation_name: siteData.accommodation_name || '',
       accommodation_address: siteData.accommodation_address || '',
-      accommodation_phone: siteData.accommodation_phone || ''
+      accommodation_phone: siteData.accommodation_phone || '',
     })
   }, [siteData])
 
@@ -1006,10 +1080,12 @@ function EditSiteModal({
     onSubmit(formData)
   }
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }))
   }
 
@@ -1026,7 +1102,12 @@ function EditSiteModal({
           >
             <span className="sr-only">닫기</span>
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -1041,7 +1122,10 @@ function EditSiteModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 현장명 */}
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     현장명 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1057,7 +1141,10 @@ function EditSiteModal({
 
                 {/* 상태 */}
                 <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="status"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     상태 <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -1077,7 +1164,10 @@ function EditSiteModal({
 
                 {/* 주소 */}
                 <div className="md:col-span-2">
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="address"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     주소 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1093,7 +1183,10 @@ function EditSiteModal({
 
                 {/* 시작일 */}
                 <div>
-                  <label htmlFor="start_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="start_date"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     시작일 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -1109,7 +1202,10 @@ function EditSiteModal({
 
                 {/* 종료일 */}
                 <div>
-                  <label htmlFor="end_date" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="end_date"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     종료일
                   </label>
                   <input
@@ -1125,7 +1221,10 @@ function EditSiteModal({
 
                 {/* 설명 */}
                 <div className="md:col-span-2">
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     현장 설명
                   </label>
                   <textarea
@@ -1155,7 +1254,10 @@ function EditSiteModal({
                   </h4>
                   <div className="space-y-3">
                     <div>
-                      <label htmlFor="manager_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label
+                        htmlFor="manager_name"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
                         이름
                       </label>
                       <input
@@ -1179,7 +1281,10 @@ function EditSiteModal({
                   </h4>
                   <div className="space-y-3">
                     <div>
-                      <label htmlFor="construction_manager_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label
+                        htmlFor="construction_manager_name"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
                         이름
                       </label>
                       <input
@@ -1193,7 +1298,10 @@ function EditSiteModal({
                       />
                     </div>
                     <div>
-                      <label htmlFor="construction_manager_phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label
+                        htmlFor="construction_manager_phone"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
                         연락처
                       </label>
                       <input
@@ -1217,7 +1325,10 @@ function EditSiteModal({
                   </h4>
                   <div className="space-y-3">
                     <div>
-                      <label htmlFor="safety_manager_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label
+                        htmlFor="safety_manager_name"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
                         이름
                       </label>
                       <input
@@ -1231,7 +1342,10 @@ function EditSiteModal({
                       />
                     </div>
                     <div>
-                      <label htmlFor="safety_manager_phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label
+                        htmlFor="safety_manager_phone"
+                        className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                      >
                         연락처
                       </label>
                       <input
@@ -1257,7 +1371,10 @@ function EditSiteModal({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* 숙소명 */}
                 <div>
-                  <label htmlFor="accommodation_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="accommodation_name"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     숙소명
                   </label>
                   <input
@@ -1273,7 +1390,10 @@ function EditSiteModal({
 
                 {/* 숙소 연락처 */}
                 <div>
-                  <label htmlFor="accommodation_phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="accommodation_phone"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     숙소 연락처
                   </label>
                   <input
@@ -1289,7 +1409,10 @@ function EditSiteModal({
 
                 {/* 숙소 주소 */}
                 <div className="md:col-span-2">
-                  <label htmlFor="accommodation_address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="accommodation_address"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >
                     숙소 주소
                   </label>
                   <input

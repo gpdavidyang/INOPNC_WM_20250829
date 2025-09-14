@@ -1,1 +1,1 @@
-export { default as WorkLogHomePage } from './WorkLogHomePage'
+export { WorkLogHomePage } from './WorkLogHomePage'
