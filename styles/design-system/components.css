@@ -1,0 +1,303 @@
+/* =============== CARD =============== */
+.card {
+  background: var(--card);
+  border: 1px solid var(--line); /* 라이트: #E6ECF4와 유사 */
+  border-radius: var(--r);
+  padding: var(--pad);
+  box-shadow: 0 2px 10px rgba(2, 6, 23, 0.04);
+}
+.card:hover {
+  box-shadow: 0 4px 12px rgba(2, 6, 23, 0.08);
+}
+
+/* =============== BUTTONS =============== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: var(--btn-h);
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--fs-ctl);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    opacity 0.12s ease,
+    filter 0.12s ease;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  cursor: pointer;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+[data-theme='dark'] .btn {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--text);
+}
+
+/* Variants */
+.btn--primary {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.btn--primary:hover {
+  filter: brightness(0.95);
+}
+.btn--gray {
+  background: var(--gray-btn);
+  color: #fff;
+  border-color: var(--gray-btn);
+}
+/* Sky 버튼 텍스트 화이트 */
+.btn--sky {
+  background: var(--sky-btn);
+  color: #fff;
+  border-color: var(--sky-btn);
+}
+.btn--outline {
+  background: transparent;
+}
+.btn--ghost {
+  background: var(--card);
+}
+.btn--danger {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+}
+
+/* Ripple(선택) — 클릭 좌표는 JS로 --x/--y 설정 */
+.btn.ripple:active {
+  background:
+    radial-gradient(
+        circle at var(--x, 50%) var(--y, 50%),
+        rgba(255, 255, 255, 0.35) 12%,
+        transparent 13%
+      )
+      center/100% 100%,
+    var(--btn-bg, transparent);
+}
+
+/* =============== CHIP / TAG =============== */
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--chip-h);
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  gap: 8px;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+  cursor: pointer;
+}
+.chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.chip:active {
+  transform: scale(0.95);
+}
+/* 선택 상태 */
+.chip.is-active {
+  background: var(--tag-blue-20);
+  color: var(--tag-blue);
+  border-color: var(--tag-blue);
+}
+/* 색상 태그 (Tag2 변형 제거) */
+.chip--t1 {
+  background: var(--tag1-20);
+  color: var(--tag1);
+  border-color: var(--tag1);
+}
+/* .chip--t2  — 제거됨 */
+.chip--t3 {
+  background: var(--tag3-15);
+  color: var(--tag3);
+  border-color: var(--tag3);
+}
+.chip--t4 {
+  background: var(--tag4);
+  color: var(--tag4-ink);
+  border-color: var(--tag4-ink);
+}
+
+/* =============== INPUTS =============== */
+.input {
+  width: 100%;
+  height: 44px;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  padding: 0 14px;
+  font-size: var(--fs-body);
+  outline: 0;
+  transition:
+    box-shadow 0.12s ease,
+    border-color 0.12s ease;
+}
+.input::placeholder {
+  color: var(--muted);
+}
+.input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+/* Floating label field */
+.field {
+  position: relative;
+}
+.field .q {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--text);
+  padding: 0 12px;
+  font-size: var(--fs-body);
+  outline: 0;
+  transition:
+    box-shadow 0.15s,
+    border-color 0.15s;
+}
+.field .q:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+.field .q::placeholder {
+  color: transparent;
+}
+.field label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+  transition:
+    transform 0.15s,
+    top 0.15s,
+    font-size 0.15s,
+    color 0.15s;
+}
+.field .q:focus + label,
+.field .q:not(:placeholder-shown) + label {
+  top: 6px;
+  transform: none;
+  font-size: 12px;
+  color: var(--accent);
+}
+
+/* Search suggest panel (선택) */
+.search {
+  position: relative;
+}
+.search .panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 6px);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  padding: 6px;
+  display: none;
+}
+.search .panel.show {
+  display: block;
+  animation: drop 0.12s ease-out;
+}
+.search .list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow: auto;
+}
+.search .item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.search .item:hover,
+.search .item.is-active {
+  background: var(--tag-blue-20);
+}
+.search mark {
+  background: transparent;
+  color: var(--accent);
+  font-weight: 600;
+}
+.search .spin {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  display: none;
+}
+
+/* =============== UTILITIES =============== */
+.badge-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.badge-dot.tag1 {
+  background: var(--tag1);
+}
+.badge-dot.tag2 {
+  background: var(--tag2);
+}
+.badge-dot.tag3 {
+  background: var(--tag3);
+}
+.badge-dot.tag4 {
+  background: var(--tag4-ink);
+}
+.warn {
+  color: var(--warn);
+}
