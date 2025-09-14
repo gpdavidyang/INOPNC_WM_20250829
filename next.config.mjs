@@ -2,9 +2,9 @@
 const nextConfig = {
   reactStrictMode: false, // Disable strict mode to prevent double rendering
   
-  // TypeScript 빌드 최적화
+  // TypeScript 빌드 최적화 - 프로덕션 배포를 위해 일시적으로 에러 무시
   typescript: {
-    ignoreBuildErrors: true, // Temporarily ignore TypeScript errors for faster builds
+    ignoreBuildErrors: true, // Temporarily ignore TypeScript errors for deployment
   },
   
   // ESLint 빌드 최적화 - 임시로 무시하여 빠른 배포 가능
