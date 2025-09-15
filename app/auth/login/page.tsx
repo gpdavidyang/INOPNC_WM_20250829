@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { signIn } from '@/app/auth/actions'
+import styles from './login.module.css'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -36,9 +37,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className={styles.loginContainer}>
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-lg shadow-lg p-8">
+        <div className={styles.loginCard}>
           <div className="flex flex-col items-center justify-center mb-6">
             <Image
               src="/INOPNC_logo.png"
@@ -53,7 +54,7 @@ export default function LoginPage() {
 
           <form action={handleLogin} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className={styles.inputLabel}>
                 이메일
               </label>
               <input
@@ -61,14 +62,14 @@ export default function LoginPage() {
                 name="email"
                 type="email"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={styles.inputField}
                 placeholder="email@example.com"
                 disabled={isLoading}
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="password" className={styles.inputLabel}>
                 비밀번호
               </label>
               <input
@@ -76,23 +77,15 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={styles.inputField}
                 placeholder="비밀번호를 입력하세요"
                 disabled={isLoading}
               />
             </div>
 
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-md text-sm">
-                {error}
-              </div>
-            )}
+            {error && <div className={styles.errorMessage}>{error}</div>}
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button type="submit" disabled={isLoading} className={styles.submitButton}>
               {isLoading ? '로그인 중...' : '로그인'}
             </button>
           </form>

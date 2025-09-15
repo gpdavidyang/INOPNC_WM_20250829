@@ -21,7 +21,6 @@ import { PhotoUploadCard } from './PhotoUploadCard'
 import { DrawingCard } from './DrawingCard'
 import { SummaryPanel } from './SummaryPanel'
 import { SummarySection } from './SummarySection'
-import { AuthDebug } from './AuthDebug'
 import { toast } from 'sonner'
 import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
 import { useAuth } from '@/modules/mobile/providers/AuthProvider'
@@ -280,7 +279,6 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   return (
     <main className="container" style={{ paddingTop: '60px' }}>
       {/* Auth Debug Info - Only in development */}
-      {process.env.NODE_ENV === 'development' && <AuthDebug />}
       {/* 빠른메뉴 */}
       <QuickMenu />
 
