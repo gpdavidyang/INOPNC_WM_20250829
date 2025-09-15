@@ -51,6 +51,35 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
     toast.success(`${files.length}개 파일이 추가되었습니다.`)
   }
 
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, type: 'before' | 'after') => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const files = e.dataTransfer.files
+    handleFileSelect(files, type)
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const togglePhotoCategory = (id: string, currentType: 'before' | 'after') => {
+    const sourceFiles = currentType === 'before' ? beforeFiles : afterFiles
+    const targetFiles = currentType === 'before' ? afterFiles : beforeFiles
+    const setSourceFiles = currentType === 'before' ? setBeforeFiles : setAfterFiles
+    const setTargetFiles = currentType === 'before' ? setAfterFiles : setBeforeFiles
+
+    const fileToMove = sourceFiles.find(f => f.id === id)
+    if (fileToMove && targetFiles.length < MAX_FILES) {
+      setSourceFiles(sourceFiles.filter(f => f.id !== id))
+      setTargetFiles([...targetFiles, fileToMove])
+      toast.success(`사진이 ${currentType === 'before' ? '보수 후' : '보수 전'}로 이동되었습니다.`)
+    } else if (targetFiles.length >= MAX_FILES) {
+      toast.error('대상 카테고리가 가득 찼습니다.')
+    }
+  }
+
   const removeFile = (id: string, type: 'before' | 'after') => {
     const setFiles = type === 'before' ? setBeforeFiles : setAfterFiles
     const currentFiles = type === 'before' ? beforeFiles : afterFiles
@@ -72,10 +101,37 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
 
     setIsSaving(true)
     try {
-      // TODO: API call to save photos
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-      toast.success('사진이 저장되었습니다.')
+      // 로컬 스토리지에 임시 저장 (실제 업로드 API 구현 전)
+      const photoData = {
+        beforePhotos: beforeFiles.map(f => ({
+          id: f.id,
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          uploadDate: f.uploadDate,
+        })),
+        afterPhotos: afterFiles.map(f => ({
+          id: f.id,
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          uploadDate: f.uploadDate,
+        })),
+        savedAt: new Date().toISOString(),
+      }
+
+      // 로컬 스토리지에 저장
+      localStorage.setItem('worklog_photos', JSON.stringify(photoData))
+
+      // 콘솔에 저장 데이터 출력 (main.html과 동일)
+      console.log('📸 사진 데이터 저장:', photoData)
+      console.log(`보수 전: ${beforeFiles.length}장, 보수 후: ${afterFiles.length}장`)
+
+      toast.success(
+        `사진이 저장되었습니다. (보수 전: ${beforeFiles.length}장, 보수 후: ${afterFiles.length}장)`
+      )
     } catch (error) {
+      console.error('사진 저장 실패:', error)
       toast.error('사진 저장에 실패했습니다.')
     } finally {
       setIsSaving(false)
@@ -86,8 +142,8 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
     <section className={`section mb-3.5 ${className}`}>
       <div className="work-form-container">
         <div className="form-section">
-          <div className="section-header mb-3">
-            <h3 className="section-title">사진 업로드</h3>
+          <div className="section-header">
+            <h3 className="section-title">사진업로드</h3>
             <span className="upload-hint">↔ 전/후 업로드</span>
           </div>
 
@@ -104,6 +160,8 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
               <div
                 className="upload-area before-area"
                 onClick={() => beforeInputRef.current?.click()}
+                onDrop={e => handleDrop(e, 'before')}
+                onDragOver={handleDragOver}
               >
                 {beforeFiles.length === 0 ? (
                   <div className="upload-placeholder">
@@ -111,18 +169,27 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
                     <p className="upload-text">사진을 추가하세요</p>
                   </div>
                 ) : (
-                  <div className="uploaded-files-grid">
+                  <div className="photo-thumbnails-container">
                     {beforeFiles.map(file => (
-                      <div key={file.id} className="uploaded-file-thumb">
+                      <div key={file.id} className="photo-thumbnail">
                         <img src={file.url} alt={file.name} />
                         <button
-                          className="file-remove-btn"
+                          className="delete-photo-btn"
                           onClick={e => {
                             e.stopPropagation()
                             removeFile(file.id, 'before')
                           }}
                         >
                           ×
+                        </button>
+                        <button
+                          className="move-photo-btn"
+                          onClick={e => {
+                            e.stopPropagation()
+                            togglePhotoCategory(file.id, 'before')
+                          }}
+                        >
+                          ↔
                         </button>
                       </div>
                     ))}
@@ -151,6 +218,8 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
               <div
                 className="upload-area after-area"
                 onClick={() => afterInputRef.current?.click()}
+                onDrop={e => handleDrop(e, 'after')}
+                onDragOver={handleDragOver}
               >
                 {afterFiles.length === 0 ? (
                   <div className="upload-placeholder">
@@ -158,18 +227,27 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
                     <p className="upload-text">사진을 추가하세요</p>
                   </div>
                 ) : (
-                  <div className="uploaded-files-grid">
+                  <div className="photo-thumbnails-container">
                     {afterFiles.map(file => (
-                      <div key={file.id} className="uploaded-file-thumb">
+                      <div key={file.id} className="photo-thumbnail">
                         <img src={file.url} alt={file.name} />
                         <button
-                          className="file-remove-btn"
+                          className="delete-photo-btn"
                           onClick={e => {
                             e.stopPropagation()
                             removeFile(file.id, 'after')
                           }}
                         >
                           ×
+                        </button>
+                        <button
+                          className="move-photo-btn"
+                          onClick={e => {
+                            e.stopPropagation()
+                            togglePhotoCategory(file.id, 'after')
+                          }}
+                        >
+                          ↔
                         </button>
                       </div>
                     ))}
