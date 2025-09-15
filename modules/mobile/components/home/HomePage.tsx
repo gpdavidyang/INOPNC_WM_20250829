@@ -20,8 +20,12 @@ import { AdditionalManpower as AdditionalManpowerComponent } from './AdditionalM
 import { PhotoUploadCard } from './PhotoUploadCard'
 import { DrawingCard } from './DrawingCard'
 import { SummaryPanel } from './SummaryPanel'
+import { SummarySection } from './SummarySection'
+import { AuthDebug } from './AuthDebug'
 import { toast } from 'sonner'
 import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
+import { useAuth } from '@/modules/mobile/providers/AuthProvider'
+import { initSessionSync } from '@/lib/auth/session-sync'
 
 // 현장 인터페이스 정의
 interface Site {
@@ -33,8 +37,24 @@ import '@/modules/mobile/styles/home.css'
 import '@/modules/mobile/styles/work-form.css'
 import '@/modules/mobile/styles/upload.css'
 import '@/modules/mobile/styles/summary.css'
+import '@/modules/mobile/styles/summary-section.css'
+import { User } from '@supabase/supabase-js'
 
-export const HomePage: React.FC = () => {
+interface HomePageProps {
+  initialProfile?: {
+    id: string
+    full_name?: string
+    email: string
+    role: string
+    site_id?: string
+  }
+  initialUser?: User
+}
+
+export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser }) => {
+  // Use auth context
+  const { user, session, profile: authProfile, loading: authLoading, refreshSession } = useAuth()
+
   // 기본 상태
   const [selectedSite, setSelectedSite] = useState('')
   const [workDate, setWorkDate] = useState('')
@@ -58,53 +78,37 @@ export const HomePage: React.FC = () => {
   const [sitesLoading, setSitesLoading] = useState(false)
   const [sitesError, setSitesError] = useState<string | null>(null)
 
-  // 사용자 프로필 상태
-  const [userProfile, setUserProfile] = useState<any>(null)
-  const [profileLoading, setProfileLoading] = useState(true)
+  // 사용자 프로필 상태 - Use auth context profile or initial profile
+  const [userProfile, setUserProfile] = useState<any>(authProfile || initialProfile || null)
+  const [profileLoading, setProfileLoading] = useState(false)
 
-  // Set today's date on mount
+  // Set today's date on mount and initialize session sync
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
     setWorkDate(today)
+
+    // Initialize session synchronization
+    initSessionSync()
   }, [])
 
-  // Fetch user profile on mount
+  // Update profile when auth context changes
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        setProfileLoading(true)
-        const supabase = createClient()
-
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession()
-
-        if (!session || sessionError) {
-          console.log('No session found')
-          return
-        }
-
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profile && !profileError) {
-          setUserProfile(profile)
-        } else {
-          console.error('Profile fetch error:', profileError)
-        }
-      } catch (error) {
-        console.error('Error fetching user profile:', error)
-      } finally {
-        setProfileLoading(false)
-      }
+    if (authProfile) {
+      setUserProfile(authProfile)
+      console.log('Using auth context profile:', authProfile.full_name)
+    } else if (initialProfile) {
+      setUserProfile(initialProfile)
+      console.log('Using initial profile:', initialProfile.full_name)
     }
+  }, [authProfile, initialProfile])
 
-    fetchUserProfile()
-  }, [])
+  // Refresh session if no user is found
+  useEffect(() => {
+    if (!authLoading && !user && !initialUser) {
+      console.log('No user found, attempting to refresh session...')
+      refreshSession()
+    }
+  }, [authLoading, user, initialUser, refreshSession])
 
   // Handle calendar icon click to trigger date picker
   const handleCalendarClick = () => {
@@ -219,6 +223,9 @@ export const HomePage: React.FC = () => {
       return
     }
 
+    // 요약 패널 표시
+    setShowSummary(true)
+
     try {
       // 작업 내용 구성
       const workContentDetails = {
@@ -272,6 +279,8 @@ export const HomePage: React.FC = () => {
 
   return (
     <main className="container" style={{ paddingTop: '60px' }}>
+      {/* Auth Debug Info - Only in development */}
+      {process.env.NODE_ENV === 'development' && <AuthDebug />}
       {/* 빠른메뉴 */}
       <QuickMenu />
 
@@ -320,11 +329,17 @@ export const HomePage: React.FC = () => {
                   />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
-                  {sites.map(site => (
-                    <CustomSelectItem key={site.id} value={site.id}>
-                      {site.name}
+                  {sites.length > 0 ? (
+                    sites.map(site => (
+                      <CustomSelectItem key={site.id} value={site.id || `site-${site.name}`}>
+                        {site.name}
+                      </CustomSelectItem>
+                    ))
+                  ) : (
+                    <CustomSelectItem value="none" disabled>
+                      현장을 선택하세요
                     </CustomSelectItem>
-                  ))}
+                  )}
                 </CustomSelectContent>
               </CustomSelect>
               {sitesError && <div className="text-red-500 text-sm mt-1">{sitesError}</div>}
@@ -405,7 +420,9 @@ export const HomePage: React.FC = () => {
                 type="text"
                 className="form-input"
                 placeholder="작성자"
-                value={profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'}
+                value={
+                  authLoading || profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'
+                }
                 readOnly
               />
             </div>
@@ -502,7 +519,9 @@ export const HomePage: React.FC = () => {
               <input
                 type="text"
                 className="form-input"
-                value={profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'}
+                value={
+                  authLoading || profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'
+                }
                 readOnly
               />
             </div>
@@ -602,6 +621,22 @@ export const HomePage: React.FC = () => {
           className="mb-4"
         />
       )}
+
+      {/* 작성 내용 요약 - 페이지 맨 아래 배치 */}
+      <SummarySection
+        site={sites.find(s => s.id === selectedSite)?.name || ''}
+        workDate={workDate}
+        author={userProfile?.full_name || ''}
+        memberTypes={memberTypes}
+        workContents={workContents}
+        workTypes={workTypes}
+        personnelCount={mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0)}
+        location={location}
+        beforePhotosCount={0}
+        afterPhotosCount={0}
+        manpower={mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0)}
+        drawingCount={0}
+      />
     </main>
   )
 }

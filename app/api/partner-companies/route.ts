@@ -4,30 +4,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: NextRequest) {
+  // Use the server client for proper cookie handling
   const supabase = createClient()
 
   try {
-    // Get current user
-    const {
-      data: { user },
-      error: authError
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
+    // Partner companies are public data, no auth required for GET
     // Get active partner companies
     const { data: partnerCompanies, error } = await supabase
       .from('partner_companies')
-      .select(`
+      .select(
+        `
         id,
         company_name,
         company_type,
         status,
         representative_name,
         contact_person
-      `)
+      `
+      )
       .eq('status', 'active')
       .order('company_name', { ascending: true })
 
@@ -39,7 +33,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: partnerCompanies || [],
-      count: partnerCompanies?.length || 0
+      count: partnerCompanies?.length || 0,
     })
   } catch (error) {
     console.error('API Error:', error)

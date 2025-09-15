@@ -18,46 +18,49 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const [passwordForm, setPasswordForm] = useState({
     current: '',
     new: '',
-    confirm: ''
+    confirm: '',
   })
   const supabase = createClient()
 
   // Auth state change listener
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          // Refresh profile when user signs in
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-          
-          if (profile) {
-            setUserProfile(profile)
-          }
-        } else if (event === 'SIGNED_OUT') {
-          setUserProfile(null)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Refresh profile when user signs in
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profile) {
+          setUserProfile(profile)
         }
+      } else if (event === 'SIGNED_OUT') {
+        setUserProfile(null)
       }
-    )
+    })
 
     return () => subscription.unsubscribe()
   }, [supabase])
 
   useEffect(() => {
     let mounted = true
-    
+
     // Get user profile with session check
     const fetchProfile = async () => {
       try {
         if (!mounted) return
         setProfileLoading(true)
-        
+
         // First check session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
         if (!session || sessionError) {
           console.log('No session found or session error:', sessionError)
           if (mounted) setUserProfile(null)
@@ -116,24 +119,24 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const fitDrawer = () => {
     const drawer = document.getElementById('drawer')
     const drawerScale = document.querySelector('.drawer-scale')
-    
+
     if (!drawer || !drawerScale) return
-    
+
     // 모바일에서는 스케일링 비활성화
     if (window.innerWidth <= 768) {
       ;(drawerScale as HTMLElement).style.transform = 'none'
       return
     }
-    
+
     // 가용 높이(패널 패딩/안전영역 감안)
     const style = getComputedStyle(drawer)
     const padTop = parseFloat(style.paddingTop)
     const padBottom = parseFloat(style.paddingBottom)
     const avail = window.innerHeight - padTop - padBottom
-    
+
     // 실제 콘텐츠 전체 높이
     const contentH = (drawerScale as HTMLElement).scrollHeight
-    
+
     // 축소 비율 계산 (최소 0.85 유지)
     const s = Math.max(0.85, Math.min(1, avail / contentH))
     ;(drawerScale as HTMLElement).style.transform = `scale(${s})`
@@ -145,7 +148,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
       // 키보드가 올라올 때 드로어 높이 조정
       const drawer = document.getElementById('drawer')
       if (!drawer) return
-      
+
       if (window.visualViewport) {
         if (window.visualViewport.height < window.innerHeight) {
           drawer.style.height = window.visualViewport.height + 'px'
@@ -175,9 +178,39 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
   const handleLogout = async () => {
     if (confirm('정말 로그아웃하시겠습니까?')) {
-      await supabase.auth.signOut()
-      router.push('/auth/login')
-      onClose()
+      try {
+        // Close drawer first to prevent state issues
+        onClose()
+
+        // Clear profile immediately for UI feedback
+        setUserProfile(null)
+
+        // Call logout API endpoint to clear server-side session
+        const response = await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          console.error('Logout API failed:', response.status)
+        }
+
+        // Also sign out from Supabase client
+        try {
+          await supabase.auth.signOut()
+        } catch (clientError) {
+          console.error('Client logout error:', clientError)
+        }
+
+        // Force a hard refresh to clear all state and cookies
+        window.location.replace('/auth/login')
+      } catch (error) {
+        console.error('Logout failed:', error)
+        // Force redirect even on error
+        window.location.replace('/auth/login')
+      }
     }
   }
 
@@ -259,7 +292,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
             <div className="profile-sec">
               <div className="profile-header">
                 <div className="profile-name" id="profileUserName">
-                  {profileLoading ? '로딩 중...' : (userProfile?.full_name || '사용자')}
+                  {profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'}
                   {!profileLoading && (
                     <span
                       className="important-tag"
@@ -274,7 +307,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                 </button>
               </div>
               <div className="profile-email" id="profileUserEmail">
-                {profileLoading ? '로딩 중...' : (userProfile?.email || '')}
+                {profileLoading ? '로딩 중...' : userProfile?.email || ''}
               </div>
             </div>
 
@@ -295,19 +328,27 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                   </a>
                 </li>
               ))}
-              
+
               {/* 내정보 + 계정관리 버튼 */}
               <li className="menu-item-with-btn">
                 <a className="menu-item" href="#" onClick={e => e.preventDefault()}>
                   <span className="menu-label">내정보</span>
                 </a>
-                <button className="account-manage-btn" id="accountManageBtn" onClick={handleAccountManage}>
+                <button
+                  className="account-manage-btn"
+                  id="accountManageBtn"
+                  onClick={handleAccountManage}
+                >
                   계정관리
                 </button>
               </li>
-              
+
               {/* 계정 정보 표시 (토글) */}
-              <li className="account-info" id="accountInfo" style={{ display: showAccountInfo ? 'block' : 'none' }}>
+              <li
+                className="account-info"
+                id="accountInfo"
+                style={{ display: showAccountInfo ? 'block' : 'none' }}
+              >
                 {profileLoading ? (
                   <div className="account-info-item">
                     <span className="account-label">로딩 중...</span>
@@ -322,38 +363,52 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                     <div className="account-info-item">
                       <span className="account-label">가입일</span>
                       <span className="account-value">
-                        {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString('ko-KR').replace(/\./g, '.') : '미설정'}
+                        {userProfile?.created_at
+                          ? new Date(userProfile.created_at)
+                              .toLocaleDateString('ko-KR')
+                              .replace(/\./g, '.')
+                          : '미설정'}
                       </span>
                     </div>
                     <div className="account-info-item">
                       <span className="account-label">비밀번호 변경</span>
-                      <span className="account-value change-password-btn" id="changePasswordBtn" onClick={handlePasswordChange}>
+                      <span
+                        className="account-value change-password-btn"
+                        id="changePasswordBtn"
+                        onClick={handlePasswordChange}
+                      >
                         변경하기
                       </span>
                     </div>
                   </>
                 )}
               </li>
-              
+
               {/* 비밀번호 변경 폼 (토글) */}
-              <li className="password-change-form" id="passwordChangeForm" style={{ display: showPasswordForm ? 'block' : 'none' }}>
+              <li
+                className="password-change-form"
+                id="passwordChangeForm"
+                style={{ display: showPasswordForm ? 'block' : 'none' }}
+              >
                 <div className="password-form-container">
                   <div className="form-group">
-                    <input 
-                      type="password" 
-                      className="form-input" 
-                      id="currentPassword" 
+                    <input
+                      type="password"
+                      className="form-input"
+                      id="currentPassword"
                       placeholder="현재 비밀번호를 입력"
                       value={passwordForm.current}
-                      onChange={e => setPasswordForm(prev => ({ ...prev, current: e.target.value }))}
+                      onChange={e =>
+                        setPasswordForm(prev => ({ ...prev, current: e.target.value }))
+                      }
                       inputMode="text"
                     />
                   </div>
                   <div className="form-group">
-                    <input 
-                      type="password" 
-                      className="form-input" 
-                      id="newPassword" 
+                    <input
+                      type="password"
+                      className="form-input"
+                      id="newPassword"
                       placeholder="새 비밀번호 (최소 6자)"
                       value={passwordForm.new}
                       onChange={e => setPasswordForm(prev => ({ ...prev, new: e.target.value }))}
@@ -361,19 +416,33 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                     />
                   </div>
                   <div className="form-group">
-                    <input 
-                      type="password" 
-                      className="form-input" 
-                      id="confirmPassword" 
+                    <input
+                      type="password"
+                      className="form-input"
+                      id="confirmPassword"
                       placeholder="새 비밀번호를 다시 입력"
                       value={passwordForm.confirm}
-                      onChange={e => setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))}
+                      onChange={e =>
+                        setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))
+                      }
                       inputMode="text"
                     />
                   </div>
                   <div className="form-actions">
-                    <button className="cancel-btn" id="cancelPasswordChange" onClick={handlePasswordCancel}>취소</button>
-                    <button className="save-btn" id="savePasswordChange" onClick={handlePasswordSave}>저장</button>
+                    <button
+                      className="cancel-btn"
+                      id="cancelPasswordChange"
+                      onClick={handlePasswordCancel}
+                    >
+                      취소
+                    </button>
+                    <button
+                      className="save-btn"
+                      id="savePasswordChange"
+                      onClick={handlePasswordSave}
+                    >
+                      저장
+                    </button>
                   </div>
                 </div>
               </li>
@@ -387,7 +456,6 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
             로그아웃
           </button>
         </div>
-
       </aside>
     </>
   )

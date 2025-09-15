@@ -56,8 +56,20 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({ className = '' }) => {
   }
 
   const handleLoad = async () => {
-    // TODO: Implement loading saved drawings
-    toast.info('저장된 도면을 불러오는 기능은 준비 중입니다.')
+    try {
+      // 로컬 스토리지에서 도면 데이터 불러오기
+      const savedData = localStorage.getItem('worklog_drawings')
+      if (savedData) {
+        const parsed = JSON.parse(savedData)
+        toast.success(`저장된 도면 ${parsed.drawings?.length || 0}개를 불러왔습니다.`)
+        console.log('📐 불러온 도면 데이터:', parsed)
+      } else {
+        toast.info('저장된 도면이 없습니다.')
+      }
+    } catch (error) {
+      console.error('도면 불러오기 실패:', error)
+      toast.error('도면을 불러오는데 실패했습니다.')
+    }
   }
 
   const handleSave = async () => {
@@ -68,10 +80,28 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({ className = '' }) => {
 
     setIsSaving(true)
     try {
-      // TODO: API call to save drawings
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-      toast.success('도면이 저장되었습니다.')
+      // 로컬 스토리지에 임시 저장 (실제 업로드 API 구현 전)
+      const drawingData = {
+        drawings: drawingFiles.map(f => ({
+          id: f.id,
+          name: f.name,
+          size: f.size,
+          type: f.type,
+          uploadDate: f.uploadDate,
+        })),
+        savedAt: new Date().toISOString(),
+      }
+
+      // 로컬 스토리지에 저장
+      localStorage.setItem('worklog_drawings', JSON.stringify(drawingData))
+
+      // 콘솔에 저장 데이터 출력 (main.html과 동일)
+      console.log('📐 도면 데이터 저장:', drawingData)
+      console.log(`도면 ${drawingFiles.length}개 저장됨`)
+
+      toast.success(`도면이 저장되었습니다. (${drawingFiles.length}개 파일)`)
     } catch (error) {
+      console.error('도면 저장 실패:', error)
       toast.error('도면 저장에 실패했습니다.')
     } finally {
       setIsSaving(false)

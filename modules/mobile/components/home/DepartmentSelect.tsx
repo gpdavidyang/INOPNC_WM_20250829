@@ -37,24 +37,29 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
         setLoading(true)
         setError(null)
 
-        const supabase = createClient()
-        console.log('Fetching partner companies...')
+        // Use direct API call instead of Supabase client
+        console.log('Fetching partner companies via API...')
 
-        const { data, error } = await supabase
-          .from('partner_companies')
-          .select('id, company_name')
-          .eq('status', 'active')
-          .order('company_name')
+        const response = await fetch('/api/partner-companies')
 
-        console.log('Partner companies response:', { data, error })
+        if (!response.ok) {
+          throw new Error(`API Error: ${response.status}`)
+        }
 
-        if (error) {
-          console.error('파트너사 조회 실패:', error)
+        const result = await response.json()
+        console.log('Partner companies API response:', result)
+
+        if (result.error) {
+          console.error('파트너사 조회 실패:', result.error)
           setError('파트너사 목록을 불러올 수 없습니다.')
           setPartners([])
         } else {
-          console.log('Setting partners:', data?.length || 0, 'companies')
-          setPartners(data || [])
+          const activePartners = (result.data || [])
+            .filter((p: any) => p.status === 'active')
+            .sort((a: any, b: any) => a.company_name.localeCompare(b.company_name))
+
+          console.log('Setting partners:', activePartners.length, 'active companies')
+          setPartners(activePartners)
         }
       } catch (err) {
         console.error('파트너사 조회 오류:', err)
@@ -92,13 +97,16 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
         <CustomSelectContent>
           {partners.length > 0 ? (
             partners.map(partner => (
-              <CustomSelectItem key={partner.id} value={partner.id}>
+              <CustomSelectItem
+                key={partner.id}
+                value={partner.id || `partner-${partner.company_name}`}
+              >
                 {partner.company_name}
               </CustomSelectItem>
             ))
           ) : (
-            <CustomSelectItem value="" disabled>
-              소속 데이터가 없습니다
+            <CustomSelectItem value="none" disabled>
+              데이터 없음
             </CustomSelectItem>
           )}
         </CustomSelectContent>
