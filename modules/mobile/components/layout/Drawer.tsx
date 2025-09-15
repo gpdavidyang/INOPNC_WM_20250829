@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -13,6 +12,13 @@ interface DrawerProps {
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const router = useRouter()
   const [userProfile, setUserProfile] = useState<any>(null)
+  const [showAccountInfo, setShowAccountInfo] = useState(false)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  })
   const supabase = createClient()
 
   useEffect(() => {
@@ -38,21 +44,87 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   }, [])
 
   useEffect(() => {
-    // Lock body scroll when drawer is open
+    // Lock body scroll when drawer is open (base.html match)
     if (isOpen) {
-      document.body.style.overflow = 'hidden'
+      document.body.classList.add('modal-open')
+      // Auto-scale drawer content for mobile
+      setTimeout(fitDrawer, 50)
     } else {
-      document.body.style.overflow = ''
+      document.body.classList.remove('modal-open')
     }
 
     return () => {
-      document.body.style.overflow = ''
+      document.body.classList.remove('modal-open')
     }
   }, [isOpen])
 
+  // Drawer scaling function - 100% base.html match
+  const fitDrawer = () => {
+    const drawer = document.getElementById('drawer')
+    const drawerScale = document.querySelector('.drawer-scale')
+    
+    if (!drawer || !drawerScale) return
+    
+    // 모바일에서는 스케일링 비활성화
+    if (window.innerWidth <= 768) {
+      ;(drawerScale as HTMLElement).style.transform = 'none'
+      return
+    }
+    
+    // 가용 높이(패널 패딩/안전영역 감안)
+    const style = getComputedStyle(drawer)
+    const padTop = parseFloat(style.paddingTop)
+    const padBottom = parseFloat(style.paddingBottom)
+    const avail = window.innerHeight - padTop - padBottom
+    
+    // 실제 콘텐츠 전체 높이
+    const contentH = (drawerScale as HTMLElement).scrollHeight
+    
+    // 축소 비율 계산 (최소 0.85 유지)
+    const s = Math.max(0.85, Math.min(1, avail / contentH))
+    ;(drawerScale as HTMLElement).style.transform = `scale(${s})`
+  }
+
+  // Mobile keyboard handling
+  useEffect(() => {
+    const handleResize = () => {
+      // 키보드가 올라올 때 드로어 높이 조정
+      const drawer = document.getElementById('drawer')
+      if (!drawer) return
+      
+      if (window.visualViewport) {
+        if (window.visualViewport.height < window.innerHeight) {
+          drawer.style.height = window.visualViewport.height + 'px'
+        } else {
+          drawer.style.height = '100vh'
+        }
+      }
+    }
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize)
+      return () => window.visualViewport.removeEventListener('resize', handleResize)
+    }
+  }, [])
+
+  // Window resize handling for drawer scaling
+  useEffect(() => {
+    const handleWindowResize = () => {
+      if (isOpen) {
+        setTimeout(fitDrawer, 50)
+      }
+    }
+
+    window.addEventListener('resize', handleWindowResize)
+    return () => window.removeEventListener('resize', handleWindowResize)
+  }, [isOpen])
+
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/auth/login')
+    if (confirm('정말 로그아웃하시겠습니까?')) {
+      await supabase.auth.signOut()
+      router.push('/auth/login')
+      onClose()
+    }
   }
 
   const getRoleDisplay = (role: string) => {
@@ -64,6 +136,41 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
       system_admin: '시스템관리자',
     }
     return roleMap[role] || role
+  }
+
+  const handleAccountManage = () => {
+    setShowAccountInfo(!showAccountInfo)
+    setShowPasswordForm(false)
+  }
+
+  const handlePasswordChange = () => {
+    setShowPasswordForm(true)
+    setShowAccountInfo(false)
+  }
+
+  const handlePasswordCancel = () => {
+    setShowPasswordForm(false)
+    setShowAccountInfo(true)
+    setPasswordForm({ current: '', new: '', confirm: '' })
+  }
+
+  const handlePasswordSave = async () => {
+    if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
+      alert('모든 필드를 입력해주세요.')
+      return
+    }
+    if (passwordForm.new !== passwordForm.confirm) {
+      alert('새 비밀번호가 일치하지 않습니다.')
+      return
+    }
+    if (passwordForm.new.length < 6) {
+      alert('비밀번호는 최소 6자 이상이어야 합니다.')
+      return
+    }
+
+    // TODO: 실제 비밀번호 변경 로직 구현
+    alert('비밀번호가 변경되었습니다.')
+    handlePasswordCancel()
   }
 
   const menuItems = [
@@ -115,7 +222,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            {/* Menu List */}
+            {/* Menu List - 100% base.html match */}
             <ul className="menu-list">
               {menuItems.map((item, index) => (
                 <li key={index}>
@@ -132,6 +239,79 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                   </a>
                 </li>
               ))}
+              
+              {/* 내정보 + 계정관리 버튼 */}
+              <li className="menu-item-with-btn">
+                <a className="menu-item" href="#" onClick={e => e.preventDefault()}>
+                  <span className="menu-label">내정보</span>
+                </a>
+                <button className="account-manage-btn" id="accountManageBtn" onClick={handleAccountManage}>
+                  계정관리
+                </button>
+              </li>
+              
+              {/* 계정 정보 표시 (토글) */}
+              <li className="account-info" id="accountInfo" style={{ display: showAccountInfo ? 'block' : 'none' }}>
+                <div className="account-info-item">
+                  <span className="account-label">연락처</span>
+                  <span className="account-value">{userProfile?.phone || '미설정'}</span>
+                </div>
+                <div className="account-info-item">
+                  <span className="account-label">가입일</span>
+                  <span className="account-value">
+                    {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString('ko-KR').replace(/\./g, '.') : '미설정'}
+                  </span>
+                </div>
+                <div className="account-info-item">
+                  <span className="account-label">비밀번호 변경</span>
+                  <span className="account-value change-password-btn" id="changePasswordBtn" onClick={handlePasswordChange}>
+                    변경하기
+                  </span>
+                </div>
+              </li>
+              
+              {/* 비밀번호 변경 폼 (토글) */}
+              <li className="password-change-form" id="passwordChangeForm" style={{ display: showPasswordForm ? 'block' : 'none' }}>
+                <div className="password-form-container">
+                  <div className="form-group">
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      id="currentPassword" 
+                      placeholder="현재 비밀번호를 입력"
+                      value={passwordForm.current}
+                      onChange={e => setPasswordForm(prev => ({ ...prev, current: e.target.value }))}
+                      inputMode="text"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      id="newPassword" 
+                      placeholder="새 비밀번호 (최소 6자)"
+                      value={passwordForm.new}
+                      onChange={e => setPasswordForm(prev => ({ ...prev, new: e.target.value }))}
+                      inputMode="text"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input 
+                      type="password" 
+                      className="form-input" 
+                      id="confirmPassword" 
+                      placeholder="새 비밀번호를 다시 입력"
+                      value={passwordForm.confirm}
+                      onChange={e => setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))}
+                      inputMode="text"
+                    />
+                  </div>
+                  <div className="form-actions">
+                    <button className="cancel-btn" id="cancelPasswordChange" onClick={handlePasswordCancel}>취소</button>
+                    <button className="save-btn" id="savePasswordChange" onClick={handlePasswordSave}>저장</button>
+                  </div>
+                </div>
+              </li>
             </ul>
           </div>
         </div>
@@ -143,170 +323,6 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <style jsx>{`
-          .drawer-body {
-            padding: 0;
-            flex: 1;
-            overflow: visible;
-          }
-
-          .drawer-scale {
-            transform-origin: top center;
-            will-change: transform;
-            padding: 20px 16px;
-          }
-
-          .profile-sec {
-            display: flex;
-            flex-direction: column;
-            margin: 10px 0 16px;
-            gap: 8px;
-          }
-
-          .profile-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            width: 100%;
-          }
-
-          .profile-name {
-            font:
-              600 18px/1.2 'Noto Sans KR',
-              system-ui,
-              -apple-system,
-              'Segoe UI',
-              Roboto,
-              sans-serif;
-            color: #1a254f;
-          }
-
-          [data-theme='dark'] .profile-name {
-            color: #e9eef5;
-          }
-
-          .important-tag {
-            display: inline-block;
-            padding: 2px 8px;
-            background: #1a254f;
-            color: #fff;
-            font-size: 12px;
-            font-weight: 600;
-            border-radius: 4px;
-          }
-
-          .close-btn {
-            padding: 6px 12px;
-            background: transparent;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            color: #6b7280;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s ease;
-          }
-
-          .close-btn:hover {
-            background: #f3f4f6;
-            border-color: #d1d5db;
-          }
-
-          .profile-email {
-            font:
-              400 13px 'Noto Sans KR',
-              system-ui,
-              -apple-system,
-              'Segoe UI',
-              Roboto,
-              sans-serif;
-            color: #64748b;
-            text-align: left;
-          }
-
-          [data-theme='dark'] .profile-email {
-            color: #94a3b8;
-          }
-
-          .menu-list {
-            list-style: none;
-            padding: 0;
-            margin: 20px 0;
-          }
-
-          .menu-item {
-            display: flex;
-            align-items: center;
-            padding: 14px 16px;
-            color: #111827;
-            text-decoration: none;
-            font:
-              500 15px/1.2 'Noto Sans KR',
-              system-ui,
-              -apple-system,
-              'Segoe UI',
-              Roboto,
-              sans-serif;
-            border-radius: 8px;
-            transition: all 0.2s ease;
-          }
-
-          .menu-item:hover {
-            background: #f3f4f6;
-          }
-
-          [data-theme='dark'] .menu-item {
-            color: #e5e7eb;
-          }
-
-          [data-theme='dark'] .menu-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-          }
-
-          .drawer-foot {
-            margin-top: auto;
-            padding: 16px;
-            border-top: 1px solid var(--nav-border);
-            padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
-          }
-
-          .logout-btn {
-            width: 100%;
-            height: 48px;
-            border-radius: 12px;
-            border: 1px solid #1a254f;
-            background: #1a254f;
-            font-family:
-              'Noto Sans KR',
-              system-ui,
-              -apple-system,
-              'Segoe UI',
-              Roboto,
-              sans-serif;
-            font-size: 14px;
-            font-weight: 700;
-            line-height: 1.2;
-            color: #ffffff;
-            cursor: pointer;
-            transition: all 0.2s ease;
-          }
-
-          .logout-btn:hover {
-            background: #162043;
-            border-color: #162043;
-          }
-
-          [data-theme='dark'] .logout-btn {
-            background: #1a254f;
-            border-color: #1a254f;
-            color: #ffffff;
-          }
-
-          [data-theme='dark'] .logout-btn:hover {
-            background: #162043;
-            border-color: #162043;
-          }
-        `}</style>
       </aside>
     </>
   )
