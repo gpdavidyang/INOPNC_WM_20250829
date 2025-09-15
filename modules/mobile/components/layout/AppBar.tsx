@@ -50,12 +50,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
 
           {/* Logo */}
           <a href="/mobile" className="brand-logo tracking-tight" id="homeLink" title="홈으로 이동">
-            <img
-              src="https://postfiles.pstatic.net/MjAyNTA5MTBfMjk3/MDAxNzU3NDc4ODkwMTc3.lBcKNGpQIyCk5kkAruIKUApO23ml-EJeX7da8626bQQg.oMA0TTp0F8nLP6ICPLrGelEJMVNg6cS5fdLUsXBb7pUg.PNG/00_%EB%A1%9C%EA%B3%A0-%EC%84%B8%EB%A1%9C%EC%A1%B0%ED%95%A9_n.png?type=w3840"
-              alt="INOPNC"
-              className="h-6"
-              style={{ height: '24px' }}
-            />
+            <img src="/images/logo_n.png" alt="INOPNC" className="h-6" style={{ height: '24px' }} />
           </a>
         </div>
 
@@ -98,22 +93,10 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             style={{ width: '28px', height: '28px' }}
           >
             <img
-              src="https://postfiles.pstatic.net/MjAyNTA5MDlfMTI4/MDAxNzU3MzczOTIzNjY1.cz65rYnLgXusuSn6OTKRtzcS3bVGqAdkQY-0GgOfW0Ug.A8e6_KKQ-P1GI4h_lx7pP4O-dqCinve_Un8_A7tVghkg.PNG/bell.png?type=w3840"
+              src="/images/bell.png"
               alt="알림"
               className="icon"
               style={{ width: '24px', height: '24px' }}
-              onError={e => {
-                // Fallback to Bell icon if image fails
-                const target = e.target as HTMLImageElement
-                target.style.display = 'none'
-                const parent = target.parentElement
-                if (parent) {
-                  const bellIcon = document.createElement('div')
-                  bellIcon.innerHTML =
-                    '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'
-                  parent.appendChild(bellIcon)
-                }
-              }}
             />
             {notificationCount > 0 && (
               <span className="notification-badge" id="notificationBadge" aria-live="polite">
@@ -147,14 +130,13 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
           text-decoration: none;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
           position: relative;
-          transform: translateX(-12px);
           flex-shrink: 0;
         }
 
         .actions {
           display: flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
         }
 
         .notif {
