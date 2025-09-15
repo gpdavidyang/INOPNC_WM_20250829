@@ -1,7 +1,7 @@
 /* INOPNC Mobile Global Styles - 100% HTML Design Match */
 
 :root {
-  /* Colors */
+  /* Colors - 100% HTML Match */
   --font: 'Noto Sans KR', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   --bg: #f5f7fb;
   --card: #ffffff;
@@ -10,6 +10,8 @@
   --line: #e6eaf2;
   --brand: #1a254f;
   --num: #0068fe;
+  --danger: #ea3829;
+  --info: #0068fe;
 
   /* Layout */
   --header-h: 56px;
