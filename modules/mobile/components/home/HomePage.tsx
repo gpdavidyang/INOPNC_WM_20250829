@@ -220,6 +220,18 @@ export const HomePage: React.FC = () => {
     }
 
     try {
+      // 작업 내용 구성
+      const workContentDetails = {
+        memberTypes: memberTypes,
+        workContents: workContents,
+        workTypes: workTypes,
+        mainManpower: mainManpower,
+        additionalManpower: additionalManpower.map(m => ({
+          name: m.workerName,
+          manpower: m.manpower,
+        })),
+      }
+
       const workData = {
         site_id: selectedSite,
         partner_company_id: department, // department가 파트너사 ID
@@ -230,7 +242,8 @@ export const HomePage: React.FC = () => {
           dong: location.dong,
           unit: location.unit,
         },
-        additional_notes: `추가 인력: ${additionalManpower.length}개, 작업 구간: ${workSections.length}개`,
+        additional_notes: JSON.stringify(workContentDetails),
+        total_manpower: mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0),
       }
 
       const response = await fetch('/api/admin/daily-reports', {
@@ -552,6 +565,16 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
         ))}
+
+        {/* 액션 버튼 */}
+        <div className="form-actions">
+          <button className="btn btn-secondary" onClick={handleReset}>
+            처음부터
+          </button>
+          <button className="btn btn-primary" onClick={handleSave}>
+            저장하기
+          </button>
+        </div>
       </div>
 
       {/* 사진 업로드 - 별도 카드 */}
@@ -559,18 +582,6 @@ export const HomePage: React.FC = () => {
 
       {/* 도면마킹 - 별도 카드 */}
       <DrawingCard />
-
-      {/* 하단 버튼들 */}
-      <div className="mb-4 mt-4">
-        <div className="flex gap-2">
-          <button className="flex-1 btn-secondary" onClick={handleReset}>
-            처음부터
-          </button>
-          <button className="flex-1 btn-primary" onClick={handleSave}>
-            저장하기
-          </button>
-        </div>
-      </div>
 
       {/* 요약 패널 */}
       {showSummary && (

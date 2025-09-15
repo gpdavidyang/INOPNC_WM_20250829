@@ -6,32 +6,32 @@ import Link from 'next/link'
 const quickMenuItems = [
   {
     href: '/mobile/worklog',
-    icon: '/icons/pay_출력현황.png',
+    icon: '/icons/pay_output.png',
     label: '출력현황',
   },
   {
     href: '/mobile/tasks',
-    icon: '/icons/report_작업일지.png',
+    icon: '/icons/report_worklog.png',
     label: '작업일지',
   },
   {
     href: '/mobile/sites',
-    icon: '/icons/map_현장정보.png',
+    icon: '/icons/map_site.png',
     label: '현장정보',
   },
   {
     href: '/mobile/documents',
-    icon: '/icons/doc_문서함.png',
+    icon: '/icons/doc_documents.png',
     label: '문서함',
   },
   {
     href: '/mobile/requests',
-    icon: '/icons/request_본사요청.png',
+    icon: '/icons/request_hq.png',
     label: '본사요청',
   },
   {
     href: '/mobile/materials',
-    icon: '/icons/stock_재고관리.png',
+    icon: '/icons/stock_inventory.png',
     label: '재고관리',
   },
 ]
