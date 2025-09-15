@@ -416,7 +416,9 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
       <div className="work-form-container">
         <div className="form-section drawing-section">
           <div className="section-header mb-3">
-            <h3 className="section-title">도면마킹</h3>
+            <h3 className="section-title" id="drawing-section-title">
+              도면마킹
+            </h3>
             <span className="upload-counter">
               {activeTab === 'blueprints' &&
                 blueprints.length > 0 &&
@@ -428,17 +430,25 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
           </div>
 
           {/* 도면 소스 탭 버튼들 */}
-          <div className="drawing-source-tabs mb-3">
+          <div className="drawing-source-tabs mb-3" role="tablist" aria-label="도면 소스 선택">
             <div className="tab-buttons-grid">
               <button
                 className={`tab-btn ${activeTab === 'blueprints' ? 'active' : ''}`}
                 onClick={() => setActiveTab('blueprints')}
+                role="tab"
+                aria-selected={activeTab === 'blueprints'}
+                aria-controls="blueprints-panel"
+                aria-label="공도면 탭"
               >
                 📐 공도면
               </button>
               <button
                 className={`tab-btn ${activeTab === 'markups' ? 'active' : ''}`}
                 onClick={() => setActiveTab('markups')}
+                role="tab"
+                aria-selected={activeTab === 'markups'}
+                aria-controls="markups-panel"
+                aria-label="마킹도면 탭"
               >
                 🎨 마킹도면
               </button>
@@ -504,6 +514,16 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
                   key={blueprint.id}
                   className={`drawing-file-item ${selectedBlueprint?.id === blueprint.id ? 'selected' : ''}`}
                   onClick={() => handleBlueprintSelect(blueprint)}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={selectedBlueprint?.id === blueprint.id}
+                  aria-label={`${blueprint.title} 공도면 ${selectedBlueprint?.id === blueprint.id ? '선택됨' : '선택'}`}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleBlueprintSelect(blueprint)
+                    }
+                  }}
                 >
                   <div className="file-info">
                     <span className="file-icon">📐</span>
@@ -536,6 +556,16 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
                     key={doc.id}
                     className={`drawing-file-item ${selectedMarkupDoc?.id === doc.id ? 'selected' : ''}`}
                     onClick={() => handleMarkupDocSelect(doc)}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={selectedMarkupDoc?.id === doc.id}
+                    aria-label={`${doc.title} 마킹도면 ${selectedMarkupDoc?.id === doc.id ? '선택됨' : '선택'}`}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        handleMarkupDocSelect(doc)
+                      }
+                    }}
                   >
                     <div className="file-info">
                       <span className="file-icon">🎨</span>
@@ -649,6 +679,12 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
             <div className="drawing-main-actions">
               <button
                 className="btn btn-primary btn-large"
+                aria-label="마킹 도구로 도면 편집 시작"
+                aria-disabled={
+                  !selectedBlueprint &&
+                  !selectedMarkupDoc &&
+                  !localStorage.getItem('selected_drawing')
+                }
                 onClick={() => {
                   const hasSelection =
                     selectedBlueprint ||
@@ -683,6 +719,8 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
 
               <button
                 className="btn btn-outline btn-small"
+                aria-label="선택한 도면 미리보기"
+                aria-disabled={!selectedBlueprint && !selectedMarkupDoc}
                 onClick={() => {
                   const drawing = selectedBlueprint || selectedMarkupDoc
                   if (!drawing) {
@@ -713,6 +751,8 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
 
               <button
                 className="btn btn-outline btn-small"
+                aria-label="선택한 도면 공유하기"
+                aria-disabled={!selectedBlueprint && !selectedMarkupDoc}
                 onClick={() => {
                   const drawing = selectedBlueprint || selectedMarkupDoc
                   if (!drawing) {
@@ -728,6 +768,8 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
 
               <button
                 className="btn btn-secondary btn-small"
+                aria-label="도면 목록 새로고침"
+                aria-disabled={isLoading || !selectedSite}
                 onClick={() => {
                   if (selectedSite) {
                     if (activeTab === 'blueprints') {
