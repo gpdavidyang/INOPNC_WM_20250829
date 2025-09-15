@@ -16,10 +16,10 @@ import { DepartmentSelect } from './DepartmentSelect'
 import { LocationInput } from './LocationInput'
 import { MultiSelectButtons } from './MultiSelectButtons'
 import { NumberInput } from './NumberInput'
-import { WorkSectionManager } from './WorkSectionManager'
 import { AdditionalManpower as AdditionalManpowerComponent } from './AdditionalManpower'
 import { WorkTagManager } from './WorkTagManager'
-import { PhotoUploadSection } from './PhotoUploadSection'
+import { PhotoUploadCard } from './PhotoUploadCard'
+import { DrawingCard } from './DrawingCard'
 import { SummaryPanel } from './SummaryPanel'
 import { toast } from 'sonner'
 import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
@@ -60,11 +60,6 @@ export const HomePage: React.FC = () => {
   const [workSections, setWorkSections] = useState<WorkSection[]>([])
   const [additionalManpower, setAdditionalManpower] = useState<AdditionalManpower[]>([])
   const [workTags, setWorkTags] = useState<WorkTag[]>([])
-
-  // 파일 카운트 상태 (PhotoUploadSection에서 관리하지만 요약에 필요)
-  const [beforePhotosCount, setBeforePhotosCount] = useState(0)
-  const [afterPhotosCount, setAfterPhotosCount] = useState(0)
-  const [drawingsCount, setDrawingsCount] = useState(0)
 
   // 요약 패널 표시 상태
   const [showSummary, setShowSummary] = useState(false)
@@ -494,8 +489,6 @@ export const HomePage: React.FC = () => {
             className="mb-3"
           />
 
-          <WorkSectionManager sections={workSections} onChange={setWorkSections} />
-
           {/* 블럭/동/호수 */}
           <LocationInput location={location} onChange={setLocation} className="mt-3" />
         </div>
@@ -620,14 +613,6 @@ export const HomePage: React.FC = () => {
         ))}
 
         {/* 사진/도면 업로드 섹션 */}
-        <div className="form-section">
-          <PhotoUploadSection
-            onBeforePhotosChange={setBeforePhotosCount}
-            onAfterPhotosChange={setAfterPhotosCount}
-            onDrawingsChange={setDrawingsCount}
-          />
-        </div>
-
         {/* 작업 태그 (선택사항) */}
         <div className="form-section">
           <div className="section-header">
@@ -636,6 +621,12 @@ export const HomePage: React.FC = () => {
           <WorkTagManager tags={workTags} onChange={setWorkTags} />
         </div>
       </div>
+
+      {/* 사진 업로드 - 별도 카드 */}
+      <PhotoUploadCard />
+
+      {/* 도면마킹 - 별도 카드 */}
+      <DrawingCard />
 
       {/* 하단 버튼들 */}
       <div className="mb-4 mt-4">
@@ -662,9 +653,9 @@ export const HomePage: React.FC = () => {
           workSections={workSections}
           additionalManpower={additionalManpower}
           workContents={workContents}
-          beforePhotosCount={beforePhotosCount}
-          afterPhotosCount={afterPhotosCount}
-          drawingsCount={drawingsCount}
+          beforePhotosCount={0}
+          afterPhotosCount={0}
+          drawingsCount={0}
           className="mb-4"
         />
       )}

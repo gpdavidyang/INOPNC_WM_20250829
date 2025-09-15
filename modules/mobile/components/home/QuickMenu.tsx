@@ -6,32 +6,32 @@ import Link from 'next/link'
 const quickMenuItems = [
   {
     href: '/mobile/worklog',
-    icon: '/images/pay.png',
+    icon: '/icons/output-status.svg',
     label: '출력현황',
   },
   {
     href: '/mobile/tasks',
-    icon: '/images/report_new.png',
+    icon: '/icons/report.png',
     label: '작업일지',
   },
   {
     href: '/mobile/sites',
-    icon: '/images/map.png',
+    icon: '/icons/site-info.svg',
     label: '현장정보',
   },
   {
     href: '/mobile/documents',
-    icon: '/images/doc.png',
+    icon: '/icons/documents.svg',
     label: '문서함',
   },
   {
     href: '/mobile/requests',
-    icon: '/images/request.png',
+    icon: '/icons/headquarters-request.svg',
     label: '본사요청',
   },
   {
     href: '/mobile/materials',
-    icon: '/images/stock.png',
+    icon: '/icons/inventory.svg',
     label: '재고관리',
   },
 ]
@@ -41,7 +41,7 @@ export const QuickMenu: React.FC = () => {
     <section className="section" id="home-quick" style={{ marginTop: '-30px' }}>
       <div className="section-header">
         <img
-          src="/images/Flash.png"
+          src="/icons/Flash.png"
           alt=""
           className="quick-menu-icon"
           style={{ width: '20px', height: '20px', objectFit: 'contain' }}
