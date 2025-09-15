@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
 // Force dynamic rendering for this API route
@@ -55,6 +55,87 @@ export async function GET(request: Request) {
 
   } catch (error) {
     console.error('API error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createClient()
+    
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Get request body
+    const body = await request.json()
+    const { 
+      site_id, 
+      partner_company_id,
+      work_date, 
+      work_content, 
+      location_info,
+      additional_notes 
+    } = body
+
+    // Validate required fields
+    if (!site_id || !partner_company_id || !work_date) {
+      return NextResponse.json({ 
+        error: 'Missing required fields: site_id, partner_company_id, work_date' 
+      }, { status: 400 })
+    }
+
+    // Create daily report with partner company
+    const { data: report, error: insertError } = await supabase
+      .from('daily_reports')
+      .insert({
+        site_id,
+        partner_company_id,
+        work_date,
+        work_content: work_content || '',
+        location_info: location_info || {},
+        additional_notes: additional_notes || '',
+        submitted_by: user.id,
+        status: 'draft',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select(`
+        *,
+        sites(
+          id,
+          name,
+          address
+        ),
+        partner_companies(
+          id,
+          company_name,
+          company_type
+        )
+      `)
+      .single()
+
+    if (insertError) {
+      console.error('Daily report insert error:', insertError)
+      return NextResponse.json({ 
+        error: 'Failed to create daily report',
+        details: insertError.message 
+      }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: report,
+      message: 'Daily report created successfully'
+    })
+
+  } catch (error) {
+    console.error('POST API error:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

@@ -1,0 +1,249 @@
+/* Photo Upload Section Styles */
+
+.photo-upload-section {
+  width: 100%;
+}
+
+.photo-upload-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.upload-area {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  overflow: hidden;
+}
+
+.upload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--line);
+}
+
+.upload-label {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.upload-counter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.counter-number {
+  color: var(--brand);
+  font-weight: 900;
+}
+
+.counter-divider {
+  color: var(--muted);
+}
+
+.counter-total {
+  color: var(--muted);
+}
+
+.upload-dropzone {
+  min-height: 150px;
+  padding: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.upload-dropzone:hover {
+  background: rgba(26, 37, 79, 0.02);
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  text-align: center;
+}
+
+.upload-icon {
+  font-size: 32px;
+  margin-bottom: 8px;
+  opacity: 0.5;
+}
+
+.upload-text {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.uploaded-files-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.uploaded-file-thumb {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.uploaded-file-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  color: #ea3829;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.file-remove-btn:hover {
+  background: #ea3829;
+  color: white;
+}
+
+/* Single upload area */
+.single-upload {
+  min-height: 100px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.single-upload:hover {
+  border-color: var(--brand);
+  background: rgba(26, 37, 79, 0.02);
+}
+
+.uploaded-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.uploaded-file-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.file-name {
+  font-size: 13px;
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Drawing section */
+.drawing-section {
+  border: 2px solid #0068fe;
+  background: rgba(0, 104, 254, 0.02);
+}
+
+.drawing-section .section-title {
+  color: #0068fe;
+}
+
+/* Work tag styles */
+.additional-work-row {
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  background: #fafbfc;
+}
+
+.tag-add-form {
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.tag-select-wrapper {
+  position: relative;
+}
+
+.tag-content {
+  margin-top: 12px;
+}
+
+.tag-name-display {
+  margin-bottom: 12px;
+}
+
+.work-action-tag {
+  display: inline-block;
+  padding: 6px 14px;
+  background: rgba(0, 104, 254, 0.1);
+  color: #0068fe;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .upload-area {
+  background: var(--card);
+  border-color: var(--line);
+}
+
+[data-theme="dark"] .upload-header {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .uploaded-file-item {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .additional-work-row {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .tag-add-form {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+[data-theme="dark"] .drawing-section {
+  background: rgba(0, 188, 212, 0.05);
+  border-color: #00bcd4;
+}
+
+[data-theme="dark"] .drawing-section .section-title {
+  color: #00bcd4;
+}

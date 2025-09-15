@@ -165,7 +165,7 @@ export const SearchPage: React.FC<SearchPageProps> = ({ isOpen, onClose }) => {
         {searchQuery && searchResults.length === 0 && (
           <div className="no-results">
             <Search className="w-12 h-12" />
-            <p>'{searchQuery}'에 대한 검색 결과가 없습니다.</p>
+            <p>&lsquo;{searchQuery}&rsquo;에 대한 검색 결과가 없습니다.</p>
           </div>
         )}
       </div>

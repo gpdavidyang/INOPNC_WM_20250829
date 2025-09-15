@@ -1,0 +1,160 @@
+/* Summary Panel Styles */
+
+.summary-panel {
+  background: var(--card);
+  border: 2px solid var(--brand);
+  position: relative;
+}
+
+.summary-panel::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #1a254f, #0068fe);
+  border-radius: 12px;
+  opacity: 0.1;
+  z-index: -1;
+}
+
+.summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.summary-section {
+  padding-bottom: 16px;
+  border-bottom: 1px dashed var(--line);
+}
+
+.summary-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.summary-subtitle {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--brand);
+  margin-bottom: 12px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  min-height: 24px;
+}
+
+.summary-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.summary-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text);
+  text-align: right;
+  flex: 1;
+}
+
+.summary-value.highlight {
+  color: var(--brand);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.summary-list {
+  flex: 1;
+  text-align: right;
+}
+
+.summary-item {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.summary-location {
+  font-size: 12px;
+  color: var(--muted);
+  margin-left: 4px;
+}
+
+.summary-footer {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.summary-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 104, 254, 0.05);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.check-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #22c55e;
+  color: white;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Important tag for summary header */
+.important-tag {
+  padding: 4px 10px;
+  background: var(--brand);
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 6px;
+}
+
+/* Button for toggling summary */
+.btn-primary.w-full {
+  width: 100%;
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .summary-panel {
+  background: var(--card);
+  border-color: #2563eb;
+}
+
+[data-theme="dark"] .summary-panel::before {
+  background: linear-gradient(45deg, #2563eb, #00bcd4);
+  opacity: 0.15;
+}
+
+[data-theme="dark"] .summary-subtitle {
+  color: #00bcd4;
+}
+
+[data-theme="dark"] .summary-message {
+  background: rgba(0, 188, 212, 0.1);
+}
+
+[data-theme="dark"] .check-icon {
+  background: #10b981;
+}

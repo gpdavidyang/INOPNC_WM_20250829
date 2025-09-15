@@ -12,6 +12,7 @@ interface DrawerProps {
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const router = useRouter()
   const [userProfile, setUserProfile] = useState<any>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
   const [showAccountInfo, setShowAccountInfo] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
@@ -21,27 +22,80 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   })
   const supabase = createClient()
 
+  // Auth state change listener
   useEffect(() => {
-    // Get user profile
-    const fetchProfile = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-
-        if (profile) {
-          setUserProfile(profile)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_IN' && session) {
+          // Refresh profile when user signs in
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+          
+          if (profile) {
+            setUserProfile(profile)
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUserProfile(null)
         }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
+
+  useEffect(() => {
+    let mounted = true
+    
+    // Get user profile with session check
+    const fetchProfile = async () => {
+      try {
+        if (!mounted) return
+        setProfileLoading(true)
+        
+        // First check session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (!session || sessionError) {
+          console.log('No session found or session error:', sessionError)
+          if (mounted) setUserProfile(null)
+          return
+        }
+
+        // Then get user from the session
+        const user = session.user
+        if (user && mounted) {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+
+          if (profile && mounted) {
+            setUserProfile(profile)
+          } else if (profileError && mounted) {
+            console.error('Profile fetch error:', profileError)
+            setUserProfile(null)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+        if (mounted) setUserProfile(null)
+      } finally {
+        if (mounted) setProfileLoading(false)
       }
     }
 
-    fetchProfile()
-  }, [])
+    if (isOpen) {
+      fetchProfile()
+    }
+
+    return () => {
+      mounted = false
+    }
+  }, [supabase, isOpen])
 
   useEffect(() => {
     // Lock body scroll when drawer is open (base.html match)
@@ -205,20 +259,22 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
             <div className="profile-sec">
               <div className="profile-header">
                 <div className="profile-name" id="profileUserName">
-                  {userProfile?.full_name || '사용자'}
-                  <span
-                    className="important-tag"
-                    style={{ position: 'relative', top: 0, right: 0, marginLeft: '8px' }}
-                  >
-                    {getRoleDisplay(userProfile?.role || '')}
-                  </span>
+                  {profileLoading ? '로딩 중...' : (userProfile?.full_name || '사용자')}
+                  {!profileLoading && (
+                    <span
+                      className="important-tag"
+                      style={{ position: 'relative', top: 0, right: 0, marginLeft: '8px' }}
+                    >
+                      {getRoleDisplay(userProfile?.role || '')}
+                    </span>
+                  )}
                 </div>
                 <button className="close-btn" id="drawerCloseBtn" onClick={onClose}>
                   닫기
                 </button>
               </div>
               <div className="profile-email" id="profileUserEmail">
-                {userProfile?.email || ''}
+                {profileLoading ? '로딩 중...' : (userProfile?.email || '')}
               </div>
             </div>
 
@@ -252,22 +308,31 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
               
               {/* 계정 정보 표시 (토글) */}
               <li className="account-info" id="accountInfo" style={{ display: showAccountInfo ? 'block' : 'none' }}>
-                <div className="account-info-item">
-                  <span className="account-label">연락처</span>
-                  <span className="account-value">{userProfile?.phone || '미설정'}</span>
-                </div>
-                <div className="account-info-item">
-                  <span className="account-label">가입일</span>
-                  <span className="account-value">
-                    {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString('ko-KR').replace(/\./g, '.') : '미설정'}
-                  </span>
-                </div>
-                <div className="account-info-item">
-                  <span className="account-label">비밀번호 변경</span>
-                  <span className="account-value change-password-btn" id="changePasswordBtn" onClick={handlePasswordChange}>
-                    변경하기
-                  </span>
-                </div>
+                {profileLoading ? (
+                  <div className="account-info-item">
+                    <span className="account-label">로딩 중...</span>
+                    <span className="account-value">정보를 불러오는 중입니다</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="account-info-item">
+                      <span className="account-label">연락처</span>
+                      <span className="account-value">{userProfile?.phone || '미설정'}</span>
+                    </div>
+                    <div className="account-info-item">
+                      <span className="account-label">가입일</span>
+                      <span className="account-value">
+                        {userProfile?.created_at ? new Date(userProfile.created_at).toLocaleDateString('ko-KR').replace(/\./g, '.') : '미설정'}
+                      </span>
+                    </div>
+                    <div className="account-info-item">
+                      <span className="account-label">비밀번호 변경</span>
+                      <span className="account-value change-password-btn" id="changePasswordBtn" onClick={handlePasswordChange}>
+                        변경하기
+                      </span>
+                    </div>
+                  </>
+                )}
               </li>
               
               {/* 비밀번호 변경 폼 (토글) */}

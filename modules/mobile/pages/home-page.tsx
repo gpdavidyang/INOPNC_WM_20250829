@@ -196,7 +196,7 @@ const HomeContent: React.FC = () => {
         <section id="qm-section" className="mb-3">
           <div className="flex items-center gap-2 mb-3">
             <img 
-              src="/icons/20250912/image_backup/Flash.png"
+              src="/icons/Flash.png"
               alt="" 
               className="w-4 h-4" 
             />
@@ -206,7 +206,7 @@ const HomeContent: React.FC = () => {
             <li>
               <a href="/mobile/worklog" className="flex flex-col items-center p-2 rounded-lg transition-all duration-300 hover:transform hover:-translate-y-1 hover:scale-105">
                 <img 
-                  src="/icons/20250912/image_backup/출력현황.png"
+                  src="/icons/출력현황.png"
                   alt="출력현황"
                   className="w-12 h-12 mb-1 transition-transform duration-300 hover:scale-110"
                 />
@@ -216,7 +216,7 @@ const HomeContent: React.FC = () => {
             <li>
               <a href="/mobile/worklog" className="flex flex-col items-center p-2 rounded-lg transition-all duration-300 hover:transform hover:-translate-y-1 hover:scale-105">
                 <img 
-                  src="/icons/20250912/image_backup/작업일지.png"
+                  src="/icons/report.png"
                   alt="작업일지"
                   className="w-12 h-12 mb-1 transition-transform duration-300 hover:scale-110"
                 />

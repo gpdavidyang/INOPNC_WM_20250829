@@ -38,26 +38,24 @@ const quickMenuItems = [
 
 export const QuickMenu: React.FC = () => {
   return (
-    <section className="section mb-2">
-      <div className="flex items-center gap-2 mb-3">
+    <section className="section" id="home-quick" style={{ marginTop: '-30px' }}>
+      <div className="section-header">
         <img
           src="/images/Flash.png"
           alt=""
-          className="w-4 h-4"
-          style={{ width: '16px', height: '16px' }}
+          className="quick-menu-icon"
+          style={{ width: '20px', height: '20px', objectFit: 'contain' }}
         />
         <h3 className="section-title">빠른메뉴</h3>
       </div>
-      {/* Direct quick menu grid without card wrapper - 100% HTML match */}
-      <ul className="quick-grid">
+      {/* Direct quick menu grid - main.html 100% match */}
+      <ul className="quick-grid" id="quick-menu">
         {quickMenuItems.map((item, index) => (
           <li key={index}>
             <Link href={item.href} className="quick-item">
               <img
                 className="qm-icon"
                 src={item.icon}
-                width="64"
-                height="64"
                 alt={item.label}
                 decoding="async"
                 loading="lazy"
