@@ -52,7 +52,13 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
     setFontSize(savedFontSize)
 
     document.documentElement.setAttribute('data-theme', savedTheme)
-    document.body.className = savedFontSize === 'normal' ? 'fs-100' : 'fs-150'
+
+    // Apply font size class to main content container instead of body
+    const mainContainer = document.querySelector('main.container')
+    if (mainContainer) {
+      mainContainer.classList.remove('fs-100', 'fs-150')
+      mainContainer.classList.add(savedFontSize === 'normal' ? 'fs-100' : 'fs-150')
+    }
   }, [])
 
   // Fetch notification count
@@ -72,7 +78,14 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
   const toggleFontSize = () => {
     const newSize = fontSize === 'normal' ? 'large' : 'normal'
     setFontSize(newSize)
-    document.body.className = newSize === 'normal' ? 'fs-100' : 'fs-150'
+
+    // Apply font size class to main content container instead of body
+    const mainContainer = document.querySelector('main.container')
+    if (mainContainer) {
+      mainContainer.classList.remove('fs-100', 'fs-150')
+      mainContainer.classList.add(newSize === 'normal' ? 'fs-100' : 'fs-150')
+    }
+
     localStorage.setItem('inopnc_font_size', newSize)
   }
 
@@ -80,21 +93,19 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
     <header className="app-header">
       <div className="header-content">
         <div className="header-left">
-          <h1 className="brand-title" onClick={() => window.location.href = '/mobile'}>
+          <h1 className="brand-title" onClick={() => (window.location.href = '/mobile')}>
             INOPNC
           </h1>
         </div>
 
-        <div className="header-center">
-          {/* 중앙 영역은 비워둠 */}
-        </div>
+        <div className="header-center">{/* 중앙 영역은 비워둠 */}</div>
 
         <div className="header-right">
           {/* Search */}
-          <button 
-            className="header-icon-btn" 
-            id="searchBtn" 
-            aria-label="검색" 
+          <button
+            className="header-icon-btn"
+            id="searchBtn"
+            aria-label="검색"
             onClick={() => {
               if (onSearchClick) {
                 onSearchClick()
@@ -108,21 +119,33 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
           </button>
 
           {/* Dark Mode */}
-          <button className="header-icon-btn" id="darkModeBtn" aria-label="다크모드" onClick={toggleTheme}>
+          <button
+            className="header-icon-btn"
+            id="darkModeBtn"
+            aria-label="다크모드"
+            onClick={toggleTheme}
+          >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             <span className="icon-text">다크모드</span>
           </button>
 
           {/* Font Size */}
-          <button className="header-icon-btn" id="fontSizeBtn" aria-label="글씨 크기" onClick={toggleFontSize}>
+          <button
+            className="header-icon-btn"
+            id="fontSizeBtn"
+            aria-label="글씨 크기"
+            onClick={toggleFontSize}
+          >
             <Type className="w-5 h-5" />
-            <span className="icon-text" id="fontSizeText">{fontSize === 'normal' ? '작은글씨' : '큰글씨'}</span>
+            <span className="icon-text" id="fontSizeText">
+              {fontSize === 'normal' ? '작은글씨' : '큰글씨'}
+            </span>
           </button>
 
           {/* Notifications */}
-          <button 
-            className="header-icon-btn" 
-            id="notificationBtn" 
+          <button
+            className="header-icon-btn"
+            id="notificationBtn"
             aria-label="알림"
             onClick={() => setShowNotificationModal(true)}
           >
@@ -136,10 +159,10 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
           </button>
 
           {/* Menu */}
-          <button 
-            className="header-icon-btn" 
-            id="menuBtn" 
-            aria-label="메뉴" 
+          <button
+            className="header-icon-btn"
+            id="menuBtn"
+            aria-label="메뉴"
             onClick={() => {
               if (onMenuClick) {
                 onMenuClick()
@@ -267,16 +290,10 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
       />
 
       {/* Drawer Menu */}
-      <Drawer 
-        isOpen={showDrawer}
-        onClose={() => setShowDrawer(false)}
-      />
+      <Drawer isOpen={showDrawer} onClose={() => setShowDrawer(false)} />
 
       {/* Search Page */}
-      <SearchPage 
-        isOpen={showSearchPage}
-        onClose={() => setShowSearchPage(false)}
-      />
+      <SearchPage isOpen={showSearchPage} onClose={() => setShowSearchPage(false)} />
     </header>
   )
 }

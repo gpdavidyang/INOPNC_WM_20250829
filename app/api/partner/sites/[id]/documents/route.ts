@@ -1,18 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-
 export const dynamic = 'force-dynamic'
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const supabase = createClient()
-    
+
     // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -45,9 +44,15 @@ export async function GET(
     }
 
     // Get documents for this site that are relevant to partners
-    let query = supabase
+    // Check both unified_documents and documents tables
+    let unifiedDocuments = []
+    let legacyDocuments = []
+
+    // Query unified_documents table
+    const unifiedQuery = supabase
       .from('unified_documents')
-      .select(`
+      .select(
+        `
         id,
         document_type,
         sub_type,
@@ -65,38 +70,77 @@ export async function GET(
           full_name,
           email
         )
-      `)
+      `
+      )
+      .eq('site_id', siteId)
+
+    // Query legacy documents table for blueprints
+    const legacyQuery = supabase
+      .from('documents')
+      .select(
+        `
+        id,
+        title,
+        description,
+        file_url,
+        file_name,
+        file_size,
+        mime_type,
+        document_type,
+        created_at,
+        owner_id,
+        profiles!documents_owner_id_fkey(
+          id,
+          full_name,
+          email
+        )
+      `
+      )
       .eq('site_id', siteId)
 
     // Filter by document types that are typically relevant to partners
     const partnerRelevantTypes = [
-      'invoice',      // 기성청구서
-      'contract',     // 계약서
-      'estimate',     // 견적서
-      'drawing',      // 도면
+      'invoice', // 기성청구서
+      'contract', // 계약서
+      'estimate', // 견적서
+      'drawing', // 도면
       'specification', // 시방서
       'progress_report', // 진도 보고서
       'safety_document', // 안전 관련 문서
-      'quality_document' // 품질 관련 문서
+      'quality_document', // 품질 관련 문서
     ]
 
+    // Apply filters to unified_documents
+    let finalUnifiedQuery = unifiedQuery
     if (documentType && documentType !== 'all') {
-      query = query.eq('category_type', documentType)
+      finalUnifiedQuery = finalUnifiedQuery.eq('category_type', documentType)
     } else {
-      query = query.in('category_type', partnerRelevantTypes)
+      finalUnifiedQuery = finalUnifiedQuery.in('category_type', partnerRelevantTypes)
     }
+    finalUnifiedQuery = finalUnifiedQuery.order('created_at', { ascending: false }).limit(50)
 
-    query = query.order('created_at', { ascending: false }).limit(100)
+    // Apply filters to documents table - especially for drawing/blueprint
+    let finalLegacyQuery = legacyQuery
+    if (documentType && documentType === 'drawing') {
+      finalLegacyQuery = finalLegacyQuery.in('document_type', ['blueprint', 'drawing'])
+    } else if (documentType && documentType !== 'all') {
+      finalLegacyQuery = finalLegacyQuery.eq('document_type', documentType)
+    }
+    finalLegacyQuery = finalLegacyQuery.order('created_at', { ascending: false }).limit(50)
 
-    const { data: documents, error } = await query
+    // Execute both queries
+    const [unifiedResult, legacyResult] = await Promise.all([finalUnifiedQuery, finalLegacyQuery])
 
-    if (error) {
-      console.error('Documents query error:', error)
+    if (unifiedResult.error && legacyResult.error) {
+      console.error('Documents query error:', unifiedResult.error, legacyResult.error)
       return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 })
     }
 
-    // Transform documents for frontend
-    const transformedDocuments = (documents || []).map((doc: unknown) => ({
+    unifiedDocuments = unifiedResult.data || []
+    legacyDocuments = legacyResult.data || []
+
+    // Transform both unified and legacy documents for frontend
+    const transformedUnified = (unifiedDocuments || []).map((doc: any) => ({
       id: doc.id,
       type: mapDocumentType(doc.category_type, doc.sub_type),
       name: doc.file_name,
@@ -109,73 +153,96 @@ export async function GET(
       fileUrl: doc.file_url,
       categoryType: doc.category_type,
       subType: doc.sub_type,
-      icon: getDocumentIcon(doc.category_type, doc.sub_type)
+      icon: getDocumentIcon(doc.category_type, doc.sub_type),
     }))
 
+    const transformedLegacy = (legacyDocuments || []).map((doc: any) => ({
+      id: doc.id,
+      type: mapDocumentType(doc.document_type || 'drawing', null),
+      name: doc.file_name,
+      title: doc.title,
+      description: doc.description,
+      uploadDate: new Date(doc.created_at).toLocaleDateString('ko-KR'),
+      uploader: doc.profiles?.full_name || '알 수 없음',
+      fileSize: doc.file_size,
+      mimeType: doc.mime_type,
+      fileUrl: doc.file_url,
+      categoryType: doc.document_type === 'blueprint' ? 'drawing' : doc.document_type || 'drawing',
+      subType: doc.document_type === 'blueprint' ? 'blueprint' : null,
+      icon: getDocumentIcon(
+        doc.document_type === 'blueprint' ? 'drawing' : doc.document_type || 'drawing',
+        null
+      ),
+    }))
+
+    // Combine and sort all documents
+    const transformedDocuments = [...transformedUnified, ...transformedLegacy].sort(
+      (a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()
+    )
+
     // Group documents by type for statistics
-    const documentStats = transformedDocuments.reduce((acc: unknown, doc: unknown) => {
-      const type = doc.categoryType || 'other'
-      acc[type] = (acc[type] || 0) + 1
-      return acc
-    }, {} as Record<string, number>)
+    const documentStats = transformedDocuments.reduce(
+      (acc: unknown, doc: unknown) => {
+        const type = doc.categoryType || 'other'
+        acc[type] = (acc[type] || 0) + 1
+        return acc
+      },
+      {} as Record<string, number>
+    )
 
     return NextResponse.json({
       success: true,
       data: {
-        documents: transformedDocuments
+        documents: transformedDocuments,
       },
       statistics: {
         total_documents: transformedDocuments.length,
-        by_type: documentStats
+        by_type: documentStats,
       },
       site_id: siteId,
       filters: {
-        type: documentType
-      }
+        type: documentType,
+      },
     })
-
   } catch (error) {
     console.error('API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
 // Helper functions
 function mapDocumentType(categoryType: string, subType: string | null): string {
   const typeMap: { [key: string]: string } = {
-    'invoice': '기성청구서',
-    'contract': '계약서',
-    'estimate': '견적서',
-    'drawing': '도면',
-    'specification': '시방서',
-    'progress_report': '진도보고서',
-    'safety_document': '안전관리문서',
-    'quality_document': '품질관리문서',
-    'photo_document': '사진대지문서',
-    'completion': '작업완료확인서',
-    'blueprint': '진행도면'
+    invoice: '기성청구서',
+    contract: '계약서',
+    estimate: '견적서',
+    drawing: '도면',
+    specification: '시방서',
+    progress_report: '진도보고서',
+    safety_document: '안전관리문서',
+    quality_document: '품질관리문서',
+    photo_document: '사진대지문서',
+    completion: '작업완료확인서',
+    blueprint: '진행도면',
   }
-  
+
   return typeMap[categoryType] || subType || categoryType || '문서'
 }
 
 function getDocumentIcon(categoryType: string, subType: string | null): string {
   const iconMap: { [key: string]: string } = {
-    'invoice': 'DollarSign',
-    'contract': 'FileSignature', 
-    'estimate': 'Calculator',
-    'drawing': 'Map',
-    'specification': 'FileText',
-    'progress_report': 'BarChart3',
-    'safety_document': 'Shield',
-    'quality_document': 'CheckSquare',
-    'photo_document': 'Camera',
-    'completion': 'CheckCircle',
-    'blueprint': 'Map'
+    invoice: 'DollarSign',
+    contract: 'FileSignature',
+    estimate: 'Calculator',
+    drawing: 'Map',
+    specification: 'FileText',
+    progress_report: 'BarChart3',
+    safety_document: 'Shield',
+    quality_document: 'CheckSquare',
+    photo_document: 'Camera',
+    completion: 'CheckCircle',
+    blueprint: 'Map',
   }
-  
+
   return iconMap[categoryType] || 'FileText'
 }
