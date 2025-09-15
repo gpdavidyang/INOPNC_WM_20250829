@@ -16,44 +16,44 @@
 :root {
   /* Brand Colors from mockup (Now defined in design-tokens.css) */
   /* Keeping these for backward compatibility */
-  --brand-light: #2A3570;
-  --brand-dark: #0F1835;
-  --num: #0068FE;
-  
+  --brand-light: #2a3570;
+  --brand-dark: #0f1835;
+  --num: #0068fe;
+
   /* Layout Colors (Override from design-tokens if needed) */
   /* These are now defined in design-tokens.css */
-  
+
   /* Component Specific (Override from design-tokens) */
   --nav-bg: #ffffff;
   --nav-border: #e5e7eb;
   --nav-text: #6b7280;
   --nav-text-active: #2563eb;
-  
+
   /* Mobile Viewport */
   --vh: 1vh;
   --dvh: 100dvh;
   --svh: 100svh;
-  
+
   /* Work Card Styles */
   --work-card-bg: #ffffff;
-  --work-card-border: #E6ECF4;
+  --work-card-border: #e6ecf4;
   --work-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --work-card-radius: 12px;
 }
 
 /* Dark theme extensions */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --bg: #0f172a;
   --card: #0f172a;
-  --border: #3A4048;
-  --text: #E9EEF5;
-  --text-muted: #A8B0BB;
-  --nav-bg: #11151B;
-  --nav-border: #3A4048;
-  --nav-text: #A8B0BB;
-  --nav-text-active: #2F6BFF;
+  --border: #3a4048;
+  --text: #e9eef5;
+  --text-muted: #a8b0bb;
+  --nav-bg: #11151b;
+  --nav-border: #3a4048;
+  --nav-text: #a8b0bb;
+  --nav-text-active: #2f6bff;
   --work-card-bg: #0f172a;
-  --work-card-border: #3A4048;
+  --work-card-border: #3a4048;
 }
 
 /* CRITICAL: Production Quality Preservation Layer */
@@ -69,7 +69,7 @@
     color-profile: sRGB;
     rendering-intent: relative-colorimetric;
   }
-  
+
   /* Ensure colors render correctly */
   * {
     /* Disable any filters that might be applied */
@@ -78,9 +78,12 @@
     /* Preserve color accuracy */
     color-rendering: optimizeQuality !important;
   }
-  
+
   /* Fix image quality degradation */
-  img, video, canvas, svg {
+  img,
+  video,
+  canvas,
+  svg {
     image-rendering: -webkit-optimize-contrast !important;
     image-rendering: high-quality !important;
     -ms-interpolation-mode: bicubic !important;
@@ -93,7 +96,9 @@
    ======================================== */
 
 /* Mobile input optimization - prevents iOS auto-zoom */
-input, select, textarea { 
+input,
+select,
+textarea {
   font-size: 16px !important;
   -webkit-appearance: none;
   appearance: none;
@@ -101,15 +106,15 @@ input, select, textarea {
 }
 
 /* iOS auto-zoom prevention for all input types */
-input[type="text"], 
-input[type="password"], 
-input[type="email"], 
-input[type="tel"], 
-input[type="url"], 
-input[type="search"], 
-textarea, 
-select { 
-  font-size: 16px !important; 
+input[type='text'],
+input[type='password'],
+input[type='email'],
+input[type='tel'],
+input[type='url'],
+input[type='search'],
+textarea,
+select {
+  font-size: 16px !important;
 }
 
 /* Dynamic viewport height system */
@@ -117,29 +122,66 @@ select {
   min-height: calc(var(--vh, 1vh) * 100);
 }
 
-/* Font size scaling system from mockup */
-body.fs-100 { 
-  font-size: 15px; 
-  font-weight: 200; 
-  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+/* Font size scaling system from mockup - applied to main content container */
+main.container.fs-100 {
+  font-size: 15px;
+  font-weight: 200;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Apple SD Gothic Neo',
+    'Malgun Gothic',
+    sans-serif;
 }
 
-body.fs-150 { 
+main.container.fs-150 {
   font-size: 27px; /* 15px * 1.8 = 27px */
-  font-weight: 200; 
-  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  font-weight: 200;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Apple SD Gothic Neo',
+    'Malgun Gothic',
+    sans-serif;
+}
+
+/* Ensure all child elements inherit the font size */
+main.container.fs-150 * {
+  font-size: inherit !important;
+}
+
+main.container.fs-150 input,
+main.container.fs-150 textarea,
+main.container.fs-150 select,
+main.container.fs-150 button {
+  font-size: inherit !important;
+  min-height: 2.5em !important;
+  padding: 0.5em 0.75em !important;
 }
 
 /* Typography system - Using CSS variables from Next.js fonts */
-.font-poppins { 
-  font-family: var(--font-poppins), system-ui, sans-serif; 
+.font-poppins {
+  font-family: var(--font-poppins), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-.brand-logo { 
-  font-family: var(--font-poppins), var(--font-noto-sans-kr), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+.brand-logo {
+  font-family:
+    var(--font-poppins),
+    var(--font-noto-sans-kr),
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-weight: 700;
   font-size: 20px;
   line-height: 1;
@@ -167,7 +209,7 @@ body.fs-150 {
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
-  
+
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
@@ -238,7 +280,7 @@ body.role-customer-manager {
     overflow: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
-  
+
   body.admin-role,
   body.role-admin,
   body.role-system-admin {
@@ -246,7 +288,7 @@ body.role-customer-manager {
     height: auto !important;
     min-height: 100vh !important;
   }
-  
+
   /* Ensure field roles have proper mobile layout */
   html.field-role,
   html.role-worker,
@@ -255,7 +297,7 @@ body.role-customer-manager {
     overflow-x: hidden !important;
     overflow-y: auto !important;
   }
-  
+
   body.field-role,
   body.role-worker,
   body.role-site-manager,
@@ -279,7 +321,7 @@ body.role-customer-manager {
   .role-system-admin .2xl\:block {
     display: block !important;
   }
-  
+
   .admin-role .lg\:flex,
   .admin-role .xl\:flex,
   .admin-role .2xl\:flex,
@@ -291,7 +333,7 @@ body.role-customer-manager {
   .role-system-admin .2xl\:flex {
     display: flex !important;
   }
-  
+
   /* Hide mobile elements for admin */
   .admin-role .lg\:hidden,
   .admin-role .xl\:hidden,
@@ -304,32 +346,32 @@ body.role-customer-manager {
   .role-system-admin .2xl\:hidden {
     display: none !important;
   }
-  
+
   /* Force desktop widths */
   .admin-role .lg\:w-72,
   .role-admin .lg\:w-72,
   .role-system-admin .lg\:w-72 {
     width: 18rem !important;
   }
-  
+
   .admin-role .lg\:w-64,
   .role-admin .lg\:w-64,
   .role-system-admin .lg\:w-64 {
     width: 16rem !important;
   }
-  
+
   .admin-role .lg\:pl-72,
   .role-admin .lg\:pl-72,
   .role-system-admin .lg\:pl-72 {
     padding-left: 18rem !important;
   }
-  
+
   .admin-role .lg\:pl-64,
   .role-admin .lg\:pl-64,
   .role-system-admin .lg\:pl-64 {
     padding-left: 16rem !important;
   }
-  
+
   /* Force tables to remain as tables */
   .admin-role table,
   .role-admin table,
@@ -337,25 +379,25 @@ body.role-customer-manager {
     display: table !important;
     width: 100% !important;
   }
-  
+
   .admin-role thead,
   .role-admin thead,
   .role-system-admin thead {
     display: table-header-group !important;
   }
-  
+
   .admin-role tbody,
   .role-admin tbody,
   .role-system-admin tbody {
     display: table-row-group !important;
   }
-  
+
   .admin-role tr,
   .role-admin tr,
   .role-system-admin tr {
     display: table-row !important;
   }
-  
+
   .admin-role th,
   .admin-role td,
   .role-admin th,
@@ -375,7 +417,7 @@ body.role-customer-manager {
     height: 100vh;
     overflow: hidden;
   }
-  
+
   /* Make root container scrollable - but not for desktop UI */
   body:not(.force-desktop-ui) #__next {
     height: 100vh;
@@ -383,9 +425,9 @@ body.role-customer-manager {
     display: flex;
     flex-direction: column;
   }
-  
+
   /* Force bottom nav to stay visible - but not for desktop UI */
-  body:not(.force-desktop-ui) nav[class*="fixed bottom-0"] {
+  body:not(.force-desktop-ui) nav[class*='fixed bottom-0'] {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
@@ -402,12 +444,16 @@ body.role-customer-manager {
 
 /* Smooth transitions for sidebar toggle */
 .sidebar-transition {
-  transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+  transition:
+    transform 0.3s ease-in-out,
+    width 0.3s ease-in-out;
 }
 
 /* Ensure content area transitions smoothly when sidebar toggles */
 .content-transition {
-  transition: padding-left 0.3s ease-in-out, margin-left 0.3s ease-in-out;
+  transition:
+    padding-left 0.3s ease-in-out,
+    margin-left 0.3s ease-in-out;
 }
 
 /* WCAG 2.1 Color and Contrast System */
@@ -424,36 +470,36 @@ body.role-customer-manager {
   :root {
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;
-    
+
     /* Primary colors with guaranteed contrast */
     --color-text-primary: #202632; /* toss-gray-900 on white: 13.68:1 ✓ */
     --color-text-secondary: #333d4b; /* toss-gray-700 on white: 9.42:1 ✓ */
     --color-text-tertiary: #515866; /* toss-gray-600 on white: 6.46:1 ✓ */
     --color-text-disabled: #6b7684; /* toss-gray-500 on white: 4.57:1 ✓ */
-    
+
     /* Background colors */
     --color-bg-primary: #ffffff;
     --color-bg-secondary: #f7f8fa; /* toss-gray-100 */
     --color-bg-tertiary: #eff1f4; /* toss-gray-200 */
     --color-bg-hover: #e5e8eb; /* toss-gray-300 */
-    
+
     /* Interactive colors with contrast validation */
     --color-primary: #0064ff; /* toss-blue-500 on white: 4.52:1 ✓ */
     --color-primary-hover: #0052d9; /* toss-blue-600 on white: 5.85:1 ✓ */
     --color-success: #00a86b; /* Custom green on white: 4.5:1 ✓ */
     --color-warning: #ff6b00; /* Custom orange on white: 4.52:1 ✓ */
     --color-error: #dc2626; /* red-600 on white: 7.28:1 ✓ */
-    
+
     /* High contrast borders and dividers */
     --color-border-default: #e5e8eb; /* toss-gray-300 */
     --color-border-strong: #c5cdd8; /* toss-gray-400 */
     --color-border-focus: #0064ff; /* toss-blue-500 */
-    
+
     /* Shadows for depth perception */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    
+
     /* Premium Elevation System */
     --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.12);
     --elevation-md: 0 4px 6px rgba(0, 0, 0, 0.16);
@@ -478,38 +524,38 @@ body.role-customer-manager {
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
-    
+
     /* Text colors for dark backgrounds */
     --color-text-primary: #f7f8fa; /* toss-gray-100 on gray-900: 13.68:1 ✓ */
     --color-text-secondary: #dfe3e8; /* toss-gray-200 on gray-900: 11.73:1 ✓ */
     --color-text-tertiary: #c5cdd8; /* toss-gray-400 on gray-900: 8.17:1 ✓ */
     --color-text-disabled: #8a92a3; /* toss-gray-500 on gray-900: 4.67:1 ✓ */
-    
+
     /* Background colors */
     --color-bg-primary: #191f28; /* toss-gray-900 */
     --color-bg-secondary: #202632; /* toss-gray-800 */
     --color-bg-tertiary: #2a3442; /* toss-gray-700 */
     --color-bg-hover: #333d4b; /* toss-gray-600 */
-    
+
     /* Interactive colors adjusted for dark mode */
     --color-primary: #4b8fff; /* Lighter blue on dark: 4.5:1 ✓ */
     --color-primary-hover: #6ba1ff; /* Even lighter on hover */
     --color-success: #4ade80; /* green-400 on dark: 8.75:1 ✓ */
     --color-warning: #fb923c; /* orange-400 on dark: 6.34:1 ✓ */
     --color-error: #f87171; /* red-400 on dark: 5.84:1 ✓ */
-    
+
     /* Borders and dividers for dark mode */
     --color-border-default: #333d4b; /* toss-gray-600 */
     --color-border-strong: #515866; /* toss-gray-500 */
     --color-border-focus: #4b8fff; /* Lighter blue */
-    
+
     /* Dark Mode Elevation System - Enhanced Depth */
     --elevation-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
     --elevation-md: 0 4px 6px rgba(0, 0, 0, 0.4);
     --elevation-lg: 0 10px 20px rgba(0, 0, 0, 0.5);
     --elevation-xl: 0 15px 30px rgba(0, 0, 0, 0.6);
   }
-  
+
   /* High Contrast Mode - Construction Site Optimized */
   .high-contrast {
     /* Maximum contrast for harsh lighting conditions */
@@ -517,31 +563,31 @@ body.role-customer-manager {
     --color-text-secondary: #000000;
     --color-text-tertiary: #333333; /* Dark gray: 12.63:1 ✓ */
     --color-text-disabled: #666666; /* Medium gray: 5.74:1 ✓ */
-    
+
     /* High contrast backgrounds */
     --color-bg-primary: #ffffff;
     --color-bg-secondary: #f0f0f0;
     --color-bg-tertiary: #e0e0e0;
     --color-bg-hover: #d0d0d0;
-    
+
     /* Bold interactive colors */
     --color-primary: #0052d9; /* Darker blue: 5.85:1 ✓ */
     --color-primary-hover: #003eb3; /* Even darker: 8.12:1 ✓ */
     --color-success: #008c00; /* Dark green: 5.26:1 ✓ */
     --color-warning: #d97706; /* Dark amber: 4.5:1 ✓ */
     --color-error: #b91c1c; /* Dark red: 8.85:1 ✓ */
-    
+
     /* Strong borders for visibility */
     --color-border-default: #999999;
     --color-border-strong: #666666;
     --color-border-focus: #0052d9;
-    
+
     /* Enhanced shadows for depth */
     --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.15);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
   }
-  
+
   /* High Contrast Dark Mode */
   .dark.high-contrast {
     /* Maximum contrast for dark mode */
@@ -549,20 +595,20 @@ body.role-customer-manager {
     --color-text-secondary: #ffffff;
     --color-text-tertiary: #cccccc; /* Light gray: 12.63:1 ✓ */
     --color-text-disabled: #999999; /* Medium gray: 5.74:1 ✓ */
-    
+
     /* High contrast dark backgrounds */
     --color-bg-primary: #000000;
     --color-bg-secondary: #1a1a1a;
     --color-bg-tertiary: #2a2a2a;
     --color-bg-hover: #3a3a3a;
-    
+
     /* Bright interactive colors for dark high contrast */
     --color-primary: #6ba1ff; /* Bright blue: 6.17:1 ✓ */
     --color-primary-hover: #85b3ff; /* Even brighter: 7.92:1 ✓ */
     --color-success: #66ff66; /* Bright green: 13.75:1 ✓ */
     --color-warning: #ffaa33; /* Bright orange: 8.24:1 ✓ */
     --color-error: #ff6666; /* Bright red: 5.67:1 ✓ */
-    
+
     /* Strong borders for dark high contrast */
     --color-border-default: #666666;
     --color-border-strong: #999999;
@@ -589,21 +635,32 @@ body.role-customer-manager {
     -webkit-font-smoothing: antialiased !important;
     -moz-osx-font-smoothing: grayscale !important;
     text-rendering: optimizeLegibility !important;
-    font-feature-settings: "kern" 1, "liga" 1, "calt" 1 !important;
+    font-feature-settings:
+      'kern' 1,
+      'liga' 1,
+      'calt' 1 !important;
     font-kerning: normal !important;
     font-synthesis: none !important;
   }
-  
+
   /* High DPI screen optimization */
   @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
     * {
       -webkit-font-smoothing: subpixel-antialiased;
     }
   }
-  
+
   body {
     @apply bg-white text-toss-gray-900;
-    font-family: var(--font-noto-sans-kr), system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    font-family:
+      var(--font-noto-sans-kr),
+      system-ui,
+      -apple-system,
+      'Segoe UI',
+      Roboto,
+      'Apple SD Gothic Neo',
+      'Malgun Gothic',
+      sans-serif;
     font-size: 1.125rem; /* 18px - 기본 크기보다 더 크게 */
     line-height: 1.6; /* 더 나은 가독성을 위한 줄 간격 */
     /* Font optimization for production */
@@ -640,17 +697,17 @@ body.role-customer-manager {
   *:focus {
     @apply outline-none;
   }
-  
+
   /* Add focus-visible ring to all focusable elements */
   *:focus-visible {
     @apply ring-2 ring-toss-blue-500 ring-offset-2;
   }
-  
+
   /* Enhanced focus for high contrast mode */
   .high-contrast *:focus-visible {
     @apply ring-4 ring-offset-4;
   }
-  
+
   /* Custom focus styles for specific elements */
   button:focus-visible,
   a:focus-visible,
@@ -659,7 +716,7 @@ body.role-customer-manager {
   select:focus-visible {
     @apply ring-2 ring-toss-blue-500 ring-offset-2;
   }
-  
+
   /* Skip link styles */
   .skip-link {
     @apply absolute -top-10 left-4 z-[100] bg-toss-blue-500 text-white px-4 py-2 rounded-lg;
@@ -672,78 +729,80 @@ body.role-customer-manager {
 @layer utilities {
   /* Smooth theme transitions */
   .theme-transition {
-    transition: background-color 200ms ease-in-out,
-                color 200ms ease-in-out,
-                border-color 200ms ease-in-out;
+    transition:
+      background-color 200ms ease-in-out,
+      color 200ms ease-in-out,
+      border-color 200ms ease-in-out;
   }
-  
+
   /* Elevation utility classes */
   .elevation-sm {
     box-shadow: var(--elevation-sm);
   }
-  
+
   .elevation-md {
     box-shadow: var(--elevation-md);
   }
-  
+
   .elevation-lg {
     box-shadow: var(--elevation-lg);
   }
-  
+
   .elevation-xl {
     box-shadow: var(--elevation-xl);
   }
-  
+
   /* Interactive elevation changes */
   .elevation-hover {
     transition: box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .elevation-hover:hover {
     box-shadow: var(--elevation-md);
   }
-  
+
   /* Premium gradient backgrounds */
   .bg-premium-light {
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   }
-  
+
   .bg-premium-dark {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   }
-  
+
   /* Surface elevation for depth */
   .surface-elevated {
     background: color-mix(in srgb, var(--color-bg-primary) 95%, var(--color-primary) 5%);
   }
-  
+
   /* Enhanced typography for premium feel */
-  .text-primary-strong { 
+  .text-primary-strong {
     color: var(--color-text-primary);
     font-weight: 500;
     letter-spacing: -0.01em;
   }
-  
+
   /* Construction field large font */
   .text-construction-xl {
     font-size: clamp(1.25rem, 2vw, 1.5rem);
     line-height: 1.4;
   }
-  
+
   /* Emergency/Safety components */
   .pulse-animation {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-  
+
   @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 1;
     }
     50% {
-      opacity: .5;
+      opacity: 0.5;
     }
   }
-  
+
   .shadow-danger {
     box-shadow: 0 0 20px rgba(220, 38, 38, 0.3);
   }
@@ -804,7 +863,9 @@ select {
 /* Focus state for select */
 select:focus {
   outline: none;
-  box-shadow: 0 0 0 2px #0064ff, 0 0 0 4px rgba(0, 100, 255, 0.1);
+  box-shadow:
+    0 0 0 2px #0064ff,
+    0 0 0 4px rgba(0, 100, 255, 0.1);
 }
 
 /* Large Font Mode CSS - Increased size for better accessibility */
@@ -823,50 +884,98 @@ select:focus {
 /* Utility classes for applying WCAG-compliant colors */
 @layer utilities {
   /* Text color utilities */
-  .text-primary { color: var(--color-text-primary); }
-  .text-secondary { color: var(--color-text-secondary); }
-  .text-tertiary { color: var(--color-text-tertiary); }
-  .text-disabled { color: var(--color-text-disabled); }
-  
+  .text-primary {
+    color: var(--color-text-primary);
+  }
+  .text-secondary {
+    color: var(--color-text-secondary);
+  }
+  .text-tertiary {
+    color: var(--color-text-tertiary);
+  }
+  .text-disabled {
+    color: var(--color-text-disabled);
+  }
+
   /* Background color utilities */
-  .bg-primary { background-color: var(--color-bg-primary); }
-  .bg-secondary { background-color: var(--color-bg-secondary); }
-  .bg-tertiary { background-color: var(--color-bg-tertiary); }
-  .bg-hover { background-color: var(--color-bg-hover); }
-  
+  .bg-primary {
+    background-color: var(--color-bg-primary);
+  }
+  .bg-secondary {
+    background-color: var(--color-bg-secondary);
+  }
+  .bg-tertiary {
+    background-color: var(--color-bg-tertiary);
+  }
+  .bg-hover {
+    background-color: var(--color-bg-hover);
+  }
+
   /* Interactive color utilities */
-  .text-interactive-primary { color: var(--color-primary); }
-  .text-interactive-success { color: var(--color-success); }
-  .text-interactive-warning { color: var(--color-warning); }
-  .text-interactive-error { color: var(--color-error); }
-  
-  .bg-interactive-primary { background-color: var(--color-primary); }
-  .bg-interactive-success { background-color: var(--color-success); }
-  .bg-interactive-warning { background-color: var(--color-warning); }
-  .bg-interactive-error { background-color: var(--color-error); }
-  
+  .text-interactive-primary {
+    color: var(--color-primary);
+  }
+  .text-interactive-success {
+    color: var(--color-success);
+  }
+  .text-interactive-warning {
+    color: var(--color-warning);
+  }
+  .text-interactive-error {
+    color: var(--color-error);
+  }
+
+  .bg-interactive-primary {
+    background-color: var(--color-primary);
+  }
+  .bg-interactive-success {
+    background-color: var(--color-success);
+  }
+  .bg-interactive-warning {
+    background-color: var(--color-warning);
+  }
+  .bg-interactive-error {
+    background-color: var(--color-error);
+  }
+
   /* Border utilities */
-  .border-default { border-color: var(--color-border-default); }
-  .border-strong { border-color: var(--color-border-strong); }
-  .border-focus { border-color: var(--color-border-focus); }
-  
+  .border-default {
+    border-color: var(--color-border-default);
+  }
+  .border-strong {
+    border-color: var(--color-border-strong);
+  }
+  .border-focus {
+    border-color: var(--color-border-focus);
+  }
+
   /* Focus visible utilities for keyboard navigation */
   .focus-visible-outline {
     @apply focus-visible:outline-2 focus-visible:outline-offset-2;
     outline-color: var(--color-border-focus);
   }
-  
+
   /* High contrast mode specific utilities */
   .high-contrast {
     /* Increase font weights for better readability */
-    .font-normal { @apply font-medium; }
-    .font-medium { @apply font-semibold; }
-    .font-semibold { @apply font-bold; }
-    
+    .font-normal {
+      @apply font-medium;
+    }
+    .font-medium {
+      @apply font-semibold;
+    }
+    .font-semibold {
+      @apply font-bold;
+    }
+
     /* Thicker borders */
-    .border { border-width: 2px; }
-    .border-2 { border-width: 3px; }
-    
+    .border {
+      border-width: 2px;
+    }
+    .border-2 {
+      border-width: 3px;
+    }
+
     /* Enhanced focus states */
     .focus-visible-outline {
       @apply focus-visible:outline-4 focus-visible:outline-offset-4;
@@ -882,40 +991,40 @@ select:focus {
     color: var(--color-success);
   }
   .status-success::before {
-    content: "✓";
+    content: '✓';
     @apply inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold;
     background-color: var(--color-success);
   }
-  
+
   /* Warning status */
   .status-warning {
     @apply flex items-center gap-2;
     color: var(--color-warning);
   }
   .status-warning::before {
-    content: "!";
+    content: '!';
     @apply inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold;
     background-color: var(--color-warning);
   }
-  
+
   /* Error status */
   .status-error {
     @apply flex items-center gap-2;
     color: var(--color-error);
   }
   .status-error::before {
-    content: "✕";
+    content: '✕';
     @apply inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold;
     background-color: var(--color-error);
   }
-  
+
   /* Info status */
   .status-info {
     @apply flex items-center gap-2;
     color: var(--color-primary);
   }
   .status-info::before {
-    content: "i";
+    content: 'i';
     @apply inline-block w-5 h-5 rounded-full text-white flex items-center justify-center text-xs font-bold;
     background-color: var(--color-primary);
   }
@@ -927,24 +1036,24 @@ select:focus {
   .sunlight-mode {
     /* Increase contrast and reduce glare */
     filter: contrast(1.2) brightness(0.9);
-    
+
     /* Darker text shadows for better readability */
     text-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
   }
-  
+
   /* Glove-friendly touch targets */
   .touch-target-glove {
     @apply min-h-[60px] min-w-[60px];
   }
-  
+
   /* Weather-resistant UI patterns */
   .weather-resistant {
     /* Larger fonts for rain/dust conditions */
     font-size: 1.1em;
-    
+
     /* Stronger borders for visibility */
     border-width: 2px;
-    
+
     /* Higher contrast backgrounds */
     background-color: var(--color-bg-primary);
     color: var(--color-text-primary);
@@ -1031,17 +1140,33 @@ select:focus {
     position: relative;
     min-height: 100vh;
   }
-  
+
   /* Override Tailwind responsive classes to force mobile */
-  & .md\:hidden { display: block !important; }
-  & .md\:block { display: none !important; }
-  & .md\:flex { display: none !important; }
-  & .lg\:hidden { display: block !important; }
-  & .lg\:block { display: none !important; }
-  & .lg\:flex { display: none !important; }
-  & .xl\:hidden { display: block !important; }
-  & .xl\:block { display: none !important; }
-  
+  & .md\:hidden {
+    display: block !important;
+  }
+  & .md\:block {
+    display: none !important;
+  }
+  & .md\:flex {
+    display: none !important;
+  }
+  & .lg\:hidden {
+    display: block !important;
+  }
+  & .lg\:block {
+    display: none !important;
+  }
+  & .lg\:flex {
+    display: none !important;
+  }
+  & .xl\:hidden {
+    display: block !important;
+  }
+  & .xl\:block {
+    display: none !important;
+  }
+
   /* Force mobile grid layouts */
   & .md\:grid-cols-2,
   & .md\:grid-cols-3,
@@ -1053,15 +1178,15 @@ select:focus {
   & .xl\:grid-cols-6 {
     grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
   }
-  
+
   /* Force mobile flex layouts */
   & .md\:flex-row,
   & .lg\:flex-row {
     flex-direction: column !important;
   }
-  
+
   /* Mobile navigation fixed at bottom */
-  & nav[class*="bottom-0"],
+  & nav[class*='bottom-0'],
   & .mobile-nav {
     position: fixed !important;
     bottom: 0 !important;
@@ -1070,23 +1195,29 @@ select:focus {
     width: 100% !important;
     z-index: 50 !important;
   }
-  
+
   /* Hide desktop-only elements */
   & .desktop-only {
     display: none !important;
   }
-  
+
   /* Mobile-optimized spacing */
   & .container {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
   }
-  
+
   /* Mobile font sizes */
-  & h1 { font-size: 1.875rem !important; }
-  & h2 { font-size: 1.5rem !important; }
-  & h3 { font-size: 1.25rem !important; }
-  
+  & h1 {
+    font-size: 1.875rem !important;
+  }
+  & h2 {
+    font-size: 1.5rem !important;
+  }
+  & h3 {
+    font-size: 1.25rem !important;
+  }
+
   /* Mobile touch targets */
   & button,
   & a,
@@ -1106,60 +1237,60 @@ select:focus {
   height: auto !important;
   overflow-x: auto !important;
   overflow-y: auto !important;
-  
+
   & .desktop-ui-container {
     min-width: 1536px !important;
     width: 1536px !important;
     margin: 0 auto;
   }
-  
+
   /* Override ALL media queries to maintain desktop layout */
   @media all and (max-width: 1536px),
-         all and (max-width: 1024px),
-         all and (max-width: 768px),
-         all and (max-width: 640px),
-         all and (max-width: 480px),
-         all and (max-width: 320px) {
+    all and (max-width: 1024px),
+    all and (max-width: 768px),
+    all and (max-width: 640px),
+    all and (max-width: 480px),
+    all and (max-width: 320px) {
     /* Force desktop dimensions regardless of actual screen size */
     min-width: 1536px !important;
     width: auto !important;
-    
+
     & .desktop-ui-container {
       min-width: 1536px !important;
       width: 1536px !important;
     }
   }
-  
+
   /* Override ALL Tailwind responsive classes to force desktop behavior */
   /* CRITICAL: Override mobile-specific hiding/showing regardless of screen size */
   @media all {
     /* Elements hidden on desktop should stay hidden */
     & .lg\:hidden,
-    & .xl\:hidden { 
-      display: none !important; 
+    & .xl\:hidden {
+      display: none !important;
     }
-    
+
     /* Elements visible on desktop should stay visible */
     & .lg\:block,
-    & .xl\:block { 
-      display: block !important; 
+    & .xl\:block {
+      display: block !important;
     }
-    
+
     & .lg\:flex,
-    & .xl\:flex { 
-      display: flex !important; 
+    & .xl\:flex {
+      display: flex !important;
     }
-    
+
     & .lg\:inline-block,
-    & .xl\:inline-block { 
-      display: inline-block !important; 
+    & .xl\:inline-block {
+      display: inline-block !important;
     }
-    
+
     & .lg\:inline-flex,
-    & .xl\:inline-flex { 
-      display: inline-flex !important; 
+    & .xl\:inline-flex {
+      display: inline-flex !important;
     }
-    
+
     /* Hide elements that should only show on mobile/tablet */
     & .block.lg\:hidden,
     & .flex.lg\:hidden,
@@ -1167,7 +1298,7 @@ select:focus {
     & .inline-flex.lg\:hidden {
       display: none !important;
     }
-    
+
     /* Show elements that should be visible on desktop */
     & .hidden.lg\:block,
     & .hidden.lg\:flex,
@@ -1175,90 +1306,90 @@ select:focus {
     & .hidden.lg\:inline-flex {
       display: block !important;
     }
-    
+
     & .hidden.lg\:flex {
       display: flex !important;
     }
-    
+
     & .hidden.lg\:inline-block {
       display: inline-block !important;
     }
-    
+
     & .hidden.lg\:inline-flex {
       display: inline-flex !important;
     }
   }
-  
+
   /* Force desktop widths and paddings */
   & .lg\:pl-72 {
     padding-left: 18rem !important; /* 72 * 0.25rem */
   }
-  
+
   & .lg\:ml-72 {
     margin-left: 18rem !important;
   }
-  
+
   /* Ensure sidebar is always visible in desktop mode */
   & .lg\:fixed {
     position: fixed !important;
   }
-  
+
   & .lg\:inset-y-0 {
     top: 0 !important;
     bottom: 0 !important;
   }
-  
+
   & .lg\:w-72 {
     width: 18rem !important;
   }
-  
+
   /* Force desktop grid layouts regardless of screen size */
   @media all {
     & .grid {
       &.md\:grid-cols-2,
-      &.lg\:grid-cols-2 { 
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important; 
+      &.lg\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
       }
       &.md\:grid-cols-3,
-      &.lg\:grid-cols-3 { 
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important; 
+      &.lg\:grid-cols-3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
       }
       &.md\:grid-cols-4,
-      &.lg\:grid-cols-4 { 
-        grid-template-columns: repeat(4, minmax(0, 1fr)) !important; 
+      &.lg\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
       }
     }
-    
+
     /* Force desktop flex layouts */
     & .flex-col {
       &.md\:flex-row,
-      &.lg\:flex-row { 
-        flex-direction: row !important; 
+      &.lg\:flex-row {
+        flex-direction: row !important;
       }
     }
   }
-  
+
   /* Desktop sidebar always visible */
   @media all {
     & aside,
     & .desktop-sidebar,
-    & [class*="sidebar"] {
+    & [class*='sidebar'] {
       display: block !important;
       position: sticky;
       top: 0;
       height: 100vh;
     }
-    
+
     /* Hide mobile-only elements including navigation */
     & .mobile-only,
     & .mobile-nav,
     & .bottom-navigation,
-    & [class*="mobile-menu"],
-    & [class*="hamburger"] {
+    & [class*='mobile-menu'],
+    & [class*='hamburger'] {
       display: none !important;
     }
   }
-  
+
   /* Desktop-optimized spacing */
   & .container {
     max-width: 1536px !important;
@@ -1309,63 +1440,123 @@ body.force-desktop-ui {
   height: auto !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
-  
+
   /* Disable ANY mobile constraints */
   max-width: none !important;
   -webkit-overflow-scrolling: touch !important;
-    
-    /* Override Tailwind's responsive utilities */
-    * {
-      /* Elements that should be hidden on desktop remain hidden */
-      &.lg\\:hidden { display: none !important; }
-      &.xl\\:hidden { display: none !important; }
-      
-      /* Elements visible on desktop remain visible */
-      &.lg\\:block { display: block !important; }
-      &.xl\\:block { display: block !important; }
-      &.lg\\:flex { display: flex !important; }
-      &.xl\\:flex { display: flex !important; }
-      &.lg\\:inline-block { display: inline-block !important; }
-      &.xl\\:inline-block { display: inline-block !important; }
-      &.lg\\:inline-flex { display: inline-flex !important; }
-      &.xl\\:inline-flex { display: inline-flex !important; }
-      &.lg\\:grid { display: grid !important; }
-      &.xl\\:grid { display: grid !important; }
-      
-      /* Force desktop layout values */
-      &.lg\\:w-72 { width: 18rem !important; }
-      &.lg\\:pl-72 { padding-left: 18rem !important; }
-      &.lg\\:ml-72 { margin-left: 18rem !important; }
-      &.lg\\:fixed { position: fixed !important; }
-      &.lg\\:sticky { position: sticky !important; }
-      &.lg\\:relative { position: relative !important; }
-      &.lg\\:absolute { position: absolute !important; }
-      
-      /* Force desktop grid columns */
-      &.lg\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-      &.lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-      &.lg\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
-      
-      /* Force desktop flex directions */
-      &.lg\\:flex-row { flex-direction: row !important; }
-      &.lg\\:flex-col { flex-direction: column !important; }
+
+  /* Override Tailwind's responsive utilities */
+  * {
+    /* Elements that should be hidden on desktop remain hidden */
+    &.lg\\:hidden {
+      display: none !important;
     }
-    
-    /* Hide ALL mobile-specific elements */
-    .block:not(.lg\\:block):not(.xl\\:block),
-    .flex:not(.lg\\:flex):not(.xl\\:flex) {
-      &.lg\\:hidden { display: none !important; }
+    &.xl\\:hidden {
+      display: none !important;
     }
-    
-    /* Force show desktop-only elements */
-    .hidden {
-      &.lg\\:block { display: block !important; }
-      &.lg\\:flex { display: flex !important; }
-      &.lg\\:inline-block { display: inline-block !important; }
-      &.lg\\:inline-flex { display: inline-flex !important; }
-      &.lg\\:grid { display: grid !important; }
+
+    /* Elements visible on desktop remain visible */
+    &.lg\\:block {
+      display: block !important;
+    }
+    &.xl\\:block {
+      display: block !important;
+    }
+    &.lg\\:flex {
+      display: flex !important;
+    }
+    &.xl\\:flex {
+      display: flex !important;
+    }
+    &.lg\\:inline-block {
+      display: inline-block !important;
+    }
+    &.xl\\:inline-block {
+      display: inline-block !important;
+    }
+    &.lg\\:inline-flex {
+      display: inline-flex !important;
+    }
+    &.xl\\:inline-flex {
+      display: inline-flex !important;
+    }
+    &.lg\\:grid {
+      display: grid !important;
+    }
+    &.xl\\:grid {
+      display: grid !important;
+    }
+
+    /* Force desktop layout values */
+    &.lg\\:w-72 {
+      width: 18rem !important;
+    }
+    &.lg\\:pl-72 {
+      padding-left: 18rem !important;
+    }
+    &.lg\\:ml-72 {
+      margin-left: 18rem !important;
+    }
+    &.lg\\:fixed {
+      position: fixed !important;
+    }
+    &.lg\\:sticky {
+      position: sticky !important;
+    }
+    &.lg\\:relative {
+      position: relative !important;
+    }
+    &.lg\\:absolute {
+      position: absolute !important;
+    }
+
+    /* Force desktop grid columns */
+    &.lg\\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    &.lg\\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    &.lg\\:grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+
+    /* Force desktop flex directions */
+    &.lg\\:flex-row {
+      flex-direction: row !important;
+    }
+    &.lg\\:flex-col {
+      flex-direction: column !important;
     }
   }
+
+  /* Hide ALL mobile-specific elements */
+  .block:not(.lg\\:block):not(.xl\\:block),
+  .flex:not(.lg\\:flex):not(.xl\\:flex) {
+    &.lg\\:hidden {
+      display: none !important;
+    }
+  }
+
+  /* Force show desktop-only elements */
+  .hidden {
+    &.lg\\:block {
+      display: block !important;
+    }
+    &.lg\\:flex {
+      display: flex !important;
+    }
+    &.lg\\:inline-block {
+      display: inline-block !important;
+    }
+    &.lg\\:inline-flex {
+      display: inline-flex !important;
+    }
+    &.lg\\:grid {
+      display: grid !important;
+    }
+  }
+}
 
 /* ============================================== */
 /* ULTRA CRITICAL: ABSOLUTE DESKTOP FORCE MODE   */
@@ -1381,7 +1572,7 @@ body.force-desktop-ui,
 body.force-desktop-ui * {
   /* Disable ALL transforms that might be used for mobile menus */
   transform: none !important;
-  
+
   /* Ensure nothing can hide desktop content */
   visibility: visible !important;
   opacity: 1 !important;
@@ -1395,17 +1586,17 @@ body.force-desktop-ui * {
     /* Force minimum desktop width */
     min-width: 1536px !important;
     width: auto !important;
-    
+
     /* Allow scrolling */
     overflow-x: auto !important;
     overflow-y: visible !important;
-    
+
     /* Disable mobile viewport constraints */
     position: relative !important;
     height: auto !important;
     max-width: none !important;
   }
-  
+
   /* Main content areas MUST maintain desktop width */
   .force-desktop-ui main,
   .force-desktop-ui .main-content,
@@ -1415,7 +1606,7 @@ body.force-desktop-ui * {
     width: auto !important;
     max-width: none !important;
   }
-  
+
   /* FORCE all responsive utilities to desktop values */
   .force-desktop-ui {
     /* Hide mobile-only elements NO MATTER WHAT */
@@ -1431,75 +1622,129 @@ body.force-desktop-ui * {
     .mobile-menu,
     .mobile-only,
     .bottom-navigation,
-    [class*="mobile-only"],
-    [class*="mobile-menu"],
-    [class*="hamburger"]:not(.admin-hamburger) {
+    [class*='mobile-only'],
+    [class*='mobile-menu'],
+    [class*='hamburger']:not(.admin-hamburger) {
       display: none !important;
     }
-    
+
     /* FORCE show desktop elements */
     .hidden.lg\:block,
     .hidden.xl\:block,
-    .hidden.2xl\:block { 
-      display: block !important; 
+    .hidden.2xl\:block {
+      display: block !important;
     }
     .hidden.lg\:flex,
     .hidden.xl\:flex,
-    .hidden.2xl\:flex { 
-      display: flex !important; 
+    .hidden.2xl\:flex {
+      display: flex !important;
     }
     .hidden.lg\:inline-block,
     .hidden.xl\:inline-block,
-    .hidden.2xl\:inline-block { 
-      display: inline-block !important; 
+    .hidden.2xl\:inline-block {
+      display: inline-block !important;
     }
     .hidden.lg\:inline-flex,
     .hidden.xl\:inline-flex,
-    .hidden.2xl\:inline-flex { 
-      display: inline-flex !important; 
+    .hidden.2xl\:inline-flex {
+      display: inline-flex !important;
     }
     .hidden.lg\:grid,
     .hidden.xl\:grid,
-    .hidden.2xl\:grid { 
-      display: grid !important; 
+    .hidden.2xl\:grid {
+      display: grid !important;
     }
-    
+
     /* FORCE desktop layout values */
-    .lg\:w-72 { width: 18rem !important; }
-    .lg\:w-64 { width: 16rem !important; }
-    .lg\:w-60 { width: 15rem !important; }
-    .lg\:w-16 { width: 4rem !important; }
-    .lg\:w-0 { width: 0 !important; }
-    
-    .lg\:pl-72 { padding-left: 18rem !important; }
-    .lg\:pl-64 { padding-left: 16rem !important; }
-    .lg\:pl-60 { padding-left: 15rem !important; }
-    .lg\:pl-16 { padding-left: 4rem !important; }
-    .lg\:pl-0 { padding-left: 0 !important; }
-    
-    .lg\:ml-72 { margin-left: 18rem !important; }
-    .lg\:ml-64 { margin-left: 16rem !important; }
-    .lg\:ml-60 { margin-left: 15rem !important; }
-    .lg\:ml-16 { margin-left: 4rem !important; }
-    .lg\:ml-0 { margin-left: 0 !important; }
-    
+    .lg\:w-72 {
+      width: 18rem !important;
+    }
+    .lg\:w-64 {
+      width: 16rem !important;
+    }
+    .lg\:w-60 {
+      width: 15rem !important;
+    }
+    .lg\:w-16 {
+      width: 4rem !important;
+    }
+    .lg\:w-0 {
+      width: 0 !important;
+    }
+
+    .lg\:pl-72 {
+      padding-left: 18rem !important;
+    }
+    .lg\:pl-64 {
+      padding-left: 16rem !important;
+    }
+    .lg\:pl-60 {
+      padding-left: 15rem !important;
+    }
+    .lg\:pl-16 {
+      padding-left: 4rem !important;
+    }
+    .lg\:pl-0 {
+      padding-left: 0 !important;
+    }
+
+    .lg\:ml-72 {
+      margin-left: 18rem !important;
+    }
+    .lg\:ml-64 {
+      margin-left: 16rem !important;
+    }
+    .lg\:ml-60 {
+      margin-left: 15rem !important;
+    }
+    .lg\:ml-16 {
+      margin-left: 4rem !important;
+    }
+    .lg\:ml-0 {
+      margin-left: 0 !important;
+    }
+
     /* FORCE desktop positions */
-    .lg\:fixed { position: fixed !important; }
-    .lg\:absolute { position: absolute !important; }
-    .lg\:relative { position: relative !important; }
-    .lg\:sticky { position: sticky !important; }
-    .lg\:static { position: static !important; }
-    
+    .lg\:fixed {
+      position: fixed !important;
+    }
+    .lg\:absolute {
+      position: absolute !important;
+    }
+    .lg\:relative {
+      position: relative !important;
+    }
+    .lg\:sticky {
+      position: sticky !important;
+    }
+    .lg\:static {
+      position: static !important;
+    }
+
     /* FORCE desktop grid columns */
-    .grid.lg\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-    .grid.lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-    .grid.lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
-    .grid.lg\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
-    .grid.lg\:grid-cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
-    
+    .grid.lg\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+    .grid.lg\:grid-cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    }
+    .grid.lg\:grid-cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    }
+    .grid.lg\:grid-cols-5 {
+      grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    }
+    .grid.lg\:grid-cols-6 {
+      grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+    }
+
     /* FORCE desktop flex directions */
-    .lg\:flex-row { flex-direction: row !important; }
-    .lg\:flex-col { flex-direction: column !important; }
+    .lg\:flex-row {
+      flex-direction: row !important;
+    }
+    .lg\:flex-col {
+      flex-direction: column !important;
+    }
   }
 }
 
@@ -1511,7 +1756,7 @@ body.force-desktop-ui * {
     height: auto !important;
     overflow: visible !important;
   }
-  
+
   body.force-desktop-ui #__next {
     height: auto !important;
     overflow: visible !important;
@@ -1524,52 +1769,70 @@ body.force-desktop-ui * {
 /* ============================================== */
 .force-desktop-ui {
   /* Remove ALL responsive breakpoint behaviors */
-  [class*="sm:"], [class*="md:"]:not([class*="lg:"]):not([class*="xl:"]) {
+  [class*='sm:'],
+  [class*='md:']:not([class*='lg:']):not([class*='xl:']) {
     all: unset !important;
   }
-  
+
   /* Admin layout specific fixes */
   .admin-dashboard-layout {
     min-width: 1536px !important;
     display: flex !important;
   }
-  
+
   /* Remove container max-width restrictions */
   .container,
-  [class*="max-w-"] {
+  [class*='max-w-'] {
     max-width: none !important;
     width: 100% !important;
   }
-  
+
   /* Tables must stay as tables */
-  table { display: table !important; }
-  thead { display: table-header-group !important; }
-  tbody { display: table-row-group !important; }
-  tr { display: table-row !important; }
-  th, td { 
+  table {
+    display: table !important;
+  }
+  thead {
+    display: table-header-group !important;
+  }
+  tbody {
+    display: table-row-group !important;
+  }
+  tr {
+    display: table-row !important;
+  }
+  th,
+  td {
     display: table-cell !important;
     white-space: nowrap !important;
   }
-  
+
   /* Prevent ANY responsive grid changes */
-  [class*="grid-cols-"] {
+  [class*='grid-cols-'] {
     grid-template-columns: inherit !important;
   }
-  .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)) !important; }
-  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
-  .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
-  .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
-  
+  .grid-cols-1 {
+    grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+  }
+  .grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .grid-cols-3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
   /* Admin sidebar must always be visible */
   .admin-sidebar {
     display: flex !important;
     position: fixed !important;
     transform: translateX(0) !important;
   }
-  
+
   /* Remove ALL mobile menu related elements */
-  [aria-label*="mobile"],
-  [aria-label*="Mobile"],
+  [aria-label*='mobile'],
+  [aria-label*='Mobile'],
   .mobile-menu-trigger,
   .mobile-backdrop {
     display: none !important;
@@ -1609,4 +1872,3 @@ body.force-desktop-ui * {
 .animate-slideOut {
   animation: slideOutRight 0.3s ease-out forwards;
 }
-

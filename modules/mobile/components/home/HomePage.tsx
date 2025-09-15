@@ -277,7 +277,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   }
 
   return (
-    <main className="container" style={{ paddingTop: '60px' }}>
+    <main className="container fs-100" style={{ paddingTop: '60px' }}>
       {/* Auth Debug Info - Only in development */}
       {/* 빠른메뉴 */}
       <QuickMenu />
@@ -598,7 +598,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       <PhotoUploadCard />
 
       {/* 도면마킹 - 별도 카드 */}
-      <DrawingCard />
+      <DrawingCard selectedSite={selectedSite} userId={userProfile?.id || user?.id} />
 
       {/* 요약 패널 */}
       {showSummary && (

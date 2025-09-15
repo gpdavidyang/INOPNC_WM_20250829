@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { MarkupEditor } from './markup-editor'
 import type { MarkupDocument } from '@/types/markup'
 import type { Profile } from '@/types'
@@ -8,19 +9,19 @@ interface SharedMarkupEditorProps {
   profile: Profile
   mode?: 'worker' | 'manager' | 'admin'
   siteId?: string
+  initialDocument?: MarkupDocument
   onSave?: (document: MarkupDocument) => void
   onClose?: () => void
 }
 
-export function SharedMarkupEditor({ 
-  profile, 
+export function SharedMarkupEditor({
+  profile,
   mode = 'worker',
   siteId,
+  initialDocument,
   onSave,
-  onClose 
+  onClose,
 }: SharedMarkupEditorProps) {
-  const [initialDocument, setInitialDocument] = useState<MarkupDocument | undefined>()
-
   const handleSave = async (document: MarkupDocument) => {
     try {
       const saveData = {
@@ -29,13 +30,13 @@ export function SharedMarkupEditor({
         created_by: profile.id,
         created_by_name: profile.full_name || profile.email,
         creator_email: profile.email,
-        mode: mode
+        mode: mode,
       }
 
       const response = await fetch('/api/markup-documents', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(saveData)
+        body: JSON.stringify(saveData),
       })
 
       if (!response.ok) {
@@ -43,7 +44,7 @@ export function SharedMarkupEditor({
       }
 
       const savedDoc = await response.json()
-      
+
       if (onSave) {
         onSave(savedDoc)
       }
