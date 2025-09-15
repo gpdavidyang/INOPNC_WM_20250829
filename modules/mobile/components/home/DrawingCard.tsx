@@ -2,6 +2,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { toast } from 'sonner'
+import { SaveDropdown } from './SaveDropdown'
+import { DrawingUploadModal } from './DrawingUploadModal'
+import { DrawingPreviewModal } from './DrawingPreviewModal'
+import { DrawingShareModal } from './DrawingShareModal'
+import { createClient } from '@/lib/supabase/client'
 
 interface Blueprint {
   id: string
@@ -45,10 +50,19 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
   const [selectedMarkupDoc, setSelectedMarkupDoc] = useState<MarkupDocument | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'blueprints' | 'markups' | 'gallery' | 'local'>(
-    'blueprints'
-  )
+  const [activeTab, setActiveTab] = useState<
+    'blueprints' | 'markups' | 'gallery' | 'local' | 'shared' | 'upload'
+  >('blueprints')
   const [showUploadOptions, setShowUploadOptions] = useState(false)
+  const [showUploadModal, setShowUploadModal] = useState(false)
+  const [sharedDocuments, setSharedDocuments] = useState<Blueprint[]>([])
+  const [showPreviewModal, setShowPreviewModal] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [previewData, setPreviewData] = useState<{
+    imageUrl: string
+    title: string
+    markupData?: any[]
+  } | null>(null)
 
   // 현장별 공도면 조회
   const fetchBlueprints = async (siteId: string) => {
@@ -99,6 +113,44 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
     }
   }
 
+  // 공유문서함 조회 함수
+  const fetchSharedDocuments = async (siteId: string) => {
+    if (!siteId) return
+
+    setIsLoading(true)
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('unified_documents')
+        .select('*')
+        .eq('site_id', siteId)
+        .eq('category_type', 'drawing')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      const formattedDocs: Blueprint[] = (data || []).map(doc => ({
+        id: doc.id,
+        name: doc.file_name,
+        title: doc.title,
+        description: doc.description,
+        fileUrl: doc.file_url,
+        uploadDate: doc.created_at,
+        uploader: doc.uploaded_by,
+        fileSize: doc.file_size,
+        mimeType: doc.mime_type,
+      }))
+
+      setSharedDocuments(formattedDocs)
+    } catch (error) {
+      console.error('Error fetching shared documents:', error)
+      toast.error('공유문서함 조회 실패')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // 마킹도면 조회 함수
   const fetchMarkupDocuments = async (siteId: string) => {
     if (!siteId) return
@@ -134,10 +186,13 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
         fetchBlueprints(selectedSite)
       } else if (activeTab === 'markups') {
         fetchMarkupDocuments(selectedSite)
+      } else if (activeTab === 'shared') {
+        fetchSharedDocuments(selectedSite)
       }
     } else {
       setBlueprints([])
       setMarkupDocuments([])
+      setSharedDocuments([])
       setSelectedBlueprint(null)
       setSelectedMarkupDoc(null)
       setError(null)
@@ -217,6 +272,136 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
     reader.readAsDataURL(file)
   }
 
+  // 저장 핸들러
+  const handleSave = async (type: 'shared' | 'local' | 'gallery' | 'temporary') => {
+    const selectedDrawing = selectedBlueprint || selectedMarkupDoc
+    if (!selectedDrawing) {
+      toast.error('저장할 도면을 먼저 선택해주세요.')
+      return
+    }
+
+    const supabase = createClient()
+
+    switch (type) {
+      case 'shared':
+        // 공유문서함에 저장
+        try {
+          const { error } = await supabase.from('unified_documents').insert({
+            title: selectedDrawing.title || selectedDrawing.name,
+            description: selectedDrawing.description,
+            file_url: selectedDrawing.fileUrl || selectedDrawing.blueprintUrl,
+            file_name: selectedDrawing.name,
+            file_size: selectedDrawing.fileSize,
+            mime_type: selectedDrawing.mimeType || 'image/jpeg',
+            category_type: 'drawing',
+            sub_type: 'marked',
+            site_id: selectedSite,
+            uploaded_by: userId,
+            status: 'active',
+          })
+
+          if (error) throw error
+          toast.success('공유문서함에 저장했습니다.')
+        } catch (error) {
+          console.error('Error saving to shared:', error)
+          toast.error('공유문서함 저장 실패')
+        }
+        break
+
+      case 'local':
+        // 로컬에 다운로드
+        try {
+          const response = await fetch(selectedDrawing.fileUrl || selectedDrawing.blueprintUrl)
+          const blob = await response.blob()
+          const url = window.URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${selectedDrawing.title || selectedDrawing.name}.${blob.type.split('/')[1]}`
+          document.body.appendChild(a)
+          a.click()
+          window.URL.revokeObjectURL(url)
+          document.body.removeChild(a)
+          toast.success('파일을 다운로드했습니다.')
+        } catch (error) {
+          console.error('Error downloading:', error)
+          toast.error('다운로드 실패')
+        }
+        break
+
+      case 'gallery':
+        // 사진첩에 저장 (모바일 전용)
+        try {
+          if (navigator.share) {
+            const response = await fetch(selectedDrawing.fileUrl || selectedDrawing.blueprintUrl)
+            const blob = await response.blob()
+            const file = new File([blob], `${selectedDrawing.title}.jpg`, { type: blob.type })
+
+            await navigator.share({
+              files: [file],
+              title: selectedDrawing.title,
+              text: '도면 저장',
+            })
+            toast.success('사진첩에 저장했습니다.')
+          } else {
+            // 대체: 다운로드
+            await handleSave('local')
+          }
+        } catch (error) {
+          console.error('Error saving to gallery:', error)
+          toast.error('사진첩 저장 실패')
+        }
+        break
+
+      case 'temporary':
+        // 임시 저장 (localStorage)
+        try {
+          const drawingData = {
+            ...selectedDrawing,
+            savedAt: new Date().toISOString(),
+            siteId: selectedSite,
+          }
+          localStorage.setItem('temp_drawing', JSON.stringify(drawingData))
+          toast.success('임시 저장했습니다.')
+        } catch (error) {
+          console.error('Error saving temporarily:', error)
+          toast.error('임시 저장 실패')
+        }
+        break
+    }
+  }
+
+  // 업로드 성공 핸들러
+  const handleUploadSuccess = (file: any) => {
+    const newBlueprint: Blueprint = {
+      id: file.id,
+      name: file.name,
+      title: file.name,
+      description: '',
+      fileUrl: file.url,
+      uploadDate: file.uploadDate.toISOString(),
+      uploader: userId || 'Unknown',
+      fileSize: file.size,
+      mimeType: file.type,
+    }
+
+    setBlueprints(prev => [newBlueprint, ...prev])
+    setSelectedBlueprint(newBlueprint)
+    setActiveTab('blueprints')
+    setShowUploadModal(false)
+
+    // localStorage에도 저장
+    const drawingFile = {
+      id: file.id,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      url: file.url,
+      uploadDate: file.uploadDate,
+      isMarked: false,
+    }
+    localStorage.setItem('selected_drawing', JSON.stringify(drawingFile))
+  }
+
   // 파일 크기 포맷팅
   const formatFileSize = (bytes?: number) => {
     if (!bytes || bytes === 0) return '크기 정보 없음'
@@ -270,14 +455,17 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
                 📁 로컬폴더
               </button>
               <button
-                className={`tab-btn ${showUploadOptions ? 'active' : ''}`}
-                onClick={() => setShowUploadOptions(!showUploadOptions)}
+                className={`tab-btn ${activeTab === 'upload' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('upload')
+                  setShowUploadModal(true)
+                }}
               >
                 ⬆️ 새 업로드
               </button>
               <button
-                className="tab-btn"
-                onClick={() => toast.info('공유문서함 기능은 Phase 2에서 구현 예정입니다.')}
+                className={`tab-btn ${activeTab === 'shared' ? 'active' : ''}`}
+                onClick={() => setActiveTab('shared')}
               >
                 🗂️ 공유문서함
               </button>
@@ -418,6 +606,43 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
             </div>
           )}
 
+          {/* 공유문서함 탭 콘텐츠 */}
+          {activeTab === 'shared' && !isLoading && (
+            <div className="drawing-files-list mb-3">
+              {sharedDocuments.length > 0 ? (
+                sharedDocuments.map(doc => (
+                  <div
+                    key={doc.id}
+                    className={`drawing-file-item ${selectedBlueprint?.id === doc.id ? 'selected' : ''}`}
+                    onClick={() => handleBlueprintSelect(doc)}
+                  >
+                    <div className="file-info">
+                      <span className="file-icon">🗂️</span>
+                      <div className="file-details">
+                        <span className="file-name">{doc.title}</span>
+                        <div className="file-meta">
+                          <span className="file-size">{formatFileSize(doc.fileSize)}</span>
+                          <span className="file-date">{doc.uploadDate}</span>
+                        </div>
+                        {doc.description && (
+                          <span className="file-description">{doc.description}</span>
+                        )}
+                      </div>
+                    </div>
+                    {selectedBlueprint?.id === doc.id && (
+                      <div className="file-selected-badge">선택됨</div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div className="drawing-placeholder">
+                  <div className="placeholder-icon">🗂️</div>
+                  <p className="placeholder-text">공유문서함에 도면이 없습니다.</p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 액션 버튼들 - 개선된 레이아웃 */}
           <div className="drawing-actions-container">
             {/* 메인 액션 버튼들 */}
@@ -449,6 +674,13 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
 
             {/* 서브 액션 버튼들 */}
             <div className="drawing-sub-actions">
+              {/* 저장 드롭다운 */}
+              <SaveDropdown
+                onSave={handleSave}
+                disabled={!selectedBlueprint && !selectedMarkupDoc}
+                isLoading={isLoading}
+              />
+
               <button
                 className="btn btn-outline btn-small"
                 onClick={() => {
@@ -457,7 +689,22 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
                     toast.error('미리볼 도면을 먼저 선택해주세요.')
                     return
                   }
-                  toast.info('미리보기 기능은 Phase 3에서 구현 예정입니다.')
+
+                  // 미리보기 데이터 설정
+                  if (selectedBlueprint) {
+                    setPreviewData({
+                      imageUrl: selectedBlueprint.fileUrl,
+                      title: selectedBlueprint.title,
+                      markupData: undefined,
+                    })
+                  } else if (selectedMarkupDoc) {
+                    setPreviewData({
+                      imageUrl: selectedMarkupDoc.blueprintUrl,
+                      title: selectedMarkupDoc.title,
+                      markupData: selectedMarkupDoc.markupData,
+                    })
+                  }
+                  setShowPreviewModal(true)
                 }}
               >
                 <span className="btn-icon-small">👁️</span>
@@ -472,7 +719,7 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
                     toast.error('공유할 도면을 먼저 선택해주세요.')
                     return
                   }
-                  toast.info('공유 기능은 Phase 3에서 구현 예정입니다.')
+                  setShowShareModal(true)
                 }}
               >
                 <span className="btn-icon-small">📤</span>
@@ -487,6 +734,8 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
                       fetchBlueprints(selectedSite)
                     } else if (activeTab === 'markups') {
                       fetchMarkupDocuments(selectedSite)
+                    } else if (activeTab === 'shared') {
+                      fetchSharedDocuments(selectedSite)
                     }
                     toast.success('목록을 새로고침했습니다.')
                   } else {
@@ -502,6 +751,45 @@ export const DrawingCard: React.FC<DrawingCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* 업로드 모달 */}
+      <DrawingUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUploadSuccess={handleUploadSuccess}
+        siteId={selectedSite}
+        userId={userId}
+      />
+
+      {/* 미리보기 모달 */}
+      {previewData && (
+        <DrawingPreviewModal
+          isOpen={showPreviewModal}
+          onClose={() => {
+            setShowPreviewModal(false)
+            setPreviewData(null)
+          }}
+          imageUrl={previewData.imageUrl}
+          title={previewData.title}
+          markupData={previewData.markupData}
+          onShare={() => {
+            setShowPreviewModal(false)
+            setShowShareModal(true)
+          }}
+        />
+      )}
+
+      {/* 공유 모달 */}
+      {(selectedBlueprint || selectedMarkupDoc) && (
+        <DrawingShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          documentId={selectedBlueprint?.id || selectedMarkupDoc?.id || ''}
+          documentTitle={selectedBlueprint?.title || selectedMarkupDoc?.title || ''}
+          imageUrl={selectedBlueprint?.fileUrl || selectedMarkupDoc?.blueprintUrl || ''}
+          markupData={selectedMarkupDoc?.markupData}
+        />
+      )}
     </section>
   )
 }
