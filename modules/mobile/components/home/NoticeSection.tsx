@@ -124,7 +124,7 @@ export const NoticeSection: React.FC = () => {
 
   if (loading) {
     return (
-      <section id="notice-section" className="section mb-2">
+      <section id="home-notice" className="section">
         <div className="card notice-card">
           <div className="notice-content">
             <div className="notice-item active">
@@ -141,7 +141,7 @@ export const NoticeSection: React.FC = () => {
 
   if (announcements.length === 0) {
     return (
-      <section id="notice-section" className="section mb-2">
+      <section id="home-notice" className="section">
         <div className="card notice-card">
           <div className="notice-content">
             <div className="notice-item active">
@@ -157,7 +157,7 @@ export const NoticeSection: React.FC = () => {
   }
 
   return (
-    <section id="notice-section" className="section mb-2">
+    <section id="home-notice" className="section">
       <div className="card notice-card">
         <div className="notice-content">
           {announcements.map((announcement, index) => (

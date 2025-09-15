@@ -2,7 +2,7 @@
 
 :root {
   /* Colors - 100% HTML Match */
-  --font: 'Noto Sans KR', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font: var(--font-noto-sans-kr, 'Noto Sans KR'), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   --bg: #f5f7fb;
   --card: #ffffff;
   --text: #101828;
@@ -14,7 +14,7 @@
   --info: #0068fe;
 
   /* Layout */
-  --header-h: 56px;
+  --header-h: 60px;
   --nav-h: 64px;
   --nav-bg: #ffffff;
   --nav-border: #e5e7eb;
@@ -57,6 +57,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 body {
@@ -69,6 +71,8 @@ body {
   line-height: 1.6;
   transition: font-size 0.3s ease;
   overscroll-behavior: contain;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* Font Size Switch Classes */
@@ -111,51 +115,129 @@ textarea {
 }
 
 /* Header Styles - 100% HTML Match */
-.appbar {
+.app-header {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  z-index: 100;
-  height: var(--header-h);
-  background: var(--card);
-  border-bottom: 1px solid var(--line);
+  z-index: 1000;
+  background-color: var(--card);
+  padding: 0;
+  transition: background-color 0.3s ease;
 }
 
-.appbar .bar {
-  width: 100%;
-  height: 100%;
+.header-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  height: 80px; /* main.html: 80px */
+  padding: 0 20px; /* main.html: padding 0 20px */
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Actions container */
-.appbar .actions {
+.header-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex: 0 0 auto;
+  min-width: 120px;
 }
 
-/* Icon Button - HTML Match */
-.icon-btn {
-  background: transparent;
-  border: 0;
-  padding: 0;
-  border-radius: 8px;
-  color: #374151;
+.header-center {
+  display: none; /* 제목을 왼쪽으로 이동 */
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+}
+
+/* Brand Title */
+.brand-title, .header-title {
+  font-family: var(--font-poppins, 'Poppins'), var(--font);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--brand);
+  margin: 0;
+  line-height: 1;
+  white-space: nowrap;
   cursor: pointer;
-  position: relative;
-  width: 28px;
-  height: 28px;
-  display: inline-flex;
+}
+
+[data-theme='dark'] .brand-title {
+  color: #FFFFFF;
+}
+
+/* Header Icon Button */
+.header-icon-btn {
+  background: none;
+  border: none;
+  padding: 2px 3px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  vertical-align: middle;
-  line-height: 0;
-  flex-shrink: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+  min-width: 32px;
+  min-height: 36px;
+  color: #374151;
+  gap: 2px;
+}
+
+[data-theme='dark'] .header-icon-btn {
+  color: #33E6F6;
+}
+
+.header-icon-btn:hover {
+  background-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.header-icon-btn:active {
+  background-color: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.header-icon-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.header-icon-btn .w-5 {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.5;
+}
+
+.header-icon-btn .icon-text {
+  font-size: 10px !important;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.3px;
+  color: #6B7280;
+}
+
+/* 큰글씨 모드에서도 헤더는 영향받지 않도록 */
+.app-header,
+.app-header * {
+  font-size: initial;
+}
+
+.app-header .brand-title {
+  font-size: 20px !important;
+}
+
+.app-header .header-icon-btn .icon-text {
+  font-size: 10px !important;
 }
 
 /* Transform positioning for header buttons - Removed for mobile */
@@ -186,6 +268,85 @@ textarea {
 }
 [data-theme='dark'] .appbar .icon-btn:hover {
   background: none !important;
+}
+
+/* Icon button with label - v2.0 style */
+.icon-btn-with-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 46px;
+  gap: 2px;
+  border-radius: 8px;
+}
+
+.icon-btn-with-label:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .icon-btn-with-label:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-btn-with-label .icon-img {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+  color: var(--text);
+  object-fit: contain;
+  display: block;
+}
+
+.icon-btn-with-label .icon-text {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+  display: block;
+}
+
+.icon-btn-with-label .icon-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 1px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* Notification button with label */
+.notif-btn {
+  position: relative;
+}
+
+.notif-icon-wrapper {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notif-icon-wrapper .notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ea3829;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.2;
 }
 
 /* Notification button */
@@ -274,28 +435,23 @@ textarea {
 /* Notification Badge - HTML Match */
 .notification-badge {
   position: absolute;
-  top: -2px;
-  right: -8px;
-  background: #ff0000;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 700;
+  top: -4px;
+  right: -6px;
+  background: #FF0000;
+  color: white;
+  font-size: 9px !important;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 10px;
   min-width: 16px;
-  height: 16px;
-  padding: 0;
-  border-radius: 50%;
+  text-align: center;
+  line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-  border: 1px solid #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-  z-index: 2;
-  pointer-events: none;
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  height: 16px;
+  border: 1.5px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes pulse {
@@ -308,54 +464,123 @@ textarea {
   }
 }
 
-/* Bottom Navigation */
-.bottom-nav {
+/* 하단 네비게이터 - 100% base.html match */
+.bottom-nav-wrap {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
-  background: var(--nav-bg);
-  border-top: 1px solid var(--nav-border);
-  height: var(--nav-h);
-  z-index: 90;
+  bottom: 0;
+  z-index: 50;
+  width: 100%; /* 전체 폭 명시적 설정 */
 }
 
-.bottom-nav-list {
+.bottom-nav {
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 16px rgba(17, 24, 39, 0.06);
+  height: 72px;
+  padding-bottom: env(safe-area-inset-bottom);
   display: flex;
-  height: 100%;
+  align-items: center;
+  justify-content: center;
+  width: 100%; /* 전체 폭 명시적 설정 */
+}
+
+.nav-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 0 16px;
   list-style: none;
-  margin: 0;
-  padding: 0;
 }
 
-.bottom-nav-item {
+.nav-item {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
 }
 
-.bottom-nav-link {
+.nav-link {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--nav-text);
+  gap: 6px;
+  color: var(--muted);
   text-decoration: none;
-  font-size: 12px;
-  font-weight: 500;
-  transition: color 0.2s ease;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+  padding: 8px 4px;
+  min-width: 60px;
+  text-align: center;
 }
 
-.bottom-nav-link.active {
-  color: var(--nav-text-active);
+.nav-link.active {
+  color: #1A254F;
 }
 
-.bottom-nav-icon {
-  width: 20px;
-  height: 20px;
-  margin-bottom: 4px;
+.nav-link.active .nav-svg,
+.nav-link.active .nav-label {
+  color: #1A254F !important;
 }
 
-/* Drawer Styles */
+/* 통합 전환 */
+.nav-link, 
+.nav-svg, 
+.nav-label {
+  transition: all .2s ease-out;
+  transform-origin: center;
+}
+
+/* 호버/클릭/포커스 모두 동일 효과 */
+.nav-link:is(:hover, :active, :focus-visible),
+.nav-link.pressed {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.nav-link:is(:hover, :active, :focus-visible) .nav-svg,
+.nav-link:is(:hover, :active, :focus-visible) .nav-label,
+.nav-link.pressed .nav-svg,
+.nav-link.pressed .nav-label {
+  color: #3182CE !important;
+}
+
+.nav-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.nav-label {
+  font-size: 12px !important;
+  font-weight: 800; /* Increased from 600 for elderly users */
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  margin-top: 2px;
+}
+
+/* 큰글씨 모드에서도 하단 네비게이션은 영향받지 않도록 */
+.bottom-nav-wrap,
+.bottom-nav-wrap * {
+  font-size: initial;
+}
+
+.bottom-nav-wrap .nav-label {
+  font-size: 12px !important;
+}
+
+/* 햄버거 드로어 스타일 - 100% base.html match */
 .drawer-scrim {
   position: fixed;
   inset: 0;
@@ -368,44 +593,407 @@ textarea {
   display: block;
 }
 
-[data-theme='dark'] .drawer-scrim {
-  background: rgba(0, 0, 0, 0.6);
-}
-
 .drawer {
   position: fixed;
   top: 0;
   left: -320px;
   width: 320px;
-  max-width: 86vw;
-  height: 100%;
-  background: #fff;
+  max-width: calc(100vw - 40px);
+  min-width: 280px;
+  height: 100vh;
+  background: var(--card);
+  color: var(--text);
+  border-right: 1px solid var(--line);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
   z-index: 1500;
   display: flex;
   flex-direction: column;
-  transition: left 0.28s ease-out;
-  font-family:
-    'Noto Sans KR',
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    sans-serif;
+  transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   overflow: visible;
   contain: layout paint;
   isolation: isolate;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px
-    calc(16px + env(safe-area-inset-bottom, 0px));
-}
-
-[data-theme='dark'] .drawer {
-  background: #0f172a;
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 .drawer.show {
+  display: flex;
   left: 0;
+}
+
+.drawer-body {
+  padding: 0;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  color: var(--text);
+}
+
+.drawer-scale {
+  transform-origin: top center;
+  will-change: transform;
+  padding: 20px 16px;
+  min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.profile-sec {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 0 16px;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.profile-name {
+  font: 600 18px/1.2 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  transition: color 0.3s ease;
+}
+
+.important-tag {
+  display: inline-block;
+  background: rgba(0, 104, 254, 0.1);
+  color: #0068FE;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Noto Sans KR', sans-serif;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .important-tag {
+  background: rgba(0, 104, 254, 0.2);
+  color: #0068FE;
+}
+
+.profile-email {
+  font: 400 13px 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--muted);
+  text-align: left;
+  transition: color 0.3s ease;
+}
+
+.close-btn {
+  background-color: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn:hover {
+  background-color: #f5f5f5;
+  border-color: #d0d0d0;
+}
+
+[data-theme="dark"] .close-btn:hover {
+  background-color: rgba(0, 188, 212, 0.1);
+  border-color: #00BCD4;
+  color: #00BCD4;
+}
+
+.menu-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.menu-item {
+  display: block;
+  padding: 12px 0;
+  color: var(--text);
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  transition: color 0.3s ease;
+}
+
+.menu-item:hover {
+  background: transparent;
+}
+
+.menu-label {
+  font: 500 16px/1.2 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  transition: color 0.3s ease;
+}
+
+/* 내정보 + 계정관리 버튼 스타일 */
+.menu-item-with-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.account-manage-btn {
+  background: transparent;
+  color: #0068FE;
+  border: 1px solid #0068FE;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.account-manage-btn:hover {
+  background: #0068FE;
+  color: white;
+}
+
+/* 계정 정보 스타일 */
+.account-info {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.account-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.account-label {
+  font: 500 14px/1.2 'Noto Sans KR', sans-serif;
+  color: var(--text);
+}
+
+.account-value {
+  font: 400 14px/1.2 'Noto Sans KR', sans-serif;
+  color: var(--muted);
+}
+
+.change-password-btn {
+  color: #0068FE !important;
+  cursor: pointer;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.change-password-btn:hover {
+  color: #0052CC !important;
+}
+
+/* 비밀번호 변경 폼 스타일 */
+.password-change-form {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.password-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--card);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #0068FE;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 104, 254, 0.1);
+}
+
+.form-input::placeholder {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cancel-btn, .save-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.cancel-btn {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.cancel-btn:hover {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+}
+
+.save-btn {
+  background: #00BCD4;
+  color: white;
+  border: 1px solid #00BCD4;
+}
+
+.save-btn:hover {
+  background: #00ACC1;
+}
+
+.drawer-foot {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid #E5E7EB;
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+}
+
+.logout-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+/* 큰글씨 모드 대응 */
+body.large-text .drawer {
+  width: 360px;
+  max-width: calc(100vw - 20px);
+  min-width: 320px;
+}
+
+body.large-text .drawer .profile-name {
+  font-size: 20px;
+}
+
+body.large-text .drawer .profile-email {
+  font-size: 16px;
+}
+
+body.large-text .drawer .menu-item {
+  font-size: 18px;
+}
+
+body.large-text .drawer .menu-label {
+  font-size: 18px;
+}
+
+body.large-text .drawer .account-label {
+  font-size: 16px;
+}
+
+body.large-text .drawer .account-value {
+  font-size: 16px;
+}
+
+body.large-text .drawer .form-input {
+  font-size: 16px;
+}
+
+body.large-text .drawer .form-input::placeholder {
+  font-size: 14px;
+}
+
+body.large-text .drawer .cancel-btn,
+body.large-text .drawer .save-btn {
+  font-size: 16px;
+}
+
+body.large-text .drawer .logout-btn {
+  font-size: 16px;
+}
+
+/* Modal open state - body scroll lock */
+.modal-open {
+  overflow: hidden !important;
+  padding-right: 0 !important;
+}
+
+/* Additional drawer state management */
+body:not(.modal-open) .drawer {
+  display: none;
+}
+
+/* Ensure drawer scaling works properly */
+.drawer-scale {
+  transition: transform 0.2s ease-out;
+}
+
+/* Safe area adjustments for iOS */
+@supports (padding: max(0px)) {
+  .drawer {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 0;
+}
+
+.drawer-foot {
+  padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
 }
 
 /* Search Page Overlay */
@@ -505,7 +1093,10 @@ textarea {
 
 /* Main container padding to account for fixed header and bottom nav */
 .mobile-container {
-  padding-top: var(--header-h);
-  padding-bottom: var(--nav-h);
+  padding-top: 60px; /* Match header height */
+  padding-bottom: 72px; /* Match bottom nav height */
   min-height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: 100vh;
 }

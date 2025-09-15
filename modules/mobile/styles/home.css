@@ -3,21 +3,56 @@
 /* Container - Mobile Full Width */
 .container {
   width: 100%;
-  padding: 16px;
-  padding-bottom: calc(var(--nav-h) + 20px);
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 70px 8px 10px 8px; /* Reduced to bring content closer to header */
+  padding-bottom: 88px; /* 하단 네비게이터 높이만큼 여백 */
 }
 
-/* Section */
+/* Section - main.html: mb-3.5 = 14px */
 .section {
-  margin-bottom: 8px;
+  margin-bottom: 14px !important; /* main.html: mb-3.5 = 14px consistent spacing */
+  padding-bottom: 0px;
+  padding-top: 0px;
+}
+
+/* First section (빠른메뉴) should be right under header */
+.section:first-child,
+#home-quick {
+  margin-top: -20px !important; /* Force negative margin to pull up */
+  padding-top: 0 !important;
+}
+
+/* Override any conflicting styles */
+.container > #home-quick:first-child {
+  margin-top: -15px !important;
+}
+
+.section-header {
+  display: flex;
+  justify-content: flex-start !important; /* Force left alignment */
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  margin-bottom: 20px; /* Increased spacing between title and icons */
+}
+
+/* 빠른메뉴 section header specifically */
+#home-quick .section-header {
+  justify-content: flex-start !important;
+  gap: 8px;
+  margin: 0;
+  margin-left: -5px; /* Slight negative margin to align with edge */
+  margin-bottom: 20px; /* Increased spacing */
 }
 
 .section-title {
-  font-family: 'Noto Sans KR', system-ui, sans-serif; /* HTML match */
-  font-size: 17px; /* HTML match: 17px */
-  font-weight: 900; /* Increased from 800 for elderly users */
-  color: var(--text);
+  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 18px; /* main.html: 18px */
+  font-weight: 600; /* main.html: 600 */
+  color: #1A254F; /* main.html: #1A254F */
   margin: 0;
+  line-height: 1.2;
 }
 
 /* Card */
@@ -33,12 +68,13 @@
   padding: 20px;
 }
 
-/* Quick Menu Grid - 100% HTML Match (1행 6열) */
+/* Quick Menu Grid - main.html 100% match */
 .quick-grid {
   display: grid !important;
   grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-  gap: 1px !important;
+  gap: 1px !important; /* main.html: gap 1px */
   margin: 0 !important;
+  margin-bottom: 0 !important;
   padding: 0 !important;
   list-style: none !important;
   justify-items: center !important;
@@ -49,13 +85,13 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 1px; /* main.html: gap 1px */
   width: 100%;
   text-decoration: none;
   color: inherit;
-  border-radius: 12px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 4px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  padding: 4px; /* main.html: padding 4px */
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -63,7 +99,6 @@
 
 .quick-item:hover {
   background: transparent !important;
-  transform: translateY(-4px) scale(1.02);
 }
 
 .quick-item:hover span {
@@ -72,41 +107,55 @@
 
 .quick-item:active {
   background: transparent !important;
-  transform: scale(0.95);
 }
 
 .qm-icon {
-  width: 100% !important;
-  height: auto !important;
+  width: 64px !important; /* main.html: 64px */
+  height: 64px !important; /* main.html: 64px */
   object-fit: contain !important;
   display: block !important;
-  max-width: clamp(46px, 9.7vw, 78px) !important;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s ease;
   background-color: transparent;
-  border-radius: 8px;
-  min-height: 46px;
+  border-radius: 0;
+  filter: none;
 }
 
 .quick-item:hover .qm-icon {
-  transform: scale(1.1);
+  transform: scale(1.1); /* Slightly larger on hover */
 }
 
-/* Quick menu text - 100% HTML Match */
+/* Quick menu text - main.html exact match */
 .quick-item span {
-  font-family: 'Noto Sans KR', system-ui, sans-serif; /* HTML match */
-  font-size: 12px; /* HTML match: 12px not 11px */
-  font-weight: 800; /* Increased from 600 for elderly users */
-  line-height: 1.3;
+  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px !important; /* Slightly smaller for better fit */
+  font-weight: 600 !important;
+  line-height: 1.2;
   text-align: center;
-  color: #374151;
-  margin-top: 2px;
+  color: #1A254F !important;
+  margin-top: 2px !important; /* Reduced margin */
+  white-space: nowrap;
+  transition: color 0.3s ease;
 }
 
-/* Notice Section - 100% HTML Match */
-#notice-section {
-  margin-top: 0 !important;
-  margin-bottom: 8px;
+/* 큰글씨 모드에서도 빠른메뉴는 영향받지 않도록 */
+body.fs-150 .quick-grid,
+body.fs-150 .quick-grid * {
+  font-size: initial;
 }
+
+body.fs-150 .quick-item span,
+.main-page-content.fs-150 .quick-item span {
+  font-size: 12px !important; /* main.html: 큰글씨 모드에서 12px */
+  line-height: 1.2 !important;
+  word-break: keep-all !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  max-width: 100% !important;
+}
+
+/* Notice Section - Consistent spacing removed (using .section class) */
+/* 빠른메뉴 섹션 간격 - Consistent spacing removed (using .section class) */
 
 /* Notice Card - 100% HTML Match (White Background) */
 .notice-card {
@@ -538,10 +587,35 @@
   border: 0;
 }
 
+/* Quick menu icon style - main.html match */
+.quick-menu-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* Remove any center alignment from parent containers */
+#home-quick {
+  text-align: left !important;
+}
+
 /* Dark mode adjustments */
 [data-theme='dark'] .card {
   background: var(--card);
   border-color: var(--line);
+}
+
+[data-theme='dark'] .section-title {
+  color: #E5E7EB;
+}
+
+/* Dark mode quick menu text */
+[data-theme='dark'] .quick-item span {
+  color: #00BCD4 !important;
+}
+
+[data-theme='dark'] .quick-item:hover span {
+  color: #2F6BFF !important;
 }
 
 [data-theme='dark'] .chip {

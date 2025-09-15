@@ -98,18 +98,13 @@ export async function POST(request: NextRequest) {
         .from('notifications')
         .insert(notifications)
 
-      // Send push notifications
-      try {
-        await notificationHelpers.sendSiteAnnouncement(
-          targetWorkers.map((w: unknown) => w.id),
-          title,
-          content,
-          priority,
-          announcement.id
-        )
-      } catch (error) {
-        console.error('Failed to send push notifications:', error)
-      }
+      // Send push notifications (commented out until notification service is implemented)
+      // TODO: Implement push notification service
+      // try {
+      //   await sendPushNotifications(targetWorkers, title, content, priority)
+      // } catch (error) {
+      //   console.error('Failed to send push notifications:', error)
+      // }
     }
 
     // Log announcement creation

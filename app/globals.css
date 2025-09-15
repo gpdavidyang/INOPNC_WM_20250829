@@ -130,16 +130,16 @@ body.fs-150 {
   font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
 
-/* Typography system */
+/* Typography system - Using CSS variables from Next.js fonts */
 .font-poppins { 
-  font-family: 'Poppins', system-ui, sans-serif; 
+  font-family: var(--font-poppins), system-ui, sans-serif; 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
 .brand-logo { 
-  font-family: 'Poppins', 'Inter', 'Pretendard', 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-poppins), var(--font-noto-sans-kr), system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-weight: 700;
   font-size: 20px;
   line-height: 1;
@@ -603,6 +603,7 @@ body.role-customer-manager {
   
   body {
     @apply bg-white text-toss-gray-900;
+    font-family: var(--font-noto-sans-kr), system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
     font-size: 1.125rem; /* 18px - 기본 크기보다 더 크게 */
     line-height: 1.6; /* 더 나은 가독성을 위한 줄 간격 */
     /* Font optimization for production */

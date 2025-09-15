@@ -1,23 +1,26 @@
 import type { Metadata } from 'next'
-import { Poppins, Noto_Sans_KR } from 'next/font/google'
+import { Noto_Sans_KR, Poppins } from 'next/font/google'
 import { cookies } from 'next/headers'
 import { Providers } from '@/components/providers'
 import './globals.css'
-import './fonts.css'
 
-// Font configurations
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-poppins',
-  display: 'swap',
-})
-
+// Optimized Font configurations for production
 const notoSansKR = Noto_Sans_KR({
   subsets: ['latin'],
-  weight: ['400', '500', '700'],
+  weight: ['200', '300', '400', '500', '600', '700', '800', '900'],
   variable: '--font-noto-sans-kr',
   display: 'swap',
+  preload: true,
+  fallback: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif'],
+})
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
+  variable: '--font-poppins',
+  display: 'swap',
+  preload: true,
+  fallback: ['system-ui', 'sans-serif'],
 })
 
 export const metadata: Metadata = {
@@ -97,17 +100,16 @@ export default async function RootLayout({
   return (
     <html lang="ko" suppressHydrationWarning>
       <head>
-        {/* Google Fonts for Design System */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        {/* Preconnect for performance */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap"
-          rel="stylesheet"
-        />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        
+        {/* Critical CSS for font loading optimization */}
+        <style>{`
+          /* Prevent FOIT/FOUT during font loading */
+          html { font-family: ${notoSansKR.style.fontFamily}, system-ui, -apple-system, sans-serif; }
+          .font-poppins { font-family: ${poppins.style.fontFamily}, system-ui, sans-serif; }
+        `}</style>
       </head>
       <body className={bodyClasses}>
         <Providers>{children}</Providers>
