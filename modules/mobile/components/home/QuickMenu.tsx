@@ -6,12 +6,12 @@ import Link from 'next/link'
 const quickMenuItems = [
   {
     href: '/mobile/worklog',
-    icon: '/images/report.png',
+    icon: '/images/pay.png',
     label: '출력현황',
   },
   {
     href: '/mobile/tasks',
-    icon: '/images/memo.png',
+    icon: '/images/report_new.png',
     label: '작업일지',
   },
   {
@@ -38,7 +38,7 @@ const quickMenuItems = [
 
 export const QuickMenu: React.FC = () => {
   return (
-    <section className="section mb-3.5">
+    <section className="section mb-2">
       <div className="flex items-center gap-2 mb-3">
         <img
           src="/images/Flash.png"
@@ -48,6 +48,7 @@ export const QuickMenu: React.FC = () => {
         />
         <h3 className="section-title">빠른메뉴</h3>
       </div>
+      {/* Direct quick menu grid without card wrapper - 100% HTML match */}
       <ul className="quick-grid">
         {quickMenuItems.map((item, index) => (
           <li key={index}>

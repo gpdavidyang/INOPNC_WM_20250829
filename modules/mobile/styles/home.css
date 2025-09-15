@@ -9,12 +9,13 @@
 
 /* Section */
 .section {
-  margin-bottom: 14px;
+  margin-bottom: 8px;
 }
 
 .section-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-family: 'Noto Sans KR', system-ui, sans-serif; /* HTML match */
+  font-size: 17px; /* HTML match: 17px */
+  font-weight: 900; /* Increased from 800 for elderly users */
   color: var(--text);
   margin: 0;
 }
@@ -32,59 +33,94 @@
   padding: 20px;
 }
 
-/* Quick Menu Grid - 100% HTML Match */
+/* Quick Menu Grid - 100% HTML Match (1행 6열) */
 .quick-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 12px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 1px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+  justify-items: center !important;
+  align-items: start !important;
 }
 
 .quick-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 16px 8px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  gap: 1px;
+  width: 100%;
   text-decoration: none;
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  min-height: 110px;
-  aspect-ratio: 1;
+  color: inherit;
+  border-radius: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 4px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .quick-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  background: transparent !important;
+  transform: translateY(-4px) scale(1.02);
+}
+
+.quick-item:hover span {
+  color: #1a254f !important;
+}
+
+.quick-item:active {
+  background: transparent !important;
+  transform: scale(0.95);
 }
 
 .qm-icon {
-  width: 64px;
-  height: 64px;
-  margin-bottom: 8px;
-  object-fit: contain;
+  width: 100% !important;
+  height: auto !important;
+  object-fit: contain !important;
+  display: block !important;
+  max-width: clamp(46px, 9.7vw, 78px) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: transparent;
+  border-radius: 8px;
+  min-height: 46px;
 }
 
-/* Notice Card */
+.quick-item:hover .qm-icon {
+  transform: scale(1.1);
+}
+
+/* Quick menu text - 100% HTML Match */
+.quick-item span {
+  font-family: 'Noto Sans KR', system-ui, sans-serif; /* HTML match */
+  font-size: 12px; /* HTML match: 12px not 11px */
+  font-weight: 800; /* Increased from 600 for elderly users */
+  line-height: 1.3;
+  text-align: center;
+  color: #374151;
+  margin-top: 2px;
+}
+
+/* Notice Section - 100% HTML Match */
+#notice-section {
+  margin-top: 0 !important;
+  margin-bottom: 8px;
+}
+
+/* Notice Card - 100% HTML Match (White Background) */
 .notice-card {
-  padding: 16px 20px;
-  min-height: 60px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  padding: 12px 20px;
+  min-height: 54px;
+  background: var(--card); /* White background */
+  color: var(--text); /* Dark text */
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
 }
 
 .notice-content {
@@ -102,13 +138,15 @@
 }
 
 .notice-text {
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text); /* Dark text */
 }
 
 .tag-label {
-  font-weight: 700;
+  font-weight: 900; /* Increased from 700 for elderly users */
   margin-right: 8px;
+  color: var(--text); /* Dark text for tag */
 }
 
 @keyframes slideIn {
@@ -125,7 +163,7 @@
 /* Form Elements */
 .q {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 900; /* Increased from 700 for elderly users */
   color: var(--text);
   display: flex;
   align-items: center;
@@ -214,7 +252,7 @@
   border: 1px solid #e6ecf4;
   border-radius: 12px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800; /* Increased from 600 for elderly users */
   cursor: pointer;
   transition: all 0.3s ease;
   user-select: none;
@@ -249,7 +287,7 @@
   border: none;
   border-radius: 16px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800; /* Increased from 600 for elderly users */
   cursor: pointer;
   transition: all 0.3s ease;
   padding: 6px 12px;
@@ -315,7 +353,7 @@
   background: var(--card);
   color: var(--text);
   font-size: 20px;
-  font-weight: 600;
+  font-weight: 800; /* Increased from 600 for elderly users */
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -331,7 +369,7 @@
   flex: 1;
   text-align: center;
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 900; /* Increased from 700 for elderly users */
   color: var(--text);
 }
 
@@ -350,7 +388,7 @@
   background: var(--card);
   color: var(--text);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 800; /* Increased from 600 for elderly users */
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -374,7 +412,7 @@
   color: #0369a1;
   border-radius: 12px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 800; /* Increased from 600 for elderly users */
 }
 
 /* Important Tag */
@@ -384,7 +422,7 @@
   background: var(--brand);
   color: white;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 800; /* Increased from 600 for elderly users */
   border-radius: 6px;
 }
 
@@ -395,7 +433,7 @@
   background: var(--brand);
   color: white;
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 900; /* Increased from 700 for elderly users */
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -412,7 +450,7 @@
   background: #e5e7eb;
   color: var(--text);
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 900; /* Increased from 700 for elderly users */
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -477,7 +515,7 @@
   color: var(--muted);
 }
 .font-bold {
-  font-weight: 700;
+  font-weight: 900; /* Increased from 700 for elderly users */
 }
 .text-white {
   color: white;

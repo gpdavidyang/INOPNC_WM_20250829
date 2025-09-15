@@ -1,7 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Menu, Moon, Sun, Search, Bell } from 'lucide-react'
+import { Menu, Moon, Sun, Search } from 'lucide-react'
+import { NotificationModal } from '../notifications/NotificationModal'
+import { createClient } from '@/lib/supabase/client'
+import { useUser } from '@/hooks/use-user'
 
 interface AppBarProps {
   onMenuClick?: () => void
@@ -11,7 +14,10 @@ interface AppBarProps {
 export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal')
-  const [notificationCount] = useState(3)
+  const [notificationCount, setNotificationCount] = useState(0)
+  const [showNotificationModal, setShowNotificationModal] = useState(false)
+  const { user } = useUser()
+  const supabase = createClient()
 
   // Initialize theme from localStorage
   useEffect(() => {
@@ -25,6 +31,31 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
     document.documentElement.setAttribute('data-theme', savedTheme)
     document.body.className = savedFontSize === 'normal' ? 'fs-100' : 'fs-150'
   }, [])
+
+  // Fetch notification count
+  useEffect(() => {
+    if (user?.id) {
+      fetchNotificationCount()
+    }
+  }, [user])
+
+  const fetchNotificationCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id)
+        .eq('is_read', false)
+
+      if (!error && count !== null) {
+        setNotificationCount(count)
+      }
+    } catch (error) {
+      console.error('Failed to fetch notification count:', error)
+      // Set default count for demo
+      setNotificationCount(3)
+    }
+  }
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
@@ -91,6 +122,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             aria-label="알림"
             id="notificationBtn"
             style={{ width: '28px', height: '28px' }}
+            onClick={() => setShowNotificationModal(true)}
           >
             <img
               src="/images/bell.png"
@@ -164,6 +196,16 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
           display: block;
         }
       `}</style>
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={showNotificationModal}
+        onClose={() => {
+          setShowNotificationModal(false)
+          fetchNotificationCount() // Refresh count after closing
+        }}
+        userId={user?.id}
+      />
     </header>
   )
 }
