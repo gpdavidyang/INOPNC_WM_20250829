@@ -17,21 +17,11 @@ import { LocationInput } from './LocationInput'
 import { MultiSelectButtons } from './MultiSelectButtons'
 import { NumberInput } from './NumberInput'
 import { AdditionalManpower as AdditionalManpowerComponent } from './AdditionalManpower'
-import { WorkTagManager } from './WorkTagManager'
 import { PhotoUploadCard } from './PhotoUploadCard'
 import { DrawingCard } from './DrawingCard'
 import { SummaryPanel } from './SummaryPanel'
 import { toast } from 'sonner'
 import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
-
-// 작업 태그 인터페이스 정의
-interface WorkTag {
-  id: string
-  memberTypes: string[]
-  workContents: string[]
-  workTypes: string[]
-  blockDongUnit?: WorkLogLocation
-}
 
 // 현장 인터페이스 정의
 interface Site {
@@ -59,7 +49,6 @@ export const HomePage: React.FC = () => {
   const [mainManpower, setMainManpower] = useState(1)
   const [workSections, setWorkSections] = useState<WorkSection[]>([])
   const [additionalManpower, setAdditionalManpower] = useState<AdditionalManpower[]>([])
-  const [workTags, setWorkTags] = useState<WorkTag[]>([])
 
   // 요약 패널 표시 상태
   const [showSummary, setShowSummary] = useState(false)
@@ -211,7 +200,6 @@ export const HomePage: React.FC = () => {
       setMainManpower(1)
       setWorkSections([])
       setAdditionalManpower([])
-      setWorkTags([])
       setShowSummary(false)
       toast.success('초기화되었습니다.')
     }
@@ -242,7 +230,7 @@ export const HomePage: React.FC = () => {
           dong: location.dong,
           unit: location.unit,
         },
-        additional_notes: `작업 태그: ${workTags.length}개, 추가 인력: ${additionalManpower.length}개, 작업 구간: ${workSections.length}개`,
+        additional_notes: `추가 인력: ${additionalManpower.length}개, 작업 구간: ${workSections.length}개`,
       }
 
       const response = await fetch('/api/admin/daily-reports', {
@@ -417,25 +405,6 @@ export const HomePage: React.FC = () => {
             <h3 className="section-title">
               작업 내용 기록 <span className="required">*</span>
             </h3>
-            <button
-              className="add-btn"
-              onClick={() => {
-                const newTag: WorkTag = {
-                  id: Date.now().toString(),
-                  memberTypes: [...memberTypes],
-                  workContents: [...workContents],
-                  workTypes: [...workTypes],
-                  blockDongUnit: { ...location },
-                }
-                setWorkTags([...workTags, newTag])
-                // Reset fields after adding
-                setMemberTypes([])
-                setWorkContents([])
-                setWorkTypes([])
-              }}
-            >
-              추가
-            </button>
           </div>
 
           {/* 부재명 멀티 선택 */}
@@ -535,34 +504,6 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* 추가된 작업 내용들 */}
-        {workTags.map(tag => (
-          <div key={tag.id} className="additional-work-row">
-            <div className="section-header">
-              <h3 className="section-title">작업 내용 기록</h3>
-              <div className="header-actions">
-                <button
-                  className="delete-tag-btn"
-                  onClick={() => setWorkTags(workTags.filter(t => t.id !== tag.id))}
-                >
-                  삭제
-                </button>
-              </div>
-            </div>
-            <div className="form-group">
-              <p>
-                <strong>부재명:</strong> {tag.memberTypes.join(', ')}
-              </p>
-              <p>
-                <strong>작업공정:</strong> {tag.workContents.join(', ')}
-              </p>
-              <p>
-                <strong>작업유형:</strong> {tag.workTypes.join(', ')}
-              </p>
-            </div>
-          </div>
-        ))}
-
         {/* 추가된 공수들 */}
         {additionalManpower.map(item => (
           <div key={item.id} className="additional-manpower-section">
@@ -611,15 +552,6 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
         ))}
-
-        {/* 사진/도면 업로드 섹션 */}
-        {/* 작업 태그 (선택사항) */}
-        <div className="form-section">
-          <div className="section-header">
-            <h3 className="section-title">작업 태그</h3>
-          </div>
-          <WorkTagManager tags={workTags} onChange={setWorkTags} />
-        </div>
       </div>
 
       {/* 사진 업로드 - 별도 카드 */}
