@@ -233,19 +233,40 @@ export const DrawingPreviewModal: React.FC<DrawingPreviewModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="preview-modal-overlay">
+    <div
+      className="preview-modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="preview-modal-title"
+    >
       <div className="preview-modal-container">
         {/* 헤더 */}
         <div className={`preview-modal-header ${showControls ? 'visible' : ''}`}>
-          <h3 className="preview-title">{title}</h3>
+          <h3 className="preview-title" id="preview-modal-title">
+            {title}
+          </h3>
           <div className="preview-header-actions">
             {onShare && (
-              <button className="preview-action-btn" onClick={onShare} title="공유">
-                <span className="action-icon">🔗</span>
+              <button
+                className="preview-action-btn"
+                onClick={onShare}
+                title="공유"
+                aria-label="도면 공유"
+              >
+                <span className="action-icon" aria-hidden="true">
+                  🔗
+                </span>
               </button>
             )}
-            <button className="preview-action-btn preview-close-btn" onClick={onClose} title="닫기">
-              <span className="action-icon">✕</span>
+            <button
+              className="preview-action-btn preview-close-btn"
+              onClick={onClose}
+              title="닫기"
+              aria-label="모달 닫기"
+            >
+              <span className="action-icon" aria-hidden="true">
+                ✕
+              </span>
             </button>
           </div>
         </div>
@@ -289,12 +310,15 @@ export const DrawingPreviewModal: React.FC<DrawingPreviewModalProps> = ({
               onClick={handleZoomOut}
               disabled={scale <= zoomLevels[0]}
               title="축소 (-)"
+              aria-label="이미지 축소"
             >
-              <span>−</span>
+              <span aria-hidden="true">−</span>
             </button>
 
-            <div className="zoom-indicator">
-              <span>{Math.round(scale * 100)}%</span>
+            <div className="zoom-indicator" role="status" aria-live="polite" aria-atomic="true">
+              <span aria-label={`현재 줌 레벨 ${Math.round(scale * 100)}퍼센트`}>
+                {Math.round(scale * 100)}%
+              </span>
             </div>
 
             <button
@@ -302,12 +326,18 @@ export const DrawingPreviewModal: React.FC<DrawingPreviewModalProps> = ({
               onClick={handleZoomIn}
               disabled={scale >= zoomLevels[zoomLevels.length - 1]}
               title="확대 (+)"
+              aria-label="이미지 확대"
             >
-              <span>+</span>
+              <span aria-hidden="true">+</span>
             </button>
 
-            <button className="zoom-btn fit-btn" onClick={handleFitToScreen} title="화면 맞춤 (0)">
-              <span>⊡</span>
+            <button
+              className="zoom-btn fit-btn"
+              onClick={handleFitToScreen}
+              title="화면 맞춤 (0)"
+              aria-label="화면에 맞춤"
+            >
+              <span aria-hidden="true">⊡</span>
             </button>
           </div>
 

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오프라인 - 도면마킹 시스템</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .offline-container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      max-width: 500px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+    }
+    
+    .offline-icon {
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 30px;
+      background: #f3f4f6;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 60px;
+    }
+    
+    h1 {
+      color: #1f2937;
+      font-size: 28px;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+    
+    p {
+      color: #6b7280;
+      font-size: 16px;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+    
+    .feature-list {
+      text-align: left;
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .feature-list h2 {
+      color: #374151;
+      font-size: 18px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+    
+    .feature-list ul {
+      list-style: none;
+    }
+    
+    .feature-list li {
+      color: #4b5563;
+      padding: 8px 0;
+      display: flex;
+      align-items: center;
+    }
+    
+    .feature-list li:before {
+      content: "✓";
+      color: #10b981;
+      font-weight: bold;
+      margin-right: 10px;
+    }
+    
+    .offline-status {
+      background: #fef2f2;
+      color: #991b1b;
+      padding: 10px 20px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #dc2626;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.5;
+      }
+    }
+    
+    .retry-button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .retry-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+    
+    .retry-button:active {
+      transform: translateY(0);
+    }
+    
+    .cached-count {
+      background: #f0fdf4;
+      color: #166534;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      display: none;
+    }
+    
+    .cached-count.show {
+      display: block;
+    }
+    
+    @media (max-width: 480px) {
+      .offline-container {
+        padding: 30px 20px;
+      }
+      
+      h1 {
+        font-size: 24px;
+      }
+      
+      .offline-icon {
+        width: 100px;
+        height: 100px;
+        font-size: 50px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="offline-container">
+    <div class="offline-icon">📵</div>
+    
+    <div class="offline-status">
+      <span class="status-dot"></span>
+      <span>오프라인 상태</span>
+    </div>
+    
+    <h1>인터넷 연결이 없습니다</h1>
+    
+    <p>
+      현재 오프라인 상태입니다. 인터넷 연결을 확인해주세요.
+      일부 기능은 오프라인에서도 사용 가능합니다.
+    </p>
+    
+    <div class="feature-list">
+      <h2>오프라인에서 가능한 작업</h2>
+      <ul>
+        <li>저장된 도면 보기</li>
+        <li>캐시된 마킹도면 확인</li>
+        <li>임시 저장된 작업 계속하기</li>
+        <li>로컬 이미지 불러오기</li>
+      </ul>
+    </div>
+    
+    <button class="retry-button" onclick="retryConnection()">
+      다시 연결 시도
+    </button>
+    
+    <div id="cachedCount" class="cached-count">
+      <strong>캐시된 도면:</strong> <span id="count">0</span>개
+    </div>
+  </div>
+  
+  <script>
+    // Check cached drawings count
+    if ('caches' in window) {
+      caches.open('offline-drawings-v1').then(cache => {
+        cache.keys().then(requests => {
+          const count = requests.filter(r => r.url.includes('/metadata')).length;
+          if (count > 0) {
+            document.getElementById('count').textContent = count;
+            document.getElementById('cachedCount').classList.add('show');
+          }
+        });
+      });
+    }
+    
+    // Retry connection
+    function retryConnection() {
+      // Check if online
+      if (navigator.onLine) {
+        window.location.reload();
+      } else {
+        // Try to fetch a small resource
+        fetch('/api/health', { method: 'HEAD' })
+          .then(() => {
+            window.location.reload();
+          })
+          .catch(() => {
+            alert('아직 오프라인 상태입니다. 잠시 후 다시 시도해주세요.');
+          });
+      }
+    }
+    
+    // Auto-retry when connection is restored
+    window.addEventListener('online', () => {
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    });
+    
+    // Update UI based on connection status
+    function updateConnectionStatus() {
+      const statusDot = document.querySelector('.status-dot');
+      const statusText = document.querySelector('.offline-status span:last-child');
+      
+      if (navigator.onLine) {
+        statusDot.style.background = '#10b981';
+        statusText.textContent = '연결 복구 중...';
+        setTimeout(retryConnection, 1500);
+      }
+    }
+    
+    // Check connection periodically
+    setInterval(updateConnectionStatus, 5000);
+  </script>
+</body>
+</html>
