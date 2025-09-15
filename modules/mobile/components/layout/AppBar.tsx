@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Search, Moon, Sun, Type, Bell, Menu } from 'lucide-react'
 import { NotificationModal } from '../notifications/NotificationModal'
 import { Drawer } from './Drawer'
@@ -23,6 +23,25 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
   const { user } = useUser()
   const supabase = createClient()
 
+  // Fetch notification count function
+  const fetchNotificationCount = useCallback(async () => {
+    try {
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user?.id)
+        .eq('is_read', false)
+
+      if (!error && count !== null) {
+        setNotificationCount(count)
+      }
+    } catch (error) {
+      console.error('Failed to fetch notification count:', error)
+      // Set default count for demo
+      setNotificationCount(3)
+    }
+  }, [supabase, user?.id])
+
   // Initialize theme from localStorage
   useEffect(() => {
     const savedTheme = (localStorage.getItem('inopnc_theme') as 'light' | 'dark') || 'light'
@@ -41,25 +60,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
     if (user?.id) {
       fetchNotificationCount()
     }
-  }, [user])
-
-  const fetchNotificationCount = async () => {
-    try {
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user?.id)
-        .eq('is_read', false)
-
-      if (!error && count !== null) {
-        setNotificationCount(count)
-      }
-    } catch (error) {
-      console.error('Failed to fetch notification count:', error)
-      // Set default count for demo
-      setNotificationCount(3)
-    }
-  }
+  }, [user?.id, fetchNotificationCount])
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
