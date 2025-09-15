@@ -16,7 +16,6 @@ interface SummaryPanelProps {
   workContents: string[]
   beforePhotosCount: number
   afterPhotosCount: number
-  receiptsCount: number
   drawingsCount: number
   className?: string
 }
@@ -34,7 +33,6 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
   workContents,
   beforePhotosCount,
   afterPhotosCount,
-  receiptsCount,
   drawingsCount,
   className = '',
 }) => {
@@ -155,12 +153,6 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
             <span className="summary-label">사진(후)</span>
             <span className="summary-value">{afterPhotosCount}개</span>
           </div>
-          {receiptsCount > 0 && (
-            <div className="summary-row">
-              <span className="summary-label">영수증</span>
-              <span className="summary-value">{receiptsCount}개</span>
-            </div>
-          )}
           {drawingsCount > 0 && (
             <div className="summary-row">
               <span className="summary-label">도면</span>
