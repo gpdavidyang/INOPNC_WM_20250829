@@ -65,6 +65,7 @@ body {
   color: var(--text);
   font-family: var(--font);
   font-size: 15px;
+  font-weight: 400; /* Increased from 200 for better readability */
   line-height: 1.6;
   transition: font-size 0.3s ease;
   overscroll-behavior: contain;
@@ -73,7 +74,7 @@ body {
 /* Font Size Switch Classes */
 body.fs-100 {
   font-size: 15px;
-  font-weight: 200;
+  font-weight: 400; /* Increased from 200 for elderly users */
   font-family:
     'Noto Sans KR',
     system-ui,
@@ -87,7 +88,7 @@ body.fs-100 {
 
 body.fs-150 {
   font-size: 27px; /* 15px * 1.8 = 27px */
-  font-weight: 200;
+  font-weight: 400; /* Increased from 200 for elderly users */
   font-family:
     'Noto Sans KR',
     system-ui,
