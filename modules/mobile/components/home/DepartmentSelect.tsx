@@ -12,7 +12,7 @@ import {
 
 interface Partner {
   id: string
-  name: string
+  company_name: string
 }
 
 interface DepartmentSelectProps {
@@ -38,8 +38,9 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
         const supabase = createClient()
         const { data, error } = await supabase
           .from('partner_companies')
-          .select('id, name')
-          .order('name')
+          .select('id, company_name')
+          .eq('status', 'active')
+          .order('company_name')
 
         if (error) {
           console.error('파트너사 조회 실패:', error)
@@ -77,7 +78,7 @@ export const DepartmentSelect: React.FC<DepartmentSelectProps> = ({
         <CustomSelectContent>
           {partners.map((partner) => (
             <CustomSelectItem key={partner.id} value={partner.id}>
-              {partner.name}
+              {partner.company_name}
             </CustomSelectItem>
           ))}
         </CustomSelectContent>
