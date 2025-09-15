@@ -26,18 +26,18 @@ import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '
 
 // 작업 태그 인터페이스 정의
 interface WorkTag {
-  id: string;
-  memberTypes: string[];
-  workContents: string[];
-  workType?: string;
-  blockDongUnit?: WorkLogLocation;
+  id: string
+  memberTypes: string[]
+  workContents: string[]
+  workTypes: string[]
+  blockDongUnit?: WorkLogLocation
 }
 
 // 현장 인터페이스 정의
 interface Site {
-  id: string;
-  name: string;
-  organization_id: string;
+  id: string
+  name: string
+  organization_id: string
 }
 import '@/modules/mobile/styles/home.css'
 import '@/modules/mobile/styles/work-form.css'
@@ -49,26 +49,26 @@ export const HomePage: React.FC = () => {
   const [selectedSite, setSelectedSite] = useState('')
   const [workDate, setWorkDate] = useState('')
   const [workCards, setWorkCards] = useState([{ id: 1 }])
-  
+
   // v2.0 새로운 상태들
   const [department, setDepartment] = useState('')
   const [location, setLocation] = useState<WorkLogLocation>({ block: '', dong: '', unit: '' })
   const [memberTypes, setMemberTypes] = useState<string[]>([])
   const [workContents, setWorkContents] = useState<string[]>([])
+  const [workTypes, setWorkTypes] = useState<string[]>([])
   const [mainManpower, setMainManpower] = useState(1)
   const [workSections, setWorkSections] = useState<WorkSection[]>([])
   const [additionalManpower, setAdditionalManpower] = useState<AdditionalManpower[]>([])
   const [workTags, setWorkTags] = useState<WorkTag[]>([])
-  
+
   // 파일 카운트 상태 (PhotoUploadSection에서 관리하지만 요약에 필요)
   const [beforePhotosCount, setBeforePhotosCount] = useState(0)
   const [afterPhotosCount, setAfterPhotosCount] = useState(0)
-  const [receiptsCount, setReceiptsCount] = useState(0)
   const [drawingsCount, setDrawingsCount] = useState(0)
-  
+
   // 요약 패널 표시 상태
   const [showSummary, setShowSummary] = useState(false)
-  
+
   // 현장 데이터 상태
   const [sites, setSites] = useState<Site[]>([])
   const [sitesLoading, setSitesLoading] = useState(false)
@@ -90,9 +90,12 @@ export const HomePage: React.FC = () => {
       try {
         setProfileLoading(true)
         const supabase = createClient()
-        
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        
+
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
         if (!session || sessionError) {
           console.log('No session found')
           return
@@ -167,7 +170,7 @@ export const HomePage: React.FC = () => {
           .map(mapping => ({
             id: mapping.sites.id,
             name: mapping.sites.name,
-            organization_id: '' // 필요시 추가
+            organization_id: '', // 필요시 추가
           }))
 
         setSites(siteList)
@@ -209,6 +212,7 @@ export const HomePage: React.FC = () => {
       setLocation({ block: '', dong: '', unit: '' })
       setMemberTypes([])
       setWorkContents([])
+      setWorkTypes([])
       setMainManpower(1)
       setWorkSections([])
       setAdditionalManpower([])
@@ -240,10 +244,10 @@ export const HomePage: React.FC = () => {
         work_content: workContents.join(', ') || '',
         location_info: {
           block: location.block,
-          dong: location.dong, 
-          unit: location.unit
+          dong: location.dong,
+          unit: location.unit,
         },
-        additional_notes: `작업 태그: ${workTags.length}개, 추가 인력: ${additionalManpower.length}개, 작업 구간: ${workSections.length}개`
+        additional_notes: `작업 태그: ${workTags.length}개, 추가 인력: ${additionalManpower.length}개, 작업 구간: ${workSections.length}개`,
       }
 
       const response = await fetch('/api/admin/daily-reports', {
@@ -251,7 +255,7 @@ export const HomePage: React.FC = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(workData)
+        body: JSON.stringify(workData),
       })
 
       const result = await response.json()
@@ -261,10 +265,9 @@ export const HomePage: React.FC = () => {
       }
 
       toast.success('작업일지가 저장되었습니다.')
-      
+
       // 저장 후 폼 초기화는 선택적으로
       // handleReset()
-      
     } catch (error) {
       console.error('Save error:', error)
       toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.')
@@ -285,7 +288,7 @@ export const HomePage: React.FC = () => {
         <div className="work-form-title">
           <h2 className="work-form-main-title">작업일지 작성</h2>
         </div>
-        
+
         {/* 선택 현장 */}
         <div className="form-section">
           <div className="section-header">
@@ -296,11 +299,7 @@ export const HomePage: React.FC = () => {
           </div>
           <div className="form-row">
             <div className="form-group">
-              <DepartmentSelect 
-                value={department}
-                onChange={setDepartment}
-                required
-              />
+              <DepartmentSelect value={department} onChange={setDepartment} required />
             </div>
             <div className="form-group">
               <label className="form-label">
@@ -312,32 +311,30 @@ export const HomePage: React.FC = () => {
                 disabled={!department || sitesLoading}
               >
                 <CustomSelectTrigger className="form-select">
-                  <CustomSelectValue placeholder={
-                    !department 
-                      ? '소속을 먼저 선택하세요' 
-                      : sitesLoading 
-                        ? '현장 로딩 중...' 
-                        : sitesError 
-                          ? '현장 선택 불가' 
-                          : '현장 선택'
-                  } />
+                  <CustomSelectValue
+                    placeholder={
+                      !department
+                        ? '소속을 먼저 선택하세요'
+                        : sitesLoading
+                          ? '현장 로딩 중...'
+                          : sitesError
+                            ? '현장 선택 불가'
+                            : '현장 선택'
+                    }
+                  />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
-                  {sites.map((site) => (
+                  {sites.map(site => (
                     <CustomSelectItem key={site.id} value={site.id}>
                       {site.name}
                     </CustomSelectItem>
                   ))}
                 </CustomSelectContent>
               </CustomSelect>
-              {sitesError && (
-                <div className="text-red-500 text-sm mt-1">
-                  {sitesError}
-                </div>
-              )}
+              {sitesError && <div className="text-red-500 text-sm mt-1">{sitesError}</div>}
             </div>
           </div>
-          
+
           {/* 선택된 현장 확인 표시 */}
           {selectedSite && (
             <div className="form-row mt-3">
@@ -374,25 +371,34 @@ export const HomePage: React.FC = () => {
                   onChange={e => setWorkDate(e.target.value)}
                   required
                 />
-                <div 
-                  className="calendar-icon" 
+                <div
+                  className="calendar-icon"
                   onClick={handleCalendarClick}
                   onKeyDown={handleCalendarKeyDown}
                   role="button"
                   tabIndex={0}
                   aria-label="날짜 선택"
                 >
-                  <svg 
-                    width="20" 
-                    height="20" 
-                    viewBox="0 0 24 24" 
-                    fill="none" 
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
                     xmlns="http://www.w3.org/2000/svg"
                   >
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
-                    <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
-                    <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+                    <rect
+                      x="3"
+                      y="4"
+                      width="18"
+                      height="18"
+                      rx="2"
+                      ry="2"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2" />
+                    <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2" />
+                    <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2" />
                   </svg>
                 </div>
               </div>
@@ -403,7 +409,7 @@ export const HomePage: React.FC = () => {
                 type="text"
                 className="form-input"
                 placeholder="작성자"
-                value={profileLoading ? '로딩 중...' : (userProfile?.full_name || '사용자')}
+                value={profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'}
                 readOnly
               />
             </div>
@@ -416,21 +422,27 @@ export const HomePage: React.FC = () => {
             <h3 className="section-title">
               작업 내용 기록 <span className="required">*</span>
             </h3>
-            <button className="add-btn" onClick={() => {
-              const newTag: WorkTag = {
-                id: Date.now().toString(),
-                memberTypes: [...memberTypes],
-                workContents: [...workContents],
-                workType: '',
-                blockDongUnit: { ...location }
-              }
-              setWorkTags([...workTags, newTag])
-              // Reset fields after adding
-              setMemberTypes([])
-              setWorkContents([])
-            }}>추가</button>
+            <button
+              className="add-btn"
+              onClick={() => {
+                const newTag: WorkTag = {
+                  id: Date.now().toString(),
+                  memberTypes: [...memberTypes],
+                  workContents: [...workContents],
+                  workTypes: [...workTypes],
+                  blockDongUnit: { ...location },
+                }
+                setWorkTags([...workTags, newTag])
+                // Reset fields after adding
+                setMemberTypes([])
+                setWorkContents([])
+                setWorkTypes([])
+              }}
+            >
+              추가
+            </button>
           </div>
-          
+
           {/* 부재명 멀티 선택 */}
           <MultiSelectButtons
             label="부재명"
@@ -438,14 +450,14 @@ export const HomePage: React.FC = () => {
               { value: '슬라브', label: '슬라브' },
               { value: '거더', label: '거더' },
               { value: '기둥', label: '기둥' },
-              { value: 'other', label: '기타' }
+              { value: 'other', label: '기타' },
             ]}
             selectedValues={memberTypes}
             onChange={setMemberTypes}
             customInputPlaceholder="부재명을 직접 입력하세요"
             className="mb-3"
           />
-          
+
           {/* 작업공정 멀티 선택 */}
           <MultiSelectButtons
             label="작업공정"
@@ -453,7 +465,7 @@ export const HomePage: React.FC = () => {
               { value: '균열', label: '균열' },
               { value: '면', label: '면' },
               { value: '마감', label: '마감' },
-              { value: 'other', label: '기타' }
+              { value: 'other', label: '기타' },
             ]}
             selectedValues={workContents}
             onChange={setWorkContents}
@@ -467,25 +479,25 @@ export const HomePage: React.FC = () => {
           <div className="section-header">
             <h3 className="section-title">작업구간</h3>
           </div>
-          <div className="form-group">
-            <label className="form-label">작업유형</label>
-            <div className="button-group">
-              <button className="option-btn">지하</button>
-              <button className="option-btn">지봉</button>
-              <button className="option-btn">기타</button>
-            </div>
-          </div>
-          <WorkSectionManager
-            sections={workSections}
-            onChange={setWorkSections}
+
+          {/* 작업유형 멀티 선택 */}
+          <MultiSelectButtons
+            label="작업유형"
+            options={[
+              { value: '지하', label: '지하' },
+              { value: '지붕', label: '지붕' },
+              { value: 'other', label: '기타' },
+            ]}
+            selectedValues={workTypes}
+            onChange={setWorkTypes}
+            customInputPlaceholder="작업유형을 직접 입력하세요"
+            className="mb-3"
           />
-          
+
+          <WorkSectionManager sections={workSections} onChange={setWorkSections} />
+
           {/* 블럭/동/호수 */}
-          <LocationInput
-            location={location}
-            onChange={setLocation}
-            className="mt-3"
-          />
+          <LocationInput location={location} onChange={setLocation} className="mt-3" />
         </div>
 
         {/* 공수(일) */}
@@ -494,15 +506,20 @@ export const HomePage: React.FC = () => {
             <h3 className="section-title">
               공수(일) <span className="required">*</span>
             </h3>
-            <button className="add-btn" onClick={() => {
-              const newManpower: AdditionalManpower = {
-                id: Date.now().toString(),
-                workerId: userProfile?.id || '',
-                workerName: userProfile?.full_name || '사용자',
-                manpower: 1
-              }
-              setAdditionalManpower([...additionalManpower, newManpower])
-            }}>추가</button>
+            <button
+              className="add-btn"
+              onClick={() => {
+                const newManpower: AdditionalManpower = {
+                  id: Date.now().toString(),
+                  workerId: userProfile?.id || '',
+                  workerName: userProfile?.full_name || '사용자',
+                  manpower: 1,
+                }
+                setAdditionalManpower([...additionalManpower, newManpower])
+              }}
+            >
+              추가
+            </button>
           </div>
           <div className="form-row author-manpower-row">
             <div className="form-group">
@@ -510,7 +527,7 @@ export const HomePage: React.FC = () => {
               <input
                 type="text"
                 className="form-input"
-                value={profileLoading ? '로딩 중...' : (userProfile?.full_name || '사용자')}
+                value={profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'}
                 readOnly
               />
             </div>
@@ -526,12 +543,12 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* 추가된 작업 내용들 */}
-        {workTags.map((tag) => (
+        {workTags.map(tag => (
           <div key={tag.id} className="additional-work-row">
             <div className="section-header">
               <h3 className="section-title">작업 내용 기록</h3>
               <div className="header-actions">
-                <button 
+                <button
                   className="delete-tag-btn"
                   onClick={() => setWorkTags(workTags.filter(t => t.id !== tag.id))}
                 >
@@ -540,21 +557,30 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
             <div className="form-group">
-              <p><strong>부재명:</strong> {tag.memberTypes.join(', ')}</p>
-              <p><strong>작업공정:</strong> {tag.workContents.join(', ')}</p>
+              <p>
+                <strong>부재명:</strong> {tag.memberTypes.join(', ')}
+              </p>
+              <p>
+                <strong>작업공정:</strong> {tag.workContents.join(', ')}
+              </p>
+              <p>
+                <strong>작업유형:</strong> {tag.workTypes.join(', ')}
+              </p>
             </div>
           </div>
         ))}
 
         {/* 추가된 공수들 */}
-        {additionalManpower.map((item) => (
+        {additionalManpower.map(item => (
           <div key={item.id} className="additional-manpower-section">
             <div className="section-header">
               <h3 className="section-title">공수(일)</h3>
               <div className="header-actions">
-                <button 
+                <button
                   className="delete-tag-btn"
-                  onClick={() => setAdditionalManpower(additionalManpower.filter(m => m.id !== item.id))}
+                  onClick={() =>
+                    setAdditionalManpower(additionalManpower.filter(m => m.id !== item.id))
+                  }
                 >
                   삭제
                 </button>
@@ -567,8 +593,8 @@ export const HomePage: React.FC = () => {
                   type="text"
                   className="form-input"
                   value={item.workerName}
-                  onChange={(e) => {
-                    const updated = additionalManpower.map(m => 
+                  onChange={e => {
+                    const updated = additionalManpower.map(m =>
                       m.id === item.id ? { ...m, workerName: e.target.value } : m
                     )
                     setAdditionalManpower(updated)
@@ -580,8 +606,8 @@ export const HomePage: React.FC = () => {
                 <NumberInput
                   label="공수"
                   value={item.manpower}
-                  onChange={(value) => {
-                    const updated = additionalManpower.map(m => 
+                  onChange={value => {
+                    const updated = additionalManpower.map(m =>
                       m.id === item.id ? { ...m, manpower: value } : m
                     )
                     setAdditionalManpower(updated)
@@ -592,26 +618,22 @@ export const HomePage: React.FC = () => {
             </div>
           </div>
         ))}
-        
+
         {/* 사진/도면 업로드 섹션 */}
         <div className="form-section">
-          <PhotoUploadSection 
+          <PhotoUploadSection
             onBeforePhotosChange={setBeforePhotosCount}
             onAfterPhotosChange={setAfterPhotosCount}
-            onReceiptsChange={setReceiptsCount}
             onDrawingsChange={setDrawingsCount}
           />
         </div>
-        
+
         {/* 작업 태그 (선택사항) */}
         <div className="form-section">
           <div className="section-header">
             <h3 className="section-title">작업 태그</h3>
           </div>
-          <WorkTagManager
-            tags={workTags}
-            onChange={setWorkTags}
-          />
+          <WorkTagManager tags={workTags} onChange={setWorkTags} />
         </div>
       </div>
 
@@ -635,6 +657,7 @@ export const HomePage: React.FC = () => {
           department={department}
           location={location}
           memberTypes={memberTypes}
+          workTypes={workTypes}
           mainManpower={mainManpower}
           workSections={workSections}
           additionalManpower={additionalManpower}

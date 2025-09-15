@@ -5,6 +5,9 @@ import { toast } from 'sonner'
 
 interface PhotoUploadSectionProps {
   className?: string
+  onBeforePhotosChange?: (count: number) => void
+  onAfterPhotosChange?: (count: number) => void
+  onDrawingsChange?: (count: number) => void
 }
 
 interface UploadedFile {
@@ -16,32 +19,30 @@ interface UploadedFile {
   uploadDate: Date
 }
 
-export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ className = '' }) => {
+export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
+  className = '',
+  onBeforePhotosChange,
+  onAfterPhotosChange,
+  onDrawingsChange,
+}) => {
   const [beforeFiles, setBeforeFiles] = useState<UploadedFile[]>([])
   const [afterFiles, setAfterFiles] = useState<UploadedFile[]>([])
-  const [receiptFiles, setReceiptFiles] = useState<UploadedFile[]>([])
   const [drawingFiles, setDrawingFiles] = useState<UploadedFile[]>([])
-  
+
   const beforeInputRef = useRef<HTMLInputElement>(null)
   const afterInputRef = useRef<HTMLInputElement>(null)
-  const receiptInputRef = useRef<HTMLInputElement>(null)
   const drawingInputRef = useRef<HTMLInputElement>(null)
-  
+
   const MAX_FILES = 10
 
-  const handleFileSelect = (
-    files: FileList | null, 
-    type: 'before' | 'after' | 'receipt' | 'drawing'
-  ) => {
+  const handleFileSelect = (files: FileList | null, type: 'before' | 'after' | 'drawing') => {
     if (!files) return
 
-    const currentFiles = type === 'before' ? beforeFiles : 
-                        type === 'after' ? afterFiles :
-                        type === 'receipt' ? receiptFiles : drawingFiles
-    
-    const setFiles = type === 'before' ? setBeforeFiles : 
-                     type === 'after' ? setAfterFiles :
-                     type === 'receipt' ? setReceiptFiles : setDrawingFiles
+    const currentFiles =
+      type === 'before' ? beforeFiles : type === 'after' ? afterFiles : drawingFiles
+
+    const setFiles =
+      type === 'before' ? setBeforeFiles : type === 'after' ? setAfterFiles : setDrawingFiles
 
     if (currentFiles.length + files.length > MAX_FILES) {
       toast.error(`최대 ${MAX_FILES}개까지 업로드 가능합니다.`)
@@ -54,23 +55,42 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
       size: file.size,
       type: file.type,
       url: URL.createObjectURL(file),
-      uploadDate: new Date()
+      uploadDate: new Date(),
     }))
 
-    setFiles([...currentFiles, ...newFiles])
+    const updatedFiles = [...currentFiles, ...newFiles]
+    setFiles(updatedFiles)
+
+    // Callback to parent component
+    if (type === 'before' && onBeforePhotosChange) {
+      onBeforePhotosChange(updatedFiles.length)
+    } else if (type === 'after' && onAfterPhotosChange) {
+      onAfterPhotosChange(updatedFiles.length)
+    } else if (type === 'drawing' && onDrawingsChange) {
+      onDrawingsChange(updatedFiles.length)
+    }
+
     toast.success(`${files.length}개 파일이 추가되었습니다.`)
   }
 
-  const removeFile = (id: string, type: 'before' | 'after' | 'receipt' | 'drawing') => {
-    const setFiles = type === 'before' ? setBeforeFiles : 
-                     type === 'after' ? setAfterFiles :
-                     type === 'receipt' ? setReceiptFiles : setDrawingFiles
-    
-    const currentFiles = type === 'before' ? beforeFiles : 
-                        type === 'after' ? afterFiles :
-                        type === 'receipt' ? receiptFiles : drawingFiles
+  const removeFile = (id: string, type: 'before' | 'after' | 'drawing') => {
+    const setFiles =
+      type === 'before' ? setBeforeFiles : type === 'after' ? setAfterFiles : setDrawingFiles
 
-    setFiles(currentFiles.filter(f => f.id !== id))
+    const currentFiles =
+      type === 'before' ? beforeFiles : type === 'after' ? afterFiles : drawingFiles
+
+    const updatedFiles = currentFiles.filter(f => f.id !== id)
+    setFiles(updatedFiles)
+
+    // Callback to parent component
+    if (type === 'before' && onBeforePhotosChange) {
+      onBeforePhotosChange(updatedFiles.length)
+    } else if (type === 'after' && onAfterPhotosChange) {
+      onAfterPhotosChange(updatedFiles.length)
+    } else if (type === 'drawing' && onDrawingsChange) {
+      onDrawingsChange(updatedFiles.length)
+    }
   }
 
   return (
@@ -93,10 +113,7 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
                 <span className="counter-total">{MAX_FILES}</span>
               </span>
             </div>
-            <div 
-              className="upload-dropzone"
-              onClick={() => beforeInputRef.current?.click()}
-            >
+            <div className="upload-dropzone" onClick={() => beforeInputRef.current?.click()}>
               {beforeFiles.length === 0 ? (
                 <div className="upload-placeholder">
                   <div className="upload-icon">📷</div>
@@ -107,9 +124,9 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
                   {beforeFiles.map(file => (
                     <div key={file.id} className="uploaded-file-thumb">
                       <img src={file.url} alt={file.name} />
-                      <button 
+                      <button
                         className="file-remove-btn"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           removeFile(file.id, 'before')
                         }}
@@ -127,7 +144,7 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
               accept="image/*"
               multiple
               hidden
-              onChange={(e) => handleFileSelect(e.target.files, 'before')}
+              onChange={e => handleFileSelect(e.target.files, 'before')}
             />
           </div>
 
@@ -141,10 +158,7 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
                 <span className="counter-total">{MAX_FILES}</span>
               </span>
             </div>
-            <div 
-              className="upload-dropzone"
-              onClick={() => afterInputRef.current?.click()}
-            >
+            <div className="upload-dropzone" onClick={() => afterInputRef.current?.click()}>
               {afterFiles.length === 0 ? (
                 <div className="upload-placeholder">
                   <div className="upload-icon">📷</div>
@@ -155,9 +169,9 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
                   {afterFiles.map(file => (
                     <div key={file.id} className="uploaded-file-thumb">
                       <img src={file.url} alt={file.name} />
-                      <button 
+                      <button
                         className="file-remove-btn"
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           removeFile(file.id, 'after')
                         }}
@@ -175,56 +189,10 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
               accept="image/*"
               multiple
               hidden
-              onChange={(e) => handleFileSelect(e.target.files, 'after')}
+              onChange={e => handleFileSelect(e.target.files, 'after')}
             />
           </div>
         </div>
-      </div>
-
-      {/* 영수증 업로드 */}
-      <div className="card p-5 mb-3.5">
-        <div className="section-header mb-3">
-          <h3 className="section-title">영수증</h3>
-          <span className="upload-counter">
-            {receiptFiles.length}/{MAX_FILES}
-          </span>
-        </div>
-        <div 
-          className="upload-dropzone single-upload"
-          onClick={() => receiptInputRef.current?.click()}
-        >
-          {receiptFiles.length === 0 ? (
-            <div className="upload-placeholder">
-              <div className="upload-icon">🧾</div>
-              <p className="upload-text">영수증을 추가하세요</p>
-            </div>
-          ) : (
-            <div className="uploaded-files-list">
-              {receiptFiles.map(file => (
-                <div key={file.id} className="uploaded-file-item">
-                  <span className="file-name">{file.name}</span>
-                  <button 
-                    className="file-remove-btn"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      removeFile(file.id, 'receipt')
-                    }}
-                  >
-                    삭제
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <input
-          ref={receiptInputRef}
-          type="file"
-          accept="image/*,application/pdf"
-          multiple
-          hidden
-          onChange={(e) => handleFileSelect(e.target.files, 'receipt')}
-        />
       </div>
 
       {/* 도면 섹션 */}
@@ -235,7 +203,7 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
             {drawingFiles.length}/{MAX_FILES}
           </span>
         </div>
-        <div 
+        <div
           className="upload-dropzone single-upload"
           onClick={() => drawingInputRef.current?.click()}
         >
@@ -249,9 +217,9 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
               {drawingFiles.map(file => (
                 <div key={file.id} className="uploaded-file-item">
                   <span className="file-name">{file.name}</span>
-                  <button 
+                  <button
                     className="file-remove-btn"
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       removeFile(file.id, 'drawing')
                     }}
@@ -269,7 +237,7 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({ classNam
           accept="image/*,application/pdf"
           multiple
           hidden
-          onChange={(e) => handleFileSelect(e.target.files, 'drawing')}
+          onChange={e => handleFileSelect(e.target.files, 'drawing')}
         />
       </div>
     </div>

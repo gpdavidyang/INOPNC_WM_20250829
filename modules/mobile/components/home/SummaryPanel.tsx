@@ -9,6 +9,7 @@ interface SummaryPanelProps {
   department: string
   location: WorkLogLocation
   memberTypes: string[]
+  workTypes: string[]
   mainManpower: number
   workSections: WorkSection[]
   additionalManpower: AdditionalManpower[]
@@ -26,6 +27,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
   department,
   location,
   memberTypes,
+  workTypes,
   mainManpower,
   workSections,
   additionalManpower,
@@ -34,15 +36,19 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
   afterPhotosCount,
   receiptsCount,
   drawingsCount,
-  className = ''
+  className = '',
 }) => {
   // 총 공수 계산
-  const totalManpower = mainManpower + additionalManpower.reduce((sum, item) => sum + item.manpower, 0)
-  
+  const totalManpower =
+    mainManpower + additionalManpower.reduce((sum, item) => sum + item.manpower, 0)
+
   // 작업자 목록
   const workers = [
     { name: '작성자', manpower: mainManpower },
-    ...additionalManpower.map(item => ({ name: item.workerName || '미지정', manpower: item.manpower }))
+    ...additionalManpower.map(item => ({
+      name: item.workerName || '미지정',
+      manpower: item.manpower,
+    })),
   ].filter(w => w.manpower > 0)
 
   return (
@@ -71,9 +77,9 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
           <div className="summary-row">
             <span className="summary-label">위치</span>
             <span className="summary-value">
-              {location.block || location.dong || location.unit ? 
-                `${location.block}블럭 ${location.dong}동 ${location.unit}호` : 
-                '미입력'}
+              {location.block || location.dong || location.unit
+                ? `${location.block}블럭 ${location.dong}동 ${location.unit}호`
+                : '미입력'}
             </span>
           </div>
         </div>
@@ -83,11 +89,21 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
           <h4 className="summary-subtitle">작업 내용</h4>
           <div className="summary-row">
             <span className="summary-label">부재명</span>
-            <span className="summary-value">{memberTypes.length > 0 ? memberTypes.join(', ') : '미선택'}</span>
+            <span className="summary-value">
+              {memberTypes.length > 0 ? memberTypes.join(', ') : '미선택'}
+            </span>
           </div>
           <div className="summary-row">
             <span className="summary-label">작업 내용</span>
-            <span className="summary-value">{workContents.length > 0 ? workContents.join(', ') : '미입력'}</span>
+            <span className="summary-value">
+              {workContents.length > 0 ? workContents.join(', ') : '미입력'}
+            </span>
+          </div>
+          <div className="summary-row">
+            <span className="summary-label">작업유형</span>
+            <span className="summary-value">
+              {workTypes.length > 0 ? workTypes.join(', ') : '미선택'}
+            </span>
           </div>
           {workSections.length > 0 && (
             <div className="summary-row">
@@ -98,7 +114,8 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
                     {idx + 1}. {section.type} - {section.name || '미입력'}
                     {section.location.block && (
                       <span className="summary-location">
-                        ({section.location.block}블럭 {section.location.dong}동 {section.location.unit}호)
+                        ({section.location.block}블럭 {section.location.dong}동{' '}
+                        {section.location.unit}호)
                       </span>
                     )}
                   </div>
@@ -156,8 +173,7 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
       {/* 제출 확인 메시지 */}
       <div className="summary-footer">
         <div className="summary-message">
-          <span className="check-icon">✓</span>
-          위 내용이 정확한지 확인하고 제출해주세요.
+          <span className="check-icon">✓</span>위 내용이 정확한지 확인하고 제출해주세요.
         </div>
       </div>
     </div>
