@@ -14,7 +14,7 @@ import { NoticeSection } from './NoticeSection'
 import { WorkCard } from './WorkCard'
 import { DepartmentSelect } from './DepartmentSelect'
 import { LocationInput } from './LocationInput'
-import { MemberTypeButtons } from './MemberTypeButtons'
+import { MultiSelectButtons } from './MultiSelectButtons'
 import { NumberInput } from './NumberInput'
 import { WorkSectionManager } from './WorkSectionManager'
 import { AdditionalManpower as AdditionalManpowerComponent } from './AdditionalManpower'
@@ -27,8 +27,8 @@ import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '
 // 작업 태그 인터페이스 정의
 interface WorkTag {
   id: string;
-  memberType: string;
-  workContent: string;
+  memberTypes: string[];
+  workContents: string[];
   workType?: string;
   blockDongUnit?: WorkLogLocation;
 }
@@ -53,8 +53,8 @@ export const HomePage: React.FC = () => {
   // v2.0 새로운 상태들
   const [department, setDepartment] = useState('')
   const [location, setLocation] = useState<WorkLogLocation>({ block: '', dong: '', unit: '' })
-  const [memberType, setMemberType] = useState('')
-  const [workContent, setWorkContent] = useState('')
+  const [memberTypes, setMemberTypes] = useState<string[]>([])
+  const [workContents, setWorkContents] = useState<string[]>([])
   const [mainManpower, setMainManpower] = useState(1)
   const [workSections, setWorkSections] = useState<WorkSection[]>([])
   const [additionalManpower, setAdditionalManpower] = useState<AdditionalManpower[]>([])
@@ -74,11 +74,67 @@ export const HomePage: React.FC = () => {
   const [sitesLoading, setSitesLoading] = useState(false)
   const [sitesError, setSitesError] = useState<string | null>(null)
 
+  // 사용자 프로필 상태
+  const [userProfile, setUserProfile] = useState<any>(null)
+  const [profileLoading, setProfileLoading] = useState(true)
+
   // Set today's date on mount
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
     setWorkDate(today)
   }, [])
+
+  // Fetch user profile on mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setProfileLoading(true)
+        const supabase = createClient()
+        
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        
+        if (!session || sessionError) {
+          console.log('No session found')
+          return
+        }
+
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profile && !profileError) {
+          setUserProfile(profile)
+        } else {
+          console.error('Profile fetch error:', profileError)
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error)
+      } finally {
+        setProfileLoading(false)
+      }
+    }
+
+    fetchUserProfile()
+  }, [])
+
+  // Handle calendar icon click to trigger date picker
+  const handleCalendarClick = () => {
+    const dateInput = document.querySelector('.date-input') as HTMLInputElement
+    if (dateInput) {
+      dateInput.showPicker?.()
+      dateInput.focus()
+    }
+  }
+
+  // Handle keyboard navigation for calendar icon
+  const handleCalendarKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      handleCalendarClick()
+    }
+  }
 
   // 선택된 파트너사(소속)에 따라 현장 목록 불러오기
   useEffect(() => {
@@ -95,13 +151,7 @@ export const HomePage: React.FC = () => {
         const supabase = createClient()
         const { data, error } = await supabase
           .from('partner_site_mappings')
-          .select(`
-            site_id,
-            sites (
-              id,
-              name
-            )
-          `)
+          .select('site_id, sites(id, name)')
           .eq('partner_company_id', department)
           .eq('is_active', true)
 
@@ -157,8 +207,8 @@ export const HomePage: React.FC = () => {
       // v2.0 상태들도 초기화
       setDepartment('')
       setLocation({ block: '', dong: '', unit: '' })
-      setMemberType('')
-      setWorkContent('')
+      setMemberTypes([])
+      setWorkContents([])
       setMainManpower(1)
       setWorkSections([])
       setAdditionalManpower([])
@@ -187,7 +237,7 @@ export const HomePage: React.FC = () => {
         site_id: selectedSite,
         partner_company_id: department, // department가 파트너사 ID
         work_date: workDate,
-        work_content: workContent || '',
+        work_content: workContents.join(', ') || '',
         location_info: {
           block: location.block,
           dong: location.dong, 
@@ -287,6 +337,22 @@ export const HomePage: React.FC = () => {
               )}
             </div>
           </div>
+          
+          {/* 선택된 현장 확인 표시 */}
+          {selectedSite && (
+            <div className="form-row mt-3">
+              <div className="form-group">
+                <label className="form-label">선택된 현장</label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={sites.find(s => s.id === selectedSite)?.name || ''}
+                  readOnly
+                  style={{ backgroundColor: '#f8f9fa', color: '#6c757d' }}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* 작성 정보 입력 */}
@@ -300,32 +366,48 @@ export const HomePage: React.FC = () => {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">작업일자</label>
-              <input
-                type="date"
-                className="form-input"
-                value={workDate}
-                onChange={e => setWorkDate(e.target.value)}
-                required
-              />
+              <div className="date-input-wrapper">
+                <input
+                  type="date"
+                  className="form-input date-input"
+                  value={workDate}
+                  onChange={e => setWorkDate(e.target.value)}
+                  required
+                />
+                <div 
+                  className="calendar-icon" 
+                  onClick={handleCalendarClick}
+                  onKeyDown={handleCalendarKeyDown}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="날짜 선택"
+                >
+                  <svg 
+                    width="20" 
+                    height="20" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
+                    <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
+                    <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                </div>
+              </div>
             </div>
             <div className="form-group">
-              <label className="form-label">선택된 현장</label>
+              <label className="form-label">작성자</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="현장 미선택"
-                value={selectedSite ? sites.find(s => s.id === selectedSite)?.name || '현장 미선택' : '현장 미선택'}
+                placeholder="작성자"
+                value={profileLoading ? '로딩 중...' : (userProfile?.full_name || '사용자')}
                 readOnly
               />
             </div>
           </div>
-          
-          {/* 블럭/동/호수 */}
-          <LocationInput
-            location={location}
-            onChange={setLocation}
-            className="mt-3"
-          />
         </div>
 
         {/* 작업 내용 기록 */}
@@ -337,63 +419,47 @@ export const HomePage: React.FC = () => {
             <button className="add-btn" onClick={() => {
               const newTag: WorkTag = {
                 id: Date.now().toString(),
-                memberType: memberType,
-                workContent: workContent,
+                memberTypes: [...memberTypes],
+                workContents: [...workContents],
                 workType: '',
                 blockDongUnit: { ...location }
               }
               setWorkTags([...workTags, newTag])
               // Reset fields after adding
-              setMemberType('')
-              setWorkContent('')
+              setMemberTypes([])
+              setWorkContents([])
             }}>추가</button>
           </div>
           
-          {/* 부재명 선택 */}
-          <MemberTypeButtons
-            value={memberType}
-            onChange={setMemberType}
+          {/* 부재명 멀티 선택 */}
+          <MultiSelectButtons
+            label="부재명"
+            options={[
+              { value: '슬라브', label: '슬라브' },
+              { value: '거더', label: '거더' },
+              { value: '기둥', label: '기둥' },
+              { value: 'other', label: '기타' }
+            ]}
+            selectedValues={memberTypes}
+            onChange={setMemberTypes}
+            customInputPlaceholder="부재명을 직접 입력하세요"
             className="mb-3"
           />
           
-          {/* 작업공정 */}
-          <div className="form-group mb-3">
-            <label className="form-label">작업공정</label>
-            <div className="button-group">
-              <button 
-                className={`option-btn ${workContent === '균열' ? 'active' : ''}`}
-                onClick={() => setWorkContent('균열')}
-              >
-                균열
-              </button>
-              <button 
-                className={`option-btn ${workContent === '면' ? 'active' : ''}`}
-                onClick={() => setWorkContent('면')}
-              >
-                면
-              </button>
-              <button 
-                className={`option-btn ${workContent === '마감' ? 'active' : ''}`}
-                onClick={() => setWorkContent('마감')}
-              >
-                마감
-              </button>
-              <button 
-                className={`option-btn ${workContent === '기타' ? 'active' : ''}`}
-                onClick={() => setWorkContent('기타')}
-              >
-                기타
-              </button>
-            </div>
-            {workContent === '기타' && (
-              <input
-                type="text"
-                className="form-input mt-2"
-                placeholder="작업공정을 직접 입력하세요"
-                onChange={(e) => setWorkContent(e.target.value)}
-              />
-            )}
-          </div>
+          {/* 작업공정 멀티 선택 */}
+          <MultiSelectButtons
+            label="작업공정"
+            options={[
+              { value: '균열', label: '균열' },
+              { value: '면', label: '면' },
+              { value: '마감', label: '마감' },
+              { value: 'other', label: '기타' }
+            ]}
+            selectedValues={workContents}
+            onChange={setWorkContents}
+            customInputPlaceholder="작업공정을 직접 입력하세요"
+            className="mb-3"
+          />
         </div>
 
         {/* 작업구간 */}
@@ -413,6 +479,13 @@ export const HomePage: React.FC = () => {
             sections={workSections}
             onChange={setWorkSections}
           />
+          
+          {/* 블럭/동/호수 */}
+          <LocationInput
+            location={location}
+            onChange={setLocation}
+            className="mt-3"
+          />
         </div>
 
         {/* 공수(일) */}
@@ -424,8 +497,8 @@ export const HomePage: React.FC = () => {
             <button className="add-btn" onClick={() => {
               const newManpower: AdditionalManpower = {
                 id: Date.now().toString(),
-                workerId: '',
-                workerName: '',
+                workerId: userProfile?.id || '',
+                workerName: userProfile?.full_name || '사용자',
                 manpower: 1
               }
               setAdditionalManpower([...additionalManpower, newManpower])
@@ -437,7 +510,7 @@ export const HomePage: React.FC = () => {
               <input
                 type="text"
                 className="form-input"
-                value="john"
+                value={profileLoading ? '로딩 중...' : (userProfile?.full_name || '사용자')}
                 readOnly
               />
             </div>
@@ -467,8 +540,8 @@ export const HomePage: React.FC = () => {
               </div>
             </div>
             <div className="form-group">
-              <p><strong>부재명:</strong> {tag.memberType}</p>
-              <p><strong>작업공정:</strong> {tag.workContent}</p>
+              <p><strong>부재명:</strong> {tag.memberTypes.join(', ')}</p>
+              <p><strong>작업공정:</strong> {tag.workContents.join(', ')}</p>
             </div>
           </div>
         ))}
@@ -561,11 +634,11 @@ export const HomePage: React.FC = () => {
           workDate={workDate}
           department={department}
           location={location}
-          memberType={memberType}
+          memberTypes={memberTypes}
           mainManpower={mainManpower}
           workSections={workSections}
           additionalManpower={additionalManpower}
-          workContent={workContent}
+          workContents={workContents}
           beforePhotosCount={beforePhotosCount}
           afterPhotosCount={afterPhotosCount}
           receiptsCount={receiptsCount}
