@@ -33,10 +33,11 @@
   padding: 20px;
 }
 
-/* Quick Menu Grid */
+/* Quick Menu Grid - 100% HTML Match */
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
   gap: 12px;
   list-style: none;
   padding: 0;
@@ -52,34 +53,39 @@
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
   text-decoration: none;
   color: var(--text);
   font-size: 13px;
   font-weight: 600;
   transition: all 0.2s ease;
   cursor: pointer;
-  min-height: 100px;
+  min-height: 110px;
+  aspect-ratio: 1;
 }
 
 .quick-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
 }
 
 .qm-icon {
-  width: 48px;
-  height: 48px;
+  width: 64px;
+  height: 64px;
   margin-bottom: 8px;
   object-fit: contain;
 }
 
 /* Notice Card */
 .notice-card {
-  padding: 12px 16px;
+  padding: 16px 20px;
+  min-height: 60px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   position: relative;
   overflow: hidden;
+  display: flex;
+  align-items: center;
 }
 
 .notice-content {
@@ -232,7 +238,7 @@
   background-color: #eff6ff;
   color: #1a56db;
   border-color: #bbd7ff;
-  box-shadow: 0 2px 4px rgba(26, 86, 219, 0.2);
+  box-shadow: 0 2px 4px rgba(26, 86, 219, 0.15);
 }
 
 /* Work Action Tags */
@@ -270,11 +276,12 @@
   background-color: rgba(255, 45, 128, 0.25);
 }
 
-/* Absence Reason Grid */
+/* Work Content Grid - 3 Column Layout */
 .absence-reason {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  margin-bottom: 12px;
 }
 
 .custom-input {
@@ -286,6 +293,7 @@
   font-size: 14px;
   background: var(--card);
   color: var(--text);
+  margin-top: 8px;
 }
 
 /* Quantity Selector */
@@ -413,6 +421,13 @@
 
 .btn-secondary:hover {
   background: #d1d5db;
+}
+
+/* Divider */
+.divider {
+  border-top: 1px dashed #e6ecf4;
+  margin: 24px auto;
+  width: calc(100% - 8px);
 }
 
 /* Utilities */
