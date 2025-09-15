@@ -8,11 +8,11 @@ interface SummaryPanelProps {
   workDate: string
   department: string
   location: WorkLogLocation
-  memberType: string
+  memberTypes: string[]
   mainManpower: number
   workSections: WorkSection[]
   additionalManpower: AdditionalManpower[]
-  workContent: string
+  workContents: string[]
   beforePhotosCount: number
   afterPhotosCount: number
   receiptsCount: number
@@ -25,11 +25,11 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
   workDate,
   department,
   location,
-  memberType,
+  memberTypes,
   mainManpower,
   workSections,
   additionalManpower,
-  workContent,
+  workContents,
   beforePhotosCount,
   afterPhotosCount,
   receiptsCount,
@@ -83,11 +83,11 @@ export const SummaryPanel: React.FC<SummaryPanelProps> = ({
           <h4 className="summary-subtitle">작업 내용</h4>
           <div className="summary-row">
             <span className="summary-label">부재명</span>
-            <span className="summary-value">{memberType || '미선택'}</span>
+            <span className="summary-value">{memberTypes.length > 0 ? memberTypes.join(', ') : '미선택'}</span>
           </div>
           <div className="summary-row">
             <span className="summary-label">작업 내용</span>
-            <span className="summary-value">{workContent || '미입력'}</span>
+            <span className="summary-value">{workContents.length > 0 ? workContents.join(', ') : '미입력'}</span>
           </div>
           {workSections.length > 0 && (
             <div className="summary-row">

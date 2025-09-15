@@ -128,8 +128,8 @@ export const NoticeSection: React.FC = () => {
         <div className="card notice-card">
           <div className="notice-content">
             <div className="notice-item active">
-              <span className="notice-text">
-                <strong className="tag-label">[로딩중]</strong>
+              <span className="notice-text" style={{ color: '#101828', opacity: 1 }}>
+                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>[로딩중]</strong>
                 공지사항을 불러오는 중입니다...
               </span>
             </div>
@@ -145,8 +145,8 @@ export const NoticeSection: React.FC = () => {
         <div className="card notice-card">
           <div className="notice-content">
             <div className="notice-item active">
-              <span className="notice-text">
-                <strong className="tag-label">[알림]</strong>
+              <span className="notice-text" style={{ color: '#101828', opacity: 1 }}>
+                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>[알림]</strong>
                 현재 등록된 공지사항이 없습니다.
               </span>
             </div>
@@ -165,8 +165,8 @@ export const NoticeSection: React.FC = () => {
               key={announcement.id}
               className={`notice-item ${index === activeIndex ? 'active' : ''}`}
             >
-              <span className="notice-text">
-                <strong className="tag-label">[{getNoticeType(announcement)}]</strong>
+              <span className="notice-text" style={{ color: '#101828', opacity: 1 }}>
+                <strong className="tag-label" style={{ color: '#101828', opacity: 1 }}>[{getNoticeType(announcement)}]</strong>
                 {announcement.content}
               </span>
             </div>
