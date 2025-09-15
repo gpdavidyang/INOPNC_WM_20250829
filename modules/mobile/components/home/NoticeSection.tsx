@@ -1,142 +1,88 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
 interface Announcement {
   id: string
   title: string
   content: string
-  priority: string
-  is_active: boolean
+  priority: string | null
+  is_active: boolean | null
   created_at: string
 }
 
+// Default announcements as fallback
+const defaultAnnouncements: Announcement[] = [
+  {
+    id: '1',
+    title: '공지사항',
+    content: '시스템 점검 안내: 1월 15일 오전 2시~4시',
+    priority: 'high',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    title: '업데이트',
+    content: '새로운 기능이 추가되었습니다. 확인해보세요!',
+    priority: 'normal',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    title: '이벤트',
+    content: '신규 작업자 대상 특별 교육 프로그램 진행 중',
+    priority: 'normal',
+    is_active: true,
+    created_at: new Date().toISOString(),
+  },
+]
+
 export const NoticeSection: React.FC = () => {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
+  const [announcements, setAnnouncements] = useState<Announcement[]>(defaultAnnouncements)
   const [activeIndex, setActiveIndex] = useState(0)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   // Fetch announcements from backend
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        // Try to fetch from the API endpoint
+        console.log('Fetching announcements from API...')
+
+        // Fetch from API endpoint
         const response = await fetch('/api/announcements?status=active', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
           },
-          credentials: 'include',
         })
 
         if (response.ok) {
           const result = await response.json()
-          if (result.announcements && result.announcements.length > 0) {
+          console.log('API Response:', result)
+
+          if (
+            result.announcements &&
+            Array.isArray(result.announcements) &&
+            result.announcements.length > 0
+          ) {
+            console.log(`Loaded ${result.announcements.length} announcements from API`)
             setAnnouncements(result.announcements)
-            setLoading(false)
-            return
+          } else if (result.success === false || result.error) {
+            console.error('API returned error:', result.error)
+            // Keep default announcements
+          } else {
+            console.log('No announcements from API, using defaults')
+            // Keep default announcements
           }
-        }
-
-        // Fallback to direct Supabase query
-        const { data, error } = await supabase
-          .from('announcements')
-          .select('*')
-          .eq('is_active', true)
-          .order('created_at', { ascending: false })
-          .limit(10)
-
-        if (error) {
-          console.error('Failed to fetch announcements:', error)
-          // Fallback to default notices if fetch fails
-          setAnnouncements([
-            {
-              id: '1',
-              title: '공지사항',
-              content: '시스템 점검 안내: 1월 15일 오전 2시~4시',
-              priority: 'high',
-              is_active: true,
-              created_at: new Date().toISOString(),
-            },
-            {
-              id: '2',
-              title: '업데이트',
-              content: '새로운 기능이 추가되었습니다. 확인해보세요!',
-              priority: 'normal',
-              is_active: true,
-              created_at: new Date().toISOString(),
-            },
-            {
-              id: '3',
-              title: '이벤트',
-              content: '신규 작업자 대상 특별 교육 프로그램 진행 중',
-              priority: 'normal',
-              is_active: true,
-              created_at: new Date().toISOString(),
-            },
-          ])
-        } else if (data && data.length > 0) {
-          setAnnouncements(data)
         } else {
-          // If no announcements in database, use defaults
-          setAnnouncements([
-            {
-              id: '1',
-              title: '공지사항',
-              content: '시스템 점검 안내: 1월 15일 오전 2시~4시',
-              priority: 'high',
-              is_active: true,
-              created_at: new Date().toISOString(),
-            },
-            {
-              id: '2',
-              title: '업데이트',
-              content: '새로운 기능이 추가되었습니다. 확인해보세요!',
-              priority: 'normal',
-              is_active: true,
-              created_at: new Date().toISOString(),
-            },
-            {
-              id: '3',
-              title: '이벤트',
-              content: '신규 작업자 대상 특별 교육 프로그램 진행 중',
-              priority: 'normal',
-              is_active: true,
-              created_at: new Date().toISOString(),
-            },
-          ])
+          console.error('API response not ok:', response.status, response.statusText)
+          // Keep default announcements
         }
       } catch (error) {
-        console.error('Error loading announcements:', error)
-        // Use fallback notices
-        setAnnouncements([
-          {
-            id: '1',
-            title: '공지사항',
-            content: '시스템 점검 안내: 1월 15일 오전 2시~4시',
-            priority: 'high',
-            is_active: true,
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: '2',
-            title: '업데이트',
-            content: '새로운 기능이 추가되었습니다. 확인해보세요!',
-            priority: 'normal',
-            is_active: true,
-            created_at: new Date().toISOString(),
-          },
-          {
-            id: '3',
-            title: '이벤트',
-            content: '신규 작업자 대상 특별 교육 프로그램 진행 중',
-            priority: 'normal',
-            is_active: true,
-            created_at: new Date().toISOString(),
-          },
-        ])
+        console.error('Failed to fetch announcements:', error)
+        // Keep default announcements
       } finally {
         setLoading(false)
       }
@@ -163,12 +109,15 @@ export const NoticeSection: React.FC = () => {
     if (announcement.priority === 'urgent') return '긴급'
 
     // Title-based type detection
-    if (announcement.title.includes('공지')) return '공지사항'
-    if (announcement.title.includes('업데이트') || announcement.title.includes('기능'))
+    if (announcement.title?.includes('공지')) return '공지사항'
+    if (announcement.title?.includes('업데이트') || announcement.title?.includes('기능'))
       return '업데이트'
-    if (announcement.title.includes('이벤트') || announcement.title.includes('행사'))
+    if (announcement.title?.includes('이벤트') || announcement.title?.includes('행사'))
       return '이벤트'
-    if (announcement.title.includes('점검')) return '시스템'
+    if (announcement.title?.includes('점검')) return '시스템'
+    if (announcement.title?.includes('안전')) return '안전'
+    if (announcement.title?.includes('급여')) return '급여'
+    if (announcement.title?.includes('현장')) return '현장'
 
     return '알림'
   }
