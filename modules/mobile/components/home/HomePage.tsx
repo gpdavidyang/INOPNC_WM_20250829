@@ -664,7 +664,6 @@ export const HomePage: React.FC = () => {
           workContents={workContents}
           beforePhotosCount={beforePhotosCount}
           afterPhotosCount={afterPhotosCount}
-          receiptsCount={receiptsCount}
           drawingsCount={drawingsCount}
           className="mb-4"
         />
