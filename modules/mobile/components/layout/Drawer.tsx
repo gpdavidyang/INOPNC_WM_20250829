@@ -578,7 +578,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                       <input
                         type="text"
                         name="username"
-                        value={profile?.email || ''}
+                        value={userProfile?.email || ''}
                         readOnly
                         style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
                         autoComplete="username"
