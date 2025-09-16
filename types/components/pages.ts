@@ -33,17 +33,6 @@ export interface LoginPageProps extends BaseComponentProps {
   showForgotPassword?: boolean
 }
 
-// Sites Page Props
-export interface SitesPageProps extends BaseComponentProps {
-  sites: Site[]
-  loading?: boolean
-  error?: string | null
-  onSiteSelect?: (site: Site) => void
-  onSiteCreate?: () => void
-  canCreate?: boolean
-  viewMode?: 'grid' | 'list' | 'map'
-}
-
 // Daily Reports Page Props
 export interface DailyReportsPageProps extends BaseComponentProps {
   reports: DailyReport[]

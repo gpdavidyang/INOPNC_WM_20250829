@@ -45,17 +45,18 @@ export const BottomNav: React.FC = () => {
     <nav className="bottom-nav-wrap">
       <div className="bottom-nav">
         <ul className="nav-list">
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const Icon = item.icon
             const isActive =
               pathname === item.href || (item.href !== '/mobile' && pathname?.startsWith(item.href))
 
             return (
               <li key={item.route} className="nav-item">
-                <Link 
-                  href={item.href} 
+                <Link
+                  href={item.href}
                   className={`nav-link ${isActive ? 'active' : ''}`}
                   data-route={item.route}
+                  prefetch={false}
                 >
                   <span className="nav-ico">
                     <Icon className="nav-svg" />

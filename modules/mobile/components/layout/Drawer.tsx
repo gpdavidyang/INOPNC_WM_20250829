@@ -565,59 +565,75 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                   style={{ display: showPasswordForm ? 'block' : 'none' }}
                 >
                   <div className="password-form-container">
-                    <div className="form-group">
-                      <input
-                        type="password"
-                        className="form-input"
-                        id="drawer-currentPassword"
-                        placeholder="현재 비밀번호를 입력"
-                        value={passwordForm.current}
-                        onChange={e =>
-                          setPasswordForm(prev => ({ ...prev, current: e.target.value }))
-                        }
-                        inputMode="text"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <input
-                        type="password"
-                        className="form-input"
-                        id="drawer-newPassword"
-                        placeholder="새 비밀번호 (최소 6자)"
-                        value={passwordForm.new}
-                        onChange={e => setPasswordForm(prev => ({ ...prev, new: e.target.value }))}
-                        inputMode="text"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <input
-                        type="password"
-                        className="form-input"
-                        id="drawer-confirmPassword"
-                        placeholder="새 비밀번호를 다시 입력"
-                        value={passwordForm.confirm}
-                        onChange={e =>
-                          setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))
-                        }
-                        inputMode="text"
-                      />
-                    </div>
-                    <div className="form-actions">
-                      <button
-                        className="cancel-btn"
-                        id="cancelPasswordChange"
-                        onClick={handlePasswordCancel}
-                      >
-                        취소
-                      </button>
-                      <button
-                        className="save-btn"
-                        id="savePasswordChange"
-                        onClick={handlePasswordSave}
-                      >
-                        저장
-                      </button>
-                    </div>
+                    <form
+                      id="password-change-form"
+                      name="passwordChangeForm"
+                      onSubmit={e => {
+                        e.preventDefault()
+                        handlePasswordSave()
+                      }}
+                      autoComplete="off"
+                    >
+                      <div className="form-group">
+                        <input
+                          type="password"
+                          className="form-input"
+                          id="drawer-currentPassword"
+                          name="currentPassword"
+                          placeholder="현재 비밀번호를 입력"
+                          value={passwordForm.current}
+                          onChange={e =>
+                            setPasswordForm(prev => ({ ...prev, current: e.target.value }))
+                          }
+                          autoComplete="current-password"
+                          required
+                        />
+                      </div>
+                      <div className="form-group">
+                        <input
+                          type="password"
+                          className="form-input"
+                          id="drawer-newPassword"
+                          name="newPassword"
+                          placeholder="새 비밀번호 (최소 6자)"
+                          value={passwordForm.new}
+                          onChange={e =>
+                            setPasswordForm(prev => ({ ...prev, new: e.target.value }))
+                          }
+                          autoComplete="new-password"
+                          required
+                          minLength={6}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <input
+                          type="password"
+                          className="form-input"
+                          id="drawer-confirmPassword"
+                          name="confirmPassword"
+                          placeholder="새 비밀번호를 다시 입력"
+                          value={passwordForm.confirm}
+                          onChange={e =>
+                            setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))
+                          }
+                          autoComplete="new-password"
+                          required
+                        />
+                      </div>
+                      <div className="form-actions">
+                        <button
+                          type="button"
+                          className="cancel-btn"
+                          id="cancelPasswordChange"
+                          onClick={handlePasswordCancel}
+                        >
+                          취소
+                        </button>
+                        <button type="submit" className="save-btn" id="savePasswordChange">
+                          저장
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 </li>
               </ul>

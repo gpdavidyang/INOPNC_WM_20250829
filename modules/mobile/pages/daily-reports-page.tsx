@@ -6,6 +6,12 @@ import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { SiteManagerGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
 import {
+  useTodayDailyReports,
+  useRecentDailyReports,
+  useDailyReportsStats,
+  type DailyReportItem,
+} from '@/hooks/api/use-mobile-daily-reports'
+import {
   Card,
   CardContent,
   Button,
@@ -29,52 +35,47 @@ const DailyReportsContent: React.FC = () => {
   const { profile } = useMobileUser()
   const [activeTab, setActiveTab] = useState<'today' | 'recent' | 'templates'>('today')
 
-  const todayReport = {
-    date: '2024-03-21',
-    status: 'draft',
-    weather: '맑음',
-    temperature: '15°C',
-    workersAssigned: 12,
-    workersPresent: 11,
-    workProgress: 85,
-    safetyIssues: 0,
-    materialUsage: [
-      { name: '시멘트', used: 150, unit: 'kg' },
-      { name: '철근', used: 25, unit: '개' },
-    ],
+  // Fetch real data using our hooks
+  const {
+    reports: todayReports,
+    loading: todayLoading,
+    error: todayError,
+    refetch: refetchToday,
+  } = useTodayDailyReports()
+
+  const {
+    reports: recentReports,
+    loading: recentLoading,
+    error: recentError,
+  } = useRecentDailyReports(undefined, 7)
+
+  const { stats, loading: statsLoading } = useDailyReportsStats()
+
+  // Get today's report data
+  const todayReport = todayReports?.[0] || null
+  const today = new Date().toISOString().split('T')[0]
+
+  // Helper functions
+  const formatWeather = (weather: string) => {
+    const weatherMap: { [key: string]: string } = {
+      sunny: '맑음',
+      cloudy: '흐림',
+      rainy: '비',
+      snowy: '눈',
+      foggy: '안개',
+      windy: '바람',
+    }
+    return weatherMap[weather] || weather
   }
 
-  const recentReports = [
-    {
-      id: 1,
-      date: '2024-03-20',
-      status: 'submitted',
-      weather: '흐림',
-      workProgress: 90,
-      submitted: '18:30',
-      approved: true,
-    },
-    {
-      id: 2,
-      date: '2024-03-19',
-      status: 'approved',
-      weather: '맑음',
-      workProgress: 88,
-      submitted: '17:45',
-      approved: true,
-    },
-    {
-      id: 3,
-      date: '2024-03-18',
-      status: 'revision',
-      weather: '비',
-      workProgress: 75,
-      submitted: '18:15',
-      approved: false,
-      comment: '자재 사용량 재확인 필요',
-    },
-  ]
+  const getTemperatureText = (high?: number | null, low?: number | null) => {
+    if (high !== null && high !== undefined) {
+      return low !== null && low !== undefined ? `${high}°C / ${low}°C` : `${high}°C`
+    }
+    return '기온 미입력'
+  }
 
+  // Mock templates for now (could be fetched from API later)
   const templates = [
     {
       id: 1,
@@ -115,11 +116,7 @@ const DailyReportsContent: React.FC = () => {
   }
 
   return (
-    <MobileLayout
-      title="일일 보고서"
-      userRole={profile?.role as 'site_manager'}
-      showBack={true}
-    >
+    <MobileLayout title="일일 보고서" userRole={profile?.role as 'site_manager'} showBack={true}>
       <div className="p-4 space-y-4">
         {/* Tab Navigation */}
         <Card>
@@ -153,42 +150,79 @@ const DailyReportsContent: React.FC = () => {
         {/* Today Tab */}
         {activeTab === 'today' && (
           <div className="space-y-4">
+            {/* Loading State */}
+            {todayLoading && (
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="t-body">오늘 보고서를 불러오는 중...</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Error State */}
+            {todayError && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-center space-y-3">
+                    <p className="t-body text-red-600">데이터를 불러올 수 없습니다</p>
+                    <p className="t-cap text-gray-600">{todayError}</p>
+                    <Button variant="outline" onClick={refetchToday}>
+                      다시 시도
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Today's Report Status */}
-            <Card
-              className={`border-l-4 ${
-                todayReport.status === 'draft' ? 'border-l-orange-500' : 'border-l-green-500'
-              }`}
-            >
-              <CardContent className="p-4">
-                <Stack gap="sm">
-                  <Row justify="between" align="center">
-                    <div>
-                      <h3 className="t-h2">오늘의 일일보고서</h3>
-                      <p className="t-cap">{todayReport.date}</p>
-                    </div>
-                    <Chip variant={getStatusInfo(todayReport.status).color as any}>
-                      {getStatusInfo(todayReport.status).text}
-                    </Chip>
-                  </Row>
+            {!todayLoading && !todayError && (
+              <Card
+                className={`border-l-4 ${
+                  todayReport?.status === 'draft' || !todayReport
+                    ? 'border-l-orange-500'
+                    : 'border-l-green-500'
+                }`}
+              >
+                <CardContent className="p-4">
+                  <Stack gap="sm">
+                    <Row justify="between" align="center">
+                      <div>
+                        <h3 className="t-h2">오늘의 일일보고서</h3>
+                        <p className="t-cap">{today}</p>
+                      </div>
+                      <Chip variant={getStatusInfo(todayReport?.status || 'draft').color as any}>
+                        {getStatusInfo(todayReport?.status || 'draft').text}
+                      </Chip>
+                    </Row>
 
-                  {todayReport.status === 'draft' && (
-                    <div className="p-3 bg-orange-50 rounded-lg">
-                      <p className="t-cap font-medium">⏰ 보고서 작성이 필요합니다</p>
-                      <p className="t-cap">마감시간: 오늘 18:00</p>
-                    </div>
-                  )}
+                    {(!todayReport || todayReport.status === 'draft') && (
+                      <div className="p-3 bg-orange-50 rounded-lg">
+                        <p className="t-cap font-medium">
+                          ⏰{' '}
+                          {todayReport ? '보고서 작성을 완료해주세요' : '보고서 작성이 필요합니다'}
+                        </p>
+                        <p className="t-cap">마감시간: 오늘 18:00</p>
+                      </div>
+                    )}
 
-                  <Row gap="sm">
-                    <Button variant="primary" className="flex-1">
-                      {todayReport.status === 'draft' ? '작성하기' : '수정하기'}
-                    </Button>
-                    <Button variant="outline" className="flex-1">
-                      미리보기
-                    </Button>
-                  </Row>
-                </Stack>
-              </CardContent>
-            </Card>
+                    <Row gap="sm">
+                      <Button variant="primary" className="flex-1">
+                        {todayReport
+                          ? todayReport.status === 'draft'
+                            ? '작성하기'
+                            : '수정하기'
+                          : '작성하기'}
+                      </Button>
+                      {todayReport && (
+                        <Button variant="outline" className="flex-1">
+                          미리보기
+                        </Button>
+                      )}
+                    </Row>
+                  </Stack>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Today's Overview */}
             <Card>
@@ -198,60 +232,67 @@ const DailyReportsContent: React.FC = () => {
                   <div className="text-center p-3 bg-blue-50 rounded-lg">
                     <p className="text-2xl mb-1">☀️</p>
                     <p className="t-cap">날씨</p>
-                    <p className="t-body font-medium">{todayReport.weather}</p>
-                    <p className="t-cap">{todayReport.temperature}</p>
+                    <p className="t-body font-medium">
+                      {todayReport?.weather ? formatWeather(todayReport.weather) : '미입력'}
+                    </p>
+                    <p className="t-cap">
+                      {getTemperatureText(
+                        todayReport?.temperature_high,
+                        todayReport?.temperature_low
+                      )}
+                    </p>
                   </div>
                   <div className="text-center p-3 bg-green-50 rounded-lg">
                     <p className="text-2xl mb-1">👥</p>
                     <p className="t-cap">출근 현황</p>
-                    <p className="t-body font-medium">
-                      {todayReport.workersPresent}/{todayReport.workersAssigned}명
-                    </p>
-                    <p className="t-cap">출근율 92%</p>
+                    <p className="t-body font-medium">{todayReport?.total_workers || 0}명</p>
+                    <p className="t-cap">현재 투입</p>
                   </div>
                   <div className="text-center p-3 bg-purple-50 rounded-lg">
                     <p className="text-2xl mb-1">🏗️</p>
-                    <p className="t-cap">작업 진행률</p>
-                    <p className="t-body font-medium">{todayReport.workProgress}%</p>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
-                      <div
-                        className="bg-purple-500 h-2 rounded-full"
-                        style={{ width: `${todayReport.workProgress}%` }}
-                      />
-                    </div>
+                    <p className="t-cap">작업 현황</p>
+                    <p className="t-body font-medium">
+                      {todayReport?.status === 'approved'
+                        ? '완료'
+                        : todayReport?.status === 'submitted'
+                          ? '진행중'
+                          : '미시작'}
+                    </p>
+                    <p className="t-cap">
+                      {todayReport?.work_start_time
+                        ? `${todayReport.work_start_time.substring(0, 5)} 시작`
+                        : '시작 예정'}
+                    </p>
                   </div>
                   <div className="text-center p-3 bg-yellow-50 rounded-lg">
                     <p className="text-2xl mb-1">⚠️</p>
-                    <p className="t-cap">안전 이슈</p>
-                    <p className="t-body font-medium">{todayReport.safetyIssues}건</p>
-                    <p className="t-cap">양호</p>
+                    <p className="t-cap">안전 점검</p>
+                    <p className="t-body font-medium">
+                      {todayReport?.safety_notes ? '점검완료' : '점검필요'}
+                    </p>
+                    <p className="t-cap">{todayReport?.safety_notes ? '양호' : '미점검'}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Material Usage */}
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="t-h2 mb-3">오늘 자재 사용량</h3>
-                <Stack gap="sm">
-                  {todayReport.materialUsage.map((material, index) => (
-                    <Row key={index} justify="between" className="p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">📦</span>
-                        <span className="t-body">{material.name}</span>
-                      </div>
-                      <span className="t-body font-medium">
-                        {material.used} {material.unit}
-                      </span>
-                    </Row>
-                  ))}
-                  <Button variant="outline" className="mt-2">
-                    + 자재 사용량 추가
-                  </Button>
-                </Stack>
-              </CardContent>
-            </Card>
+            {/* Work Description */}
+            {todayReport?.work_description && (
+              <Card>
+                <CardContent className="p-4">
+                  <h3 className="t-h2 mb-3">오늘 작업 내용</h3>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="t-body">{todayReport.work_description}</p>
+                  </div>
+                  {todayReport.special_notes && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                      <p className="t-cap font-medium text-blue-800 mb-1">특이사항</p>
+                      <p className="t-body text-blue-700">{todayReport.special_notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {/* Quick Actions */}
             <Card>
@@ -290,45 +331,80 @@ const DailyReportsContent: React.FC = () => {
               </Button>
             </div>
 
-            {recentReports.map(report => {
-              const statusInfo = getStatusInfo(report.status)
+            {/* Loading State */}
+            {recentLoading && (
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="t-body">최근 보고서를 불러오는 중...</p>
+                </CardContent>
+              </Card>
+            )}
 
-              return (
-                <Card key={report.id}>
-                  <CardContent className="p-4">
-                    <Stack gap="sm">
-                      <Row justify="between" align="start">
-                        <div className="flex-1">
-                          <h4 className="t-body font-medium">{report.date} 일일보고서</h4>
-                          <p className="t-cap">
-                            날씨: {report.weather} | 진행률: {report.workProgress}%
-                          </p>
-                          <p className="t-cap">제출: {report.submitted}</p>
-                          {report.comment && (
-                            <p className="t-cap text-red-600 mt-1">💬 {report.comment}</p>
-                          )}
-                        </div>
-                        <Chip variant={statusInfo.color as any}>{statusInfo.text}</Chip>
-                      </Row>
+            {/* Error State */}
+            {recentError && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-center space-y-3">
+                    <p className="t-body text-red-600">데이터를 불러올 수 없습니다</p>
+                    <p className="t-cap text-gray-600">{recentError}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
-                      <Row gap="sm">
-                        <Button variant="outline" className="flex-1 text-sm">
-                          보기
-                        </Button>
-                        <Button variant="ghost" className="text-sm px-3">
-                          공유
-                        </Button>
-                        {report.status === 'revision' && (
-                          <Button variant="primary" className="text-sm px-3">
-                            수정
+            {/* Recent Reports List */}
+            {!recentLoading && !recentError && recentReports.length === 0 && (
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <p className="t-body text-gray-600">최근 작성된 보고서가 없습니다</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {!recentLoading &&
+              !recentError &&
+              recentReports.map(report => {
+                const statusInfo = getStatusInfo(report.status)
+                const reportDate = new Date(report.work_date).toLocaleDateString('ko-KR')
+                const submittedDate = new Date(report.created_at).toLocaleDateString('ko-KR')
+
+                return (
+                  <Card key={report.id}>
+                    <CardContent className="p-4">
+                      <Stack gap="sm">
+                        <Row justify="between" align="start">
+                          <div className="flex-1">
+                            <h4 className="t-body font-medium">{reportDate} 일일보고서</h4>
+                            <p className="t-cap">
+                              날씨: {formatWeather(report.weather)} | 작업자: {report.total_workers}
+                              명
+                            </p>
+                            <p className="t-cap">작성일: {submittedDate}</p>
+                            {report.sites && (
+                              <p className="t-cap text-blue-600">현장: {report.sites.name}</p>
+                            )}
+                          </div>
+                          <Chip variant={statusInfo.color as any}>{statusInfo.text}</Chip>
+                        </Row>
+
+                        <Row gap="sm">
+                          <Button variant="outline" className="flex-1 text-sm">
+                            보기
                           </Button>
-                        )}
-                      </Row>
-                    </Stack>
-                  </CardContent>
-                </Card>
-              )
-            })}
+                          <Button variant="ghost" className="text-sm px-3">
+                            공유
+                          </Button>
+                          {(report.status === 'draft' || report.status === 'rejected') && (
+                            <Button variant="primary" className="text-sm px-3">
+                              수정
+                            </Button>
+                          )}
+                        </Row>
+                      </Stack>
+                    </CardContent>
+                  </Card>
+                )
+              })}
           </div>
         )}
 
