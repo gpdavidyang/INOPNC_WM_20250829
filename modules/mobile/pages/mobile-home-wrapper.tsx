@@ -33,39 +33,110 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
     let mounted = true
     let validationTimeout: NodeJS.Timeout
     let sessionMonitoringInterval: NodeJS.Timeout
+    let consecutiveTimeouts = 0
+    let healthCheckCount = 0
 
-    // Enhanced session validation with timeout and fallback
+    // Production environment detection
+    const isProduction =
+      process.env.NODE_ENV === 'production' ||
+      (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
+
+    // Enhanced session validation with production-grade resilience
     const validateSession = async (attempt = 1) => {
-      const maxAttempts = 5 // Increased attempts for production
-      const timeoutMs = 15000 // Increased to 15 seconds for production environment
+      const maxAttempts = isProduction ? 15 : 8 // Significantly more attempts in production
+      const baseTimeoutMs = isProduction ? 45000 : 25000 // Much longer base timeout in production
+      const timeoutMs = Math.min(baseTimeoutMs + (attempt - 1) * 5000, isProduction ? 90000 : 40000) // Progressive timeout increase
 
       try {
         if (!mounted) return
 
-        console.log(`[AUTH] Session validation attempt ${attempt}/${maxAttempts}`)
+        console.log(
+          `[AUTH] Session validation attempt ${attempt}/${maxAttempts} (timeout: ${timeoutMs}ms, production: ${isProduction})`
+        )
 
-        // Create a timeout promise with more graceful handling
+        // Network health check for production
+        if (isProduction && attempt > 1) {
+          try {
+            const healthStart = Date.now()
+            await fetch('/api/health', {
+              method: 'HEAD',
+              signal: AbortSignal.timeout(5000),
+            })
+            const healthDuration = Date.now() - healthStart
+            console.log(`[AUTH] Health check passed in ${healthDuration}ms`)
+            healthCheckCount++
+          } catch (healthError) {
+            console.log(`[AUTH] Health check failed (attempt ${attempt}):`, healthError)
+            consecutiveTimeouts++
+
+            // If health check fails multiple times, add extra delay
+            if (consecutiveTimeouts >= 3) {
+              const extraDelay = Math.pow(2, consecutiveTimeouts - 2) * 8000
+              await new Promise(resolve => setTimeout(resolve, extraDelay))
+            }
+          }
+        }
+
+        // Adaptive timeout based on network conditions
+        const adaptiveTimeoutMs =
+          consecutiveTimeouts > 0
+            ? Math.min(timeoutMs * (1 + consecutiveTimeouts * 0.5), isProduction ? 120000 : 60000)
+            : timeoutMs
+
+        // Create a timeout promise with extended grace period
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Session validation timeout')), timeoutMs)
+          setTimeout(() => reject(new Error('Session validation timeout')), adaptiveTimeoutMs)
         })
 
-        // Check if we have a valid session with timeout
-        const sessionPromise = supabase.auth.getSession()
+        // Check if we have a valid session with multiple fallback strategies
+        let sessionResult
+        try {
+          const sessionPromise = supabase.auth.getSession()
+          sessionResult = await Promise.race([sessionPromise, timeoutPromise])
+        } catch (sessionError) {
+          if (sessionError.message === 'Session validation timeout') {
+            console.log(`[AUTH] Session fetch timeout (attempt ${attempt})`)
+            throw sessionError
+          }
+          // For other session errors, try refresh first
+          console.log(`[AUTH] Session error, trying refresh (attempt ${attempt}):`, sessionError)
+          try {
+            const refreshPromise = supabase.auth.refreshSession()
+            sessionResult = await Promise.race([refreshPromise, timeoutPromise])
+          } catch (refreshError) {
+            console.log(`[AUTH] Refresh also failed (attempt ${attempt}):`, refreshError)
+            throw refreshError
+          }
+        }
 
-        const result = await Promise.race([sessionPromise, timeoutPromise])
         const {
           data: { session },
           error,
-        } = result as any
+        } = sessionResult as any
 
         if (!mounted) return
 
         if (error || !session || !session.user) {
           console.log(`[AUTH] No valid session (attempt ${attempt})`, error?.message)
 
-          // Only clear storage if we're certain there's no valid session
-          if (attempt === maxAttempts) {
-            // More selective clearing - preserve user preferences
+          if (attempt < maxAttempts) {
+            // Progressive backoff with jitter for production load balancing
+            const baseDelay = Math.pow(2, attempt - 1) * 4000 // Start with 4s base delay
+            const jitter = Math.random() * 3000 // Add up to 3s jitter
+            const delay = Math.min(baseDelay + jitter, 20000) // Max 20s delay
+
+            console.log(`[AUTH] Retrying session validation in ${Math.round(delay)}ms...`)
+            validationTimeout = setTimeout(() => {
+              if (mounted) {
+                validateSession(attempt + 1)
+              }
+            }, delay)
+            return
+          } else {
+            // Only clear storage if we're certain there's no valid session after all attempts
+            console.log(
+              '[AUTH] All session validation attempts failed, clearing storage and redirecting'
+            )
             try {
               localStorage.removeItem('sb-access-token')
               localStorage.removeItem('sb-refresh-token')
@@ -149,8 +220,9 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
           }
         }
 
-        // Validation successful
+        // Validation successful - reset timeout counter
         if (mounted) {
+          consecutiveTimeouts = 0
           console.log('[AUTH] Session validation successful')
           setIsAuthenticated(true)
           setIsValidating(false)
@@ -162,12 +234,33 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
         console.error(`[AUTH] Session validation error (attempt ${attempt}):`, error)
 
         if (attempt < maxAttempts && mounted) {
-          // Exponential backoff with jitter to prevent thundering herd - increased for production
-          const baseDelay = Math.pow(2, attempt - 1) * 2000 // Start with 2s instead of 1s
-          const jitter = Math.random() * 1000 // Add up to 1000ms of jitter
-          const delay = Math.min(baseDelay + jitter, 20000) // Allow up to 20s max delay
+          // Enhanced retry logic with adaptive strategies for production
+          const isTimeoutError = error.message.includes('timeout')
+          const isNetworkError =
+            error.message.includes('network') || error.message.includes('fetch')
+          consecutiveTimeouts = isTimeoutError
+            ? consecutiveTimeouts + 1
+            : Math.max(0, consecutiveTimeouts - 1)
 
-          console.log(`[AUTH] Retrying session validation in ${Math.round(delay)}ms...`)
+          // Production-adjusted delays with circuit breaker patterns
+          let baseDelay
+          if (isTimeoutError) {
+            // Much longer delays for timeouts in production
+            baseDelay = Math.pow(2, attempt) * (isProduction ? 8000 : 5000)
+          } else if (isNetworkError) {
+            // Medium delays for network issues
+            baseDelay = Math.pow(2, attempt - 1) * (isProduction ? 5000 : 3000)
+          } else {
+            // Standard delays for other errors
+            baseDelay = Math.pow(2, attempt - 1) * (isProduction ? 3000 : 2000)
+          }
+
+          const jitter = Math.random() * (isProduction ? 4000 : 2000)
+          const delay = Math.min(baseDelay + jitter, isProduction ? 45000 : 25000)
+
+          console.log(
+            `[AUTH] Retrying session validation in ${Math.round(delay)}ms... (${isTimeoutError ? 'timeout' : isNetworkError ? 'network' : 'other'}, consecutive timeouts: ${consecutiveTimeouts})`
+          )
 
           validationTimeout = setTimeout(() => {
             if (mounted) {
@@ -178,10 +271,27 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
           // Max attempts reached or component unmounted
           console.log('[AUTH] Session validation failed after all attempts')
           if (mounted) {
-            // Clear auth state and redirect
-            localStorage.removeItem('sb-access-token')
-            localStorage.removeItem('sb-refresh-token')
-            window.location.replace('/auth/login')
+            // More aggressive clearing for production reliability
+            try {
+              localStorage.removeItem('sb-access-token')
+              localStorage.removeItem('sb-refresh-token')
+              localStorage.removeItem('user-role')
+              localStorage.removeItem('supabase.auth.token')
+              sessionStorage.clear()
+
+              // Clear any remaining auth cookies
+              document.cookie.split(';').forEach(function (c) {
+                document.cookie = c
+                  .replace(/^ +/, '')
+                  .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/')
+              })
+            } catch (clearError) {
+              console.warn('[AUTH] Error clearing auth state:', clearError)
+            }
+
+            // Force redirect to login
+            const currentPath = window.location.pathname + window.location.search
+            window.location.replace(`/auth/login?redirectTo=${encodeURIComponent(currentPath)}`)
           }
         }
       }
