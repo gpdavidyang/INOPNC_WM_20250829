@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [loading, setLoading] = useState(!initialSession)
   const router = useRouter()
 
-  const refreshSession = async () => {
+  const refreshSession = useCallback(async () => {
     const supabase = createClient()
     if (!supabase) {
       console.error('Supabase client not available')
@@ -48,27 +48,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     }
 
     try {
-      // First try to get the current session
-      const {
-        data: { session: currentSession },
-        error: sessionError,
-      } = await supabase.auth.getSession()
+      // First try to get the current session with retry logic
+      let currentSession = null
+      let retryCount = 0
+      const maxRetries = 3
+
+      while (retryCount < maxRetries && !currentSession) {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
+        if (session) {
+          currentSession = session
+          break
+        }
+
+        if (retryCount < maxRetries - 1) {
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 500 * (retryCount + 1)))
+        }
+        retryCount++
+      }
 
       if (currentSession) {
         setSession(currentSession)
         setUser(currentSession.user)
         console.log('Session refreshed from cookies:', currentSession.user?.email)
 
-        // Fetch profile if not already loaded
+        // Fetch profile with retry logic
         if (!profile && currentSession.user) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentSession.user.id)
-            .single()
+          let profileData = null
+          let profileRetry = 0
+
+          while (profileRetry < 2 && !profileData) {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', currentSession.user.id)
+              .single()
+
+            if (data) {
+              profileData = data
+              break
+            }
+
+            if (profileRetry < 1) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
+            profileRetry++
+          }
 
           if (profileData) {
             setProfile(profileData)
+          } else {
+            // Fallback to user metadata if profile fetch fails
+            setProfile({
+              id: currentSession.user.id,
+              email: currentSession.user.email,
+              full_name:
+                currentSession.user.user_metadata?.full_name ||
+                currentSession.user.email?.split('@')[0] ||
+                'User',
+              role: currentSession.user.user_metadata?.role || 'worker',
+            })
           }
         }
       } else {
@@ -83,16 +126,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           setUser(refreshedSession.user)
           console.log('Session refreshed with refresh token:', refreshedSession.user?.email)
 
-          // Fetch profile
+          // Fetch profile with retry
           if (refreshedSession.user) {
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', refreshedSession.user.id)
-              .single()
+            let profileData = null
+            let profileRetry = 0
+
+            while (profileRetry < 2 && !profileData) {
+              const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', refreshedSession.user.id)
+                .single()
+
+              if (data) {
+                profileData = data
+                break
+              }
+
+              if (profileRetry < 1) {
+                await new Promise(resolve => setTimeout(resolve, 500))
+              }
+              profileRetry++
+            }
 
             if (profileData) {
               setProfile(profileData)
+            } else {
+              // Fallback to user metadata
+              setProfile({
+                id: refreshedSession.user.id,
+                email: refreshedSession.user.email,
+                full_name:
+                  refreshedSession.user.user_metadata?.full_name ||
+                  refreshedSession.user.email?.split('@')[0] ||
+                  'User',
+                role: refreshedSession.user.user_metadata?.role || 'worker',
+              })
             }
           }
         } else {
@@ -107,7 +176,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     } finally {
       setLoading(false)
     }
-  }
+  }, [profile])
 
   useEffect(() => {
     // Initial session check

@@ -2,7 +2,8 @@
 
 :root {
   /* Colors - 100% HTML Match */
-  --font: var(--font-noto-sans-kr, 'Noto Sans KR'), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --font:
+    var(--font-noto-sans-kr, 'Noto Sans KR'), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   --bg: #f5f7fb;
   --card: #ffffff;
   --text: #101828;
@@ -157,7 +158,8 @@ textarea {
 }
 
 /* Brand Title */
-.brand-title, .header-title {
+.brand-title,
+.header-title {
   font-family: var(--font-poppins, 'Poppins'), var(--font);
   font-size: 20px;
   font-weight: 700;
@@ -169,7 +171,7 @@ textarea {
 }
 
 [data-theme='dark'] .brand-title {
-  color: #FFFFFF;
+  color: #ffffff;
 }
 
 /* Header Icon Button */
@@ -192,7 +194,7 @@ textarea {
 }
 
 [data-theme='dark'] .header-icon-btn {
-  color: #33E6F6;
+  color: #33e6f6;
 }
 
 .header-icon-btn:hover {
@@ -223,7 +225,7 @@ textarea {
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.3px;
-  color: #6B7280;
+  color: #6b7280;
 }
 
 /* 큰글씨 모드에서도 헤더는 영향받지 않도록 */
@@ -437,7 +439,7 @@ textarea {
   position: absolute;
   top: -4px;
   right: -6px;
-  background: #FF0000;
+  background: #ff0000;
   color: white;
   font-size: 9px !important;
   font-weight: 600;
@@ -521,19 +523,19 @@ textarea {
 }
 
 .nav-link.active {
-  color: #1A254F;
+  color: #1a254f;
 }
 
 .nav-link.active .nav-svg,
 .nav-link.active .nav-label {
-  color: #1A254F !important;
+  color: #1a254f !important;
 }
 
 /* 통합 전환 */
-.nav-link, 
-.nav-svg, 
+.nav-link,
+.nav-svg,
 .nav-label {
-  transition: all .2s ease-out;
+  transition: all 0.2s ease-out;
   transform-origin: center;
 }
 
@@ -547,7 +549,7 @@ textarea {
 .nav-link:is(:hover, :active, :focus-visible) .nav-label,
 .nav-link.pressed .nav-svg,
 .nav-link.pressed .nav-label {
-  color: #3182CE !important;
+  color: #3182ce !important;
 }
 
 .nav-ico {
@@ -606,14 +608,28 @@ textarea {
   border-right: 1px solid var(--line);
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
   z-index: 1500;
-  display: flex;
-  flex-direction: column;
   transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  overflow: visible;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  overflow: hidden; /* Hide overflow at drawer level */
   contain: layout paint;
   isolation: isolate;
-  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+/* New container for proper scrolling */
+.drawer-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px
+    calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 .drawer.show {
@@ -623,8 +639,8 @@ textarea {
 
 .drawer-body {
   padding: 0;
-  flex: 1;
-  overflow-y: auto;
+  flex: 1 1 auto; /* Changed to allow shrinking */
+  overflow-y: visible; /* Changed from auto to visible to prevent double scrolling */
   -webkit-overflow-scrolling: touch;
   color: var(--text);
 }
@@ -656,7 +672,13 @@ textarea {
 }
 
 .profile-name {
-  font: 600 18px/1.2 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font:
+    600 18px/1.2 'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   color: var(--text);
   transition: color 0.3s ease;
 }
@@ -664,7 +686,7 @@ textarea {
 .important-tag {
   display: inline-block;
   background: rgba(0, 104, 254, 0.1);
-  color: #0068FE;
+  color: #0068fe;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 12px;
@@ -674,13 +696,19 @@ textarea {
   white-space: nowrap;
 }
 
-[data-theme="dark"] .important-tag {
+[data-theme='dark'] .important-tag {
   background: rgba(0, 104, 254, 0.2);
-  color: #0068FE;
+  color: #0068fe;
 }
 
 .profile-email {
-  font: 400 13px 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font:
+    400 13px 'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   color: var(--muted);
   text-align: left;
   transition: color 0.3s ease;
@@ -692,7 +720,13 @@ textarea {
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 8px 16px;
-  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -705,10 +739,10 @@ textarea {
   border-color: #d0d0d0;
 }
 
-[data-theme="dark"] .close-btn:hover {
+[data-theme='dark'] .close-btn:hover {
   background-color: rgba(0, 188, 212, 0.1);
-  border-color: #00BCD4;
-  color: #00BCD4;
+  border-color: #00bcd4;
+  color: #00bcd4;
 }
 
 .menu-list {
@@ -738,7 +772,13 @@ textarea {
 }
 
 .menu-label {
-  font: 500 16px/1.2 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font:
+    500 16px/1.2 'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   color: var(--text);
   transition: color 0.3s ease;
 }
@@ -754,8 +794,8 @@ textarea {
 
 .account-manage-btn {
   background: transparent;
-  color: #0068FE;
-  border: 1px solid #0068FE;
+  color: #0068fe;
+  border: 1px solid #0068fe;
   border-radius: 6px;
   padding: 6px 12px;
   font-family: 'Noto Sans KR', sans-serif;
@@ -768,7 +808,7 @@ textarea {
 }
 
 .account-manage-btn:hover {
-  background: #0068FE;
+  background: #0068fe;
   color: white;
 }
 
@@ -786,24 +826,28 @@ textarea {
 }
 
 .account-label {
-  font: 500 14px/1.2 'Noto Sans KR', sans-serif;
+  font:
+    500 14px/1.2 'Noto Sans KR',
+    sans-serif;
   color: var(--text);
 }
 
 .account-value {
-  font: 400 14px/1.2 'Noto Sans KR', sans-serif;
+  font:
+    400 14px/1.2 'Noto Sans KR',
+    sans-serif;
   color: var(--muted);
 }
 
 .change-password-btn {
-  color: #0068FE !important;
+  color: #0068fe !important;
   cursor: pointer;
   font-weight: 600;
   transition: color 0.3s ease;
 }
 
 .change-password-btn:hover {
-  color: #0052CC !important;
+  color: #0052cc !important;
 }
 
 /* 비밀번호 변경 폼 스타일 */
@@ -837,7 +881,7 @@ textarea {
 }
 
 .form-input:focus {
-  border-color: #0068FE;
+  border-color: #0068fe;
   outline: none;
   box-shadow: 0 0 0 3px rgba(0, 104, 254, 0.1);
 }
@@ -853,7 +897,8 @@ textarea {
   margin-top: 8px;
 }
 
-.cancel-btn, .save-btn {
+.cancel-btn,
+.save-btn {
   flex: 1;
   padding: 10px 16px;
   border-radius: 8px;
@@ -877,20 +922,26 @@ textarea {
 }
 
 .save-btn {
-  background: #00BCD4;
+  background: #00bcd4;
   color: white;
-  border: 1px solid #00BCD4;
+  border: 1px solid #00bcd4;
 }
 
 .save-btn:hover {
-  background: #00ACC1;
+  background: #00acc1;
 }
 
 .drawer-foot {
   margin-top: auto;
   padding: 16px;
-  border-top: 1px solid #E5E7EB;
-  padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid #e5e7eb;
+  padding-bottom: max(
+    24px,
+    env(safe-area-inset-bottom, 16px)
+  ); /* More padding for better visibility */
+  flex-shrink: 0; /* Ensure footer doesn't shrink */
+  background: var(--card); /* Same as drawer background */
+  min-height: 80px; /* Ensure minimum height for visibility */
 }
 
 .logout-btn {
@@ -899,7 +950,13 @@ textarea {
   border-radius: 12px;
   border: 1px solid #dc2626;
   background: #dc2626;
-  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-size: 14px;
   font-weight: 700;
   line-height: 1.2;

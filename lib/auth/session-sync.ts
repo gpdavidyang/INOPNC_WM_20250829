@@ -1,102 +1,147 @@
-/**
- * Session synchronization utilities for ensuring auth state consistency
- * between server and client components
- */
+'use client'
 
 import { createClient } from '@/lib/supabase/client'
 
+let syncInterval: NodeJS.Timeout | null = null
+let lastSyncTime = 0
+const SYNC_INTERVAL = 5 * 60 * 1000 // 5 minutes
+const MIN_SYNC_DELAY = 30 * 1000 // 30 seconds minimum between syncs
+
 /**
- * Force refresh the session from cookies on the client side
- * This helps maintain session continuity when navigating between pages
+ * Initialize session synchronization for mobile PWA
+ * This ensures the session stays fresh and profile data is available
  */
-export async function syncClientSession() {
-  if (typeof window === 'undefined') {
-    return { success: false, error: 'Not in browser environment' }
+export function initSessionSync() {
+  // Clear any existing interval
+  if (syncInterval) {
+    clearInterval(syncInterval)
   }
+
+  // Initial sync
+  syncSession()
+
+  // Set up periodic sync
+  syncInterval = setInterval(() => {
+    syncSession()
+  }, SYNC_INTERVAL)
+
+  // Sync on visibility change (when app comes to foreground)
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
+
+  // Sync on online status change
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', handleOnline)
+  }
+}
+
+/**
+ * Clean up session sync
+ */
+export function cleanupSessionSync() {
+  if (syncInterval) {
+    clearInterval(syncInterval)
+    syncInterval = null
+  }
+
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
+
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('online', handleOnline)
+  }
+}
+
+/**
+ * Sync session with Supabase
+ */
+async function syncSession() {
+  const now = Date.now()
+
+  // Prevent too frequent syncs
+  if (now - lastSyncTime < MIN_SYNC_DELAY) {
+    return
+  }
+
+  lastSyncTime = now
 
   try {
     const supabase = createClient()
     if (!supabase) {
-      return { success: false, error: 'Supabase client not available' }
+      console.error('[Session Sync] Supabase client not available')
+      return
     }
 
-    // First, try to get the current session from cookies
+    // Try to get current session
     const {
       data: { session },
-      error: sessionError,
+      error,
     } = await supabase.auth.getSession()
 
-    if (session) {
-      console.log('[SESSION-SYNC] Session found:', session.user?.email)
-      return { success: true, session }
+    if (error) {
+      console.error('[Session Sync] Error getting session:', error)
+      return
     }
 
-    // If no session, try to refresh using refresh token
-    const {
-      data: { session: refreshedSession },
-      error: refreshError,
-    } = await supabase.auth.refreshSession()
+    if (!session) {
+      // Try to refresh if no session
+      const {
+        data: { session: refreshedSession },
+        error: refreshError,
+      } = await supabase.auth.refreshSession()
 
-    if (refreshedSession) {
-      console.log('[SESSION-SYNC] Session refreshed:', refreshedSession.user?.email)
-      return { success: true, session: refreshedSession }
+      if (refreshError) {
+        console.error('[Session Sync] Error refreshing session:', refreshError)
+      } else if (refreshedSession) {
+        console.log('[Session Sync] Session refreshed successfully')
+      }
+    } else {
+      // Check if token needs refresh (within 5 minutes of expiry)
+      const expiresAt = session.expires_at ? session.expires_at * 1000 : 0
+      const timeUntilExpiry = expiresAt - now
+
+      if (timeUntilExpiry < 5 * 60 * 1000) {
+        // Less than 5 minutes
+        const {
+          data: { session: refreshedSession },
+          error: refreshError,
+        } = await supabase.auth.refreshSession()
+
+        if (refreshError) {
+          console.error('[Session Sync] Error refreshing expiring session:', refreshError)
+        } else if (refreshedSession) {
+          console.log('[Session Sync] Expiring session refreshed successfully')
+        }
+      }
     }
-
-    console.log('[SESSION-SYNC] No session available')
-    return { success: false, error: refreshError?.message || 'No session found' }
   } catch (error) {
-    console.error('[SESSION-SYNC] Error:', error)
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    }
+    console.error('[Session Sync] Unexpected error:', error)
   }
 }
 
 /**
- * Initialize session sync on page load
- * This should be called in client components that require authentication
+ * Handle visibility change (app coming to foreground)
  */
-export function initSessionSync() {
-  if (typeof window === 'undefined') return
-
-  // Sync session on page load
-  syncClientSession().then(result => {
-    if (!result.success) {
-      console.warn('[SESSION-SYNC] Initial sync failed:', result.error)
-    }
-  })
-
-  // Listen for visibility changes to refresh session when tab becomes active
-  document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) {
-      syncClientSession()
-    }
-  })
-
-  // Listen for focus events
-  window.addEventListener('focus', () => {
-    syncClientSession()
-  })
+function handleVisibilityChange() {
+  if (!document.hidden) {
+    // App is visible, sync session
+    syncSession()
+  }
 }
 
 /**
- * Manual session refresh utility
+ * Handle online status change
  */
-export async function refreshAuthSession() {
-  const supabase = createClient()
-  if (!supabase) {
-    throw new Error('Supabase client not available')
-  }
+function handleOnline() {
+  // Device is online, sync session
+  syncSession()
+}
 
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.refreshSession()
-
-  if (error) {
-    throw error
-  }
-
-  return session
+/**
+ * Force immediate session sync
+ */
+export async function forceSessionSync() {
+  await syncSession()
 }
