@@ -33,13 +33,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     // Verify that the user's partner company is associated with this site
     const { data: sitePartner } = await supabase
-      .from('site_partners')
+      .from('partner_site_mappings')
       .select('id')
       .eq('site_id', siteId)
       .eq('partner_company_id', profile.organization_id || '')
+      .eq('is_active', true)
       .single()
 
-    if (!sitePartner && profile.role !== 'admin') {
+    if (!sitePartner && !['admin', 'system_admin'].includes(profile.role || '')) {
       return NextResponse.json({ error: 'Access denied to this site' }, { status: 403 })
     }
 
@@ -87,7 +88,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
         file_size,
         mime_type,
         document_type,
-        category_type,
         created_at,
         owner_id,
         profiles!documents_owner_id_fkey(
@@ -124,9 +124,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     let finalLegacyQuery = legacyQuery
     if (documentType && documentType === 'drawing') {
       // Include blueprints and drawings from legacy documents table
-      finalLegacyQuery = finalLegacyQuery.or(
-        'document_type.in.(blueprint,drawing),category_type.in.(blueprint,drawing)'
-      )
+      finalLegacyQuery = finalLegacyQuery.in('document_type', ['blueprint', 'drawing'])
     } else if (documentType && documentType !== 'all') {
       finalLegacyQuery = finalLegacyQuery.eq('document_type', documentType)
     }
@@ -162,7 +160,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const transformedLegacy = (legacyDocuments || []).map((doc: any) => ({
       id: doc.id,
-      type: mapDocumentType(doc.category_type || doc.document_type || 'drawing', null),
+      type: mapDocumentType(
+        doc.document_type === 'blueprint' ? 'drawing' : doc.document_type || 'drawing',
+        null
+      ),
       name: doc.file_name,
       title: doc.title,
       description: doc.description,
@@ -171,15 +172,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
       fileSize: doc.file_size,
       mimeType: doc.mime_type,
       fileUrl: doc.file_url,
-      categoryType:
-        doc.category_type ||
-        (doc.document_type === 'blueprint' ? 'drawing' : doc.document_type) ||
-        'drawing',
+      categoryType: doc.document_type === 'blueprint' ? 'drawing' : doc.document_type || 'drawing',
       subType: doc.document_type === 'blueprint' ? 'blueprint' : null,
       icon: getDocumentIcon(
-        doc.category_type ||
-          (doc.document_type === 'blueprint' ? 'drawing' : doc.document_type) ||
-          'drawing',
+        doc.document_type === 'blueprint' ? 'drawing' : doc.document_type || 'drawing',
         null
       ),
     }))
@@ -191,7 +187,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     // Group documents by type for statistics
     const documentStats = transformedDocuments.reduce(
-      (acc: unknown, doc: unknown) => {
+      (acc: Record<string, number>, doc: any) => {
         const type = doc.categoryType || 'other'
         acc[type] = (acc[type] || 0) + 1
         return acc
@@ -238,7 +234,7 @@ function mapDocumentType(categoryType: string, subType: string | null): string {
   return typeMap[categoryType] || subType || categoryType || '문서'
 }
 
-function getDocumentIcon(categoryType: string, subType: string | null): string {
+function getDocumentIcon(categoryType: string, _subType: string | null): string {
   const iconMap: { [key: string]: string } = {
     invoice: 'DollarSign',
     contract: 'FileSignature',

@@ -3,12 +3,14 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { Eye, EyeOff } from 'lucide-react'
 import { signIn } from '@/app/auth/actions'
 import styles from './login.module.css'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async (formData: FormData) => {
     const email = formData.get('email') as string
@@ -72,15 +74,25 @@ export default function LoginPage() {
               <label htmlFor="password" className={styles.inputLabel}>
                 비밀번호
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className={styles.inputField}
-                placeholder="비밀번호를 입력하세요"
-                disabled={isLoading}
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  className={`${styles.inputField} pr-10`}
+                  placeholder="비밀번호를 입력하세요"
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                  disabled={isLoading}
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
 
             {error && <div className={styles.errorMessage}>{error}</div>}
