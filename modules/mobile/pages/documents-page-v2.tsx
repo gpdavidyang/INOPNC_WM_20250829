@@ -8,7 +8,15 @@ import { useLongPress } from '@/modules/mobile/hooks/useLongPress'
 import { DocumentPreviewModal } from '@/modules/mobile/components/documents/DocumentPreviewModal'
 import { DocumentShareModal } from '@/modules/mobile/components/documents/DocumentShareModal'
 import { FileUploadSection } from '@/modules/mobile/components/documents/FileUploadSection'
-import { useDocumentState, useUserPreferences, useUploadHistory } from '@/modules/mobile/hooks/useLocalStorage'
+import {
+  useDocumentState,
+  useUserPreferences,
+  useUploadHistory,
+} from '@/modules/mobile/hooks/useLocalStorage'
+import {
+  NotificationProvider,
+  useNotificationHelpers,
+} from '@/modules/mobile/hooks/useNotification'
 import './documents-page-v2.css'
 
 interface DocumentItem {
@@ -21,14 +29,16 @@ interface DocumentItem {
 export const DocumentsPageV2: React.FC = () => {
   return (
     <MobileAuthGuard>
-      <DocumentsContentV2 />
+      <NotificationProvider>
+        <DocumentsContentV2 />
+      </NotificationProvider>
     </MobileAuthGuard>
   )
 }
 
 const DocumentsContentV2: React.FC = () => {
   const { profile } = useMobileUser()
-  
+
   // 로컬스토리지 상태 훅들
   const {
     documentState,
@@ -36,12 +46,15 @@ const DocumentsContentV2: React.FC = () => {
     updateActiveTab,
     updateSearchQuery,
     updateFontSize,
-    updateDeleteMode
+    updateDeleteMode,
   } = useDocumentState()
-  
+
   const { preferences, updateTheme } = useUserPreferences()
   const { addUploadRecord, getUploadStats } = useUploadHistory()
-  
+
+  // 알림 시스템 훅
+  const { showSuccess, showError, showWarning, showInfo } = useNotificationHelpers()
+
   // 로컬 상태는 localStorage에서 초기화
   const [activeTab, setActiveTab] = useState<'mine' | 'shared'>(documentState.activeTab)
   const [searchQuery, setSearchQuery] = useState(documentState.searchQuery)
@@ -50,22 +63,22 @@ const DocumentsContentV2: React.FC = () => {
   )
   const [fontSize, setFontSize] = useState<'fs-100' | 'fs-150'>(documentState.fontSize)
   const [deleteMode, setDeleteMode] = useState(documentState.deleteMode)
-  
+
   // 모달 상태 관리
   const [previewModal, setPreviewModal] = useState<{
     isOpen: boolean
     document: DocumentItem | null
   }>({
     isOpen: false,
-    document: null
+    document: null,
   })
-  
+
   const [shareModal, setShareModal] = useState<{
     isOpen: boolean
   }>({
-    isOpen: false
+    isOpen: false,
   })
-  
+
   const [uploadModal, setUploadModal] = useState<{
     isOpen: boolean
     documentId: string | null
@@ -73,7 +86,7 @@ const DocumentsContentV2: React.FC = () => {
   }>({
     isOpen: false,
     documentId: null,
-    documentTitle: null
+    documentTitle: null,
   })
 
   // 내 문서함 문서 목록
@@ -160,7 +173,7 @@ const DocumentsContentV2: React.FC = () => {
       setUploadModal({
         isOpen: true,
         documentId: docId,
-        documentTitle: document.title
+        documentTitle: document.title,
       })
     }
   }
@@ -170,7 +183,7 @@ const DocumentsContentV2: React.FC = () => {
     if (document) {
       setPreviewModal({
         isOpen: true,
-        document
+        document,
       })
     }
   }
@@ -194,17 +207,17 @@ const DocumentsContentV2: React.FC = () => {
   const handleSaveDocuments = () => {
     const selected = Array.from(selectedDocuments)
     console.log('Save documents:', selected)
-    alert(`${selected.length}개의 문서가 저장되었습니다.`)
+    showSuccess(`${selected.length}개의 문서가 저장되었습니다.`, '저장 완료')
   }
 
   const handleShareDocuments = () => {
     if (selectedDocuments.size === 0) {
-      alert('공유할 문서를 선택해주세요.')
+      showWarning('공유할 문서를 선택해주세요.', '문서 미선택')
       return
     }
-    
+
     setShareModal({
-      isOpen: true
+      isOpen: true,
     })
   }
 
@@ -214,21 +227,21 @@ const DocumentsContentV2: React.FC = () => {
 
   const handleUploadComplete = (uploadedFiles: any[]) => {
     console.log('Files uploaded successfully:', uploadedFiles)
-    
+
     // TODO: 실제 구현에서는 서버에 업로드 상태를 업데이트해야 함
     // updateDocumentUploadStatus(uploadModal.documentId, uploadedFiles)
-    
-    alert(`${uploadedFiles.length}개 파일이 성공적으로 업로드되었습니다.`)
+
+    showSuccess(`${uploadedFiles.length}개 파일이 성공적으로 업로드되었습니다.`, '업로드 완료')
     setUploadModal({
       isOpen: false,
       documentId: null,
-      documentTitle: null
+      documentTitle: null,
     })
   }
 
   const handleUploadError = (error: string, fileName: string) => {
     console.error('Upload error:', error, fileName)
-    alert(`업로드 실패: ${fileName}\n${error}`)
+    showError(`${fileName} 업로드 실패: ${error}`, '업로드 오류')
   }
 
   useEffect(() => {
@@ -479,11 +492,13 @@ const DocumentsContentV2: React.FC = () => {
         {/* 파일 업로드 모달 */}
         <FileUploadSection
           isOpen={uploadModal.isOpen}
-          onClose={() => setUploadModal({
-            isOpen: false,
-            documentId: null,
-            documentTitle: null
-          })}
+          onClose={() =>
+            setUploadModal({
+              isOpen: false,
+              documentId: null,
+              documentTitle: null,
+            })
+          }
           documentTitle={uploadModal.documentTitle}
           onUploadComplete={handleUploadComplete}
           onUploadError={handleUploadError}

@@ -3,11 +3,18 @@
  */
 
 /**
- * 작업일지 탭 상태
- * output: 출력현황 탭
- * salary: 급여현황 탭
+ * 작업일지 상태
+ * temporary: 임시저장
+ * completed: 작성완료
  */
-export type WorkLogStatus = 'output' | 'salary'
+export type WorkLogStatus = 'temporary' | 'completed'
+
+/**
+ * 작업일지 탭 상태
+ * draft: 작성중 (임시저장 포함)
+ * approved: 승인완료 (작성완료)
+ */
+export type WorkLogTabStatus = 'draft' | 'approved'
 
 /**
  * 부재명 타입
