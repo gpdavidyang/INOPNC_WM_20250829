@@ -24,6 +24,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
     const [isMouseDown, setIsMouseDown] = useState(false)
     const [startPoint, setStartPoint] = useState({ x: 0, y: 0 })
     const [currentDrawing, setCurrentDrawing] = useState<Partial<MarkupObject> | null>(null)
+    const [isMobile, setIsMobile] = useState(false)
     const [textInputOpen, setTextInputOpen] = useState(false)
     const [textInputPosition, setTextInputPosition] = useState({ x: 0, y: 0 })
     const [imageLoadProgress, setImageLoadProgress] = useState(0)
@@ -42,6 +43,17 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
     // Canvas ref 처리
     const canvas =
       canvasRef && 'current' in canvasRef ? canvasRef.current : internalCanvasRef.current
+
+    // 모바일 감지
+    useEffect(() => {
+      const checkMobile = () => {
+        setIsMobile(window.innerWidth < 768)
+      }
+
+      checkMobile()
+      window.addEventListener('resize', checkMobile)
+      return () => window.removeEventListener('resize', checkMobile)
+    }, [])
 
     // 터치 제스처 헬퍼 함수들
     const getTouchDistance = (
@@ -165,9 +177,16 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         if (canvas && containerRef.current) {
           const rect = containerRef.current.getBoundingClientRect()
 
-          // 최소 높이 설정 (높이가 0이면 400px로 설정)
+          // 모바일에서는 이미지 크기에 맞춰 캔버스 확장
+          const isMobile = window.innerWidth < 768
           const width = rect.width || 800
-          const height = rect.height || 400
+          const height =
+            isMobile && blueprintImageRef.current
+              ? Math.max(
+                  rect.height || 400,
+                  blueprintImageRef.current.height * (width / blueprintImageRef.current.width)
+                )
+              : rect.height || 400
 
           // console.log('Resizing canvas:', { // 디버깅용
           //   originalWidth: rect.width,
@@ -1136,7 +1155,7 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
       <>
         <canvas
           ref={canvasRef || internalCanvasRef}
-          className={`w-full h-full ${
+          className={`w-full ${isMobile ? 'min-h-full' : 'h-full'} ${
             editorState.toolState.activeTool === 'text'
               ? 'cursor-text'
               : editorState.toolState.activeTool === 'select'
