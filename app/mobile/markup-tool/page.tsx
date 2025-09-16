@@ -228,25 +228,50 @@ export default function MarkupToolPage() {
   }
 
   return (
-    <div className="h-screen bg-gray-50">
-      {/* 마킹 에디터 헤더에 도면 관리 버튼 추가 */}
-      <div className="absolute top-4 right-4 z-50">
+    <div className="h-screen bg-gray-50 flex flex-col">
+      {/* 상단 헤더 - 네비게이션과 저장 버튼 */}
+      <header className="flex items-center justify-between p-3 bg-white border-b">
         <button
-          onClick={() => setShowBrowser(true)}
-          className="px-3 py-1.5 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 flex items-center gap-1.5 text-sm"
+          onClick={handleClose}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
-          <FolderOpen size={16} />
-          도면 변경
+          <ArrowLeft size={20} />
+          <span className="text-sm font-medium">뒤로</span>
         </button>
-      </div>
 
-      <SharedMarkupEditor
-        profile={profile}
-        mode="worker"
-        onSave={handleSave}
-        onClose={handleClose}
-        initialDocument={markupDocument}
-      />
+        <h1 className="text-base font-semibold flex-1 text-center">도면 마킹</h1>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBrowser(true)}
+            className="p-2 text-gray-600 hover:text-gray-900"
+            title="도면 변경"
+          >
+            <FolderOpen size={20} />
+          </button>
+          <button
+            onClick={() => {
+              // 저장 트리거
+              const saveEvent = new CustomEvent('markupSave')
+              window.dispatchEvent(saveEvent)
+            }}
+            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
+          >
+            저장
+          </button>
+        </div>
+      </header>
+
+      {/* 마킹 에디터 */}
+      <div className="flex-1 relative">
+        <SharedMarkupEditor
+          profile={profile}
+          mode="worker"
+          onSave={handleSave}
+          onClose={handleClose}
+          initialDocument={markupDocument}
+        />
+      </div>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -8,6 +9,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { FileText, Calendar, Edit } from 'lucide-react'
+
+interface MarkupDocument {
+  id: string
+  title: string
+  original_blueprint_filename: string
+  created_at: string
+  markup_count: number
+}
 
 interface OpenDialogProps {
   open: boolean
@@ -24,7 +35,7 @@ export function OpenDialog({ open, onOpenChange, onOpen }: OpenDialogProps) {
     try {
       const response = await fetch(`/api/markup-documents?limit=10`)
       const result = await response.json()
-      
+
       if (result.success) {
         setDocuments(result.data)
       } else {
@@ -49,7 +60,7 @@ export function OpenDialog({ open, onOpenChange, onOpen }: OpenDialogProps) {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
@@ -58,20 +69,15 @@ export function OpenDialog({ open, onOpenChange, onOpen }: OpenDialogProps) {
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>마킹 도면 열기</DialogTitle>
-          <DialogDescription>
-            도면마킹문서함에서 도면을 선택하여 열기
-          </DialogDescription>
+          <DialogDescription>도면마킹문서함에서 도면을 선택하여 열기</DialogDescription>
         </DialogHeader>
-        
-        <div className="py-4">
 
+        <div className="py-4">
           <div className="grid gap-2 max-h-64 overflow-y-auto">
             {loading ? (
               <div className="text-center py-4 text-gray-500">로딩 중...</div>
             ) : documents.length === 0 ? (
-              <div className="text-center py-4 text-gray-500">
-                저장된 문서가 없습니다
-              </div>
+              <div className="text-center py-4 text-gray-500">저장된 문서가 없습니다</div>
             ) : (
               documents.map((doc: unknown) => (
                 <Button

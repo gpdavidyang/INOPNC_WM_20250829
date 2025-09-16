@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   Select,
   SelectContent,
@@ -8,6 +9,33 @@ import {
   SelectValue,
 } from '@/components/ui/custom-select'
 import ShareDialog from '@/components/documents/share-dialog'
+import {
+  Plus,
+  Search,
+  List,
+  Grid,
+  Eye,
+  Edit,
+  Share2,
+  Trash2,
+  CheckCircle,
+  FileText,
+  WifiOff,
+  AlertTriangle,
+  RefreshCw,
+  X,
+  MessageSquare,
+  Mail,
+  Link2,
+} from 'lucide-react'
+
+interface MarkupDocument {
+  id: string
+  title: string
+  created_at: string
+  preview_image_url?: string
+  markup_data?: any[]
+}
 
 interface MarkupDocumentListProps {
   onCreateNew: () => void
@@ -27,10 +55,10 @@ interface DocumentsResponse {
   }
 }
 
-export function MarkupDocumentList({ 
-  onCreateNew, 
+export function MarkupDocumentList({
+  onCreateNew,
   onOpenDocument,
-  onEditDocument
+  onEditDocument,
 }: MarkupDocumentListProps) {
   const [documents, setDocuments] = useState<MarkupDocument[]>([])
   const [loading, setLoading] = useState(false)
@@ -48,22 +76,20 @@ export function MarkupDocumentList({
   const [loadingDocId, setLoadingDocId] = useState<string | null>(null)
 
   // 현장 목록 상태
-  const [sites, setSites] = useState([
-    { id: 'all', name: '전체 현장' }
-  ])
+  const [sites, setSites] = useState([{ id: 'all', name: '전체 현장' }])
 
   const fetchSites = async () => {
     try {
       const response = await fetch('/api/sites')
       const result = await response.json()
-      
+
       if (result.success && result.data) {
         const siteOptions = [
           { id: 'all', name: '전체 현장' },
           ...result.data.map((site: unknown) => ({
             id: site.id,
-            name: site.name
-          }))
+            name: site.name,
+          })),
         ]
         setSites(siteOptions)
       }
@@ -75,27 +101,27 @@ export function MarkupDocumentList({
   const fetchDocuments = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '12',
         admin: 'true', // 관리자 모드로 모든 문서 조회
         ...(searchQuery && { search: searchQuery }),
-        ...(selectedSite !== 'all' && { site: selectedSite })
+        ...(selectedSite !== 'all' && { site: selectedSite }),
         // Note: location parameter removed as location field no longer exists
       })
 
       const response = await fetch(`/api/markup-documents?${params}`)
       const result: DocumentsResponse = await response.json()
-      
+
       console.log('MarkupDocumentList API response:', {
         ok: response.ok,
         status: response.status,
         success: result.success,
         dataLength: result.data?.length,
         total: result.pagination?.total,
-        params: params.toString()
+        params: params.toString(),
       })
 
       if (!response.ok) {
@@ -136,7 +162,7 @@ export function MarkupDocumentList({
 
     try {
       const response = await fetch(`/api/markup-documents/${documentId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
 
       const result = await response.json()
@@ -173,16 +199,14 @@ export function MarkupDocumentList({
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
   // 문서 선택 토글
   const toggleDocumentSelection = (docId: string) => {
-    setSelectedDocuments(prev => 
-      prev.includes(docId) 
-        ? prev.filter(id => id !== docId)
-        : [...prev, docId]
+    setSelectedDocuments(prev =>
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
     )
   }
 
@@ -281,7 +305,7 @@ export function MarkupDocumentList({
               type="text"
               placeholder="파일명 검색..."
               value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
+              onChange={e => handleSearch(e.target.value)}
               className="w-full pl-7 pr-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -292,9 +316,9 @@ export function MarkupDocumentList({
                 <SelectValue placeholder="현장" />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg">
-                {sites.map((site) => (
-                  <SelectItem 
-                    key={site.id} 
+                {sites.map(site => (
+                  <SelectItem
+                    key={site.id}
                     value={site.id}
                     className="text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-blue-50 dark:focus:bg-blue-900/20 focus:text-blue-600 dark:focus:text-blue-400 cursor-pointer"
                   >
@@ -307,8 +331,8 @@ export function MarkupDocumentList({
               <button
                 onClick={() => setViewMode('list')}
                 className={`p-1 transition-colors ${
-                  viewMode === 'list' 
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
+                  viewMode === 'list'
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                 }`}
                 title="리스트 보기"
@@ -318,8 +342,8 @@ export function MarkupDocumentList({
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-1 transition-colors ${
-                  viewMode === 'grid' 
-                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
+                  viewMode === 'grid'
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                 }`}
                 title="그리드 보기"
@@ -349,13 +373,12 @@ export function MarkupDocumentList({
                   데이터를 불러올 수 없습니다
                 </h3>
                 <p className="text-sm text-red-700 dark:text-red-300 mb-4">
-                  {error.includes('fetch') || error.includes('network') 
+                  {error.includes('fetch') || error.includes('network')
                     ? '네트워크 연결을 확인하고 다시 시도해주세요.'
-                    : '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
-                  }
+                    : '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'}
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
-                  <button 
+                  <button
                     onClick={fetchDocuments}
                     disabled={loading}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
@@ -363,7 +386,7 @@ export function MarkupDocumentList({
                     <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                     {loading ? '재시도 중...' : '다시 시도'}
                   </button>
-                  <button 
+                  <button
                     onClick={() => setError(null)}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg transition-colors"
                   >
@@ -373,7 +396,7 @@ export function MarkupDocumentList({
                 </div>
               </div>
             </div>
-            
+
             {/* 추가 정보 */}
             <div className="mt-4 pt-4 border-t border-red-200 dark:border-red-700">
               <details className="group">
@@ -397,11 +420,21 @@ export function MarkupDocumentList({
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">미리보기</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">제목</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">생성일</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">마킹수</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">작업</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      미리보기
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      제목
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      생성일
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      마킹수
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                      작업
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 dark:divide-gray-600">
@@ -436,7 +469,10 @@ export function MarkupDocumentList({
             {/* 모바일 로딩 리스트 */}
             <div className="md:hidden">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="border-b border-gray-200 dark:border-gray-600 last:border-b-0 p-3 animate-pulse">
+                <div
+                  key={i}
+                  className="border-b border-gray-200 dark:border-gray-600 last:border-b-0 p-3 animate-pulse"
+                >
                   <div className="flex gap-3">
                     <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex-shrink-0"></div>
                     <div className="flex-1 min-w-0">
@@ -461,18 +497,16 @@ export function MarkupDocumentList({
                 {searchQuery ? '검색 결과가 없습니다' : '저장된 마킹 도면이 없습니다'}
               </h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {searchQuery 
-                  ? '다른 검색어로 시도해보세요' 
-                  : '새로운 도면을 업로드하고 마킹을 시작해보세요'
-                }
+                {searchQuery
+                  ? '다른 검색어로 시도해보세요'
+                  : '새로운 도면을 업로드하고 마킹을 시작해보세요'}
               </p>
               {!searchQuery && (
-                <button 
+                <button
                   onClick={onCreateNew}
                   className="mt-4 flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors mx-auto"
                 >
-                  <Plus className="h-3 w-3" />
-                  첫 번째 도면 업로드하기
+                  <Plus className="h-3 w-3" />첫 번째 도면 업로드하기
                 </button>
               )}
             </div>
@@ -498,18 +532,18 @@ export function MarkupDocumentList({
                         checked={selectedDocuments.includes(doc.id)}
                         onChange={() => toggleDocumentSelection(doc.id)}
                         className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                       />
                     </div>
                   )}
-                  
+
                   <div className="flex flex-col items-center text-center">
                     {/* File Type Badge */}
                     <div className="mb-3">
                       <div className="w-12 h-12 bg-gray-100 dark:bg-gray-600 rounded-lg flex items-center justify-center overflow-hidden">
                         {doc.preview_image_url ? (
-                          <img 
-                            src={doc.preview_image_url} 
+                          <img
+                            src={doc.preview_image_url}
                             alt={doc.title}
                             className="w-full h-full object-cover"
                           />
@@ -518,17 +552,17 @@ export function MarkupDocumentList({
                         )}
                       </div>
                     </div>
-                    
+
                     <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 mb-2">
                       {doc.title}
                     </h4>
                     <p className="text-xs text-gray-400 dark:text-gray-500 mb-3">
                       {formatDate(doc.created_at)}
                     </p>
-                    
+
                     <div className="flex gap-1">
                       <button
-                        onClick={(e) => {
+                        onClick={e => {
                           e.stopPropagation()
                           setLoadingDocId(doc.id)
                           onOpenDocument(doc)
@@ -598,18 +632,20 @@ export function MarkupDocumentList({
                               checked={selectedDocuments.includes(doc.id)}
                               onChange={() => toggleDocumentSelection(doc.id)}
                               className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                              onClick={(e) => e.stopPropagation()}
+                              onClick={e => e.stopPropagation()}
                             />
                           </div>
                         )}
-                        
+
                         {/* Badge Only */}
                         <div className="flex-shrink-0">
-                          <span className={`inline-block px-1.5 py-0.5 text-xs font-medium rounded-md ${getFileTypeColor()}`}>
+                          <span
+                            className={`inline-block px-1.5 py-0.5 text-xs font-medium rounded-md ${getFileTypeColor()}`}
+                          >
                             {getFileTypeDisplay()}
                           </span>
                         </div>
-                        
+
                         {/* File Info - Simplified Layout */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
@@ -620,15 +656,15 @@ export function MarkupDocumentList({
                               <div className="text-xs text-gray-500 dark:text-gray-400">
                                 {new Date(doc.created_at).toLocaleDateString('ko-KR', {
                                   month: 'short',
-                                  day: 'numeric'
+                                  day: 'numeric',
                                 })}
                               </div>
                             </div>
-                            
+
                             {/* Action Buttons - Compact */}
                             <div className="flex items-center gap-1 ml-3">
                               <button
-                                onClick={(e) => {
+                                onClick={e => {
                                   e.stopPropagation()
                                   setLoadingDocId(doc.id)
                                   onOpenDocument(doc)
@@ -705,7 +741,7 @@ export function MarkupDocumentList({
         <div className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-end justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
             {/* Background overlay */}
-            <div 
+            <div
               className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
               onClick={() => setShowShareModal(false)}
             />

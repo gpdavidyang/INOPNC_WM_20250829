@@ -1,5 +1,25 @@
 'use client'
 
+import React, { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+import {
+  MousePointer,
+  Square,
+  Type,
+  Pencil,
+  Stamp,
+  Undo2,
+  Redo2,
+  Trash2,
+  Move,
+  ZoomIn,
+  ZoomOut,
+  Circle,
+  Triangle,
+  Star,
+} from 'lucide-react'
+import { getFullTypographyClass } from '@/contexts/FontSizeContext'
 import type { ToolType, StampToolState } from '@/types/markup'
 
 interface ToolPaletteProps {
@@ -31,27 +51,113 @@ export function ToolPalette({
   isLargeFont = false,
   touchMode = 'normal',
   stampSettings = { shape: 'circle', size: 'medium', color: '#FF0000' },
-  onStampSettingsChange
+  onStampSettingsChange,
 }: ToolPaletteProps) {
   const [showStampOptions, setShowStampOptions] = useState(false)
   // 모바일에서는 필수 도구만 표시
-  const tools = isMobile ? [
-    { id: 'select' as ToolType, icon: MousePointer, label: '선택', color: 'text-blue-600 dark:text-blue-400', bgColor: '' },
-    { id: 'box-gray' as ToolType, icon: Square, label: '자재구간', color: 'text-gray-700 dark:text-gray-300', bgColor: 'bg-gray-500 dark:bg-gray-500' },
-    { id: 'box-red' as ToolType, icon: Square, label: '작업진행', color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-500 dark:bg-red-500' },
-    { id: 'box-blue' as ToolType, icon: Square, label: '작업완료', color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-500 dark:bg-blue-500' },
-    { id: 'text' as ToolType, icon: Type, label: '텍스트', color: 'text-indigo-600 dark:text-indigo-400', bgColor: '' },
-    { id: 'pen' as ToolType, icon: Pencil, label: '펜', color: 'text-pink-600 dark:text-pink-400', bgColor: '' },
-    { id: 'stamp' as ToolType, icon: Stamp, label: '스탬프', color: 'text-orange-600 dark:text-orange-400', bgColor: '' },
-  ] : [
-    { id: 'select' as ToolType, icon: MousePointer, label: '선택', color: 'text-blue-600 dark:text-blue-400', bgColor: '' },
-    { id: 'box-gray' as ToolType, icon: Square, label: '자재구간', color: 'text-gray-700 dark:text-gray-300', bgColor: 'bg-gray-500 dark:bg-gray-500' },
-    { id: 'box-red' as ToolType, icon: Square, label: '작업진행', color: 'text-red-600 dark:text-red-400', bgColor: 'bg-red-500 dark:bg-red-500' },
-    { id: 'box-blue' as ToolType, icon: Square, label: '작업완료', color: 'text-blue-600 dark:text-blue-400', bgColor: 'bg-blue-500 dark:bg-blue-500' },
-    { id: 'text' as ToolType, icon: Type, label: '텍스트', color: 'text-indigo-600 dark:text-indigo-400', bgColor: '' },
-    { id: 'pen' as ToolType, icon: Pencil, label: '펜', color: 'text-pink-600 dark:text-pink-400', bgColor: '' },
-    { id: 'stamp' as ToolType, icon: Stamp, label: '스탬프', color: 'text-orange-600 dark:text-orange-400', bgColor: '' },
-  ]
+  const tools = isMobile
+    ? [
+        {
+          id: 'select' as ToolType,
+          icon: MousePointer,
+          label: '선택',
+          color: 'text-blue-600 dark:text-blue-400',
+          bgColor: '',
+        },
+        {
+          id: 'box-gray' as ToolType,
+          icon: Square,
+          label: '자재구간',
+          color: 'text-gray-700 dark:text-gray-300',
+          bgColor: 'bg-gray-500 dark:bg-gray-500',
+        },
+        {
+          id: 'box-red' as ToolType,
+          icon: Square,
+          label: '작업진행',
+          color: 'text-red-600 dark:text-red-400',
+          bgColor: 'bg-red-500 dark:bg-red-500',
+        },
+        {
+          id: 'box-blue' as ToolType,
+          icon: Square,
+          label: '작업완료',
+          color: 'text-blue-600 dark:text-blue-400',
+          bgColor: 'bg-blue-500 dark:bg-blue-500',
+        },
+        {
+          id: 'text' as ToolType,
+          icon: Type,
+          label: '텍스트',
+          color: 'text-indigo-600 dark:text-indigo-400',
+          bgColor: '',
+        },
+        {
+          id: 'pen' as ToolType,
+          icon: Pencil,
+          label: '펜',
+          color: 'text-pink-600 dark:text-pink-400',
+          bgColor: '',
+        },
+        {
+          id: 'stamp' as ToolType,
+          icon: Stamp,
+          label: '스탬프',
+          color: 'text-orange-600 dark:text-orange-400',
+          bgColor: '',
+        },
+      ]
+    : [
+        {
+          id: 'select' as ToolType,
+          icon: MousePointer,
+          label: '선택',
+          color: 'text-blue-600 dark:text-blue-400',
+          bgColor: '',
+        },
+        {
+          id: 'box-gray' as ToolType,
+          icon: Square,
+          label: '자재구간',
+          color: 'text-gray-700 dark:text-gray-300',
+          bgColor: 'bg-gray-500 dark:bg-gray-500',
+        },
+        {
+          id: 'box-red' as ToolType,
+          icon: Square,
+          label: '작업진행',
+          color: 'text-red-600 dark:text-red-400',
+          bgColor: 'bg-red-500 dark:bg-red-500',
+        },
+        {
+          id: 'box-blue' as ToolType,
+          icon: Square,
+          label: '작업완료',
+          color: 'text-blue-600 dark:text-blue-400',
+          bgColor: 'bg-blue-500 dark:bg-blue-500',
+        },
+        {
+          id: 'text' as ToolType,
+          icon: Type,
+          label: '텍스트',
+          color: 'text-indigo-600 dark:text-indigo-400',
+          bgColor: '',
+        },
+        {
+          id: 'pen' as ToolType,
+          icon: Pencil,
+          label: '펜',
+          color: 'text-pink-600 dark:text-pink-400',
+          bgColor: '',
+        },
+        {
+          id: 'stamp' as ToolType,
+          icon: Stamp,
+          label: '스탬프',
+          color: 'text-orange-600 dark:text-orange-400',
+          bgColor: '',
+        },
+      ]
 
   const actions = [
     { id: 'undo', icon: Undo2, label: '되돌리기', onClick: onUndo, disabled: !canUndo },
@@ -60,9 +166,24 @@ export function ToolPalette({
   ]
 
   const viewTools = [
-    { id: 'pan' as ToolType, icon: Move, label: '이동', color: 'text-purple-600 dark:text-purple-400' },
-    { id: 'zoom-in' as ToolType, icon: ZoomIn, label: '확대', color: 'text-green-600 dark:text-green-400' },
-    { id: 'zoom-out' as ToolType, icon: ZoomOut, label: '축소', color: 'text-green-600 dark:text-green-400' },
+    {
+      id: 'pan' as ToolType,
+      icon: Move,
+      label: '이동',
+      color: 'text-purple-600 dark:text-purple-400',
+    },
+    {
+      id: 'zoom-in' as ToolType,
+      icon: ZoomIn,
+      label: '확대',
+      color: 'text-green-600 dark:text-green-400',
+    },
+    {
+      id: 'zoom-out' as ToolType,
+      icon: ZoomOut,
+      label: '축소',
+      color: 'text-green-600 dark:text-green-400',
+    },
   ]
 
   // 스탬프 옵션들
@@ -72,7 +193,7 @@ export function ToolPalette({
     { value: 'square' as const, icon: Square, label: '사각형' },
     { value: 'star' as const, icon: Star, label: '별' },
   ]
-  
+
   const stampColors = [
     { value: '#FF0000', label: '빨강' },
     { value: '#0000FF', label: '파랑' },
@@ -80,7 +201,7 @@ export function ToolPalette({
     { value: '#00FF00', label: '초록' },
     { value: '#000000', label: '검정' },
   ]
-  
+
   const stampSizes = [
     { value: 'small' as const, label: 'S', size: 20 },
     { value: 'medium' as const, label: 'M', size: 40 },
@@ -114,23 +235,26 @@ export function ToolPalette({
                   handleToolClick(tool.id)
                 }}
                 className={cn(
-                  "min-w-[48px] min-h-[48px] p-2 rounded-xl",
-                  "active:scale-95 transition-all duration-200 touch-manipulation",
-                  activeTool === tool.id 
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 shadow-lg shadow-blue-500/30" 
-                    : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600"
+                  'min-w-[48px] min-h-[48px] p-2 rounded-xl',
+                  'active:scale-95 transition-all duration-200 touch-manipulation',
+                  activeTool === tool.id
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 shadow-lg shadow-blue-500/30'
+                    : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600'
                 )}
                 title={tool.label}
               >
                 {tool.id.startsWith('box-') && tool.bgColor ? (
-                  <div className={cn("w-7 h-7 rounded", tool.bgColor, "shadow-inner")} />
+                  <div className={cn('w-7 h-7 rounded', tool.bgColor, 'shadow-inner')} />
                 ) : (
-                  <tool.icon className={cn("h-6 w-6", activeTool === tool.id ? "text-white" : tool.color)} strokeWidth={2.5} />
+                  <tool.icon
+                    className={cn('h-6 w-6', activeTool === tool.id ? 'text-white' : tool.color)}
+                    strokeWidth={2.5}
+                  />
                 )}
               </Button>
             ))}
           </div>
-          
+
           {/* 액션 버튼들 */}
           <div className="flex items-center gap-1.5">
             <Button
@@ -142,17 +266,23 @@ export function ToolPalette({
               }}
               disabled={!canUndo}
               className={cn(
-                "min-w-[48px] min-h-[48px] p-2 rounded-xl",
-                "active:scale-95 transition-all duration-200 touch-manipulation",
-                !canUndo 
-                  ? "opacity-40 bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700" 
-                  : "bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 border-2 border-gray-300 dark:border-gray-500"
+                'min-w-[48px] min-h-[48px] p-2 rounded-xl',
+                'active:scale-95 transition-all duration-200 touch-manipulation',
+                !canUndo
+                  ? 'opacity-40 bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700'
+                  : 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 border-2 border-gray-300 dark:border-gray-500'
               )}
               title="되돌리기"
             >
-              <Undo2 className={cn("h-6 w-6", !canUndo ? "text-gray-400 dark:text-gray-600" : "text-gray-700 dark:text-gray-200")} strokeWidth={2.5} />
+              <Undo2
+                className={cn(
+                  'h-6 w-6',
+                  !canUndo ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-200'
+                )}
+                strokeWidth={2.5}
+              />
             </Button>
-            
+
             <Button
               variant="ghost"
               size="compact"
@@ -162,19 +292,25 @@ export function ToolPalette({
               }}
               disabled={!canRedo}
               className={cn(
-                "min-w-[48px] min-h-[48px] p-2 rounded-xl",
-                "active:scale-95 transition-all duration-200 touch-manipulation",
-                !canRedo 
-                  ? "opacity-40 bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700" 
-                  : "bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 border-2 border-gray-300 dark:border-gray-500"
+                'min-w-[48px] min-h-[48px] p-2 rounded-xl',
+                'active:scale-95 transition-all duration-200 touch-manipulation',
+                !canRedo
+                  ? 'opacity-40 bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700'
+                  : 'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-600 dark:hover:to-gray-500 border-2 border-gray-300 dark:border-gray-500'
               )}
               title="다시실행"
             >
-              <Redo2 className={cn("h-6 w-6", !canRedo ? "text-gray-400 dark:text-gray-600" : "text-gray-700 dark:text-gray-200")} strokeWidth={2.5} />
+              <Redo2
+                className={cn(
+                  'h-6 w-6',
+                  !canRedo ? 'text-gray-400 dark:text-gray-600' : 'text-gray-700 dark:text-gray-200'
+                )}
+                strokeWidth={2.5}
+              />
             </Button>
           </div>
         </div>
-        
+
         {/* 두 번째 행: 나머지 도구들 */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
@@ -188,22 +324,25 @@ export function ToolPalette({
                   handleToolClick(tool.id)
                 }}
                 className={cn(
-                  "min-w-[48px] min-h-[48px] p-2 rounded-xl",
-                  "active:scale-95 transition-all duration-200 touch-manipulation",
-                  activeTool === tool.id 
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 shadow-lg shadow-blue-500/30" 
-                    : "bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600"
+                  'min-w-[48px] min-h-[48px] p-2 rounded-xl',
+                  'active:scale-95 transition-all duration-200 touch-manipulation',
+                  activeTool === tool.id
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 active:from-blue-700 active:to-blue-800 shadow-lg shadow-blue-500/30'
+                    : 'bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border-2 border-gray-200 dark:border-gray-600'
                 )}
                 title={tool.label}
               >
                 {tool.id.startsWith('box-') && tool.bgColor ? (
-                  <div className={cn("w-7 h-7 rounded", tool.bgColor, "shadow-inner")} />
+                  <div className={cn('w-7 h-7 rounded', tool.bgColor, 'shadow-inner')} />
                 ) : (
-                  <tool.icon className={cn("h-6 w-6", activeTool === tool.id ? "text-white" : tool.color)} strokeWidth={2.5} />
+                  <tool.icon
+                    className={cn('h-6 w-6', activeTool === tool.id ? 'text-white' : tool.color)}
+                    strokeWidth={2.5}
+                  />
                 )}
               </Button>
             ))}
-            
+
             {/* 확대/축소 버튼들 */}
             {viewTools.map(tool => (
               <Button
@@ -215,19 +354,22 @@ export function ToolPalette({
                   onToolChange(tool.id)
                 }}
                 className={cn(
-                  "min-w-[48px] min-h-[48px] p-2 rounded-xl",
-                  "active:scale-95 transition-all duration-200 touch-manipulation",
-                  tool.id === 'pan' 
-                    ? "bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 border-2 border-purple-200 dark:border-purple-700"
-                    : "bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 hover:from-green-100 hover:to-green-200 dark:hover:from-green-800/30 dark:hover:to-green-700/30 border-2 border-green-200 dark:border-green-700"
+                  'min-w-[48px] min-h-[48px] p-2 rounded-xl',
+                  'active:scale-95 transition-all duration-200 touch-manipulation',
+                  tool.id === 'pan'
+                    ? 'bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:from-purple-100 hover:to-purple-200 dark:hover:from-purple-800/30 dark:hover:to-purple-700/30 border-2 border-purple-200 dark:border-purple-700'
+                    : 'bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 hover:from-green-100 hover:to-green-200 dark:hover:from-green-800/30 dark:hover:to-green-700/30 border-2 border-green-200 dark:border-green-700'
                 )}
                 title={tool.label}
               >
-                <tool.icon className={cn("h-6 w-6", tool.color || "text-green-600 dark:text-green-400")} strokeWidth={2.5} />
+                <tool.icon
+                  className={cn('h-6 w-6', tool.color || 'text-green-600 dark:text-green-400')}
+                  strokeWidth={2.5}
+                />
               </Button>
             ))}
           </div>
-          
+
           {/* 삭제 버튼 */}
           <div className="flex items-center">
             <Button
@@ -239,15 +381,23 @@ export function ToolPalette({
               }}
               disabled={!hasSelection}
               className={cn(
-                "min-w-[48px] min-h-[48px] p-2 rounded-xl",
-                "active:scale-95 transition-all duration-200 touch-manipulation",
-                !hasSelection 
-                  ? "opacity-40 bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700" 
-                  : "bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 hover:from-red-100 hover:to-red-200 dark:hover:from-red-800/30 dark:hover:to-red-700/30 border-2 border-red-200 dark:border-red-700"
+                'min-w-[48px] min-h-[48px] p-2 rounded-xl',
+                'active:scale-95 transition-all duration-200 touch-manipulation',
+                !hasSelection
+                  ? 'opacity-40 bg-gray-100 dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700'
+                  : 'bg-gradient-to-r from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 hover:from-red-100 hover:to-red-200 dark:hover:from-red-800/30 dark:hover:to-red-700/30 border-2 border-red-200 dark:border-red-700'
               )}
               title="삭제"
             >
-              <Trash2 className={cn("h-6 w-6", !hasSelection ? "text-gray-400 dark:text-gray-600" : "text-red-500 dark:text-red-400")} strokeWidth={2.5} />
+              <Trash2
+                className={cn(
+                  'h-6 w-6',
+                  !hasSelection
+                    ? 'text-gray-400 dark:text-gray-600'
+                    : 'text-red-500 dark:text-red-400'
+                )}
+                strokeWidth={2.5}
+              />
             </Button>
           </div>
         </div>
@@ -271,21 +421,34 @@ export function ToolPalette({
                 handleToolClick(tool.id)
               }}
               className={cn(
-                "flex items-center justify-center gap-0.5",
-                "p-1 min-h-[36px]",
-                "active:scale-95 transition-all duration-200 touch-manipulation",
-                "focus-visible:ring-2 focus-visible:ring-blue-500/50",
-                activeTool === tool.id ? "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                'flex items-center justify-center gap-0.5',
+                'p-1 min-h-[36px]',
+                'active:scale-95 transition-all duration-200 touch-manipulation',
+                'focus-visible:ring-2 focus-visible:ring-blue-500/50',
+                activeTool === tool.id
+                  ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg'
+                  : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
               )}
               title={tool.label}
             >
               {tool.id.startsWith('box-') && tool.bgColor ? (
-                <div className={cn("w-5 h-5 rounded-sm flex-shrink-0", tool.bgColor)} />
+                <div className={cn('w-5 h-5 rounded-sm flex-shrink-0', tool.bgColor)} />
               ) : (
-                <tool.icon className={cn("h-4 w-4 flex-shrink-0", tool.color, activeTool === tool.id && "text-white")} strokeWidth={2.5} />
+                <tool.icon
+                  className={cn(
+                    'h-4 w-4 flex-shrink-0',
+                    tool.color,
+                    activeTool === tool.id && 'text-white'
+                  )}
+                  strokeWidth={2.5}
+                />
               )}
               {(!touchMode || touchMode === 'normal') && (
-                <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium truncate text-xs`}>{tool.label}</span>
+                <span
+                  className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium truncate text-xs`}
+                >
+                  {tool.label}
+                </span>
               )}
             </Button>
           ))}
@@ -307,17 +470,31 @@ export function ToolPalette({
               }}
               disabled={action.disabled}
               className={cn(
-                "flex flex-col items-center justify-center",
-                "p-1 min-h-[36px]",
-                "active:scale-95 transition-all duration-200 touch-manipulation",
-                "focus-visible:ring-2 focus-visible:ring-blue-500/50",
-                action.disabled ? "opacity-40 bg-gray-100 dark:bg-gray-800" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                'flex flex-col items-center justify-center',
+                'p-1 min-h-[36px]',
+                'active:scale-95 transition-all duration-200 touch-manipulation',
+                'focus-visible:ring-2 focus-visible:ring-blue-500/50',
+                action.disabled
+                  ? 'opacity-40 bg-gray-100 dark:bg-gray-800'
+                  : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
               )}
               title={action.label}
             >
-              <action.icon className={cn("h-4 w-4", action.disabled ? "text-gray-400 dark:text-gray-600" : "text-gray-900 dark:text-gray-100")} strokeWidth={2.5} />
+              <action.icon
+                className={cn(
+                  'h-4 w-4',
+                  action.disabled
+                    ? 'text-gray-400 dark:text-gray-600'
+                    : 'text-gray-900 dark:text-gray-100'
+                )}
+                strokeWidth={2.5}
+              />
               {(!touchMode || touchMode === 'normal') && (
-                <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-xs mt-0.5`}>{action.label.slice(0, 4)}</span>
+                <span
+                  className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-xs mt-0.5`}
+                >
+                  {action.label.slice(0, 4)}
+                </span>
               )}
             </Button>
           ))}
@@ -338,22 +515,35 @@ export function ToolPalette({
                 onToolChange(tool.id)
               }}
               className={cn(
-                "flex flex-col items-center justify-center",
-                "p-1 min-h-[36px]",
-                "active:scale-95 transition-all duration-200 touch-manipulation",
-                "focus-visible:ring-2 focus-visible:ring-blue-500/50",
-                activeTool === tool.id ? "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg" : "bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                'flex flex-col items-center justify-center',
+                'p-1 min-h-[36px]',
+                'active:scale-95 transition-all duration-200 touch-manipulation',
+                'focus-visible:ring-2 focus-visible:ring-blue-500/50',
+                activeTool === tool.id
+                  ? 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-lg'
+                  : 'bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-600'
               )}
               title={tool.label}
             >
-              <tool.icon className={cn("h-4 w-4", tool.color || "text-gray-900 dark:text-gray-100", activeTool === tool.id && "text-white")} strokeWidth={2.5} />
+              <tool.icon
+                className={cn(
+                  'h-4 w-4',
+                  tool.color || 'text-gray-900 dark:text-gray-100',
+                  activeTool === tool.id && 'text-white'
+                )}
+                strokeWidth={2.5}
+              />
               {(!touchMode || touchMode === 'normal') && (
-                <span className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-xs mt-0.5`}>{tool.label}</span>
+                <span
+                  className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-xs mt-0.5`}
+                >
+                  {tool.label}
+                </span>
               )}
             </Button>
           ))}
         </div>
-        
+
         {/* 스탬프 옵션 패널 */}
         {showStampOptions && activeTool === 'stamp' && (
           <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
@@ -372,7 +562,7 @@ export function ToolPalette({
                 </Button>
               ))}
             </div>
-            
+
             <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">색상</div>
             <div className="flex gap-1 mb-3">
               {stampColors.map(color => (
@@ -387,7 +577,7 @@ export function ToolPalette({
                 />
               ))}
             </div>
-            
+
             <div className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">크기</div>
             <div className="flex gap-1">
               {stampSizes.map(size => (

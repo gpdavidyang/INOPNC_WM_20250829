@@ -1,5 +1,13 @@
 'use client'
 
+import React from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 interface ShareDialogProps {
   open: boolean
@@ -14,9 +22,7 @@ export function ShareDialog({ open, onOpenChange, onShare, currentPermissions }:
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>도면 공유</DialogTitle>
-          <DialogDescription>
-            마킹 도면을 다른 사용자와 공유합니다.
-          </DialogDescription>
+          <DialogDescription>마킹 도면을 다른 사용자와 공유합니다.</DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <p className="text-sm text-gray-500">공유 기능은 추후 구현 예정입니다.</p>
