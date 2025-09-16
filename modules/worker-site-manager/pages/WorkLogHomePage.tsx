@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
 import { WorkLogCard } from '@/modules/mobile/components/work-log/WorkLogCard'
