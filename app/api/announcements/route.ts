@@ -170,13 +170,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
-    // Build query
+    // Build query - fix foreign key relationship name
     let query = supabase
       .from('announcements')
       .select(
         `
         *,
-        created_by_user:profiles!announcements_created_by_fkey(full_name),
+        created_by_user:profiles(full_name),
         read_status:announcement_reads!left(read_at)
       `
       )

@@ -238,11 +238,20 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const handleLogout = async () => {
     if (confirm('정말 로그아웃하시겠습니까?')) {
       try {
-        // Close drawer first to prevent state issues
+        // Immediately show feedback
         onClose()
-
-        // Clear profile immediately for UI feedback
         setUserProfile(null)
+
+        // Clear all local storage and session storage first
+        localStorage.clear()
+        sessionStorage.clear()
+
+        // Clear all cookies on client side
+        document.cookie.split(';').forEach(c => {
+          document.cookie = c
+            .replace(/^ +/, '')
+            .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/')
+        })
 
         // Call logout API endpoint to clear server-side session
         const response = await fetch('/api/auth/logout', {
@@ -263,7 +272,17 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
           console.error('Client logout error:', clientError)
         }
 
+        // Clear any service worker caches if exists
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => {
+              caches.delete(name)
+            })
+          })
+        }
+
         // Force a hard refresh to clear all state and cookies
+        // Use replace to prevent back navigation
         window.location.replace('/auth/login')
       } catch (error) {
         console.error('Logout failed:', error)

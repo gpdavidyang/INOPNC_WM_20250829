@@ -19,20 +19,40 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
 
-    // Clear all auth-related cookies
+    // Clear all auth-related cookies with comprehensive patterns
+    const projectId = process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]
     const cookiesToClear = [
       'sb-access-token',
       'sb-refresh-token',
       'sb-auth-token',
       'supabase-auth-token',
+      'user-role',
+      `sb-${projectId}-auth-token`,
+      `sb-${projectId}-auth-token.0`,
+      `sb-${projectId}-auth-token.1`,
     ]
 
     // Get the base URL for cookie domain
     const url = new URL(request.url)
-    const domain = url.hostname === 'localhost' ? 'localhost' : url.hostname
 
+    // Clear each cookie with all possible variations
     cookiesToClear.forEach(cookieName => {
-      // Clear with various path combinations
+      // Clear with minimal options (most compatible)
+      response.cookies.set(cookieName, '', {
+        maxAge: -1,
+      })
+
+      // Also clear with full options
+      response.cookies.set(cookieName, '', {
+        path: '/',
+        expires: new Date(0),
+        maxAge: 0,
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+      })
+
+      // Clear httpOnly version
       response.cookies.set(cookieName, '', {
         path: '/',
         expires: new Date(0),
@@ -41,21 +61,12 @@ export async function POST(request: NextRequest) {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
       })
-
-      // Also clear with project-specific prefix
-      response.cookies.set(
-        `sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`,
-        '',
-        {
-          path: '/',
-          expires: new Date(0),
-          maxAge: 0,
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'lax',
-        }
-      )
     })
+
+    // Add cache control headers to prevent caching of the logout response
+    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
 
     return response
   } catch (error) {

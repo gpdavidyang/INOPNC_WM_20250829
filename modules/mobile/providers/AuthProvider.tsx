@@ -74,7 +74,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       if (currentSession) {
         setSession(currentSession)
         setUser(currentSession.user)
-        console.log('Session refreshed from cookies:', currentSession.user?.email)
+        // Session refreshed from cookies
 
         // Fetch profile with retry logic
         if (!profile && currentSession.user) {
@@ -124,7 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         if (refreshedSession) {
           setSession(refreshedSession)
           setUser(refreshedSession.user)
-          console.log('Session refreshed with refresh token:', refreshedSession.user?.email)
+          // Session refreshed with refresh token
 
           // Fetch profile with retry
           if (refreshedSession.user) {
@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
             }
           }
         } else {
-          console.log('No session available, user needs to login')
+          // No session available, user needs to login
           setSession(null)
           setUser(null)
           setProfile(null)
@@ -189,7 +189,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      console.log('Auth state changed:', event, newSession?.user?.email)
+      // Auth state changed: event, user email
 
       if (event === 'SIGNED_IN' && newSession) {
         setSession(newSession)
@@ -213,7 +213,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       } else if (event === 'TOKEN_REFRESHED' && newSession) {
         setSession(newSession)
         setUser(newSession.user)
-        console.log('Token refreshed successfully')
+        // Token refreshed successfully
       }
     })
 

@@ -20,8 +20,13 @@
   --brand-dark: #0f1835;
   --num: #0068fe;
 
-  /* Layout Colors (Override from design-tokens if needed) */
-  /* These are now defined in design-tokens.css */
+  /* Light theme colors */
+  --bg: #ffffff;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --bg-secondary: #f9fafb;
 
   /* Component Specific (Override from design-tokens) */
   --nav-bg: #ffffff;
@@ -48,6 +53,7 @@
   --border: #3a4048;
   --text: #e9eef5;
   --text-muted: #a8b0bb;
+  --bg-secondary: #1f2937;
   --nav-bg: #11151b;
   --nav-border: #3a4048;
   --nav-text: #a8b0bb;
