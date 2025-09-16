@@ -11,7 +11,15 @@ const notoSansKR = Noto_Sans_KR({
   variable: '--font-noto-sans-kr',
   display: 'swap',
   preload: true,
-  fallback: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Apple SD Gothic Neo', 'Malgun Gothic', 'sans-serif'],
+  fallback: [
+    'system-ui',
+    '-apple-system',
+    'Segoe UI',
+    'Roboto',
+    'Apple SD Gothic Neo',
+    'Malgun Gothic',
+    'sans-serif',
+  ],
 })
 
 const poppins = Poppins({
@@ -103,12 +111,12 @@ export default async function RootLayout({
         {/* Preconnect for performance */}
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
-        
+
         {/* Critical CSS for font loading optimization */}
-        <style>{`
+        <style suppressHydrationWarning>{`
           /* Prevent FOIT/FOUT during font loading */
-          html { font-family: ${notoSansKR.style.fontFamily}, system-ui, -apple-system, sans-serif; }
-          .font-poppins { font-family: ${poppins.style.fontFamily}, system-ui, sans-serif; }
+          html { font-family: var(--font-noto-sans-kr), system-ui, -apple-system, sans-serif; }
+          .font-poppins { font-family: var(--font-poppins), system-ui, sans-serif; }
         `}</style>
       </head>
       <body className={bodyClasses}>
