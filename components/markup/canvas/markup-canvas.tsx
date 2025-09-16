@@ -941,18 +941,19 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
           // 단일 터치 - 도구에 따라 다르게 처리
           const { activeTool } = editorState.toolState
 
-          if (activeTool === 'pan' || activeTool === 'select') {
-            // Pan tool이거나 Select tool인 경우 자연스러운 패닝 허용
+          if (activeTool === 'pan') {
+            // Pan tool인 경우만 패닝 허용
             setIsPanning(true)
             setPanStart({ x: newTouches[0].x, y: newTouches[0].y })
             setLastPanPosition({
               x: editorState.viewerState.panX,
               y: editorState.viewerState.panY,
             })
-            // console.log('🔥 단일 터치 패닝 시작 (도구:', activeTool, ')')
+            // console.log('🔥 단일 터치 패닝 시작 (도구: pan)')
           } else {
-            // Drawing tools (box, pen, text)는 마우스 이벤트로 처리
-            // console.log('🔥 터치 시작 - Drawing tool:', activeTool)
+            // Select tool 및 Drawing tools는 마우스 이벤트로 처리
+            // Select tool에서는 객체 선택/이동, Drawing tools에서는 그리기
+            // console.log('🔥 터치 시작 - Tool:', activeTool)
             const mouseEvent = {
               clientX: e.touches[0].clientX,
               clientY: e.touches[0].clientY,
@@ -1019,8 +1020,8 @@ export const MarkupCanvas = forwardRef<HTMLCanvasElement, MarkupCanvasProps>(
         } else if (newTouches.length === 1 && !isGesturing) {
           const { activeTool } = editorState.toolState
 
-          if (isPanning && (activeTool === 'pan' || activeTool === 'select')) {
-            // 단일 터치 패닝 (Pan tool 또는 Select tool)
+          if (isPanning && activeTool === 'pan') {
+            // 단일 터치 패닝 (Pan tool만)
             const deltaX = newTouches[0].x - panStart.x
             const deltaY = newTouches[0].y - panStart.y
 

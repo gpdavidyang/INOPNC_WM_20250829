@@ -12,6 +12,7 @@ interface SharedMarkupEditorProps {
   initialDocument?: MarkupDocument
   onSave?: (document: MarkupDocument) => void
   onClose?: () => void
+  embedded?: boolean
 }
 
 export function SharedMarkupEditor({
@@ -21,6 +22,7 @@ export function SharedMarkupEditor({
   initialDocument,
   onSave,
   onClose,
+  embedded = false,
 }: SharedMarkupEditorProps) {
   const handleSave = async (document: MarkupDocument) => {
     try {
@@ -60,6 +62,7 @@ export function SharedMarkupEditor({
       onSave={handleSave}
       onClose={onClose}
       profile={profile}
+      embedded={embedded}
     />
   )
 }

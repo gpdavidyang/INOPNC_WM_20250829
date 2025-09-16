@@ -401,6 +401,91 @@ export function ToolPalette({
             </Button>
           </div>
         </div>
+
+        {/* 스탬프 옵션 패널 - 모바일 */}
+        {showStampOptions && activeTool === 'stamp' && (
+          <div className="mt-2 mx-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              스탬프 옵션
+            </div>
+
+            {/* 모양 선택 */}
+            <div className="mb-3">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">모양</div>
+              <div className="flex gap-2">
+                {[
+                  { value: 'circle', label: '원', icon: '○' },
+                  { value: 'square', label: '사각형', icon: '□' },
+                  { value: 'triangle', label: '삼각형', icon: '△' },
+                ].map(shape => (
+                  <Button
+                    key={shape.value}
+                    variant={stampSettings.shape === shape.value ? 'primary' : 'ghost'}
+                    size="compact"
+                    onClick={() =>
+                      onStampSettingsChange?.({ ...stampSettings, shape: shape.value })
+                    }
+                    className="min-w-[44px] min-h-[44px] p-2"
+                    title={shape.label}
+                  >
+                    <span className="text-lg">{shape.icon}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* 색상 선택 */}
+            <div className="mb-3">
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">색상</div>
+              <div className="flex gap-2">
+                {[
+                  { value: '#FF0000', label: '빨강' },
+                  { value: '#0000FF', label: '파랑' },
+                  { value: '#00FF00', label: '초록' },
+                  { value: '#FFFF00', label: '노랑' },
+                  { value: '#000000', label: '검정' },
+                ].map(color => (
+                  <Button
+                    key={color.value}
+                    variant={stampSettings.color === color.value ? 'primary' : 'ghost'}
+                    size="compact"
+                    onClick={() =>
+                      onStampSettingsChange?.({ ...stampSettings, color: color.value })
+                    }
+                    className="min-w-[40px] min-h-[40px] p-1 border-2"
+                    style={{
+                      backgroundColor: color.value,
+                      borderColor: stampSettings.color === color.value ? '#3b82f6' : '#e5e7eb',
+                    }}
+                    title={color.label}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* 크기 선택 */}
+            <div>
+              <div className="text-xs text-gray-600 dark:text-gray-400 mb-1">크기</div>
+              <div className="flex gap-2">
+                {[
+                  { value: 'small', label: '작게' },
+                  { value: 'medium', label: '보통' },
+                  { value: 'large', label: '크게' },
+                ].map(size => (
+                  <Button
+                    key={size.value}
+                    variant={stampSettings.size === size.value ? 'primary' : 'ghost'}
+                    size="compact"
+                    onClick={() => onStampSettingsChange?.({ ...stampSettings, size: size.value })}
+                    className="flex-1 min-h-[40px] px-3 py-2"
+                  >
+                    {size.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
