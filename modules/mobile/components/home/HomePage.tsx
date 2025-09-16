@@ -38,6 +38,7 @@ import '@/modules/mobile/styles/work-form.css'
 import '@/modules/mobile/styles/upload.css'
 import '@/modules/mobile/styles/summary.css'
 import '@/modules/mobile/styles/summary-section.css'
+import '@/modules/mobile/styles/drawing-quick.css'
 import { User } from '@supabase/supabase-js'
 
 interface HomePageProps {
