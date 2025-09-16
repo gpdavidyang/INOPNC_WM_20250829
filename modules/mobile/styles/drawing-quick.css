@@ -1,0 +1,496 @@
+/* ==================== Drawing Quick Action Styles ==================== */
+
+.drawing-quick-section {
+  background: var(--card);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.drawing-quick-container {
+  padding: 1rem;
+}
+
+/* Section Header */
+.drawing-quick-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.drawing-quick-section .section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.drawing-quick-section .link-btn {
+  font-size: 0.875rem;
+  color: var(--primary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: color 0.2s;
+}
+
+.drawing-quick-section .link-btn:hover {
+  color: var(--primary-dark);
+  text-decoration: underline;
+}
+
+/* Empty State */
+.drawing-quick-section .empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.drawing-quick-section .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+.drawing-quick-section .empty-text {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Loading State */
+.drawing-quick-section .loading-state {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.drawing-quick-section .loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 0.5rem;
+}
+
+.drawing-quick-section .loading-text {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Quick Content */
+.drawing-quick-section .quick-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Blueprint Preview */
+.drawing-quick-section .blueprint-preview {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+
+.drawing-quick-section .preview-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.drawing-quick-section .preview-icon {
+  font-size: 1rem;
+}
+
+.drawing-quick-section .preview-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.drawing-quick-section .preview-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Primary Action Button */
+.drawing-quick-section .primary-action-btn {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+}
+
+.drawing-quick-section .primary-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.4);
+}
+
+.drawing-quick-section .primary-action-btn:active {
+  transform: translateY(0);
+}
+
+.drawing-quick-section .btn-icon {
+  font-size: 1.25rem;
+}
+
+.drawing-quick-section .btn-text {
+  flex: 1;
+}
+
+.drawing-quick-section .btn-arrow {
+  font-size: 1.25rem;
+  opacity: 0.8;
+}
+
+/* Recent Markup */
+.drawing-quick-section .recent-markup {
+  background: var(--gray-50);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.drawing-quick-section .recent-markup:hover {
+  background: var(--gray-100);
+  border-color: var(--primary);
+}
+
+.drawing-quick-section .recent-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.drawing-quick-section .recent-icon {
+  font-size: 1rem;
+}
+
+.drawing-quick-section .recent-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.drawing-quick-section .recent-count {
+  font-size: 0.75rem;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.drawing-quick-section .recent-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.drawing-quick-section .recent-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* No Blueprint */
+.drawing-quick-section .no-blueprint {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: var(--gray-50);
+  border-radius: 8px;
+  border: 1px dashed var(--gray-300);
+}
+
+.drawing-quick-section .no-blueprint-text {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.drawing-quick-section .upload-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.drawing-quick-section .upload-btn:hover {
+  background: var(--primary-dark);
+}
+
+/* ==================== Drawing Browser Styles ==================== */
+
+.drawing-browser {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}
+
+/* Browser Header */
+.browser-header {
+  background: var(--card);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.browser-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.browser-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.browser-actions button {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preview-btn,
+.share-btn {
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  color: var(--text-primary);
+}
+
+.preview-btn:hover:not(:disabled),
+.share-btn:hover:not(:disabled) {
+  background: var(--gray-200);
+}
+
+.preview-btn:disabled,
+.share-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Browser Tabs */
+.browser-tabs {
+  background: var(--card);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.browser-tabs .tab-btn {
+  background: var(--gray-100);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.browser-tabs .tab-btn:hover {
+  background: var(--gray-200);
+}
+
+.browser-tabs .tab-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* Browser Content */
+.browser-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+/* Browser Loading */
+.browser-loading {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.browser-loading .loading-spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+/* Browser Error */
+.browser-error {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: var(--error);
+}
+
+/* File List */
+.file-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.file-item {
+  background: var(--card);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.file-item:hover {
+  background: var(--gray-50);
+  border-color: var(--primary);
+}
+
+.file-item.selected {
+  background: var(--primary-light);
+  border-color: var(--primary);
+}
+
+.file-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.file-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.file-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+}
+
+.file-check {
+  color: var(--primary);
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+/* Gallery Upload */
+.gallery-upload,
+.local-upload {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.gallery-label,
+.local-label {
+  display: block;
+  cursor: pointer;
+}
+
+.gallery-input,
+.local-input {
+  display: none;
+}
+
+.gallery-button,
+.local-button {
+  background: var(--card);
+  border: 2px dashed var(--gray-300);
+  border-radius: 12px;
+  padding: 2rem;
+  transition: all 0.2s;
+}
+
+.gallery-button:hover,
+.local-button:hover {
+  border-color: var(--primary);
+  background: var(--gray-50);
+}
+
+.gallery-icon,
+.local-icon {
+  font-size: 3rem;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* Empty State */
+.file-list .empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary);
+}
+
+/* CSS Variables for Dark Mode Support */
+:root {
+  --primary-rgb: 59, 130, 246;
+  --primary-light: rgba(59, 130, 246, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  .drawing-quick-section,
+  .drawing-browser {
+    --gray-50: #1f2937;
+    --gray-100: #374151;
+    --gray-200: #4b5563;
+    --gray-300: #6b7280;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
