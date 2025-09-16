@@ -65,18 +65,18 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
 
         {/* 모달 */}
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden transform transition-all duration-300 animate-slideUp">
+          <div className="bg-[var(--card)] rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden transform transition-all duration-300 animate-slideUp">
             {/* 헤더 */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between p-6 border-b border-[var(--line)]">
               <div className="flex items-center gap-3">
-                <h2 className="text-xl font-bold text-[#1A254F]">작업일지 상세</h2>
+                <h2 className="text-xl font-bold text-[var(--text)]">작업일지 상세</h2>
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(workLog.status)}`}
                 >
                   {getStatusText(workLog.status)}
                 </span>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={onClose} className="p-2 hover:bg-[var(--bg)] rounded-lg">
                 <svg
                   width="24"
                   height="24"
@@ -94,42 +94,42 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
             {/* 내용 */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
               {/* 기본 정보 */}
-              <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                <h3 className="font-semibold text-gray-900 mb-3">기본 정보</h3>
+              <div className="mb-6 p-4 bg-[var(--bg)] rounded-xl">
+                <h3 className="font-semibold text-[var(--text)] mb-3">기본 정보</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <p className="text-sm text-gray-600">작업일자</p>
-                    <p className="font-medium">{formatDate(workLog.date)}</p>
+                    <p className="text-sm text-[var(--muted)]">작업일자</p>
+                    <p className="font-medium text-[var(--text)]">{formatDate(workLog.date)}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">현장</p>
-                    <p className="font-medium">{workLog.siteName}</p>
+                    <p className="text-sm text-[var(--muted)]">현장</p>
+                    <p className="font-medium text-[var(--text)]">{workLog.siteName}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">위치</p>
-                    <p className="font-medium">
+                    <p className="text-sm text-[var(--muted)]">위치</p>
+                    <p className="font-medium text-[var(--text)]">
                       {workLog.location.block}블럭 {workLog.location.dong}동 {workLog.location.unit}
                       호
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">진행률</p>
-                    <p className="font-medium">{workLog.progress}%</p>
+                    <p className="text-sm text-[var(--muted)]">진행률</p>
+                    <p className="font-medium text-[var(--text)]">{workLog.progress}%</p>
                   </div>
                 </div>
               </div>
 
               {/* 작업 정보 */}
-              <div className="mb-6 p-4 bg-blue-50 rounded-xl">
-                <h3 className="font-semibold text-gray-900 mb-3">작업 정보</h3>
+              <div className="mb-6 p-4 bg-[var(--accent)] bg-opacity-10 rounded-xl">
+                <h3 className="font-semibold text-[var(--text)] mb-3">작업 정보</h3>
                 <div className="space-y-3">
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">부재명</p>
+                    <p className="text-sm text-[var(--muted)] mb-1">부재명</p>
                     <div className="flex flex-wrap gap-2">
                       {workLog.memberTypes.map((type, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm"
+                          className="px-3 py-1 bg-[var(--accent)] bg-opacity-20 text-[var(--accent)] rounded-lg text-sm"
                         >
                           {type}
                         </span>
@@ -137,12 +137,12 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 mb-1">작업공정</p>
+                    <p className="text-sm text-[var(--muted)] mb-1">작업공정</p>
                     <div className="flex flex-wrap gap-2">
                       {workLog.workProcesses.map((process, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-green-100 text-green-700 rounded-lg text-sm"
+                          className="px-3 py-1 bg-[var(--num)] bg-opacity-20 text-[var(--num)] rounded-lg text-sm"
                         >
                           {process}
                         </span>
@@ -151,12 +151,12 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                   </div>
                   {workLog.workTypes.length > 0 && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">작업유형</p>
+                      <p className="text-sm text-[var(--muted)] mb-1">작업유형</p>
                       <div className="flex flex-wrap gap-2">
                         {workLog.workTypes.map((type, index) => (
                           <span
                             key={index}
-                            className="px-3 py-1 bg-purple-100 text-purple-700 rounded-lg text-sm"
+                            className="px-3 py-1 bg-[var(--accent)] bg-opacity-30 text-[var(--accent)] rounded-lg text-sm"
                           >
                             {type}
                           </span>
@@ -168,32 +168,32 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
               </div>
 
               {/* 작업자 정보 */}
-              <div className="mb-6 p-4 bg-green-50 rounded-xl">
-                <h3 className="font-semibold text-gray-900 mb-3">작업자 정보</h3>
+              <div className="mb-6 p-4 bg-[var(--num)] bg-opacity-10 rounded-xl">
+                <h3 className="font-semibold text-[var(--text)] mb-3">작업자 정보</h3>
                 <div className="space-y-2">
                   {workLog.workers.map(worker => (
                     <div
                       key={worker.id}
-                      className="flex items-center justify-between py-2 border-b border-green-100 last:border-0"
+                      className="flex items-center justify-between py-2 border-b border-[var(--line)] last:border-0"
                     >
                       <span className="text-sm font-medium">{worker.name}</span>
-                      <span className="text-sm text-gray-600">{worker.hours}시간</span>
+                      <span className="text-sm text-[var(--muted)]">{worker.hours}시간</span>
                     </div>
                   ))}
                   <div className="pt-2 flex items-center justify-between">
                     <span className="font-semibold">총 작업시간</span>
-                    <span className="font-semibold text-green-700">{workLog.totalHours}시간</span>
+                    <span className="font-semibold text-[var(--num)]">{workLog.totalHours}시간</span>
                   </div>
                 </div>
               </div>
 
               {/* NPC-1000 사용량 */}
               {workLog.npcUsage && (
-                <div className="mb-6 p-4 bg-yellow-50 rounded-xl">
-                  <h3 className="font-semibold text-gray-900 mb-3">NPC-1000 사용량</h3>
+                <div className="mb-6 p-4 bg-[var(--accent)] bg-opacity-15 rounded-xl">
+                  <h3 className="font-semibold text-[var(--text)] mb-3">NPC-1000 사용량</h3>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">사용량</span>
-                    <span className="text-lg font-bold text-yellow-700">
+                    <span className="text-sm text-[var(--muted)]">사용량</span>
+                    <span className="text-lg font-bold text-[var(--accent)]">
                       {workLog.npcUsage.amount} {workLog.npcUsage.unit}
                     </span>
                   </div>
@@ -202,20 +202,20 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
 
               {/* 첨부파일 */}
               {hasAttachments && (
-                <div className="mb-6 p-4 bg-indigo-50 rounded-xl">
-                  <h3 className="font-semibold text-gray-900 mb-3">첨부파일</h3>
+                <div className="mb-6 p-4 bg-[var(--num)] bg-opacity-10 rounded-xl">
+                  <h3 className="font-semibold text-[var(--text)] mb-3">첨부파일</h3>
 
                   {/* 사진 */}
                   {workLog.attachments.photos.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm text-[var(--muted)] mb-2">
                         사진 ({workLog.attachments.photos.length})
                       </p>
                       <div className="grid grid-cols-4 gap-2">
                         {workLog.attachments.photos.map(photo => (
                           <div
                             key={photo.id}
-                            className="relative aspect-square bg-gray-200 rounded-lg overflow-hidden"
+                            className="relative aspect-square bg-[var(--line)] rounded-lg overflow-hidden"
                           >
                             <img
                               src={photo.url}
@@ -231,14 +231,14 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                   {/* 도면 */}
                   {workLog.attachments.drawings.length > 0 && (
                     <div className="mb-4">
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm text-[var(--muted)] mb-2">
                         도면 ({workLog.attachments.drawings.length})
                       </p>
                       <div className="space-y-2">
                         {workLog.attachments.drawings.map(drawing => (
                           <div
                             key={drawing.id}
-                            className="flex items-center justify-between p-2 bg-white rounded-lg"
+                            className="flex items-center justify-between p-2 bg-[var(--card)] rounded-lg"
                           >
                             <div className="flex items-center gap-2">
                               <svg
@@ -248,14 +248,14 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="2"
-                                className="text-green-500"
+                                className="text-[var(--accent)]"
                               >
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                                 <polyline points="14 2 14 8 20 8" />
                               </svg>
                               <span className="text-sm">{drawing.name}</span>
                             </div>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-[var(--muted)]">
                               {formatFileSize(drawing.size)}
                             </span>
                           </div>
@@ -267,14 +267,14 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                   {/* 확인서 */}
                   {workLog.attachments.confirmations.length > 0 && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-2">
+                      <p className="text-sm text-[var(--muted)] mb-2">
                         확인서 ({workLog.attachments.confirmations.length})
                       </p>
                       <div className="space-y-2">
                         {workLog.attachments.confirmations.map(confirmation => (
                           <div
                             key={confirmation.id}
-                            className="flex items-center justify-between p-2 bg-white rounded-lg"
+                            className="flex items-center justify-between p-2 bg-[var(--card)] rounded-lg"
                           >
                             <div className="flex items-center gap-2">
                               <svg
@@ -284,7 +284,7 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth="2"
-                                className="text-red-500"
+                                className="text-[var(--accent)]"
                               >
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                                 <polyline points="14 2 14 8 20 8" />
@@ -292,7 +292,7 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                               </svg>
                               <span className="text-sm">{confirmation.name}</span>
                             </div>
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-[var(--muted)]">
                               {formatFileSize(confirmation.size)}
                             </span>
                           </div>
@@ -305,25 +305,25 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
 
               {/* 메모 */}
               {workLog.notes && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-xl">
-                  <h3 className="font-semibold text-gray-900 mb-2">메모</h3>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">{workLog.notes}</p>
+                <div className="mb-6 p-4 bg-[var(--bg)] rounded-xl">
+                  <h3 className="font-semibold text-[var(--text)] mb-2">메모</h3>
+                  <p className="text-sm text-[var(--muted)] whitespace-pre-wrap">{workLog.notes}</p>
                 </div>
               )}
 
               {/* 작성 정보 */}
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <h3 className="font-semibold text-gray-900 mb-3">작성 정보</h3>
+              <div className="p-4 bg-[var(--bg)] rounded-xl">
+                <h3 className="font-semibold text-[var(--text)] mb-3">작성 정보</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-gray-600">작성일시</p>
-                    <p className="font-medium">
+                    <p className="text-[var(--muted)]">작성일시</p>
+                    <p className="font-medium text-[var(--text)]">
                       {new Date(workLog.createdAt).toLocaleString('ko-KR')}
                     </p>
                   </div>
                   <div>
-                    <p className="text-gray-600">수정일시</p>
-                    <p className="font-medium">
+                    <p className="text-[var(--muted)]">수정일시</p>
+                    <p className="font-medium text-[var(--text)]">
                       {new Date(workLog.updatedAt).toLocaleString('ko-KR')}
                     </p>
                   </div>
@@ -332,18 +332,18 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
             </div>
 
             {/* 푸터 */}
-            <div className="flex gap-3 p-6 border-t border-gray-200">
+            <div className="flex gap-3 p-6 border-t border-[var(--line)]">
               {workLog.status === 'draft' && (
                 <>
                   <button
                     onClick={onEdit}
-                    className="flex-1 h-12 bg-gray-100 text-gray-600 rounded-lg font-medium hover:bg-gray-200"
+                    className="flex-1 h-12 bg-[var(--bg)] text-[var(--muted)] rounded-lg font-medium hover:bg-[var(--line)]"
                   >
                     수정
                   </button>
                   <button
                     onClick={onApprove}
-                    className="flex-1 h-12 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600"
+                    className="flex-1 h-12 bg-[var(--accent)] text-white rounded-lg font-medium hover:opacity-90"
                   >
                     승인
                   </button>
@@ -351,13 +351,13 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
               )}
               <button
                 onClick={handleShare}
-                className="flex-1 h-12 bg-blue-100 text-blue-600 rounded-lg font-medium hover:bg-blue-200"
+                className="flex-1 h-12 bg-[var(--num)] bg-opacity-20 text-[var(--num)] rounded-lg font-medium hover:bg-opacity-30"
               >
                 공유
               </button>
               <button
                 onClick={handlePrint}
-                className="flex-1 h-12 bg-[#0068FE] text-white rounded-lg font-medium hover:bg-blue-600"
+                className="flex-1 h-12 bg-[var(--num)] text-white rounded-lg font-medium hover:opacity-90"
               >
                 인쇄
               </button>

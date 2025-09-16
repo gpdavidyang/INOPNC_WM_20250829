@@ -46,12 +46,12 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
     }, [onPrint])
 
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-[#e6eaf2] p-4 transition-all duration-300 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]">
+      <div className="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--line)] p-4 transition-all duration-300 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]">
         {/* 헤더 */}
         <div className="flex justify-between items-start mb-3">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-semibold text-[#1A254F]">
+              <span className="text-sm font-semibold text-[var(--text)]">
                 {formatDate(workLog.date)}
               </span>
               <span
@@ -60,14 +60,14 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
                 {getStatusText(workLog.status)}
               </span>
             </div>
-            <h3 className="text-sm font-medium text-[#101828] mb-1">{workLog.siteName}</h3>
-            <p className="text-xs text-gray-600">
+            <h3 className="text-sm font-medium text-[var(--text)] mb-1">{workLog.siteName}</h3>
+            <p className="text-xs text-[var(--muted)]">
               {workLog.location.block}블럭 {workLog.location.dong}동 {workLog.location.unit}호
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-gray-600 mb-1">전체 공수</p>
-            <p className="text-sm font-semibold text-[#1A254F]">{workLog.totalHours}h</p>
+            <p className="text-xs text-[var(--muted)] mb-1">전체 공수</p>
+            <p className="text-sm font-semibold text-[var(--num)]">{workLog.totalHours}h</p>
           </div>
         </div>
 
@@ -101,10 +101,10 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
 
         {/* 작업자 정보 */}
         <div className="mb-3">
-          <p className="text-xs text-gray-600 mb-1">작업자</p>
+          <p className="text-xs text-[var(--muted)] mb-1">작업자</p>
           <div className="flex flex-wrap gap-2">
             {workLog.workers.map(worker => (
-              <span key={worker.id} className="text-xs">
+              <span key={worker.id} className="text-xs text-[var(--text)]">
                 {worker.name} ({worker.hours}h)
               </span>
             ))}
@@ -142,7 +142,7 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
                   <circle cx="8.5" cy="8.5" r="1.5" />
                   <polyline points="21 15 16 10 5 21" />
                 </svg>
-                <span className="text-xs text-gray-600">{workLog.attachments.photos.length}</span>
+                <span className="text-xs text-[var(--muted)]">{workLog.attachments.photos.length}</span>
               </div>
             )}
             {workLog.attachments.drawings.length > 0 && (
@@ -162,7 +162,7 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
                   <line x1="16" y1="17" x2="8" y2="17" />
                   <polyline points="10 9 9 9 8 9" />
                 </svg>
-                <span className="text-xs text-gray-600">{workLog.attachments.drawings.length}</span>
+                <span className="text-xs text-[var(--muted)]">{workLog.attachments.drawings.length}</span>
               </div>
             )}
             {workLog.attachments.confirmations.length > 0 && (
@@ -180,7 +180,7 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
                   <polyline points="14 2 14 8 20 8" />
                   <polyline points="16 11 12 15 10 13" />
                 </svg>
-                <span className="text-xs text-gray-600">
+                <span className="text-xs text-[var(--muted)]">
                   {workLog.attachments.confirmations.length}
                 </span>
               </div>
@@ -191,10 +191,10 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
         {/* 진행률 */}
         <div className="mb-4">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-gray-600">진행률</span>
-            <span className="text-xs font-medium text-[#0068FE]">{workLog.progress}%</span>
+            <span className="text-xs text-[var(--muted)]">진행률</span>
+            <span className="text-xs font-medium text-[var(--num)]">{workLog.progress}%</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-[var(--line)] rounded-full h-2">
             <div
               className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(workLog.progress)}`}
               style={{ width: `${workLog.progress}%` }}
@@ -208,13 +208,13 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
             <>
               <button
                 onClick={handleEdit}
-                className="flex-1 h-10 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 active:scale-95 transition-all duration-200"
+                className="flex-1 h-10 bg-[var(--bg)] text-[var(--muted)] rounded-lg text-sm font-medium hover:bg-[var(--line)] active:scale-95 transition-all duration-200"
               >
                 수정하기
               </button>
               <button
                 onClick={handleSubmit}
-                className="flex-1 h-10 bg-[#1A254F] text-white rounded-lg text-sm font-medium hover:bg-[#152041] active:scale-95 transition-all duration-200"
+                className="flex-1 h-10 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent)] hover:opacity-90 active:scale-95 transition-all duration-200"
               >
                 제출하기
               </button>
@@ -223,13 +223,13 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
             <>
               <button
                 onClick={handleView}
-                className="flex-1 h-10 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 active:scale-95 transition-all duration-200"
+                className="flex-1 h-10 bg-[var(--bg)] text-[var(--muted)] rounded-lg text-sm font-medium hover:bg-[var(--line)] active:scale-95 transition-all duration-200"
               >
                 상세보기
               </button>
               <button
                 onClick={handlePrint}
-                className="flex-1 h-10 bg-[#0068FE] text-white rounded-lg text-sm font-medium hover:bg-blue-600 active:scale-95 transition-all duration-200"
+                className="flex-1 h-10 bg-[var(--num)] text-white rounded-lg text-sm font-medium hover:bg-[var(--num)] hover:opacity-90 active:scale-95 transition-all duration-200"
               >
                 인쇄하기
               </button>
