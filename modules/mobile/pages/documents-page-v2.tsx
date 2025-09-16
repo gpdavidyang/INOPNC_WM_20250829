@@ -162,9 +162,10 @@ const DocumentsContentV2: React.FC = () => {
 
   return (
     <MobileLayout
-      title="문서함"
+      title=""
       userRole={profile?.role as 'worker' | 'site_manager'}
-      showBack={true}
+      showBack={false}
+      showNotification={false}
     >
       <div className="doc-wrap">
         {/* 탭 네비게이션 */}

@@ -140,45 +140,120 @@ export const WorkLogHomePage: React.FC = () => {
 
   return (
     <MobileLayout
-      title="출력현황"
+      title=""
       userRole={profile?.role === 'site_manager' ? 'site_manager' : 'worker'}
+      showNotification={false}
     >
       <div className="min-h-screen bg-[#f5f7fb] font-['Noto_Sans_KR']">
-        {/* Tab Navigation */}
-        <div className="bg-white border-b border-[#e6eaf2]">
-          <div className="px-4 pt-4">
-            <div className="flex bg-gray-50 rounded-xl p-1">
-              <button
-                onClick={() => setActiveTab('output')}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === 'output' ? 'bg-white text-[#1A254F] shadow-sm' : 'text-gray-600'
-                }`}
-              >
-                출력현황
-              </button>
-              <button
-                onClick={() => setActiveTab('salary')}
-                className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === 'salary' ? 'bg-white text-[#1A254F] shadow-sm' : 'text-gray-600'
-                }`}
-              >
-                급여현황
-              </button>
-            </div>
-          </div>
+        {/* Tab Navigation - 100% worklog.html 일치 */}
+        <div
+          className="grid grid-cols-2 border-b-2"
+          style={{
+            borderBottomColor: '#E5EAF3',
+          }}
+        >
+          <button
+            onClick={() => setActiveTab('output')}
+            className={`relative flex items-center justify-center transition-all duration-300 ${
+              activeTab === 'output' ? 'line-tab-active' : ''
+            }`}
+            style={{
+              padding: '10px 6px',
+              fontSize: '17px',
+              fontWeight: '600',
+              color: '#1A254F',
+              fontFamily: '"Noto Sans KR", system-ui, sans-serif',
+            }}
+          >
+            출력현황
+            {activeTab === 'output' && (
+              <div
+                className="absolute left-0 right-0 bottom-0"
+                style={{
+                  height: '2px',
+                  backgroundColor: '#1A254F',
+                }}
+              />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab('salary')}
+            className={`relative flex items-center justify-center transition-all duration-300 ${
+              activeTab === 'salary' ? 'line-tab-active' : ''
+            }`}
+            style={{
+              padding: '10px 6px',
+              fontSize: '17px',
+              fontWeight: '600',
+              color: '#1A254F',
+              fontFamily: '"Noto Sans KR", system-ui, sans-serif',
+            }}
+          >
+            급여현황
+            {activeTab === 'salary' && (
+              <div
+                className="absolute left-0 right-0 bottom-0"
+                style={{
+                  height: '2px',
+                  backgroundColor: '#1A254F',
+                }}
+              />
+            )}
+          </button>
+        </div>
 
-          {/* Site Filter */}
+        {/* Site Filter - 100% worklog.html 일치 */}
+        <div className="bg-white border-b border-[#e6eaf2]">
           <div className="px-4 py-3">
-            <select
-              value={selectedSite}
-              onChange={e => setSelectedSite(e.target.value)}
-              className="w-full h-10 px-3 border border-[#e6eaf2] rounded-lg bg-white text-sm focus:border-[#0068FE] focus:ring-2 focus:ring-[#0068FE]/20"
-            >
-              <option>전체 현장</option>
-              <option>현장 1</option>
-              <option>현장 2</option>
-              <option>현장 3</option>
-            </select>
+            <label className="relative w-full min-w-0 block" aria-label="현장 선택">
+              <div
+                className="flex items-center justify-center w-full border rounded-xl transition-all duration-300"
+                style={{
+                  height: '48px',
+                  padding: '0 14px',
+                  borderColor: '#E6ECF4',
+                  backgroundColor: '#fff',
+                  color: '#1A254F',
+                  fontFamily: '"Noto Sans KR", system-ui, sans-serif',
+                  fontWeight: '600',
+                  fontSize: '15px',
+                }}
+              >
+                {selectedSite}
+              </div>
+              <span
+                className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                style={{
+                  width: '10px',
+                  height: '10px',
+                  background: `
+                    linear-gradient(45deg, #9aa3b6 50%, transparent 50%) center,
+                    linear-gradient(-45deg, #9aa3b6 50%, transparent 50%) center
+                  `,
+                  backgroundSize: '8px 8px, 8px 8px',
+                  backgroundRepeat: 'no-repeat',
+                  clipPath: 'polygon(50% 70%, 0 20%, 100% 20%)',
+                }}
+                aria-hidden="true"
+              />
+              <select
+                value={selectedSite}
+                onChange={e => setSelectedSite(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                style={{
+                  fontSize: '16px',
+                  fontFamily: '"Noto Sans KR", system-ui, sans-serif',
+                  fontWeight: '600',
+                  borderRadius: '12px',
+                  outline: 'none',
+                }}
+              >
+                <option>전체 현장</option>
+                <option>현장 1</option>
+                <option>현장 2</option>
+                <option>현장 3</option>
+              </select>
+            </label>
           </div>
         </div>
 

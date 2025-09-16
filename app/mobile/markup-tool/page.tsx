@@ -228,9 +228,9 @@ export default function MarkupToolPage() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
-      {/* 상단 헤더 - 네비게이션과 저장 버튼 */}
-      <header className="flex items-center justify-between p-3 bg-white border-b">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
+      {/* 상단 헤더 - 네비게이션과 저장 버튼 - 고정 위치 */}
+      <header className="flex-shrink-0 flex items-center justify-between p-3 bg-white border-b">
         <button
           onClick={handleClose}
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
@@ -262,8 +262,8 @@ export default function MarkupToolPage() {
         </div>
       </header>
 
-      {/* 마킹 에디터 */}
-      <div className="flex-1 relative">
+      {/* 마킹 에디터 - 스크롤 가능한 컨테이너 */}
+      <div className="flex-1 min-h-0 overflow-hidden">
         <SharedMarkupEditor
           profile={profile}
           mode="worker"
