@@ -1,13 +1,26 @@
 'use client'
 
-import type { 
-  MarkupDocument, 
-  MarkupObject, 
-  ToolType, 
-  ToolState, 
+import { useState, useEffect, useRef } from 'react'
+import { useFontSize } from '@/contexts/FontSizeContext'
+import { useTouchMode } from '@/contexts/TouchModeContext'
+import { useMarkupTools } from './hooks/use-markup-tools'
+import { useCanvasState } from './hooks/use-canvas-state'
+import { useFileManager } from './hooks/use-file-manager'
+import type {
+  MarkupDocument,
+  MarkupObject,
+  ToolType,
+  ToolState,
   ViewerState,
-  MarkupEditorState 
+  MarkupEditorState,
 } from '@/types/markup'
+import { MarkupDocumentList } from './list/markup-document-list'
+import { TopToolbar } from './toolbar/top-toolbar'
+import { ToolPalette } from './toolbar/tool-palette'
+import { MarkupCanvas } from './canvas/markup-canvas'
+import { BlueprintUpload } from './upload/blueprint-upload'
+import { BottomStatusbar } from './toolbar/bottom-statusbar'
+import { SavePage } from './pages/save-page'
 import { OpenDialog } from './dialogs/open-dialog'
 import { ShareDialog } from './dialogs/share-dialog'
 
@@ -21,18 +34,18 @@ interface MarkupEditorProps {
   embedded?: boolean
 }
 
-export function MarkupEditor({ 
-  initialFile, 
+export function MarkupEditor({
+  initialFile,
   blueprintUrl: initialBlueprintUrl,
   onSave,
   onClose,
   profile,
   initialView = 'list',
-  embedded = false
+  embedded = false,
 }: MarkupEditorProps) {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
-  
+
   // 도면 업로드 상태
   const [blueprintUrl, setBlueprintUrl] = useState<string>(initialBlueprintUrl || '')
   const [blueprintFileName, setBlueprintFileName] = useState<string>('')
@@ -50,15 +63,15 @@ export function MarkupEditor({
       stampSettings: {
         shape: 'circle',
         size: 'medium',
-        color: '#FF0000'
-      }
+        color: '#FF0000',
+      },
     },
     viewerState: {
       zoom: 1,
       panX: 0,
       panY: 0,
       imageWidth: 0,
-      imageHeight: 0
+      imageHeight: 0,
     },
     markupObjects: initialFile?.markupObjects || [],
     selectedObjects: [],
@@ -67,7 +80,7 @@ export function MarkupEditor({
     isLoading: false,
     isSaving: false,
     showSavePage: false,
-    showOpenDialog: false
+    showOpenDialog: false,
   })
 
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -86,14 +99,14 @@ export function MarkupEditor({
         ...prev,
         currentFile: initialFile,
         markupObjects: initialFile.markup_data || initialFile.markupObjects || [],
-        originalBlueprint: initialFile.original_blueprint_url || null
+        originalBlueprint: initialFile.original_blueprint_url || null,
       }))
-      
+
       // 블루프린트 URL 설정
       if (initialFile.original_blueprint_url) {
         setBlueprintUrl(initialFile.original_blueprint_url)
       }
-      
+
       // 에디터 뷰로 전환
       setCurrentView('editor')
     }
@@ -109,8 +122,8 @@ export function MarkupEditor({
           viewerState: {
             ...prev.viewerState,
             imageWidth: img.width,
-            imageHeight: img.height
-          }
+            imageHeight: img.height,
+          },
         }))
       }
       img.src = blueprintUrl
@@ -166,7 +179,7 @@ export function MarkupEditor({
 
   const handleToolChange = (tool: ToolType) => {
     console.log('Tool changed to:', tool) // 디버깅용
-    
+
     // 줌 도구 처리
     if (tool === 'zoom-in') {
       const newZoom = Math.min(5, editorState.viewerState.zoom * 1.2)
@@ -174,20 +187,20 @@ export function MarkupEditor({
         ...prev,
         viewerState: {
           ...prev.viewerState,
-          zoom: newZoom
-        }
+          zoom: newZoom,
+        },
       }))
       return
     }
-    
+
     if (tool === 'zoom-out') {
       const newZoom = Math.max(0.1, editorState.viewerState.zoom * 0.8)
       setEditorState(prev => ({
         ...prev,
         viewerState: {
           ...prev.viewerState,
-          zoom: newZoom
-        }
+          zoom: newZoom,
+        },
       }))
       return
     }
@@ -197,8 +210,8 @@ export function MarkupEditor({
       ...prev,
       toolState: {
         ...prev.toolState,
-        activeTool: tool
-      }
+        activeTool: tool,
+      },
     }))
   }
 
@@ -207,8 +220,8 @@ export function MarkupEditor({
       ...prev,
       toolState: {
         ...prev.toolState,
-        stampSettings: settings
-      }
+        stampSettings: settings,
+      },
     }))
   }
 
@@ -223,17 +236,17 @@ export function MarkupEditor({
         fileName,
         description,
         blueprintUrl,
-        blueprintFileName
+        blueprintFileName,
       })
 
       if (savedDocument) {
         // 성공 메시지 표시
         alert(`마킹 도면이 성공적으로 저장되었습니다.\n\n파일명: ${fileName}`)
-        
+
         if (onSave) {
           onSave(savedDocument)
         }
-        
+
         // 문서 목록 화면으로 이동
         setTimeout(() => {
           setCurrentView('list')
@@ -252,7 +265,7 @@ export function MarkupEditor({
     try {
       // 로딩 상태 즉시 설정
       setEditorState(prev => ({ ...prev, isLoading: true }))
-      
+
       const result = await fileManager.openDocument(document as unknown)
       if (result) {
         setBlueprintUrl(result.blueprintUrl)
@@ -281,7 +294,7 @@ export function MarkupEditor({
       markupObjects: [],
       selectedObjects: [],
       undoStack: [],
-      redoStack: []
+      redoStack: [],
     }))
   }
 
@@ -296,17 +309,17 @@ export function MarkupEditor({
 
   const handleImageUpload = (imageUrl: string, fileName: string) => {
     console.log('handleImageUpload called:', { fileName, urlLength: imageUrl.length }) // 디버깅용
-    
+
     try {
       if (!imageUrl || !fileName) {
         console.error('Invalid image data:', { imageUrl: !!imageUrl, fileName })
         alert('유효하지 않은 파일 데이터입니다.')
         return
       }
-      
+
       setBlueprintUrl(imageUrl)
       setBlueprintFileName(fileName)
-      
+
       // 새 도면이 업로드되면 기존 마킹 초기화
       setEditorState(prev => ({
         ...prev,
@@ -314,9 +327,9 @@ export function MarkupEditor({
         selectedObjects: [],
         undoStack: [],
         redoStack: [],
-        currentFile: null
+        currentFile: null,
       }))
-      
+
       console.log('Blueprint uploaded successfully:', fileName) // 디버깅용
     } catch (error) {
       console.error('Error handling image upload:', error)
@@ -349,12 +362,14 @@ export function MarkupEditor({
               <div className="absolute inset-0 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
               <div className="absolute inset-0 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <p className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">도면을 불러오는 중</p>
+            <p className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              도면을 불러오는 중
+            </p>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               고해상도 도면을 로딩하고 있습니다
             </p>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div 
+              <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: '75%' }}
               ></div>
@@ -365,7 +380,7 @@ export function MarkupEditor({
           </div>
         </div>
       )}
-      
+
       {/* 상단 툴바 - embedded 모드에서는 간소화 */}
       {!embedded && (
         <TopToolbar
@@ -387,9 +402,11 @@ export function MarkupEditor({
           <>
             {/* 데스크톱: 좌측 도구 패널 */}
             {!isMobile && (
-              <div className={`${
-                touchMode === 'glove' ? 'w-40' : touchMode === 'precision' ? 'w-32' : 'w-36'
-              } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col`}>
+              <div
+                className={`${
+                  touchMode === 'glove' ? 'w-40' : touchMode === 'precision' ? 'w-32' : 'w-36'
+                } bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col`}
+              >
                 <div className="flex-1 overflow-y-auto overflow-x-hidden py-2">
                   <ToolPalette
                     activeTool={editorState.toolState.activeTool}
@@ -411,7 +428,10 @@ export function MarkupEditor({
             )}
 
             {/* 캔버스 영역 - Mobile friendly */}
-            <div className="flex-1 relative bg-gray-100 dark:bg-gray-900 overflow-auto md:overflow-hidden min-h-[400px] md:min-h-96" ref={containerRef}>
+            <div
+              className="flex-1 relative bg-gray-100 dark:bg-gray-900 overflow-auto md:overflow-hidden min-h-[400px] md:min-h-96"
+              ref={containerRef}
+            >
               <MarkupCanvas
                 ref={canvasRef}
                 editorState={editorState}
@@ -487,7 +507,7 @@ export function MarkupEditor({
 
           <OpenDialog
             open={editorState.showOpenDialog}
-            onOpenChange={(open) => setEditorState(prev => ({ ...prev, showOpenDialog: open }))}
+            onOpenChange={open => setEditorState(prev => ({ ...prev, showOpenDialog: open }))}
             onOpen={handleOpenDocument as any}
           />
 
