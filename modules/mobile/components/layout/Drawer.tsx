@@ -496,7 +496,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                       <input
                         type="password"
                         className="form-input"
-                        id="currentPassword"
+                        id="drawer-currentPassword"
                         placeholder="현재 비밀번호를 입력"
                         value={passwordForm.current}
                         onChange={e =>
@@ -509,7 +509,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                       <input
                         type="password"
                         className="form-input"
-                        id="newPassword"
+                        id="drawer-newPassword"
                         placeholder="새 비밀번호 (최소 6자)"
                         value={passwordForm.new}
                         onChange={e => setPasswordForm(prev => ({ ...prev, new: e.target.value }))}
@@ -520,7 +520,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                       <input
                         type="password"
                         className="form-input"
-                        id="confirmPassword"
+                        id="drawer-confirmPassword"
                         placeholder="새 비밀번호를 다시 입력"
                         value={passwordForm.confirm}
                         onChange={e =>

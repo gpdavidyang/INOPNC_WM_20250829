@@ -270,6 +270,7 @@ export default function MarkupToolPage() {
           onSave={handleSave}
           onClose={handleClose}
           initialDocument={markupDocument}
+          embedded={true}
         />
       </div>
     </div>

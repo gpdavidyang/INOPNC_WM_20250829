@@ -22,7 +22,7 @@ export const WorkLogHomePage: React.FC = () => {
     { date: '2025-01-09', hours: 9.5, site: '현장 1', overtime: 1.5 },
     { date: '2025-01-10', hours: 8.0, site: '현장 2', overtime: 0 },
     { date: '2025-01-13', hours: 8.0, site: '현장 1', overtime: 0 },
-    { date: '2025-01-14', hours: 8.5, site: '현장 1', overtime: 0.5 }
+    { date: '2025-01-14', hours: 8.5, site: '현장 1', overtime: 0.5 },
   ]
 
   // Calendar helpers
@@ -39,14 +39,17 @@ export const WorkLogHomePage: React.FC = () => {
   }
 
   // Statistics calculation
-  const filteredWorkData = selectedSite === '전체 현장' 
-    ? workData 
-    : workData.filter(work => work.site === selectedSite)
+  const filteredWorkData =
+    selectedSite === '전체 현장' ? workData : workData.filter(work => work.site === selectedSite)
 
   const totalWorkDays = filteredWorkData.length
   const totalWorkHours = filteredWorkData.reduce((sum, work) => sum + work.hours, 0)
   const totalOvertimeHours = filteredWorkData.reduce((sum, work) => sum + work.overtime, 0)
   const averageDailyWage = totalWorkDays > 0 ? (totalWorkHours * 15000) / totalWorkDays : 0
+
+  // HTML 요구사항에 맞는 통계 계산
+  const siteCount = [...new Set(workData.map(work => work.site))].length // 현장수
+  const totalManDays = filteredWorkData.reduce((sum, work) => sum + work.hours / 8, 0) // 총공수 (8시간 기준)
 
   // Salary calculation
   const monthlyBasePay = totalWorkHours * 15000
@@ -63,38 +66,45 @@ export const WorkLogHomePage: React.FC = () => {
     const month = currentDate.getMonth()
     const daysInMonth = getDaysInMonth(year, month)
     const firstDay = getFirstDayOfMonth(year, month)
-    
+
     const days = []
     const weekDays = ['일', '월', '화', '수', '목', '금', '토']
-    
+
     // Week day headers
     weekDays.forEach((day, index) => {
       days.push(
-        <div key={`header-${index}`} className="text-center text-xs font-medium text-gray-500 p-2">
+        <div
+          key={`header-${index}`}
+          className={`text-center text-xs font-semibold p-3 bg-gray-50 border border-gray-200 ${
+            index === 0 ? 'text-red-500' : 'text-gray-700'
+          }`}
+        >
           {day}
         </div>
       )
     })
-    
+
     // Empty cells for days before month starts
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="p-2"></div>)
+      days.push(<div key={`empty-${i}`} className="p-3 min-h-[80px] border border-gray-200"></div>)
     }
-    
+
     // Days of month
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       const workInfo = getWorkDataForDate(dateStr)
       const isToday = dateStr === new Date().toISOString().split('T')[0]
-      
+
       days.push(
-        <div 
-          key={day} 
-          className={`p-2 min-h-[60px] border border-gray-100 relative ${
-            isToday ? 'bg-blue-50 border-blue-200' : 'bg-white'
-          }`}
+        <div
+          key={day}
+          className={`p-3 min-h-[80px] border border-gray-200 relative ${
+            isToday ? 'bg-blue-50 border-blue-300' : 'bg-white'
+          } hover:bg-gray-50 transition-colors`}
         >
-          <div className={`text-sm ${isToday ? 'font-bold text-blue-600' : 'text-gray-700'}`}>
+          <div
+            className={`text-sm font-medium ${isToday ? 'font-bold text-blue-600' : 'text-gray-800'}`}
+          >
             {day}
           </div>
           {workInfo && (
@@ -112,7 +122,7 @@ export const WorkLogHomePage: React.FC = () => {
         </div>
       )
     }
-    
+
     return days
   }
 
@@ -129,8 +139,8 @@ export const WorkLogHomePage: React.FC = () => {
   }
 
   return (
-    <MobileLayout 
-      title="출력현황" 
+    <MobileLayout
+      title="출력현황"
       userRole={profile?.role === 'site_manager' ? 'site_manager' : 'worker'}
     >
       <div className="min-h-screen bg-[#f5f7fb] font-['Noto_Sans_KR']">
@@ -141,9 +151,7 @@ export const WorkLogHomePage: React.FC = () => {
               <button
                 onClick={() => setActiveTab('output')}
                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === 'output'
-                    ? 'bg-white text-[#1A254F] shadow-sm'
-                    : 'text-gray-600'
+                  activeTab === 'output' ? 'bg-white text-[#1A254F] shadow-sm' : 'text-gray-600'
                 }`}
               >
                 출력현황
@@ -151,9 +159,7 @@ export const WorkLogHomePage: React.FC = () => {
               <button
                 onClick={() => setActiveTab('salary')}
                 className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === 'salary'
-                    ? 'bg-white text-[#1A254F] shadow-sm'
-                    : 'text-gray-600'
+                  activeTab === 'salary' ? 'bg-white text-[#1A254F] shadow-sm' : 'text-gray-600'
                 }`}
               >
                 급여현황
@@ -163,9 +169,9 @@ export const WorkLogHomePage: React.FC = () => {
 
           {/* Site Filter */}
           <div className="px-4 py-3">
-            <select 
+            <select
               value={selectedSite}
-              onChange={(e) => setSelectedSite(e.target.value)}
+              onChange={e => setSelectedSite(e.target.value)}
               className="w-full h-10 px-3 border border-[#e6eaf2] rounded-lg bg-white text-sm focus:border-[#0068FE] focus:ring-2 focus:ring-[#0068FE]/20"
             >
               <option>전체 현장</option>
@@ -183,7 +189,7 @@ export const WorkLogHomePage: React.FC = () => {
             <div className="bg-white rounded-2xl shadow-sm border border-[#e6eaf2] p-4">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <img 
+                  <img
                     src="/icons/20250912/image_backup/출력현황.png"
                     alt="출력현황"
                     className="w-5 h-5"
@@ -191,59 +197,108 @@ export const WorkLogHomePage: React.FC = () => {
                   <h3 className="text-lg font-bold text-[#1A254F]">근무 캘린더</h3>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button 
+                  <button
                     onClick={() => navigateMonth('prev')}
                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 active:scale-95 transition-all duration-200"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="15,18 9,12 15,6"/>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <polyline points="15,18 9,12 15,6" />
                     </svg>
                   </button>
                   <h4 className="text-base font-semibold text-[#1A254F] min-w-[100px] text-center">
                     {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
                   </h4>
-                  <button 
+                  <button
                     onClick={() => navigateMonth('next')}
                     className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 active:scale-95 transition-all duration-200"
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="9,18 15,12 9,6"/>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <polyline points="9,18 15,12 9,6" />
                     </svg>
                   </button>
                 </div>
               </div>
 
               {/* Calendar Grid */}
-              <div className="grid grid-cols-7 gap-1 text-sm">
+              <div className="grid grid-cols-7 gap-0 text-sm border border-gray-200 rounded-lg overflow-hidden">
                 {renderCalendar()}
               </div>
             </div>
 
-            {/* Monthly Statistics */}
-            <div className="bg-white rounded-2xl shadow-sm border border-[#e6eaf2] p-4">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-5 h-5 bg-[#0068FE] rounded flex items-center justify-center">
-                  <span className="text-white text-xs">📊</span>
-                </div>
-                <h3 className="text-lg font-bold text-[#1A254F]">월간 통계</h3>
+            {/* Monthly Statistics - HTML 요구사항 정확 구현 */}
+            <div className="mt-3.5 monthly-stats-section bg-white rounded-2xl shadow-sm border border-[#e6eaf2] p-4">
+              <div className="stat-head flex items-center gap-2 mb-3">
+                <img
+                  src="https://postfiles.pstatic.net/MjAyNTA5MDlfNyAg/MDAxNzU3MzczOTIzODU0.BFZq2N-z_TfqaHHXHagPVOzloVF1Pc88XGJNMFUYQ-Eg.J20ua1uJqCne8_2abHUnX6O98ITuEomvcaogesHWIsgg.PNG/%EC%9B%94%EA%B0%84%ED%86%B5%EA%B3%84.png?type=w3840"
+                  alt="월간 통계"
+                  width="27"
+                  height="27"
+                  className="w-[27px] h-[27px]"
+                />
+                <span
+                  className="stat-title text-lg font-bold text-[#1A254F]"
+                  style={{
+                    fontFamily: "'Noto Sans KR', system-ui, sans-serif",
+                    fontWeight: 700,
+                    fontSize: '17px',
+                  }}
+                >
+                  월간 통계
+                </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-blue-50 rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-blue-600 mb-1">{totalWorkDays}</p>
-                  <p className="text-sm text-blue-700">근무일수</p>
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                {/* 출근(일) 통계 */}
+                <div
+                  className="stat stat-workdays rounded-xl p-4 text-center border"
+                  style={{
+                    color: '#0068FE',
+                    backgroundColor: 'rgba(0, 104, 254, 0.05)',
+                    borderColor: 'rgba(0, 104, 254, 0.2)',
+                  }}
+                >
+                  <div className="num text-2xl font-bold mb-1">{totalWorkDays}</div>
+                  <div className="label text-sm font-medium">출근(일)</div>
                 </div>
-                <div className="bg-green-50 rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-green-600 mb-1">{totalWorkHours.toFixed(1)}h</p>
-                  <p className="text-sm text-green-700">총 근무시간</p>
+
+                {/* 현장수 통계 */}
+                <div
+                  className="stat stat-sites rounded-xl p-4 text-center border"
+                  style={{
+                    color: '#8B5CF6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.05)',
+                    borderColor: 'rgba(139, 92, 246, 0.2)',
+                  }}
+                >
+                  <div className="num text-2xl font-bold mb-1">{siteCount}</div>
+                  <div className="label text-sm font-medium">현장수</div>
                 </div>
-                <div className="bg-orange-50 rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-orange-600 mb-1">{totalOvertimeHours.toFixed(1)}h</p>
-                  <p className="text-sm text-orange-700">연장근무</p>
-                </div>
-                <div className="bg-purple-50 rounded-xl p-4 text-center">
-                  <p className="text-2xl font-bold text-purple-600 mb-1">{Math.round(averageDailyWage).toLocaleString()}원</p>
-                  <p className="text-sm text-purple-700">평균 일당</p>
+
+                {/* 총공수 통계 */}
+                <div
+                  className="stat stat-mandays rounded-xl p-4 text-center border"
+                  style={{
+                    color: '#10B981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                    borderColor: 'rgba(16, 185, 129, 0.2)',
+                  }}
+                >
+                  <div className="num text-2xl font-bold mb-1">{totalManDays.toFixed(1)}</div>
+                  <div className="label text-sm font-medium">총공수</div>
                 </div>
               </div>
             </div>
@@ -265,27 +320,39 @@ export const WorkLogHomePage: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">기본급</span>
-                  <span className="text-sm font-semibold text-[#1A254F]">{monthlyBasePay.toLocaleString()}원</span>
+                  <span className="text-sm font-semibold text-[#1A254F]">
+                    {monthlyBasePay.toLocaleString()}원
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">연장근무수당</span>
-                  <span className="text-sm font-semibold text-[#0068FE]">+{overtimePay.toLocaleString()}원</span>
+                  <span className="text-sm font-semibold text-[#0068FE]">
+                    +{overtimePay.toLocaleString()}원
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-200">
                   <span className="text-base font-semibold text-[#1A254F]">지급총액</span>
-                  <span className="text-base font-bold text-[#1A254F]">{totalGrossPay.toLocaleString()}원</span>
+                  <span className="text-base font-bold text-[#1A254F]">
+                    {totalGrossPay.toLocaleString()}원
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">소득세</span>
-                  <span className="text-sm font-semibold text-red-600">-{tax.toLocaleString()}원</span>
+                  <span className="text-sm font-semibold text-red-600">
+                    -{tax.toLocaleString()}원
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">보험료</span>
-                  <span className="text-sm font-semibold text-red-600">-{insurance.toLocaleString()}원</span>
+                  <span className="text-sm font-semibold text-red-600">
+                    -{insurance.toLocaleString()}원
+                  </span>
                 </div>
                 <div className="flex justify-between items-center py-3 bg-green-50 rounded-lg px-3">
                   <span className="text-lg font-bold text-green-800">실지급액</span>
-                  <span className="text-lg font-bold text-green-600">{netPay.toLocaleString()}원</span>
+                  <span className="text-lg font-bold text-green-600">
+                    {netPay.toLocaleString()}원
+                  </span>
                 </div>
               </div>
             </div>
@@ -293,30 +360,44 @@ export const WorkLogHomePage: React.FC = () => {
             {/* Payslip Actions */}
             <div className="bg-white rounded-2xl shadow-sm border border-[#e6eaf2] p-4">
               <h3 className="text-lg font-bold text-[#1A254F] mb-4">급여명세서</h3>
-              
+
               <div className="space-y-3">
                 <div className="flex gap-2">
                   <input
                     type="month"
                     value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
+                    onChange={e => setSelectedMonth(e.target.value)}
                     className="flex-1 h-10 px-3 border border-[#e6eaf2] rounded-lg bg-white text-sm focus:border-[#0068FE] focus:ring-2 focus:ring-[#0068FE]/20"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <button className="h-12 bg-[#1A254F] text-white rounded-xl font-semibold hover:bg-[#152041] active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14,2 14,8 20,8"/>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                      <polyline points="14,2 14,8 20,8" />
                     </svg>
                     명세서 생성
                   </button>
                   <button className="h-12 bg-[#0068FE] text-white rounded-xl font-semibold hover:bg-blue-600 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="7,10 12,15 17,10"/>
-                      <line x1="12" x2="12" y1="15" y2="3"/>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7,10 12,15 17,10" />
+                      <line x1="12" x2="12" y1="15" y2="3" />
                     </svg>
                     PDF 다운로드
                   </button>
@@ -327,23 +408,36 @@ export const WorkLogHomePage: React.FC = () => {
             {/* Salary History */}
             <div className="bg-white rounded-2xl shadow-sm border border-[#e6eaf2] p-4">
               <h3 className="text-lg font-bold text-[#1A254F] mb-4">급여 이력</h3>
-              
+
               <div className="space-y-3">
-                {['2024-12', '2024-11', '2024-10'].map((month) => (
-                  <div key={month} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg">
+                {['2024-12', '2024-11', '2024-10'].map(month => (
+                  <div
+                    key={month}
+                    className="flex items-center justify-between p-3 border border-gray-100 rounded-lg"
+                  >
                     <div>
                       <p className="text-sm font-semibold text-[#1A254F]">{month}</p>
                       <p className="text-xs text-gray-600">급여명세서</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-green-600">
-                        {(Math.random() * 1000000 + 2000000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',')}원
+                        {(Math.random() * 1000000 + 2000000)
+                          .toFixed(0)
+                          .replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                        원
                       </span>
                       <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 active:scale-95 transition-all duration-200">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                          <polyline points="7,10 12,15 17,10"/>
-                          <line x1="12" x2="12" y1="15" y2="3"/>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="7,10 12,15 17,10" />
+                          <line x1="12" x2="12" y1="15" y2="3" />
                         </svg>
                       </button>
                     </div>

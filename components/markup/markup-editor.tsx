@@ -91,6 +91,19 @@ export function MarkupEditor({
   const canvasState = useCanvasState(editorState, setEditorState)
   const fileManager = useFileManager(editorState, setEditorState)
 
+  // Save event listener for embedded mode
+  useEffect(() => {
+    if (embedded) {
+      const handleSaveEvent = () => {
+        setEditorState(prev => ({ ...prev, showSavePage: true }))
+      }
+      window.addEventListener('markupSave', handleSaveEvent)
+      return () => {
+        window.removeEventListener('markupSave', handleSaveEvent)
+      }
+    }
+  }, [embedded])
+
   // initialFile이 변경될 때 상태 업데이트
   useEffect(() => {
     if (initialFile) {
@@ -129,6 +142,18 @@ export function MarkupEditor({
       img.src = blueprintUrl
     }
   }, [blueprintUrl])
+
+  // 저장 이벤트 리스너 추가
+  useEffect(() => {
+    const handleSaveEvent = () => {
+      setEditorState(prev => ({ ...prev, showSavePage: true }))
+    }
+
+    window.addEventListener('markupSave', handleSaveEvent)
+    return () => {
+      window.removeEventListener('markupSave', handleSaveEvent)
+    }
+  }, [])
 
   // 키보드 단축키
   useEffect(() => {
@@ -381,7 +406,7 @@ export function MarkupEditor({
         </div>
       )}
 
-      {/* 상단 툴바 - embedded 모드에서는 간소화 */}
+      {/* 상단 툴바 - embedded 모드에서는 아무것도 표시하지 않음 (상위 컴포넌트에서 처리) */}
       {!embedded && (
         <TopToolbar
           fileName={blueprintFileName || (editorState.currentFile as unknown)?.title || '새 마킹'}
@@ -491,20 +516,21 @@ export function MarkupEditor({
         />
       )}
 
-      {/* 다이얼로그 - embedded 모드에서는 숨김 */}
+      {/* 저장 다이얼로그는 embedded 모드에서도 표시 */}
+      {editorState.showSavePage && (
+        <SavePage
+          onSave={(fileName, description) => {
+            handleSave(fileName, description)
+            setEditorState(prev => ({ ...prev, showSavePage: false }))
+          }}
+          onCancel={() => setEditorState(prev => ({ ...prev, showSavePage: false }))}
+          defaultFileName={editorState.currentFile?.fileName || ''}
+        />
+      )}
+
+      {/* 다른 다이얼로그 - embedded 모드에서는 숨김 */}
       {!embedded && (
         <>
-          {editorState.showSavePage && (
-            <SavePage
-              onSave={(fileName, description) => {
-                handleSave(fileName, description)
-                setEditorState(prev => ({ ...prev, showSavePage: false }))
-              }}
-              onCancel={() => setEditorState(prev => ({ ...prev, showSavePage: false }))}
-              defaultFileName={editorState.currentFile?.fileName || ''}
-            />
-          )}
-
           <OpenDialog
             open={editorState.showOpenDialog}
             onOpenChange={open => setEditorState(prev => ({ ...prev, showOpenDialog: open }))}

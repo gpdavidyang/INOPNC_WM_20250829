@@ -1,0 +1,640 @@
+/* 문서함 V2 스타일 - HTML 참조와 100% 동일 */
+
+/* CSS Variables */
+:root {
+  --primary-color: #0066ff;
+  --brand: #0068fe;
+  --success: #4caf50;
+  --info: #2196f3;
+  --danger: #f44336;
+  --warning: #ff9800;
+  --background: #f5f5f5;
+  --card-bg: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --border-color: #e0e0e0;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --line: #e0e0e0;
+  --line-soft: #f0f0f0;
+}
+
+[data-theme='dark'] {
+  --brand: #2f6bff;
+  --success: #4caf50;
+  --info: #2196f3;
+  --danger: #f44336;
+  --warning: #ff9800;
+  --background: #1a1a1a;
+  --card-bg: #2a2a2a;
+  --text-primary: #ffffff;
+  --text-secondary: #999999;
+  --border-color: #3a3a3a;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --line: #3a3a3a;
+  --line-soft: #2a2a2a;
+}
+
+/* Font Size Classes from worklog.html */
+body.fs-100 .doc-wrap {
+  font-size: 15px;
+}
+
+body.fs-150 .doc-wrap {
+  font-size: 27px;
+}
+
+/* Base Styles */
+.doc-wrap {
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    'Roboto',
+    'Apple SD Gothic Neo',
+    'Malgun Gothic',
+    sans-serif;
+  font-weight: 400;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0;
+  background: var(--background);
+  min-height: 100vh;
+  position: relative;
+  padding-bottom: 80px;
+}
+
+/* Tab Navigation */
+.tabs {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  background: #f0f0f0;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+[data-theme='dark'] .tabs {
+  background: #2a2a2a;
+}
+
+.tab {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  outline: none;
+}
+
+.tab:hover {
+  background: rgba(0, 102, 255, 0.08);
+}
+
+.tab.active {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 102, 255, 0.3);
+}
+
+/* Search Section */
+.search-section {
+  padding: 12px 16px;
+  background: var(--card-bg);
+  margin-bottom: 12px;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 10px;
+  padding: 0 12px;
+  height: 44px;
+}
+
+[data-theme='dark'] .search-input-wrapper {
+  background: #1a1a1a;
+}
+
+.search-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--text-secondary);
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--text-secondary);
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn:hover {
+  background: #f5f5f5;
+}
+
+[data-theme='dark'] .cancel-btn:hover {
+  background: #3a3a3a;
+}
+
+/* Document Cards Container */
+.document-cards {
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* 더 컴팩트한 간격 */
+}
+
+/* Document Selection Card */
+.doc-selection-card {
+  background: var(--card-bg);
+  border-radius: 10px; /* 약간 더 둥근 모서리 */
+  padding: 12px 14px; /* 더 컴팩트한 패딩 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid var(--border-color);
+  position: relative;
+  min-height: 54px; /* 일관된 높이 */
+}
+
+.doc-selection-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+.doc-selection-card.active {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(0, 102, 255, 0.05), rgba(0, 102, 255, 0.02));
+}
+
+.doc-selection-card.active .selection-checkmark {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.doc-selection-card.active .selection-checkmark svg {
+  opacity: 1;
+}
+
+/* Document Content */
+.doc-selection-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 더 작은 간격 */
+}
+
+.doc-selection-title {
+  font-size: 14px; /* 더 작은 기본 폰트 크기 */
+  font-weight: 600; /* 더 굵은 폰트 */
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: color 0.3s ease;
+  position: relative;
+  padding-right: 16px;
+  line-height: 1.4;
+}
+
+.doc-selection-title.font-size-16 {
+  font-size: 16px;
+}
+
+.doc-selection-title:hover {
+  color: var(--primary-color);
+}
+
+.doc-selection-title.expanded {
+  color: var(--primary-color);
+}
+
+.doc-selection-title.expanded::after {
+  content: '▼';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--primary-color);
+}
+
+.doc-selection-title:not(.expanded)::after {
+  content: '▶';
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Document Actions */
+.doc-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px; /* 더 작은 버튼 간격 */
+}
+
+.upload-btn,
+.preview-btn,
+.delete-btn {
+  padding: 6px 12px; /* 좀 더 넉넉한 패딩 */
+  border-radius: 6px; /* 더 둥근 모서리 */
+  font-size: 12px;
+  font-weight: 700; /* 더 굵은 폰트 */
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  text-transform: none; /* 대소문자 변환 없음 */
+  letter-spacing: -0.2px; /* 약간 타이트한 자간 */
+}
+
+.upload-btn {
+  background: var(--success);
+  color: white;
+}
+
+.upload-btn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.25);
+}
+
+.upload-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.2);
+}
+
+.preview-btn {
+  background: var(--info);
+  color: white;
+}
+
+.preview-btn:hover {
+  background: #0b7dda;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.25);
+}
+
+.preview-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(33, 150, 243, 0.2);
+}
+
+.delete-btn {
+  background: var(--danger);
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #da190b;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.25);
+}
+
+.delete-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.2);
+}
+
+/* Checkbox */
+.doc-selection-checkbox {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 2px;
+  margin-left: 4px;
+}
+
+.selection-checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+[data-theme='dark'] .selection-checkmark {
+  background: #2a2a2a;
+}
+
+.selection-checkmark svg {
+  width: 14px;
+  height: 14px;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.selection-checkmark.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.selection-checkmark.active svg {
+  opacity: 1;
+}
+
+/* Add Upload Box */
+.add-upload-box {
+  background: var(--card-bg);
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.add-upload-box:hover {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(0, 102, 255, 0.05), rgba(0, 102, 255, 0.02));
+}
+
+.add-upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-upload-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--primary-color);
+  transition: all 0.3s ease;
+}
+
+[data-theme='dark'] .add-upload-icon {
+  background: #3a3a3a;
+}
+
+.add-upload-box:hover .add-upload-icon {
+  transform: scale(1.1);
+  background: var(--primary-color);
+  color: white;
+}
+
+.add-upload-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Footer Buttons */
+.foot {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  padding: 12px 16px;
+  display: flex;
+  gap: 10px;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Ripple Effect */
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translate(-50%, -50%);
+  transition:
+    width 0.45s ease,
+    height 0.45s ease;
+}
+
+.btn.clicked::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-save {
+  background: #99a4be;
+  color: white;
+  font-weight: 700;
+}
+
+[data-theme='dark'] .btn-save {
+  background: #2a323c;
+  color: #e9eef5;
+}
+
+.btn-save:hover {
+  background: #8a95ad;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(153, 164, 190, 0.3);
+}
+
+.btn-save:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(153, 164, 190, 0.2);
+}
+
+[data-theme='dark'] .btn-save:hover {
+  background: #3a424c;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary {
+  background: var(--brand);
+  color: white;
+  font-weight: 700;
+}
+
+.btn-primary:hover {
+  background: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 102, 255, 0.2);
+}
+
+[data-theme='dark'] .btn-primary {
+  background: #2f6bff;
+}
+
+[data-theme='dark'] .btn-primary:hover {
+  background: #1d4ed8;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.doc-selection-card {
+  animation: fadeIn 0.5s ease;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .doc-wrap {
+    max-width: 100%;
+  }
+
+  .tabs {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tab {
+    flex: 1;
+    text-align: center;
+  }
+
+  .doc-selection-title {
+    font-size: 14px;
+  }
+
+  .upload-btn,
+  .preview-btn,
+  .delete-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Scrollbar Styling */
+.doc-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.doc-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.doc-wrap::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+
+.doc-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Loading State */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 3px solid var(--border-color);
+  border-radius: 50%;
+  border-top-color: var(--primary-color);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.empty-state-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.empty-state-description {
+  font-size: 14px;
+  line-height: 1.5;
+}
