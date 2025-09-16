@@ -67,67 +67,64 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
         onClick={handleCardClick}
       >
         {/* 헤더 */}
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-sm font-semibold text-[var(--text)]">
-                {formatDate(workLog.date)}
-              </span>
-              <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(workLog.status)}`}
-              >
-                {getStatusText(workLog.status)}
-              </span>
-            </div>
-            <h3 className="text-sm font-medium text-[var(--text)] mb-1">{workLog.siteName}</h3>
-            <p className="text-xs text-[var(--muted)]">
-              {workLog.location.block}블럭 {workLog.location.dong}동 {workLog.location.unit}호
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-xs text-[var(--muted)] mb-1">전체 공수</p>
-              <p className="text-sm font-semibold text-[var(--num)]">{workLog.totalHours}h</p>
-            </div>
+        <div className="worklog-header flex justify-between items-start mb-2">
+          <span className="worklog-site text-sm font-semibold text-[var(--text)]">
+            [{workLog.partnerName || 'INOPNC'}] {workLog.siteName}
+          </span>
+          <div className="worklog-header-left flex items-center gap-2">
+            <span
+              className={`status-tag px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(workLog.status)}`}
+            >
+              {getStatusText(workLog.status)}
+            </span>
             <button
               onClick={toggleExpanded}
-              className="p-1 hover:bg-[var(--line)] rounded-full transition-colors duration-200"
+              className="worklog-detail-btn px-3 py-1 text-xs bg-[var(--line)] hover:bg-[var(--muted)] rounded-md transition-colors"
             >
-              {isExpanded ? (
-                <ChevronUp size={16} className="text-[var(--muted)]" />
-              ) : (
-                <ChevronDown size={16} className="text-[var(--muted)]" />
-              )}
+              상세
             </button>
           </div>
         </div>
 
-        {/* 작업 정보 태그 - 항상 표시 */}
-        <div className="flex flex-wrap gap-1 mb-3">
-          {workLog.memberTypes.map((type, index) => (
-            <span
-              key={`member-${index}`}
-              className="px-2 py-1 bg-blue-50 text-blue-700 rounded-md text-xs animate-fadeIn"
-            >
-              {type}
+        {/* 작성자 정보 */}
+        <div className="worklog-info-row flex justify-between items-center mb-3 text-xs text-[var(--muted)]">
+          <span className="worklog-author">작성자: {workLog.author || '미지정'}</span>
+          <span className="worklog-date">{formatDate(workLog.date)}</span>
+        </div>
+
+        {/* 위치 정보 */}
+        <div className="worklog-location mb-2">
+          <p className="text-xs text-[var(--muted)]">
+            {workLog.location.block}블럭 {workLog.location.dong}동 {workLog.location.unit}호
+          </p>
+        </div>
+
+        {/* 작업 상세 정보 - 항상 표시 */}
+        <div className="worklog-details mb-3">
+          <div className="worklog-detail-line flex gap-2 mb-1">
+            <span className="worklog-detail-label text-xs text-[var(--muted)]">부재명:</span>
+            <span className="worklog-detail-value text-xs text-[var(--text)]">
+              {workLog.memberTypes.join(' / ')}
             </span>
-          ))}
-          {workLog.workProcesses.map((process, index) => (
-            <span
-              key={`process-${index}`}
-              className="px-2 py-1 bg-green-50 text-green-700 rounded-md text-xs animate-fadeIn"
-            >
-              {process}
+          </div>
+          <div className="worklog-detail-line flex gap-2 mb-1">
+            <span className="worklog-detail-label text-xs text-[var(--muted)]">작업공정:</span>
+            <span className="worklog-detail-value text-xs text-[var(--text)]">
+              {workLog.workProcesses.join(' / ')}
             </span>
-          ))}
-          {workLog.workTypes.map((type, index) => (
-            <span
-              key={`type-${index}`}
-              className="px-2 py-1 bg-purple-50 text-purple-700 rounded-md text-xs animate-fadeIn"
-            >
-              {type}
+          </div>
+          <div className="worklog-detail-line flex gap-2 mb-1">
+            <span className="worklog-detail-label text-xs text-[var(--muted)]">작업유형:</span>
+            <span className="worklog-detail-value text-xs text-[var(--text)]">
+              {workLog.workTypes.join(' / ')}
             </span>
-          ))}
+          </div>
+          <div className="worklog-detail-line flex gap-2">
+            <span className="worklog-detail-label text-xs text-[var(--muted)]">공수:</span>
+            <span className="worklog-detail-value text-xs text-[var(--text)]">
+              {workLog.totalHours}일
+            </span>
+          </div>
         </div>
 
         {/* 확장 가능한 상세 정보 */}
@@ -241,54 +238,42 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
           )}
         </div>
 
-        {/* 진행률 - 항상 표시 */}
-        <div className="mb-4">
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-xs text-[var(--muted)]">진행률</span>
-            <span className="text-xs font-medium text-[var(--num)]">{workLog.progress}%</span>
+        {/* 액션 버튼 - 확장 시에만 표시 */}
+        {isExpanded && (
+          <div className="flex gap-2 mt-3">
+            {workLog.status === 'temporary' ? (
+              <>
+                <button
+                  onClick={handleEdit}
+                  className="flex-1 h-10 bg-[var(--bg)] text-[var(--muted)] rounded-lg text-sm font-medium hover:bg-[var(--line)] active:scale-95 transition-all duration-200"
+                >
+                  수정하기
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="flex-1 h-10 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent)] hover:opacity-90 active:scale-95 transition-all duration-200"
+                >
+                  제출하기
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleView}
+                  className="flex-1 h-10 bg-[var(--bg)] text-[var(--muted)] rounded-lg text-sm font-medium hover:bg-[var(--line)] active:scale-95 transition-all duration-200"
+                >
+                  상세보기
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className="flex-1 h-10 bg-[var(--num)] text-white rounded-lg text-sm font-medium hover:bg-[var(--num)] hover:opacity-90 active:scale-95 transition-all duration-200"
+                >
+                  인쇄하기
+                </button>
+              </>
+            )}
           </div>
-          <div className="w-full bg-[var(--line)] rounded-full h-2">
-            <div
-              className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(workLog.progress)}`}
-              style={{ width: `${workLog.progress}%` }}
-            />
-          </div>
-        </div>
-
-        {/* 액션 버튼 - 항상 표시 */}
-        <div className="flex gap-2">
-          {workLog.status === 'temporary' ? (
-            <>
-              <button
-                onClick={handleEdit}
-                className="flex-1 h-10 bg-[var(--bg)] text-[var(--muted)] rounded-lg text-sm font-medium hover:bg-[var(--line)] active:scale-95 transition-all duration-200"
-              >
-                수정하기
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="flex-1 h-10 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent)] hover:opacity-90 active:scale-95 transition-all duration-200"
-              >
-                제출하기
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                onClick={handleView}
-                className="flex-1 h-10 bg-[var(--bg)] text-[var(--muted)] rounded-lg text-sm font-medium hover:bg-[var(--line)] active:scale-95 transition-all duration-200"
-              >
-                상세보기
-              </button>
-              <button
-                onClick={handlePrint}
-                className="flex-1 h-10 bg-[var(--num)] text-white rounded-lg text-sm font-medium hover:bg-[var(--num)] hover:opacity-90 active:scale-95 transition-all duration-200"
-              >
-                인쇄하기
-              </button>
-            </>
-          )}
-        </div>
+        )}
       </div>
     )
   }

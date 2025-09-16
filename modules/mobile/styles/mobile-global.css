@@ -59,7 +59,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  /* Allow vertical scrolling while preventing horizontal */
 }
 
 body {
@@ -73,7 +74,8 @@ body {
   transition: font-size 0.3s ease;
   overscroll-behavior: contain;
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  /* Allow vertical scrolling while preventing horizontal */
 }
 
 /* Font Size Switch Classes */
@@ -1598,10 +1600,11 @@ body.fs-150 .expandable.expanded::after {
 
 /* Main container padding to account for fixed header and bottom nav */
 .mobile-container {
-  padding-top: 60px; /* Match header height */
+  padding-top: 80px; /* Match actual header height */
   padding-bottom: 72px; /* Match bottom nav height */
   min-height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  height: 100vh;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  position: relative;
 }
