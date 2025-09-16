@@ -52,6 +52,9 @@ export const WorkLogHomePage: React.FC = () => {
   const [isPayslipModalOpen, setIsPayslipModalOpen] = useState(false)
   const [payslipData, setPayslipData] = useState<any>(null)
 
+  // 폰트 크기 상태
+  const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal')
+
   // 급여 정보 로딩 상태
   const [isLoadingSalary, setIsLoadingSalary] = useState(false)
   const [salaryError, setSalaryError] = useState<string | null>(null)
@@ -92,6 +95,32 @@ export const WorkLogHomePage: React.FC = () => {
     },
     [profile?.id]
   )
+
+  // 폰트 크기 초기화 및 토글 함수
+  useEffect(() => {
+    const savedFontSize =
+      (localStorage.getItem('inopnc_font_size') as 'normal' | 'large') || 'normal'
+    setFontSize(savedFontSize)
+
+    const mainContainer = document.querySelector('main.container')
+    if (mainContainer) {
+      mainContainer.classList.remove('fs-100', 'fs-150')
+      mainContainer.classList.add(savedFontSize === 'normal' ? 'fs-100' : 'fs-150')
+    }
+  }, [])
+
+  const toggleFontSize = useCallback(() => {
+    const newSize = fontSize === 'normal' ? 'large' : 'normal'
+    setFontSize(newSize)
+
+    const mainContainer = document.querySelector('main.container')
+    if (mainContainer) {
+      mainContainer.classList.remove('fs-100', 'fs-150')
+      mainContainer.classList.add(newSize === 'normal' ? 'fs-100' : 'fs-150')
+    }
+
+    localStorage.setItem('inopnc_font_size', newSize)
+  }, [fontSize])
 
   // 현재 월의 급여 정보 로드
   useEffect(() => {
@@ -437,13 +466,13 @@ export const WorkLogHomePage: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleLoadTemporaryWorkLog(tempLog)}
-                            className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md transition-colors"
+                            className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-md transition-colors button-primary"
                           >
                             불러오기
                           </button>
                           <button
                             onClick={() => handleDeleteTemporaryWorkLog(tempLog.id)}
-                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-md transition-colors"
+                            className="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-sm rounded-md transition-colors button-primary"
                           >
                             삭제
                           </button>
@@ -646,7 +675,7 @@ export const WorkLogHomePage: React.FC = () => {
         {/* Floating Action Button */}
         <button
           onClick={handleCreateWorkLog}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-[#0068FE] hover:bg-blue-600 active:scale-95 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 z-50"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-[#0068FE] hover:bg-blue-600 active:scale-95 rounded-full shadow-lg flex items-center justify-center transition-all duration-200 z-50 button-ripple"
           aria-label="작업일지 작성"
         >
           <Plus className="w-6 h-6 text-white" />
@@ -678,6 +707,83 @@ export const WorkLogHomePage: React.FC = () => {
           onCreateWorkLog={handleCreateWorkLogFromBottomSheet}
         />
       </div>
+
+      <style jsx>{`
+        .button-ripple {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .button-ripple::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.3);
+          transform: translate(-50%, -50%);
+          transition:
+            width 0.4s ease,
+            height 0.4s ease;
+        }
+
+        .button-ripple:active::before {
+          width: 300px;
+          height: 300px;
+        }
+
+        .button-primary {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .button-primary::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.25);
+          transform: translate(-50%, -50%);
+          transition:
+            width 0.35s ease,
+            height 0.35s ease;
+        }
+
+        .button-primary:active::before {
+          width: 200px;
+          height: 200px;
+        }
+
+        .button-secondary {
+          position: relative;
+          overflow: hidden;
+        }
+
+        .button-secondary::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          border-radius: 50%;
+          background: rgba(26, 37, 79, 0.15);
+          transform: translate(-50%, -50%);
+          transition:
+            width 0.35s ease,
+            height 0.35s ease;
+        }
+
+        .button-secondary:active::before {
+          width: 150px;
+          height: 150px;
+        }
+      `}</style>
     </MobileLayout>
   )
 }
