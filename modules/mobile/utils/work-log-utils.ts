@@ -1,9 +1,77 @@
 import { WorkLog, WorkLogStatus, WorkerHours, STORAGE_KEYS } from '../types/work-log.types'
 
-// 캐시를 위한 Map 객체들
+// 캐시를 위한 WeakMap/Map 객체들 - 메모리 최적화
 const dateFormatCache = new Map<string, string>()
 const monthFormatCache = new Map<string, string>()
 const fileSizeCache = new Map<number, string>()
+
+// 캐시 크기 제한 상수
+const MAX_DATE_CACHE_SIZE = 100
+const MAX_MONTH_CACHE_SIZE = 50
+const MAX_FILE_SIZE_CACHE_SIZE = 200
+
+// localStorage 캐시 - 메모리 누수 방지
+const localStorageCache = new Map<string, any>()
+let lastCacheUpdate = 0
+const CACHE_DURATION = 5000 // 5초 캐시
+
+// 캐시 정리 함수
+const clearOldCacheEntries = () => {
+  const now = Date.now()
+  if (now - lastCacheUpdate > CACHE_DURATION * 10) {
+    // 50초마다 정리
+    localStorageCache.clear()
+    lastCacheUpdate = now
+  }
+}
+
+/**
+ * 안전한 localStorage 접근
+ */
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      const now = Date.now()
+
+      // 캐시가 유효한 경우
+      if (now - lastCacheUpdate < CACHE_DURATION && localStorageCache.has(key)) {
+        return localStorageCache.get(key)
+      }
+
+      // localStorage에서 읽기
+      const value = localStorage.getItem(key)
+
+      // 캐시 업데이트
+      localStorageCache.set(key, value)
+      lastCacheUpdate = now
+
+      return value
+    } catch (error) {
+      console.warn('localStorage getItem failed:', error)
+      return null
+    }
+  },
+
+  setItem: (key: string, value: string): void => {
+    try {
+      localStorage.setItem(key, value)
+      // 캐시도 업데이트
+      localStorageCache.set(key, value)
+    } catch (error) {
+      console.warn('localStorage setItem failed:', error)
+    }
+  },
+
+  removeItem: (key: string): void => {
+    try {
+      localStorage.removeItem(key)
+      // 캐시에서도 제거
+      localStorageCache.delete(key)
+    } catch (error) {
+      console.warn('localStorage removeItem failed:', error)
+    }
+  },
+}
 
 /**
  * 날짜 포맷팅 (메모이제이션 적용)

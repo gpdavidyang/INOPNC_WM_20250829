@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useLongPress } from '@/modules/mobile/hooks/useLongPress'
 import './documents-page-v2.css'
 
 interface DocumentItem {
@@ -27,6 +28,7 @@ const DocumentsContentV2: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set(['A']))
   const [fontSize, setFontSize] = useState<'fs-100' | 'fs-150'>('fs-100')
+  const [deleteMode, setDeleteMode] = useState(false)
 
   // 내 문서함 문서 목록
   const myDocuments: DocumentItem[] = [
@@ -52,10 +54,25 @@ const DocumentsContentV2: React.FC = () => {
     doc.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  // 롱프레스로 삭제 모드 진입
+  const enterDeleteMode = () => {
+    setDeleteMode(true)
+    // 햅틱 피드백 (지원하는 브라우저에서)
+    if (navigator.vibrate) {
+      navigator.vibrate(50)
+    }
+  }
+
+  // 삭제 모드 종료
+  const exitDeleteMode = () => {
+    setDeleteMode(false)
+  }
+
   const handleTabClick = (tab: 'mine' | 'shared') => {
     setActiveTab(tab)
-    // 탭 전환 시 선택 초기화
+    // 탭 전환 시 선택 초기화 및 삭제 모드 종료
     setSelectedDocuments(new Set())
+    setDeleteMode(false)
   }
 
   const handleDocumentClick = (docId: string) => {
@@ -105,6 +122,12 @@ const DocumentsContentV2: React.FC = () => {
     console.log('Add new document')
     // 새 문서 추가 로직 구현
   }
+
+  // 롱프레스 훅 설정
+  const longPressHandlers = useLongPress({
+    onLongPress: enterDeleteMode,
+    delay: 800,
+  })
 
   const handleSaveDocuments = () => {
     const selected = Array.from(selectedDocuments)

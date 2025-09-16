@@ -14,22 +14,39 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
   const [sort, setSort] = useState<WorkLogSort>({ field: 'date', order: 'desc' })
   const [searchQuery, setSearchQuery] = useState('')
 
-  // 데이터 로드
+  // 데이터 로드 - AbortController로 메모리 누수 방지
   useEffect(() => {
+    const abortController = new AbortController()
+
     const loadWorkLogs = async () => {
       try {
         setLoading(true)
         setError(null)
         const data = await WorkLogService.getWorkLogs(filter, sort)
-        setWorkLogs(data)
+
+        // 컴포넌트가 언마운트되었는지 확인
+        if (!abortController.signal.aborted) {
+          setWorkLogs(data)
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : '작업일지를 불러오는 중 오류가 발생했습니다.')
+        if (!abortController.signal.aborted) {
+          setError(
+            err instanceof Error ? err.message : '작업일지를 불러오는 중 오류가 발생했습니다.'
+          )
+        }
       } finally {
-        setLoading(false)
+        if (!abortController.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
 
     loadWorkLogs()
+
+    // 클린업 함수로 요청 취소
+    return () => {
+      abortController.abort()
+    }
   }, [filter, sort])
 
   // 필터링된 작업일지

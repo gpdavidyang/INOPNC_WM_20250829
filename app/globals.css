@@ -14,11 +14,24 @@
    ======================================== */
 
 :root {
-  /* Brand Colors from mockup (Now defined in design-tokens.css) */
-  /* Keeping these for backward compatibility */
+  /* Brand Colors from HTML reference - Exact Match */
+  --brand: #1a254f;
   --brand-light: #2a3570;
   --brand-dark: #0f1835;
   --num: #0068fe;
+
+  /* Statistics Card Colors - HTML Reference System */
+  --stat-orange: #ff8c42;
+  --stat-orange-bg: #fff4ed;
+  --stat-orange-border: #ffdbcc;
+
+  --stat-green: #10b981;
+  --stat-green-bg: #ecfdf5;
+  --stat-green-border: #a7f3d0;
+
+  --stat-blue: #3b82f6;
+  --stat-blue-bg: #eff6ff;
+  --stat-blue-border: #dbeafe;
 
   /* Light theme colors */
   --bg: #ffffff;
@@ -1877,4 +1890,265 @@ body.force-desktop-ui * {
 
 .animate-slideOut {
   animation: slideOutRight 0.3s ease-out forwards;
+}
+
+/* ========================================
+   HTML REFERENCE STYLES INTEGRATION
+   Exact matching with worklog.html
+   ======================================== */
+
+/* Line Tabs Navigation - HTML Reference Style */
+.line-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 16px;
+  background: #ffffff;
+}
+
+.line-tab {
+  flex: 1;
+  padding: 12px 16px;
+  text-align: center;
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.line-tab.active {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+.line-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--brand);
+  border-radius: 1px 1px 0 0;
+}
+
+/* Calendar Wrapper - HTML Reference Style */
+.cal-wrap {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.cal-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.cal-header-cell {
+  padding: 8px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+  border-right: 1px solid #e5e7eb;
+}
+
+.cal-header-cell:last-child {
+  border-right: none;
+}
+
+.cal-body {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
+
+.cal-cell {
+  aspect-ratio: 1;
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 4px;
+  position: relative;
+  background: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.cal-cell:nth-child(7n) {
+  border-right: none;
+}
+
+.cal-cell:hover {
+  background: #f3f4f6;
+}
+
+.cal-cell.today {
+  background: #eff6ff;
+}
+
+.cal-cell.has-work {
+  background: var(--stat-blue-bg);
+}
+
+.cal-cell-date {
+  font-size: 12px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.cal-cell.today .cal-cell-date {
+  color: var(--brand);
+  font-weight: 600;
+}
+
+/* Statistics Cards - HTML Reference Exact Colors and Spacing */
+.stat-workdays {
+  background: var(--stat-orange-bg);
+  border: 1px solid var(--stat-orange-border);
+  color: var(--stat-orange);
+  padding: 16px 12px;
+}
+
+.stat-workdays .stat-number {
+  color: var(--stat-orange);
+}
+
+.stat-sites {
+  background: var(--stat-green-bg);
+  border: 1px solid var(--stat-green-border);
+  color: var(--stat-green);
+  padding: 16px 12px;
+}
+
+.stat-sites .stat-number {
+  color: var(--stat-green);
+}
+
+.stat-hours {
+  background: var(--stat-blue-bg);
+  border: 1px solid var(--stat-blue-border);
+  color: var(--stat-blue);
+  padding: 16px 12px;
+}
+
+.stat-hours .stat-number {
+  color: var(--stat-blue);
+}
+
+/* HTML Reference Container Spacing */
+.monthly-stats-section {
+  padding: 18px 20px;
+  margin: 16px 20px;
+}
+
+.stat-head {
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+/* HTML Reference Calendar Header Spacing */
+.cal-wrap {
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+  margin: 18px 20px;
+}
+
+/* Site Filter Section - HTML Reference Spacing */
+.site-filter-section {
+  padding: 18px 20px;
+  background: #ffffff;
+  border-bottom: 1px solid #e6eaf2;
+}
+
+/* HTML Reference Typography - Exact Match */
+.worklog-body {
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Apple SD Gothic Neo,
+    Malgun Gothic,
+    sans-serif;
+  font-size: 15px;
+  font-weight: 200;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.worklog-body.fs-100 {
+  font-size: 15px;
+  font-weight: 200;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Apple SD Gothic Neo,
+    Malgun Gothic,
+    sans-serif;
+}
+
+.worklog-body.fs-150 * {
+  font-size: 27px; /* 15px * 1.8 = 27px */
+  font-weight: 200;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Apple SD Gothic Neo,
+    Malgun Gothic,
+    sans-serif;
+}
+
+/* Stat Title Typography - HTML Reference */
+.stat-title {
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--brand);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Stat Numbers Typography - HTML Reference */
+.stat-number {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.1px;
+}
+
+.label {
+  font-size: 14px;
+  line-height: 1.2;
+  letter-spacing: -0.1px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+/* Button Typography - HTML Reference */
+.btn-plain {
+  background: none;
+  border: none;
+  padding: 0 6px;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text);
 }
