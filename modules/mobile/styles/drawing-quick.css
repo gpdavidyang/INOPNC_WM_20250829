@@ -1,10 +1,11 @@
 /* ==================== Drawing Quick Action Styles ==================== */
 
 .drawing-quick-section {
-  background: var(--card);
+  background: var(--card, #ffffff);
   border-radius: 12px;
   margin-bottom: 1rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--border, #e5e7eb);
 }
 
 .drawing-quick-container {
@@ -22,12 +23,12 @@
 .drawing-quick-section .section-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text, #1f2937);
 }
 
 .drawing-quick-section .link-btn {
   font-size: 0.875rem;
-  color: var(--primary);
+  color: #3b82f6;
   background: none;
   border: none;
   cursor: pointer;
@@ -38,7 +39,7 @@
 }
 
 .drawing-quick-section .link-btn:hover {
-  color: var(--primary-dark);
+  color: #2563eb;
   text-decoration: underline;
 }
 
@@ -46,16 +47,19 @@
 .drawing-quick-section .empty-state {
   text-align: center;
   padding: 2rem 1rem;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 12px;
+  border: 1px solid var(--border, #e5e7eb);
 }
 
 .drawing-quick-section .empty-icon {
   font-size: 3rem;
   margin-bottom: 0.5rem;
-  opacity: 0.5;
+  opacity: 0.7;
 }
 
 .drawing-quick-section .empty-text {
-  color: var(--text-secondary);
+  color: var(--text-muted, #6b7280);
   font-size: 0.875rem;
 }
 
@@ -63,20 +67,23 @@
 .drawing-quick-section .loading-state {
   text-align: center;
   padding: 2rem 1rem;
+  background: var(--bg-secondary, #f9fafb);
+  border-radius: 12px;
+  border: 1px solid var(--border, #e5e7eb);
 }
 
 .drawing-quick-section .loading-spinner {
   width: 2rem;
   height: 2rem;
-  border: 3px solid var(--gray-200);
-  border-top-color: var(--primary);
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 0.5rem;
 }
 
 .drawing-quick-section .loading-text {
-  color: var(--text-secondary);
+  color: var(--text-muted, #6b7280);
   font-size: 0.875rem;
 }
 
@@ -89,8 +96,8 @@
 
 /* Blueprint Preview */
 .drawing-quick-section .blueprint-preview {
-  background: var(--gray-50);
-  border: 1px solid var(--gray-200);
+  background: #f0f9ff;
+  border: 1px solid #bfdbfe;
   border-radius: 8px;
   padding: 0.75rem;
 }
@@ -108,7 +115,7 @@
 
 .drawing-quick-section .preview-label {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: #1e40af;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -116,7 +123,7 @@
 .drawing-quick-section .preview-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text, #1e293b);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -124,7 +131,7 @@
 
 /* Primary Action Button */
 .drawing-quick-section .primary-action-btn {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -137,12 +144,12 @@
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }
 
 .drawing-quick-section .primary-action-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(var(--primary-rgb), 0.4);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
 }
 
 .drawing-quick-section .primary-action-btn:active {
@@ -164,8 +171,8 @@
 
 /* Recent Markup */
 .drawing-quick-section .recent-markup {
-  background: var(--gray-50);
-  border: 1px solid var(--gray-200);
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
   border-radius: 8px;
   padding: 0.75rem;
   cursor: pointer;
@@ -173,8 +180,8 @@
 }
 
 .drawing-quick-section .recent-markup:hover {
-  background: var(--gray-100);
-  border-color: var(--primary);
+  background: #fed7aa;
+  border-color: #f59e0b;
 }
 
 .drawing-quick-section .recent-header {
@@ -190,7 +197,7 @@
 
 .drawing-quick-section .recent-label {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: #92400e;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   flex: 1;
@@ -198,46 +205,47 @@
 
 .drawing-quick-section .recent-count {
   font-size: 0.75rem;
-  color: var(--primary);
+  color: #d97706;
   font-weight: 500;
 }
 
 .drawing-quick-section .recent-title {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #451a03;
   margin-bottom: 0.25rem;
 }
 
 .drawing-quick-section .recent-date {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: #78350f;
 }
 
 /* No Blueprint */
 .drawing-quick-section .no-blueprint {
   text-align: center;
   padding: 1.5rem 1rem;
-  background: var(--gray-50);
+  background: var(--card, #ffffff);
   border-radius: 12px;
-  border: 1px dashed var(--gray-300);
+  border: 1px solid var(--border, #e5e7eb);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .drawing-quick-section .no-blueprint-icon {
   font-size: 2.5rem;
   margin-bottom: 0.75rem;
-  opacity: 0.6;
+  opacity: 0.8;
 }
 
 .drawing-quick-section .no-blueprint-title {
-  color: var(--text-primary);
+  color: var(--text, #1f2937);
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
 
 .drawing-quick-section .no-blueprint-desc {
-  color: var(--text-secondary);
+  color: var(--text-muted, #6b7280);
   font-size: 0.875rem;
   line-height: 1.5;
   margin-bottom: 1.5rem;
@@ -245,8 +253,8 @@
 
 /* Support Section */
 .drawing-quick-section .support-section {
-  background: var(--card);
-  border: 1px solid var(--gray-200);
+  background: var(--bg-secondary, #f9fafb);
+  border: 1px solid var(--border, #e5e7eb);
   border-radius: 8px;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -254,7 +262,7 @@
 
 .drawing-quick-section .support-label {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: var(--text-muted, #6b7280);
   margin-bottom: 0.5rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -288,16 +296,16 @@
 /* Divider */
 .drawing-quick-section .divider {
   height: 1px;
-  background: var(--gray-200);
+  background: #e5e7eb;
   margin: 1rem 0;
   opacity: 0.5;
 }
 
 /* Upload Button */
 .drawing-quick-section .upload-btn {
-  background: var(--card);
-  color: var(--text-primary);
-  border: 1px solid var(--gray-300);
+  background: var(--card, #ffffff);
+  color: var(--text, #1f2937);
+  border: 1px solid var(--border, #d1d5db);
   border-radius: 8px;
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
@@ -310,8 +318,8 @@
 }
 
 .drawing-quick-section .upload-btn:hover {
-  background: var(--gray-100);
-  border-color: var(--primary);
+  background: var(--bg-secondary, #f3f4f6);
+  border-color: #3b82f6;
 }
 
 .drawing-quick-section .upload-icon {
@@ -324,13 +332,13 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: var(--background);
+  background: #f9fafb;
 }
 
 /* Browser Header */
 .browser-header {
-  background: var(--card);
-  border-bottom: 1px solid var(--gray-200);
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
   padding: 1rem;
   display: flex;
   justify-content: space-between;
@@ -340,7 +348,7 @@
 .browser-title {
   font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #1f2937;
 }
 
 .browser-actions {
@@ -359,14 +367,14 @@
 
 .preview-btn,
 .share-btn {
-  background: var(--gray-100);
-  border: 1px solid var(--gray-200);
-  color: var(--text-primary);
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #1f2937;
 }
 
 .preview-btn:hover:not(:disabled),
 .share-btn:hover:not(:disabled) {
-  background: var(--gray-200);
+  background: #e5e7eb;
 }
 
 .preview-btn:disabled,
@@ -377,8 +385,8 @@
 
 /* Browser Tabs */
 .browser-tabs {
-  background: var(--card);
-  border-bottom: 1px solid var(--gray-200);
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
   padding: 0.5rem;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -433,8 +441,8 @@
 .browser-loading .loading-spinner {
   width: 2rem;
   height: 2rem;
-  border: 3px solid var(--gray-200);
-  border-top-color: var(--primary);
+  border: 3px solid #e5e7eb;
+  border-top-color: #3b82f6;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin: 0 auto 1rem;
@@ -444,7 +452,7 @@
 .browser-error {
   text-align: center;
   padding: 2rem 1rem;
-  color: var(--error);
+  color: #ef4444;
 }
 
 /* File List */
@@ -455,8 +463,8 @@
 }
 
 .file-item {
-  background: var(--card);
-  border: 1px solid var(--gray-200);
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 0.75rem;
   display: flex;
@@ -467,13 +475,13 @@
 }
 
 .file-item:hover {
-  background: var(--gray-50);
-  border-color: var(--primary);
+  background: #f9fafb;
+  border-color: #3b82f6;
 }
 
 .file-item.selected {
-  background: var(--primary-light);
-  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
 }
 
 .file-icon {
@@ -489,7 +497,7 @@
 .file-name {
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #1f2937;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -497,12 +505,12 @@
 
 .file-meta {
   font-size: 0.75rem;
-  color: var(--text-secondary);
+  color: #6b7280;
   margin-top: 0.125rem;
 }
 
 .file-check {
-  color: var(--primary);
+  color: #3b82f6;
   font-size: 1.25rem;
   font-weight: bold;
 }
@@ -527,8 +535,8 @@
 
 .gallery-button,
 .local-button {
-  background: var(--card);
-  border: 2px dashed var(--gray-300);
+  background: #ffffff;
+  border: 2px dashed #d1d5db;
   border-radius: 12px;
   padding: 2rem;
   transition: all 0.2s;
@@ -536,8 +544,8 @@
 
 .gallery-button:hover,
 .local-button:hover {
-  border-color: var(--primary);
-  background: var(--gray-50);
+  border-color: #3b82f6;
+  background: #f9fafb;
 }
 
 .gallery-icon,
@@ -551,42 +559,115 @@
 .file-list .empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: var(--text-secondary);
+  color: #6b7280;
 }
 
-/* CSS Variables for Dark Mode Support */
-:root {
-  --primary-rgb: 59, 130, 246;
-  --primary-light: rgba(59, 130, 246, 0.1);
+/* Dark Mode Support - Only applies when explicitly set */
+[data-theme='dark'] .drawing-quick-section {
+  background: #1f2937;
+  border-color: #374151;
 }
 
-@media (prefers-color-scheme: dark) {
-  .drawing-quick-section,
-  .drawing-browser {
-    --gray-50: #1f2937;
-    --gray-100: #374151;
-    --gray-200: #4b5563;
-    --gray-300: #6b7280;
-  }
+[data-theme='dark'] .drawing-quick-section .section-title {
+  color: #f3f4f6;
+}
 
-  /* Dark mode tab buttons */
-  .browser-tabs .tab-btn {
-    background: #374151;
-    border: 1px solid #4b5563;
-    color: #e5e7eb;
-  }
+[data-theme='dark'] .drawing-quick-section .empty-state,
+[data-theme='dark'] .drawing-quick-section .loading-state {
+  background: #111827;
+  border-color: #374151;
+}
 
-  .browser-tabs .tab-btn:hover {
-    background: #4b5563;
-    border-color: #6b7280;
-    color: #f9fafb;
-  }
+[data-theme='dark'] .drawing-quick-section .empty-text,
+[data-theme='dark'] .drawing-quick-section .loading-text {
+  color: #9ca3af;
+}
 
-  .browser-tabs .tab-btn.active {
-    background: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
-  }
+[data-theme='dark'] .drawing-quick-section .blueprint-preview {
+  background: #1e3a8a;
+  border-color: #2563eb;
+}
+
+[data-theme='dark'] .drawing-quick-section .preview-label {
+  color: #93c5fd;
+}
+
+[data-theme='dark'] .drawing-quick-section .preview-title {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .drawing-quick-section .recent-markup {
+  background: #422006;
+  border-color: #92400e;
+}
+
+[data-theme='dark'] .drawing-quick-section .recent-markup:hover {
+  background: #451a03;
+  border-color: #d97706;
+}
+
+[data-theme='dark'] .drawing-quick-section .recent-label {
+  color: #fed7aa;
+}
+
+[data-theme='dark'] .drawing-quick-section .recent-title {
+  color: #fef3c7;
+}
+
+[data-theme='dark'] .drawing-quick-section .recent-date {
+  color: #fbbf24;
+}
+
+[data-theme='dark'] .drawing-quick-section .no-blueprint {
+  background: #111827;
+  border-color: #374151;
+}
+
+[data-theme='dark'] .drawing-quick-section .no-blueprint-title {
+  color: #f3f4f6;
+}
+
+[data-theme='dark'] .drawing-quick-section .no-blueprint-desc {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .drawing-quick-section .support-section {
+  background: #1f2937;
+  border-color: #374151;
+}
+
+[data-theme='dark'] .drawing-quick-section .support-label {
+  color: #9ca3af;
+}
+
+[data-theme='dark'] .drawing-quick-section .upload-btn {
+  background: #374151;
+  color: #f3f4f6;
+  border-color: #4b5563;
+}
+
+[data-theme='dark'] .drawing-quick-section .upload-btn:hover {
+  background: #4b5563;
+  border-color: #60a5fa;
+}
+
+/* Dark mode tab buttons */
+[data-theme='dark'] .browser-tabs .tab-btn {
+  background: #374151;
+  border: 1px solid #4b5563;
+  color: #e5e7eb;
+}
+
+[data-theme='dark'] .browser-tabs .tab-btn:hover {
+  background: #4b5563;
+  border-color: #6b7280;
+  color: #f9fafb;
+}
+
+[data-theme='dark'] .browser-tabs .tab-btn.active {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
 }
 
 @keyframes spin {

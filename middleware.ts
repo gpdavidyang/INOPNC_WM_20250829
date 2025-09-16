@@ -88,6 +88,14 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirectUrl)
     }
 
+    // Add cache control headers for protected pages to prevent unauthorized access via cache
+    if (!isPublicRoute && !isAuthRoute) {
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+      response.headers.set('Pragma', 'no-cache')
+      response.headers.set('Expires', '0')
+      response.headers.set('Surrogate-Control', 'no-store')
+    }
+
     // If user is signed in and tries to access auth pages, redirect to appropriate dashboard
     if (user && isAuthRoute) {
       // Get user profile to determine role

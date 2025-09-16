@@ -70,7 +70,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
         }
       }
     } catch (error) {
-      console.error('Failed to fetch blueprint:', error)
+      // Silently handle error - no console logging
     } finally {
       setIsLoading(false)
     }
@@ -84,7 +84,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
         const markup = JSON.parse(recentMarkupData)
         setRecentMarkup(markup)
       } catch (error) {
-        console.error('Failed to parse recent markup:', error)
+        // Silently handle parse error
       }
     }
   }
