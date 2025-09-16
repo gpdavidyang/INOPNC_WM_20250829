@@ -17,7 +17,7 @@ interface WorkLogModalProps {
   onClose: () => void
   onSave: (workLog: Partial<WorkLog>) => Promise<void>
   workLog?: WorkLog
-  mode: 'create' | 'edit'
+  mode: 'create' | 'edit' | 'view'
 }
 
 export const WorkLogModal: React.FC<WorkLogModalProps> = ({
@@ -134,7 +134,11 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
           {/* 헤더 */}
           <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <h2 className="text-xl font-bold text-[#1A254F]">
-              {mode === 'create' ? '작업일지 작성' : '작업일지 수정'}
+              {mode === 'create'
+                ? '작업일지 작성'
+                : mode === 'edit'
+                  ? '작업일지 수정'
+                  : '작업일지 상세'}
             </h2>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
               <svg
@@ -163,7 +167,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                   type="date"
                   value={formData.date}
                   onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  className={`w-full p-3 border rounded-lg ${errors.date ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full p-3 border rounded-lg bg-white text-gray-900 ${errors.date ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`}
                 />
                 {errors.date && <p className="text-red-500 text-xs mt-1">{errors.date}</p>}
               </div>
@@ -181,7 +185,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                       siteName: option.text,
                     }))
                   }}
-                  className={`w-full p-3 border rounded-lg ${errors.site ? 'border-red-500' : 'border-gray-300'}`}
+                  className={`w-full p-3 border rounded-lg bg-white text-gray-900 ${errors.site ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`}
                 >
                   <option value="">현장 선택</option>
                   <option value="site-1">삼성전자 평택캠퍼스 P3</option>
@@ -282,7 +286,8 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                         location: { ...prev.location!, block: e.target.value },
                       }))
                     }
-                    className={`w-full p-3 border rounded-lg ${errors.block ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full p-3 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.block ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`}
+                    disabled={mode === 'view'}
                   />
                   {errors.block && <p className="text-red-500 text-xs mt-1">{errors.block}</p>}
                 </div>
@@ -297,7 +302,8 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                         location: { ...prev.location!, dong: e.target.value },
                       }))
                     }
-                    className={`w-full p-3 border rounded-lg ${errors.dong ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full p-3 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.dong ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`}
+                    disabled={mode === 'view'}
                   />
                   {errors.dong && <p className="text-red-500 text-xs mt-1">{errors.dong}</p>}
                 </div>
@@ -312,7 +318,8 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                         location: { ...prev.location!, unit: e.target.value },
                       }))
                     }
-                    className={`w-full p-3 border rounded-lg ${errors.unit ? 'border-red-500' : 'border-gray-300'}`}
+                    className={`w-full p-3 border rounded-lg bg-white text-gray-900 placeholder-gray-400 ${errors.unit ? 'border-red-500 bg-red-50' : 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500'}`}
+                    disabled={mode === 'view'}
                   />
                   {errors.unit && <p className="text-red-500 text-xs mt-1">{errors.unit}</p>}
                 </div>
@@ -330,7 +337,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                   placeholder="이름"
                   value={newWorker.name}
                   onChange={e => setNewWorker(prev => ({ ...prev, name: e.target.value }))}
-                  className="flex-1 p-3 border border-gray-300 rounded-lg"
+                  className="flex-1 p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <input
                   type="number"
@@ -341,7 +348,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                   onChange={e =>
                     setNewWorker(prev => ({ ...prev, hours: parseFloat(e.target.value) || 0 }))
                   }
-                  className="w-24 p-3 border border-gray-300 rounded-lg"
+                  className="w-24 p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <button
                   type="button"
@@ -397,7 +404,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                       },
                     }))
                   }
-                  className="flex-1 p-3 border border-gray-300 rounded-lg"
+                  className="flex-1 p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <select
                   value={formData.npcUsage?.unit || 'kg'}
@@ -410,7 +417,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                       },
                     }))
                   }
-                  className="w-24 p-3 border border-gray-300 rounded-lg"
+                  className="w-24 p-3 border border-gray-300 rounded-lg bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="kg">kg</option>
                   <option value="L">L</option>
@@ -432,7 +439,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                 onChange={e =>
                   setFormData(prev => ({ ...prev, progress: parseInt(e.target.value) }))
                 }
-                className="w-full"
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500"
               />
             </div>
 
@@ -444,7 +451,7 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                 value={formData.notes}
                 onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="추가 메모를 입력하세요"
-                className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+                className="w-full p-3 border border-gray-300 rounded-lg resize-none bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
 

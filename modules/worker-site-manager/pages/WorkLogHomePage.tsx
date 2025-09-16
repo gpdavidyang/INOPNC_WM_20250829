@@ -10,10 +10,8 @@ import { StickyTabNavigation } from '@/modules/mobile/components/navigation/Stic
 import { useWorkLogs } from '@/modules/mobile/hooks/use-work-logs'
 import { useTemporaryWorkLogs } from '@/modules/mobile/hooks/use-temporary-work-logs'
 import { WorkLogStatus, WorkLogTabStatus } from '@/modules/mobile/types/work-log.types'
-import PayslipPreviewModal from '@/modules/mobile/components/work-log/PayslipPreviewModal'
 import { SimplifiedBottomSheet } from '@/modules/mobile/components/work-log/UncompletedBottomSheet'
 import { Plus } from 'lucide-react'
-import { calculateMonthlySalary } from '@/app/actions/salary'
 
 export const WorkLogHomePage: React.FC = () => {
   const { profile } = useMobileUser()
@@ -21,6 +19,7 @@ export const WorkLogHomePage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingWorkLog, setEditingWorkLog] = useState<any>(null)
+  const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
   const [currentDate, setCurrentDate] = useState(new Date())
 
   // Bottom Sheet 상태
@@ -35,66 +34,12 @@ export const WorkLogHomePage: React.FC = () => {
     completedTasks: 0,
   })
 
-  // 급여 통계 상태
-  const [salaryStats, setSalaryStats] = useState({
-    totalSalary: 0,
-    baseSalary: 0,
-    allowance: 0,
-    workDays: 0,
-    totalHours: 0,
-    overtimeHours: 0,
-  })
-
-  // 급여 내역 상태
-  const [salaryHistory, setSalaryHistory] = useState<any[]>([])
-
-  // 급여명세서 모달 상태
-  const [isPayslipModalOpen, setIsPayslipModalOpen] = useState(false)
-  const [payslipData, setPayslipData] = useState<any>(null)
+  // 급여 관련 상태 제거 - 별도 페이지로 이동
 
   // 폰트 크기 상태
   const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal')
 
-  // 급여 정보 로딩 상태
-  const [isLoadingSalary, setIsLoadingSalary] = useState(false)
-  const [salaryError, setSalaryError] = useState<string | null>(null)
-
-  // 서버 API를 사용한 월간 급여 계산 함수
-  const fetchMonthlySalary = useCallback(
-    async (year: number, month: number) => {
-      if (!profile?.id) return
-
-      setIsLoadingSalary(true)
-      setSalaryError(null)
-
-      try {
-        const result = await calculateMonthlySalary({
-          user_id: profile.id,
-          year,
-          month,
-        })
-
-        if (result.success && result.data) {
-          setSalaryStats({
-            totalSalary: result.data.total_gross_pay || 0,
-            baseSalary: result.data.base_pay || 0,
-            allowance: result.data.bonus_pay || 0,
-            workDays: result.data.work_days || 0,
-            totalHours: result.data.total_work_hours || 0,
-            overtimeHours: result.data.total_overtime_hours || 0,
-          })
-        } else {
-          setSalaryError(result.error || '급여 정보를 불러올 수 없습니다')
-        }
-      } catch (error) {
-        console.error('급여 계산 오류:', error)
-        setSalaryError('급여 계산 중 오류가 발생했습니다')
-      } finally {
-        setIsLoadingSalary(false)
-      }
-    },
-    [profile?.id]
-  )
+  // 급여 계산 관련 함수 제거 - 별도 페이지로 이동
 
   // 폰트 크기 초기화 및 토글 함수
   useEffect(() => {
@@ -122,14 +67,7 @@ export const WorkLogHomePage: React.FC = () => {
     localStorage.setItem('inopnc_font_size', newSize)
   }, [fontSize])
 
-  // 현재 월의 급여 정보 로드
-  useEffect(() => {
-    if (profile?.id) {
-      const year = currentDate.getFullYear()
-      const month = currentDate.getMonth() + 1
-      fetchMonthlySalary(year, month)
-    }
-  }, [profile?.id, currentDate, fetchMonthlySalary])
+  // 급여 정보 로드 제거 - 별도 페이지로 이동
 
   // 월별 통계는 서버 API에서 처리되므로 클라이언트 계산 제거
 
@@ -206,11 +144,13 @@ export const WorkLogHomePage: React.FC = () => {
   // 작업일지 관련 이벤트 핸들러
   const handleCreateWorkLog = () => {
     setEditingWorkLog(null)
+    setModalMode('create')
     setIsModalOpen(true)
   }
 
   const handleEditWorkLog = (workLog: any) => {
     setEditingWorkLog(workLog)
+    setModalMode('edit')
     setIsModalOpen(true)
   }
 
@@ -243,6 +183,7 @@ export const WorkLogHomePage: React.FC = () => {
 
   const handleViewWorkLog = useCallback((workLog: any) => {
     setEditingWorkLog(workLog)
+    setModalMode('view')
     setIsModalOpen(true)
   }, [])
 
@@ -335,40 +276,7 @@ export const WorkLogHomePage: React.FC = () => {
     return days
   }, [currentDate, workLogs])
 
-  // 급여명세서 다운로드 핸들러
-  const handleDownloadPayslip = useCallback(() => {
-    // 급여 데이터 준비 (실제 구현시 API에서 가져옴)
-    const currentMonth = currentDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
-
-    const mockPayslipData = {
-      employeeName: profile?.full_name || '홍길동',
-      employeeId: profile?.id?.substring(0, 8) || 'EMP001',
-      department: '건설현장',
-      position: profile?.role === 'site_manager' ? '현장관리자' : '작업자',
-      workMonth: currentMonth,
-      totalWorkDays: salaryStats.workDays || 20,
-      actualWorkDays: salaryStats.workDays || 18,
-      totalWorkHours: salaryStats.totalHours || 144,
-      overtimeHours: salaryStats.overtimeHours || 8,
-      baseSalary: salaryStats.baseSalary || 3000000,
-      overtimePay: Math.floor((salaryStats.overtimeHours || 8) * 25000),
-      allowances: salaryStats.allowance || 200000,
-      totalEarnings: salaryStats.totalSalary || 3400000,
-      incomeTax: Math.floor((salaryStats.totalSalary || 3400000) * 0.033),
-      nationalPension: Math.floor((salaryStats.totalSalary || 3400000) * 0.045),
-      healthInsurance: Math.floor((salaryStats.totalSalary || 3400000) * 0.0335),
-      employmentInsurance: Math.floor((salaryStats.totalSalary || 3400000) * 0.008),
-      totalDeductions: Math.floor(
-        (salaryStats.totalSalary || 3400000) * (0.033 + 0.045 + 0.0335 + 0.008)
-      ),
-      netPay:
-        (salaryStats.totalSalary || 3400000) -
-        Math.floor((salaryStats.totalSalary || 3400000) * (0.033 + 0.045 + 0.0335 + 0.008)),
-    }
-
-    setPayslipData(mockPayslipData)
-    setIsPayslipModalOpen(true)
-  }, [currentDate, profile, salaryStats])
+  // 급여명세서 다운로드 핸들러 제거 - 별도 페이지로 이동
 
   return (
     <MobileLayout
@@ -397,12 +305,22 @@ export const WorkLogHomePage: React.FC = () => {
 
         {/* Search Section */}
         <div className="search-section">
-          <div className="search-input-wrapper">
-            <WorkLogSearch
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="현장명으로 검색"
-            />
+          <div className="search-container flex gap-2 items-center">
+            <div className="search-input-wrapper flex-1">
+              <WorkLogSearch
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="현장명 검색"
+              />
+            </div>
+            {searchQuery && (
+              <button
+                className="cancel-btn text-[var(--muted)] px-3 py-2 hover:text-[var(--text)] transition-colors"
+                onClick={() => setSearchQuery('')}
+              >
+                취소
+              </button>
+            )}
           </div>
         </div>
 
@@ -545,129 +463,40 @@ export const WorkLogHomePage: React.FC = () => {
 
           {/* 작성완료 탭 콘텐츠 */}
           {activeTab === 'approved' && (
-            <div className="space-y-6">
-              {/* 급여 요약 카드 */}
-              <div className="summary-section salary-summary">
-                <div className="summary-header flex items-center justify-between mb-4">
-                  <h3 className="fs-h2 font-semibold text-[var(--text)]">이번 달 급여</h3>
-                  <div className="month-selector text-sm text-[var(--muted)]">
-                    {currentDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
-                  </div>
-                </div>
-
-                <div className="salary-amount text-center py-6">
-                  <div className="amount text-3xl font-bold text-[var(--accent)] mb-2">
-                    {salaryStats.totalSalary.toLocaleString()}원
-                  </div>
-                  <div className="breakdown text-sm text-[var(--muted)]">
-                    기본급 {salaryStats.baseSalary.toLocaleString()}원 + 수당{' '}
-                    {salaryStats.allowance.toLocaleString()}원
-                  </div>
-                </div>
-
-                <div className="salary-details grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-[var(--line)]">
-                  <div className="detail-item text-center">
-                    <div className="detail-value text-base sm:text-lg font-semibold text-[var(--text)]">
-                      {salaryStats.workDays}
-                    </div>
-                    <div className="detail-label text-xs text-[var(--muted)]">근무일</div>
-                  </div>
-                  <div className="detail-item text-center">
-                    <div className="detail-value text-base sm:text-lg font-semibold text-[var(--text)]">
-                      {salaryStats.totalHours}
-                    </div>
-                    <div className="detail-label text-xs text-[var(--muted)]">총 시간</div>
-                  </div>
-                  <div className="detail-item text-center">
-                    <div className="detail-value text-base sm:text-lg font-semibold text-[var(--text)]">
-                      {salaryStats.overtimeHours}
-                    </div>
-                    <div className="detail-label text-xs text-[var(--muted)]">연장근무</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* 급여명세서 미리보기 */}
-              <div className="summary-section payslip-preview">
-                <div className="preview-header flex items-center justify-between mb-4">
-                  <h3 className="fs-h2 font-semibold text-[var(--text)]">급여명세서</h3>
-                  <button
-                    className="download-btn flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent)]/90 transition-colors"
-                    onClick={handleDownloadPayslip}
-                  >
+            <div className="space-y-4">
+              {/* 작성완료 작업일지 목록 */}
+              {filteredApprovedWorkLogs.length > 0 ? (
+                filteredApprovedWorkLogs.map(workLog => (
+                  <WorkLogCard
+                    key={workLog.id}
+                    workLog={workLog}
+                    onView={() => handleViewWorkLog(workLog)}
+                    onPrint={() => handlePrintWorkLog(workLog)}
+                  />
+                ))
+              ) : (
+                <div className="empty-state text-center py-16">
+                  <div className="empty-icon mb-4">
                     <svg
-                      width="16"
-                      height="16"
+                      width="64"
+                      height="64"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2"
+                      strokeWidth="1.5"
+                      className="mx-auto text-gray-300"
                     >
-                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                      <polyline points="7,10 12,15 17,10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
+                      <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
-                    다운로드
-                  </button>
-                </div>
-
-                <div className="preview-content border border-[var(--line)] rounded-lg p-4">
-                  <div className="mock-payslip text-center text-[var(--muted)]">
-                    <div className="payslip-icon mx-auto mb-3">
-                      <svg
-                        width="48"
-                        height="48"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        className="text-[var(--muted)]"
-                      >
-                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-                        <polyline points="14,2 14,8 20,8" />
-                        <line x1="16" y1="13" x2="8" y2="13" />
-                        <line x1="16" y1="17" x2="8" y2="17" />
-                        <polyline points="10,9 9,9 8,9" />
-                      </svg>
-                    </div>
-                    <div className="payslip-text text-sm">
-                      급여명세서를 미리보려면
-                      <br />
-                      위의 다운로드 버튼을 클릭하세요
-                    </div>
                   </div>
+                  <p className="text-gray-500 text-lg mb-2">작성완료된 작업일지가 없습니다</p>
+                  <p className="text-gray-400 text-sm">
+                    {searchQuery
+                      ? '검색 조건을 변경해보세요'
+                      : '임시저장된 작업일지를 완료해보세요'}
+                  </p>
                 </div>
-              </div>
-
-              {/* 급여 내역 목록 */}
-              <div className="summary-section salary-history">
-                <h3 className="fs-h2 font-semibold text-[var(--text)] mb-4">최근 급여 내역</h3>
-
-                <div className="history-list space-y-3">
-                  {salaryHistory.map(record => (
-                    <div
-                      key={record.month}
-                      className="history-item flex items-center justify-between p-3 border border-[var(--line)] rounded-lg"
-                    >
-                      <div className="item-info">
-                        <div className="item-month text-sm font-medium text-[var(--text)]">
-                          {record.month}
-                        </div>
-                        <div className="item-details text-xs text-[var(--muted)]">
-                          근무 {record.workDays}일 · {record.totalHours}시간
-                        </div>
-                      </div>
-                      <div className="item-amount text-lg font-semibold text-[var(--accent)]">
-                        {record.totalSalary.toLocaleString()}원
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {salaryHistory.length === 0 && (
-                  <div className="text-center py-8 text-[var(--muted)]">급여 내역이 없습니다</div>
-                )}
-              </div>
+              )}
             </div>
           )}
         </div>
@@ -688,16 +517,9 @@ export const WorkLogHomePage: React.FC = () => {
             onClose={handleCloseModal}
             workLog={editingWorkLog}
             onSave={handleSaveWorkLog}
+            mode={modalMode}
           />
         )}
-
-        {/* Payslip Preview Modal */}
-        <PayslipPreviewModal
-          isOpen={isPayslipModalOpen}
-          onClose={() => setIsPayslipModalOpen(false)}
-          data={payslipData}
-          month={currentDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })}
-        />
 
         {/* Simplified Bottom Sheet for Temporary Work Logs */}
         <SimplifiedBottomSheet
