@@ -30,61 +30,115 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    // Delay validation to avoid hydration issues
-    const timer = setTimeout(() => {
-      // Immediately validate session on mount
-      const validateSession = async () => {
-        try {
-          // Check if we have a valid session
-          const {
-            data: { session },
-            error,
-          } = await supabase.auth.getSession()
+    let mounted = true
+    let validationTimeout: NodeJS.Timeout
 
-          if (error || !session || !session.user) {
-            console.log('No valid session, redirecting to login')
-            // Clear any cached data
-            localStorage.clear()
-            sessionStorage.clear()
-            // Force redirect to login
-            window.location.replace('/auth/login')
-            return
-          }
+    // Enhanced session validation with timeout and fallback
+    const validateSession = async (attempt = 1) => {
+      const maxAttempts = 3
+      const timeoutMs = 5000 // 5 second timeout per attempt
 
-          // Double-check the user matches
-          if (initialUser && session.user.id !== initialUser.id) {
-            console.log('User mismatch, redirecting to login')
-            window.location.replace('/auth/login')
-            return
-          }
+      try {
+        if (!mounted) return
 
-          setIsAuthenticated(true)
-        } catch (error) {
-          console.error('Session validation error:', error)
+        console.log(`Session validation attempt ${attempt}/${maxAttempts}`)
+
+        // Create a timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session validation timeout')), timeoutMs)
+        })
+
+        // Check if we have a valid session with timeout
+        const sessionPromise = supabase.auth.getSession()
+
+        const {
+          data: { session },
+          error,
+        } = (await Promise.race([sessionPromise, timeoutPromise])) as any
+
+        if (!mounted) return
+
+        if (error || !session || !session.user) {
+          console.log(`No valid session (attempt ${attempt}), redirecting to login`)
+
+          // Clear any cached data
+          localStorage.clear()
+          sessionStorage.clear()
+
+          // Force redirect to login
           window.location.replace('/auth/login')
-        } finally {
+          return
+        }
+
+        // Double-check the user matches
+        if (initialUser && session.user.id !== initialUser.id) {
+          console.log('User mismatch, redirecting to login')
+          window.location.replace('/auth/login')
+          return
+        }
+
+        // Check token expiry
+        const now = Math.floor(Date.now() / 1000)
+        if (session.expires_at && session.expires_at < now) {
+          console.log('Session expired, attempting refresh...')
+
+          const { data: refreshedSession, error: refreshError } =
+            await supabase.auth.refreshSession()
+
+          if (refreshError || !refreshedSession.session) {
+            console.log('Session refresh failed, redirecting to login')
+            window.location.replace('/auth/login')
+            return
+          }
+        }
+
+        // Validation successful
+        if (mounted) {
+          setIsAuthenticated(true)
           setIsValidating(false)
         }
-      }
+      } catch (error) {
+        console.error(`Session validation error (attempt ${attempt}):`, error)
 
-      validateSession()
+        if (attempt < maxAttempts && mounted) {
+          // Retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+          console.log(`Retrying session validation in ${delay}ms...`)
 
-      // Add visibility change listener to revalidate when app comes to foreground
-      const handleVisibilityChange = () => {
-        if (document.visibilityState === 'visible') {
-          validateSession()
+          validationTimeout = setTimeout(() => {
+            validateSession(attempt + 1)
+          }, delay)
+        } else {
+          // Max attempts reached or component unmounted
+          console.log('Session validation failed after all attempts, redirecting to login')
+          if (mounted) {
+            window.location.replace('/auth/login')
+          }
         }
       }
+    }
 
-      document.addEventListener('visibilitychange', handleVisibilityChange)
-
-      return () => {
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
+    // Delay initial validation to avoid hydration issues
+    const timer = setTimeout(() => {
+      if (mounted) {
+        validateSession()
       }
-    }, 100) // Small delay to ensure hydration completes
+    }, 100)
+
+    // Add visibility change listener for foreground revalidation
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && mounted) {
+        validateSession()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
+      mounted = false
       clearTimeout(timer)
+      clearTimeout(validationTimeout)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [initialUser, router, supabase])
 

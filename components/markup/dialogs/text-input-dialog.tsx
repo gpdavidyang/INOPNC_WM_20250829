@@ -1,5 +1,16 @@
 'use client'
 
+import React, { useState, useRef, useEffect } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface TextInputDialogProps {
   open: boolean
@@ -27,7 +38,7 @@ export function TextInputDialog({ open, onClose, onConfirm, position }: TextInpu
     e.preventDefault()
     console.log('🔥 Text value:', text)
     console.log('🔥 Text trimmed:', text.trim())
-    
+
     if (text.trim()) {
       console.log('🔥 Calling onConfirm with:', text.trim())
       onConfirm(text.trim())
@@ -46,14 +57,12 @@ export function TextInputDialog({ open, onClose, onConfirm, position }: TextInpu
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="text-input">
-                텍스트를 입력하세요
-              </Label>
+              <Label htmlFor="text-input">텍스트를 입력하세요</Label>
               <Input
                 ref={inputRef}
                 id="text-input"
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={e => setText(e.target.value)}
                 placeholder="여기에 텍스트를 입력..."
                 className="col-span-3"
                 autoFocus
@@ -66,16 +75,16 @@ export function TextInputDialog({ open, onClose, onConfirm, position }: TextInpu
             )}
           </div>
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onClose}
               className="min-h-[48px] px-4 py-3 active:scale-95 transition-all duration-200 touch-manipulation focus-visible:ring-4 focus-visible:ring-blue-500/50"
             >
               취소
             </Button>
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={!text.trim()}
               className="min-h-[48px] px-4 py-3 active:scale-95 transition-all duration-200 touch-manipulation focus-visible:ring-4 focus-visible:ring-blue-500/50"
             >

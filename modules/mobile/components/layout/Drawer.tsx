@@ -62,102 +62,124 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     let mounted = true
-    let retryCount = 0
-    const maxRetries = 3
+    let fetchTimeout: NodeJS.Timeout
 
-    // Get user profile with session check and retry logic
-    const fetchProfile = async () => {
+    // Enhanced profile fetch with timeout and better error handling
+    const fetchProfile = async (attempt = 1) => {
+      const maxAttempts = 3
+      const timeoutMs = 8000 // 8 second timeout
+
       try {
         if (!mounted) return
 
-        // Don't set loading if we already have a profile
-        if (!userProfile) {
+        console.log(`Profile fetch attempt ${attempt}/${maxAttempts}`)
+
+        // Don't set loading if we already have a profile and this is not the first attempt
+        if (!userProfile || attempt === 1) {
           setProfileLoading(true)
         }
 
-        // First try to get session from cookies with retry
-        let session = null
-        let sessionError = null
+        // Create timeout promise
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Profile fetch timeout')), timeoutMs)
+        })
 
-        while (retryCount < maxRetries && !session) {
-          const result = await supabase.auth.getSession()
-          session = result.data.session
-          sessionError = result.error
+        // Get session with timeout
+        const sessionPromise = supabase.auth.getSession()
+        const sessionResult = (await Promise.race([sessionPromise, timeoutPromise])) as any
 
-          if (!session && retryCount < maxRetries - 1) {
-            // Wait a bit before retrying
-            await new Promise(resolve => setTimeout(resolve, 500 * (retryCount + 1)))
+        if (!mounted) return
 
-            // Try to refresh the session
-            const refreshResult = await supabase.auth.refreshSession()
-            if (refreshResult.data.session) {
-              session = refreshResult.data.session
-              sessionError = null
-              break
+        const {
+          data: { session },
+          error: sessionError,
+        } = sessionResult
+
+        if (sessionError || !session?.user) {
+          console.log(`No valid session for profile fetch (attempt ${attempt})`)
+
+          if (attempt < maxAttempts) {
+            // Retry after delay
+            const delay = Math.min(1000 * attempt, 3000)
+            fetchTimeout = setTimeout(() => fetchProfile(attempt + 1), delay)
+            return
+          } else {
+            // Final attempt failed, stop loading
+            if (mounted) {
+              setUserProfile(null)
+              setProfileLoading(false)
             }
+            return
           }
-          retryCount++
         }
 
-        if (!session || sessionError) {
-          console.log('No session found after retries or session error:', sessionError)
+        const user = session.user
+
+        // Fetch profile with timeout
+        const profilePromise = supabase.from('profiles').select('*').eq('id', user.id).single()
+
+        const profileResult = (await Promise.race([profilePromise, timeoutPromise])) as any
+
+        if (!mounted) return
+
+        const { data: profile, error: profileError } = profileResult
+
+        if (profile) {
+          // Success
+          setUserProfile(profile)
+          setProfileLoading(false)
+          console.log('Profile loaded successfully:', profile.full_name)
+        } else if (profileError) {
+          console.error(`Profile fetch error (attempt ${attempt}):`, profileError)
+
+          if (attempt < maxAttempts) {
+            // Retry after delay
+            const delay = Math.min(1000 * attempt, 3000)
+            fetchTimeout = setTimeout(() => fetchProfile(attempt + 1), delay)
+          } else {
+            // Fallback to basic user info after all attempts failed
+            console.log('Using fallback user info after profile fetch failed')
+            if (mounted) {
+              setUserProfile({
+                id: user.id,
+                email: user.email || '',
+                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+                role: user.user_metadata?.role || 'worker',
+                phone: '',
+                created_at: user.created_at || new Date().toISOString(),
+              })
+              setProfileLoading(false)
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Profile fetch error (attempt ${attempt}):`, error)
+
+        if (attempt < maxAttempts && mounted) {
+          // Retry with exponential backoff
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000)
+          fetchTimeout = setTimeout(() => fetchProfile(attempt + 1), delay)
+        } else {
+          // Max attempts reached
+          console.log('Profile fetch failed after all attempts')
           if (mounted) {
             setUserProfile(null)
             setProfileLoading(false)
           }
-          return
         }
-
-        // Then get user from the session
-        const user = session.user
-        if (user && mounted) {
-          // Add retry logic for profile fetch
-          let profile = null
-          let profileError = null
-          let profileRetry = 0
-
-          while (profileRetry < 2 && !profile) {
-            const result = await supabase.from('profiles').select('*').eq('id', user.id).single()
-
-            profile = result.data
-            profileError = result.error
-
-            if (!profile && profileRetry < 1) {
-              await new Promise(resolve => setTimeout(resolve, 500))
-            }
-            profileRetry++
-          }
-
-          if (profile && mounted) {
-            setUserProfile(profile)
-            console.log('Profile loaded successfully:', profile.full_name)
-          } else if (profileError && mounted) {
-            console.error('Profile fetch error after retries:', profileError)
-            // Fallback to basic user info if profile fetch fails
-            setUserProfile({
-              id: user.id,
-              email: user.email || '',
-              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-              role: user.user_metadata?.role || 'worker',
-            })
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching profile:', error)
-        if (mounted) setUserProfile(null)
-      } finally {
-        if (mounted) setProfileLoading(false)
       }
     }
 
-    // Always fetch profile on mount, not just when drawer opens
-    // This ensures profile is ready when drawer opens
-    fetchProfile()
+    // Only fetch if we don't have a profile yet
+    if (!userProfile) {
+      fetchProfile()
+    }
 
     return () => {
       mounted = false
+      clearTimeout(fetchTimeout)
     }
-  }, [supabase, userProfile]) // Include userProfile to satisfy linter
+  }, [supabase]) // Remove userProfile from dependencies to prevent infinite loops
 
   useEffect(() => {
     // Lock body scroll when drawer is open (base.html match)
