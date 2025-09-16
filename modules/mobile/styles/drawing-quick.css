@@ -219,30 +219,103 @@
   text-align: center;
   padding: 1.5rem 1rem;
   background: var(--gray-50);
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px dashed var(--gray-300);
 }
 
-.drawing-quick-section .no-blueprint-text {
+.drawing-quick-section .no-blueprint-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+  opacity: 0.6;
+}
+
+.drawing-quick-section .no-blueprint-title {
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.drawing-quick-section .no-blueprint-desc {
   color: var(--text-secondary);
   font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+}
+
+/* Support Section */
+.drawing-quick-section .support-section {
+  background: var(--card);
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  padding: 1rem;
   margin-bottom: 1rem;
 }
 
-.drawing-quick-section .upload-btn {
-  background: var(--primary);
-  color: white;
-  border: none;
+.drawing-quick-section .support-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.drawing-quick-section .kakao-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fee500;
+  color: #000000;
+  text-decoration: none;
   border-radius: 8px;
-  padding: 0.5rem 1rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.drawing-quick-section .kakao-link:hover {
+  background: #fdd800;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.drawing-quick-section .kakao-icon {
+  font-size: 1.125rem;
+}
+
+/* Divider */
+.drawing-quick-section .divider {
+  height: 1px;
+  background: var(--gray-200);
+  margin: 1rem 0;
+  opacity: 0.5;
+}
+
+/* Upload Button */
+.drawing-quick-section .upload-btn {
+  background: var(--card);
+  color: var(--text-primary);
+  border: 1px solid var(--gray-300);
+  border-radius: 8px;
+  padding: 0.625rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .drawing-quick-section .upload-btn:hover {
-  background: var(--primary-dark);
+  background: var(--gray-100);
+  border-color: var(--primary);
+}
+
+.drawing-quick-section .upload-icon {
+  font-size: 1rem;
 }
 
 /* ==================== Drawing Browser Styles ==================== */
