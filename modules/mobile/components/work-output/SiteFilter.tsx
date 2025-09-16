@@ -23,21 +23,56 @@ export default function SiteFilter({ selectedSite, onSiteChange }: SiteFilterPro
 
   const fetchSites = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/sites')
-      // const data = await response.json()
+      // Get user information for authentication
+      const userResponse = await fetch('/api/auth/user')
+      const userData = await userResponse.json()
 
-      // Mock data for now
+      if (!userData?.user?.id) {
+        console.error('User not authenticated')
+        // Fallback to mock data if authentication fails
+        const mockSites: Site[] = [
+          { id: 'site1', name: '삼성 평택' },
+          { id: 'site2', name: 'LG 청주' },
+          { id: 'site3', name: 'SK 울산' },
+          { id: 'site4', name: '현대 아산' },
+        ]
+        setSites(mockSites)
+        return
+      }
+
+      // Try to fetch from partner sites API
+      const response = await fetch('/api/partner/sites')
+
+      if (response.ok) {
+        const data = await response.json()
+        const sitesData = data.sites || data || []
+
+        const transformedSites: Site[] = sitesData.map((site: any) => ({
+          id: site.id || site.site_id,
+          name: site.name || site.site_name || '현장',
+        }))
+
+        setSites(transformedSites)
+      } else {
+        // Fallback to mock data if API fails
+        const mockSites: Site[] = [
+          { id: 'site1', name: '삼성 평택' },
+          { id: 'site2', name: 'LG 청주' },
+          { id: 'site3', name: 'SK 울산' },
+          { id: 'site4', name: '현대 아산' },
+        ]
+        setSites(mockSites)
+      }
+    } catch (error) {
+      console.error('Failed to fetch sites:', error)
+      // Fallback to mock data on error
       const mockSites: Site[] = [
         { id: 'site1', name: '삼성 평택' },
         { id: 'site2', name: 'LG 청주' },
         { id: 'site3', name: 'SK 울산' },
         { id: 'site4', name: '현대 아산' },
       ]
-
       setSites(mockSites)
-    } catch (error) {
-      console.error('Failed to fetch sites:', error)
     } finally {
       setLoading(false)
     }

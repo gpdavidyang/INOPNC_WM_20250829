@@ -1,7 +1,17 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Download, Printer, FileText, Users, User, Save, Share2 } from 'lucide-react'
+import {
+  Download,
+  Printer,
+  FileText,
+  Users,
+  User,
+  Save,
+  Share2,
+  ZoomIn,
+  ZoomOut,
+} from 'lucide-react'
 import SalaryCalculator from './SalaryCalculator'
 import PayslipGenerator from './PayslipGenerator'
 
@@ -17,6 +27,7 @@ export default function SalaryStatusTab() {
   const [basePay, setBasePay] = useState<number>(130000)
   const [salaryData, setSalaryData] = useState<any>(null)
   const [showPayslip, setShowPayslip] = useState(false)
+  const [zoomLevel, setZoomLevel] = useState<number>(100)
 
   // Load base pay from admin settings on mount
   useEffect(() => {
@@ -182,6 +193,18 @@ export default function SalaryStatusTab() {
     }
   }
 
+  const handleZoomIn = () => {
+    setZoomLevel(prev => Math.min(prev + 25, 200))
+  }
+
+  const handleZoomOut = () => {
+    setZoomLevel(prev => Math.max(prev - 25, 50))
+  }
+
+  const handleResetZoom = () => {
+    setZoomLevel(100)
+  }
+
   return (
     <div className="space-y-4">
       {!showPayslip ? (
@@ -218,6 +241,42 @@ export default function SalaryStatusTab() {
                 >
                   돌아가기
                 </button>
+
+                {/* Zoom controls */}
+                <div className="flex items-center gap-1 no-print">
+                  <button
+                    onClick={handleZoomOut}
+                    disabled={zoomLevel <= 50}
+                    className={`p-2 rounded-lg transition-colors ${
+                      zoomLevel <= 50
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    title="축소"
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleResetZoom}
+                    className="px-3 py-2 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors min-w-[60px]"
+                    title="원본 크기"
+                  >
+                    {zoomLevel}%
+                  </button>
+                  <button
+                    onClick={handleZoomIn}
+                    disabled={zoomLevel >= 200}
+                    className={`p-2 rounded-lg transition-colors ${
+                      zoomLevel >= 200
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    title="확대"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </button>
+                </div>
+
                 <button
                   onClick={handleDownloadPDF}
                   className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors no-print"
@@ -253,7 +312,7 @@ export default function SalaryStatusTab() {
               </div>
             </div>
 
-            <PayslipGenerator salaryData={salaryData} />
+            <PayslipGenerator salaryData={salaryData} zoomLevel={zoomLevel} />
           </div>
         </>
       )}

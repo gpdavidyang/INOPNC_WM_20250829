@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, Filter, Calendar } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Filter, Calendar, Download } from 'lucide-react'
 import CalendarView from './CalendarView'
 import SiteFilter from './SiteFilter'
 import MonthlyStats from './MonthlyStats'
@@ -28,6 +28,7 @@ export default function OutputStatusTab() {
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [workLogs, setWorkLogs] = useState<WorkLog[]>([])
   const [loading, setLoading] = useState(false)
+  const [exporting, setExporting] = useState(false)
 
   // Load saved data from localStorage on mount
   useEffect(() => {
@@ -162,6 +163,59 @@ export default function OutputStatusTab() {
     )
   }
 
+  const handleExportToExcel = async () => {
+    if (exporting) return
+
+    setExporting(true)
+    try {
+      // Get current user info
+      const userResponse = await fetch('/api/auth/user')
+      const userData = await userResponse.json()
+
+      if (!userData?.user?.id) {
+        console.error('User not authenticated')
+        return
+      }
+
+      // Prepare export parameters
+      const year = currentDate.getFullYear()
+      const month = currentDate.getMonth() + 1
+      const dateFrom = `${year}-${month.toString().padStart(2, '0')}-01`
+      const lastDay = new Date(year, month, 0).getDate()
+      const dateTo = `${year}-${month.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`
+
+      // Build export URL with filters
+      const params = new URLSearchParams()
+      if (selectedSite) params.append('site', selectedSite)
+      params.append('dateFrom', dateFrom)
+      params.append('dateTo', dateTo)
+      params.append('status', 'submitted') // Only export submitted reports
+
+      // Call the existing export API
+      const response = await fetch(`/api/admin/daily-reports/export?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error('Export failed')
+      }
+
+      // Download the file
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `작업출력현황_${year}년${month}월_${selectedSite ? '선택현장' : '전체현장'}.xlsx`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Failed to export Excel:', error)
+      alert('엑셀 내보내기에 실패했습니다.')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Month navigation and site filter */}
@@ -196,14 +250,38 @@ export default function OutputStatusTab() {
           )}
         </div>
 
-        <SiteFilter selectedSite={selectedSite} onSiteChange={setSelectedSite} />
+        <div className="flex items-center gap-2">
+          <SiteFilter selectedSite={selectedSite} onSiteChange={setSelectedSite} />
+          <button
+            onClick={handleExportToExcel}
+            disabled={exporting}
+            className={`
+              flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+              transition-colors border
+              ${
+                exporting
+                  ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600 cursor-not-allowed'
+                  : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-300 dark:border-green-600 hover:bg-green-100 dark:hover:bg-green-900/50'
+              }
+            `}
+          >
+            <Download className="w-4 h-4" />
+            {exporting ? '내보내는 중...' : '엑셀 내보내기'}
+          </button>
+        </div>
       </div>
 
       {/* Calendar view */}
-      <CalendarView currentDate={currentDate} workLogs={workLogs} loading={loading} />
+      <CalendarView
+        currentDate={currentDate}
+        workLogs={selectedSite ? workLogs.filter(log => log.siteId === selectedSite) : workLogs}
+        loading={loading}
+      />
 
       {/* Monthly statistics */}
-      <MonthlyStats workLogs={workLogs} />
+      <MonthlyStats
+        workLogs={selectedSite ? workLogs.filter(log => log.siteId === selectedSite) : workLogs}
+      />
     </div>
   )
 }
