@@ -1,6 +1,7 @@
-import { createClient } from "@/lib/supabase/server"
 'use server'
 
+import { createClient } from '@/lib/supabase/server'
+import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
 
 interface SalaryInfo {
   id: string
@@ -66,7 +67,12 @@ export async function getSalaryInfo(params: { user_id: string; date?: string }) 
   }
 }
 
-export async function calculateMonthlySalary(params: { user_id: string; year: number; month: number; site_id?: string }) {
+export async function calculateMonthlySalary(params: {
+  user_id: string
+  year: number
+  month: number
+  site_id?: string
+}) {
   try {
     // 통합 급여 계산 서비스 사용
     const result = await salaryCalculationService.calculateMonthlySalary(
@@ -97,13 +103,13 @@ export async function calculateMonthlySalary(params: { user_id: string; year: nu
       net_pay: result.net_pay,
       work_days: result.work_days,
       period_start: result.period_start, // 추가
-      period_end: result.period_end // 추가
+      period_end: result.period_end, // 추가
     }
 
     // salary_info 조회하여 rate 정보 추가
-    const salaryResult = await getSalaryInfo({ 
-      user_id: params.user_id, 
-      date: `${params.year}-${params.month.toString().padStart(2, '0')}-01` 
+    const salaryResult = await getSalaryInfo({
+      user_id: params.user_id,
+      date: `${params.year}-${params.month.toString().padStart(2, '0')}-01`,
     })
 
     if (salaryResult.success && salaryResult.data) {
@@ -126,16 +132,16 @@ export async function getCompanySalarySummary(params: {
 }) {
   try {
     const supabase = createClient()
-    
+
     // Mock data for partner company view
     const mockWorkers = [
       { name: '김철수', id: 'worker1' },
       { name: '이영희', id: 'worker2' },
       { name: '박민수', id: 'worker3' },
       { name: '정수진', id: 'worker4' },
-      { name: '최동훈', id: 'worker5' }
+      { name: '최동훈', id: 'worker5' },
     ]
-    
+
     const details = mockWorkers.map(worker => ({
       worker_id: worker.id,
       worker_name: worker.name,
@@ -150,9 +156,9 @@ export async function getCompanySalarySummary(params: {
       total_days: 20 + Math.floor(Math.random() * 5),
       total_hours: 160 + Math.floor(Math.random() * 40),
       overtime_hours: Math.floor(Math.random() * 30),
-      status: Math.random() > 0.7 ? 'pending' : 'paid'
+      status: Math.random() > 0.7 ? 'pending' : 'paid',
     }))
-    
+
     const totalAmount = details.reduce((sum: unknown, d: unknown) => sum + d.net_salary, 0)
     const pendingAmount = details
       .filter(d => d.status === 'pending')
@@ -161,15 +167,15 @@ export async function getCompanySalarySummary(params: {
       .filter(d => d.status === 'paid')
       .reduce((sum: unknown, d: unknown) => sum + d.net_salary, 0)
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
         details,
         totalWorkers: mockWorkers.length,
         totalAmount,
         pendingAmount,
-        paidAmount
-      }
+        paidAmount,
+      },
     }
   } catch (error) {
     console.error('Error in getCompanySalarySummary:', error)
@@ -177,19 +183,13 @@ export async function getCompanySalarySummary(params: {
   }
 }
 
-export async function getPayslips(params: {
-  worker_id: string
-  limit?: number
-}) {
+export async function getPayslips(params: { worker_id: string; limit?: number }) {
   try {
     const supabase = createClient()
-    
+
     // Mock payslip data
-    const months = [
-      '2024-08', '2024-09', '2024-10', 
-      '2024-11', '2024-12', '2025-01'
-    ]
-    
+    const months = ['2024-08', '2024-09', '2024-10', '2024-11', '2024-12', '2025-01']
+
     const mockPayslips = months.slice(0, params.limit || 6).map(month => ({
       id: `payslip-${month}`,
       worker_id: params.worker_id,
@@ -201,7 +201,7 @@ export async function getPayslips(params: {
       net_amount: 3033000,
       status: month === '2025-01' ? 'pending' : 'paid',
       issued_date: `${month}-25`,
-      payment_date: month !== '2025-01' ? `${month}-25` : null
+      payment_date: month !== '2025-01' ? `${month}-25` : null,
     }))
 
     return { success: true, data: mockPayslips }
@@ -215,12 +215,12 @@ export async function downloadPayslip(payslipId: string) {
   try {
     // In a real implementation, this would generate or fetch a PDF
     // For now, return a mock URL
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
         url: `/api/payslips/${payslipId}/download`,
-        filename: `payslip-${payslipId}.pdf`
-      }
+        filename: `payslip-${payslipId}.pdf`,
+      },
     }
   } catch (error) {
     console.error('Error in downloadPayslip:', error)

@@ -25,12 +25,13 @@ const quickMenuItems = [
     label: '문서함',
   },
   {
-    href: '/mobile/requests',
+    href: 'https://open.kakao.com/o/g6r8yDRh',
     icon: '/icons/request_hq.png',
     label: '본사요청',
+    external: true,
   },
   {
-    href: '/mobile/materials',
+    href: '/mobile/sites#npc-inventory-section',
     icon: '/icons/stock_inventory.png',
     label: '재고관리',
   },
@@ -52,16 +53,29 @@ export const QuickMenu: React.FC = () => {
       <ul className="quick-grid" id="quick-menu">
         {quickMenuItems.map((item, index) => (
           <li key={index}>
-            <Link href={item.href} className="quick-item">
-              <img
-                className="qm-icon"
-                src={item.icon}
-                alt={item.label}
-                decoding="async"
-                loading="lazy"
-              />
-              <span>{item.label}</span>
-            </Link>
+            {item.external ? (
+              <a href={item.href} className="quick-item" target="_blank" rel="noopener noreferrer">
+                <img
+                  className="qm-icon"
+                  src={item.icon}
+                  alt={item.label}
+                  decoding="async"
+                  loading="lazy"
+                />
+                <span>{item.label}</span>
+              </a>
+            ) : (
+              <Link href={item.href} className="quick-item">
+                <img
+                  className="qm-icon"
+                  src={item.icon}
+                  alt={item.label}
+                  decoding="async"
+                  loading="lazy"
+                />
+                <span>{item.label}</span>
+              </Link>
+            )}
           </li>
         ))}
       </ul>
