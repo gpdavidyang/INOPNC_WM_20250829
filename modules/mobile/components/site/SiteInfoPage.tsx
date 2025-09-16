@@ -606,58 +606,151 @@ export default function SiteInfoPage() {
     }
   }
 
+  // Enhanced phone call handler with haptic feedback
   const handlePhoneCall = (phoneNumber: string) => {
     if (phoneNumber && phoneNumber !== '-') {
+      // Add haptic feedback for mobile devices
+      if (navigator.vibrate) {
+        navigator.vibrate(50)
+      }
       window.location.href = `tel:${phoneNumber}`
     } else {
       alert('전화번호가 없습니다.')
     }
   }
 
+  // Enhanced copy text handler with better feedback and fallback
   const handleCopyText = async (text: string) => {
-    if (text && text !== '-') {
-      try {
+    if (!text || text === '-') {
+      alert('복사할 내용이 없습니다.')
+      return
+    }
+
+    try {
+      // Add haptic feedback for mobile devices
+      if (navigator.vibrate) {
+        navigator.vibrate([30, 10, 30])
+      }
+
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text)
         alert('복사되었습니다.')
-      } catch (e) {
-        alert('복사 실패: 권한을 확인하세요.')
+      } else {
+        // Fallback for older browsers or non-HTTPS
+        const textArea = document.createElement('textarea')
+        textArea.value = text
+        textArea.style.position = 'fixed'
+        textArea.style.left = '-999999px'
+        textArea.style.top = '-999999px'
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+
+        try {
+          document.execCommand('copy')
+          alert('복사되었습니다.')
+        } catch (err) {
+          console.error('Fallback copy failed:', err)
+          alert('복사 실패: 권한을 확인하세요.')
+        }
+
+        document.body.removeChild(textArea)
       }
-    } else {
-      alert('복사할 내용이 없습니다.')
+    } catch (e) {
+      console.error('Copy failed:', e)
+      alert('복사 실패: 권한을 확인하세요.')
     }
   }
 
+  // Enhanced ripple effect function (matches HTML requirements)
+  const addRippleEffect = (event: React.MouseEvent<HTMLElement>) => {
+    const button = event.currentTarget
+    const rect = button.getBoundingClientRect()
+    const size = Math.max(rect.width, rect.height)
+    const x = event.clientX - rect.left - size / 2
+    const y = event.clientY - rect.top - size / 2
+
+    const ripple = document.createElement('span')
+    ripple.style.position = 'absolute'
+    ripple.style.borderRadius = '50%'
+    ripple.style.background = 'rgba(255, 255, 255, 0.35)'
+    ripple.style.transform = 'scale(0)'
+    ripple.style.animation = 'ripple 0.45s ease-out'
+    ripple.style.pointerEvents = 'none'
+    ripple.style.width = ripple.style.height = size + 'px'
+    ripple.style.left = x + 'px'
+    ripple.style.top = y + 'px'
+    ripple.classList.add('ripple-ink')
+
+    // Ensure button has relative positioning
+    if (button.style.position !== 'relative') {
+      button.style.position = 'relative'
+    }
+    button.style.overflow = 'hidden'
+
+    button.appendChild(ripple)
+
+    // Remove ripple after animation
+    setTimeout(() => {
+      if (ripple.parentNode) {
+        ripple.remove()
+      }
+    }, 450)
+  }
+
+  // Enhanced T-map navigation handler with improved UX
   const handleOpenTmap = (address: string) => {
-    if (address && address !== '-') {
-      const tmapScheme = `tmap://search?name=${encodeURIComponent(address)}`
-      const tmapWebUrl = `https://tmapapi.sktelecom.com/main/map.html?q=${encodeURIComponent(address)}`
-      const kakaoMapUrl = `https://map.kakao.com/?q=${encodeURIComponent(address)}`
+    if (!address || address === '-') {
+      alert('주소 정보가 없습니다.')
+      return
+    }
 
-      try {
-        const link = document.createElement('a')
-        link.href = tmapScheme
-        link.style.display = 'none'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+    // Add haptic feedback for mobile devices
+    if (navigator.vibrate) {
+      navigator.vibrate(100)
+    }
 
-        setTimeout(() => {
-          const useTmapWeb = confirm(
-            'T맵 앱이 설치되어 있지 않습니다.\n\n"확인"을 누르면 T맵 웹으로 이동합니다.\n"취소"를 누르면 카카오맵으로 이동합니다.'
+    const tmapScheme = `tmap://search?name=${encodeURIComponent(address)}`
+    const tmapWebUrl = `https://tmapapi.sktelecom.com/main/map.html?q=${encodeURIComponent(address)}`
+    const kakaoMapUrl = `https://map.kakao.com/?q=${encodeURIComponent(address)}`
+    const naverMapUrl = `https://map.naver.com/v5/search/${encodeURIComponent(address)}`
+
+    try {
+      // Create invisible link for T-map app scheme
+      const link = document.createElement('a')
+      link.href = tmapScheme
+      link.style.display = 'none'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      // Enhanced fallback with multiple map options
+      setTimeout(() => {
+        const mapChoice = confirm(
+          `T맵 앱이 설치되어 있지 않습니다.\n\n주소: ${address}\n\n"확인"을 누르면 T맵 웹으로 이동합니다.\n"취소"를 누르면 다른 지도 앱을 선택할 수 있습니다.`
+        )
+
+        if (mapChoice) {
+          // Open T-map web version
+          window.open(tmapWebUrl, '_blank')
+        } else {
+          // Show additional map options
+          const alternativeChoice = confirm(
+            '다른 지도 서비스를 선택하세요.\n\n"확인" - 카카오맵\n"취소" - 네이버지도'
           )
 
-          if (useTmapWeb) {
-            window.open(tmapWebUrl, '_blank')
-          } else {
+          if (alternativeChoice) {
             window.open(kakaoMapUrl, '_blank')
+          } else {
+            window.open(naverMapUrl, '_blank')
           }
-        }, 1000)
-      } catch (error) {
-        console.error('T맵 연결 오류:', error)
-        window.open(kakaoMapUrl, '_blank')
-      }
-    } else {
-      alert('주소 정보가 없습니다.')
+        }
+      }, 1200) // Slightly longer timeout for better UX
+    } catch (error) {
+      console.error('T맵 연결 오류:', error)
+      // Fallback to Kakao Map on error
+      window.open(kakaoMapUrl, '_blank')
     }
   }
 
@@ -2095,7 +2188,11 @@ export default function SiteInfoPage() {
               <div className="info-actions">
                 <button
                   className="action-btn"
-                  onClick={() => handlePhoneCall(currentSite.managerPhone || currentSite.phone1)}
+                  onClick={e => {
+                    addRippleEffect(e)
+                    handlePhoneCall(currentSite.managerPhone || currentSite.phone1)
+                  }}
+                  data-tel={currentSite.managerPhone || currentSite.phone1}
                 >
                   통화
                 </button>
@@ -2107,11 +2204,13 @@ export default function SiteInfoPage() {
               <div className="info-actions">
                 <button
                   className="action-btn"
-                  onClick={() =>
+                  onClick={e => {
+                    addRippleEffect(e)
                     handlePhoneCall(
                       currentSite.safetyPhone || currentSite.phone2 || currentSite.phone1
                     )
-                  }
+                  }}
+                  data-tel={currentSite.safetyPhone || currentSite.phone2 || currentSite.phone1}
                 >
                   통화
                 </button>
@@ -2130,8 +2229,10 @@ export default function SiteInfoPage() {
                   className="action-btn secondary"
                   onClick={e => {
                     e.stopPropagation()
+                    addRippleEffect(e)
                     handleCopyText(currentSite.address)
                   }}
+                  data-copy={currentSite.address}
                 >
                   복사
                 </button>
@@ -2139,8 +2240,10 @@ export default function SiteInfoPage() {
                   className="action-btn"
                   onClick={e => {
                     e.stopPropagation()
+                    addRippleEffect(e)
                     handleOpenTmap(currentSite.address)
                   }}
+                  data-tmap={currentSite.address}
                 >
                   T맵
                 </button>
@@ -2159,10 +2262,23 @@ export default function SiteInfoPage() {
                   className="action-btn secondary"
                   onClick={e => {
                     e.stopPropagation()
+                    addRippleEffect(e)
                     handleCopyText(currentSite.lodging)
                   }}
+                  data-copy={currentSite.lodging}
                 >
                   복사
+                </button>
+                <button
+                  className="action-btn"
+                  onClick={e => {
+                    e.stopPropagation()
+                    addRippleEffect(e)
+                    handleOpenTmap(currentSite.lodging)
+                  }}
+                  data-tmap={currentSite.lodging}
+                >
+                  T맵
                 </button>
               </div>
             </div>
@@ -2172,7 +2288,13 @@ export default function SiteInfoPage() {
               <span className="info-label">첫부파일</span>
               <span className="info-value">3개 카테고리</span>
               <div className="info-actions">
-                <button className="action-btn" onClick={() => setShowAttachmentPopup(true)}>
+                <button
+                  className="action-btn"
+                  onClick={e => {
+                    addRippleEffect(e)
+                    setShowAttachmentPopup(true)
+                  }}
+                >
                   보기
                 </button>
               </div>
@@ -2183,7 +2305,10 @@ export default function SiteInfoPage() {
           <div className="toggle-section">
             <button
               className={`btn-detail ${showDetailSection ? 'active' : ''}`}
-              onClick={() => setShowDetailSection(!showDetailSection)}
+              onClick={e => {
+                addRippleEffect(e)
+                setShowDetailSection(!showDetailSection)
+              }}
             >
               {showDetailSection ? '간단' : '상세'}
             </button>
