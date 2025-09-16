@@ -89,6 +89,28 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
     }
   }
 
+  // 공도면이 로드되면 자동으로 localStorage에 저장
+  useEffect(() => {
+    if (primaryBlueprint && selectedSite) {
+      const drawingData = {
+        id: primaryBlueprint.id,
+        name: primaryBlueprint.name,
+        title: primaryBlueprint.title,
+        url: primaryBlueprint.fileUrl,
+        size: 0,
+        type: 'blueprint',
+        uploadDate: new Date(primaryBlueprint.uploadDate),
+        isMarked: false,
+        source: 'blueprint',
+        siteId: selectedSite,
+        siteName: siteName,
+      }
+
+      localStorage.setItem('selected_drawing', JSON.stringify(drawingData))
+      localStorage.setItem('selected_site', JSON.stringify({ id: selectedSite, name: siteName }))
+    }
+  }, [primaryBlueprint, selectedSite, siteName])
+
   const handleQuickMarkup = () => {
     if (!selectedSite) {
       toast.error('현장을 먼저 선택해주세요')
@@ -96,30 +118,11 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
     }
 
     if (!primaryBlueprint) {
-      toast.info('등록된 공도면이 없습니다. 도면 관리에서 업로드해주세요.')
-      router.push('/mobile/markup-tool?mode=upload')
+      toast.info('등록된 공도면이 없습니다. 본사 관리자에게 문의해주세요.')
       return
     }
 
-    // 선택된 도면 정보를 localStorage에 저장
-    const drawingData = {
-      id: primaryBlueprint.id,
-      name: primaryBlueprint.name,
-      title: primaryBlueprint.title,
-      url: primaryBlueprint.fileUrl,
-      size: 0,
-      type: 'blueprint',
-      uploadDate: new Date(primaryBlueprint.uploadDate),
-      isMarked: false,
-      source: 'blueprint',
-      siteId: selectedSite,
-      siteName: siteName,
-    }
-
-    localStorage.setItem('selected_drawing', JSON.stringify(drawingData))
-    localStorage.setItem('selected_site', JSON.stringify({ id: selectedSite, name: siteName }))
-
-    // 마킹 도구 페이지로 이동 (공도면 자동 로드됨)
+    // 공도면이 이미 localStorage에 저장되어 있으므로 바로 이동
     router.push('/mobile/markup-tool')
   }
 
@@ -199,9 +202,12 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
               className="primary-action-btn"
               onClick={handleQuickMarkup}
               aria-label="공도면 마킹 시작"
+              disabled={!primaryBlueprint}
             >
               <span className="btn-icon">✏️</span>
-              <span className="btn-text">공도면 마킹하기</span>
+              <span className="btn-text">
+                {primaryBlueprint ? '마킹 시작' : '공도면 준비 중...'}
+              </span>
               <span className="btn-arrow">→</span>
             </button>
 
@@ -223,12 +229,32 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
             {/* 공도면이 없는 경우 */}
             {!primaryBlueprint && (
               <div className="no-blueprint">
-                <p className="no-blueprint-text">등록된 공도면이 없습니다</p>
+                <div className="no-blueprint-icon">📋</div>
+                <p className="no-blueprint-title">공도면이 등록되어 있지 않습니다</p>
+                <p className="no-blueprint-desc">
+                  본사 관리자가 해당 현장 공도면 등록 후,
+                  <br />
+                  사용 가능합니다.
+                </p>
+                <div className="support-section">
+                  <p className="support-label">도움이 필요하신가요?</p>
+                  <a
+                    href="https://open.kakao.com/o/g6r8yDRh"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="kakao-link"
+                  >
+                    <span className="kakao-icon">💬</span>
+                    카카오톡 오픈채팅 문의
+                  </a>
+                </div>
+                <div className="divider"></div>
                 <button
                   className="upload-btn"
                   onClick={() => router.push('/mobile/markup-tool?mode=upload')}
                 >
-                  공도면 업로드하기
+                  <span className="upload-icon">📁</span>
+                  직접 공도면 업로드하기
                 </button>
               </div>
             )}

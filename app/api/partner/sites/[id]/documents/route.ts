@@ -87,6 +87,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         file_size,
         mime_type,
         document_type,
+        category_type,
         created_at,
         owner_id,
         profiles!documents_owner_id_fkey(
@@ -122,7 +123,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
     // Apply filters to documents table - especially for drawing/blueprint
     let finalLegacyQuery = legacyQuery
     if (documentType && documentType === 'drawing') {
-      finalLegacyQuery = finalLegacyQuery.in('document_type', ['blueprint', 'drawing'])
+      // Include blueprints and drawings from legacy documents table
+      finalLegacyQuery = finalLegacyQuery.or(
+        'document_type.in.(blueprint,drawing),category_type.in.(blueprint,drawing)'
+      )
     } else if (documentType && documentType !== 'all') {
       finalLegacyQuery = finalLegacyQuery.eq('document_type', documentType)
     }
@@ -158,7 +162,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const transformedLegacy = (legacyDocuments || []).map((doc: any) => ({
       id: doc.id,
-      type: mapDocumentType(doc.document_type || 'drawing', null),
+      type: mapDocumentType(doc.category_type || doc.document_type || 'drawing', null),
       name: doc.file_name,
       title: doc.title,
       description: doc.description,
@@ -167,10 +171,15 @@ export async function GET(request: Request, { params }: { params: { id: string }
       fileSize: doc.file_size,
       mimeType: doc.mime_type,
       fileUrl: doc.file_url,
-      categoryType: doc.document_type === 'blueprint' ? 'drawing' : doc.document_type || 'drawing',
+      categoryType:
+        doc.category_type ||
+        (doc.document_type === 'blueprint' ? 'drawing' : doc.document_type) ||
+        'drawing',
       subType: doc.document_type === 'blueprint' ? 'blueprint' : null,
       icon: getDocumentIcon(
-        doc.document_type === 'blueprint' ? 'drawing' : doc.document_type || 'drawing',
+        doc.category_type ||
+          (doc.document_type === 'blueprint' ? 'drawing' : doc.document_type) ||
+          'drawing',
         null
       ),
     }))
