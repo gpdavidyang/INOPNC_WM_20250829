@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Search, Moon, Sun, Type, Bell, Menu } from 'lucide-react'
 import { NotificationModal } from '../notifications/NotificationModal'
-import { Drawer } from './Drawer'
+// Drawer is now managed by MobileLayout, not AppBar
 import { SearchPage } from './SearchPage'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/use-user'
@@ -18,7 +18,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
   const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal')
   const [notificationCount, setNotificationCount] = useState(0)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
-  const [showDrawer, setShowDrawer] = useState(false)
+  // Drawer state is now managed by MobileLayout
   const [showSearchPage, setShowSearchPage] = useState(false)
   const { user } = useUser()
   const supabase = createClient()
@@ -166,9 +166,8 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             onClick={() => {
               if (onMenuClick) {
                 onMenuClick()
-              } else {
-                setShowDrawer(true)
               }
+              // Drawer is now controlled by MobileLayout
             }}
           >
             <Menu className="w-5 h-5" />
@@ -289,8 +288,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
         userId={user?.id}
       />
 
-      {/* Drawer Menu */}
-      <Drawer isOpen={showDrawer} onClose={() => setShowDrawer(false)} />
+      {/* Drawer is now rendered by MobileLayout */}
 
       {/* Search Page */}
       <SearchPage isOpen={showSearchPage} onClose={() => setShowSearchPage(false)} />
