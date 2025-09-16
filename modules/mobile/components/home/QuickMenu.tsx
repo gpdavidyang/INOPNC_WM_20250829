@@ -65,7 +65,7 @@ export const QuickMenu: React.FC = () => {
                 <span>{item.label}</span>
               </a>
             ) : (
-              <Link href={item.href} className="quick-item">
+              <Link href={item.href} className="quick-item" prefetch={false}>
                 <img
                   className="qm-icon"
                   src={item.icon}
