@@ -36,13 +36,21 @@ export async function middleware(request: NextRequest) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
+              // Enhanced cookie options for production compatibility
               const cookieOptions = {
                 ...options,
                 sameSite: 'lax' as const,
-                secure: process.env.NODE_ENV === 'production',
-                httpOnly: false,
+                secure: process.env.NODE_ENV === 'production' || request.url.startsWith('https'),
+                httpOnly: false, // Must be false for client-side access
                 path: '/',
-                maxAge: name.includes('refresh') ? 60 * 60 * 24 * 30 : 60 * 60 * 24,
+                // Set proper max-age for different cookie types
+                maxAge: name.includes('refresh')
+                  ? 60 * 60 * 24 * 30 // 30 days for refresh tokens
+                  : name.includes('-auth-token')
+                    ? 60 * 60 * 24 * 7 // 7 days for auth tokens
+                    : 60 * 60 * 24, // 1 day for access tokens
+                // In production, ensure domain is not set to allow cookie to work across subdomains
+                domain: undefined,
               }
               response.cookies.set(name, value, cookieOptions)
             })
@@ -55,20 +63,20 @@ export async function middleware(request: NextRequest) {
       data: { session },
       error: sessionError,
     } = await supabase.auth.getSession()
-    
+
     const user = session?.user || null
 
     // Clear invalid cookies
     if (sessionError || (session && !session.user)) {
       response.cookies.delete('sb-access-token')
-      response.cookies.delete('sb-refresh-token') 
+      response.cookies.delete('sb-refresh-token')
       response.cookies.delete('user-role')
     }
 
     // Public routes that don't require authentication
     const publicRoutes = ['/auth/login', '/auth/reset-password', '/']
     const isPublicRoute = publicRoutes.includes(pathname)
-    
+
     // Auth routes
     const isAuthRoute = pathname.startsWith('/auth/')
 
@@ -90,15 +98,15 @@ export async function middleware(request: NextRequest) {
         .single()
 
       const userRole = profile?.role || 'worker'
-      
+
       // Role-based routing
       const roleRoutes: Record<string, string> = {
-        'system_admin': '/dashboard/admin',
-        'admin': '/dashboard/admin',
-        'customer_manager': '/partner/dashboard',
-        'partner': '/partner/dashboard',
-        'site_manager': '/mobile',
-        'worker': '/mobile'
+        system_admin: '/dashboard/admin',
+        admin: '/dashboard/admin',
+        customer_manager: '/partner/dashboard',
+        partner: '/partner/dashboard',
+        site_manager: '/mobile',
+        worker: '/mobile',
       }
 
       const redirectPath = roleRoutes[userRole] || '/dashboard/admin'

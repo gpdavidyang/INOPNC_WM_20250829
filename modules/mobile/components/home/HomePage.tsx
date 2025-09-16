@@ -19,6 +19,7 @@ import { NumberInput } from './NumberInput'
 import { AdditionalManpower as AdditionalManpowerComponent } from './AdditionalManpower'
 import { PhotoUploadCard } from './PhotoUploadCard'
 import { DrawingCard } from './DrawingCard'
+import { DrawingQuickAction } from './DrawingQuickAction'
 import { SummaryPanel } from './SummaryPanel'
 import { SummarySection } from './SummarySection'
 import { toast } from 'sonner'
@@ -597,8 +598,12 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       {/* 사진 업로드 - 별도 카드 */}
       <PhotoUploadCard />
 
-      {/* 도면마킹 - 별도 카드 */}
-      <DrawingCard selectedSite={selectedSite} userId={userProfile?.id || user?.id} />
+      {/* 도면마킹 - 간소화된 Quick Action */}
+      <DrawingQuickAction
+        selectedSite={selectedSite}
+        siteName={sites.find(s => s.id === selectedSite)?.name}
+        userId={userProfile?.id || user?.id}
+      />
 
       {/* 요약 패널 */}
       {showSummary && (

@@ -37,9 +37,23 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
         if (profile) {
           setUserProfile(profile)
+          setProfileLoading(false)
         }
       } else if (event === 'SIGNED_OUT') {
         setUserProfile(null)
+        setProfileLoading(false)
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        // Handle token refresh in production
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+
+        if (profile) {
+          setUserProfile(profile)
+          setProfileLoading(false)
+        }
       }
     })
 
@@ -48,39 +62,84 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     let mounted = true
+    let retryCount = 0
+    const maxRetries = 3
 
-    // Get user profile with session check
+    // Get user profile with session check and retry logic
     const fetchProfile = async () => {
       try {
         if (!mounted) return
-        setProfileLoading(true)
 
-        // First check session
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession()
+        // Don't set loading if we already have a profile
+        if (!userProfile) {
+          setProfileLoading(true)
+        }
+
+        // First try to get session from cookies with retry
+        let session = null
+        let sessionError = null
+
+        while (retryCount < maxRetries && !session) {
+          const result = await supabase.auth.getSession()
+          session = result.data.session
+          sessionError = result.error
+
+          if (!session && retryCount < maxRetries - 1) {
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 500 * (retryCount + 1)))
+
+            // Try to refresh the session
+            const refreshResult = await supabase.auth.refreshSession()
+            if (refreshResult.data.session) {
+              session = refreshResult.data.session
+              sessionError = null
+              break
+            }
+          }
+          retryCount++
+        }
 
         if (!session || sessionError) {
-          console.log('No session found or session error:', sessionError)
-          if (mounted) setUserProfile(null)
+          console.log('No session found after retries or session error:', sessionError)
+          if (mounted) {
+            setUserProfile(null)
+            setProfileLoading(false)
+          }
           return
         }
 
         // Then get user from the session
         const user = session.user
         if (user && mounted) {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
+          // Add retry logic for profile fetch
+          let profile = null
+          let profileError = null
+          let profileRetry = 0
+
+          while (profileRetry < 2 && !profile) {
+            const result = await supabase.from('profiles').select('*').eq('id', user.id).single()
+
+            profile = result.data
+            profileError = result.error
+
+            if (!profile && profileRetry < 1) {
+              await new Promise(resolve => setTimeout(resolve, 500))
+            }
+            profileRetry++
+          }
 
           if (profile && mounted) {
             setUserProfile(profile)
+            console.log('Profile loaded successfully:', profile.full_name)
           } else if (profileError && mounted) {
-            console.error('Profile fetch error:', profileError)
-            setUserProfile(null)
+            console.error('Profile fetch error after retries:', profileError)
+            // Fallback to basic user info if profile fetch fails
+            setUserProfile({
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              role: user.user_metadata?.role || 'worker',
+            })
           }
         }
       } catch (error) {
@@ -91,14 +150,14 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
       }
     }
 
-    if (isOpen) {
-      fetchProfile()
-    }
+    // Always fetch profile on mount, not just when drawer opens
+    // This ensures profile is ready when drawer opens
+    fetchProfile()
 
     return () => {
       mounted = false
     }
-  }, [supabase, isOpen])
+  }, [supabase, userProfile]) // Include userProfile to satisfy linter
 
   useEffect(() => {
     // Lock body scroll when drawer is open (base.html match)
@@ -286,175 +345,177 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
         aria-modal="true"
         aria-hidden={!isOpen}
       >
-        <div className="drawer-body">
-          <div className="drawer-scale">
-            {/* Profile Section */}
-            <div className="profile-sec">
-              <div className="profile-header">
-                <div className="profile-name" id="profileUserName">
-                  {profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'}
-                  {!profileLoading && (
-                    <span
-                      className="important-tag"
-                      style={{ position: 'relative', top: 0, right: 0, marginLeft: '8px' }}
-                    >
-                      {getRoleDisplay(userProfile?.role || '')}
-                    </span>
-                  )}
-                </div>
-                <button className="close-btn" id="drawerCloseBtn" onClick={onClose}>
-                  닫기
-                </button>
-              </div>
-              <div className="profile-email" id="profileUserEmail">
-                {profileLoading ? '로딩 중...' : userProfile?.email || ''}
-              </div>
-            </div>
-
-            {/* Menu List - 100% base.html match */}
-            <ul className="menu-list">
-              {menuItems.map((item, index) => (
-                <li key={index}>
-                  <a
-                    className="menu-item"
-                    href={item.href}
-                    onClick={e => {
-                      e.preventDefault()
-                      router.push(item.href)
-                      onClose()
-                    }}
-                  >
-                    <span className="menu-label">{item.label}</span>
-                  </a>
-                </li>
-              ))}
-
-              {/* 내정보 + 계정관리 버튼 */}
-              <li className="menu-item-with-btn">
-                <a className="menu-item" href="#" onClick={e => e.preventDefault()}>
-                  <span className="menu-label">내정보</span>
-                </a>
-                <button
-                  className="account-manage-btn"
-                  id="accountManageBtn"
-                  onClick={handleAccountManage}
-                >
-                  계정관리
-                </button>
-              </li>
-
-              {/* 계정 정보 표시 (토글) */}
-              <li
-                className="account-info"
-                id="accountInfo"
-                style={{ display: showAccountInfo ? 'block' : 'none' }}
-              >
-                {profileLoading ? (
-                  <div className="account-info-item">
-                    <span className="account-label">로딩 중...</span>
-                    <span className="account-value">정보를 불러오는 중입니다</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="account-info-item">
-                      <span className="account-label">연락처</span>
-                      <span className="account-value">{userProfile?.phone || '미설정'}</span>
-                    </div>
-                    <div className="account-info-item">
-                      <span className="account-label">가입일</span>
-                      <span className="account-value">
-                        {userProfile?.created_at
-                          ? new Date(userProfile.created_at)
-                              .toLocaleDateString('ko-KR')
-                              .replace(/\./g, '.')
-                          : '미설정'}
-                      </span>
-                    </div>
-                    <div className="account-info-item">
-                      <span className="account-label">비밀번호 변경</span>
+        <div className="drawer-container">
+          <div className="drawer-body">
+            <div className="drawer-scale">
+              {/* Profile Section */}
+              <div className="profile-sec">
+                <div className="profile-header">
+                  <div className="profile-name" id="profileUserName">
+                    {profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'}
+                    {!profileLoading && (
                       <span
-                        className="account-value change-password-btn"
-                        id="changePasswordBtn"
-                        onClick={handlePasswordChange}
+                        className="important-tag"
+                        style={{ position: 'relative', top: 0, right: 0, marginLeft: '8px' }}
                       >
-                        변경하기
+                        {getRoleDisplay(userProfile?.role || '')}
                       </span>
-                    </div>
-                  </>
-                )}
-              </li>
-
-              {/* 비밀번호 변경 폼 (토글) */}
-              <li
-                className="password-change-form"
-                id="passwordChangeForm"
-                style={{ display: showPasswordForm ? 'block' : 'none' }}
-              >
-                <div className="password-form-container">
-                  <div className="form-group">
-                    <input
-                      type="password"
-                      className="form-input"
-                      id="currentPassword"
-                      placeholder="현재 비밀번호를 입력"
-                      value={passwordForm.current}
-                      onChange={e =>
-                        setPasswordForm(prev => ({ ...prev, current: e.target.value }))
-                      }
-                      inputMode="text"
-                    />
+                    )}
                   </div>
-                  <div className="form-group">
-                    <input
-                      type="password"
-                      className="form-input"
-                      id="newPassword"
-                      placeholder="새 비밀번호 (최소 6자)"
-                      value={passwordForm.new}
-                      onChange={e => setPasswordForm(prev => ({ ...prev, new: e.target.value }))}
-                      inputMode="text"
-                    />
-                  </div>
-                  <div className="form-group">
-                    <input
-                      type="password"
-                      className="form-input"
-                      id="confirmPassword"
-                      placeholder="새 비밀번호를 다시 입력"
-                      value={passwordForm.confirm}
-                      onChange={e =>
-                        setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))
-                      }
-                      inputMode="text"
-                    />
-                  </div>
-                  <div className="form-actions">
-                    <button
-                      className="cancel-btn"
-                      id="cancelPasswordChange"
-                      onClick={handlePasswordCancel}
-                    >
-                      취소
-                    </button>
-                    <button
-                      className="save-btn"
-                      id="savePasswordChange"
-                      onClick={handlePasswordSave}
-                    >
-                      저장
-                    </button>
-                  </div>
+                  <button className="close-btn" id="drawerCloseBtn" onClick={onClose}>
+                    닫기
+                  </button>
                 </div>
-              </li>
-            </ul>
-          </div>
-        </div>
+                <div className="profile-email" id="profileUserEmail">
+                  {profileLoading ? '로딩 중...' : userProfile?.email || ''}
+                </div>
+              </div>
 
-        {/* Footer */}
-        <div className="drawer-foot">
-          <button className="logout-btn" type="button" id="drawerLogout" onClick={handleLogout}>
-            로그아웃
-          </button>
+              {/* Menu List - 100% base.html match */}
+              <ul className="menu-list">
+                {menuItems.map((item, index) => (
+                  <li key={index}>
+                    <a
+                      className="menu-item"
+                      href={item.href}
+                      onClick={e => {
+                        e.preventDefault()
+                        router.push(item.href)
+                        onClose()
+                      }}
+                    >
+                      <span className="menu-label">{item.label}</span>
+                    </a>
+                  </li>
+                ))}
+
+                {/* 내정보 + 계정관리 버튼 */}
+                <li className="menu-item-with-btn">
+                  <a className="menu-item" href="#" onClick={e => e.preventDefault()}>
+                    <span className="menu-label">내정보</span>
+                  </a>
+                  <button
+                    className="account-manage-btn"
+                    id="accountManageBtn"
+                    onClick={handleAccountManage}
+                  >
+                    계정관리
+                  </button>
+                </li>
+
+                {/* 계정 정보 표시 (토글) */}
+                <li
+                  className="account-info"
+                  id="accountInfo"
+                  style={{ display: showAccountInfo ? 'block' : 'none' }}
+                >
+                  {profileLoading ? (
+                    <div className="account-info-item">
+                      <span className="account-label">로딩 중...</span>
+                      <span className="account-value">정보를 불러오는 중입니다</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="account-info-item">
+                        <span className="account-label">연락처</span>
+                        <span className="account-value">{userProfile?.phone || '미설정'}</span>
+                      </div>
+                      <div className="account-info-item">
+                        <span className="account-label">가입일</span>
+                        <span className="account-value">
+                          {userProfile?.created_at
+                            ? new Date(userProfile.created_at)
+                                .toLocaleDateString('ko-KR')
+                                .replace(/\./g, '.')
+                            : '미설정'}
+                        </span>
+                      </div>
+                      <div className="account-info-item">
+                        <span className="account-label">비밀번호 변경</span>
+                        <span
+                          className="account-value change-password-btn"
+                          id="changePasswordBtn"
+                          onClick={handlePasswordChange}
+                        >
+                          변경하기
+                        </span>
+                      </div>
+                    </>
+                  )}
+                </li>
+
+                {/* 비밀번호 변경 폼 (토글) */}
+                <li
+                  className="password-change-form"
+                  id="passwordChangeForm"
+                  style={{ display: showPasswordForm ? 'block' : 'none' }}
+                >
+                  <div className="password-form-container">
+                    <div className="form-group">
+                      <input
+                        type="password"
+                        className="form-input"
+                        id="currentPassword"
+                        placeholder="현재 비밀번호를 입력"
+                        value={passwordForm.current}
+                        onChange={e =>
+                          setPasswordForm(prev => ({ ...prev, current: e.target.value }))
+                        }
+                        inputMode="text"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <input
+                        type="password"
+                        className="form-input"
+                        id="newPassword"
+                        placeholder="새 비밀번호 (최소 6자)"
+                        value={passwordForm.new}
+                        onChange={e => setPasswordForm(prev => ({ ...prev, new: e.target.value }))}
+                        inputMode="text"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <input
+                        type="password"
+                        className="form-input"
+                        id="confirmPassword"
+                        placeholder="새 비밀번호를 다시 입력"
+                        value={passwordForm.confirm}
+                        onChange={e =>
+                          setPasswordForm(prev => ({ ...prev, confirm: e.target.value }))
+                        }
+                        inputMode="text"
+                      />
+                    </div>
+                    <div className="form-actions">
+                      <button
+                        className="cancel-btn"
+                        id="cancelPasswordChange"
+                        onClick={handlePasswordCancel}
+                      >
+                        취소
+                      </button>
+                      <button
+                        className="save-btn"
+                        id="savePasswordChange"
+                        onClick={handlePasswordSave}
+                      >
+                        저장
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="drawer-foot">
+            <button className="logout-btn" type="button" id="drawerLogout" onClick={handleLogout}>
+              로그아웃
+            </button>
+          </div>
         </div>
       </aside>
     </>
