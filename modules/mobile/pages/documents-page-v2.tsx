@@ -5,6 +5,10 @@ import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
 import { useLongPress } from '@/modules/mobile/hooks/useLongPress'
+import { DocumentPreviewModal } from '@/modules/mobile/components/documents/DocumentPreviewModal'
+import { DocumentShareModal } from '@/modules/mobile/components/documents/DocumentShareModal'
+import { FileUploadSection } from '@/modules/mobile/components/documents/FileUploadSection'
+import { useDocumentState, useUserPreferences, useUploadHistory } from '@/modules/mobile/hooks/useLocalStorage'
 import './documents-page-v2.css'
 
 interface DocumentItem {
@@ -24,11 +28,53 @@ export const DocumentsPageV2: React.FC = () => {
 
 const DocumentsContentV2: React.FC = () => {
   const { profile } = useMobileUser()
-  const [activeTab, setActiveTab] = useState<'mine' | 'shared'>('mine')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set(['A']))
-  const [fontSize, setFontSize] = useState<'fs-100' | 'fs-150'>('fs-100')
-  const [deleteMode, setDeleteMode] = useState(false)
+  
+  // 로컬스토리지 상태 훅들
+  const {
+    documentState,
+    updateSelectedDocuments,
+    updateActiveTab,
+    updateSearchQuery,
+    updateFontSize,
+    updateDeleteMode
+  } = useDocumentState()
+  
+  const { preferences, updateTheme } = useUserPreferences()
+  const { addUploadRecord, getUploadStats } = useUploadHistory()
+  
+  // 로컬 상태는 localStorage에서 초기화
+  const [activeTab, setActiveTab] = useState<'mine' | 'shared'>(documentState.activeTab)
+  const [searchQuery, setSearchQuery] = useState(documentState.searchQuery)
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(
+    new Set(documentState.selectedDocuments.length > 0 ? documentState.selectedDocuments : ['A'])
+  )
+  const [fontSize, setFontSize] = useState<'fs-100' | 'fs-150'>(documentState.fontSize)
+  const [deleteMode, setDeleteMode] = useState(documentState.deleteMode)
+  
+  // 모달 상태 관리
+  const [previewModal, setPreviewModal] = useState<{
+    isOpen: boolean
+    document: DocumentItem | null
+  }>({
+    isOpen: false,
+    document: null
+  })
+  
+  const [shareModal, setShareModal] = useState<{
+    isOpen: boolean
+  }>({
+    isOpen: false
+  })
+  
+  const [uploadModal, setUploadModal] = useState<{
+    isOpen: boolean
+    documentId: string | null
+    documentTitle: string | null
+  }>({
+    isOpen: false,
+    documentId: null,
+    documentTitle: null
+  })
 
   // 내 문서함 문서 목록
   const myDocuments: DocumentItem[] = [
@@ -70,9 +116,13 @@ const DocumentsContentV2: React.FC = () => {
 
   const handleTabClick = (tab: 'mine' | 'shared') => {
     setActiveTab(tab)
+    updateActiveTab(tab)
     // 탭 전환 시 선택 초기화 및 삭제 모드 종료
-    setSelectedDocuments(new Set())
+    const emptySelection = new Set<string>()
+    setSelectedDocuments(emptySelection)
+    updateSelectedDocuments([])
     setDeleteMode(false)
+    updateDeleteMode(false)
   }
 
   const handleDocumentClick = (docId: string) => {
@@ -83,6 +133,7 @@ const DocumentsContentV2: React.FC = () => {
       newSelected.add(docId)
     }
     setSelectedDocuments(newSelected)
+    updateSelectedDocuments(Array.from(newSelected))
   }
 
   const handleCheckboxClick = (e: React.MouseEvent, docId: string) => {
@@ -104,13 +155,24 @@ const DocumentsContentV2: React.FC = () => {
   }
 
   const handleUploadDocument = (docId: string) => {
-    console.log('Upload document:', docId)
-    // 업로드 로직 구현
+    const document = currentDocuments.find(doc => doc.id === docId)
+    if (document) {
+      setUploadModal({
+        isOpen: true,
+        documentId: docId,
+        documentTitle: document.title
+      })
+    }
   }
 
   const handlePreviewDocument = (docId: string) => {
-    console.log('Preview document:', docId)
-    // 미리보기 로직 구현
+    const document = currentDocuments.find(doc => doc.id === docId)
+    if (document) {
+      setPreviewModal({
+        isOpen: true,
+        document
+      })
+    }
   }
 
   const handleDeleteDocument = (docId: string) => {
@@ -136,13 +198,37 @@ const DocumentsContentV2: React.FC = () => {
   }
 
   const handleShareDocuments = () => {
-    const selected = Array.from(selectedDocuments)
-    console.log('Share documents:', selected)
-    alert(`${selected.length}개의 문서가 공유되었습니다.`)
+    if (selectedDocuments.size === 0) {
+      alert('공유할 문서를 선택해주세요.')
+      return
+    }
+    
+    setShareModal({
+      isOpen: true
+    })
   }
 
   const handleSearchCancel = () => {
     setSearchQuery('')
+  }
+
+  const handleUploadComplete = (uploadedFiles: any[]) => {
+    console.log('Files uploaded successfully:', uploadedFiles)
+    
+    // TODO: 실제 구현에서는 서버에 업로드 상태를 업데이트해야 함
+    // updateDocumentUploadStatus(uploadModal.documentId, uploadedFiles)
+    
+    alert(`${uploadedFiles.length}개 파일이 성공적으로 업로드되었습니다.`)
+    setUploadModal({
+      isOpen: false,
+      documentId: null,
+      documentTitle: null
+    })
+  }
+
+  const handleUploadError = (error: string, fileName: string) => {
+    console.error('Upload error:', error, fileName)
+    alert(`업로드 실패: ${fileName}\n${error}`)
   }
 
   useEffect(() => {
@@ -222,6 +308,26 @@ const DocumentsContentV2: React.FC = () => {
           </div>
         </div>
 
+        {/* 삭제 모드 배너 */}
+        {deleteMode && (
+          <div className="delete-mode-banner">
+            <div className="delete-mode-content">
+              <div className="delete-mode-icon">🗑️</div>
+              <div className="delete-mode-text">
+                <div className="delete-mode-title">삭제 모드</div>
+                <div className="delete-mode-description">삭제할 문서를 선택하세요</div>
+              </div>
+              <button
+                className="delete-mode-exit"
+                onClick={exitDeleteMode}
+                aria-label="삭제 모드 종료"
+              >
+                완료
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* 검색 섹션 */}
         <div className="search-section">
           <div className="search-container">
@@ -269,9 +375,10 @@ const DocumentsContentV2: React.FC = () => {
           {filteredDocuments.map(doc => (
             <div
               key={doc.id}
-              className={`doc-selection-card ${selectedDocuments.has(doc.id) ? 'active' : ''}`}
+              className={`doc-selection-card ${selectedDocuments.has(doc.id) ? 'active' : ''} ${deleteMode ? 'delete-mode' : ''}`}
               data-id={doc.id}
               onClick={() => handleDocumentClick(doc.id)}
+              {...longPressHandlers}
             >
               <div className="doc-selection-content">
                 <div
@@ -304,7 +411,7 @@ const DocumentsContentV2: React.FC = () => {
                 </button>
                 <button
                   className="delete-btn"
-                  style={{ display: 'none' }}
+                  style={{ display: deleteMode ? 'block' : 'none' }}
                   onClick={e => {
                     e.stopPropagation()
                     handleDeleteDocument(doc.id)
@@ -353,6 +460,34 @@ const DocumentsContentV2: React.FC = () => {
             공유하기
           </button>
         </div>
+
+        {/* 문서 미리보기 모달 */}
+        <DocumentPreviewModal
+          isOpen={previewModal.isOpen}
+          onClose={() => setPreviewModal({ isOpen: false, document: null })}
+          document={previewModal.document}
+        />
+
+        {/* 문서 공유 모달 */}
+        <DocumentShareModal
+          isOpen={shareModal.isOpen}
+          onClose={() => setShareModal({ isOpen: false })}
+          selectedDocuments={Array.from(selectedDocuments)}
+          documents={currentDocuments}
+        />
+
+        {/* 파일 업로드 모달 */}
+        <FileUploadSection
+          isOpen={uploadModal.isOpen}
+          onClose={() => setUploadModal({
+            isOpen: false,
+            documentId: null,
+            documentTitle: null
+          })}
+          documentTitle={uploadModal.documentTitle}
+          onUploadComplete={handleUploadComplete}
+          onUploadError={handleUploadError}
+        />
       </div>
     </MobileLayout>
   )

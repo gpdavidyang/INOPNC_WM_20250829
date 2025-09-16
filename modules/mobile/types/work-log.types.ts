@@ -3,9 +3,11 @@
  */
 
 /**
- * 작업일지 상태
+ * 작업일지 탭 상태
+ * output: 출력현황 탭
+ * salary: 급여현황 탭
  */
-export type WorkLogStatus = 'draft' | 'approved'
+export type WorkLogStatus = 'output' | 'salary'
 
 /**
  * 부재명 타입

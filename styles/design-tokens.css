@@ -57,6 +57,13 @@
   --nav-text-active: #2563eb;
   --num: #0068FE; /* 번호 컬러 */
 
+  /* Line tabs system */
+  --tab-bg: transparent;
+  --tab-text: #6B7280;
+  --tab-text-active: #0068FE;
+  --tab-border-active: #0068FE;
+  --tab-height: 44px;
+
   /* 모바일 뷰포트 대응 */
   --vh: 1vh;
   --dvh: 100dvh;

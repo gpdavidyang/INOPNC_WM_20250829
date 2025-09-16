@@ -104,6 +104,92 @@ body.fs-150 .doc-wrap {
   box-shadow: 0 2px 8px rgba(0, 102, 255, 0.3);
 }
 
+/* Delete Mode Banner */
+.delete-mode-banner {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.1), rgba(244, 67, 54, 0.05));
+  border: 1px solid rgba(244, 67, 54, 0.2);
+  border-radius: 12px;
+  margin: 0 16px 12px 16px;
+  padding: 12px;
+  animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+[data-theme='dark'] .delete-mode-banner {
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.15), rgba(244, 67, 54, 0.08));
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.delete-mode-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.delete-mode-icon {
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(244, 67, 54, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+[data-theme='dark'] .delete-mode-icon {
+  background: rgba(244, 67, 54, 0.2);
+}
+
+.delete-mode-text {
+  flex: 1;
+}
+
+.delete-mode-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--danger);
+  margin-bottom: 2px;
+}
+
+.delete-mode-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.delete-mode-exit {
+  padding: 6px 16px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.delete-mode-exit:hover {
+  background: #da190b;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.25);
+}
+
+.delete-mode-exit:active {
+  transform: translateY(0);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Search Section */
 .search-section {
   padding: 12px 16px;
@@ -212,6 +298,38 @@ body.fs-150 .doc-wrap {
 
 .doc-selection-card.active .selection-checkmark svg {
   opacity: 1;
+}
+
+/* Delete Mode Styles */
+.doc-selection-card.delete-mode {
+  animation: shakeAttention 0.3s ease-out;
+  border-color: rgba(244, 67, 54, 0.3);
+}
+
+.doc-selection-card.delete-mode:hover {
+  border-color: var(--danger);
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.08), rgba(244, 67, 54, 0.03));
+}
+
+.doc-selection-card.delete-mode .doc-selection-checkbox {
+  animation: pulseCheckbox 1.5s infinite;
+}
+
+@keyframes shakeAttention {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+  20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+@keyframes pulseCheckbox {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4);
+  }
+  50% { 
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(244, 67, 54, 0.1);
+  }
 }
 
 /* Document Content */

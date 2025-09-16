@@ -151,11 +151,11 @@ export const formatFileSize = (bytes: number): string => {
 export const getStatusColor = (status: WorkLogStatus): string => {
   switch (status) {
     case 'draft':
-      return 'bg-orange-100 text-orange-700'
+      return 'bg-orange-50 text-orange-700'
     case 'approved':
-      return 'bg-green-100 text-green-700'
+      return 'bg-green-50 text-green-700'
     default:
-      return 'bg-gray-100 text-gray-700'
+      return 'bg-[var(--bg)] text-[var(--muted)]'
   }
 }
 
@@ -178,7 +178,7 @@ export const getStatusText = (status: WorkLogStatus): string => {
  */
 export const getProgressColor = (progress: number): string => {
   if (progress >= 80) return 'bg-green-500'
-  if (progress >= 50) return 'bg-blue-500'
+  if (progress >= 50) return 'bg-[var(--num)]'
   if (progress >= 30) return 'bg-yellow-500'
   return 'bg-red-500'
 }
@@ -336,9 +336,9 @@ export const getFileIconClass = (filename: string): string => {
     case 'png':
     case 'gif':
     case 'webp':
-      return 'text-blue-500'
+      return 'text-[var(--num)]'
     default:
-      return 'text-gray-500'
+      return 'text-[var(--muted)]'
   }
 }
 
