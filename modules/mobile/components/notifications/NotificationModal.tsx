@@ -45,11 +45,30 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
         .order('created_at', { ascending: false })
         .limit(10)
 
-      if (!error && data) {
-        setNotifications(data)
+      if (error) {
+        // Handle specific API errors
+        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+          // Table doesn't exist, show empty state
+          setNotifications([])
+        } else {
+          console.warn('Notifications API unavailable:', error.message)
+          // Show fallback notifications for demo
+          setNotifications([
+            {
+              id: '1',
+              title: '알림 서비스',
+              message: '알림 기능이 현재 준비 중입니다.',
+              type: 'info',
+              is_read: false,
+              created_at: new Date().toISOString(),
+            },
+          ])
+        }
+      } else {
+        setNotifications(data || [])
       }
     } catch (error) {
-      console.error('Failed to fetch notifications:', error)
+      console.warn('Failed to fetch notifications:', error)
       // Use mock data if database fails
       setNotifications([
         {

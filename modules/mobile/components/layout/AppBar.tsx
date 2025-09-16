@@ -26,19 +26,35 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
   // Fetch notification count function
   const fetchNotificationCount = useCallback(async () => {
     try {
+      // Skip notifications fetch if no user
+      if (!user?.id) {
+        setNotificationCount(0)
+        return
+      }
+
       const { count, error } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user?.id)
         .eq('is_read', false)
 
-      if (!error && count !== null) {
-        setNotificationCount(count)
+      if (error) {
+        // Handle specific API errors silently
+        if (error.code === 'PGRST116' || error.message.includes('does not exist')) {
+          // Table doesn't exist, set count to 0
+          setNotificationCount(0)
+        } else {
+          // Other errors, use fallback
+          console.warn('Notifications API unavailable:', error.message)
+          setNotificationCount(0)
+        }
+      } else {
+        setNotificationCount(count || 0)
       }
     } catch (error) {
-      console.error('Failed to fetch notification count:', error)
-      // Set default count for demo
-      setNotificationCount(3)
+      // Network or other errors - fail silently with 0 count
+      console.warn('Failed to fetch notification count:', error)
+      setNotificationCount(0)
     }
   }, [supabase, user?.id])
 

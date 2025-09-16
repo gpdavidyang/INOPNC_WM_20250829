@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { SiteManagerGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'

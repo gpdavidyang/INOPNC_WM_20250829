@@ -574,6 +574,17 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                       }}
                       autoComplete="off"
                     >
+                      {/* Hidden username field for accessibility and password managers */}
+                      <input
+                        type="text"
+                        name="username"
+                        value={profile?.email || ''}
+                        readOnly
+                        style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
+                        autoComplete="username"
+                        tabIndex={-1}
+                        aria-hidden="true"
+                      />
                       <div className="form-group">
                         <input
                           type="password"
