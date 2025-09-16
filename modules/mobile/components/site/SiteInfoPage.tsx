@@ -955,11 +955,6 @@ export default function SiteInfoPage() {
     }
   }
 
-  const handleFilePreview = (file: AttachmentFile) => {
-    setPreviewFile(file)
-    setShowPreview(true)
-  }
-
   const handleDownloadFile = (fileName: string) => {
     alert(`${fileName} 다운로드가 시작됩니다.`)
     console.log('파일 다운로드:', fileName)
