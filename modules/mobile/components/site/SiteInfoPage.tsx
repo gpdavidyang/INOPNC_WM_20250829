@@ -1,7 +1,16 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
-import { Search, X, Download, Maximize2, ChevronDown, ChevronUp, Plus, Paperclip } from 'lucide-react'
+import {
+  Search,
+  X,
+  Download,
+  Maximize2,
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  Paperclip,
+} from 'lucide-react'
 
 // Types
 interface SiteInfo {
@@ -77,8 +86,14 @@ export default function SiteInfoPage() {
   const [showAttachmentPopup, setShowAttachmentPopup] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [previewFile, setPreviewFile] = useState<AttachmentFile | null>(null)
+  const [showFullscreen, setShowFullscreen] = useState(false)
+  const [fullscreenFile, setFullscreenFile] = useState<AttachmentFile | null>(null)
   const [showFullscreenPreview, setShowFullscreenPreview] = useState(false)
-  const [previewContent, setPreviewContent] = useState<{ url: string; type: string; name: string } | null>(null)
+  const [previewContent, setPreviewContent] = useState<{
+    url: string
+    type: string
+    name: string
+  } | null>(null)
   const [expandedField, setExpandedField] = useState<string | null>(null)
   const [selectedSiteName, setSelectedSiteName] = useState<string | null>(null)
   const [npcCurrent, setNpcCurrent] = useState<NPCSite | null>(null)
@@ -104,19 +119,59 @@ export default function SiteInfoPage() {
   const getAttachmentsForSite = (siteName: string): AttachmentCategories => {
     const baseAttachments = {
       drawings: [
-        { name: 'P3동_기본설계도.dwg', date: '2024.03.10', size: '2.5MB', url: '/files/p3_basic_design.dwg' },
-        { name: '평면도_수정본.pdf', date: '2024.03.12', size: '1.8MB', url: '/files/floor_plan_revised.pdf' },
-        { name: '전기설비도.dwg', date: '2024.03.08', size: '3.2MB', url: '/files/electrical_plan.dwg' }
+        {
+          name: 'P3동_기본설계도.dwg',
+          date: '2024.03.10',
+          size: '2.5MB',
+          url: '/files/p3_basic_design.dwg',
+        },
+        {
+          name: '평면도_수정본.pdf',
+          date: '2024.03.12',
+          size: '1.8MB',
+          url: '/files/floor_plan_revised.pdf',
+        },
+        {
+          name: '전기설비도.dwg',
+          date: '2024.03.08',
+          size: '3.2MB',
+          url: '/files/electrical_plan.dwg',
+        },
       ],
       ptw: [
-        { name: 'PTW_240315_타일작업.pdf', date: '2024.03.15', size: '856KB', url: '/files/ptw_tile_work.pdf' },
-        { name: 'PTW_240312_도장작업.pdf', date: '2024.03.12', size: '742KB', url: '/files/ptw_painting.pdf' }
+        {
+          name: 'PTW_240315_타일작업.pdf',
+          date: '2024.03.15',
+          size: '856KB',
+          url: '/files/ptw_tile_work.pdf',
+        },
+        {
+          name: 'PTW_240312_도장작업.pdf',
+          date: '2024.03.12',
+          size: '742KB',
+          url: '/files/ptw_painting.pdf',
+        },
       ],
       photos: [
-        { name: '현장전경_240315.jpg', date: '2024.03.15', size: '4.2MB', url: '/files/site_overview.jpg' },
-        { name: '작업진행_240314.jpg', date: '2024.03.14', size: '3.8MB', url: '/files/work_progress.jpg' },
-        { name: '완료구역_240313.jpg', date: '2024.03.13', size: '5.1MB', url: '/files/completed_area.jpg' }
-      ]
+        {
+          name: '현장전경_240315.jpg',
+          date: '2024.03.15',
+          size: '4.2MB',
+          url: '/files/site_overview.jpg',
+        },
+        {
+          name: '작업진행_240314.jpg',
+          date: '2024.03.14',
+          size: '3.8MB',
+          url: '/files/work_progress.jpg',
+        },
+        {
+          name: '완료구역_240313.jpg',
+          date: '2024.03.13',
+          size: '5.1MB',
+          url: '/files/completed_area.jpg',
+        },
+      ],
     }
     return baseAttachments
   }
@@ -124,16 +179,16 @@ export default function SiteInfoPage() {
   // File preview and download handlers
   const handleFilePreview = (file: AttachmentFile) => {
     if (!file.url) return
-    
+
     const fileExtension = file.name.split('.').pop()?.toLowerCase()
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(fileExtension || '')
     const isPDF = fileExtension === 'pdf'
-    
+
     if (isImage || isPDF) {
       setPreviewContent({
         url: file.url,
         type: isImage ? 'image' : 'pdf',
-        name: file.name
+        name: file.name,
       })
       setShowFullscreenPreview(true)
     } else {
@@ -180,16 +235,34 @@ export default function SiteInfoPage() {
       managerPhone: '010-1234-5678',
       safetyPhone: '010-8765-4321',
       drawings: [
-        { name: '현장배치도.pdf', type: 'pdf', size: '2.5MB', date: '2025-01-15', category: 'drawing' },
-        { name: '구조도면.dwg', type: 'dwg', size: '5.2MB', date: '2025-01-14', category: 'drawing' }
+        {
+          name: '현장배치도.pdf',
+          type: 'pdf',
+          size: '2.5MB',
+          date: '2025-01-15',
+          category: 'drawing',
+        },
+        {
+          name: '구조도면.dwg',
+          type: 'dwg',
+          size: '5.2MB',
+          date: '2025-01-14',
+          category: 'drawing',
+        },
       ],
       ptw: [
         { name: 'PTW-001.pdf', type: 'pdf', size: '1.2MB', date: '2025-01-15', category: 'ptw' },
-        { name: 'PTW-002.pdf', type: 'pdf', size: '980KB', date: '2025-01-14', category: 'ptw' }
+        { name: 'PTW-002.pdf', type: 'pdf', size: '980KB', date: '2025-01-14', category: 'ptw' },
       ],
       photos: [
-        { name: '현장사진_전경.jpg', type: 'jpg', size: '850KB', date: '2025-01-15', category: 'other' },
-        { name: '작업현황.jpg', type: 'jpg', size: '1.1MB', date: '2025-01-15', category: 'other' }
+        {
+          name: '현장사진_전경.jpg',
+          type: 'jpg',
+          size: '850KB',
+          date: '2025-01-15',
+          category: 'other',
+        },
+        { name: '작업현황.jpg', type: 'jpg', size: '1.1MB', date: '2025-01-15', category: 'other' },
       ],
       lastUpdated: '2025-01-15',
     },
@@ -206,11 +279,23 @@ export default function SiteInfoPage() {
       managerPhone: '010-2345-6789',
       safetyPhone: '010-9876-5432',
       drawings: [
-        { name: 'LG공장_배치도.pdf', type: 'pdf', size: '3.2MB', date: '2025-01-14', category: 'drawing' }
+        {
+          name: 'LG공장_배치도.pdf',
+          type: 'pdf',
+          size: '3.2MB',
+          date: '2025-01-14',
+          category: 'drawing',
+        },
       ],
       ptw: [],
       photos: [
-        { name: '파주공장_현장사진.jpg', type: 'jpg', size: '1.2MB', date: '2025-01-14', category: 'other' }
+        {
+          name: '파주공장_현장사진.jpg',
+          type: 'jpg',
+          size: '1.2MB',
+          date: '2025-01-14',
+          category: 'other',
+        },
       ],
       lastUpdated: '2025-01-14',
     },
@@ -316,7 +401,7 @@ export default function SiteInfoPage() {
     const storedSiteName = localStorage.getItem('state_site')
     const storedDate = localStorage.getItem('state_date')
     const storedWorkLogData = localStorage.getItem('workLogData')
-    
+
     if (storedSiteName) {
       const site = sampleSites.find(s => s.name === storedSiteName)
       if (site) {
@@ -342,13 +427,13 @@ export default function SiteInfoPage() {
             console.warn('Failed to parse workLogData from localStorage:', e)
           }
         }
-        
+
         setCurrentSite(updatedSite)
         setSelectedSiteName(storedSiteName)
         updateNpcForSite(storedSiteName)
       }
     }
-    
+
     // Set work date from localStorage or current date
     setWorkDate(storedDate || new Date().toISOString().slice(0, 10))
   }, [])
@@ -380,17 +465,17 @@ export default function SiteInfoPage() {
               console.warn('Failed to parse workLogData during storage sync:', error)
             }
           }
-          
+
           setCurrentSite(updatedSite)
           setSelectedSiteName(e.newValue)
           updateNpcForSite(e.newValue)
         }
       }
-      
+
       if (e.key === 'state_date' && e.newValue) {
         setWorkDate(e.newValue)
       }
-      
+
       // Handle workLogData changes for real-time sync
       if (e.key === 'workLogData' && e.newValue && currentSite) {
         try {
@@ -398,12 +483,16 @@ export default function SiteInfoPage() {
           if (Array.isArray(workLogData)) {
             const siteWorkLog = workLogData.find((log: any) => log.siteName === currentSite.name)
             if (siteWorkLog) {
-              setCurrentSite(prev => prev ? {
-                ...prev,
-                lastUpdated: formatDate(new Date()),
-                photosBefore: siteWorkLog.photosBefore || prev.photosBefore,
-                photosAfter: siteWorkLog.photosAfter || prev.photosAfter,
-              } : prev)
+              setCurrentSite(prev =>
+                prev
+                  ? {
+                      ...prev,
+                      lastUpdated: formatDate(new Date()),
+                      photosBefore: siteWorkLog.photosBefore || prev.photosBefore,
+                      photosAfter: siteWorkLog.photosAfter || prev.photosAfter,
+                    }
+                  : prev
+              )
             }
           }
         } catch (error) {
@@ -429,49 +518,52 @@ export default function SiteInfoPage() {
   }
 
   // Helper function to sync changes to workLogData
-  const syncToWorkLogData = useCallback((updates: Partial<{ photosBefore: number; photosAfter: number; lastUpdated: string }>) => {
-    if (!currentSite) return
-    
-    try {
-      const storedWorkLogData = localStorage.getItem('workLogData')
-      let workLogData = []
-      
-      if (storedWorkLogData) {
-        workLogData = JSON.parse(storedWorkLogData)
-        if (!Array.isArray(workLogData)) {
-          workLogData = []
+  const syncToWorkLogData = useCallback(
+    (updates: Partial<{ photosBefore: number; photosAfter: number; lastUpdated: string }>) => {
+      if (!currentSite) return
+
+      try {
+        const storedWorkLogData = localStorage.getItem('workLogData')
+        let workLogData = []
+
+        if (storedWorkLogData) {
+          workLogData = JSON.parse(storedWorkLogData)
+          if (!Array.isArray(workLogData)) {
+            workLogData = []
+          }
         }
+
+        const existingIndex = workLogData.findIndex((log: any) => log.siteName === currentSite.name)
+        const updatedEntry = {
+          siteName: currentSite.name,
+          workDate: workDate,
+          photosBefore: updates.photosBefore ?? currentSite.photosBefore ?? 0,
+          photosAfter: updates.photosAfter ?? currentSite.photosAfter ?? 0,
+          lastUpdated: updates.lastUpdated ?? formatDate(new Date()),
+        }
+
+        if (existingIndex >= 0) {
+          workLogData[existingIndex] = { ...workLogData[existingIndex], ...updatedEntry }
+        } else {
+          workLogData.push(updatedEntry)
+        }
+
+        localStorage.setItem('workLogData', JSON.stringify(workLogData))
+
+        // Update current site state with new data
+        setCurrentSite(prev => (prev ? { ...prev, ...updates } : prev))
+      } catch (error) {
+        console.warn('Failed to sync data to workLogData:', error)
       }
-      
-      const existingIndex = workLogData.findIndex((log: any) => log.siteName === currentSite.name)
-      const updatedEntry = {
-        siteName: currentSite.name,
-        workDate: workDate,
-        photosBefore: updates.photosBefore ?? currentSite.photosBefore ?? 0,
-        photosAfter: updates.photosAfter ?? currentSite.photosAfter ?? 0,
-        lastUpdated: updates.lastUpdated ?? formatDate(new Date())
-      }
-      
-      if (existingIndex >= 0) {
-        workLogData[existingIndex] = { ...workLogData[existingIndex], ...updatedEntry }
-      } else {
-        workLogData.push(updatedEntry)
-      }
-      
-      localStorage.setItem('workLogData', JSON.stringify(workLogData))
-      
-      // Update current site state with new data
-      setCurrentSite(prev => prev ? { ...prev, ...updates } : prev)
-    } catch (error) {
-      console.warn('Failed to sync data to workLogData:', error)
-    }
-  }, [currentSite, workDate])
+    },
+    [currentSite, workDate]
+  )
 
   // Event handlers
   const toggleDetailSection = () => {
     setShowDetailSection(!showDetailSection)
   }
-  
+
   const handleSiteSelect = (site: SiteInfo) => {
     setCurrentSite(site)
     setSelectedSiteName(site.name)
@@ -483,7 +575,7 @@ export default function SiteInfoPage() {
     localStorage.setItem('orgName', site.name)
     localStorage.setItem('address', site.address)
     localStorage.setItem('lodging', site.lodging)
-    
+
     // Update workLogData to reflect current site selection
     try {
       const storedWorkLogData = localStorage.getItem('workLogData')
@@ -497,15 +589,15 @@ export default function SiteInfoPage() {
             workDate: localStorage.getItem('state_date') || new Date().toISOString().slice(0, 10),
             photosBefore: site.photosBefore || 0,
             photosAfter: site.photosAfter || 0,
-            lastUpdated: formatDate(new Date())
+            lastUpdated: formatDate(new Date()),
           }
-          
+
           if (existingIndex >= 0) {
             workLogData[existingIndex] = { ...workLogData[existingIndex], ...siteEntry }
           } else {
             workLogData.push(siteEntry)
           }
-          
+
           localStorage.setItem('workLogData', JSON.stringify(workLogData))
         }
       }
@@ -579,6 +671,11 @@ export default function SiteInfoPage() {
     console.log('파일 다운로드:', fileName)
   }
 
+  const handleFullscreenPreview = (file: AttachmentFile) => {
+    setFullscreenFile(file)
+    setShowFullscreen(true)
+  }
+
   // NPC event handlers - Enhanced to match HTML requirements
   const handleNpcRecord = () => {
     if (!selectedSiteName) {
@@ -591,7 +688,7 @@ export default function SiteInfoPage() {
       date: formatDate(new Date()),
       type: 'in',
       qty: 1,
-      memo: ''
+      memo: '',
     })
     npcRecordDialogRef.current?.showModal()
   }
@@ -612,7 +709,7 @@ export default function SiteInfoPage() {
     setNpcRequestData({
       site: selectedSiteName,
       qty: 1,
-      memo: ''
+      memo: '',
     })
     npcRequestDialogRef.current?.showModal()
   }
@@ -620,7 +717,6 @@ export default function SiteInfoPage() {
   const handleNpcNewTag = () => {
     setShowNpcAddMenu(true)
   }
-
 
   const handleSaveNpcRecord = (e?: React.FormEvent) => {
     if (e) {
@@ -688,7 +784,7 @@ export default function SiteInfoPage() {
       setCurrentSite(firstSite)
       setSelectedSiteName(firstSite.name)
       updateNpcForSite(firstSite.name)
-      
+
       // Store in localStorage
       localStorage.setItem('state_site', firstSite.name)
       localStorage.setItem('inopnc_author', firstSite.manager)
@@ -855,7 +951,7 @@ export default function SiteInfoPage() {
           margin: 0;
           line-height: 1.4;
         }
-        
+
         /* HTML requirements: Font size classes (matching .q class) */
         .q {
           font-family: 'Noto Sans KR', system-ui, sans-serif;
@@ -1211,7 +1307,7 @@ export default function SiteInfoPage() {
           background: var(--accent);
           border: 1px solid #3b82f6;
         }
-        
+
         .info-actions {
           display: flex;
           gap: 4px;
@@ -1971,15 +2067,17 @@ export default function SiteInfoPage() {
       {/* Single Site Info Card - Matches HTML Requirements */}
       {currentSite && (
         <div className="site-info-card">
-          {/* Card Header: 현장명 + 아이콘 + 작업일자 */}
+          {/* Card Header: 현장명 + 아이콘 + 작업일자 - Matches HTML */}
           <div className="card-header">
             <div className="site-icon">{currentSite.name.charAt(0)}</div>
             <h2 className="site-name q">{currentSite.name}</h2>
             <div className="header-actions">
               <div className="work-date">{workDate}</div>
-              <button className="btn-attachment" onClick={() => setShowAttachmentPopup(true)}>
-                <Paperclip size={16} />
-                첨부파일
+              <button
+                className={`btn-detail ${showDetailSection ? 'active' : ''}`}
+                onClick={() => setShowDetailSection(!showDetailSection)}
+              >
+                {showDetailSection ? '간단' : '상세'}
               </button>
             </div>
           </div>
@@ -1989,15 +2087,16 @@ export default function SiteInfoPage() {
             <div className="info-row">
               <span className="info-label">소속</span>
               <span className="info-value">{currentSite.org || '인옵앤씨'}</span>
-              <div className="info-actions">
-                {/* Empty for now */}
-              </div>
+              <div className="info-actions">{/* Empty for now */}</div>
             </div>
             <div className="info-row">
               <span className="info-label">관리자</span>
               <span className="info-value">{currentSite.manager}</span>
               <div className="info-actions">
-                <button className="action-btn" onClick={() => handlePhoneCall(currentSite.managerPhone || currentSite.phone1)}>
+                <button
+                  className="action-btn"
+                  onClick={() => handlePhoneCall(currentSite.managerPhone || currentSite.phone1)}
+                >
                   통화
                 </button>
               </div>
@@ -2006,7 +2105,14 @@ export default function SiteInfoPage() {
               <span className="info-label">안전담당자</span>
               <span className="info-value">{currentSite.safety || currentSite.manager}</span>
               <div className="info-actions">
-                <button className="action-btn" onClick={() => handlePhoneCall(currentSite.safetyPhone || currentSite.phone2 || currentSite.phone1)}>
+                <button
+                  className="action-btn"
+                  onClick={() =>
+                    handlePhoneCall(
+                      currentSite.safetyPhone || currentSite.phone2 || currentSite.phone1
+                    )
+                  }
+                >
                   통화
                 </button>
               </div>
@@ -2060,11 +2166,25 @@ export default function SiteInfoPage() {
                 </button>
               </div>
             </div>
+
+            {/* Attachment Info Row - Matches HTML Requirements */}
+            <div className="info-row">
+              <span className="info-label">첫부파일</span>
+              <span className="info-value">3개 카테고리</span>
+              <div className="info-actions">
+                <button className="action-btn" onClick={() => setShowAttachmentPopup(true)}>
+                  보기
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Toggle Button - Matches HTML Requirements */}
           <div className="toggle-section">
-            <button className="btn-detail" onClick={toggleDetailSection}>
+            <button
+              className={`btn-detail ${showDetailSection ? 'active' : ''}`}
+              onClick={() => setShowDetailSection(!showDetailSection)}
+            >
               {showDetailSection ? '간단' : '상세'}
             </button>
           </div>
@@ -2138,8 +2258,8 @@ export default function SiteInfoPage() {
         </div>
       )}
 
-      {/* NPC-1000 Material Management - Enhanced to match HTML */}
-      <div className="npc-section">
+      {/* NPC-1000 Material Management - Matches HTML Requirements */}
+      <div className="npc-card">
         <div className="npc-header">
           <div className="npc-title-group">
             <h3 className="npc-title">
@@ -2155,7 +2275,7 @@ export default function SiteInfoPage() {
         </div>
 
         {/* KPI Grid - Matching HTML structure */}
-        <div className="npc-kpi-grid">
+        <div className="npc-kpi">
           <div className="npc-kpi-item">
             <p className="npc-kpi-label">입고</p>
             <p className="npc-kpi-value">{npcKPI.inQty}</p>
@@ -2182,42 +2302,40 @@ export default function SiteInfoPage() {
           </button>
         </div>
         {/* Removed old add button - now in header */}
-            {showNpcAddMenu && (
-              <div className="npc-add-menu">
-                <div
-                  className="npc-add-menu-option"
-                  onClick={() => {
-                    setShowNpcAddMenu(false)
-                    setNpcFormData({
-                      site: '',
-                      date: formatDate(new Date()),
-                      type: 'in',
-                      qty: 1,
-                      memo: '',
-                    })
-                    setShowNpcRecordModal(true)
-                  }}
-                >
-                  입고 기록
-                </div>
-                <div
-                  className="npc-add-menu-option"
-                  onClick={() => {
-                    setShowNpcAddMenu(false)
-                    setNpcRequestData({
-                      site: '',
-                      qty: 1,
-                      memo: '',
-                    })
-                    setShowNpcRequestModal(true)
-                  }}
-                >
-                  자재 요청
-                </div>
-              </div>
-            )}
+        {showNpcAddMenu && (
+          <div className="npc-add-menu">
+            <div
+              className="npc-add-menu-option"
+              onClick={() => {
+                setShowNpcAddMenu(false)
+                setNpcFormData({
+                  site: '',
+                  date: formatDate(new Date()),
+                  type: 'in',
+                  qty: 1,
+                  memo: '',
+                })
+                setShowNpcRecordModal(true)
+              }}
+            >
+              입고 기록
+            </div>
+            <div
+              className="npc-add-menu-option"
+              onClick={() => {
+                setShowNpcAddMenu(false)
+                setNpcRequestData({
+                  site: '',
+                  qty: 1,
+                  memo: '',
+                })
+                setShowNpcRequestModal(true)
+              }}
+            >
+              자재 요청
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Attachment Popup - Matches HTML Requirements */}
@@ -2230,7 +2348,7 @@ export default function SiteInfoPage() {
                 <X size={20} />
               </button>
             </div>
-            
+
             {/* 현장 공도면 */}
             <div className="attachment-category">
               <h4 className="attachment-category-title">현장 공도면</h4>
@@ -2246,18 +2364,34 @@ export default function SiteInfoPage() {
                         </div>
                       </div>
                       <div className="attachment-actions">
-                        <button 
-                          className="action-btn" 
+                        <button
+                          className="action-btn"
                           onClick={() => handleDownloadFile(file.name)}
                         >
                           <Download size={14} />
                           다운로드
                         </button>
-                        <button 
-                          className="action-btn secondary" 
+                        <button
+                          className="action-btn secondary"
                           onClick={() => handleFilePreview(file)}
                         >
                           미리보기
+                        </button>
+                        <button
+                          className="action-btn fullscreen"
+                          onClick={() => handleFullscreenPreview(file)}
+                          title="전체화면으로 보기"
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -2283,18 +2417,34 @@ export default function SiteInfoPage() {
                         </div>
                       </div>
                       <div className="attachment-actions">
-                        <button 
-                          className="action-btn" 
+                        <button
+                          className="action-btn"
                           onClick={() => handleDownloadFile(file.name)}
                         >
                           <Download size={14} />
                           다운로드
                         </button>
-                        <button 
-                          className="action-btn secondary" 
+                        <button
+                          className="action-btn secondary"
                           onClick={() => handleFilePreview(file)}
                         >
                           미리보기
+                        </button>
+                        <button
+                          className="action-btn fullscreen"
+                          onClick={() => handleFullscreenPreview(file)}
+                          title="전체화면으로 보기"
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -2320,18 +2470,34 @@ export default function SiteInfoPage() {
                         </div>
                       </div>
                       <div className="attachment-actions">
-                        <button 
-                          className="action-btn" 
+                        <button
+                          className="action-btn"
                           onClick={() => handleDownloadFile(file.name)}
                         >
                           <Download size={14} />
                           다운로드
                         </button>
-                        <button 
-                          className="action-btn secondary" 
+                        <button
+                          className="action-btn secondary"
                           onClick={() => handleFilePreview(file)}
                         >
                           미리보기
+                        </button>
+                        <button
+                          className="action-btn fullscreen"
+                          onClick={() => handleFullscreenPreview(file)}
+                          title="전체화면으로 보기"
+                        >
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                          >
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+                          </svg>
                         </button>
                       </div>
                     </div>
@@ -2381,6 +2547,73 @@ export default function SiteInfoPage() {
         </div>
       )}
 
+      {/* Fullscreen File Modal */}
+      {showFullscreen && fullscreenFile && (
+        <div className="fullscreen-modal-overlay" onClick={() => setShowFullscreen(false)}>
+          <div className="fullscreen-modal-content" onClick={e => e.stopPropagation()}>
+            <button
+              className="fullscreen-close-btn"
+              onClick={() => setShowFullscreen(false)}
+              title="닫기"
+            >
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+
+            <div className="fullscreen-file-container">
+              {fullscreenFile.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                <img
+                  src={fullscreenFile.url || `/api/placeholder/800/600`}
+                  alt={fullscreenFile.name}
+                  className="fullscreen-image"
+                />
+              ) : fullscreenFile.name.toLowerCase().endsWith('.pdf') ? (
+                <div className="fullscreen-pdf">
+                  <iframe
+                    src={fullscreenFile.url || '#'}
+                    title={fullscreenFile.name}
+                    className="fullscreen-pdf-viewer"
+                  />
+                </div>
+              ) : (
+                <div className="fullscreen-document">
+                  <div className="document-icon">📄</div>
+                  <h3>{fullscreenFile.name}</h3>
+                  <p>업로드: {fullscreenFile.date}</p>
+                  <button
+                    className="download-btn"
+                    onClick={() => {
+                      const link = document.createElement('a')
+                      link.href = fullscreenFile.url || '#'
+                      link.download = fullscreenFile.name
+                      document.body.appendChild(link)
+                      link.click()
+                      document.body.removeChild(link)
+                    }}
+                  >
+                    다운로드
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="fullscreen-info">
+              <h4>{fullscreenFile.name}</h4>
+              <p>업로드: {fullscreenFile.date}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* NPC Log Dialog - HTML dialog element */}
       <dialog ref={npcLogDialogRef} className="npc-dialog">
         <div className="npc-dialog-content">
@@ -2402,29 +2635,32 @@ export default function SiteInfoPage() {
                 </tr>
               </thead>
               <tbody>
-                {npcCurrent && npcCurrent.logs
-                  .filter(log => log.date === formatDate(new Date()))
-                  .map((log, index) => (
-                    <tr key={index}>
-                      <td>{npcCurrent.name}</td>
-                      <td>{log.date}</td>
-                      <td>
-                        <span
-                          className={`npc-chip ${log.type === 'in' ? 'text-tag2' : 'text-red-500'}`}
+                {npcCurrent &&
+                  npcCurrent.logs
+                    .filter(log => log.date === formatDate(new Date()))
+                    .map((log, index) => (
+                      <tr key={index}>
+                        <td>{npcCurrent.name}</td>
+                        <td>{log.date}</td>
+                        <td>
+                          <span
+                            className={`npc-chip ${log.type === 'in' ? 'text-tag2' : 'text-red-500'}`}
+                          >
+                            {log.type === 'in' ? '입고' : '사용'}
+                          </span>
+                        </td>
+                        <td
+                          className={`text-right font-bold ${log.type === 'in' ? 'text-tag2' : 'text-red-500'}`}
                         >
-                          {log.type === 'in' ? '입고' : '사용'}
-                        </span>
-                      </td>
-                      <td
-                        className={`text-right font-bold ${log.type === 'in' ? 'text-tag2' : 'text-red-500'}`}
-                      >
-                        {log.type === 'in' ? '+' : '−'}
-                        {formatNumber(log.qty)}
-                      </td>
-                      <td>{log.memo}</td>
-                    </tr>
-                  ))}
-                {(!npcCurrent || npcCurrent.logs.filter(log => log.date === formatDate(new Date())).length === 0) && (
+                          {log.type === 'in' ? '+' : '−'}
+                          {formatNumber(log.qty)}
+                        </td>
+                        <td>{log.memo}</td>
+                      </tr>
+                    ))}
+                {(!npcCurrent ||
+                  npcCurrent.logs.filter(log => log.date === formatDate(new Date())).length ===
+                    0) && (
                   <tr>
                     <td colSpan={5} className="py-6 text-center" style={{ color: 'var(--muted)' }}>
                       기록 없음
@@ -2442,9 +2678,9 @@ export default function SiteInfoPage() {
         <form className="npc-dialog-content" onSubmit={handleSaveNpcRecord}>
           <div className="npc-dialog-header">
             <h3 className="npc-dialog-title">NPC-1000 기록 입력</h3>
-            <button 
-              type="button" 
-              className="npc-dialog-close" 
+            <button
+              type="button"
+              className="npc-dialog-close"
               onClick={() => npcRecordDialogRef.current?.close()}
             >
               <X size={20} />
@@ -2513,9 +2749,9 @@ export default function SiteInfoPage() {
             </div>
           </div>
           <div className="npc-dialog-actions">
-            <button 
-              type="button" 
-              className="npc-btn npc-btn-secondary" 
+            <button
+              type="button"
+              className="npc-btn npc-btn-secondary"
               onClick={() => npcRecordDialogRef.current?.close()}
             >
               취소
@@ -2532,9 +2768,9 @@ export default function SiteInfoPage() {
         <form className="npc-dialog-content" onSubmit={handleSubmitNpcRequest}>
           <div className="npc-dialog-header">
             <h3 className="npc-dialog-title">NPC-1000 자재 요청</h3>
-            <button 
-              type="button" 
-              className="npc-dialog-close" 
+            <button
+              type="button"
+              className="npc-dialog-close"
               onClick={() => npcRequestDialogRef.current?.close()}
             >
               <X size={20} />
@@ -2583,9 +2819,9 @@ export default function SiteInfoPage() {
             </div>
           </div>
           <div className="npc-dialog-actions">
-            <button 
-              type="button" 
-              className="npc-btn npc-btn-secondary" 
+            <button
+              type="button"
+              className="npc-btn npc-btn-secondary"
               onClick={() => npcRequestDialogRef.current?.close()}
             >
               취소
