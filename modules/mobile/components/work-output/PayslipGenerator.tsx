@@ -27,9 +27,10 @@ interface PayslipGeneratorProps {
     employmentType?: string
     taxRate?: number
   }
+  zoomLevel?: number
 }
 
-export default function PayslipGenerator({ salaryData }: PayslipGeneratorProps) {
+export default function PayslipGenerator({ salaryData, zoomLevel = 100 }: PayslipGeneratorProps) {
   const formatCurrency = (amount: number) => {
     return `₩${amount.toLocaleString('ko-KR')}`
   }
@@ -53,6 +54,7 @@ export default function PayslipGenerator({ salaryData }: PayslipGeneratorProps) 
             width: 100%;
             padding: 20mm;
             background: white;
+            transform: none !important;
           }
           .no-print {
             display: none !important;
@@ -71,8 +73,12 @@ export default function PayslipGenerator({ salaryData }: PayslipGeneratorProps) 
       `}</style>
 
       <div
-        className="bg-white dark:bg-gray-800 rounded-lg print:bg-white"
+        className="bg-white dark:bg-gray-800 rounded-lg print:bg-white transition-transform duration-200 origin-top-left"
         id="payslip-print-content"
+        style={{
+          transform: `scale(${zoomLevel / 100})`,
+          transformOrigin: 'top left',
+        }}
       >
         {/* Header */}
         <div className="border-b border-gray-200 dark:border-gray-700 print:border-gray-200 pb-4 mb-4">

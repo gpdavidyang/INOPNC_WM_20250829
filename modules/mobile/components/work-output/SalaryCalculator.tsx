@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calculator, User, Users, Calendar } from 'lucide-react'
+import { Calculator, User, Users, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 
 interface Worker {
   id: string
@@ -46,6 +46,12 @@ export default function SalaryCalculator({
 }: SalaryCalculatorProps) {
   const [workers, setWorkers] = useState<Worker[]>([])
   const [loading, setLoading] = useState(false)
+  const [collapsedSections, setCollapsedSections] = useState({
+    basePay: false,
+    employmentType: false,
+    period: false,
+    worker: false,
+  })
 
   useEffect(() => {
     fetchWorkers()
@@ -53,21 +59,45 @@ export default function SalaryCalculator({
 
   const fetchWorkers = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/workers')
-      // const data = await response.json()
+      // Get workers from admin/workers/available API
+      const response = await fetch('/api/admin/workers/available')
 
-      // Mock data for now
+      if (response.ok) {
+        const result = await response.json()
+        const workersData = result.data || []
+
+        const transformedWorkers: Worker[] = workersData.map((worker: any) => ({
+          id: worker.id,
+          name: worker.full_name || '이름 없음',
+          position:
+            worker.role === 'worker'
+              ? '작업자'
+              : worker.role === 'site_manager'
+                ? '현장관리자'
+                : '기타',
+        }))
+
+        setWorkers(transformedWorkers)
+      } else {
+        // Fallback to mock data if API fails
+        const mockWorkers: Worker[] = [
+          { id: 'worker1', name: '홍길동', position: '기술자' },
+          { id: 'worker2', name: '김철수', position: '반장' },
+          { id: 'worker3', name: '이영희', position: '작업자' },
+          { id: 'worker4', name: '박민수', position: '기술자' },
+        ]
+        setWorkers(mockWorkers)
+      }
+    } catch (error) {
+      console.error('Failed to fetch workers:', error)
+      // Fallback to mock data on error
       const mockWorkers: Worker[] = [
         { id: 'worker1', name: '홍길동', position: '기술자' },
         { id: 'worker2', name: '김철수', position: '반장' },
         { id: 'worker3', name: '이영희', position: '작업자' },
         { id: 'worker4', name: '박민수', position: '기술자' },
       ]
-
       setWorkers(mockWorkers)
-    } catch (error) {
-      console.error('Failed to fetch workers:', error)
     }
   }
 
@@ -89,175 +119,236 @@ export default function SalaryCalculator({
   const currentYear = new Date().getFullYear()
   const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
 
+  const toggleSection = (section: keyof typeof collapsedSections) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }))
+  }
+
   return (
     <div className="space-y-4">
       {/* Base pay display */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-medium text-gray-900 dark:text-white">기본 일당</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">관리자 설정 기준</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => toggleSection('basePay')}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        >
+          <h3 className="font-medium text-gray-900 dark:text-white">기본 일당</h3>
+          {collapsedSections.basePay ? (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronUp className="w-5 h-5 text-gray-400" />
+          )}
+        </button>
+        {!collapsedSections.basePay && (
+          <div className="px-4 pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">관리자 설정 기준</p>
+              </div>
+              <div className="text-right">
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {basePay.toLocaleString()}원
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">8시간 기준</p>
+              </div>
+            </div>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-gray-900 dark:text-white">
-              {basePay.toLocaleString()}원
-            </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">8시간 기준</p>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Employment type selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <h3 className="font-medium text-gray-900 dark:text-white mb-3">고용 형태</h3>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => onEmploymentTypeChange('freelance')}
-            className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-              employmentType === 'freelance'
-                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            프리랜서
-          </button>
-          <button
-            onClick={() => onEmploymentTypeChange('daily')}
-            className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-              employmentType === 'daily'
-                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            일용직
-          </button>
-          <button
-            onClick={() => onEmploymentTypeChange('regular')}
-            className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
-              employmentType === 'regular'
-                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
-            }`}
-          >
-            정규직
-          </button>
-        </div>
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => toggleSection('employmentType')}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        >
+          <h3 className="font-medium text-gray-900 dark:text-white">고용 형태</h3>
+          {collapsedSections.employmentType ? (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronUp className="w-5 h-5 text-gray-400" />
+          )}
+        </button>
+        {!collapsedSections.employmentType && (
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                onClick={() => onEmploymentTypeChange('freelance')}
+                className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  employmentType === 'freelance'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                프리랜서
+              </button>
+              <button
+                onClick={() => onEmploymentTypeChange('daily')}
+                className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  employmentType === 'daily'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                일용직
+              </button>
+              <button
+                onClick={() => onEmploymentTypeChange('regular')}
+                className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                  employmentType === 'regular'
+                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300'
+                }`}
+              >
+                정규직
+              </button>
+            </div>
 
-        {/* Tax rate display/input based on employment type */}
-        <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {employmentType === 'freelance' && <div>세율: 3.3% (고정)</div>}
-            {employmentType === 'daily' && <div>세율: 6% (고정)</div>}
-            {employmentType === 'regular' && (
-              <div className="space-y-2">
-                <label className="block">세율 직접 입력 (%)</label>
-                <input
-                  type="number"
-                  value={customTaxRate}
-                  onChange={e => onCustomTaxRateChange(e.target.value)}
-                  step="0.01"
-                  min="0"
-                  max="100"
-                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="예: 15.42"
-                />
+            {/* Tax rate display/input based on employment type */}
+            <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {employmentType === 'freelance' && <div>세율: 3.3% (고정)</div>}
+                {employmentType === 'daily' && <div>세율: 6% (고정)</div>}
+                {employmentType === 'regular' && (
+                  <div className="space-y-2">
+                    <label className="block">세율 직접 입력 (%)</label>
+                    <input
+                      type="number"
+                      value={customTaxRate}
+                      onChange={e => onCustomTaxRateChange(e.target.value)}
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="예: 15.42"
+                    />
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Period selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center gap-2 mb-3">
-          <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          <h3 className="font-medium text-gray-900 dark:text-white">급여 계산 기간</h3>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">년도</label>
-            <select
-              value={selectedYear}
-              onChange={e => onYearChange(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {years.map(year => (
-                <option key={year} value={year}>
-                  {year}년
-                </option>
-              ))}
-            </select>
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => toggleSection('period')}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        >
+          <div className="flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            <h3 className="font-medium text-gray-900 dark:text-white">급여 계산 기간</h3>
           </div>
+          {collapsedSections.period ? (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronUp className="w-5 h-5 text-gray-400" />
+          )}
+        </button>
+        {!collapsedSections.period && (
+          <div className="px-4 pb-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">년도</label>
+                <select
+                  value={selectedYear}
+                  onChange={e => onYearChange(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {years.map(year => (
+                    <option key={year} value={year}>
+                      {year}년
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div>
-            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">월</label>
-            <select
-              value={selectedMonth}
-              onChange={e => onMonthChange(Number(e.target.value))}
-              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {months.map((month, index) => (
-                <option key={index} value={index + 1}>
-                  {month}
-                </option>
-              ))}
-            </select>
+              <div>
+                <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">월</label>
+                <select
+                  value={selectedMonth}
+                  onChange={e => onMonthChange(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {months.map((month, index) => (
+                    <option key={index} value={index + 1}>
+                      {month}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Worker selection */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-        <h3 className="font-medium text-gray-900 dark:text-white mb-3">대상 선택</h3>
-
-        <div className="space-y-3">
-          <div className="flex gap-3">
-            <button
-              onClick={() => onWorkerTypeChange('individual')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
-                workerType === 'individual'
-                  ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-              }`}
-            >
-              <User className="w-4 h-4" />
-              <span className="font-medium">개인</span>
-            </button>
-
-            <button
-              onClick={() => onWorkerTypeChange('all')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
-                workerType === 'all'
-                  ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
-                  : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span className="font-medium">전체</span>
-            </button>
-          </div>
-
-          {workerType === 'individual' && (
-            <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
-                작업자 선택
-              </label>
-              <select
-                value={selectedWorker}
-                onChange={e => onWorkerChange(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">작업자를 선택하세요</option>
-                {workers.map(worker => (
-                  <option key={worker.id} value={worker.id}>
-                    {worker.name} ({worker.position})
-                  </option>
-                ))}
-              </select>
-            </div>
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <button
+          onClick={() => toggleSection('worker')}
+          className="w-full p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        >
+          <h3 className="font-medium text-gray-900 dark:text-white">대상 선택</h3>
+          {collapsedSections.worker ? (
+            <ChevronDown className="w-5 h-5 text-gray-400" />
+          ) : (
+            <ChevronUp className="w-5 h-5 text-gray-400" />
           )}
-        </div>
+        </button>
+        {!collapsedSections.worker && (
+          <div className="px-4 pb-4">
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => onWorkerTypeChange('individual')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
+                    workerType === 'individual'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <User className="w-4 h-4" />
+                  <span className="font-medium">개인</span>
+                </button>
+
+                <button
+                  onClick={() => onWorkerTypeChange('all')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border transition-colors ${
+                    workerType === 'all'
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="font-medium">전체</span>
+                </button>
+              </div>
+
+              {workerType === 'individual' && (
+                <div>
+                  <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">
+                    작업자 선택
+                  </label>
+                  <select
+                    value={selectedWorker}
+                    onChange={e => onWorkerChange(e.target.value)}
+                    className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">작업자를 선택하세요</option>
+                    {workers.map(worker => (
+                      <option key={worker.id} value={worker.id}>
+                        {worker.name} ({worker.position})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Calculate button */}

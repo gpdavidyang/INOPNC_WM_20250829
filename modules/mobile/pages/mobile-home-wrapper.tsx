@@ -36,8 +36,8 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
 
     // Enhanced session validation with timeout and fallback
     const validateSession = async (attempt = 1) => {
-      const maxAttempts = 3
-      const timeoutMs = 8000 // Increased to 8 seconds for better reliability
+      const maxAttempts = 5 // Increased attempts for production
+      const timeoutMs = 15000 // Increased to 15 seconds for production environment
 
       try {
         if (!mounted) return
@@ -162,10 +162,10 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
         console.error(`[AUTH] Session validation error (attempt ${attempt}):`, error)
 
         if (attempt < maxAttempts && mounted) {
-          // Exponential backoff with jitter to prevent thundering herd
-          const baseDelay = Math.pow(2, attempt - 1) * 1000
-          const jitter = Math.random() * 500 // Add up to 500ms of jitter
-          const delay = Math.min(baseDelay + jitter, 10000)
+          // Exponential backoff with jitter to prevent thundering herd - increased for production
+          const baseDelay = Math.pow(2, attempt - 1) * 2000 // Start with 2s instead of 1s
+          const jitter = Math.random() * 1000 // Add up to 1000ms of jitter
+          const delay = Math.min(baseDelay + jitter, 20000) // Allow up to 20s max delay
 
           console.log(`[AUTH] Retrying session validation in ${Math.round(delay)}ms...`)
 

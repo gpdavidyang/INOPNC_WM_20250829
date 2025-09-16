@@ -66,8 +66,8 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
     // Enhanced profile fetch with timeout and better error handling
     const fetchProfile = async (attempt = 1) => {
-      const maxAttempts = 3
-      const timeoutMs = 8000 // 8 second timeout
+      const maxAttempts = 5 // Increased attempts for production
+      const timeoutMs = 15000 // Increased timeout for production environment
 
       try {
         if (!mounted) return
@@ -100,7 +100,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
           if (attempt < maxAttempts) {
             // Retry after delay
-            const delay = Math.min(1000 * attempt, 3000)
+            const delay = Math.min(2000 * attempt, 8000)
             fetchTimeout = setTimeout(() => fetchProfile(attempt + 1), delay)
             return
           } else {
@@ -134,7 +134,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
           if (attempt < maxAttempts) {
             // Retry after delay
-            const delay = Math.min(1000 * attempt, 3000)
+            const delay = Math.min(2000 * attempt, 8000)
             fetchTimeout = setTimeout(() => fetchProfile(attempt + 1), delay)
           } else {
             // Fallback to basic user info after all attempts failed
