@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo, useCallback } from 'react'
 import { WorkLog } from '../../types/work-log.types'
 import {
   formatDate,
@@ -21,7 +21,7 @@ interface WorkLogDetailModalProps {
 export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
   ({ isOpen, onClose, workLog, onEdit, onPrint, onApprove }) => {
     // React hooks must be called before any early returns
-    const handlePrint = React.useCallback(() => {
+    const handlePrint = useCallback(() => {
       if (onPrint) {
         onPrint()
       } else {
@@ -29,7 +29,7 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
       }
     }, [onPrint])
 
-    const handleShare = React.useCallback(async () => {
+    const handleShare = useCallback(async () => {
       if (navigator.share && workLog) {
         try {
           await navigator.share({
@@ -44,7 +44,7 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
     }, [workLog])
 
     // 첨부파일 존재 여부 메모이제이션
-    const hasAttachments = React.useMemo(() => {
+    const hasAttachments = useMemo(() => {
       if (!workLog) return false
       return (
         workLog.attachments.photos.length > 0 ||
@@ -182,7 +182,9 @@ export const WorkLogDetailModal: React.FC<WorkLogDetailModalProps> = React.memo(
                   ))}
                   <div className="pt-2 flex items-center justify-between">
                     <span className="font-semibold">총 작업시간</span>
-                    <span className="font-semibold text-[var(--num)]">{workLog.totalHours}시간</span>
+                    <span className="font-semibold text-[var(--num)]">
+                      {workLog.totalHours}시간
+                    </span>
                   </div>
                 </div>
               </div>

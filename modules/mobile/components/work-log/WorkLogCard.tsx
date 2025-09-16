@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { WorkLog } from '../../types/work-log.types'
 import {
   formatDate,
@@ -24,7 +24,7 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
     const [isExpanded, setIsExpanded] = useState(false)
 
     // 첨부파일 존재 여부 메모이제이션
-    const hasAttachments = React.useMemo(
+    const hasAttachments = useMemo(
       () =>
         workLog.attachments.photos.length > 0 ||
         workLog.attachments.drawings.length > 0 ||
@@ -33,30 +33,30 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
     )
 
     // 이벤트 핸들러 메모이제이션
-    const handleEdit = React.useCallback(() => {
+    const handleEdit = useCallback(() => {
       onEdit?.()
     }, [onEdit])
 
-    const handleSubmit = React.useCallback(() => {
+    const handleSubmit = useCallback(() => {
       onSubmit?.()
     }, [onSubmit])
 
-    const handleView = React.useCallback(() => {
+    const handleView = useCallback(() => {
       onView?.()
     }, [onView])
 
-    const handlePrint = React.useCallback(() => {
+    const handlePrint = useCallback(() => {
       onPrint?.()
     }, [onPrint])
 
-    const handleCardClick = React.useCallback((e: React.MouseEvent) => {
+    const handleCardClick = useCallback((e: React.MouseEvent) => {
       // 버튼 클릭이 아닌 경우에만 확장/축소
       if (!(e.target as HTMLElement).closest('button')) {
         setIsExpanded(prev => !prev)
       }
     }, [])
 
-    const toggleExpanded = React.useCallback((e: React.MouseEvent) => {
+    const toggleExpanded = useCallback((e: React.MouseEvent) => {
       e.stopPropagation()
       setIsExpanded(prev => !prev)
     }, [])
