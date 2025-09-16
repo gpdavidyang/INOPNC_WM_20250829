@@ -505,6 +505,170 @@ export default function SiteInfoPage() {
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [currentSite])
 
+  // Inject ripple animation CSS keyframes (Phase 7: 리플 애니메이션 및 인터랙션 효과)
+  useEffect(() => {
+    const rippleStyleId = 'site-info-ripple-styles'
+
+    // Check if styles already exist
+    if (!document.getElementById(rippleStyleId)) {
+      const rippleStyle = document.createElement('style')
+      rippleStyle.id = rippleStyleId
+      rippleStyle.textContent = `
+        .ripple-ink {
+          position: absolute;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.35);
+          transform: scale(0);
+          animation: ripple 0.45s ease-out;
+          pointer-events: none;
+        }
+        
+        @keyframes ripple {
+          to {
+            transform: scale(1);
+            opacity: 0;
+          }
+        }
+      `
+      document.head.appendChild(rippleStyle)
+    }
+
+    return () => {
+      const existingStyle = document.getElementById(rippleStyleId)
+      if (existingStyle) {
+        existingStyle.remove()
+      }
+    }
+  }, [])
+
+  // CacheGuard v1 — stale 화면 방지 (Phase 8: 캐시 관리 및 최종 통합 테스트)
+  useEffect(() => {
+    const CFG = {
+      VERSION_URL: '/version.json', // 빌드 버전 endpoint
+      VERSION_KEY: 'app_version', // 로컬 저장 키
+      STALE_WARN_MS: 10 * 60 * 1000, // 10분 이상 비활성 → 경고 토스트
+      PATCH_LINKS: true, // CSS/JS/IMG에 ?v=버전 자동 부착
+    }
+
+    const LS = localStorage
+
+    // 0) 뒤로가기 bfcache 복귀 → 강제 최신화
+    const handlePageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) window.location.reload()
+    }
+
+    // 1) 서비스워커가 있으면 즉시 업데이트/적용
+    const handleServiceWorker = () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          regs.forEach(reg => {
+            reg.update().catch(() => {})
+            if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+          })
+        })
+        navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload())
+      }
+    }
+
+    // 2) 버전 체크 → 바뀌면 전체 리로드
+    const fetchVersion = async () => {
+      try {
+        const r = await fetch(CFG.VERSION_URL + '?t=' + Date.now(), { cache: 'no-store' })
+        if (!r.ok) return null
+        const j = await r.json()
+        return String(j.version || '')
+      } catch (e) {
+        return null
+      }
+    }
+
+    const patchStaticLinks = (ver: string) => {
+      if (!CFG.PATCH_LINKS || !ver) return
+      const sel = 'link[rel=stylesheet][href],script[src],img[src]'
+      document.querySelectorAll(sel).forEach(el => {
+        const element = el as HTMLElement
+        const attr = element.tagName === 'LINK' ? 'href' : 'src'
+        const currentUrl = element.getAttribute(attr)
+        if (currentUrl) {
+          const url = new URL(currentUrl, window.location.origin)
+          // 이미 버전 파라미터 있으면 교체
+          url.searchParams.set('v', ver)
+          element.setAttribute(attr, url.pathname + '?' + url.searchParams.toString())
+        }
+      })
+    }
+
+    // 3) 간단 토스트
+    const toast = (msg: string) => {
+      let el = document.getElementById('cg-toast')
+      if (!el) {
+        el = document.createElement('div')
+        el.id = 'cg-toast'
+        el.style.cssText =
+          'position:fixed;left:50%;bottom:72px;transform:translateX(-50%);background:#1A254F;color:#fff;padding:10px 14px;border-radius:10px;font:600 13px/1 system-ui;z-index:9999;box-shadow:0 6px 24px rgba(0,0,0,.2);opacity:0;transition:opacity .2s'
+        document.body.appendChild(el)
+      }
+      el.textContent = msg
+      el.style.opacity = '1'
+      setTimeout(() => (el!.style.opacity = '0'), 1800)
+    }
+
+    // 가시성 복귀 시 데이터만 재조회
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const last = Number(LS.getItem('last_active_ts') || 0)
+        const now = Date.now()
+        if (last && now - last > CFG.STALE_WARN_MS) {
+          toast('최신 내용으로 갱신했어요.')
+          // Refresh current site data
+          const storedSiteName = localStorage.getItem('state_site')
+          if (storedSiteName) {
+            const site = sampleSites.find(s => s.name === storedSiteName)
+            if (site) {
+              setCurrentSite(site)
+              updateNpcForSite(storedSiteName)
+            }
+          }
+        }
+        LS.setItem('last_active_ts', String(now))
+      }
+    }
+
+    // Initialize CacheGuard
+    const init = async () => {
+      const newV = await fetchVersion()
+      const oldV = LS.getItem(CFG.VERSION_KEY)
+
+      if (newV && newV !== oldV) {
+        LS.setItem(CFG.VERSION_KEY, newV)
+        patchStaticLinks(newV) // 정적 리소스 캐시 무효화
+        // 첫 로드면 링크만 패치하고, 두번째부터는 완전 새로고침
+        if (oldV) {
+          window.location.reload()
+          return
+        }
+      } else if (newV && !oldV) {
+        LS.setItem(CFG.VERSION_KEY, newV)
+        patchStaticLinks(newV)
+      }
+    }
+
+    // Event listeners
+    window.addEventListener('pageshow', handlePageShow)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Initialize service worker and version check
+    handleServiceWorker()
+    init()
+
+    LS.setItem('last_active_ts', String(Date.now()))
+
+    return () => {
+      window.removeEventListener('pageshow', handlePageShow)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
   // Update NPC data for selected site
   const updateNpcForSite = (siteName: string) => {
     const site = npcSites.find(s => s.name === siteName)
@@ -697,6 +861,43 @@ export default function SiteInfoPage() {
         ripple.remove()
       }
     }, 450)
+  }
+
+  // Accessibility: Keyboard navigation handler
+  const handleKeyNavigation = (event: React.KeyboardEvent, callback: () => void) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      callback()
+    }
+  }
+
+  // Accessibility: Focus management for modals
+  const handleModalKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      // Close topmost modal
+      if (showFullscreen) {
+        setShowFullscreen(false)
+      } else if (showPreview) {
+        setShowPreview(false)
+      } else if (showAttachmentPopup) {
+        setShowAttachmentPopup(false)
+      }
+    }
+  }
+
+  // Accessibility: Screen reader announcements
+  const announceToScreenReader = (message: string) => {
+    const announcement = document.createElement('div')
+    announcement.setAttribute('role', 'status')
+    announcement.setAttribute('aria-live', 'polite')
+    announcement.className = 'sr-only'
+    announcement.textContent = message
+
+    document.body.appendChild(announcement)
+
+    setTimeout(() => {
+      document.body.removeChild(announcement)
+    }, 1000)
   }
 
   // Enhanced T-map navigation handler with improved UX
@@ -2141,6 +2342,78 @@ export default function SiteInfoPage() {
             padding: 16px;
           }
         }
+
+        /* Accessibility: Screen reader only content */
+        .sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
+
+        /* Accessibility: Focus indicators */
+        .action-btn:focus,
+        .btn-attachment:focus,
+        .btn-detail:focus,
+        .npc-btn:focus,
+        .info-value.expandable:focus {
+          outline: 3px solid #3b82f6;
+          outline-offset: 2px;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        /* Accessibility: High contrast mode support */
+        @media (prefers-contrast: high) {
+          .action-btn,
+          .btn-attachment,
+          .btn-detail {
+            border-width: 2px;
+          }
+
+          .site-info-card,
+          .npc-card {
+            border-width: 2px;
+          }
+        }
+
+        /* Accessibility: Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+          .ripple-ink,
+          .action-btn,
+          .btn-attachment,
+          .btn-detail,
+          .site-item {
+            transition: none;
+            animation: none;
+          }
+        }
+
+        /* Accessibility: Focus management for dialogs */
+        .npc-dialog[open] {
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        /* Enhanced keyboard navigation */
+        [role='button'][tabindex='0']:focus {
+          outline: 3px solid #3b82f6;
+          outline-offset: 2px;
+        }
       `}</style>
 
       {/* Header */}
@@ -2159,16 +2432,34 @@ export default function SiteInfoPage() {
 
       {/* Single Site Info Card - Matches HTML Requirements */}
       {currentSite && (
-        <div className="site-info-card">
+        <div
+          className="site-info-card"
+          role="main"
+          aria-labelledby="site-name-heading"
+          onKeyDown={handleModalKeyDown}
+        >
           {/* Card Header: 현장명 + 아이콘 + 작업일자 - Matches HTML */}
           <div className="card-header">
-            <div className="site-icon">{currentSite.name.charAt(0)}</div>
-            <h2 className="site-name q">{currentSite.name}</h2>
+            <div className="site-icon" role="img" aria-label={`현장 아이콘: ${currentSite.name}`}>
+              {currentSite.name.charAt(0)}
+            </div>
+            <h2 id="site-name-heading" className="site-name q">
+              {currentSite.name}
+            </h2>
             <div className="header-actions">
-              <div className="work-date">{workDate}</div>
+              <div className="work-date" aria-label={`작업일자: ${workDate}`}>
+                {workDate}
+              </div>
               <button
                 className={`btn-detail ${showDetailSection ? 'active' : ''}`}
                 onClick={() => setShowDetailSection(!showDetailSection)}
+                onKeyDown={e =>
+                  handleKeyNavigation(e, () => setShowDetailSection(!showDetailSection))
+                }
+                aria-expanded={showDetailSection}
+                aria-controls="detail-section"
+                aria-label={showDetailSection ? '간단 보기로 전환' : '상세 보기로 전환'}
+                tabIndex={0}
               >
                 {showDetailSection ? '간단' : '상세'}
               </button>
@@ -2176,32 +2467,65 @@ export default function SiteInfoPage() {
           </div>
 
           {/* Basic Information Grid */}
-          <div className="site-info-grid">
-            <div className="info-row">
-              <span className="info-label">소속</span>
-              <span className="info-value">{currentSite.org || '인옵앤씨'}</span>
-              <div className="info-actions">{/* Empty for now */}</div>
+          <div className="site-info-grid" role="grid" aria-label="현장 기본 정보">
+            <div className="info-row" role="row">
+              <span className="info-label" role="gridcell" aria-label="항목명">
+                소속
+              </span>
+              <span
+                className="info-value"
+                role="gridcell"
+                aria-label={`소속: ${currentSite.org || '인옵앤씨'}`}
+              >
+                {currentSite.org || '인옵앤씨'}
+              </span>
+              <div className="info-actions" role="gridcell">
+                {/* Empty for now */}
+              </div>
             </div>
-            <div className="info-row">
-              <span className="info-label">관리자</span>
-              <span className="info-value">{currentSite.manager}</span>
-              <div className="info-actions">
+            <div className="info-row" role="row">
+              <span className="info-label" role="gridcell" aria-label="항목명">
+                관리자
+              </span>
+              <span
+                className="info-value"
+                role="gridcell"
+                aria-label={`관리자: ${currentSite.manager}`}
+              >
+                {currentSite.manager}
+              </span>
+              <div className="info-actions" role="gridcell">
                 <button
                   className="action-btn"
                   onClick={e => {
                     addRippleEffect(e)
                     handlePhoneCall(currentSite.managerPhone || currentSite.phone1)
                   }}
+                  onKeyDown={e =>
+                    handleKeyNavigation(e, () =>
+                      handlePhoneCall(currentSite.managerPhone || currentSite.phone1)
+                    )
+                  }
                   data-tel={currentSite.managerPhone || currentSite.phone1}
+                  aria-label={`관리자 ${currentSite.manager}에게 전화걸기`}
+                  tabIndex={0}
                 >
                   통화
                 </button>
               </div>
             </div>
-            <div className="info-row">
-              <span className="info-label">안전담당자</span>
-              <span className="info-value">{currentSite.safety || currentSite.manager}</span>
-              <div className="info-actions">
+            <div className="info-row" role="row">
+              <span className="info-label" role="gridcell" aria-label="항목명">
+                안전담당자
+              </span>
+              <span
+                className="info-value"
+                role="gridcell"
+                aria-label={`안전담당자: ${currentSite.safety || currentSite.manager}`}
+              >
+                {currentSite.safety || currentSite.manager}
+              </span>
+              <div className="info-actions" role="gridcell">
                 <button
                   className="action-btn"
                   onClick={e => {
@@ -2210,21 +2534,41 @@ export default function SiteInfoPage() {
                       currentSite.safetyPhone || currentSite.phone2 || currentSite.phone1
                     )
                   }}
+                  onKeyDown={e =>
+                    handleKeyNavigation(e, () =>
+                      handlePhoneCall(
+                        currentSite.safetyPhone || currentSite.phone2 || currentSite.phone1
+                      )
+                    )
+                  }
                   data-tel={currentSite.safetyPhone || currentSite.phone2 || currentSite.phone1}
+                  aria-label={`안전담당자 ${currentSite.safety || currentSite.manager}에게 전화걸기`}
+                  tabIndex={0}
                 >
                   통화
                 </button>
               </div>
             </div>
-            <div className="info-row">
-              <span className="info-label">주소</span>
+            <div className="info-row" role="row">
+              <span className="info-label" role="gridcell" aria-label="항목명">
+                주소
+              </span>
               <span
                 className={`info-value expandable ${expandedField === 'address' ? 'expanded' : ''}`}
                 onClick={() => setExpandedField(expandedField === 'address' ? null : 'address')}
+                onKeyDown={e =>
+                  handleKeyNavigation(e, () =>
+                    setExpandedField(expandedField === 'address' ? null : 'address')
+                  )
+                }
+                role="button"
+                aria-expanded={expandedField === 'address'}
+                aria-label={`주소: ${currentSite.address}. 클릭하여 ${expandedField === 'address' ? '축소' : '확장'}`}
+                tabIndex={0}
               >
                 {currentSite.address}
               </span>
-              <div className="info-actions">
+              <div className="info-actions" role="gridcell">
                 <button
                   className="action-btn secondary"
                   onClick={e => {
@@ -2232,7 +2576,10 @@ export default function SiteInfoPage() {
                     addRippleEffect(e)
                     handleCopyText(currentSite.address)
                   }}
+                  onKeyDown={e => handleKeyNavigation(e, () => handleCopyText(currentSite.address))}
                   data-copy={currentSite.address}
+                  aria-label="주소 복사하기"
+                  tabIndex={0}
                 >
                   복사
                 </button>
@@ -2243,21 +2590,35 @@ export default function SiteInfoPage() {
                     addRippleEffect(e)
                     handleOpenTmap(currentSite.address)
                   }}
+                  onKeyDown={e => handleKeyNavigation(e, () => handleOpenTmap(currentSite.address))}
                   data-tmap={currentSite.address}
+                  aria-label="T맵에서 주소 열기"
+                  tabIndex={0}
                 >
                   T맵
                 </button>
               </div>
             </div>
-            <div className="info-row">
-              <span className="info-label">숙소</span>
+            <div className="info-row" role="row">
+              <span className="info-label" role="gridcell" aria-label="항목명">
+                숙소
+              </span>
               <span
                 className={`info-value expandable ${expandedField === 'lodging' ? 'expanded' : ''}`}
                 onClick={() => setExpandedField(expandedField === 'lodging' ? null : 'lodging')}
+                onKeyDown={e =>
+                  handleKeyNavigation(e, () =>
+                    setExpandedField(expandedField === 'lodging' ? null : 'lodging')
+                  )
+                }
+                role="button"
+                aria-expanded={expandedField === 'lodging'}
+                aria-label={`숙소: ${currentSite.lodging}. 클릭하여 ${expandedField === 'lodging' ? '축소' : '확장'}`}
+                tabIndex={0}
               >
                 {currentSite.lodging}
               </span>
-              <div className="info-actions">
+              <div className="info-actions" role="gridcell">
                 <button
                   className="action-btn secondary"
                   onClick={e => {
@@ -2265,7 +2626,10 @@ export default function SiteInfoPage() {
                     addRippleEffect(e)
                     handleCopyText(currentSite.lodging)
                   }}
+                  onKeyDown={e => handleKeyNavigation(e, () => handleCopyText(currentSite.lodging))}
                   data-copy={currentSite.lodging}
+                  aria-label="숙소 정보 복사하기"
+                  tabIndex={0}
                 >
                   복사
                 </button>
@@ -2276,7 +2640,10 @@ export default function SiteInfoPage() {
                     addRippleEffect(e)
                     handleOpenTmap(currentSite.lodging)
                   }}
+                  onKeyDown={e => handleKeyNavigation(e, () => handleOpenTmap(currentSite.lodging))}
                   data-tmap={currentSite.lodging}
+                  aria-label="T맵에서 숙소 위치 열기"
+                  tabIndex={0}
                 >
                   T맵
                 </button>
@@ -2284,16 +2651,23 @@ export default function SiteInfoPage() {
             </div>
 
             {/* Attachment Info Row - Matches HTML Requirements */}
-            <div className="info-row">
-              <span className="info-label">첫부파일</span>
-              <span className="info-value">3개 카테고리</span>
-              <div className="info-actions">
+            <div className="info-row" role="row">
+              <span className="info-label" role="gridcell" aria-label="항목명">
+                첨부파일
+              </span>
+              <span className="info-value" role="gridcell" aria-label="첨부파일: 3개 카테고리">
+                3개 카테고리
+              </span>
+              <div className="info-actions" role="gridcell">
                 <button
                   className="action-btn"
                   onClick={e => {
                     addRippleEffect(e)
                     setShowAttachmentPopup(true)
                   }}
+                  onKeyDown={e => handleKeyNavigation(e, () => setShowAttachmentPopup(true))}
+                  aria-label="첨부파일 보기"
+                  tabIndex={0}
                 >
                   보기
                 </button>
@@ -2316,56 +2690,141 @@ export default function SiteInfoPage() {
 
           {/* Detail Section - Toggleable */}
           {showDetailSection && (
-            <div className="detail-section show">
-              <div className="info-row">
-                <span className="info-label">부제목</span>
-                <span className="info-value">{currentSite.subtitle || '-'}</span>
-                <div className="info-actions"></div>
+            <div
+              id="detail-section"
+              className="detail-section show"
+              role="region"
+              aria-label="현장 상세 정보"
+            >
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  부제목
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`부제목: ${currentSite.subtitle || '정보 없음'}`}
+                >
+                  {currentSite.subtitle || '-'}
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">공정</span>
-                <span className="info-value">{currentSite.process || '-'}</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  공정
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`공정: ${currentSite.process || '정보 없음'}`}
+                >
+                  {currentSite.process || '-'}
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">작업종류</span>
-                <span className="info-value">{currentSite.workType || '-'}</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  작업종류
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`작업종류: ${currentSite.workType || '정보 없음'}`}
+                >
+                  {currentSite.workType || '-'}
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">블록</span>
-                <span className="info-value">{currentSite.block || '-'}</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  블록
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`블록: ${currentSite.block || '정보 없음'}`}
+                >
+                  {currentSite.block || '-'}
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">동</span>
-                <span className="info-value">{currentSite.building || '-'}</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  동
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`동: ${currentSite.building || '정보 없음'}`}
+                >
+                  {currentSite.building || '-'}
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">호수</span>
-                <span className="info-value">{currentSite.unit || '-'}</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  호수
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`호수: ${currentSite.unit || '정보 없음'}`}
+                >
+                  {currentSite.unit || '-'}
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">기간</span>
-                <span className="info-value">{currentSite.duration || '-'}</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  기간
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`기간: ${currentSite.duration || '정보 없음'}`}
+                >
+                  {currentSite.duration || '-'}
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">보수 전 사진</span>
-                <span className="info-value">{currentSite.photosBefore || 0}개</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  보수 전 사진
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`보수 전 사진: ${currentSite.photosBefore || 0}개`}
+                >
+                  {currentSite.photosBefore || 0}개
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">보수 후 사진</span>
-                <span className="info-value">{currentSite.photosAfter || 0}개</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  보수 후 사진
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`보수 후 사진: ${currentSite.photosAfter || 0}개`}
+                >
+                  {currentSite.photosAfter || 0}개
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
-              <div className="info-row">
-                <span className="info-label">최근 수정일</span>
-                <span className="info-value">{currentSite.lastUpdated || '-'}</span>
-                <div className="info-actions"></div>
+              <div className="info-row" role="row">
+                <span className="info-label" role="gridcell" aria-label="항목명">
+                  최근 수정일
+                </span>
+                <span
+                  className="info-value"
+                  role="gridcell"
+                  aria-label={`최근 수정일: ${currentSite.lastUpdated || '정보 없음'}`}
+                >
+                  {currentSite.lastUpdated || '-'}
+                </span>
+                <div className="info-actions" role="gridcell"></div>
               </div>
             </div>
           )}
@@ -2374,9 +2833,12 @@ export default function SiteInfoPage() {
 
       {/* No Site Selected Message */}
       {!currentSite && (
-        <div className="site-info-card">
+        <div className="site-info-card" role="alert" aria-live="polite">
           <div className="site-info-grid">
-            <div style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}>
+            <div
+              style={{ padding: '40px', textAlign: 'center', color: 'var(--muted)' }}
+              aria-label="현장 선택 안내 메시지"
+            >
               홈 페이지에서 현장을 선택해주세요.
             </div>
           </div>
@@ -2384,45 +2846,88 @@ export default function SiteInfoPage() {
       )}
 
       {/* NPC-1000 Material Management - Matches HTML Requirements */}
-      <div className="npc-card">
+      <div
+        id="npc-inventory-section"
+        className="npc-card"
+        role="region"
+        aria-labelledby="npc-title"
+      >
         <div className="npc-header">
           <div className="npc-title-group">
-            <h3 className="npc-title">
-              <span className="npc-title-icon">📦</span>
+            <h3 id="npc-title" className="npc-title">
+              <span className="npc-title-icon" role="img" aria-label="자재관리 아이콘">
+                📦
+              </span>
               NPC-1000 재고관리
             </h3>
           </div>
           <div className="npc-actions">
-            <button className="npc-tag-btn" onClick={handleNpcNewTag}>
+            <button
+              className="npc-tag-btn"
+              onClick={handleNpcNewTag}
+              onKeyDown={e => handleKeyNavigation(e, handleNpcNewTag)}
+              aria-label="새 자재 추가"
+              tabIndex={0}
+            >
               추가
             </button>
           </div>
         </div>
 
         {/* KPI Grid - Matching HTML structure */}
-        <div className="npc-kpi">
-          <div className="npc-kpi-item">
-            <p className="npc-kpi-label">입고</p>
-            <p className="npc-kpi-value">{npcKPI.inQty}</p>
+        <div className="npc-kpi" role="group" aria-label="자재 현황 지표">
+          <div className="npc-kpi-item" role="group" aria-labelledby="kpi-in-label">
+            <p id="kpi-in-label" className="npc-kpi-label">
+              입고
+            </p>
+            <p className="npc-kpi-value" aria-label={`입고 수량: ${npcKPI.inQty}개`}>
+              {npcKPI.inQty}
+            </p>
           </div>
-          <div className="npc-kpi-item">
-            <p className="npc-kpi-label">사용</p>
-            <p className="npc-kpi-value">{npcKPI.used}</p>
+          <div className="npc-kpi-item" role="group" aria-labelledby="kpi-used-label">
+            <p id="kpi-used-label" className="npc-kpi-label">
+              사용
+            </p>
+            <p className="npc-kpi-value" aria-label={`사용 수량: ${npcKPI.used}개`}>
+              {npcKPI.used}
+            </p>
           </div>
-          <div className="npc-kpi-item">
-            <p className="npc-kpi-label">재고</p>
-            <p className="npc-kpi-value stock">{npcKPI.currentStock}</p>
+          <div className="npc-kpi-item" role="group" aria-labelledby="kpi-stock-label">
+            <p id="kpi-stock-label" className="npc-kpi-label">
+              재고
+            </p>
+            <p className="npc-kpi-value stock" aria-label={`현재 재고: ${npcKPI.currentStock}개`}>
+              {npcKPI.currentStock}
+            </p>
           </div>
         </div>
 
-        <div className="npc-buttons">
-          <button className="npc-btn npc-btn-ghost" onClick={handleNpcLog}>
+        <div className="npc-buttons" role="group" aria-label="자재관리 액션">
+          <button
+            className="npc-btn npc-btn-ghost"
+            onClick={handleNpcLog}
+            onKeyDown={e => handleKeyNavigation(e, handleNpcLog)}
+            aria-label="자재 입출고 로그 보기"
+            tabIndex={0}
+          >
             로그 보기
           </button>
-          <button className="npc-btn npc-btn-ghost" onClick={handleNpcRequest}>
+          <button
+            className="npc-btn npc-btn-ghost"
+            onClick={handleNpcRequest}
+            onKeyDown={e => handleKeyNavigation(e, handleNpcRequest)}
+            aria-label="자재 요청하기"
+            tabIndex={0}
+          >
             자재 요청
           </button>
-          <button className="npc-btn npc-btn-primary" onClick={handleNpcRecord}>
+          <button
+            className="npc-btn npc-btn-primary"
+            onClick={handleNpcRecord}
+            onKeyDown={e => handleKeyNavigation(e, handleNpcRecord)}
+            aria-label="자재 입고 기록하기"
+            tabIndex={0}
+          >
             입고 기록
           </button>
         </div>
@@ -2740,23 +3245,38 @@ export default function SiteInfoPage() {
       )}
 
       {/* NPC Log Dialog - HTML dialog element */}
-      <dialog ref={npcLogDialogRef} className="npc-dialog">
+      <dialog
+        ref={npcLogDialogRef}
+        className="npc-dialog"
+        role="dialog"
+        aria-labelledby="npc-log-title"
+        aria-modal="true"
+        onKeyDown={handleModalKeyDown}
+      >
         <div className="npc-dialog-content">
           <div className="npc-dialog-header">
-            <h3 className="npc-dialog-title">오늘의 NPC-1000 로그</h3>
-            <button className="npc-dialog-close" onClick={() => npcLogDialogRef.current?.close()}>
+            <h3 id="npc-log-title" className="npc-dialog-title">
+              오늘의 NPC-1000 로그
+            </h3>
+            <button
+              className="npc-dialog-close"
+              onClick={() => npcLogDialogRef.current?.close()}
+              onKeyDown={e => handleKeyNavigation(e, () => npcLogDialogRef.current?.close())}
+              aria-label="로그 다이얼로그 닫기"
+              tabIndex={0}
+            >
               <X size={20} />
             </button>
           </div>
           <div className="npc-dialog-body">
-            <table className="npc-log-table">
+            <table className="npc-log-table" role="table" aria-label="NPC-1000 입출고 로그 테이블">
               <thead>
-                <tr>
-                  <th>현장</th>
-                  <th>날짜</th>
-                  <th>구분</th>
-                  <th>수량</th>
-                  <th>메모</th>
+                <tr role="row">
+                  <th role="columnheader">현장</th>
+                  <th role="columnheader">날짜</th>
+                  <th role="columnheader">구분</th>
+                  <th role="columnheader">수량</th>
+                  <th role="columnheader">메모</th>
                 </tr>
               </thead>
               <tbody>
@@ -2764,30 +3284,39 @@ export default function SiteInfoPage() {
                   npcCurrent.logs
                     .filter(log => log.date === formatDate(new Date()))
                     .map((log, index) => (
-                      <tr key={index}>
-                        <td>{npcCurrent.name}</td>
-                        <td>{log.date}</td>
-                        <td>
+                      <tr key={index} role="row">
+                        <td role="gridcell">{npcCurrent.name}</td>
+                        <td role="gridcell">{log.date}</td>
+                        <td role="gridcell">
                           <span
                             className={`npc-chip ${log.type === 'in' ? 'text-tag2' : 'text-red-500'}`}
+                            aria-label={log.type === 'in' ? '입고' : '사용'}
                           >
                             {log.type === 'in' ? '입고' : '사용'}
                           </span>
                         </td>
                         <td
+                          role="gridcell"
                           className={`text-right font-bold ${log.type === 'in' ? 'text-tag2' : 'text-red-500'}`}
+                          aria-label={`수량: ${log.type === 'in' ? '플러스' : '마이너스'} ${formatNumber(log.qty)}개`}
                         >
                           {log.type === 'in' ? '+' : '−'}
                           {formatNumber(log.qty)}
                         </td>
-                        <td>{log.memo}</td>
+                        <td role="gridcell">{log.memo}</td>
                       </tr>
                     ))}
                 {(!npcCurrent ||
                   npcCurrent.logs.filter(log => log.date === formatDate(new Date())).length ===
                     0) && (
-                  <tr>
-                    <td colSpan={5} className="py-6 text-center" style={{ color: 'var(--muted)' }}>
+                  <tr role="row">
+                    <td
+                      colSpan={5}
+                      className="py-6 text-center"
+                      style={{ color: 'var(--muted)' }}
+                      role="gridcell"
+                      aria-label="기록 없음"
+                    >
                       기록 없음
                     </td>
                   </tr>
@@ -2799,26 +3328,48 @@ export default function SiteInfoPage() {
       </dialog>
 
       {/* NPC Record Dialog - HTML dialog element with form */}
-      <dialog ref={npcRecordDialogRef} className="npc-dialog">
-        <form className="npc-dialog-content" onSubmit={handleSaveNpcRecord}>
+      <dialog
+        ref={npcRecordDialogRef}
+        className="npc-dialog"
+        role="dialog"
+        aria-labelledby="npc-record-title"
+        aria-modal="true"
+        onKeyDown={handleModalKeyDown}
+      >
+        <form
+          className="npc-dialog-content"
+          onSubmit={handleSaveNpcRecord}
+          role="form"
+          aria-labelledby="npc-record-title"
+        >
           <div className="npc-dialog-header">
-            <h3 className="npc-dialog-title">NPC-1000 기록 입력</h3>
+            <h3 id="npc-record-title" className="npc-dialog-title">
+              NPC-1000 기록 입력
+            </h3>
             <button
               type="button"
               className="npc-dialog-close"
               onClick={() => npcRecordDialogRef.current?.close()}
+              onKeyDown={e => handleKeyNavigation(e, () => npcRecordDialogRef.current?.close())}
+              aria-label="기록 입력 다이얼로그 닫기"
+              tabIndex={0}
             >
               <X size={20} />
             </button>
           </div>
           <div className="npc-dialog-body">
             <div className="npc-form-group">
-              <label className="npc-form-label">현장</label>
+              <label htmlFor="npc-site-select" className="npc-form-label">
+                현장
+              </label>
               <select
+                id="npc-site-select"
                 className="npc-form-select"
                 value={npcFormData.site}
                 onChange={e => setNpcFormData(prev => ({ ...prev, site: e.target.value }))}
                 required
+                aria-label="현장 선택"
+                tabIndex={0}
               >
                 {npcSites.map(site => (
                   <option key={site.id} value={site.name}>
@@ -2828,48 +3379,68 @@ export default function SiteInfoPage() {
               </select>
             </div>
             <div className="npc-form-group">
-              <label className="npc-form-label">날짜</label>
+              <label htmlFor="npc-date-input" className="npc-form-label">
+                날짜
+              </label>
               <input
+                id="npc-date-input"
                 type="date"
                 className="npc-form-input"
                 value={npcFormData.date}
                 onChange={e => setNpcFormData(prev => ({ ...prev, date: e.target.value }))}
                 required
+                aria-label="작업 날짜 선택"
+                tabIndex={0}
               />
             </div>
             <div className="npc-form-group">
-              <label className="npc-form-label">구분</label>
+              <label htmlFor="npc-type-select" className="npc-form-label">
+                구분
+              </label>
               <select
+                id="npc-type-select"
                 className="npc-form-select"
                 value={npcFormData.type}
                 onChange={e =>
                   setNpcFormData(prev => ({ ...prev, type: e.target.value as 'in' | 'out' }))
                 }
                 required
+                aria-label="입고 또는 사용 구분 선택"
+                tabIndex={0}
               >
                 <option value="in">입고</option>
                 <option value="out">사용</option>
               </select>
             </div>
             <div className="npc-form-group">
-              <label className="npc-form-label">수량</label>
+              <label htmlFor="npc-qty-input" className="npc-form-label">
+                수량
+              </label>
               <input
+                id="npc-qty-input"
                 type="number"
                 className="npc-form-input"
                 value={npcFormData.qty}
                 onChange={e => setNpcFormData(prev => ({ ...prev, qty: Number(e.target.value) }))}
                 min="1"
                 required
+                aria-label="수량 입력"
+                tabIndex={0}
               />
             </div>
             <div className="npc-form-group">
-              <label className="npc-form-label">메모</label>
+              <label htmlFor="npc-memo-textarea" className="npc-form-label">
+                메모
+              </label>
               <textarea
+                id="npc-memo-textarea"
                 className="npc-form-textarea"
                 value={npcFormData.memo}
                 onChange={e => setNpcFormData(prev => ({ ...prev, memo: e.target.value }))}
                 placeholder="메모를 입력하세요..."
                 rows={3}
+                aria-label="메모 입력"
+                tabIndex={0}
               />
             </div>
           </div>
@@ -2878,10 +3449,18 @@ export default function SiteInfoPage() {
               type="button"
               className="npc-btn npc-btn-secondary"
               onClick={() => npcRecordDialogRef.current?.close()}
+              onKeyDown={e => handleKeyNavigation(e, () => npcRecordDialogRef.current?.close())}
+              aria-label="NPC 기록 입력 취소"
+              tabIndex={0}
             >
               취소
             </button>
-            <button type="submit" className="npc-btn npc-btn-primary">
+            <button
+              type="submit"
+              className="npc-btn npc-btn-primary"
+              aria-label="NPC 기록 저장"
+              tabIndex={0}
+            >
               저장
             </button>
           </div>
@@ -2889,26 +3468,43 @@ export default function SiteInfoPage() {
       </dialog>
 
       {/* NPC Request Dialog - HTML dialog element with form */}
-      <dialog ref={npcRequestDialogRef} className="npc-dialog">
+      <dialog
+        ref={npcRequestDialogRef}
+        className="npc-dialog"
+        role="dialog"
+        aria-labelledby="npc-request-title"
+        aria-modal="true"
+        onKeyDown={handleModalKeyDown}
+      >
         <form className="npc-dialog-content" onSubmit={handleSubmitNpcRequest}>
           <div className="npc-dialog-header">
-            <h3 className="npc-dialog-title">NPC-1000 자재 요청</h3>
+            <h3 id="npc-request-title" className="npc-dialog-title">
+              NPC-1000 자재 요청
+            </h3>
             <button
               type="button"
               className="npc-dialog-close"
               onClick={() => npcRequestDialogRef.current?.close()}
+              onKeyDown={e => handleKeyNavigation(e, () => npcRequestDialogRef.current?.close())}
+              aria-label="자재 요청 다이얼로그 닫기"
+              tabIndex={0}
             >
               <X size={20} />
             </button>
           </div>
           <div className="npc-dialog-body">
             <div className="npc-form-group">
-              <label className="npc-form-label">현장</label>
+              <label htmlFor="npc-request-site-select" className="npc-form-label">
+                현장
+              </label>
               <select
+                id="npc-request-site-select"
                 className="npc-form-select"
                 value={npcRequestData.site}
                 onChange={e => setNpcRequestData(prev => ({ ...prev, site: e.target.value }))}
                 required
+                aria-label="요청할 현장 선택"
+                tabIndex={0}
               >
                 <option value="">현장을 선택하세요</option>
                 {npcSites.map(site => (
@@ -2919,8 +3515,11 @@ export default function SiteInfoPage() {
               </select>
             </div>
             <div className="npc-form-group">
-              <label className="npc-form-label">요청 수량</label>
+              <label htmlFor="npc-request-qty-input" className="npc-form-label">
+                요청 수량
+              </label>
               <input
+                id="npc-request-qty-input"
                 type="number"
                 className="npc-form-input"
                 value={npcRequestData.qty}
@@ -2929,17 +3528,24 @@ export default function SiteInfoPage() {
                 }
                 min="1"
                 required
+                aria-label="요청 수량 입력"
+                tabIndex={0}
               />
             </div>
             <div className="npc-form-group">
-              <label className="npc-form-label">요청 사유</label>
+              <label htmlFor="npc-request-memo-textarea" className="npc-form-label">
+                요청 사유
+              </label>
               <textarea
+                id="npc-request-memo-textarea"
                 className="npc-form-textarea"
                 value={npcRequestData.memo}
                 onChange={e => setNpcRequestData(prev => ({ ...prev, memo: e.target.value }))}
                 placeholder="요청 사유를 입력하세요..."
                 rows={4}
                 required
+                aria-label="요청 사유 입력"
+                tabIndex={0}
               />
             </div>
           </div>
@@ -2948,10 +3554,18 @@ export default function SiteInfoPage() {
               type="button"
               className="npc-btn npc-btn-secondary"
               onClick={() => npcRequestDialogRef.current?.close()}
+              onKeyDown={e => handleKeyNavigation(e, () => npcRequestDialogRef.current?.close())}
+              aria-label="자재 요청 취소"
+              tabIndex={0}
             >
               취소
             </button>
-            <button type="submit" className="npc-btn npc-btn-primary">
+            <button
+              type="submit"
+              className="npc-btn npc-btn-primary"
+              aria-label="자재 요청 제출"
+              tabIndex={0}
+            >
               요청
             </button>
           </div>
