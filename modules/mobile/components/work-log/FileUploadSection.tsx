@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useRef } from 'react'
+import React, { useRef, useCallback } from 'react'
 import { WorkLogAttachments, AttachedFile } from '../../types/work-log.types'
 import { useFileUpload } from '../../hooks/use-file-upload'
 import { formatFileSize } from '../../utils/work-log-utils'
@@ -31,7 +31,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = React.memo(
       },
     })
 
-    const renderUploadArea = React.useCallback(
+    const renderUploadArea = useCallback(
       (
         type: keyof WorkLogAttachments,
         upload: ReturnType<typeof useFileUpload>,
