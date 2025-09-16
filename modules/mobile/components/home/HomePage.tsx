@@ -296,6 +296,66 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     }
   }
 
+  const handleTemporarySave = async () => {
+    // 최소 필수 값 확인 (임시저장은 더 관대하게)
+    if (!selectedSite && !department && !workDate) {
+      toast.error('최소한 현장, 소속, 또는 작업일자 중 하나는 입력해주세요.')
+      return
+    }
+
+    try {
+      // 임시저장 제목 생성
+      const siteInfo = sites.find(s => s.id === selectedSite)
+      const title = `${siteInfo?.name || '미지정'} - ${workDate || '날짜미정'}`
+
+      const tempData = {
+        site_id: selectedSite,
+        work_date: workDate,
+        department: department,
+        location_info: {
+          block: location.block,
+          dong: location.dong,
+          unit: location.unit,
+        },
+        member_types: memberTypes,
+        work_contents: workContents,
+        work_types: workTypes,
+        main_manpower: { count: mainManpower },
+        additional_manpower: additionalManpower.map(m => ({
+          worker_name: m.workerName,
+          manpower: m.manpower,
+        })),
+        work_sections: workSections.map(section => ({
+          id: section.id,
+          memberTypes: section.memberTypes,
+          workContents: section.workContents,
+          workTypes: section.workTypes,
+          location: section.location,
+        })),
+        title: title,
+      }
+
+      const response = await fetch('/api/mobile/temporary-work-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(tempData),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save temporary work log')
+      }
+
+      toast.success('임시저장되었습니다.')
+    } catch (error) {
+      console.error('Temporary save error:', error)
+      toast.error(error instanceof Error ? error.message : '임시저장에 실패했습니다.')
+    }
+  }
+
   const handleSave = async () => {
     if (!department) {
       toast.error('소속을 선택해주세요.')
@@ -675,6 +735,9 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         <div className="form-actions">
           <button className="btn btn-secondary" onClick={handleReset}>
             처음부터
+          </button>
+          <button className="btn btn-temp-save" onClick={handleTemporarySave}>
+            임시저장
           </button>
           <button className="btn btn-primary" onClick={handleSave}>
             저장하기

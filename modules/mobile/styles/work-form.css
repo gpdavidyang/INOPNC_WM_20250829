@@ -532,6 +532,17 @@ textarea.form-input {
   background: #e5e7eb;
 }
 
+.form-actions .btn-temp-save {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #f59e0b;
+}
+
+.form-actions .btn-temp-save:hover {
+  background: #fbbf24;
+  color: white;
+}
+
 .form-actions .btn-primary {
   background: #1a254f;
   color: white;
