@@ -34,16 +34,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   initialSession,
   initialProfile,
 }) => {
+  // CRITICAL FIX: Trust initial server data and start ready if provided
   const [user, setUser] = useState<User | null>(initialSession?.user || null)
   const [session, setSession] = useState<Session | null>(initialSession || null)
   const [profile, setProfile] = useState<any | null>(initialProfile || null)
-  const [loading, setLoading] = useState(!initialProfile) // Use initialProfile instead of initialSession
+  const [loading, setLoading] = useState(!initialProfile) // Only load if no initial profile
   const router = useRouter()
 
   const refreshSession = useCallback(async () => {
+    // CRITICAL FIX: Don't refresh if we already have valid initial data
+    if (initialProfile && initialSession?.user) {
+      console.log('[AuthProvider] Using initial server data, skipping refresh')
+      setLoading(false)
+      return
+    }
+
     const supabase = createClient()
     if (!supabase) {
       console.error('Supabase client not available')
+      setLoading(false)
       return
     }
 
@@ -82,43 +91,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
           }
         }
       } else {
-        // Try refresh token if current session is invalid
-        const {
-          data: { session: refreshedSession },
-          error: refreshError,
-        } = await supabase.auth.refreshSession()
-
-        if (refreshedSession && refreshedSession.user) {
-          setSession(refreshedSession)
-          setUser(refreshedSession.user)
-
-          // Fetch profile for refreshed session
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', refreshedSession.user.id)
-            .single()
-
-          if (profileData) {
-            setProfile(profileData)
-          } else {
-            // Fallback to user metadata
-            setProfile({
-              id: refreshedSession.user.id,
-              email: refreshedSession.user.email,
-              full_name:
-                refreshedSession.user.user_metadata?.full_name ||
-                refreshedSession.user.email?.split('@')[0] ||
-                'User',
-              role: refreshedSession.user.user_metadata?.role || 'worker',
-            })
-          }
-        } else {
-          // No valid session available
-          setSession(null)
-          setUser(null)
-          setProfile(null)
-        }
+        // No valid session available
+        setSession(null)
+        setUser(null)
+        setProfile(null)
       }
     } catch (error) {
       console.error('Error refreshing session:', error)
@@ -129,36 +105,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [initialProfile, initialSession, profile])
 
   useEffect(() => {
-    // Initial session check
-    refreshSession()
+    // CRITICAL FIX: If we have initial data, don't do session refresh
+    if (initialProfile && initialSession?.user) {
+      console.log('[AuthProvider] Initial data provided, ready immediately')
+      setLoading(false)
+    } else {
+      // Only refresh if no initial data
+      refreshSession()
+    }
 
-    // Set up auth state change listener
+    // Set up auth state change listener (keep for sign out handling)
     const supabase = createClient()
     if (!supabase) return
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
-      // Auth state changed: event, user email
+      console.log('[AuthProvider] Auth state changed:', event)
 
-      if (event === 'SIGNED_IN' && newSession) {
-        setSession(newSession)
-        setUser(newSession.user)
-
-        // Fetch profile on sign in
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', newSession.user.id)
-          .single()
-
-        if (profileData) {
-          setProfile(profileData)
-        }
-      } else if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT') {
         setSession(null)
         setUser(null)
         setProfile(null)
@@ -168,12 +136,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
         setUser(newSession.user)
         // Token refreshed successfully
       }
+      // Don't handle SIGNED_IN here to avoid conflicts with server-side data
     })
 
     return () => {
       subscription.unsubscribe()
     }
-  }, [router])
+  }, [router, initialProfile, initialSession, refreshSession])
 
   return (
     <AuthContext.Provider value={{ user, session, profile, loading, refreshSession }}>

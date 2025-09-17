@@ -134,11 +134,6 @@ export default function WorkReportPage() {
 
   return (
     <div className="work-report-container">
-      {/* 헤더 */}
-      <div className="work-report-header">
-        <h1 className="page-title">작업일지</h1>
-      </div>
-
       {/* 탭 메뉴 */}
       <WorkReportTabs
         activeTab={activeTab}
