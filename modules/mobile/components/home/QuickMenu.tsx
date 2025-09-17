@@ -5,7 +5,7 @@ import Link from 'next/link'
 
 const quickMenuItems = [
   {
-    href: '/mobile/worklog',
+    href: '/mobile/attendance/output',
     icon: '/icons/pay_output.png',
     label: '출력현황',
   },
