@@ -10,6 +10,8 @@ interface Profile {
   email: string
   role?: string
   site_id?: string
+  phone?: string
+  created_at?: string
 }
 
 interface UseMobileAuthReturn {
@@ -34,6 +36,11 @@ export function useMobileAuth(): UseMobileAuthReturn {
 
   const supabase = createClient()
 
+  // Early return if supabase client is not available
+  if (!supabase) {
+    console.error('[MOBILE-AUTH] Supabase client is not available')
+  }
+
   const getSession = useCallback(async () => {
     if (sessionRefreshing.current) return
 
@@ -45,7 +52,10 @@ export function useMobileAuth(): UseMobileAuthReturn {
       const {
         data: { session },
         error: sessionError,
-      } = await supabase.auth.getSession()
+      } = (await supabase?.auth.getSession()) || {
+        data: { session: null },
+        error: new Error('Supabase client not available'),
+      }
 
       if (sessionError) {
         console.error('[MOBILE-AUTH] Session error:', sessionError)
@@ -89,43 +99,63 @@ export function useMobileAuth(): UseMobileAuthReturn {
 
   const fetchProfile = async (userId: string) => {
     try {
-      console.log('[MOBILE-AUTH] Fetching profile for user:', userId)
+      console.log('[MOBILE-AUTH] Starting profile fetch for user:', userId)
 
-      const { data, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single()
+      // Add timeout to prevent hanging
+      const fetchWithTimeout = new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Profile fetch timeout after 10 seconds'))
+        }, 10000)
 
-      if (profileError) {
-        console.error('[MOBILE-AUTH] Profile fetch error:', profileError)
-        console.error('[MOBILE-AUTH] Error details:', {
-          code: profileError.code,
-          message: profileError.message,
-          details: profileError.details,
-          hint: profileError.hint,
-        })
-        setError(profileError.message)
-        setProfile(null)
-        return
-      }
+        supabase
+          ?.from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .single()
+          .then(({ data, error }: { data: any; error: any }) => {
+            clearTimeout(timeout)
+            if (error) {
+              reject(error)
+            } else {
+              resolve(data)
+            }
+          })
+          .catch(err => {
+            clearTimeout(timeout)
+            reject(err)
+          })
+      })
 
-      console.log('[MOBILE-AUTH] Profile fetched successfully:', data?.full_name)
+      const data = (await fetchWithTimeout) as any
+
+      console.log('[MOBILE-AUTH] Profile fetched successfully:', {
+        id: data?.id,
+        full_name: data?.full_name,
+        email: data?.email,
+        role: data?.role,
+        hasPhone: !!data?.phone,
+        hasCreatedAt: !!data?.created_at,
+      })
+
       setProfile(data)
       setError(null)
-    } catch (err) {
-      console.error('[MOBILE-AUTH] Profile fetch exception:', err)
-      console.error('[MOBILE-AUTH] Exception details:', {
-        name: err instanceof Error ? err.name : 'Unknown',
-        message: err instanceof Error ? err.message : 'Failed to fetch profile',
-        stack: err instanceof Error ? err.stack : 'No stack trace',
+    } catch (err: any) {
+      console.error('[MOBILE-AUTH] Profile fetch error:', err)
+      console.error('[MOBILE-AUTH] Error details:', {
+        name: err?.name || 'Unknown',
+        message: err?.message || 'Failed to fetch profile',
+        code: err?.code,
+        details: err?.details,
+        hint: err?.hint,
+        stack: err?.stack,
+        userId,
       })
-      setError(err instanceof Error ? err.message : 'Failed to fetch profile')
+      setError(err?.message || 'Failed to fetch profile')
       setProfile(null)
     } finally {
       // Ensure loading is set to false regardless of success or failure
       setLoading(false)
-      console.log('[MOBILE-AUTH] Profile fetch completed, loading set to false')
+      console.log('[MOBILE-AUTH] Profile fetch completed, loading state set to false')
     }
   }
 
@@ -137,7 +167,7 @@ export function useMobileAuth(): UseMobileAuthReturn {
 
   const signOut = useCallback(async () => {
     try {
-      await supabase.auth.signOut()
+      await supabase?.auth.signOut()
       setUser(null)
       setProfile(null)
     } catch (error) {
@@ -146,26 +176,46 @@ export function useMobileAuth(): UseMobileAuthReturn {
   }, [])
 
   useEffect(() => {
+    // Initial session fetch
     getSession()
 
+    // Set up auth state listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('[MOBILE-AUTH] Auth state changed:', event, 'User:', session?.user?.email)
+
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
         setLoading(false)
-      } else if (session?.user) {
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        if (session?.user) {
+          setUser(session.user)
+          setLoading(true) // Set loading before fetching profile
+          await fetchProfile(session.user.id)
+        }
+      } else if (event === 'INITIAL_SESSION' && session?.user) {
+        // Handle initial session load
         setUser(session.user)
+        setLoading(true)
         await fetchProfile(session.user.id)
-        // fetchProfile now handles setLoading(false) in its finally block
       }
     })
 
+    // Retry profile fetch after a delay if still loading
+    const retryTimeout = setTimeout(() => {
+      if (loading && user && !profile) {
+        console.log('[MOBILE-AUTH] Retrying profile fetch after 2 seconds...')
+        fetchProfile(user.id)
+      }
+    }, 2000)
+
     return () => {
       subscription.unsubscribe()
+      clearTimeout(retryTimeout)
     }
-  }, [getSession])
+  }, [getSession, user, loading, profile])
 
   // Computed properties for role checks
   const canAccessMobile = !!(

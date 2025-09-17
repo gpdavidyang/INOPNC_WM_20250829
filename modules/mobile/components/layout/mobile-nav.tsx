@@ -27,17 +27,17 @@ const NAV_ITEMS: NavItem[] = [
     roles: ['worker', 'site_manager'],
   },
   {
-    id: 'worklog',
-    label: '출력현황',
+    id: 'attendance',
+    label: '출력정보',
     icon: 'worklog',
-    href: '/mobile/attendance/output',
+    href: '/mobile/attendance',
     roles: ['worker', 'site_manager'],
   },
   {
-    id: 'tasks',
+    id: 'worklog',
     label: '작업일지',
     icon: 'tasks',
-    href: '/mobile/tasks',
+    href: '/mobile/worklog',
     roles: ['worker', 'site_manager'],
   },
   {
