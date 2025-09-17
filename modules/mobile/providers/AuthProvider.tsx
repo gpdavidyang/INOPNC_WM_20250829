@@ -37,7 +37,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const [user, setUser] = useState<User | null>(initialSession?.user || null)
   const [session, setSession] = useState<Session | null>(initialSession || null)
   const [profile, setProfile] = useState<any | null>(initialProfile || null)
-  const [loading, setLoading] = useState(!initialSession)
+  const [loading, setLoading] = useState(!initialProfile) // Use initialProfile instead of initialSession
   const router = useRouter()
 
   const refreshSession = useCallback(async () => {

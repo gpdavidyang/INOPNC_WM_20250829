@@ -680,6 +680,7 @@ const CalendarView: React.FC<{
   onMonthChange?: (year: number, month: number) => void
 }> = ({ selectedDate, onDateChange, workReports, onMonthChange }) => {
   const [currentDate, setCurrentDate] = useState(selectedDate)
+  const [selectedDateWork, setSelectedDateWork] = useState<WorkReport[] | null>(null)
 
   // 이전/다음 달 이동
   const handlePrevMonth = () => {
@@ -716,6 +717,18 @@ const CalendarView: React.FC<{
       site: siteName,
       men: Math.round(totalManHours), // 공수를 인원수로 표시
     }
+  }
+
+  // 날짜 클릭 핸들러
+  const handleDateClick = (year: number, month: number, day: number, hasWork: boolean) => {
+    if (!hasWork) {
+      setSelectedDateWork(null)
+      return
+    }
+
+    const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    const reportsForDate = workReports.filter(report => report.workDate === dateString)
+    setSelectedDateWork(reportsForDate)
   }
 
   // 현장명을 2글자씩 2행으로 표기 (HTML 참조와 동일)
@@ -851,6 +864,16 @@ const CalendarView: React.FC<{
           background: #f8fafc;
           border-color: #3b82f6;
         }
+        .cell.clickable {
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .cell.clickable:hover {
+          background: #e3f2fd;
+          border-color: #1976d2;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
         .date { 
           font-weight: 700; 
           font-size: 14px; 
@@ -949,7 +972,18 @@ const CalendarView: React.FC<{
             return (
               <div
                 key={index}
-                className={`cell ${dateInfo.isOtherMonth ? 'out' : ''} ${dateInfo.hasWork ? 'has-work' : ''}`}
+                className={`cell ${dateInfo.isOtherMonth ? 'out' : ''} ${dateInfo.hasWork ? 'has-work' : ''} ${
+                  dateInfo.hasWork && dateInfo.isCurrentMonth ? 'clickable' : ''
+                }`}
+                onClick={() =>
+                  dateInfo.isCurrentMonth &&
+                  handleDateClick(
+                    currentDate.getFullYear(),
+                    currentDate.getMonth(),
+                    dateInfo.day,
+                    dateInfo.hasWork
+                  )
+                }
               >
                 {/* 날짜 표시 */}
                 <div className={`date ${isSunday && dateInfo.isCurrentMonth ? 'sun' : ''}`}>
@@ -984,6 +1018,72 @@ const CalendarView: React.FC<{
           })}
         </div>
       </div>
+
+      {/* 선택된 날짜의 작업 요약 표시 */}
+      {selectedDateWork && selectedDateWork.length > 0 && (
+        <div className="mt-4">
+          <Card className="brand-card">
+            <CardContent className="p-4">
+              <h3 className="t-h3 mb-3 text-gray-800">{selectedDateWork[0].workDate} 작업 요약</h3>
+              <div className="space-y-3">
+                {selectedDateWork.map((work, index) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-800">{work.siteName}</h4>
+                        <p className="text-sm text-gray-600 mt-1">작성자: {work.author}</p>
+                      </div>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          work.status === 'completed'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-orange-100 text-orange-800'
+                        }`}
+                      >
+                        {work.status === 'completed' ? '완료' : '작업중'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">⏰ 공수:</span>
+                        <span className="font-medium text-gray-800">{work.manHours}명</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gray-500">📋 상태:</span>
+                        <span className="font-medium text-gray-800">
+                          {work.status === 'completed' ? '작업완료' : '진행중'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* 요약 통계 */}
+                <div className="mt-4 pt-3 border-t border-gray-200">
+                  <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="p-2 brand-stat-blue rounded-lg">
+                      <div className="t-body font-bold">{selectedDateWork.length}</div>
+                      <div className="text-xs text-gray-600">총 작업</div>
+                    </div>
+                    <div className="p-2 brand-stat-primary rounded-lg">
+                      <div className="t-body font-bold">
+                        {selectedDateWork.reduce((sum, work) => sum + work.manHours, 0)}
+                      </div>
+                      <div className="text-xs text-gray-600">총 공수</div>
+                    </div>
+                    <div className="p-2 brand-stat-blue rounded-lg">
+                      <div className="t-body font-bold">
+                        {selectedDateWork.filter(work => work.status === 'completed').length}
+                      </div>
+                      <div className="text-xs text-gray-600">완료된 작업</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </>
   )
 }

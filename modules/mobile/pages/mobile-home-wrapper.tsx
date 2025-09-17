@@ -33,31 +33,56 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
   useEffect(() => {
     let mounted = true
 
-    // Simplified authentication - trust server validation and avoid duplicate checks
-    const initializeAuth = () => {
+    // PRIORITY 1 FIX: Immediate session validation with timeout
+    const validateAuth = async () => {
       if (!mounted) return
 
-      // If we have initial user from server, the middleware and server already validated the session
-      // No need for additional client-side validation that can cause loops
-      if (initialUser && initialProfile) {
-        console.log('[AUTH] Using server-validated session data')
+      try {
+        // If server passed no data, immediately redirect (don't wait)
+        if (!initialUser || !initialProfile) {
+          console.log('[AUTH] No server session data, redirecting immediately')
+          window.location.replace('/auth/login')
+          return
+        }
+
+        // Timeout-based session validation (5 seconds max)
+        const sessionPromise = supabase.auth.getSession()
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Session validation timeout')), 5000)
+        )
+
+        const {
+          data: { session },
+          error,
+        } = await Promise.race([sessionPromise, timeoutPromise])
+
+        if (!mounted) return
+
+        // Validate session exists and matches server data
+        if (error || !session?.user || session.user.id !== initialUser.id) {
+          console.log('[AUTH] Session validation failed, redirecting')
+          window.location.replace('/auth/login')
+          return
+        }
+
+        console.log('[AUTH] Session validated successfully')
         setIsAuthenticated(true)
         setIsValidating(false)
-        return
+      } catch (error) {
+        if (!mounted) return
+        console.error('[AUTH] Validation error:', error)
+        window.location.replace('/auth/login')
       }
-
-      // If no server data, redirect to login (should not happen with proper middleware)
-      console.log('[AUTH] No server session data, redirecting to login')
-      window.location.replace('/auth/login')
     }
 
-    // Initialize immediately - no complex validation needed
-    initializeAuth()
+    // Add small delay to allow hydration to complete
+    const timer = setTimeout(validateAuth, 100)
 
     return () => {
       mounted = false
+      clearTimeout(timer)
     }
-  }, [initialUser, initialProfile])
+  }, [initialUser, initialProfile, supabase.auth])
 
   // Show loading state while validating - suppressHydrationWarning to prevent flash
   if (isValidating) {
@@ -76,20 +101,8 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
     return null
   }
 
-  // Create initial session from server data
-  const initialSession = initialUser
-    ? {
-        access_token: '',
-        token_type: 'bearer',
-        expires_in: 3600,
-        expires_at: Math.floor(Date.now() / 1000) + 3600,
-        refresh_token: '',
-        user: initialUser,
-      }
-    : null
-
   return (
-    <AuthProvider initialSession={initialSession} initialProfile={initialProfile}>
+    <AuthProvider initialSession={null} initialProfile={initialProfile}>
       <HomePage initialProfile={initialProfile} initialUser={initialUser} />
     </AuthProvider>
   )
