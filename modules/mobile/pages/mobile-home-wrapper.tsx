@@ -25,7 +25,8 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
   initialUser,
 }) => {
   const router = useRouter()
-  const supabase = createClient()
+  // Force new client for auth validation to avoid stale sessions
+  const supabase = createClient({}, true)
   const [isValidating, setIsValidating] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
@@ -62,7 +63,11 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
         })
 
         try {
-          const sessionResult = await Promise.race([supabase.auth.getSession(), timeoutPromise])
+          // Force refresh to get latest session from server
+          const sessionResult = await Promise.race([
+            supabase.auth.refreshSession().then(() => supabase.auth.getSession()),
+            timeoutPromise,
+          ])
 
           const {
             data: { session },
