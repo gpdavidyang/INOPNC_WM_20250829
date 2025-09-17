@@ -42,7 +42,29 @@ const BRAND_STYLES = `
     background-color: #F3F4F6 !important;
     color: var(--brand-primary) !important;
   }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
 `
+
+// API 데이터 타입 정의
+interface WorkReport {
+  id: string
+  siteName: string
+  workDate: string
+  author: string
+  manHours: number
+  status: 'completed' | 'draft'
+}
+
+interface WorkReportsResponse {
+  reports: WorkReport[]
+  draftCount: number
+  year: number
+  month: number
+}
 
 export const OutputStatusPage: React.FC = () => {
   const { profile } = useMobileUser()
@@ -96,6 +118,47 @@ export const OutputStatusPage: React.FC = () => {
 // 출력현황 탭 컴포넌트
 const WorkOutputTab: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [workReports, setWorkReports] = useState<WorkReport[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+
+  // API에서 작업일지 데이터 가져오기
+  const fetchWorkReports = async (year: number, month: number) => {
+    setIsLoading(true)
+    try {
+      const response = await fetch(
+        `/api/mobile/work-reports?year=${year}&month=${month}&status=completed`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch work reports')
+      }
+
+      const data: WorkReportsResponse = await response.json()
+      setWorkReports(data.reports)
+    } catch (error) {
+      console.error('Error fetching work reports:', error)
+      setWorkReports([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 컴포넌트 마운트 시 현재 월 데이터 로드
+  useEffect(() => {
+    const now = new Date()
+    fetchWorkReports(now.getFullYear(), now.getMonth())
+  }, [])
+
+  // 월 변경 시 데이터 다시 로드
+  const handleMonthChange = (year: number, month: number) => {
+    fetchWorkReports(year, month)
+  }
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar')
 
   // 월간 통계 계산 함수
@@ -207,7 +270,45 @@ const WorkOutputTab: React.FC = () => {
 
       {/* 캘린더 뷰 */}
       {viewMode === 'calendar' ? (
-        <CalendarView selectedDate={selectedDate} onDateChange={setSelectedDate} />
+        <div style={{ position: 'relative' }}>
+          {isLoading && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 10,
+                background: 'rgba(255, 255, 255, 0.9)',
+                padding: '12px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '14px',
+                color: '#666',
+              }}
+            >
+              <div
+                style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid #ddd',
+                  borderTop: '2px solid #0068FE',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                }}
+              ></div>
+              데이터 로딩 중...
+            </div>
+          )}
+          <CalendarView
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            workReports={workReports}
+            onMonthChange={handleMonthChange}
+          />
+        </div>
       ) : (
         <ListView selectedDate={selectedDate} />
       )}
@@ -571,11 +672,13 @@ const SalaryTab: React.FC = () => {
   )
 }
 
-// 캘린더 뷰 컴포넌트
+// 캘린더 뷰 컴포넌트 (HTML 참조 디자인 기반)
 const CalendarView: React.FC<{
   selectedDate: Date
   onDateChange: (date: Date) => void
-}> = ({ selectedDate, onDateChange }) => {
+  workReports: WorkReport[]
+  onMonthChange?: (year: number, month: number) => void
+}> = ({ selectedDate, onDateChange, workReports, onMonthChange }) => {
   const [currentDate, setCurrentDate] = useState(selectedDate)
 
   // 이전/다음 달 이동
@@ -583,36 +686,51 @@ const CalendarView: React.FC<{
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
     setCurrentDate(newDate)
     onDateChange(newDate)
+    onMonthChange?.(newDate.getFullYear(), newDate.getMonth())
   }
 
   const handleNextMonth = () => {
     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
     setCurrentDate(newDate)
     onDateChange(newDate)
+    onMonthChange?.(newDate.getFullYear(), newDate.getMonth())
   }
 
-  // 근무 데이터 (WorkOutputTab과 동일한 데이터 사용)
+  // 실제 API 데이터에서 해당 날짜의 근무 데이터 찾기
   const getWorkDataForDate = (year: number, month: number, day: number) => {
-    const monthlyAttendanceData = [
-      { date: '2025-09-01', site: '삼성전자 평택캠퍼스 P3', workHours: 8, laborCount: 1 },
-      { date: '2025-09-02', site: '안산시청 신축공사', workHours: 9, laborCount: 2 },
-      { date: '2025-09-03', site: '삼성전자 평택캠퍼스 P3', workHours: 8, laborCount: 1 },
-      { date: '2025-09-04', site: '포항제철소 설비보수', workHours: 10, laborCount: 3 },
-      { date: '2025-09-05', site: '안산시청 신축공사', workHours: 8, laborCount: 1 },
-      { date: '2025-09-06', site: '삼성전자 평택캠퍼스 P3', workHours: 8.5, laborCount: 1 },
-      { date: '2025-09-09', site: '포항제철소 설비보수', workHours: 9, laborCount: 2 },
-      { date: '2025-09-10', site: '안산시청 신축공사', workHours: 8, laborCount: 1 },
-      { date: '2025-09-11', site: '삼성전자 평택캠퍼스 P3', workHours: 8, laborCount: 1 },
-      { date: '2025-09-12', site: '포항제철소 설비보수', workHours: 10, laborCount: 3 },
-      { date: '2025-09-13', site: '삼성전자 평택캠퍼스 P3', workHours: 8, laborCount: 1 },
-      { date: '2025-09-14', site: '안산시청 신축공사', workHours: 9, laborCount: 2 },
-      { date: '2025-09-15', site: '삼성전자 평택캠퍼스 P3', workHours: 8, laborCount: 1 },
-      { date: '2025-09-16', site: '포항제철소 설비보수', workHours: 9.5, laborCount: 2 },
-      { date: '2025-09-17', site: '안산시청 신축공사', workHours: 8, laborCount: 1 },
-    ]
-
     const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return monthlyAttendanceData.find(record => record.date === dateString)
+
+    // workReports에서 해당 날짜의 데이터들을 찾기
+    const reportsForDate = workReports.filter(report => report.workDate === dateString)
+
+    if (reportsForDate.length === 0) {
+      return null
+    }
+
+    // 같은 날짜에 여러 현장이 있을 경우 첫 번째 현장 표시하고 인원수는 합계
+    const totalManHours = reportsForDate.reduce((sum, report) => sum + report.manHours, 0)
+    const siteName = reportsForDate[0].siteName
+
+    return {
+      date: dateString,
+      site: siteName,
+      men: Math.round(totalManHours), // 공수를 인원수로 표시
+    }
+  }
+
+  // 현장명을 2글자씩 2행으로 표기 (HTML 참조와 동일)
+  const formatSiteName = (siteName: string) => {
+    if (!siteName) return '현장'
+    if (siteName.length <= 2) return siteName
+    if (siteName.length <= 4) {
+      const first = siteName.substring(0, 2)
+      const second = siteName.substring(2, 4)
+      return { first, second }
+    }
+    // 5글자 이상인 경우 앞 4글자만 2글자씩 나누어 표시
+    const first = siteName.substring(0, 2)
+    const second = siteName.substring(2, 4)
+    return { first, second }
   }
 
   // 달력 데이터 생성
@@ -635,9 +753,7 @@ const CalendarView: React.FC<{
       calendar.push({
         day: prevMonthDays - i,
         isCurrentMonth: false,
-        isToday: false,
-        hasWork: false,
-        workHours: 0,
+        isOtherMonth: true,
       })
     }
 
@@ -650,26 +766,24 @@ const CalendarView: React.FC<{
       // 실제 근무 데이터 확인
       const workData = getWorkDataForDate(year, month, day)
       const hasWork = !!workData
-      const workHours = workData?.workHours || 0
 
       calendar.push({
         day,
         isCurrentMonth: true,
+        isOtherMonth: false,
         isToday,
         hasWork,
-        workHours,
+        workData,
       })
     }
 
-    // 다음 달 날짜들 (35개 또는 42개로 맞추기)
+    // 다음 달 날짜들 (42개로 맞추기)
     const remainingCells = 42 - calendar.length
     for (let day = 1; day <= remainingCells; day++) {
       calendar.push({
         day,
         isCurrentMonth: false,
-        isToday: false,
-        hasWork: false,
-        workHours: 0,
+        isOtherMonth: true,
       })
     }
 
@@ -680,88 +794,197 @@ const CalendarView: React.FC<{
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 
   return (
-    <Card className="brand-card">
-      <CardContent className="p-0">
+    <>
+      {/* HTML 참조 디자인 캘린더 CSS */}
+      <style>{`
+        .cal-wrap { 
+          border: 1px solid #E6ECF4; 
+          border-radius: 14px; 
+          background: #fff; 
+          box-shadow: 0 2px 10px rgba(2,6,23,.04); 
+        }
+        .cal-head { 
+          display: flex; 
+          align-items: center; 
+          justify-content: space-between; 
+          padding: 14px 16px; 
+        }
+        .cal-title { 
+          font-weight: 700; 
+          color: var(--text, #111827); 
+          font-size: 18px;
+        }
+        .cal-grid { 
+          display: grid; 
+          grid-template-columns: repeat(7, minmax(0,1fr)); 
+          gap: 8px; 
+          padding: 12px; 
+        }
+        .dow { 
+          text-align: center; 
+          font-weight: 700; 
+          color: #64748B; 
+          padding: 8px 0; 
+          font-size: 13px; 
+        }
+        .dow.sun { 
+          color: #EF4444; 
+        }
+        .cell { 
+          min-height: 70px; 
+          border: 1px solid #EEF2F7; 
+          border-radius: 10px; 
+          padding: 4px; 
+          background: #fff; 
+          display: flex; 
+          flex-direction: column; 
+          align-items: flex-start; 
+          justify-content: flex-start; 
+          text-align: left; 
+          margin: 0; 
+          position: relative; 
+        }
+        .cell.out { 
+          opacity: .45; 
+        }
+        .cell.has-work {
+          background: #f8fafc;
+          border-color: #3b82f6;
+        }
+        .date { 
+          font-weight: 700; 
+          font-size: 14px; 
+          color: #111827; 
+          text-align: left; 
+          margin-bottom: 2px; 
+        }
+        .date.sun { 
+          color: #EF4444; 
+        }
+        .work-info {
+          margin-top: 1px;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .work-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 1px;
+          padding: 1px;
+          box-sizing: border-box;
+        }
+        .work-site {
+          font-family: "Noto Sans KR", system-ui, sans-serif;
+          font-weight: 700;
+          font-size: 10px;
+          color: #1A254F;
+          text-align: center;
+          line-height: 1.2;
+          margin: 0;
+          padding: 0;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .work-hours {
+          font-family: "Noto Sans KR", system-ui, sans-serif;
+          font-weight: 700;
+          font-size: 14px;
+          color: #0068FE;
+          text-align: center;
+          margin: 0;
+        }
+        .nav-btn {
+          padding: 8px;
+          border-radius: 6px;
+          border: none;
+          background: transparent;
+          color: #6b7280;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .nav-btn:hover {
+          background: #f9fafb;
+          color: #374151;
+        }
+        .nav-btn svg {
+          width: 20px;
+          height: 20px;
+        }
+      `}</style>
+
+      <div className="cal-wrap">
         {/* 달력 헤더 */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handlePrevMonth}
-            className="p-2 hover:bg-gray-50"
-          >
-            ←
-          </Button>
-          <h3 className="cal-title text-lg font-bold text-gray-800">
+        <div className="cal-head">
+          <button className="nav-btn" onClick={handlePrevMonth} aria-label="이전 달">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+          <h3 className="cal-title">
             {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
           </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleNextMonth}
-            className="p-2 hover:bg-gray-50"
-          >
-            →
-          </Button>
+          <button className="nav-btn" onClick={handleNextMonth} aria-label="다음 달">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
         </div>
 
         {/* 요일 헤더 */}
-        <div className="cal-grid pt-0 pb-2 grid grid-cols-7 gap-2 p-3">
+        <div className="cal-grid pt-0 pb-2">
           {weekDays.map((day, index) => (
-            <div
-              key={day}
-              className={`dow text-center font-bold text-sm py-2 ${
-                index === 0 ? 'text-red-500' : 'text-gray-600'
-              }`}
-            >
+            <div key={day} className={`dow ${index === 0 ? 'sun' : ''}`}>
               {day}
             </div>
           ))}
         </div>
 
         {/* 날짜 그리드 */}
-        <div className="cal-grid grid grid-cols-7 gap-2 pb-4 px-3">
-          {calendarData.map((dateInfo, index) => (
-            <div
-              key={index}
-              className={`cell min-h-[70px] border rounded-lg p-1 flex flex-col items-start justify-start text-left relative ${
-                dateInfo.isCurrentMonth
-                  ? 'border-gray-200 bg-white'
-                  : 'border-gray-100 bg-gray-50 opacity-45'
-              }`}
-            >
+        <div className="cal-grid pb-4" id="calGrid">
+          {calendarData.map((dateInfo, index) => {
+            const dayOfWeek = index % 7
+            const isSunday = dayOfWeek === 0
+
+            return (
               <div
-                className={`date font-bold text-sm mb-1 ${
-                  dateInfo.isToday
-                    ? 'text-blue-600'
-                    : index % 7 === 0 && dateInfo.isCurrentMonth
-                      ? 'text-red-500'
-                      : dateInfo.isCurrentMonth
-                        ? 'text-gray-800'
-                        : 'text-gray-400'
-                }`}
+                key={index}
+                className={`cell ${dateInfo.isOtherMonth ? 'out' : ''} ${dateInfo.hasWork ? 'has-work' : ''}`}
               >
-                {dateInfo.day}
-              </div>
-
-              {/* 근무 표시 */}
-              {dateInfo.hasWork && dateInfo.isCurrentMonth && (
-                <div className="absolute bottom-1 left-1 right-1">
-                  <div className="bg-blue-100 text-blue-800 text-xs px-1 py-0.5 rounded text-center">
-                    {dateInfo.workHours}h
-                  </div>
+                {/* 날짜 표시 */}
+                <div className={`date ${isSunday && dateInfo.isCurrentMonth ? 'sun' : ''}`}>
+                  {dateInfo.day}
                 </div>
-              )}
 
-              {/* 오늘 표시 */}
-              {dateInfo.isToday && (
-                <div className="absolute top-0 right-0 w-2 h-2 bg-blue-600 rounded-full"></div>
-              )}
-            </div>
-          ))}
+                {/* 작업 데이터가 있는 경우 표시 */}
+                {dateInfo.hasWork && dateInfo.workData && dateInfo.isCurrentMonth && (
+                  <div className="work-info">
+                    <div className="work-item">
+                      <div className="work-site">
+                        {(() => {
+                          const siteFormat = formatSiteName(dateInfo.workData.site)
+                          if (typeof siteFormat === 'string') {
+                            return siteFormat
+                          }
+                          return (
+                            <>
+                              {siteFormat.first}
+                              <br />
+                              {siteFormat.second}
+                            </>
+                          )
+                        })()}
+                      </div>
+                      <span className="work-hours">{dateInfo.workData.men || 1}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </>
   )
 }
 

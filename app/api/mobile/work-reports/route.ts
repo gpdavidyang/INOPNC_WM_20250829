@@ -99,6 +99,7 @@ export async function GET(request: NextRequest) {
         workDate: report.work_date,
         author: workerInfo?.profiles?.full_name || '작성자 미상',
         buildingName: locationInfo.building || '',
+        memberType: locationInfo.member_type?.join(', ') || '', // 부재명 추가
         block: locationInfo.block || '',
         dong: locationInfo.dong || '',
         ho: locationInfo.unit || '',

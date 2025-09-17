@@ -12,9 +12,7 @@ interface DrawerProps {
 
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const router = useRouter()
-  const { profile: authProfile, loading: authLoading, user } = useAuth()
-  const [userProfile, setUserProfile] = useState<any>(authProfile || null)
-  const [profileLoading, setProfileLoading] = useState(authLoading)
+  const { profile, loading: profileLoading, user } = useAuth()
   const [showAccountInfo, setShowAccountInfo] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
@@ -22,26 +20,17 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     new: '',
     confirm: '',
   })
-  const supabase = createClient()
 
-  // Use AuthProvider profile data instead of independent fetching
+  // Log profile data usage for debugging
   useEffect(() => {
-    if (authProfile) {
-      console.log('[DRAWER] Using AuthProvider profile data:', authProfile.full_name)
-      setUserProfile(authProfile)
-      setProfileLoading(false)
-    } else if (!authLoading) {
+    if (profile) {
+      console.log('[DRAWER] Using AuthProvider profile data:', profile.full_name)
+    } else if (!profileLoading) {
       console.log('[DRAWER] No profile available from AuthProvider')
-      setUserProfile(null)
-      setProfileLoading(false)
     } else {
       console.log('[DRAWER] AuthProvider still loading profile...')
-      setProfileLoading(authLoading)
     }
-  }, [authProfile, authLoading])
-
-  // Complex profile fetching useEffect removed - now using AuthProvider data
-  // This was the source of "[PROFILE] Fetch error (attempt 1): Error: Profile fetch timeout"
+  }, [profile, profileLoading])
 
   useEffect(() => {
     // Lock body scroll when drawer is open (base.html match)
@@ -126,8 +115,6 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
         // Immediately show feedback and close drawer
         onClose()
-        setUserProfile(null)
-        setProfileLoading(true)
 
         // Phase 1: Clear client-side storage (selective clearing to preserve user preferences)
         try {
@@ -328,13 +315,13 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
               <div className="profile-sec">
                 <div className="profile-header">
                   <div className="profile-name" id="profileUserName">
-                    {profileLoading ? '로딩 중...' : userProfile?.full_name || '사용자'}
+                    {profileLoading ? '로딩 중...' : profile?.full_name || '사용자'}
                     {!profileLoading && (
                       <span
                         className="important-tag"
                         style={{ position: 'relative', top: 0, right: 0, marginLeft: '8px' }}
                       >
-                        {getRoleDisplay(userProfile?.role || '')}
+                        {getRoleDisplay(profile?.role || '')}
                       </span>
                     )}
                   </div>
@@ -343,7 +330,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
                 <div className="profile-email" id="profileUserEmail">
-                  {profileLoading ? '로딩 중...' : userProfile?.email || ''}
+                  {profileLoading ? '로딩 중...' : profile?.email || ''}
                 </div>
               </div>
 
@@ -394,13 +381,13 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                     <>
                       <div className="account-info-item">
                         <span className="account-label">연락처</span>
-                        <span className="account-value">{userProfile?.phone || '미설정'}</span>
+                        <span className="account-value">{profile?.phone || '미설정'}</span>
                       </div>
                       <div className="account-info-item">
                         <span className="account-label">가입일</span>
                         <span className="account-value">
-                          {userProfile?.created_at
-                            ? new Date(userProfile.created_at)
+                          {profile?.created_at
+                            ? new Date(profile.created_at)
                                 .toLocaleDateString('ko-KR')
                                 .replace(/\./g, '.')
                             : '미설정'}
@@ -440,7 +427,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                       <input
                         type="text"
                         name="username"
-                        value={userProfile?.email || ''}
+                        value={profile?.email || ''}
                         readOnly
                         style={{ position: 'absolute', left: '-9999px', opacity: 0 }}
                         autoComplete="username"

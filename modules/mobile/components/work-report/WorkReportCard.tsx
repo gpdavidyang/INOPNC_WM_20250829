@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { ChevronRight, Calendar, User, Building } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { WorkReport } from './types'
 
 interface WorkReportCardProps {
@@ -26,27 +26,56 @@ export default function WorkReportCard({ report, onDetailClick }: WorkReportCard
       </div>
 
       <div className="card-content">
-        <div className="info-row">
-          <Calendar size={16} className="info-icon" />
-          <span className="info-text">{report.workDate}</span>
-        </div>
+        <div className="info-grid">
+          <div className="info-item">
+            <span className="info-label">작업일자</span>
+            <span className="info-value">{report.workDate}</span>
+          </div>
 
-        <div className="info-row">
-          <User size={16} className="info-icon" />
-          <span className="info-text">{report.author}</span>
-        </div>
+          <div className="info-item">
+            <span className="info-label">작성자</span>
+            <span className="info-value">{report.author}</span>
+          </div>
 
-        <div className="info-row">
-          <Building size={16} className="info-icon" />
-          <span className="info-text">
-            {report.buildingName} {report.block}-{report.dong}-{report.ho}
-          </span>
-        </div>
+          <div className="info-item">
+            <span className="info-label">건물명</span>
+            <span className="info-value">{report.buildingName}</span>
+          </div>
 
-        <div className="work-info">
-          <span className="work-process">{report.workProcess}</span>
-          <span className="work-type">{report.workType}</span>
-          <span className="man-hours">{report.manHours}시간</span>
+          <div className="info-item">
+            <span className="info-label">동-호수</span>
+            <span className="info-value">
+              {report.block}-{report.dong}-{report.ho}
+            </span>
+          </div>
+
+          <div className="info-item">
+            <span className="info-label">부재명</span>
+            <span className="info-value">{report.memberType || '-'}</span>
+          </div>
+
+          <div className="info-item">
+            <span className="info-label">작업공정</span>
+            <span className="info-value">{report.workProcess}</span>
+          </div>
+
+          <div className="info-item">
+            <span className="info-label">작업유형</span>
+            <span className="info-value">{report.workType || '-'}</span>
+          </div>
+
+          <div className="info-item">
+            <span className="info-label">공수</span>
+            <span className="info-value">{report.manHours}시간</span>
+          </div>
+
+          <div className="info-item">
+            <span className="info-label">NPC-1000</span>
+            <span className="info-value">
+              입고: {report.npcData.inbound} | 사용: {report.npcData.used} | 재고:{' '}
+              {report.npcData.stock}
+            </span>
+          </div>
         </div>
       </div>
 

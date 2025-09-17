@@ -83,99 +83,13 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [userProfile, setUserProfile] = useState<any>(authProfile || initialProfile || null)
   const [profileLoading, setProfileLoading] = useState(false)
 
-  // Set today's date on mount and initialize session sync
+  // Set today's date on mount - removed duplicate session monitoring
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
     setWorkDate(today)
 
-    // Initialize session synchronization
+    // Initialize session synchronization (lightweight)
     initSessionSync()
-
-    // Add real-time session validation
-    const supabase = createClient()
-    let sessionCheckInterval: NodeJS.Timeout | null = null
-
-    const validateCurrentSession = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession()
-
-        if (error || !session || !session.user) {
-          console.log('Session expired or invalid, redirecting to login')
-          localStorage.clear()
-          sessionStorage.clear()
-          window.location.replace('/auth/login')
-          return false
-        }
-
-        // Check if token is about to expire (within 5 minutes)
-        const expiresAt = session.expires_at
-        if (expiresAt) {
-          const timeUntilExpiry = expiresAt * 1000 - Date.now()
-          const fiveMinutes = 5 * 60 * 1000
-
-          if (timeUntilExpiry < fiveMinutes) {
-            console.log('Token expiring soon, refreshing session...')
-            const { error: refreshError } = await supabase.auth.refreshSession()
-            if (refreshError) {
-              console.error('Failed to refresh session:', refreshError)
-              window.location.replace('/auth/login')
-              return false
-            }
-          }
-        }
-
-        return true
-      } catch (error) {
-        console.error('Session validation error:', error)
-        window.location.replace('/auth/login')
-        return false
-      }
-    }
-
-    // Initial validation
-    validateCurrentSession()
-
-    // Set up periodic session checks (every 2 minutes)
-    sessionCheckInterval = setInterval(validateCurrentSession, 2 * 60 * 1000)
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
-        if (event === 'SIGNED_OUT') {
-          console.log('User signed out, redirecting to login')
-          window.location.replace('/auth/login')
-        } else if (event === 'TOKEN_REFRESHED' && session) {
-          console.log('Token refreshed successfully')
-        }
-      }
-    })
-
-    // Listen for network errors and 401 responses
-    const handleFetchError = (event: Event) => {
-      const fetchEvent = event as any
-      if (fetchEvent.detail && fetchEvent.detail.status === 401) {
-        console.log('Received 401 error, session may be invalid')
-        validateCurrentSession()
-      }
-    }
-
-    window.addEventListener('fetch-error', handleFetchError)
-
-    // Clean up function
-    return () => {
-      if (sessionCheckInterval) {
-        clearInterval(sessionCheckInterval)
-      }
-      if (subscription) {
-        subscription.unsubscribe()
-      }
-      window.removeEventListener('fetch-error', handleFetchError)
-    }
   }, [])
 
   // Update profile when auth context changes
@@ -189,13 +103,13 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     }
   }, [authProfile, initialProfile])
 
-  // Refresh session if no user is found
+  // Simplified user check - rely on AuthProvider for session management
   useEffect(() => {
     if (!authLoading && !user && !initialUser) {
-      console.log('No user found, attempting to refresh session...')
-      refreshSession()
+      console.log('No user available, user should be redirected by middleware')
+      // Let middleware handle redirect - don't trigger refreshSession here to avoid loops
     }
-  }, [authLoading, user, initialUser, refreshSession])
+  }, [authLoading, user, initialUser])
 
   // Handle calendar icon click to trigger date picker
   const handleCalendarClick = () => {
