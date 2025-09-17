@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
 import { Card, CardContent, Button, Row, Stack } from '@/modules/shared/ui'
 
@@ -47,6 +46,76 @@ const BRAND_STYLES = `
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
   }
+  
+  /* Mobile Layout without header */
+  .mobile-layout {
+    min-height: 100vh;
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .mobile-main-no-header {
+    flex: 1;
+    padding-top: 20px;
+    padding-bottom: 84px; /* Nav height + padding */
+    overflow-y: auto;
+  }
+  
+  /* Mobile Navigation Styles */
+  .mobile-nav-fixed {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e5e5;
+    z-index: 1000;
+  }
+  
+  .mobile-nav-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 0;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+  
+  .mobile-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 12px;
+    text-decoration: none;
+    color: #666;
+    transition: color 0.2s;
+  }
+  
+  .mobile-nav-item.mobile-nav-active {
+    color: var(--brand-accent);
+  }
+  
+  .mobile-nav-icon {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+  
+  .mobile-nav-label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+  
+  /* Safe area handling for iOS */
+  @supports(padding: max(0px)) {
+    .mobile-main-no-header {
+      padding-bottom: max(84px, calc(84px + env(safe-area-inset-bottom, 0)));
+    }
+    
+    .mobile-nav-fixed {
+      padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+  }
 `
 
 // API 데이터 타입 정의
@@ -71,47 +140,69 @@ export const OutputStatusPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'work' | 'pay'>('work')
 
   return (
-    <MobileLayout
-      title="출력현황"
-      userRole={profile?.role as 'worker' | 'site_manager'}
-      showBack={true}
-    >
+    <div className="mobile-layout">
       <style dangerouslySetInnerHTML={{ __html: BRAND_STYLES }} />
-      <div className="max-w-md mx-auto" style={{ fontFamily: 'var(--brand-font)' }}>
-        {/* Tab Navigation */}
-        <nav className="line-tabs mb-4">
-          <div className="flex">
-            <button
-              className={`flex-1 px-4 py-3 text-center border-b-2 transition-colors ${
-                activeTab === 'work' ? 'font-medium' : 'border-gray-200 text-gray-500'
-              }`}
-              style={{
-                borderBottomColor: activeTab === 'work' ? 'var(--brand-accent)' : '#e5e7eb',
-                color: activeTab === 'work' ? 'var(--brand-accent)' : '#6b7280',
-              }}
-              onClick={() => setActiveTab('work')}
-            >
-              출력현황
-            </button>
-            <button
-              className={`flex-1 px-4 py-3 text-center border-b-2 transition-colors ${
-                activeTab === 'pay' ? 'font-medium' : 'border-gray-200 text-gray-500'
-              }`}
-              style={{
-                borderBottomColor: activeTab === 'pay' ? 'var(--brand-accent)' : '#e5e7eb',
-                color: activeTab === 'pay' ? 'var(--brand-accent)' : '#6b7280',
-              }}
-              onClick={() => setActiveTab('pay')}
-            >
-              급여현황
-            </button>
-          </div>
-        </nav>
 
-        {/* Tab Content */}
-        <div className="p-4">{activeTab === 'work' ? <WorkOutputTab /> : <SalaryTab />}</div>
-      </div>
-    </MobileLayout>
+      {/* Main Content without header */}
+      <main className="mobile-main-no-header">
+        <div className="max-w-md mx-auto" style={{ fontFamily: 'var(--brand-font)' }}>
+          {/* Tab Navigation */}
+          <nav className="line-tabs mb-4">
+            <div className="flex">
+              <button
+                className={`flex-1 px-4 py-3 text-center border-b-2 transition-colors ${
+                  activeTab === 'work' ? 'font-medium' : 'border-gray-200 text-gray-500'
+                }`}
+                style={{
+                  borderBottomColor: activeTab === 'work' ? 'var(--brand-accent)' : '#e5e7eb',
+                  color: activeTab === 'work' ? 'var(--brand-accent)' : '#6b7280',
+                }}
+                onClick={() => setActiveTab('work')}
+              >
+                출력현황
+              </button>
+              <button
+                className={`flex-1 px-4 py-3 text-center border-b-2 transition-colors ${
+                  activeTab === 'pay' ? 'font-medium' : 'border-gray-200 text-gray-500'
+                }`}
+                style={{
+                  borderBottomColor: activeTab === 'pay' ? 'var(--brand-accent)' : '#e5e7eb',
+                  color: activeTab === 'pay' ? 'var(--brand-accent)' : '#6b7280',
+                }}
+                onClick={() => setActiveTab('pay')}
+              >
+                급여현황
+              </button>
+            </div>
+          </nav>
+
+          {/* Tab Content */}
+          <div className="p-4">{activeTab === 'work' ? <WorkOutputTab /> : <SalaryTab />}</div>
+        </div>
+      </main>
+
+      {/* Mobile Navigation */}
+      <nav className="mobile-nav-fixed">
+        <div className="mobile-nav-container">
+          <a href="/mobile" className="mobile-nav-item">
+            <span className="mobile-nav-icon">🏠</span>
+            <span className="mobile-nav-label">홈</span>
+          </a>
+          <a href="/mobile/worklog" className="mobile-nav-item">
+            <span className="mobile-nav-icon">📝</span>
+            <span className="mobile-nav-label">작업일지</span>
+          </a>
+          <a href="/mobile/output-status" className="mobile-nav-item mobile-nav-active">
+            <span className="mobile-nav-icon">📊</span>
+            <span className="mobile-nav-label">출력현황</span>
+          </a>
+          <a href="/mobile/documents" className="mobile-nav-item">
+            <span className="mobile-nav-icon">📁</span>
+            <span className="mobile-nav-label">문서함</span>
+          </a>
+        </div>
+      </nav>
+    </div>
   )
 }
 
