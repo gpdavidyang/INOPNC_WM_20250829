@@ -31,19 +31,29 @@ export function useMobileAuth(): UseMobileAuthReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const sessionRefreshing = useRef(false)
-  
+
   const supabase = createClient()
 
   const getSession = useCallback(async () => {
     if (sessionRefreshing.current) return
-    
+
     try {
       sessionRefreshing.current = true
       setError(null)
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      
+      console.log('[MOBILE-AUTH] Getting session...')
+
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
       if (sessionError) {
-        console.error('Session error:', sessionError)
+        console.error('[MOBILE-AUTH] Session error:', sessionError)
+        console.error('[MOBILE-AUTH] Session error details:', {
+          code: sessionError.message,
+          url: window.location.href,
+          userAgent: navigator.userAgent,
+        })
         setError(sessionError.message)
         setUser(null)
         setProfile(null)
@@ -51,14 +61,23 @@ export function useMobileAuth(): UseMobileAuthReturn {
       }
 
       if (session?.user) {
+        console.log('[MOBILE-AUTH] Session found for user:', session.user.email)
         setUser(session.user)
         await fetchProfile(session.user.id)
       } else {
+        console.log('[MOBILE-AUTH] No active session found')
         setUser(null)
         setProfile(null)
       }
     } catch (err) {
-      console.error('Get session error:', err)
+      console.error('[MOBILE-AUTH] Get session exception:', err)
+      console.error('[MOBILE-AUTH] Exception details:', {
+        name: err instanceof Error ? err.name : 'Unknown',
+        message: err instanceof Error ? err.message : 'Failed to get session',
+        stack: err instanceof Error ? err.stack : 'No stack trace',
+        url: window.location.href,
+        userAgent: navigator.userAgent,
+      })
       setError(err instanceof Error ? err.message : 'Failed to get session')
       setUser(null)
       setProfile(null)
@@ -70,6 +89,8 @@ export function useMobileAuth(): UseMobileAuthReturn {
 
   const fetchProfile = async (userId: string) => {
     try {
+      console.log('[MOBILE-AUTH] Fetching profile for user:', userId)
+
       const { data, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -77,16 +98,28 @@ export function useMobileAuth(): UseMobileAuthReturn {
         .single()
 
       if (profileError) {
-        console.error('Profile fetch error:', profileError)
+        console.error('[MOBILE-AUTH] Profile fetch error:', profileError)
+        console.error('[MOBILE-AUTH] Error details:', {
+          code: profileError.code,
+          message: profileError.message,
+          details: profileError.details,
+          hint: profileError.hint,
+        })
         setError(profileError.message)
         setProfile(null)
         return
       }
 
+      console.log('[MOBILE-AUTH] Profile fetched successfully:', data?.full_name)
       setProfile(data)
       setError(null)
     } catch (err) {
-      console.error('Profile fetch error:', err)
+      console.error('[MOBILE-AUTH] Profile fetch exception:', err)
+      console.error('[MOBILE-AUTH] Exception details:', {
+        name: err instanceof Error ? err.name : 'Unknown',
+        message: err instanceof Error ? err.message : 'Failed to fetch profile',
+        stack: err instanceof Error ? err.stack : 'No stack trace',
+      })
       setError(err instanceof Error ? err.message : 'Failed to fetch profile')
       setProfile(null)
     }
@@ -111,7 +144,9 @@ export function useMobileAuth(): UseMobileAuthReturn {
   useEffect(() => {
     getSession()
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setProfile(null)
@@ -129,7 +164,9 @@ export function useMobileAuth(): UseMobileAuthReturn {
   }, [getSession])
 
   // Computed properties for role checks
-  const canAccessMobile = !!(profile?.role && ['worker', 'site_manager', 'customer_manager'].includes(profile.role))
+  const canAccessMobile = !!(
+    profile?.role && ['worker', 'site_manager', 'customer_manager'].includes(profile.role)
+  )
   const isWorker = profile?.role === 'worker'
   const isSiteManager = profile?.role === 'site_manager'
   const isCustomerManager = profile?.role === 'customer_manager'
@@ -144,7 +181,7 @@ export function useMobileAuth(): UseMobileAuthReturn {
     canAccessMobile,
     isWorker,
     isSiteManager,
-    isCustomerManager
+    isCustomerManager,
   }
 }
 

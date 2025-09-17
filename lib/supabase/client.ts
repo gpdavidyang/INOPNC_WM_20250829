@@ -40,22 +40,17 @@ function validateClientEnvironmentVars() {
   }
 
   if (errors.length > 0) {
-    // In production, return dummy values to prevent crash
-    if (process.env.NODE_ENV === 'production') {
-      console.error('Supabase configuration error. Please check environment variables.')
-      // Return dummy values to prevent complete failure
-      return {
-        SUPABASE_URL: 'https://placeholder.supabase.co',
-        SUPABASE_ANON_KEY: 'placeholder-key-for-error-handling-only',
-      }
-    }
-
     const errorMessage = `Supabase client environment validation failed: ${errors.join(', ')}`
     logger.error('Client environment validation failed:', {
       errors,
       environment: typeof window !== 'undefined' ? 'browser' : 'ssr',
       nodeEnv: process.env.NODE_ENV,
+      urlStart: SUPABASE_URL ? SUPABASE_URL.substring(0, 20) + '...' : 'undefined',
+      keyLength: SUPABASE_ANON_KEY?.length || 0,
     })
+
+    // CRITICAL FIX: Never use dummy values in production - this causes silent failures
+    // Always throw the error to surface the real issue
     throw new Error(errorMessage)
   }
 
@@ -489,14 +484,10 @@ export function createClient(config?: ClientConfig, forceNew = false) {
         validatedUrl = validated.SUPABASE_URL
         validatedKey = validated.SUPABASE_ANON_KEY
       } catch (error) {
-        // In production, use placeholder values to prevent crash
-        if (process.env.NODE_ENV === 'production') {
-          console.error('Using fallback Supabase configuration')
-          validatedUrl = 'https://placeholder.supabase.co'
-          validatedKey = 'placeholder-key-for-error-handling-only'
-        } else {
-          throw error
-        }
+        // CRITICAL FIX: Always throw validation errors - never use placeholder values
+        // This ensures the real configuration issue is surfaced
+        console.error('Supabase environment validation failed:', error)
+        throw error
       }
 
       browserClient = createBrowserClient<Database>(validatedUrl, validatedKey, {
@@ -562,8 +553,12 @@ export function createClient(config?: ClientConfig, forceNew = false) {
     } catch (error) {
       console.error('[SUPABASE-CLIENT] Failed to create browser client:', error)
       isInitializing = false
-      // Return a dummy client to prevent crash
-      return null as any
+
+      // CRITICAL FIX: Don't return null - throw the error to surface configuration issues
+      // This ensures proper error handling and prevents silent failures
+      throw new Error(
+        `Failed to initialize Supabase client: ${error instanceof Error ? error.message : 'Unknown error'}`
+      )
     }
   }
 

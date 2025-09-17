@@ -224,7 +224,7 @@ const HomeContent: React.FC = () => {
             </li>
             <li>
               <a
-                href="/mobile/work-report"
+                href="/mobile/worklog"
                 className="flex flex-col items-center p-2 rounded-lg transition-all duration-300 hover:transform hover:-translate-y-1 hover:scale-105"
               >
                 <img
