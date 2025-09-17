@@ -7,15 +7,19 @@ import { createLogger } from '@/lib/utils/logger'
 const logger = createLogger('SUPABASE-CLIENT')
 
 // Direct access to environment variables for client-side with aggressive cleaning for production
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()?.replace(/\\n/g, '')?.replace(/\n/g, '')
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()?.replace(/\\n/g, '')?.replace(/\n/g, '')
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()
+  ?.replace(/\\n/g, '')
+  ?.replace(/\n/g, '')
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()
+  ?.replace(/\\n/g, '')
+  ?.replace(/\n/g, '')
 
 // Removed window.__supabase_cookies caching to prevent stale cookie issues
 
 // Enhanced client-side validation with detailed error information
 function validateClientEnvironmentVars() {
   const errors = []
-  
+
   if (!SUPABASE_URL) {
     errors.push('NEXT_PUBLIC_SUPABASE_URL is missing or empty')
   } else {
@@ -28,33 +32,33 @@ function validateClientEnvironmentVars() {
       errors.push(`NEXT_PUBLIC_SUPABASE_URL is not a valid URL`)
     }
   }
-  
+
   if (!SUPABASE_ANON_KEY) {
     errors.push('NEXT_PUBLIC_SUPABASE_ANON_KEY is missing or empty')
   } else if (SUPABASE_ANON_KEY.length < 30) {
     errors.push(`NEXT_PUBLIC_SUPABASE_ANON_KEY appears invalid`)
   }
-  
+
   if (errors.length > 0) {
     // In production, return dummy values to prevent crash
     if (process.env.NODE_ENV === 'production') {
       console.error('Supabase configuration error. Please check environment variables.')
       // Return dummy values to prevent complete failure
-      return { 
+      return {
         SUPABASE_URL: 'https://placeholder.supabase.co',
-        SUPABASE_ANON_KEY: 'placeholder-key-for-error-handling-only'
+        SUPABASE_ANON_KEY: 'placeholder-key-for-error-handling-only',
       }
     }
-    
+
     const errorMessage = `Supabase client environment validation failed: ${errors.join(', ')}`
     logger.error('Client environment validation failed:', {
       errors,
       environment: typeof window !== 'undefined' ? 'browser' : 'ssr',
-      nodeEnv: process.env.NODE_ENV
+      nodeEnv: process.env.NODE_ENV,
     })
     throw new Error(errorMessage)
   }
-  
+
   return { SUPABASE_URL, SUPABASE_ANON_KEY }
 }
 
@@ -91,7 +95,7 @@ const defaultConfig: ClientConfig = {
   enableQueryCache: true,
   enablePerformanceMonitoring: true,
   defaultCacheTTL: CACHE_TTL,
-  slowQueryThreshold: 1000
+  slowQueryThreshold: 1000,
 }
 
 // Enhanced client with monitoring and optimization
@@ -101,118 +105,117 @@ class EnhancedSupabaseClient {
 
   constructor(config: ClientConfig = {}) {
     this.config = { ...defaultConfig, ...config }
-    
+
     // CRITICAL FIX: Ensure proper cookie handling for session synchronization
     // Create client with explicit cookie configuration and realtime settings
-    this.client = createBrowserClient<Database>(
-      SUPABASE_URL!,
-      SUPABASE_ANON_KEY!,
-      {
-        realtime: {
-          // Enhanced WebSocket connection settings for better reliability
-          heartbeatIntervalMs: 30000,      // 30 seconds heartbeat
-          reconnectAfterMs: (attempt) => Math.min(attempt * 1000, 30000), // Exponential backoff
-          timeout: 10000,                  // 10 seconds timeout
-          logger: (level, message, ...args) => {
-            // Use centralized logger - only log errors to reduce noise
-            if (level === 'error') {
-              logger.error(`REALTIME-${level.toUpperCase()}`, message, ...args)
-            }
-            // Suppress all other realtime logs unless explicitly debugging
-            else if (process.env.DEBUG_REALTIME === 'true') {
-              if (level === 'warn') {
-                logger.warn(`REALTIME-${level.toUpperCase()}`, message, ...args)
-              } else {
-                logger.debug(`REALTIME-${level.toUpperCase()}`, message, ...args)
-              }
+    this.client = createBrowserClient<Database>(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      realtime: {
+        // Enhanced WebSocket connection settings for better reliability
+        heartbeatIntervalMs: 30000, // 30 seconds heartbeat
+        reconnectAfterMs: attempt => Math.min(attempt * 1000, 30000), // Exponential backoff
+        timeout: 10000, // 10 seconds timeout
+        logger: (level, message, ...args) => {
+          // Use centralized logger - only log errors to reduce noise
+          if (level === 'error') {
+            logger.error(`REALTIME-${level.toUpperCase()}`, message, ...args)
+          }
+          // Suppress all other realtime logs unless explicitly debugging
+          else if (process.env.DEBUG_REALTIME === 'true') {
+            if (level === 'warn') {
+              logger.warn(`REALTIME-${level.toUpperCase()}`, message, ...args)
+            } else {
+              logger.debug(`REALTIME-${level.toUpperCase()}`, message, ...args)
             }
           }
         },
-        cookies: {
-          // Get all cookies from document.cookie for proper session reading
-          getAll() {
-            const cookies: { name: string; value: string }[] = []
-            if (typeof document !== 'undefined') {
-              const cookieString = document.cookie
-              if (cookieString) {
-                cookieString.split(';').forEach(cookie => {
-                  const [name, ...valueParts] = cookie.trim().split('=')
-                  if (name) {
-                    const value = valueParts.join('=') // Handle values with '=' in them
-                    cookies.push({ 
-                      name, 
-                      value: value ? decodeURIComponent(value) : '' 
-                    })
-                  }
-                })
-              }
-            }
-            // Debug cookie reading - only when explicitly enabled
-            if (process.env.DEBUG_DATABASE === 'true') {
-              logger.debug('Reading cookies:', cookies.filter(c => c.name.startsWith('sb-')).map(c => c.name))
-            }
-            return cookies
-          },
-          // Set cookies with proper options for session persistence
-          setAll(cookiesToSet) {
-            if (typeof document !== 'undefined') {
-              cookiesToSet.forEach(({ name, value, options }) => {
-                let cookieString = `${name}=${encodeURIComponent(value || '')}`
-                
-                // Set proper cookie options for session persistence
-                if (options?.maxAge) {
-                  cookieString += `; max-age=${options.maxAge}`
-                }
-                if (options?.expires) {
-                  cookieString += `; expires=${options.expires.toUTCString()}`
-                }
-                // Always set path to root for session cookies
-                cookieString += `; path=${options?.path || '/'}`
-                
-                if (options?.domain) {
-                  cookieString += `; domain=${options.domain}`
-                }
-                if (options?.secure) {
-                  cookieString += '; secure'
-                }
-                // Use 'lax' for better compatibility with server-side sessions
-                cookieString += `; samesite=${options?.sameSite || 'lax'}`
-                
-                // CRITICAL FIX: Set max-age for refresh tokens to prevent expiry issues
-                if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
-                  cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
-                }
-                
-                document.cookie = cookieString
-                // Debug cookie setting only in development
-                if (process.env.NODE_ENV === 'development') {
-                  logger.debug('[SUPABASE-CLIENT] Setting cookie:', name)
+      },
+      cookies: {
+        // Get all cookies from document.cookie for proper session reading
+        getAll() {
+          const cookies: { name: string; value: string }[] = []
+          if (typeof document !== 'undefined') {
+            const cookieString = document.cookie
+            if (cookieString) {
+              cookieString.split(';').forEach(cookie => {
+                const [name, ...valueParts] = cookie.trim().split('=')
+                if (name) {
+                  const value = valueParts.join('=') // Handle values with '=' in them
+                  cookies.push({
+                    name,
+                    value: value ? decodeURIComponent(value) : '',
+                  })
                 }
               })
             }
           }
-        }
-      }
-    )
+          // Debug cookie reading - only when explicitly enabled
+          if (process.env.DEBUG_DATABASE === 'true') {
+            logger.debug(
+              'Reading cookies:',
+              cookies.filter(c => c.name.startsWith('sb-')).map(c => c.name)
+            )
+          }
+          return cookies
+        },
+        // Set cookies with proper options for session persistence
+        setAll(cookiesToSet) {
+          if (typeof document !== 'undefined') {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              let cookieString = `${name}=${encodeURIComponent(value || '')}`
+
+              // Set proper cookie options for session persistence
+              if (options?.maxAge) {
+                cookieString += `; max-age=${options.maxAge}`
+              }
+              if (options?.expires) {
+                cookieString += `; expires=${options.expires.toUTCString()}`
+              }
+              // Always set path to root for session cookies
+              cookieString += `; path=${options?.path || '/'}`
+
+              if (options?.domain) {
+                cookieString += `; domain=${options.domain}`
+              }
+              if (options?.secure) {
+                cookieString += '; secure'
+              }
+              // Use 'lax' for better compatibility with server-side sessions
+              cookieString += `; samesite=${options?.sameSite || 'lax'}`
+
+              // CRITICAL FIX: Set max-age for refresh tokens to prevent expiry issues
+              if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
+                cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
+              }
+
+              document.cookie = cookieString
+              // Debug cookie setting only in development
+              if (process.env.NODE_ENV === 'development') {
+                logger.debug('[SUPABASE-CLIENT] Setting cookie:', name)
+              }
+            })
+          }
+        },
+      },
+    })
   }
 
   // Wrap queries with performance monitoring and caching
   from(table: keyof Database['public']['Tables']) {
     const originalFrom = this.client.from(table)
-    
+
     return {
       ...originalFrom,
       select: (columns?: string) => {
         const query = originalFrom.select(columns)
-        
+
         return this.wrapQueryBuilder(query, table, 'select', columns)
       },
-      
+
       // Add monitoring to other operations
       insert: (values: any) => this.wrapMutation(originalFrom.insert(values), table, 'insert'),
       update: (values: any) => this.wrapMutation(originalFrom.update(values), table, 'update'),
       delete: () => this.wrapMutation(originalFrom.delete(), table, 'delete'),
-      upsert: (values: any) => this.wrapMutation(originalFrom.upsert(values), table, 'upsert')
+      upsert: (values: any) => this.wrapMutation(originalFrom.upsert(values), table, 'upsert'),
     }
   }
 
@@ -223,7 +226,7 @@ class EnhancedSupabaseClient {
     }
 
     const cacheKey = this.generateCacheKey(table, operation, columns)
-    
+
     // Return a proxy that preserves all query builder methods
     return new Proxy(query, {
       get: (target, prop) => {
@@ -231,73 +234,76 @@ class EnhancedSupabaseClient {
         if (prop === 'then' || prop === 'catch' || prop === 'finally') {
           return async (...args: any[]) => {
             const startTime = performance.now()
-            
-            return Sentry.startSpan({
-              name: `Supabase ${operation}: ${table}`,
-              op: 'db.query',
-              attributes: {
-                'db.table': table,
-                'db.operation': operation,
-                'db.columns': columns || '*'
-              }
-            }, async (span) => {
-              try {
-                // Check cache for SELECT operations
-                if (operation === 'select' && this.config.enableQueryCache) {
-                  const cached = this.getCachedQuery(cacheKey)
-                  if (cached) {
-                    performanceTracker.recordMetric('supabaseCacheHit', 1)
-                    span.setAttribute('cache.hit', true)
-                    return Promise.resolve(cached)
-                  }
-                }
-                
-                const result = await target[prop](...args)
-                const duration = performance.now() - startTime
-                
-                performanceTracker.recordMetric('supabaseQueryTime', duration)
-                span.setMeasurement?.('db.query.duration', duration, 'millisecond')
-                
-                if (duration > this.config.slowQueryThreshold!) {
-                  Sentry.captureMessage(
-                    `Slow Supabase ${operation}: ${table} took ${duration}ms`,
-                    'warning'
-                  )
-                }
-                
-                // Cache successful SELECT results
-                if (operation === 'select' && this.config.enableQueryCache && result?.data) {
-                  this.setCachedQuery(cacheKey, result, this.config.defaultCacheTTL!)
-                  performanceTracker.recordMetric('supabaseCacheMiss', 1)
-                }
-                
-                return result
-              } catch (error) {
-                const duration = performance.now() - startTime
-                span.setMeasurement?.('db.query.duration', duration, 'millisecond')
-                
-                Sentry.captureException(error, {
-                  tags: { component: 'supabase-client' },
-                  contexts: {
-                    query: {
-                      table,
-                      operation,
-                      columns,
-                      duration
+
+            return Sentry.startSpan(
+              {
+                name: `Supabase ${operation}: ${table}`,
+                op: 'db.query',
+                attributes: {
+                  'db.table': table,
+                  'db.operation': operation,
+                  'db.columns': columns || '*',
+                },
+              },
+              async span => {
+                try {
+                  // Check cache for SELECT operations
+                  if (operation === 'select' && this.config.enableQueryCache) {
+                    const cached = this.getCachedQuery(cacheKey)
+                    if (cached) {
+                      performanceTracker.recordMetric('supabaseCacheHit', 1)
+                      span.setAttribute('cache.hit', true)
+                      return Promise.resolve(cached)
                     }
                   }
-                })
-                
-                performanceTracker.recordMetric('supabaseQueryError', 1)
-                throw error
+
+                  const result = await target[prop](...args)
+                  const duration = performance.now() - startTime
+
+                  performanceTracker.recordMetric('supabaseQueryTime', duration)
+                  span.setMeasurement?.('db.query.duration', duration, 'millisecond')
+
+                  if (duration > this.config.slowQueryThreshold!) {
+                    Sentry.captureMessage(
+                      `Slow Supabase ${operation}: ${table} took ${duration}ms`,
+                      'warning'
+                    )
+                  }
+
+                  // Cache successful SELECT results
+                  if (operation === 'select' && this.config.enableQueryCache && result?.data) {
+                    this.setCachedQuery(cacheKey, result, this.config.defaultCacheTTL!)
+                    performanceTracker.recordMetric('supabaseCacheMiss', 1)
+                  }
+
+                  return result
+                } catch (error) {
+                  const duration = performance.now() - startTime
+                  span.setMeasurement?.('db.query.duration', duration, 'millisecond')
+
+                  Sentry.captureException(error, {
+                    tags: { component: 'supabase-client' },
+                    contexts: {
+                      query: {
+                        table,
+                        operation,
+                        columns,
+                        duration,
+                      },
+                    },
+                  })
+
+                  performanceTracker.recordMetric('supabaseQueryError', 1)
+                  throw error
+                }
               }
-            })
+            )
           }
         }
-        
+
         // For all other properties, return them as-is to preserve the query builder chain
         const value = target[prop]
-        
+
         // If it's a function, wrap it to maintain the proxy chain
         if (typeof value === 'function') {
           return (...args: any[]) => {
@@ -309,9 +315,9 @@ class EnhancedSupabaseClient {
             return result
           }
         }
-        
+
         return value
-      }
+      },
     })
   }
 
@@ -325,55 +331,58 @@ class EnhancedSupabaseClient {
       ...query,
       then: async (resolve: any, reject: any) => {
         const startTime = performance.now()
-        
-        return Sentry.startSpan({
-          name: `Supabase ${operation}: ${table}`,
-          op: 'db.mutation',
-          attributes: {
-            'db.table': table,
-            'db.operation': operation
-          }
-        }, async (span) => {
-          try {
-            const result = await query
-            const duration = performance.now() - startTime
-            
-            performanceTracker.recordMetric('supabaseMutationTime', duration)
-            span.setMeasurement?.('db.mutation.duration', duration, 'millisecond')
-            
-            if (duration > this.config.slowQueryThreshold!) {
-              Sentry.captureMessage(
-                `Slow Supabase ${operation}: ${table} took ${duration}ms`,
-                'warning'
-              )
-            }
-            
-            // Clear relevant cache entries after mutations
-            if (this.config.enableQueryCache) {
-              this.invalidateTableCache(table)
-            }
-            
-            return resolve(result)
-          } catch (error) {
-            const duration = performance.now() - startTime
-            span.setMeasurement?.('db.mutation.duration', duration, 'millisecond')
-            
-            Sentry.captureException(error, {
-              tags: { component: 'supabase-client' },
-              contexts: {
-                mutation: {
-                  table,
-                  operation,
-                  duration
-                }
+
+        return Sentry.startSpan(
+          {
+            name: `Supabase ${operation}: ${table}`,
+            op: 'db.mutation',
+            attributes: {
+              'db.table': table,
+              'db.operation': operation,
+            },
+          },
+          async span => {
+            try {
+              const result = await query
+              const duration = performance.now() - startTime
+
+              performanceTracker.recordMetric('supabaseMutationTime', duration)
+              span.setMeasurement?.('db.mutation.duration', duration, 'millisecond')
+
+              if (duration > this.config.slowQueryThreshold!) {
+                Sentry.captureMessage(
+                  `Slow Supabase ${operation}: ${table} took ${duration}ms`,
+                  'warning'
+                )
               }
-            })
-            
-            performanceTracker.recordMetric('supabaseMutationError', 1)
-            return reject(error)
+
+              // Clear relevant cache entries after mutations
+              if (this.config.enableQueryCache) {
+                this.invalidateTableCache(table)
+              }
+
+              return resolve(result)
+            } catch (error) {
+              const duration = performance.now() - startTime
+              span.setMeasurement?.('db.mutation.duration', duration, 'millisecond')
+
+              Sentry.captureException(error, {
+                tags: { component: 'supabase-client' },
+                contexts: {
+                  mutation: {
+                    table,
+                    operation,
+                    duration,
+                  },
+                },
+              })
+
+              performanceTracker.recordMetric('supabaseMutationError', 1)
+              return reject(error)
+            }
           }
-        })
-      }
+        )
+      },
     }
   }
 
@@ -390,12 +399,11 @@ class EnhancedSupabaseClient {
       from: (bucket: string) => ({
         ...this.client.storage.from(bucket),
         upload: async (path: string, file: any, options?: any) => {
-          return performanceTracker.trackApiCall(
-            `storage.upload.${bucket}`,
-            () => this.client.storage.from(bucket).upload(path, file, options)
+          return performanceTracker.trackApiCall(`storage.upload.${bucket}`, () =>
+            this.client.storage.from(bucket).upload(path, file, options)
           )
-        }
-      })
+        },
+      }),
     }
   }
 
@@ -407,12 +415,12 @@ class EnhancedSupabaseClient {
   private getCachedQuery(key: string) {
     const cached = queryCache.get(key)
     if (!cached) return null
-    
+
     if (Date.now() - cached.timestamp > cached.ttl) {
       queryCache.delete(key)
       return null
     }
-    
+
     return cached.data
   }
 
@@ -420,7 +428,7 @@ class EnhancedSupabaseClient {
     queryCache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl
+      ttl,
     })
   }
 
@@ -436,7 +444,7 @@ class EnhancedSupabaseClient {
   getCacheStats() {
     return {
       size: queryCache.size,
-      entries: Array.from(queryCache.keys())
+      entries: Array.from(queryCache.keys()),
     }
   }
 
@@ -459,14 +467,23 @@ class EnhancedSupabaseClient {
 // Multiple clients can cause session sync issues and performance problems
 let browserClient: ReturnType<typeof createBrowserClient<Database>> | undefined
 
-export function createClient(config?: ClientConfig) {
-  // CRITICAL FIX: Use singleton to prevent multiple clients and infinite loops
-  if (!browserClient) {
+// Add a flag to check if we're creating the client for the first time
+let isInitializing = false
+
+export function createClient(config?: ClientConfig, forceNew = false) {
+  // CRITICAL FIX: Allow forcing new client for auth operations
+  // This prevents stale session issues
+  if (forceNew) {
+    browserClient = undefined
+  }
+
+  if (!browserClient && !isInitializing) {
+    isInitializing = true
     try {
       // Use fallback values if validation fails in production
       let validatedUrl = SUPABASE_URL || ''
       let validatedKey = SUPABASE_ANON_KEY || ''
-      
+
       try {
         const validated = validateClientEnvironmentVars()
         validatedUrl = validated.SUPABASE_URL
@@ -481,77 +498,75 @@ export function createClient(config?: ClientConfig) {
           throw error
         }
       }
-      
-      browserClient = createBrowserClient<Database>(
-        validatedUrl,
-        validatedKey,
-        {
-          // SIMPLIFIED: Minimal configuration to prevent issues
-          cookies: {
-            getAll() {
-              const cookies: { name: string; value: string }[] = []
-              if (typeof document !== 'undefined') {
-                try {
-                  const cookieString = document.cookie
-                  if (cookieString) {
-                    cookieString.split(';').forEach(cookie => {
-                      const [name, ...valueParts] = cookie.trim().split('=')
-                      if (name) {
-                        const value = valueParts.join('=')
-                        cookies.push({ 
-                          name, 
-                          value: value ? decodeURIComponent(value) : '' 
-                        })
-                      }
-                    })
-                  }
-                } catch (e) {
-                  console.error('Error reading cookies:', e)
-                }
-              }
-              return cookies
-            },
-            setAll(cookiesToSet) {
-              if (typeof document !== 'undefined') {
-                try {
-                  cookiesToSet.forEach(({ name, value, options }) => {
-                    let cookieString = `${name}=${encodeURIComponent(value || '')}`
-                    if (options?.maxAge) {
-                      cookieString += `; max-age=${options.maxAge}`
+
+      browserClient = createBrowserClient<Database>(validatedUrl, validatedKey, {
+        // SIMPLIFIED: Minimal configuration to prevent issues
+        cookies: {
+          getAll() {
+            const cookies: { name: string; value: string }[] = []
+            if (typeof document !== 'undefined') {
+              try {
+                const cookieString = document.cookie
+                if (cookieString) {
+                  cookieString.split(';').forEach(cookie => {
+                    const [name, ...valueParts] = cookie.trim().split('=')
+                    if (name) {
+                      const value = valueParts.join('=')
+                      cookies.push({
+                        name,
+                        value: value ? decodeURIComponent(value) : '',
+                      })
                     }
-                    if (options?.expires) {
-                      cookieString += `; expires=${options.expires.toUTCString()}`
-                    }
-                    cookieString += `; path=${options?.path || '/'}`
-                    if (options?.secure) {
-                      cookieString += '; secure'
-                    }
-                    cookieString += `; samesite=${options?.sameSite || 'lax'}`
-                    
-                    // CRITICAL FIX: Set proper max-age for all auth cookies
-                    if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
-                      cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
-                    } else if (name.includes('sb-') && !options?.maxAge && !options?.expires) {
-                      cookieString += `; max-age=${60 * 60 * 24}` // 1 day for access tokens
-                    }
-                    
-                    document.cookie = cookieString
                   })
-                } catch (e) {
-                  console.error('Error setting cookies:', e)
                 }
+              } catch (e) {
+                console.error('Error reading cookies:', e)
               }
             }
-          }
-        }
-      )
+            return cookies
+          },
+          setAll(cookiesToSet) {
+            if (typeof document !== 'undefined') {
+              try {
+                cookiesToSet.forEach(({ name, value, options }) => {
+                  let cookieString = `${name}=${encodeURIComponent(value || '')}`
+                  if (options?.maxAge) {
+                    cookieString += `; max-age=${options.maxAge}`
+                  }
+                  if (options?.expires) {
+                    cookieString += `; expires=${options.expires.toUTCString()}`
+                  }
+                  cookieString += `; path=${options?.path || '/'}`
+                  if (options?.secure) {
+                    cookieString += '; secure'
+                  }
+                  cookieString += `; samesite=${options?.sameSite || 'lax'}`
+
+                  // CRITICAL FIX: Set proper max-age for all auth cookies
+                  if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
+                    cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
+                  } else if (name.includes('sb-') && !options?.maxAge && !options?.expires) {
+                    cookieString += `; max-age=${60 * 60 * 24}` // 1 day for access tokens
+                  }
+
+                  document.cookie = cookieString
+                })
+              } catch (e) {
+                console.error('Error setting cookies:', e)
+              }
+            }
+          },
+        },
+      })
+      isInitializing = false
     } catch (error) {
       console.error('[SUPABASE-CLIENT] Failed to create browser client:', error)
+      isInitializing = false
       // Return a dummy client to prevent crash
       return null as any
     }
   }
-  
+
   return browserClient
 }
 
@@ -577,16 +592,19 @@ export async function forceSessionRefresh() {
       if (process.env.NODE_ENV === 'development') {
         logger.debug('🔄 [SUPABASE-CLIENT] Forcing session refresh from cookies...')
       }
-      
+
       // Clear the cached client first
       browserClient = undefined
-      
+
       // Create a fresh client instance
       const freshClient = createClient()
-      
+
       // Force the client to read session from cookies
-      const { data: { session }, error } = await freshClient.auth.getSession()
-      
+      const {
+        data: { session },
+        error,
+      } = await freshClient.auth.getSession()
+
       if (session) {
         if (process.env.NODE_ENV === 'development') {
           logger.debug('✅ [SUPABASE-CLIENT] Session refreshed successfully:', session.user?.email)
@@ -611,13 +629,11 @@ export async function forceSessionRefresh() {
 // Export for direct access to raw client if needed
 export function createRawClient() {
   try {
-    const { SUPABASE_URL: validatedUrl, SUPABASE_ANON_KEY: validatedKey } = validateClientEnvironmentVars()
-    
+    const { SUPABASE_URL: validatedUrl, SUPABASE_ANON_KEY: validatedKey } =
+      validateClientEnvironmentVars()
+
     // Also use proper cookie configuration for raw client
-    return createBrowserClient<Database>(
-      validatedUrl,
-      validatedKey,
-    {
+    return createBrowserClient<Database>(validatedUrl, validatedKey, {
       cookies: {
         getAll() {
           const cookies: { name: string; value: string }[] = []
@@ -628,9 +644,9 @@ export function createRawClient() {
                 const [name, ...valueParts] = cookie.trim().split('=')
                 if (name) {
                   const value = valueParts.join('=')
-                  cookies.push({ 
-                    name, 
-                    value: value ? decodeURIComponent(value) : '' 
+                  cookies.push({
+                    name,
+                    value: value ? decodeURIComponent(value) : '',
                   })
                 }
               })
@@ -656,19 +672,18 @@ export function createRawClient() {
                 cookieString += '; secure'
               }
               cookieString += `; samesite=${options?.sameSite || 'lax'}`
-              
+
               // CRITICAL FIX: Set max-age for refresh tokens to prevent expiry issues
               if (name.includes('refresh') && !options?.maxAge && !options?.expires) {
                 cookieString += `; max-age=${60 * 60 * 24 * 30}` // 30 days for refresh tokens
               }
-              
+
               document.cookie = cookieString
             })
           }
-        }
-      }
-    }
-  )
+        },
+      },
+    })
   } catch (error) {
     logger.error('[SUPABASE-CLIENT] Failed to create raw client:', error)
     throw error
