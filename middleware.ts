@@ -21,6 +21,16 @@ function logAuthEvent(event: string, details: Record<string, any> = {}) {
 
 export async function middleware(request: NextRequest) {
   try {
+    // CRITICAL SECURITY CHECK: Ensure auth bypass is NEVER active in production
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true'
+    ) {
+      console.error('🚨 CRITICAL SECURITY ERROR: Dev auth bypass is enabled in production!')
+      // Force authentication in production even if bypass is misconfigured
+      process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS = 'false'
+    }
+
     const response = NextResponse.next({
       request: {
         headers: request.headers,
@@ -44,6 +54,17 @@ export async function middleware(request: NextRequest) {
       pathname === '/robots.txt' ||
       pathname === '/sitemap.xml'
     ) {
+      return response
+    }
+
+    // Development authentication bypass - ONLY for local development
+    // CRITICAL: This should NEVER be enabled in production environments!
+    if (
+      process.env.NODE_ENV === 'development' &&
+      process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true' &&
+      request.url.includes('localhost')
+    ) {
+      console.warn('⚠️ [DEV] Authentication bypassed for LOCAL development only:', pathname)
       return response
     }
 
