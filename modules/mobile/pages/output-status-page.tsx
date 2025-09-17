@@ -188,7 +188,7 @@ export const OutputStatusPage: React.FC = () => {
             <span className="mobile-nav-icon">🏠</span>
             <span className="mobile-nav-label">홈</span>
           </a>
-          <a href="/mobile/work-report" className="mobile-nav-item">
+          <a href="/mobile/worklog" className="mobile-nav-item">
             <span className="mobile-nav-icon">📝</span>
             <span className="mobile-nav-label">작업일지</span>
           </a>
@@ -217,7 +217,7 @@ const WorkOutputTab: React.FC = () => {
     setIsLoading(true)
     try {
       const response = await fetch(
-        `/api/mobile/work-reports?year=${year}&month=${month}&status=completed`,
+        `/api/mobile/daily-reports?year=${year}&month=${month}&status=completed`,
         {
           method: 'GET',
           headers: {
