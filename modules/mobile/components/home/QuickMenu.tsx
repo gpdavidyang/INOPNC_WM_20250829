@@ -10,7 +10,7 @@ const quickMenuItems = [
     label: '출력현황',
   },
   {
-    href: '/mobile/tasks',
+    href: '/mobile/work-report',
     icon: '/icons/report_worklog.png',
     label: '작업일지',
   },
