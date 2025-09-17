@@ -31,7 +31,6 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
 
   useEffect(() => {
     let mounted = true
-    let validationTimeout: NodeJS.Timeout
     let sessionMonitoringInterval: NodeJS.Timeout
 
     // PRIORITY 2 FIX: Simplified auth-first validation
@@ -42,62 +41,73 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
 
         console.log('[AUTH] Starting simple session validation')
 
-        // Quick session check with 10 second timeout
+        // If we have initial user from server, trust it and skip client validation
+        // Server already validated the session
+        if (initialUser && initialProfile) {
+          console.log('[AUTH] Using server-validated session')
+          if (mounted) {
+            setIsAuthenticated(true)
+            setIsValidating(false)
+            startSessionMonitoring()
+          }
+          return
+        }
+
+        // Only do client validation if no server data (should not happen)
+        console.log('[AUTH] No server data, checking client session')
+
+        // Quick session check with shorter timeout
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Session validation timeout')), 10000)
+          setTimeout(() => reject(new Error('Session validation timeout')), 3000)
         })
 
-        const sessionResult = await Promise.race([supabase.auth.getSession(), timeoutPromise])
+        try {
+          const sessionResult = await Promise.race([supabase.auth.getSession(), timeoutPromise])
 
-        const {
-          data: { session },
-          error,
-        } = sessionResult as any
+          const {
+            data: { session },
+            error,
+          } = sessionResult as any
 
-        if (!mounted) return
+          if (!mounted) return
 
-        // If no session or error, redirect immediately
-        if (error || !session || !session.user) {
-          console.log('[AUTH] No valid session, redirecting to login')
-          const currentPath = window.location.pathname + window.location.search
-          window.location.replace(`/auth/login?redirectTo=${encodeURIComponent(currentPath)}`)
-          return
-        }
+          // If no session or error, redirect immediately
+          if (error || !session || !session.user) {
+            console.log('[AUTH] No valid session, redirecting to login')
+            const currentPath = window.location.pathname + window.location.search
+            window.location.replace(`/auth/login?redirectTo=${encodeURIComponent(currentPath)}`)
+            return
+          }
 
-        // Basic user validation
-        if (initialUser && session.user.id !== initialUser.id) {
-          console.log('[AUTH] User ID mismatch, redirecting to login')
-          window.location.replace('/auth/login')
-          return
-        }
-
-        // Check if session is expired
-        const now = Math.floor(Date.now() / 1000)
-        if (session.expires_at && session.expires_at < now) {
-          console.log('[AUTH] Session expired, redirecting to login')
-          window.location.replace('/auth/login')
-          return
-        }
-
-        // Session is valid
-        if (mounted) {
-          console.log('[AUTH] Session validation successful')
-          setIsAuthenticated(true)
-          setIsValidating(false)
-          startSessionMonitoring()
+          // Session is valid
+          if (mounted) {
+            console.log('[AUTH] Client session validation successful')
+            setIsAuthenticated(true)
+            setIsValidating(false)
+            startSessionMonitoring()
+          }
+        } catch (timeoutError) {
+          // On timeout, if we have server data, trust it
+          console.log('[AUTH] Client validation timed out, using server data')
+          if (initialUser && mounted) {
+            setIsAuthenticated(true)
+            setIsValidating(false)
+            startSessionMonitoring()
+          } else {
+            // No server data and client timeout - redirect
+            console.log('[AUTH] No session data available, redirecting')
+            window.location.replace('/auth/login')
+          }
         }
       } catch (error) {
         console.error('[AUTH] Session validation error:', error)
-        if (mounted) {
-          // Clear storage and redirect on any error
-          try {
-            localStorage.removeItem('sb-access-token')
-            localStorage.removeItem('sb-refresh-token')
-            localStorage.removeItem('user-role')
-            sessionStorage.clear()
-          } catch (e) {
-            console.warn('[AUTH] Error clearing storage:', e)
-          }
+        // If we have server data, continue despite error
+        if (initialUser && mounted) {
+          console.log('[AUTH] Error but have server data, continuing')
+          setIsAuthenticated(true)
+          setIsValidating(false)
+        } else if (mounted) {
+          // No server data and error - redirect
           const currentPath = window.location.pathname + window.location.search
           window.location.replace(`/auth/login?redirectTo=${encodeURIComponent(currentPath)}`)
         }
@@ -163,11 +173,10 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
 
     return () => {
       mounted = false
-      clearTimeout(validationTimeout)
       clearInterval(sessionMonitoringInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [initialUser, router, supabase])
+  }, [initialUser, initialProfile, router, supabase])
 
   // Show loading state while validating - suppressHydrationWarning to prevent flash
   if (isValidating) {
