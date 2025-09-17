@@ -5,42 +5,39 @@ import { MobileHomeWrapper } from '@/modules/mobile/pages/mobile-home-wrapper'
 export const dynamic = 'force-dynamic'
 
 export default async function MobileHomePage() {
+  // PRIORITY 3 FIX: Simplified server-side auth with minimal checks
+  // Let middleware handle most auth logic, just do basic verification here
   try {
     const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
+
+    // If middleware didn't catch auth issues but we have none, redirect
     if (userError || !user) {
-      console.log('Mobile: No user, redirecting to login')
       redirect('/auth/login')
     }
-    
-    // Get user profile to check role
+
+    // Quick profile check (don't duplicate all validation here)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, full_name, email, site_id')
       .eq('id', user.id)
       .single()
-    
-    console.log('Mobile: Profile data:', { profile, profileError })
-    
+
+    // Basic validation only
     if (profileError || !profile) {
-      console.log('Mobile: No profile, redirecting to login')
       redirect('/auth/login')
     }
-    
-    console.log('Mobile: User role is:', profile.role)
-    console.log('Mobile: User ID is:', user.id)
-    console.log('Mobile: User email is:', user.email)
-    
-    // Check if user can access mobile
+
+    // Role check (middleware should have caught this, but safety check)
     const canAccessMobile = ['worker', 'site_manager', 'customer_manager'].includes(profile.role)
-    
     if (!canAccessMobile) {
-      console.log('Mobile: Cannot access mobile, redirecting to admin dashboard')
       redirect('/dashboard/admin')
     }
-    
-    // Pass the validated profile data to avoid client-side auth loops
+
+    // Pass validated data to client wrapper
     return <MobileHomeWrapper initialProfile={profile} initialUser={user} />
   } catch (error) {
     console.error('Mobile page error:', error)

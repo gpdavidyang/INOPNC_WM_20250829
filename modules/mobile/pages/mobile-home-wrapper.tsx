@@ -33,81 +33,21 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
     let mounted = true
     let validationTimeout: NodeJS.Timeout
     let sessionMonitoringInterval: NodeJS.Timeout
-    let consecutiveTimeouts = 0
-    let healthCheckCount = 0
 
-    // Production environment detection
-    const isProduction =
-      process.env.NODE_ENV === 'production' ||
-      (typeof window !== 'undefined' && window.location.hostname !== 'localhost')
-
-    // Enhanced session validation with production-grade resilience
-    const validateSession = async (attempt = 1) => {
-      const maxAttempts = isProduction ? 15 : 8 // Significantly more attempts in production
-      const baseTimeoutMs = isProduction ? 45000 : 25000 // Much longer base timeout in production
-      const timeoutMs = Math.min(baseTimeoutMs + (attempt - 1) * 5000, isProduction ? 90000 : 40000) // Progressive timeout increase
-
+    // PRIORITY 2 FIX: Simplified auth-first validation
+    // Validate session exists BEFORE rendering any content
+    const validateSession = async () => {
       try {
         if (!mounted) return
 
-        console.log(
-          `[AUTH] Session validation attempt ${attempt}/${maxAttempts} (timeout: ${timeoutMs}ms, production: ${isProduction})`
-        )
+        console.log('[AUTH] Starting simple session validation')
 
-        // Network health check for production
-        if (isProduction && attempt > 1) {
-          try {
-            const healthStart = Date.now()
-            await fetch('/api/health', {
-              method: 'HEAD',
-              signal: AbortSignal.timeout(5000),
-            })
-            const healthDuration = Date.now() - healthStart
-            console.log(`[AUTH] Health check passed in ${healthDuration}ms`)
-            healthCheckCount++
-          } catch (healthError) {
-            console.log(`[AUTH] Health check failed (attempt ${attempt}):`, healthError)
-            consecutiveTimeouts++
-
-            // If health check fails multiple times, add extra delay
-            if (consecutiveTimeouts >= 3) {
-              const extraDelay = Math.pow(2, consecutiveTimeouts - 2) * 8000
-              await new Promise(resolve => setTimeout(resolve, extraDelay))
-            }
-          }
-        }
-
-        // Adaptive timeout based on network conditions
-        const adaptiveTimeoutMs =
-          consecutiveTimeouts > 0
-            ? Math.min(timeoutMs * (1 + consecutiveTimeouts * 0.5), isProduction ? 120000 : 60000)
-            : timeoutMs
-
-        // Create a timeout promise with extended grace period
+        // Quick session check with 10 second timeout
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Session validation timeout')), adaptiveTimeoutMs)
+          setTimeout(() => reject(new Error('Session validation timeout')), 10000)
         })
 
-        // Check if we have a valid session with multiple fallback strategies
-        let sessionResult
-        try {
-          const sessionPromise = supabase.auth.getSession()
-          sessionResult = await Promise.race([sessionPromise, timeoutPromise])
-        } catch (sessionError) {
-          if (sessionError.message === 'Session validation timeout') {
-            console.log(`[AUTH] Session fetch timeout (attempt ${attempt})`)
-            throw sessionError
-          }
-          // For other session errors, try refresh first
-          console.log(`[AUTH] Session error, trying refresh (attempt ${attempt}):`, sessionError)
-          try {
-            const refreshPromise = supabase.auth.refreshSession()
-            sessionResult = await Promise.race([refreshPromise, timeoutPromise])
-          } catch (refreshError) {
-            console.log(`[AUTH] Refresh also failed (attempt ${attempt}):`, refreshError)
-            throw refreshError
-          }
-        }
+        const sessionResult = await Promise.race([supabase.auth.getSession(), timeoutPromise])
 
         const {
           data: { session },
@@ -116,183 +56,50 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
 
         if (!mounted) return
 
+        // If no session or error, redirect immediately
         if (error || !session || !session.user) {
-          console.log(`[AUTH] No valid session (attempt ${attempt})`, error?.message)
-
-          if (attempt < maxAttempts) {
-            // Progressive backoff with jitter for production load balancing
-            const baseDelay = Math.pow(2, attempt - 1) * 4000 // Start with 4s base delay
-            const jitter = Math.random() * 3000 // Add up to 3s jitter
-            const delay = Math.min(baseDelay + jitter, 20000) // Max 20s delay
-
-            console.log(`[AUTH] Retrying session validation in ${Math.round(delay)}ms...`)
-            validationTimeout = setTimeout(() => {
-              if (mounted) {
-                validateSession(attempt + 1)
-              }
-            }, delay)
-            return
-          } else {
-            // Only clear storage if we're certain there's no valid session after all attempts
-            console.log(
-              '[AUTH] All session validation attempts failed, clearing storage and redirecting'
-            )
-            try {
-              localStorage.removeItem('sb-access-token')
-              localStorage.removeItem('sb-refresh-token')
-              localStorage.removeItem('user-role')
-              sessionStorage.clear()
-            } catch (e) {
-              console.warn('[AUTH] Error clearing storage:', e)
-            }
-
-            // Graceful redirect with current path
-            const currentPath = window.location.pathname + window.location.search
-            window.location.replace(`/auth/login?redirectTo=${encodeURIComponent(currentPath)}`)
-          }
+          console.log('[AUTH] No valid session, redirecting to login')
+          const currentPath = window.location.pathname + window.location.search
+          window.location.replace(`/auth/login?redirectTo=${encodeURIComponent(currentPath)}`)
           return
         }
 
-        // Enhanced user matching with additional checks
-        if (initialUser) {
-          if (session.user.id !== initialUser.id) {
-            console.log('[AUTH] User ID mismatch, redirecting to login')
-            window.location.replace('/auth/login')
-            return
-          }
-
-          // Check email match as additional verification
-          if (session.user.email !== initialUser.email) {
-            console.log('[AUTH] Email mismatch detected, refreshing session')
-            // Try to refresh once before redirecting
-            try {
-              const { data: refreshedSession } = await supabase.auth.refreshSession()
-              if (
-                !refreshedSession.session ||
-                refreshedSession.session.user.email !== initialUser.email
-              ) {
-                window.location.replace('/auth/login')
-                return
-              }
-            } catch (refreshError) {
-              console.error('[AUTH] Session refresh failed:', refreshError)
-              window.location.replace('/auth/login')
-              return
-            }
-          }
+        // Basic user validation
+        if (initialUser && session.user.id !== initialUser.id) {
+          console.log('[AUTH] User ID mismatch, redirecting to login')
+          window.location.replace('/auth/login')
+          return
         }
 
-        // Enhanced token expiry check with preemptive refresh
+        // Check if session is expired
         const now = Math.floor(Date.now() / 1000)
-        const tokenExpiresAt = session.expires_at
-        const refreshThreshold = 300 // 5 minutes before expiry
-
-        if (tokenExpiresAt) {
-          if (tokenExpiresAt < now) {
-            console.log('[AUTH] Session expired, attempting refresh...')
-
-            try {
-              const { data: refreshedSession, error: refreshError } =
-                await supabase.auth.refreshSession()
-
-              if (refreshError || !refreshedSession.session) {
-                console.log('[AUTH] Session refresh failed:', refreshError?.message)
-                window.location.replace('/auth/login')
-                return
-              }
-
-              console.log('[AUTH] Session refreshed successfully')
-            } catch (refreshError) {
-              console.error('[AUTH] Session refresh error:', refreshError)
-              window.location.replace('/auth/login')
-              return
-            }
-          } else if (tokenExpiresAt - now < refreshThreshold) {
-            // Preemptive refresh if token expires soon
-            console.log('[AUTH] Token expires soon, preemptively refreshing...')
-            try {
-              await supabase.auth.refreshSession()
-              console.log('[AUTH] Preemptive refresh successful')
-            } catch (refreshError) {
-              console.warn('[AUTH] Preemptive refresh failed:', refreshError)
-              // Don't redirect on preemptive refresh failure, just log it
-            }
-          }
+        if (session.expires_at && session.expires_at < now) {
+          console.log('[AUTH] Session expired, redirecting to login')
+          window.location.replace('/auth/login')
+          return
         }
 
-        // Validation successful - reset timeout counter
+        // Session is valid
         if (mounted) {
-          consecutiveTimeouts = 0
           console.log('[AUTH] Session validation successful')
           setIsAuthenticated(true)
           setIsValidating(false)
-
-          // Start continuous session monitoring
           startSessionMonitoring()
         }
       } catch (error) {
-        console.error(`[AUTH] Session validation error (attempt ${attempt}):`, error)
-
-        if (attempt < maxAttempts && mounted) {
-          // Enhanced retry logic with adaptive strategies for production
-          const isTimeoutError = error.message.includes('timeout')
-          const isNetworkError =
-            error.message.includes('network') || error.message.includes('fetch')
-          consecutiveTimeouts = isTimeoutError
-            ? consecutiveTimeouts + 1
-            : Math.max(0, consecutiveTimeouts - 1)
-
-          // Production-adjusted delays with circuit breaker patterns
-          let baseDelay
-          if (isTimeoutError) {
-            // Much longer delays for timeouts in production
-            baseDelay = Math.pow(2, attempt) * (isProduction ? 8000 : 5000)
-          } else if (isNetworkError) {
-            // Medium delays for network issues
-            baseDelay = Math.pow(2, attempt - 1) * (isProduction ? 5000 : 3000)
-          } else {
-            // Standard delays for other errors
-            baseDelay = Math.pow(2, attempt - 1) * (isProduction ? 3000 : 2000)
+        console.error('[AUTH] Session validation error:', error)
+        if (mounted) {
+          // Clear storage and redirect on any error
+          try {
+            localStorage.removeItem('sb-access-token')
+            localStorage.removeItem('sb-refresh-token')
+            localStorage.removeItem('user-role')
+            sessionStorage.clear()
+          } catch (e) {
+            console.warn('[AUTH] Error clearing storage:', e)
           }
-
-          const jitter = Math.random() * (isProduction ? 4000 : 2000)
-          const delay = Math.min(baseDelay + jitter, isProduction ? 45000 : 25000)
-
-          console.log(
-            `[AUTH] Retrying session validation in ${Math.round(delay)}ms... (${isTimeoutError ? 'timeout' : isNetworkError ? 'network' : 'other'}, consecutive timeouts: ${consecutiveTimeouts})`
-          )
-
-          validationTimeout = setTimeout(() => {
-            if (mounted) {
-              validateSession(attempt + 1)
-            }
-          }, delay)
-        } else {
-          // Max attempts reached or component unmounted
-          console.log('[AUTH] Session validation failed after all attempts')
-          if (mounted) {
-            // More aggressive clearing for production reliability
-            try {
-              localStorage.removeItem('sb-access-token')
-              localStorage.removeItem('sb-refresh-token')
-              localStorage.removeItem('user-role')
-              localStorage.removeItem('supabase.auth.token')
-              sessionStorage.clear()
-
-              // Clear any remaining auth cookies
-              document.cookie.split(';').forEach(function (c) {
-                document.cookie = c
-                  .replace(/^ +/, '')
-                  .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/')
-              })
-            } catch (clearError) {
-              console.warn('[AUTH] Error clearing auth state:', clearError)
-            }
-
-            // Force redirect to login
-            const currentPath = window.location.pathname + window.location.search
-            window.location.replace(`/auth/login?redirectTo=${encodeURIComponent(currentPath)}`)
-          }
+          const currentPath = window.location.pathname + window.location.search
+          window.location.replace(`/auth/login?redirectTo=${encodeURIComponent(currentPath)}`)
         }
       }
     }
@@ -342,12 +149,8 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
       ) // Check every 2 minutes
     }
 
-    // Delay initial validation to avoid hydration issues
-    const timer = setTimeout(() => {
-      if (mounted) {
-        validateSession()
-      }
-    }, 100)
+    // PRIORITY 2 FIX: Start auth validation immediately (no delay for auth-first approach)
+    validateSession()
 
     // Add visibility change listener for foreground revalidation
     const handleVisibilityChange = () => {
@@ -360,7 +163,6 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
 
     return () => {
       mounted = false
-      clearTimeout(timer)
       clearTimeout(validationTimeout)
       clearInterval(sessionMonitoringInterval)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
