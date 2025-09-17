@@ -22,7 +22,7 @@ export default async function MobileHomePage() {
     // Quick profile check (don't duplicate all validation here)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role, full_name, email, site_id')
+      .select('id, role, full_name, email, site_id')
       .eq('id', user.id)
       .single()
 

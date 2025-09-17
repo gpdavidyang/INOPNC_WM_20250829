@@ -24,7 +24,7 @@ export const BottomNav: React.FC = () => {
     {
       route: 'worklog',
       label: '작업일지',
-      href: '/mobile/worklog',
+      href: '/mobile/work-report',
       icon: ClipboardList,
     },
     {
