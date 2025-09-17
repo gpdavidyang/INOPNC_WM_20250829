@@ -72,9 +72,5 @@ export const MobileHomeWrapper: React.FC<MobileHomeWrapperProps> = ({
     return null
   }
 
-  return (
-    <AuthProvider initialSession={{ user: initialUser } as any} initialProfile={initialProfile}>
-      <HomePage initialProfile={initialProfile} initialUser={initialUser} />
-    </AuthProvider>
-  )
+  return <HomePage initialProfile={initialProfile} initialUser={initialUser} />
 }

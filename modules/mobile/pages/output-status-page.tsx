@@ -188,7 +188,7 @@ export const OutputStatusPage: React.FC = () => {
             <span className="mobile-nav-icon">🏠</span>
             <span className="mobile-nav-label">홈</span>
           </a>
-          <a href="/mobile/worklog" className="mobile-nav-item">
+          <a href="/mobile/work-report" className="mobile-nav-item">
             <span className="mobile-nav-icon">📝</span>
             <span className="mobile-nav-label">작업일지</span>
           </a>

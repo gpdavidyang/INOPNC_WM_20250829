@@ -1,5 +1,4 @@
 import { ReactNode } from 'react'
-import { MobileLayout } from '@/modules/mobile/components/layout'
 import '@/modules/mobile/styles/mobile-global.css'
 import '@/modules/mobile/styles/home.css'
 import '@/modules/mobile/styles/notification-modal.css'
@@ -11,5 +10,7 @@ interface MobileLayoutProps {
 }
 
 export default function MobileRootLayout({ children }: MobileLayoutProps) {
-  return <MobileLayout>{children}</MobileLayout>
+  // Layout logic is now handled at the page level with MobileLayoutWithAuth
+  // This prevents double layouts and allows auth context to be properly shared
+  return <>{children}</>
 }

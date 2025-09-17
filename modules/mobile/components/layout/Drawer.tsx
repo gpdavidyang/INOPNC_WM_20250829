@@ -284,7 +284,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
   const menuItems = [
     { label: '홈', href: '/mobile' },
-    { label: '출력현황', href: '/mobile/worklog' },
+    { label: '출력현황', href: '/mobile/attendance/output' },
     { label: '작업일지', href: '/mobile/tasks' },
     { label: '현장정보', href: '/mobile/sites' },
     { label: '문서함', href: '/mobile/documents' },
