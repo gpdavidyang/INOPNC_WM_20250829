@@ -1,6 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
-'use server'
-
+import { createClient } from '@/lib/supabase/server'
+;('use server')
 
 // ==========================================
 // DOCUMENT ACTIONS
@@ -9,8 +8,11 @@ import { createClient } from "@/lib/supabase/server"
 export async function uploadDocument(formData: FormData) {
   try {
     const supabase = createClient()
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       return { success: false, error: 'User not authenticated' }
     }
@@ -30,13 +32,13 @@ export async function uploadDocument(formData: FormData) {
     // Generate unique file name
     const fileExt = file.name.split('.').pop()
     const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-    
+
     // Upload file to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
       .upload(fileName, file, {
         cacheControl: '3600',
-        upsert: false
+        upsert: false,
       })
 
     if (uploadError) {
@@ -45,9 +47,9 @@ export async function uploadDocument(formData: FormData) {
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('documents')
-      .getPublicUrl(fileName)
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('documents').getPublicUrl(fileName)
 
     // Create document record
     const { data: document, error: documentError } = await supabase
@@ -63,7 +65,7 @@ export async function uploadDocument(formData: FormData) {
         folder_path,
         owner_id: user.id,
         is_public,
-        site_id
+        site_id,
       })
       .select()
       .single()
@@ -87,7 +89,7 @@ export async function uploadDocument(formData: FormData) {
 // export async function uploadFileAttachment(formData: FormData) {
 //   try {
 //     const supabase = createClient()
-    
+
 //     const { data: { user }, error: userError } = await supabase.auth.getUser()
 //     if (userError || !user) {
 //       return { success: false, error: 'User not authenticated' }
@@ -104,7 +106,7 @@ export async function uploadDocument(formData: FormData) {
 //     // Generate unique file name
 //     const fileExt = file.name.split('.').pop()
 //     const fileName = `attachments/${entity_type}/${entity_id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
-    
+
 //     // Upload file to Supabase Storage
 //     const { data: uploadData, error: uploadError } = await supabase.storage
 //       .from('attachments')
@@ -164,14 +166,17 @@ export async function getDocuments(filters: {
 }) {
   try {
     const supabase = createClient()
-    
+
     let query = supabase
       .from('documents')
-      .select(`
+      .select(
+        `
         *,
         owner:profiles!documents_owner_id_fkey(full_name, email),
         site:sites(name)
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .order('created_at', { ascending: false })
 
     if (filters.document_type) {
@@ -213,14 +218,14 @@ export async function getDocuments(filters: {
   }
 }
 
-export async function getMyDocuments(params?: {
-  category?: string
-  userId?: string
-}) {
+export async function getMyDocuments(params?: { category?: string; userId?: string }) {
   try {
     const supabase = createClient()
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       return { success: false, error: 'User not authenticated' }
     }
@@ -228,7 +233,8 @@ export async function getMyDocuments(params?: {
     // Query actual documents from database
     let query = supabase
       .from('documents')
-      .select(`
+      .select(
+        `
         id,
         title,
         description,
@@ -249,7 +255,8 @@ export async function getMyDocuments(params?: {
           full_name,
           email
         )
-      `)
+      `
+      )
       .eq('owner_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -266,20 +273,21 @@ export async function getMyDocuments(params?: {
     }
 
     // Transform documents to match the expected format
-    const transformedDocuments = documents?.map((doc: unknown) => ({
-      id: doc.id,
-      category: doc.document_type || 'personal',
-      name: doc.file_name || doc.title,
-      size: doc.file_size || 0,
-      uploadDate: doc.created_at,
-      lastModified: doc.updated_at || doc.created_at,
-      uploadedBy: doc.owner?.full_name || doc.owner?.email || '나',
-      fileType: doc.mime_type || 'application/octet-stream',
-      url: doc.file_url,
-      title: doc.title,
-      description: doc.description,
-      site: doc.site
-    })) || []
+    const transformedDocuments =
+      documents?.map((doc: unknown) => ({
+        id: doc.id,
+        category: doc.document_type || 'personal',
+        name: doc.file_name || doc.title,
+        size: doc.file_size || 0,
+        uploadDate: doc.created_at,
+        lastModified: doc.updated_at || doc.created_at,
+        uploadedBy: doc.owner?.full_name || doc.owner?.email || '나',
+        fileType: doc.mime_type || 'application/octet-stream',
+        url: doc.file_url,
+        title: doc.title,
+        description: doc.description,
+        site: doc.site,
+      })) || []
 
     return { success: true, data: transformedDocuments }
   } catch (error) {
@@ -288,18 +296,15 @@ export async function getMyDocuments(params?: {
   }
 }
 
-export async function updateDocument(
-  id: string,
-  data: Partial<Document>
-) {
+export async function updateDocument(id: string, data: Partial<Document>) {
   try {
     const supabase = createClient()
-    
+
     const { data: document, error } = await supabase
       .from('documents')
       .update({
         ...data,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -321,7 +326,7 @@ export async function updateDocument(
 export async function deleteDocument(id: string) {
   try {
     const supabase = createClient()
-    
+
     // Get document details first
     const { data: document, error: fetchError } = await supabase
       .from('documents')
@@ -334,16 +339,15 @@ export async function deleteDocument(id: string) {
     }
 
     // Check ownership
-    const { data: { user } } = await supabase.auth.getUser()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
     if (document.owner_id !== user?.id) {
       return { success: false, error: 'Unauthorized to delete this document' }
     }
 
     // Delete from database
-    const { error: deleteError } = await supabase
-      .from('documents')
-      .delete()
-      .eq('id', id)
+    const { error: deleteError } = await supabase.from('documents').delete().eq('id', id)
 
     if (deleteError) {
       console.error('Error deleting document:', deleteError)
@@ -375,7 +379,7 @@ export async function deleteDocument(id: string) {
 // ) {
 //   try {
 //     const supabase = createClient()
-    
+
 //     const { data, error } = await supabase
 //       .from('file_attachments')
 //       .select(`
@@ -401,7 +405,7 @@ export async function deleteDocument(id: string) {
 // export async function deleteFileAttachment(id: string) {
 //   try {
 //     const supabase = createClient()
-    
+
 //     // Get attachment details first
 //     const { data: attachment, error: fetchError } = await supabase
 //       .from('file_attachments')
@@ -448,7 +452,7 @@ export async function deleteDocument(id: string) {
 // ) {
 //   try {
 //     const supabase = createClient()
-    
+
 //     const { data: { user }, error: userError } = await supabase.auth.getUser()
 //     if (userError || !user) {
 //       return { success: false, error: 'User not authenticated' }
@@ -484,8 +488,11 @@ export async function shareDocument(params: {
 }) {
   try {
     const supabase = createClient()
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       return { success: false, error: 'User not authenticated' }
     }
@@ -517,7 +524,7 @@ export async function shareDocument(params: {
       user_id: userId,
       permission_type: permissionType,
       granted_by: user.id,
-      ...(expiresAt && { expires_at: expiresAt })
+      ...(expiresAt && { expires_at: expiresAt }),
     }))
 
     const { data: permissions, error: permError } = await supabase
@@ -547,8 +554,11 @@ export async function getSharedDocuments(params: {
 }) {
   try {
     const supabase = createClient()
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       return { success: false, error: 'User not authenticated' }
     }
@@ -556,7 +566,8 @@ export async function getSharedDocuments(params: {
     // Query shared documents from database
     let query = supabase
       .from('documents')
-      .select(`
+      .select(
+        `
         id,
         title,
         description,
@@ -577,7 +588,8 @@ export async function getSharedDocuments(params: {
           full_name,
           email
         )
-      `)
+      `
+      )
       .neq('owner_id', user.id) // Exclude user's own documents
       .order('created_at', { ascending: false })
 
@@ -608,7 +620,8 @@ export async function getSharedDocuments(params: {
     // Also fetch documents shared directly with the user
     const { data: sharedWithMe, error: sharesError } = await supabase
       .from('document_shares')
-      .select(`
+      .select(
+        `
         document:documents(
           id,
           title,
@@ -632,7 +645,8 @@ export async function getSharedDocuments(params: {
           )
         ),
         permission
-      `)
+      `
+      )
       .eq('shared_with_id', user.id)
 
     if (sharesError) {
@@ -642,11 +656,13 @@ export async function getSharedDocuments(params: {
     // Combine and transform documents
     const allSharedDocs = [
       ...(documents || []),
-      ...(sharedWithMe?.map((share: unknown) => share.document).filter(Boolean) || [])
+      ...(sharedWithMe?.map((share: unknown) => share.document).filter(Boolean) || []),
     ]
 
     // Remove duplicates
-    const uniqueDocs = Array.from(new Map(allSharedDocs.map((doc: unknown) => [doc.id, doc])).values())
+    const uniqueDocs = Array.from(
+      new Map(allSharedDocs.map((doc: unknown) => [doc.id, doc])).values()
+    )
 
     // Transform documents to match the expected format
     const transformedDocuments = uniqueDocs.map((doc: unknown) => ({
@@ -661,8 +677,8 @@ export async function getSharedDocuments(params: {
       url: doc.file_url,
       title: doc.title,
       description: doc.description,
-      accessLevel: doc.is_public ? 'public' as const : 'site' as const,
-      site: doc.site
+      accessLevel: doc.is_public ? ('public' as const) : ('site' as const),
+      site: doc.site,
     }))
 
     return { success: true, data: transformedDocuments }

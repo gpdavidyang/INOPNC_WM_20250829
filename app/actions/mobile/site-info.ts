@@ -1,7 +1,5 @@
-import { getCurrentUserSite } from "@/app/actions/site-info"
-import { createClient } from "@/lib/supabase/server"
-'use server'
-
+import { createClient } from '@/lib/supabase/server'
+;('use server')
 
 const log = (...args: unknown[]) => {
   // Enable logging to debug site info issues
@@ -12,33 +10,38 @@ const log = (...args: unknown[]) => {
 export async function getCurrentUserSite() {
   try {
     const supabase = createClient()
-    
+
     log('getCurrentUserSite: Starting... (env:', process.env.NODE_ENV, ')')
-    
+
     // 배포 환경에서 쿠키 상태 확인
     try {
       const { data: sessionData } = await supabase.auth.getSession()
-      log('getCurrentUserSite: Session check result:', { 
+      log('getCurrentUserSite: Session check result:', {
         hasSession: !!sessionData?.session,
         hasAccessToken: !!sessionData?.session?.access_token,
-        env: process.env.NODE_ENV
+        env: process.env.NODE_ENV,
       })
     } catch (sessionError) {
       log('getCurrentUserSite: Session check error:', sessionError)
       return { success: false, error: 'Session check failed', data: null }
     }
-    
+
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    log('getCurrentUserSite: User check result:', { 
-      user: user?.id, 
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+    log('getCurrentUserSite: User check result:', {
+      user: user?.id,
       email: user?.email,
       authError: authError?.message,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     })
-    
+
     if (authError || !user) {
-      log('getCurrentUserSite: Authentication failed - this is expected in deployment without session')
+      log(
+        'getCurrentUserSite: Authentication failed - this is expected in deployment without session'
+      )
       return { success: false, error: 'Authentication required' }
     }
 
@@ -48,7 +51,7 @@ export async function getCurrentUserSite() {
       .from('sites')
       .select('id, name')
       .limit(1)
-    
+
     log('getCurrentUserSite: Sites test result:', { sitesTest, sitesTestError })
 
     // site_assignments 테이블도 직접 확인
@@ -57,23 +60,23 @@ export async function getCurrentUserSite() {
       .from('site_assignments')
       .select('id, user_id, site_id, is_active')
       .eq('user_id', user.id)
-    
+
     log('getCurrentUserSite: Assignments test result:', { assignmentsTest, assignmentsTestError })
 
     // 만약 배정이 없다면 강남 A현장에 자동으로 배정 (개발/테스트용)
     if (!assignmentsTest || assignmentsTest.length === 0) {
       log('getCurrentUserSite: No assignments found, attempting auto-assignment...')
-      
+
       // 강남 A현장 찾기
       const { data: testSite, error: testSiteError } = await supabase
         .from('sites')
         .select('id')
         .eq('name', '강남 A현장')
         .single()
-      
+
       if (!testSiteError && testSite) {
         log('getCurrentUserSite: Auto-assigning to test site:', testSite.id)
-        
+
         const { data: newAssignment, error: assignError } = await supabase
           .from('site_assignments')
           .insert({
@@ -81,20 +84,21 @@ export async function getCurrentUserSite() {
             site_id: testSite.id,
             assigned_date: new Date().toISOString().split('T')[0],
             is_active: true,
-            role: 'worker'
+            role: 'worker',
           })
           .select()
-        
+
         log('getCurrentUserSite: Auto-assignment result:', { newAssignment, assignError })
       }
     }
 
     // Direct query approach - get active site assignment with site details
     log('getCurrentUserSite: Querying active assignment with site details...')
-    
+
     const { data: assignments, error } = await supabase
       .from('site_assignments')
-      .select(`
+      .select(
+        `
         *,
         sites (
           id,
@@ -114,7 +118,8 @@ export async function getCurrentUserSite() {
           start_date,
           end_date
         )
-      `)
+      `
+      )
       .eq('user_id', user.id)
       .eq('is_active', true)
       .order('assigned_date', { ascending: false })
@@ -122,7 +127,11 @@ export async function getCurrentUserSite() {
     // Get the most recent active assignment
     const assignment = assignments?.[0] || null
 
-    log('getCurrentUserSite: Direct query result:', { assignments: assignments?.length, error, timestamp: new Date().toISOString() })
+    log('getCurrentUserSite: Direct query result:', {
+      assignments: assignments?.length,
+      error,
+      timestamp: new Date().toISOString(),
+    })
 
     if (error) {
       console.error('getCurrentUserSite: Query error:', error)
@@ -155,9 +164,9 @@ export async function getCurrentUserSite() {
       safety_manager_phone: site.safety_manager_phone,
       accommodation_name: site.accommodation_name,
       accommodation_address: site.accommodation_address,
-      is_active: assignment.is_active
+      is_active: assignment.is_active,
     }
-    
+
     log('getCurrentUserSite: Converted site data:', siteData)
 
     if (!siteData) {
@@ -168,7 +177,7 @@ export async function getCurrentUserSite() {
     // Fetch site documents (PTW and Blueprint) for the current site
     try {
       log('getCurrentUserSite: Fetching site documents for site_id:', siteData.site_id)
-      
+
       // Use documents table instead of site_documents
       const { data: documents, error: documentsError } = await supabase
         .from('documents')
@@ -181,18 +190,20 @@ export async function getCurrentUserSite() {
         log('getCurrentUserSite: Document query error (non-fatal):', documentsError)
       } else {
         log('getCurrentUserSite: Found documents:', documents?.length || 0)
-        
+
         // Add documents to site data using the getSiteDocumentsPTWAndBlueprint logic
-        const ptwDocument = documents?.find((doc: unknown) => 
-          doc.document_type === 'ptw' ||
-          (doc.title && (doc.title.includes('PTW') || doc.title.includes('작업허가서')))
+        const ptwDocument = documents?.find(
+          (doc: unknown) =>
+            doc.document_type === 'ptw' ||
+            (doc.title && (doc.title.includes('PTW') || doc.title.includes('작업허가서')))
         )
-        const blueprintDocument = documents?.find((doc: unknown) => 
-          doc.document_type === 'blueprint' ||
-          doc.document_type === 'drawing' ||
-          (doc.title && (doc.title.includes('도면') || doc.title.includes('blueprint')))
+        const blueprintDocument = documents?.find(
+          (doc: unknown) =>
+            doc.document_type === 'blueprint' ||
+            doc.document_type === 'drawing' ||
+            (doc.title && (doc.title.includes('도면') || doc.title.includes('blueprint')))
         )
-        
+
         if (ptwDocument) {
           siteData.ptw_document = {
             id: ptwDocument.id,
@@ -200,11 +211,11 @@ export async function getCurrentUserSite() {
             file_name: ptwDocument.file_name,
             file_url: ptwDocument.file_url,
             document_type: 'ptw',
-            created_at: ptwDocument.created_at
+            created_at: ptwDocument.created_at,
           }
           log('getCurrentUserSite: Added PTW document:', ptwDocument.title)
         }
-        
+
         if (blueprintDocument) {
           siteData.blueprint_document = {
             id: blueprintDocument.id,
@@ -212,7 +223,7 @@ export async function getCurrentUserSite() {
             file_name: blueprintDocument.file_name,
             file_url: blueprintDocument.file_url,
             document_type: 'blueprint',
-            created_at: blueprintDocument.created_at
+            created_at: blueprintDocument.created_at,
           }
           log('getCurrentUserSite: Added blueprint document:', blueprintDocument.title)
         }
@@ -226,12 +237,12 @@ export async function getCurrentUserSite() {
   } catch (error) {
     console.error('Error fetching current user site:', error)
     log('getCurrentUserSite: Caught error:', error)
-    
+
     // Check if it's a database connectivity issue
     if (error && typeof error === 'object' && 'code' in error) {
       log('getCurrentUserSite: Database error code:', error.code)
     }
-    
+
     // Provide more helpful error messages
     let errorMessage = 'Failed to fetch site information'
     if (error instanceof Error) {
@@ -243,7 +254,7 @@ export async function getCurrentUserSite() {
         errorMessage = error.message
       }
     }
-    
+
     return { success: false, error: errorMessage }
   }
 }
@@ -252,13 +263,16 @@ export async function getCurrentUserSite() {
 export async function getUserSiteHistory() {
   try {
     const supabase = createClient()
-    
+
     log('getUserSiteHistory: Starting...')
-    
+
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     log('getUserSiteHistory: User check result:', { user: user?.id, authError })
-    
+
     if (authError || !user) {
       log('getUserSiteHistory: Authentication failed')
       return { success: false, error: 'Authentication required', data: [] }
@@ -266,10 +280,11 @@ export async function getUserSiteHistory() {
 
     // Direct query approach - get all site assignments with site details
     log('getUserSiteHistory: Querying site assignment history...')
-    
+
     const { data, error } = await supabase
       .from('site_assignments')
-      .select(`
+      .select(
+        `
         *,
         sites (
           id,
@@ -289,7 +304,8 @@ export async function getUserSiteHistory() {
           start_date,
           end_date
         )
-      `)
+      `
+      )
       .eq('user_id', user.id)
       .order('assigned_date', { ascending: false })
 
@@ -301,30 +317,31 @@ export async function getUserSiteHistory() {
     }
 
     // Convert to the expected format
-    const historyData = data?.map((assignment: unknown) => {
-      const site = assignment.sites
-      return {
-        site_id: site.id,
-        site_name: site.name,
-        site_address: site.address,
-        site_status: site.status,
-        start_date: site.start_date,
-        end_date: site.end_date,
-        assigned_date: assignment.assigned_date,
-        unassigned_date: assignment.unassigned_date,
-        user_role: assignment.role,
-        work_process: site.work_process,
-        work_section: site.work_section,
-        component_name: site.component_name,
-        manager_name: site.manager_name,
-        construction_manager_phone: site.construction_manager_phone,
-        safety_manager_name: site.safety_manager_name,
-        safety_manager_phone: site.safety_manager_phone,
-        accommodation_name: site.accommodation_name,
-        accommodation_address: site.accommodation_address,
-        is_active: assignment.is_active
-      }
-    }) || []
+    const historyData =
+      data?.map((assignment: unknown) => {
+        const site = assignment.sites
+        return {
+          site_id: site.id,
+          site_name: site.name,
+          site_address: site.address,
+          site_status: site.status,
+          start_date: site.start_date,
+          end_date: site.end_date,
+          assigned_date: assignment.assigned_date,
+          unassigned_date: assignment.unassigned_date,
+          user_role: assignment.role,
+          work_process: site.work_process,
+          work_section: site.work_section,
+          component_name: site.component_name,
+          manager_name: site.manager_name,
+          construction_manager_phone: site.construction_manager_phone,
+          safety_manager_name: site.safety_manager_name,
+          safety_manager_phone: site.safety_manager_phone,
+          accommodation_name: site.accommodation_name,
+          accommodation_address: site.accommodation_address,
+          is_active: assignment.is_active,
+        }
+      }) || []
 
     log('getUserSiteHistory: Converted history data:', historyData.length, 'records')
 
@@ -341,10 +358,13 @@ export async function getUserSiteHistory() {
 // 관리자용 - 현장 목록 조회
 export async function getAllSites() {
   const supabase = createClient()
-  
+
   try {
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return { success: false, error: 'Authentication required' }
     }
@@ -363,7 +383,8 @@ export async function getAllSites() {
     // 모든 현장 조회
     const { data, error } = await supabase
       .from('sites')
-      .select(`
+      .select(
+        `
         id,
         name,
         address,
@@ -381,7 +402,8 @@ export async function getAllSites() {
         start_date,
         end_date,
         created_at
-      `)
+      `
+      )
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -398,10 +420,13 @@ export async function getAllSites() {
 // 관리자용 - 사용자에게 현장 배정
 export async function assignUserToSite(userId: string, siteId: string, role: string = 'worker') {
   const supabase = createClient()
-  
+
   try {
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return { success: false, error: 'Authentication required' }
     }
@@ -420,9 +445,9 @@ export async function assignUserToSite(userId: string, siteId: string, role: str
     // 기존 활성 배정 비활성화
     await supabase
       .from('site_assignments')
-      .update({ 
-        is_active: false, 
-        unassigned_date: new Date().toISOString().split('T')[0] 
+      .update({
+        is_active: false,
+        unassigned_date: new Date().toISOString().split('T')[0],
       })
       .eq('user_id', userId)
       .eq('is_active', true)
@@ -435,7 +460,7 @@ export async function assignUserToSite(userId: string, siteId: string, role: str
         site_id: siteId,
         role: role,
         assigned_date: new Date().toISOString().split('T')[0],
-        is_active: true
+        is_active: true,
       })
       .select()
       .single()
@@ -454,10 +479,13 @@ export async function assignUserToSite(userId: string, siteId: string, role: str
 // 관리자용 - 사용자 현장 배정 해제
 export async function unassignUserFromSite(userId: string) {
   const supabase = createClient()
-  
+
   try {
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return { success: false, error: 'Authentication required' }
     }
@@ -476,9 +504,9 @@ export async function unassignUserFromSite(userId: string) {
     // 활성 배정 비활성화
     const { data, error } = await supabase
       .from('site_assignments')
-      .update({ 
-        is_active: false, 
-        unassigned_date: new Date().toISOString().split('T')[0] 
+      .update({
+        is_active: false,
+        unassigned_date: new Date().toISOString().split('T')[0],
       })
       .eq('user_id', userId)
       .eq('is_active', true)
@@ -497,10 +525,13 @@ export async function unassignUserFromSite(userId: string) {
 // 현장별 작업자 목록 조회
 export async function getSiteWorkers(siteId: string) {
   const supabase = createClient()
-  
+
   try {
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return { success: false, error: 'Authentication required' }
     }
@@ -508,7 +539,8 @@ export async function getSiteWorkers(siteId: string) {
     // 현장의 작업자 목록 조회
     const { data, error } = await supabase
       .from('site_assignments')
-      .select(`
+      .select(
+        `
         id,
         assigned_date,
         unassigned_date,
@@ -522,7 +554,8 @@ export async function getSiteWorkers(siteId: string) {
           role,
           status
         )
-      `)
+      `
+      )
       .eq('site_id', siteId)
       .order('assigned_date', { ascending: false })
 
@@ -540,12 +573,15 @@ export async function getSiteWorkers(siteId: string) {
 // 사용자가 자신의 현장을 선택하는 함수 (권한 체크 없음)
 export async function selectUserSite(siteId: string) {
   const supabase = createClient()
-  
+
   try {
     log('selectUserSite: Starting...')
-    
+
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return { success: false, error: 'Authentication required' }
     }
@@ -562,13 +598,13 @@ export async function selectUserSite(siteId: string) {
 
     if (checkError || !assignment) {
       log('selectUserSite: User not assigned to site, creating assignment...')
-      
+
       // 기존 활성 배정 비활성화
       await supabase
         .from('site_assignments')
-        .update({ 
-          is_active: false, 
-          unassigned_date: new Date().toISOString().split('T')[0] 
+        .update({
+          is_active: false,
+          unassigned_date: new Date().toISOString().split('T')[0],
         })
         .eq('user_id', user.id)
         .eq('is_active', true)
@@ -581,7 +617,7 @@ export async function selectUserSite(siteId: string) {
           site_id: siteId,
           assigned_date: new Date().toISOString().split('T')[0],
           is_active: true,
-          role: 'worker'
+          role: 'worker',
         })
         .select()
         .single()
@@ -600,9 +636,9 @@ export async function selectUserSite(siteId: string) {
       // 기존 활성 배정 비활성화
       await supabase
         .from('site_assignments')
-        .update({ 
-          is_active: false, 
-          unassigned_date: new Date().toISOString().split('T')[0] 
+        .update({
+          is_active: false,
+          unassigned_date: new Date().toISOString().split('T')[0],
         })
         .eq('user_id', user.id)
         .eq('is_active', true)
@@ -610,9 +646,9 @@ export async function selectUserSite(siteId: string) {
       // 현재 배정 활성화
       const { data: updated, error: updateError } = await supabase
         .from('site_assignments')
-        .update({ 
+        .update({
           is_active: true,
-          unassigned_date: null
+          unassigned_date: null,
         })
         .eq('id', assignment.id)
         .select()
@@ -630,19 +666,25 @@ export async function selectUserSite(siteId: string) {
     return { success: true, data: assignment }
   } catch (error) {
     console.error('Error in selectUserSite:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to select site' }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to select site',
+    }
   }
 }
 
 // 개발/테스트용 - 현재 사용자를 강남 A현장에 강제 배정
 export async function forceAssignCurrentUserToTestSite() {
   const supabase = createClient()
-  
+
   try {
     log('forceAssignCurrentUserToTestSite: Starting...')
-    
+
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return { success: false, error: 'Authentication required' }
     }
@@ -652,15 +694,18 @@ export async function forceAssignCurrentUserToTestSite() {
     // 기존 활성 배정 비활성화
     const { error: deactivateError } = await supabase
       .from('site_assignments')
-      .update({ 
-        is_active: false, 
-        unassigned_date: new Date().toISOString().split('T')[0] 
+      .update({
+        is_active: false,
+        unassigned_date: new Date().toISOString().split('T')[0],
       })
       .eq('user_id', user.id)
       .eq('is_active', true)
 
     if (deactivateError) {
-      log('forceAssignCurrentUserToTestSite: Deactivate error (might be expected):', deactivateError)
+      log(
+        'forceAssignCurrentUserToTestSite: Deactivate error (might be expected):',
+        deactivateError
+      )
     }
 
     // 강남 A현장 찾기
@@ -685,7 +730,7 @@ export async function forceAssignCurrentUserToTestSite() {
         site_id: testSite.id,
         assigned_date: new Date().toISOString().split('T')[0],
         is_active: true,
-        role: 'worker'
+        role: 'worker',
       })
       .select()
       .single()
@@ -699,6 +744,9 @@ export async function forceAssignCurrentUserToTestSite() {
     return { success: true, data: newAssignment }
   } catch (error) {
     console.error('Error in forceAssignCurrentUserToTestSite:', error)
-    return { success: false, error: error instanceof Error ? error.message : 'Failed to assign test site' }
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to assign test site',
+    }
   }
 }

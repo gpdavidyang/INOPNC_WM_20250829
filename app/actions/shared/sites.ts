@@ -1,20 +1,22 @@
-import { createClient } from "@/lib/supabase/server"
-'use server'
-
+import { createClient } from '@/lib/supabase/server'
+;('use server')
 
 export async function getSites() {
   // console.log('🔍 getSites called - starting execution')
-  
+
   try {
     const supabase = createClient()
-    
+
     // Step 1: Check authentication
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       console.error('❌ Authentication failed in getSites:', userError)
       return { success: false, error: 'User not authenticated' }
     }
-    
+
     // console.log('✅ User authenticated:', user.id)
 
     // Step 2: Try to get sites with detailed logging
@@ -24,7 +26,7 @@ export async function getSites() {
       .select('*')
       .order('name', { ascending: true })
 
-    // Step 3: Log query results 
+    // Step 3: Log query results
     // console.log('📊 Sites query result:', {
     //   success: !sitesError,
     //   sitesCount: sites?.length || 0,
@@ -47,6 +49,9 @@ export async function getSites() {
     return { success: true, data: sites }
   } catch (error) {
     console.error('💥 Unexpected error in getSites:', error)
-    return { success: false, error: `Failed to fetch sites: ${error instanceof Error ? error.message : 'Unknown error'}` }
+    return {
+      success: false,
+      error: `Failed to fetch sites: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    }
   }
 }
