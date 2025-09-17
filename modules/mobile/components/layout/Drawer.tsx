@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/modules/mobile/providers/AuthProvider'
+import { useMobileAuth } from '@/modules/mobile/hooks/use-mobile-auth'
 
 interface DrawerProps {
   isOpen: boolean
@@ -12,7 +12,8 @@ interface DrawerProps {
 
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const router = useRouter()
-  const { profile, loading: profileLoading, user } = useAuth()
+  const { profile, loading: profileLoading, user } = useMobileAuth()
+  const supabase = createClient()
   const [showAccountInfo, setShowAccountInfo] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
@@ -24,11 +25,11 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   // Log profile data usage for debugging
   useEffect(() => {
     if (profile) {
-      console.log('[DRAWER] Using AuthProvider profile data:', profile.full_name)
+      console.log('[DRAWER] Using mobile auth profile data:', profile.full_name)
     } else if (!profileLoading) {
-      console.log('[DRAWER] No profile available from AuthProvider')
+      console.log('[DRAWER] No profile available from mobile auth')
     } else {
-      console.log('[DRAWER] AuthProvider still loading profile...')
+      console.log('[DRAWER] Mobile auth still loading profile...')
     }
   }, [profile, profileLoading])
 
