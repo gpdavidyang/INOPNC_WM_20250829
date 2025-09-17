@@ -39,7 +39,7 @@ declare global {
   namespace JSX {
     interface IntrinsicElements {
       aside: React.DetailedHTMLProps<
-        React.HTMLAttributes<HTMLElement> & { inert?: boolean },
+        React.HTMLAttributes<HTMLElement> & { inert?: string | undefined },
         HTMLElement
       >
     }

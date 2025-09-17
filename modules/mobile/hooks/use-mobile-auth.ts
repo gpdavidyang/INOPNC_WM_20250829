@@ -33,6 +33,7 @@ export function useMobileAuth(): UseMobileAuthReturn {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const sessionRefreshing = useRef(false)
+  const authStateDebounceRef = useRef<NodeJS.Timeout | null>(null)
 
   const supabase = createClient()
 
@@ -101,30 +102,21 @@ export function useMobileAuth(): UseMobileAuthReturn {
     try {
       console.log('[MOBILE-AUTH] Starting profile fetch for user:', userId)
 
-      // Add timeout to prevent hanging
-      const fetchWithTimeout = new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('Profile fetch timeout after 10 seconds'))
-        }, 10000)
-
+      // Reduced timeout and improved error handling
+      const fetchWithTimeout = Promise.race([
         supabase
           ?.from('profiles')
           .select('*')
           .eq('id', userId)
           .single()
           .then(({ data, error }: { data: any; error: any }) => {
-            clearTimeout(timeout)
-            if (error) {
-              reject(error)
-            } else {
-              resolve(data)
-            }
-          })
-          .catch(err => {
-            clearTimeout(timeout)
-            reject(err)
-          })
-      })
+            if (error) throw error
+            return data
+          }),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Profile fetch timeout after 5 seconds')), 5000)
+        ),
+      ])
 
       const data = (await fetchWithTimeout) as any
 
@@ -179,41 +171,62 @@ export function useMobileAuth(): UseMobileAuthReturn {
     // Initial session fetch
     getSession()
 
-    // Set up auth state listener
+    // Set up auth state listener with debouncing to prevent performance violations
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[MOBILE-AUTH] Auth state changed:', event, 'User:', session?.user?.email)
 
-      if (event === 'SIGNED_OUT') {
-        setUser(null)
-        setProfile(null)
-        setLoading(false)
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-        if (session?.user) {
-          setUser(session.user)
-          setLoading(true) // Set loading before fetching profile
-          await fetchProfile(session.user.id)
-        }
-      } else if (event === 'INITIAL_SESSION' && session?.user) {
-        // Handle initial session load
-        setUser(session.user)
-        setLoading(true)
-        await fetchProfile(session.user.id)
+      // Clear previous debounced call
+      if (authStateDebounceRef.current) {
+        clearTimeout(authStateDebounceRef.current)
       }
+
+      // Debounce auth state changes to prevent rapid successive calls
+      authStateDebounceRef.current = setTimeout(async () => {
+        try {
+          if (event === 'SIGNED_OUT') {
+            setUser(null)
+            setProfile(null)
+            setLoading(false)
+          } else if (
+            event === 'SIGNED_IN' ||
+            event === 'TOKEN_REFRESHED' ||
+            event === 'USER_UPDATED'
+          ) {
+            if (session?.user) {
+              setUser(session.user)
+              setLoading(true) // Set loading before fetching profile
+              await fetchProfile(session.user.id)
+            }
+          } else if (event === 'INITIAL_SESSION' && session?.user) {
+            // Handle initial session load
+            setUser(session.user)
+            setLoading(true)
+            await fetchProfile(session.user.id)
+          }
+        } catch (error) {
+          console.error('[MOBILE-AUTH] Auth state change error:', error)
+          setError(error instanceof Error ? error.message : 'Auth state change failed')
+          setLoading(false)
+        }
+      }, 100) // 100ms debounce to prevent rapid successive calls
     })
 
-    // Retry profile fetch after a delay if still loading
+    // Retry profile fetch with exponential backoff
     const retryTimeout = setTimeout(() => {
       if (loading && user && !profile) {
-        console.log('[MOBILE-AUTH] Retrying profile fetch after 2 seconds...')
+        console.log('[MOBILE-AUTH] Retrying profile fetch after 3 seconds...')
         fetchProfile(user.id)
       }
-    }, 2000)
+    }, 3000)
 
     return () => {
       subscription.unsubscribe()
       clearTimeout(retryTimeout)
+      if (authStateDebounceRef.current) {
+        clearTimeout(authStateDebounceRef.current)
+      }
     }
   }, [getSession, user, loading, profile])
 
