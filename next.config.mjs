@@ -22,6 +22,9 @@ const nextConfig = {
   
   // 실험적 기능으로 빌드 성능 향상
   experimental: {
+    // Enable instrumentation hook for build-time setup
+    instrumentationHook: true,
+    
     // 메모리 캐시 최적화
     optimizePackageImports: [
       '@radix-ui/react-dialog',
@@ -73,6 +76,8 @@ const nextConfig = {
     removeConsole: process.env.NEXT_PUBLIC_DISABLE_CONSOLE_LOGS === 'true' 
       ? { exclude: ['error', 'warn'] }
       : process.env.NODE_ENV === 'production' 
+      ? { exclude: ['error', 'warn'] }
+      : process.env.NEXT_BUILD_MODE === 'true'
       ? { exclude: ['error', 'warn'] }
       : false,
     // KEEP React properties for debugging in dev
