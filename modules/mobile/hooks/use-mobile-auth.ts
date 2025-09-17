@@ -122,6 +122,10 @@ export function useMobileAuth(): UseMobileAuthReturn {
       })
       setError(err instanceof Error ? err.message : 'Failed to fetch profile')
       setProfile(null)
+    } finally {
+      // Ensure loading is set to false regardless of success or failure
+      setLoading(false)
+      console.log('[MOBILE-AUTH] Profile fetch completed, loading set to false')
     }
   }
 
@@ -154,7 +158,7 @@ export function useMobileAuth(): UseMobileAuthReturn {
       } else if (session?.user) {
         setUser(session.user)
         await fetchProfile(session.user.id)
-        setLoading(false)
+        // fetchProfile now handles setLoading(false) in its finally block
       }
     })
 

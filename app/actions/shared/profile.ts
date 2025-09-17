@@ -1,5 +1,5 @@
-import { createClient } from "@/lib/supabase/server"
-'use server'
+import { createClient } from '@/lib/supabase/server'
+;('use server')
 
 import type { Profile } from '@/types'
 
@@ -7,16 +7,12 @@ export async function getProfile() {
   try {
     const supabase = createClient()
     const user = await getAuthenticatedUser()
-    
+
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
 
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single()
 
     if (error) throw error
 
@@ -30,7 +26,7 @@ export async function updateProfile(updates: Partial<Profile>) {
   try {
     const supabase = createClient()
     const user = await getAuthenticatedUser()
-    
+
     if (!user) {
       return { success: false, error: 'Unauthorized' }
     }
@@ -57,12 +53,9 @@ export async function getProfiles(filters?: {
 }) {
   try {
     const supabase = createClient()
-    
-    let query = supabase
-      .from('profiles')
-      .select('*')
-      .eq('is_active', true)
-    
+
+    let query = supabase.from('profiles').select('*').eq('is_active', true)
+
     if (filters?.role) {
       query = query.eq('role', filters.role)
     }
@@ -72,7 +65,7 @@ export async function getProfiles(filters?: {
     if (filters?.site_id) {
       query = query.eq('site_id', filters.site_id)
     }
-    
+
     const { data, error } = await query.order('full_name')
 
     if (error) throw error

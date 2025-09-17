@@ -1,33 +1,30 @@
-import { createClient } from "@/lib/supabase/server"
-'use server'
-
+import { createClient } from '@/lib/supabase/server'
+;('use server')
 
 // ==========================================
 // HELPER FUNCTIONS
 // ==========================================
 
 async function createHeadquartersRequest(
-  supabase: unknown, 
-  requesterId: string, 
-  siteId: string, 
-  content: string, 
+  supabase: unknown,
+  requesterId: string,
+  siteId: string,
+  content: string,
   workDate: string
 ) {
   try {
-    const { error } = await supabase
-      .from('headquarters_requests')
-      .insert({
-        requester_id: requesterId,
-        site_id: siteId,
-        category: 'general',
-        subject: `${workDate} 작업일지 본사 요청사항`,
-        content: content,
-        urgency: 'medium',
-        status: 'pending',
-        request_date: workDate,
-        created_at: new Date().toISOString()
-      })
-    
+    const { error } = await supabase.from('headquarters_requests').insert({
+      requester_id: requesterId,
+      site_id: siteId,
+      category: 'general',
+      subject: `${workDate} 작업일지 본사 요청사항`,
+      content: content,
+      urgency: 'medium',
+      status: 'pending',
+      request_date: workDate,
+      created_at: new Date().toISOString(),
+    })
+
     if (error) {
       console.error('Error creating headquarters request:', error)
       // Don't throw error to avoid breaking daily report creation
@@ -42,24 +39,30 @@ async function createHeadquartersRequest(
 // DAILY REPORT ACTIONS
 // ==========================================
 
-export async function createDailyReport(data: {
-  site_id: string
-  partner_company_id?: string
-  work_date: string
-  member_name: string
-  process_type: string // Required field in actual DB
-  total_workers?: number
-  npc1000_incoming?: number
-  npc1000_used?: number
-  npc1000_remaining?: number
-  issues?: string
-  hq_request?: string
-}, workerDetails?: Array<{worker_name: string, labor_hours: number, worker_id?: string}>) {
+export async function createDailyReport(
+  data: {
+    site_id: string
+    partner_company_id?: string
+    work_date: string
+    member_name: string
+    process_type: string // Required field in actual DB
+    total_workers?: number
+    npc1000_incoming?: number
+    npc1000_used?: number
+    npc1000_remaining?: number
+    issues?: string
+    hq_request?: string
+  },
+  workerDetails?: Array<{ worker_name: string; labor_hours: number; worker_id?: string }>
+) {
   try {
     const supabase = await createClient()
-    
+
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
@@ -79,7 +82,7 @@ export async function createDailyReport(data: {
         .from('daily_reports')
         .update({
           ...data,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id)
         .select()
@@ -90,10 +93,7 @@ export async function createDailyReport(data: {
       // Update worker details if provided
       if (workerDetails && report) {
         // Delete existing worker details
-        await supabase
-          .from('daily_report_workers')
-          .delete()
-          .eq('daily_report_id', report.id)
+        await supabase.from('daily_report_workers').delete().eq('daily_report_id', report.id)
 
         // Insert new worker details
         if (workerDetails.length > 0) {
@@ -103,7 +103,7 @@ export async function createDailyReport(data: {
               daily_report_id: report.id,
               worker_name: worker.worker_name,
               work_hours: worker.labor_hours,
-              created_at: new Date().toISOString()
+              created_at: new Date().toISOString(),
             }))
 
           if (workerInserts.length > 0) {
@@ -120,7 +120,13 @@ export async function createDailyReport(data: {
 
       // Handle headquarters request if provided
       if (data.hq_request && data.hq_request.trim() && report) {
-        await createHeadquartersRequest(supabase, user.id, data.site_id, data.hq_request, data.work_date)
+        await createHeadquartersRequest(
+          supabase,
+          user.id,
+          data.site_id,
+          data.hq_request,
+          data.work_date
+        )
       }
 
       revalidatePath('/dashboard/daily-reports')
@@ -133,7 +139,7 @@ export async function createDailyReport(data: {
       .insert({
         ...data,
         status: 'draft' as DailyReportStatus,
-        created_by: user.id
+        created_by: user.id,
       })
       .select()
       .single()
@@ -148,7 +154,7 @@ export async function createDailyReport(data: {
           daily_report_id: report.id,
           worker_name: worker.worker_name,
           work_hours: worker.labor_hours,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
         }))
 
       if (workerInserts.length > 0) {
@@ -165,32 +171,35 @@ export async function createDailyReport(data: {
 
     // Handle headquarters request if provided
     if (data.hq_request && data.hq_request.trim() && report) {
-      await createHeadquartersRequest(supabase, user.id, data.site_id, data.hq_request, data.work_date)
+      await createHeadquartersRequest(
+        supabase,
+        user.id,
+        data.site_id,
+        data.hq_request,
+        data.work_date
+      )
     }
 
     revalidatePath('/dashboard/daily-reports')
     return { success: true, data: report }
   } catch (error) {
     logError(error, 'createDailyReport')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '일일보고서 생성에 실패했습니다.' 
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '일일보고서 생성에 실패했습니다.',
     }
   }
 }
 
-export async function updateDailyReport(
-  id: string,
-  data: Partial<DailyReport>
-) {
+export async function updateDailyReport(id: string, data: Partial<DailyReport>) {
   try {
     const supabase = await createClient()
-    
+
     const { data: report, error } = await supabase
       .from('daily_reports')
       .update({
         ...data,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .select()
@@ -203,9 +212,9 @@ export async function updateDailyReport(
     return { success: true, data: report }
   } catch (error) {
     logError(error, 'updateDailyReport')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '일일보고서 수정에 실패했습니다.' 
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '일일보고서 수정에 실패했습니다.',
     }
   }
 }
@@ -213,18 +222,21 @@ export async function updateDailyReport(
 export async function submitDailyReport(id: string) {
   try {
     const supabase = await createClient()
-    
+
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
-    
+
     const { data: report, error } = await supabase
       .from('daily_reports')
       .update({
         status: 'submitted' as DailyReportStatus,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .eq('status', 'draft')
@@ -245,22 +257,21 @@ export async function submitDailyReport(id: string) {
     return { success: true, data: report }
   } catch (error) {
     logError(error, 'submitDailyReport')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '일일보고서 제출에 실패했습니다.' 
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '일일보고서 제출에 실패했습니다.',
     }
   }
 }
 
-export async function approveDailyReport(
-  id: string,
-  approve: boolean,
-  comments?: string
-) {
+export async function approveDailyReport(id: string, approve: boolean, comments?: string) {
   try {
     const supabase = await createClient()
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
@@ -268,11 +279,11 @@ export async function approveDailyReport(
     const { data: report, error } = await supabase
       .from('daily_reports')
       .update({
-        status: approve ? 'approved' : 'rejected' as DailyReportStatus,
+        status: approve ? 'approved' : ('rejected' as DailyReportStatus),
         approved_by: user.id,
         approved_at: new Date().toISOString(),
         notes: comments ? `${comments}\n\n---\nApproval comments` : undefined,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', id)
       .eq('status', 'submitted')
@@ -297,9 +308,9 @@ export async function approveDailyReport(
     return { success: true, data: report }
   } catch (error) {
     logError(error, 'approveDailyReport')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '일일보고서 승인에 실패했습니다.' 
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '일일보고서 승인에 실패했습니다.',
     }
   }
 }
@@ -314,13 +325,15 @@ export async function getDailyReports(filters: {
 }) {
   try {
     const supabase = await createClient()
-    
+
     let query = supabase
       .from('daily_reports')
-      .select(`
+      .select(
+        `
         *,
         site:sites(id, name)
-      `)
+      `
+      )
       .order('work_date', { ascending: false })
 
     if (filters.site_id) {
@@ -352,9 +365,10 @@ export async function getDailyReports(filters: {
     return { success: true, data, count }
   } catch (error) {
     logError(error, 'getDailyReports')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '일일보고서 목록을 불러오는데 실패했습니다.' 
+    return {
+      success: false,
+      error:
+        error instanceof AppError ? error.message : '일일보고서 목록을 불러오는데 실패했습니다.',
     }
   }
 }
@@ -362,15 +376,17 @@ export async function getDailyReports(filters: {
 export async function getDailyReportById(id: string) {
   try {
     const supabase = await createClient()
-    
+
     // Get main report with site info and partner company
     const { data, error } = await supabase
       .from('daily_reports')
-      .select(`
+      .select(
+        `
         *,
         site:sites(*),
         partner_company:partner_companies(*)
-      `)
+      `
+      )
       .eq('id', id)
       .single()
 
@@ -400,10 +416,12 @@ export async function getDailyReportById(id: string) {
     // Get worker assignments with profile details
     const { data: workerAssignments } = await supabase
       .from('work_records')
-      .select(`
+      .select(
+        `
         *,
         profile:profiles(*)
-      `)
+      `
+      )
       .eq('daily_report_id', id)
       .order('assigned_at')
 
@@ -422,17 +440,20 @@ export async function getDailyReportById(id: string) {
       .order('created_at')
 
     // Separate documents by type
-    const beforePhotos = documents?.filter((doc: unknown) => 
-      doc.document_type === 'before_photo' || doc.category === 'before'
-    ) || []
-    
-    const afterPhotos = documents?.filter((doc: unknown) => 
-      doc.document_type === 'after_photo' || doc.category === 'after'
-    ) || []
-    
-    const receipts = documents?.filter((doc: unknown) => 
-      doc.document_type === 'receipt' || doc.file_type === 'receipt'
-    ) || []
+    const beforePhotos =
+      documents?.filter(
+        (doc: unknown) => doc.document_type === 'before_photo' || doc.category === 'before'
+      ) || []
+
+    const afterPhotos =
+      documents?.filter(
+        (doc: unknown) => doc.document_type === 'after_photo' || doc.category === 'after'
+      ) || []
+
+    const receipts =
+      documents?.filter(
+        (doc: unknown) => doc.document_type === 'receipt' || doc.file_type === 'receipt'
+      ) || []
 
     // Combine all data
     const reportWithDetails = {
@@ -444,15 +465,15 @@ export async function getDailyReportById(id: string) {
       afterPhotos,
       receipts,
       documents: documents || [],
-      createdByProfile
+      createdByProfile,
     }
 
     return { success: true, data: reportWithDetails }
   } catch (error) {
     logError(error, 'getDailyReportById')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '일일보고서를 불러오는데 실패했습니다.' 
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '일일보고서를 불러오는데 실패했습니다.',
     }
   }
 }
@@ -474,7 +495,7 @@ export async function getDailyReportById(id: string) {
 // ) {
 //   try {
 //     const supabase = await createClient()
-    
+
 //     const { data: { user }, error: userError } = await supabase.auth.getUser()
 //     if (userError || !user) {
 //       return { success: false, error: 'User not authenticated' }
@@ -509,7 +530,7 @@ export async function getDailyReportById(id: string) {
 // ) {
 //   try {
 //     const supabase = await createClient()
-    
+
 //     const { data: { user }, error: userError } = await supabase.auth.getUser()
 //     if (userError || !user) {
 //       return { success: false, error: 'User not authenticated' }
@@ -541,7 +562,7 @@ export async function getDailyReportById(id: string) {
 // export async function deleteWorkLog(id: string) {
 //   try {
 //     const supabase = await createClient()
-    
+
 //     const { error } = await supabase
 //       .from('work_logs')
 //       .delete()
@@ -574,7 +595,7 @@ export async function getDailyReportById(id: string) {
 // ) {
 //   try {
 //     const supabase = await createClient()
-    
+
 //     const { data, error } = await supabase
 //       .from('work_log_materials')
 //       .insert(
@@ -606,7 +627,7 @@ export async function getDailyReportById(id: string) {
 // ) {
 //   try {
 //     const supabase = await createClient()
-    
+
 //     const { data: material, error } = await supabase
 //       .from('work_log_materials')
 //       .update({
@@ -632,7 +653,7 @@ export async function getDailyReportById(id: string) {
 // export async function deleteWorkLogMaterial(id: string) {
 //   try {
 //     const supabase = await createClient()
-    
+
 //     const { error } = await supabase
 //       .from('work_log_materials')
 //       .delete()
@@ -663,9 +684,12 @@ export async function uploadAdditionalPhotos(
 ) {
   try {
     const supabase = await createClient()
-    
+
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
@@ -695,9 +719,8 @@ export async function uploadAdditionalPhotos(
           .order('upload_order', { ascending: false })
           .limit(1)
 
-        const nextOrder = existingPhotos && existingPhotos.length > 0 
-          ? existingPhotos[0].upload_order + 1 
-          : 1
+        const nextOrder =
+          existingPhotos && existingPhotos.length > 0 ? existingPhotos[0].upload_order + 1 : 1
 
         // Check file size limit (10MB)
         if (photoData.file.size > 10 * 1024 * 1024) {
@@ -715,7 +738,7 @@ export async function uploadAdditionalPhotos(
           .from('daily-reports')
           .upload(filePath, photoData.file, {
             upsert: false,
-            contentType: photoData.file.type
+            contentType: photoData.file.type,
           })
 
         if (uploadError) {
@@ -724,9 +747,9 @@ export async function uploadAdditionalPhotos(
         }
 
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('daily-reports')
-          .getPublicUrl(uploadData.path)
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from('daily-reports').getPublicUrl(uploadData.path)
 
         // Save to database
         const { data: dbData, error: dbError } = await supabase
@@ -740,17 +763,15 @@ export async function uploadAdditionalPhotos(
             file_size: photoData.file.size,
             description: photoData.description || '',
             upload_order: nextOrder,
-            uploaded_by: user.id
+            uploaded_by: user.id,
           })
           .select()
           .single()
 
         if (dbError) {
           // If database insert fails, clean up storage
-          await supabase.storage
-            .from('daily-reports')
-            .remove([uploadData.path])
-          
+          await supabase.storage.from('daily-reports').remove([uploadData.path])
+
           errors.push(`${photoData.file.name}: 데이터베이스 저장 실패 - ${dbError.message}`)
           continue
         }
@@ -765,9 +786,8 @@ export async function uploadAdditionalPhotos(
           description: dbData.description,
           upload_order: dbData.upload_order,
           uploaded_by: dbData.uploaded_by,
-          uploaded_at: dbData.created_at
+          uploaded_at: dbData.created_at,
         })
-
       } catch (photoError) {
         logError(photoError, 'uploadAdditionalPhotos - individual photo')
         errors.push(`${photoData.file.name}: 처리 중 오류 발생`)
@@ -777,16 +797,16 @@ export async function uploadAdditionalPhotos(
     revalidatePath('/dashboard/daily-reports')
     revalidatePath(`/dashboard/daily-reports/${reportId}`)
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: uploadResults,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
     }
   } catch (error) {
     logError(error, 'uploadAdditionalPhotos')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '사진 업로드에 실패했습니다.' 
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '사진 업로드에 실패했습니다.',
     }
   }
 }
@@ -797,9 +817,12 @@ export async function uploadAdditionalPhotos(
 export async function deleteAdditionalPhoto(photoId: string) {
   try {
     const supabase = await createClient()
-    
+
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser()
     if (userError || !user) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
@@ -823,7 +846,8 @@ export async function deleteAdditionalPhoto(photoId: string) {
       .single()
 
     const isOwner = photo.uploaded_by === user.id
-    const isManager = profile?.role && ['admin', 'system_admin', 'site_manager'].includes(profile.role)
+    const isManager =
+      profile?.role && ['admin', 'system_admin', 'site_manager'].includes(profile.role)
 
     if (!isOwner && !isManager) {
       throw new AppError('사진을 삭제할 권한이 없습니다.', ErrorType.AUTHORIZATION, 403)
@@ -875,9 +899,9 @@ export async function deleteAdditionalPhoto(photoId: string) {
     return { success: true }
   } catch (error) {
     logError(error, 'deleteAdditionalPhoto')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '사진 삭제에 실패했습니다.' 
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '사진 삭제에 실패했습니다.',
     }
   }
 }
@@ -888,10 +912,11 @@ export async function deleteAdditionalPhoto(photoId: string) {
 export async function getAdditionalPhotos(reportId: string) {
   try {
     const supabase = await createClient()
-    
+
     const { data: photos, error } = await supabase
       .from('daily_report_additional_photos')
-      .select(`
+      .select(
+        `
         id,
         photo_type,
         file_url,
@@ -903,7 +928,8 @@ export async function getAdditionalPhotos(reportId: string) {
         uploaded_by,
         created_at,
         profiles:uploaded_by(full_name)
-      `)
+      `
+      )
       .eq('daily_report_id', reportId)
       .order('photo_type', { ascending: true })
       .order('upload_order', { ascending: true })
@@ -926,7 +952,7 @@ export async function getAdditionalPhotos(reportId: string) {
         description: photo.description || '',
         upload_order: photo.upload_order,
         uploaded_by: photo.uploaded_by,
-        uploaded_at: photo.created_at
+        uploaded_at: photo.created_at,
       }
 
       if (photo.photo_type === 'before') {
@@ -936,18 +962,18 @@ export async function getAdditionalPhotos(reportId: string) {
       }
     })
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: {
         before: beforePhotos,
-        after: afterPhotos
-      }
+        after: afterPhotos,
+      },
     }
   } catch (error) {
     logError(error, 'getAdditionalPhotos')
-    return { 
-      success: false, 
-      error: error instanceof AppError ? error.message : '사진 목록 조회에 실패했습니다.' 
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : '사진 목록 조회에 실패했습니다.',
     }
   }
 }
