@@ -46,10 +46,20 @@ export default function LoginPage() {
         localStorage.removeItem('savedEmail')
       }
 
-      await signIn(email, password)
+      const result = await signIn(email, password)
+
+      // Server Action이 에러 객체를 반환하면 처리
+      if (result && result.error) {
+        console.error('Login error:', result.error)
+        setError(result.error)
+        setIsLoading(false)
+        return
+      }
+
       // 성공시 Server Action에서 자동 리다이렉트됨
+      // 여기 도달하면 성공한 것이므로 아무것도 하지 않음
     } catch (error) {
-      console.error('Login error:', error)
+      console.error('Login exception:', error)
       setError('로그인에 실패했습니다.')
       setIsLoading(false)
     }
