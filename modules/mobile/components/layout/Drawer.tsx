@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { useAuth } from '@/modules/mobile/providers/AuthProvider'
 
 interface DrawerProps {
   isOpen: boolean
@@ -11,8 +12,9 @@ interface DrawerProps {
 
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const router = useRouter()
-  const [userProfile, setUserProfile] = useState<any>(null)
-  const [profileLoading, setProfileLoading] = useState(true)
+  const { profile: authProfile, loading: authLoading, user } = useAuth()
+  const [userProfile, setUserProfile] = useState<any>(authProfile || null)
+  const [profileLoading, setProfileLoading] = useState(authLoading)
   const [showAccountInfo, setShowAccountInfo] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
@@ -22,344 +24,24 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   })
   const supabase = createClient()
 
-  // Auth state change listener
+  // Use AuthProvider profile data instead of independent fetching
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        // Refresh profile when user signs in
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profile) {
-          setUserProfile(profile)
-          setProfileLoading(false)
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUserProfile(null)
-        setProfileLoading(false)
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        // Handle token refresh in production
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-
-        if (profile) {
-          setUserProfile(profile)
-          setProfileLoading(false)
-        }
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [supabase])
-
-  useEffect(() => {
-    let mounted = true
-    let fetchTimeout: NodeJS.Timeout
-    let healthCheckCount = 0
-    let consecutiveTimeouts = 0
-
-    // Production environment detection
-    const isProduction =
-      process.env.NODE_ENV === 'production' || window.location.hostname !== 'localhost'
-
-    // Enhanced profile fetch with production-grade resilience
-    const fetchProfile = async (attempt = 1) => {
-      const maxAttempts = isProduction ? 12 : 8 // More attempts in production
-      const baseTimeoutMs = isProduction ? 30000 : 20000 // Longer base timeout in production
-      const timeoutMs = Math.min(baseTimeoutMs + (attempt - 1) * 5000, isProduction ? 60000 : 35000) // Progressive timeout increase
-
-      try {
-        if (!mounted) return
-
-        console.log(
-          `[PROFILE] Attempt ${attempt}/${maxAttempts} (timeout: ${timeoutMs}ms, production: ${isProduction})`
-        )
-
-        // Network health check for production
-        if (isProduction && attempt > 1) {
-          try {
-            const healthStart = Date.now()
-            await fetch('/api/health', {
-              method: 'HEAD',
-              signal: AbortSignal.timeout(5000),
-            })
-            const healthDuration = Date.now() - healthStart
-            console.log(`[PROFILE] Health check passed in ${healthDuration}ms`)
-            healthCheckCount++
-          } catch (healthError) {
-            console.log(`[PROFILE] Health check failed (attempt ${attempt}):`, healthError)
-            consecutiveTimeouts++
-
-            // If health check fails multiple times, use exponential backoff
-            if (consecutiveTimeouts >= 3) {
-              const extraDelay = Math.pow(2, consecutiveTimeouts - 2) * 5000
-              await new Promise(resolve => setTimeout(resolve, extraDelay))
-            }
-          }
-        }
-
-        // Don't set loading if we already have a profile and this is not the first attempt
-        if (!userProfile || attempt === 1) {
-          setProfileLoading(true)
-        }
-
-        // Adaptive timeout based on network conditions
-        const adaptiveTimeoutMs =
-          consecutiveTimeouts > 0
-            ? Math.min(timeoutMs * (1 + consecutiveTimeouts * 0.5), 90000)
-            : timeoutMs
-
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Profile fetch timeout')), adaptiveTimeoutMs)
-        })
-
-        // Get session with timeout and retries
-        let sessionResult
-        try {
-          const sessionPromise = supabase.auth.getSession()
-          sessionResult = (await Promise.race([sessionPromise, timeoutPromise])) as any
-        } catch (sessionError) {
-          if (sessionError.message === 'Profile fetch timeout') {
-            console.log(`[PROFILE] Session fetch timeout (attempt ${attempt})`)
-            throw sessionError
-          }
-          // For other session errors, try refresh
-          console.log(`[PROFILE] Session error, trying refresh (attempt ${attempt}):`, sessionError)
-          const refreshPromise = supabase.auth.refreshSession()
-          sessionResult = (await Promise.race([refreshPromise, timeoutPromise])) as any
-        }
-
-        if (!mounted) return
-
-        const {
-          data: { session },
-          error: sessionError,
-        } = sessionResult
-
-        if (sessionError || !session?.user) {
-          console.log(`[PROFILE] No valid session (attempt ${attempt}):`, sessionError?.message)
-
-          if (attempt < maxAttempts) {
-            // Progressive backoff with jitter for production load balancing
-            const baseDelay = Math.pow(2, attempt - 1) * 3000 // Start with 3s base delay
-            const jitter = Math.random() * 2000 // Add up to 2s jitter
-            const delay = Math.min(baseDelay + jitter, 15000) // Max 15s delay
-
-            console.log(`[PROFILE] Retrying in ${Math.round(delay)}ms...`)
-            fetchTimeout = setTimeout(() => fetchProfile(attempt + 1), delay)
-            return
-          } else {
-            // Final attempt failed, stop loading
-            console.log('[PROFILE] All session attempts failed')
-            if (mounted) {
-              setUserProfile(null)
-              setProfileLoading(false)
-            }
-            return
-          }
-        }
-
-        const user = session.user
-
-        // Fetch profile with timeout and enhanced error handling
-        let profileResult
-        try {
-          const profilePromise = supabase.from('profiles').select('*').eq('id', user.id).single()
-          profileResult = (await Promise.race([profilePromise, timeoutPromise])) as any
-        } catch (profileFetchError) {
-          console.log(`[PROFILE] Profile fetch failed (attempt ${attempt}):`, profileFetchError)
-          throw profileFetchError
-        }
-
-        if (!mounted) return
-
-        const { data: profile, error: profileError } = profileResult
-
-        if (profile) {
-          // Success - reset timeout counter and cache profile
-          consecutiveTimeouts = 0
-          setUserProfile(profile)
-          setProfileLoading(false)
-          console.log('[PROFILE] Loaded successfully:', profile.full_name)
-
-          // Cache successful profile
-          try {
-            localStorage.setItem(
-              'cached-profile',
-              JSON.stringify({
-                profile: profile,
-                timestamp: Date.now(),
-              })
-            )
-          } catch (cacheError) {
-            console.warn('[PROFILE] Failed to cache successful profile:', cacheError)
-          }
-        } else if (profileError) {
-          console.error(`[PROFILE] Database error (attempt ${attempt}):`, profileError)
-
-          if (attempt < maxAttempts) {
-            // Progressive backoff for database errors
-            const baseDelay = Math.pow(2, attempt - 1) * 2500
-            const jitter = Math.random() * 1500
-            const delay = Math.min(baseDelay + jitter, 12000)
-
-            console.log(`[PROFILE] Retrying after database error in ${Math.round(delay)}ms...`)
-            fetchTimeout = setTimeout(() => fetchProfile(attempt + 1), delay)
-          } else {
-            // Fallback to basic user info after all attempts failed
-            console.log('[PROFILE] Using fallback after all attempts failed')
-            if (mounted) {
-              setUserProfile({
-                id: user.id,
-                email: user.email || '',
-                full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-                role: user.user_metadata?.role || 'worker',
-                phone: '',
-                created_at: user.created_at || new Date().toISOString(),
-              })
-              setProfileLoading(false)
-            }
-          }
-        }
-      } catch (error) {
-        console.error(`[PROFILE] Fetch error (attempt ${attempt}):`, error)
-
-        if (attempt < maxAttempts && mounted) {
-          // Enhanced retry logic with adaptive strategies for production
-          const isTimeoutError = error.message.includes('timeout')
-          const isNetworkError =
-            error.message.includes('network') || error.message.includes('fetch')
-          consecutiveTimeouts = isTimeoutError
-            ? consecutiveTimeouts + 1
-            : Math.max(0, consecutiveTimeouts - 1)
-
-          let baseDelay
-          if (isTimeoutError) {
-            // Progressive backoff for timeouts with production adjustments
-            baseDelay = Math.pow(2, attempt) * (isProduction ? 6000 : 4000)
-          } else if (isNetworkError) {
-            // Medium delays for network issues
-            baseDelay = Math.pow(2, attempt - 1) * (isProduction ? 4000 : 3000)
-          } else {
-            // Standard delays for other errors
-            baseDelay = Math.pow(2, attempt - 1) * (isProduction ? 3000 : 2000)
-          }
-
-          const jitter = Math.random() * (isProduction ? 3000 : 2000)
-          const delay = Math.min(baseDelay + jitter, isProduction ? 30000 : 20000)
-
-          console.log(
-            `[PROFILE] Retrying in ${Math.round(delay)}ms... (${isTimeoutError ? 'timeout' : isNetworkError ? 'network' : 'other'}, consecutive timeouts: ${consecutiveTimeouts})`
-          )
-          fetchTimeout = setTimeout(() => fetchProfile(attempt + 1), delay)
-        } else {
-          // Max attempts reached - use comprehensive fallback strategy
-          console.log('[PROFILE] All attempts exhausted, implementing comprehensive fallback')
-          if (mounted) {
-            // Multi-layer fallback approach
-            let fallbackProfile = null
-
-            // Layer 1: Try localStorage cache
-            try {
-              const cachedProfile = localStorage.getItem('cached-profile')
-              if (cachedProfile) {
-                const parsed = JSON.parse(cachedProfile)
-                const cacheAge = Date.now() - (parsed.timestamp || 0)
-                if (cacheAge < 24 * 60 * 60 * 1000) {
-                  // Use cache if less than 24 hours old
-                  fallbackProfile = parsed.profile
-                  console.log(
-                    '[PROFILE] Using cached profile (age: ' +
-                      Math.round(cacheAge / 1000 / 60) +
-                      ' minutes)'
-                  )
-                }
-              }
-            } catch (cacheError) {
-              console.warn('[PROFILE] Cache read failed:', cacheError)
-            }
-
-            // Layer 2: Try session info
-            if (!fallbackProfile) {
-              try {
-                const sessionPromise = supabase.auth.getSession()
-                const sessionTimeout = new Promise((_, reject) =>
-                  setTimeout(() => reject(new Error('Session fallback timeout')), 5000)
-                )
-                const {
-                  data: { session },
-                } = (await Promise.race([sessionPromise, sessionTimeout])) as any
-
-                if (session?.user) {
-                  fallbackProfile = {
-                    id: session.user.id,
-                    email: session.user.email || '',
-                    full_name:
-                      session.user.user_metadata?.full_name ||
-                      session.user.email?.split('@')[0] ||
-                      '사용자',
-                    role: session.user.user_metadata?.role || 'site_manager',
-                    phone: session.user.user_metadata?.phone || '',
-                    created_at: session.user.created_at || new Date().toISOString(),
-                  }
-                  console.log('[PROFILE] Using session-based fallback')
-                }
-              } catch (fallbackError) {
-                console.warn('[PROFILE] Session fallback failed:', fallbackError)
-              }
-            }
-
-            // Layer 3: Minimal default profile
-            if (!fallbackProfile) {
-              fallbackProfile = {
-                id: 'fallback-user-' + Date.now(),
-                email: '',
-                full_name: '사용자',
-                role: 'site_manager',
-                phone: '',
-                created_at: new Date().toISOString(),
-              }
-              console.log('[PROFILE] Using minimal default profile')
-            }
-
-            setUserProfile(fallbackProfile)
-            setProfileLoading(false)
-
-            // Cache the fallback profile for future use
-            try {
-              localStorage.setItem(
-                'cached-profile',
-                JSON.stringify({
-                  profile: fallbackProfile,
-                  timestamp: Date.now(),
-                })
-              )
-            } catch (cacheWriteError) {
-              console.warn('[PROFILE] Failed to cache profile:', cacheWriteError)
-            }
-          }
-        }
-      }
+    if (authProfile) {
+      console.log('[DRAWER] Using AuthProvider profile data:', authProfile.full_name)
+      setUserProfile(authProfile)
+      setProfileLoading(false)
+    } else if (!authLoading) {
+      console.log('[DRAWER] No profile available from AuthProvider')
+      setUserProfile(null)
+      setProfileLoading(false)
+    } else {
+      console.log('[DRAWER] AuthProvider still loading profile...')
+      setProfileLoading(authLoading)
     }
+  }, [authProfile, authLoading])
 
-    // Only fetch if we don't have a profile yet
-    if (!userProfile) {
-      fetchProfile()
-    }
-
-    return () => {
-      mounted = false
-      clearTimeout(fetchTimeout)
-    }
-  }, [supabase]) // Remove userProfile from dependencies to prevent infinite loops
+  // Complex profile fetching useEffect removed - now using AuthProvider data
+  // This was the source of "[PROFILE] Fetch error (attempt 1): Error: Profile fetch timeout"
 
   useEffect(() => {
     // Lock body scroll when drawer is open (base.html match)
