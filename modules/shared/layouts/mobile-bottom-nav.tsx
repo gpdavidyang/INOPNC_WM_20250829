@@ -16,7 +16,7 @@ export const MobileBottomNav: React.FC = () => {
   const navItems: NavItem[] = [
     { label: '홈', href: '/mobile', icon: 'home' },
     { label: '출근', href: '/mobile/attendance', icon: 'clock' },
-    { label: '작업일지', href: '/mobile/work-report', icon: 'clipboard' },
+    { label: '작업일지', href: '/mobile/worklog', icon: 'clipboard' },
     { label: '현장정보', href: '/mobile/sites', icon: 'map' },
     { label: '문서함', href: '/mobile/docs', icon: 'folder' },
   ]
