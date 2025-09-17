@@ -21,17 +21,27 @@ declare global {
         backup_configs: any
         backup_jobs: any
         backup_schedules: any
-        
+
         // 주소 관련 테이블
         site_addresses: any
         accommodation_addresses: any
-        
+
         // 기타 누락된 테이블들
         materials: any
         material_stocks: any
         material_transactions: any
         material_requests: any
       }
+    }
+  }
+
+  // HTML 속성 확장 - inert 속성 지원
+  namespace JSX {
+    interface IntrinsicElements {
+      aside: React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement> & { inert?: boolean },
+        HTMLElement
+      >
     }
   }
 }

@@ -4,12 +4,12 @@ import { createClient } from '@/lib/supabase/client'
 
 let syncInterval: NodeJS.Timeout | null = null
 let lastSyncTime = 0
-const SYNC_INTERVAL = 5 * 60 * 1000 // 5 minutes
-const MIN_SYNC_DELAY = 30 * 1000 // 30 seconds minimum between syncs
+const SYNC_INTERVAL = 30 * 60 * 1000 // 30 minutes (production optimized)
+const MIN_SYNC_DELAY = 5 * 60 * 1000 // 5 minutes minimum between syncs (production optimized)
 
 /**
  * Initialize session synchronization for mobile PWA
- * This ensures the session stays fresh and profile data is available
+ * OPTIMIZED: Respects server validation and reduces over-validation
  */
 export function initSessionSync() {
   // Clear any existing interval
@@ -17,22 +17,23 @@ export function initSessionSync() {
     clearInterval(syncInterval)
   }
 
-  // Initial sync
-  syncSession()
+  // CRITICAL FIX: Don't perform initial sync immediately
+  // Trust that AuthProvider has already validated the session from server data
+  console.log('[Session Sync] Initialized - trusting AuthProvider validation')
 
-  // Set up periodic sync
+  // Set up periodic sync (reduced frequency)
   syncInterval = setInterval(() => {
     syncSession()
   }, SYNC_INTERVAL)
 
-  // Sync on visibility change (when app comes to foreground)
+  // PRODUCTION: Only sync on visibility change if session is very stale
   if (typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', handleVisibilityChange)
+    document.addEventListener('visibilitychange', handleOptimizedVisibilityChange)
   }
 
-  // Sync on online status change
+  // PRODUCTION: Only sync on online if we were offline for an extended period
   if (typeof window !== 'undefined') {
-    window.addEventListener('online', handleOnline)
+    window.addEventListener('online', handleOptimizedOnline)
   }
 }
 
@@ -46,22 +47,23 @@ export function cleanupSessionSync() {
   }
 
   if (typeof document !== 'undefined') {
-    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    document.removeEventListener('visibilitychange', handleOptimizedVisibilityChange)
   }
 
   if (typeof window !== 'undefined') {
-    window.removeEventListener('online', handleOnline)
+    window.removeEventListener('online', handleOptimizedOnline)
   }
 }
 
 /**
- * Sync session with Supabase
+ * Sync session with Supabase - OPTIMIZED to respect server validation
  */
 async function syncSession() {
   const now = Date.now()
 
   // Prevent too frequent syncs
   if (now - lastSyncTime < MIN_SYNC_DELAY) {
+    console.log('[Session Sync] Skipping - too frequent (rate limited)')
     return
   }
 
@@ -74,7 +76,7 @@ async function syncSession() {
       return
     }
 
-    // Try to get current session
+    // OPTIMIZED: First check if we have a current session
     const {
       data: { session },
       error,
@@ -86,35 +88,38 @@ async function syncSession() {
     }
 
     if (!session) {
-      // Try to refresh if no session
+      console.log('[Session Sync] No session found - user likely signed out')
+      return // Don't aggressively refresh when no session exists
+    }
+
+    // CRITICAL FIX: Only refresh if token is actually close to expiry
+    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0
+    const timeUntilExpiry = expiresAt - now
+
+    // Only refresh within 2 minutes of expiry (production optimized)
+    if (timeUntilExpiry < 2 * 60 * 1000 && timeUntilExpiry > 0) {
+      console.log(
+        '[Session Sync] Token expires in',
+        Math.round(timeUntilExpiry / 60000),
+        'minutes - refreshing'
+      )
+
       const {
         data: { session: refreshedSession },
         error: refreshError,
       } = await supabase.auth.refreshSession()
 
       if (refreshError) {
-        console.error('[Session Sync] Error refreshing session:', refreshError)
+        console.error('[Session Sync] Error refreshing expiring session:', refreshError)
       } else if (refreshedSession) {
-        console.log('[Session Sync] Session refreshed successfully')
+        console.log('[Session Sync] Token refreshed successfully')
       }
     } else {
-      // Check if token needs refresh (within 5 minutes of expiry)
-      const expiresAt = session.expires_at ? session.expires_at * 1000 : 0
-      const timeUntilExpiry = expiresAt - now
-
-      if (timeUntilExpiry < 5 * 60 * 1000) {
-        // Less than 5 minutes
-        const {
-          data: { session: refreshedSession },
-          error: refreshError,
-        } = await supabase.auth.refreshSession()
-
-        if (refreshError) {
-          console.error('[Session Sync] Error refreshing expiring session:', refreshError)
-        } else if (refreshedSession) {
-          console.log('[Session Sync] Expiring session refreshed successfully')
-        }
-      }
+      console.log(
+        '[Session Sync] Session healthy - expires in',
+        Math.round(timeUntilExpiry / 60000),
+        'minutes'
+      )
     }
   } catch (error) {
     console.error('[Session Sync] Unexpected error:', error)
@@ -122,21 +127,35 @@ async function syncSession() {
 }
 
 /**
- * Handle visibility change (app coming to foreground)
+ * Handle visibility change (app coming to foreground) - OPTIMIZED
  */
-function handleVisibilityChange() {
+function handleOptimizedVisibilityChange() {
   if (!document.hidden) {
-    // App is visible, sync session
-    syncSession()
+    const timeSinceLastSync = Date.now() - lastSyncTime
+
+    // Only sync if app was hidden for more than 10 minutes
+    if (timeSinceLastSync > 10 * 60 * 1000) {
+      console.log('[Session Sync] App visible after long period - syncing session')
+      syncSession()
+    } else {
+      console.log('[Session Sync] App visible - session likely still fresh')
+    }
   }
 }
 
 /**
- * Handle online status change
+ * Handle online status change - OPTIMIZED
  */
-function handleOnline() {
-  // Device is online, sync session
-  syncSession()
+function handleOptimizedOnline() {
+  const timeSinceLastSync = Date.now() - lastSyncTime
+
+  // Only sync if we were offline for more than 5 minutes
+  if (timeSinceLastSync > 5 * 60 * 1000) {
+    console.log('[Session Sync] Back online after extended period - syncing session')
+    syncSession()
+  } else {
+    console.log('[Session Sync] Back online - session likely still fresh')
+  }
 }
 
 /**
