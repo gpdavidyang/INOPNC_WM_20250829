@@ -2,10 +2,24 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MobileHomeWrapper } from '@/modules/mobile/pages/mobile-home-wrapper'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
+import { mockUser, mockProfile } from '@/lib/dev-auth'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MobileHomePage() {
+  // Development bypass check
+  if (
+    process.env.NODE_ENV === 'development' &&
+    process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true'
+  ) {
+    console.log('🔓 [DEV] Using mock data for mobile page')
+    return (
+      <MobileLayoutWithAuth initialProfile={mockProfile as any} initialUser={mockUser as any}>
+        <MobileHomeWrapper initialProfile={mockProfile as any} initialUser={mockUser as any} />
+      </MobileLayoutWithAuth>
+    )
+  }
+
   // PRIORITY 3 FIX: Simplified server-side auth with minimal checks
   // Let middleware handle most auth logic, just do basic verification here
   try {
