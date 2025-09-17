@@ -2,7 +2,7 @@
   "buildCommand": "NEXT_BUILD_MODE=true NEXT_PUBLIC_DISABLE_FETCH_LOGS=true NEXT_PUBLIC_DISABLE_CONSOLE_LOGS=true rm -rf .next && cp tsconfig.vercel.json tsconfig.json && next build",
   "framework": "nextjs",
   "regions": ["icn1"],
-  "installCommand": "rm -rf node_modules package-lock.json && npm install",
+  "installCommand": "rm -rf node_modules package-lock.json && npm install --legacy-peer-deps",
   "env": {
     "NEXT_PUBLIC_DEV_AUTH_BYPASS": "false",
     "NEXT_BUILD_MODE": "true",
