@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { User, Session } from '@supabase/supabase-js'
 import { ensureClientSession } from '@/lib/supabase/session-bridge'
+import { isDevelopmentAuthBypass, mockUser, mockSession } from '@/lib/dev-auth'
 
 interface AuthContextType {
   user: User | null
@@ -21,15 +22,29 @@ const AuthContext = createContext<AuthContextType>({
 })
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [session, setSession] = useState<Session | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Use mock data if development bypass is enabled
+  const isDevBypass = isDevelopmentAuthBypass()
+
+  const [user, setUser] = useState<User | null>(isDevBypass ? (mockUser as any) : null)
+  const [session, setSession] = useState<Session | null>(isDevBypass ? (mockSession as any) : null)
+  const [loading, setLoading] = useState(!isDevBypass)
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = isDevBypass ? null : createClient()
 
   const refreshSession = async () => {
+    // Skip refresh if development bypass is enabled or supabase is null
+    if (isDevBypass || !supabase) {
+      if (isDevBypass) {
+        console.log('🔓 [DEV] Skipping session refresh (bypass enabled)')
+      }
+      return
+    }
+
     try {
-      const { data: { session: newSession }, error } = await supabase.auth.refreshSession()
+      const {
+        data: { session: newSession },
+        error,
+      } = await supabase.auth.refreshSession()
       if (newSession && !error) {
         setSession(newSession)
         setUser(newSession.user)
@@ -47,19 +62,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    // Skip auth initialization if development bypass is enabled
+    if (isDevBypass) {
+      console.log('🔓 [DEV] Using mock authentication')
+      setLoading(false)
+      return
+    }
+
+    // Ensure supabase is not null before proceeding
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     // Get initial session with session bridging
     const initializeAuth = async () => {
       try {
         // First attempt to get session normally
-        const { data: { session: initialSession } } = await supabase.auth.getSession()
-        
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession()
+
         if (initialSession) {
           // Session found
           setSession(initialSession)
           setUser(initialSession.user)
-          
+
           // Verify the session is still valid
-          const { data: { user: verifiedUser } } = await supabase.auth.getUser()
+          const {
+            data: { user: verifiedUser },
+          } = await supabase.auth.getUser()
           if (!verifiedUser) {
             // Session invalid, attempting refresh
             await refreshSession()
@@ -67,30 +99,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           // If no session, check if we're on a public page that doesn't need auth
           const currentPath = window.location.pathname
-          const publicPaths = ['/auth/login', '/auth/signup', '/auth/signup-request', '/auth/reset-password', '/']
+          const publicPaths = [
+            '/auth/login',
+            '/auth/signup',
+            '/auth/signup-request',
+            '/auth/reset-password',
+            '/',
+          ]
           const isPublicPath = publicPaths.some(path => currentPath.startsWith(path))
-          
+
           // Only attempt bridge if we're not on a public page
           // This prevents unnecessary 401 errors on login page
           if (!isPublicPath) {
             if (process.env.NODE_ENV === 'development') {
-              console.log('🔄 [AUTH-PROVIDER] No client session found, checking for server session...')
+              console.log(
+                '🔄 [AUTH-PROVIDER] No client session found, checking for server session...'
+              )
             }
-            
+
             const bridgeResult = await ensureClientSession()
-            
+
             if (bridgeResult.success && bridgeResult.session) {
               if (process.env.NODE_ENV === 'development') {
-                console.log('✅ [AUTH-PROVIDER] Session bridged successfully for:', bridgeResult.session.user?.email)
+                console.log(
+                  '✅ [AUTH-PROVIDER] Session bridged successfully for:',
+                  bridgeResult.session.user?.email
+                )
               }
               setSession(bridgeResult.session)
               setUser(bridgeResult.session.user)
-              
+
               // CRITICAL: After successful bridge, verify session is accessible with a fresh client
               // This ensures the singleton has been updated with the new session
               const freshClient = createClient()
-              const { data: { session: verifiedSession } } = await freshClient.auth.getSession()
-              
+              const {
+                data: { session: verifiedSession },
+              } = await freshClient.auth.getSession()
+
               if (verifiedSession) {
                 // Session verified with fresh client
               } else {
@@ -118,12 +163,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     initializeAuth()
 
+    // Skip auth state listener if supabase is null
+    if (!supabase) {
+      return
+    }
+
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       // Silent auth state changes
-      
+
       switch (event) {
         case 'SIGNED_IN':
           if (newSession) {
@@ -136,20 +186,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
           break
-          
+
         case 'SIGNED_OUT':
           setSession(null)
           setUser(null)
           router.push('/auth/login')
           break
-          
+
         case 'TOKEN_REFRESHED':
           if (newSession) {
             setSession(newSession)
             setUser(newSession.user)
           }
           break
-          
+
         case 'USER_UPDATED':
           if (newSession) {
             setSession(newSession)
@@ -163,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, supabase.auth])
+  }, [router, supabase, isDevBypass])
 
   return (
     <AuthContext.Provider value={{ user, session, loading, refreshSession }}>

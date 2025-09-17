@@ -1,17 +1,32 @@
 'use client'
 
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
+import { isDevelopmentAuthBypass, mockUser, mockProfile } from '@/lib/dev-auth'
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const isDevBypass = isDevelopmentAuthBypass()
+  const [user, setUser] = useState<User | null>(isDevBypass ? (mockUser as any) : null)
+  const [profile, setProfile] = useState(isDevBypass ? mockProfile : null)
+  const [loading, setLoading] = useState(!isDevBypass)
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
+    // Skip if development bypass is enabled
+    if (isDevBypass) {
+      console.log('🔓 [DEV] Using mock authentication in useAuth hook')
+      return
+    }
+
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
         setUser(user)
       } catch (error) {
         console.error('Error getting user:', error)
@@ -27,7 +42,7 @@ export function useAuth() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state change:', event, session?.user?.email)
-      
+
       if (event === 'SIGNED_IN' && session) {
         setUser(session.user)
         // Force a page refresh to ensure server components get the new auth state
@@ -45,5 +60,5 @@ export function useAuth() {
     }
   }, [router, supabase.auth])
 
-  return { user, loading }
+  return { user, profile, loading }
 }
