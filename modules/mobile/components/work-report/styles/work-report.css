@@ -171,7 +171,12 @@
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  position: relative;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+}
+
+.work-report-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
@@ -199,11 +204,11 @@
   flex-shrink: 0;
 }
 
-.status-badge-draft {
+.status-badge.status-badge-draft {
   background-color: #ff2980;
 }
 
-.status-badge-completed {
+.status-badge.status-badge-completed {
   background-color: #14b8a6;
 }
 
@@ -211,38 +216,32 @@
   margin-bottom: 12px;
 }
 
-.info-row {
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.info-item {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.info-icon {
-  color: #666;
-  flex-shrink: 0;
+.info-label {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
 }
 
-.info-text {
+.info-value {
   font-size: 14px;
-  color: #666;
-}
-
-.work-info {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-
-.work-process,
-.work-type,
-.man-hours {
-  padding: 4px 8px;
-  background-color: #f5f5f5;
-  border-radius: 6px;
-  font-size: 13px;
   color: #333;
+  font-weight: 500;
+}
+
+.info-item:nth-child(9) {
+  grid-column: 1 / -1;
 }
 
 .detail-button {
@@ -329,7 +328,8 @@
   margin: 0;
 }
 
-.close-button {
+.close-button,
+.bottom-sheet-close {
   background: none;
   border: none;
   padding: 4px;
@@ -486,14 +486,6 @@
   font-weight: 600;
   color: #1a1a1a;
   margin: 0;
-}
-
-.bottom-sheet-close {
-  background: none;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: #666;
 }
 
 .draft-count-display {

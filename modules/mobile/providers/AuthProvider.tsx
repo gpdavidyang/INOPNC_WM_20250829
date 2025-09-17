@@ -48,124 +48,73 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     }
 
     try {
-      // First try to get the current session with retry logic
-      let currentSession = null
-      let retryCount = 0
-      const maxRetries = 3
+      // Simplified session refresh - avoid complex retry logic that can cause loops
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
 
-      while (retryCount < maxRetries && !currentSession) {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession()
+      if (session && session.user) {
+        setSession(session)
+        setUser(session.user)
 
-        if (session) {
-          currentSession = session
-          break
-        }
-
-        if (retryCount < maxRetries - 1) {
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 500 * (retryCount + 1)))
-        }
-        retryCount++
-      }
-
-      if (currentSession) {
-        setSession(currentSession)
-        setUser(currentSession.user)
-        // Session refreshed from cookies
-
-        // Fetch profile with retry logic
-        if (!profile && currentSession.user) {
-          let profileData = null
-          let profileRetry = 0
-
-          while (profileRetry < 2 && !profileData) {
-            const { data, error } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', currentSession.user.id)
-              .single()
-
-            if (data) {
-              profileData = data
-              break
-            }
-
-            if (profileRetry < 1) {
-              await new Promise(resolve => setTimeout(resolve, 500))
-            }
-            profileRetry++
-          }
+        // Only fetch profile if we don't have one or user ID changed
+        if (!profile || profile.id !== session.user.id) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
 
           if (profileData) {
             setProfile(profileData)
           } else {
             // Fallback to user metadata if profile fetch fails
             setProfile({
-              id: currentSession.user.id,
-              email: currentSession.user.email,
+              id: session.user.id,
+              email: session.user.email,
               full_name:
-                currentSession.user.user_metadata?.full_name ||
-                currentSession.user.email?.split('@')[0] ||
+                session.user.user_metadata?.full_name ||
+                session.user.email?.split('@')[0] ||
                 'User',
-              role: currentSession.user.user_metadata?.role || 'worker',
+              role: session.user.user_metadata?.role || 'worker',
             })
           }
         }
       } else {
-        // Try to refresh the session if no current session
+        // Try refresh token if current session is invalid
         const {
           data: { session: refreshedSession },
           error: refreshError,
         } = await supabase.auth.refreshSession()
 
-        if (refreshedSession) {
+        if (refreshedSession && refreshedSession.user) {
           setSession(refreshedSession)
           setUser(refreshedSession.user)
-          // Session refreshed with refresh token
 
-          // Fetch profile with retry
-          if (refreshedSession.user) {
-            let profileData = null
-            let profileRetry = 0
+          // Fetch profile for refreshed session
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', refreshedSession.user.id)
+            .single()
 
-            while (profileRetry < 2 && !profileData) {
-              const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('id', refreshedSession.user.id)
-                .single()
-
-              if (data) {
-                profileData = data
-                break
-              }
-
-              if (profileRetry < 1) {
-                await new Promise(resolve => setTimeout(resolve, 500))
-              }
-              profileRetry++
-            }
-
-            if (profileData) {
-              setProfile(profileData)
-            } else {
-              // Fallback to user metadata
-              setProfile({
-                id: refreshedSession.user.id,
-                email: refreshedSession.user.email,
-                full_name:
-                  refreshedSession.user.user_metadata?.full_name ||
-                  refreshedSession.user.email?.split('@')[0] ||
-                  'User',
-                role: refreshedSession.user.user_metadata?.role || 'worker',
-              })
-            }
+          if (profileData) {
+            setProfile(profileData)
+          } else {
+            // Fallback to user metadata
+            setProfile({
+              id: refreshedSession.user.id,
+              email: refreshedSession.user.email,
+              full_name:
+                refreshedSession.user.user_metadata?.full_name ||
+                refreshedSession.user.email?.split('@')[0] ||
+                'User',
+              role: refreshedSession.user.user_metadata?.role || 'worker',
+            })
           }
         } else {
-          // No session available, user needs to login
+          // No valid session available
           setSession(null)
           setUser(null)
           setProfile(null)
@@ -173,10 +122,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       }
     } catch (error) {
       console.error('Error refreshing session:', error)
+      // On error, clear state to prevent loops
+      setSession(null)
+      setUser(null)
+      setProfile(null)
     } finally {
       setLoading(false)
     }
-  }, [profile])
+  }, [])
 
   useEffect(() => {
     // Initial session check

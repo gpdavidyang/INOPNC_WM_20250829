@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { X, Calendar, User, Building, Clock, Image } from 'lucide-react'
+import { X } from 'lucide-react'
 import { WorkReport } from './types'
 
 interface WorkReportDetailModalProps {

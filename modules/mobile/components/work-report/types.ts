@@ -6,6 +6,7 @@ export interface WorkReport {
   workDate: string
   author: string
   buildingName: string
+  memberType: string // 부재명 추가
   workProcess: string
   workType: string
   block: string
@@ -17,9 +18,9 @@ export interface WorkReport {
   drawings: string[]
   completionDocs: string[]
   npcData: {
-    inbound: string
-    used: string
-    stock: string
+    inbound: number
+    used: number
+    stock: number
   }
   createdAt: Date
   updatedAt: Date

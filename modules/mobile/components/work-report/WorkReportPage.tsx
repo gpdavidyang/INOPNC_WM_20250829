@@ -38,11 +38,6 @@ export default function WorkReportPage() {
     fetchWorkReports()
   }, [activeTab])
 
-  // 임시저장 개수 확인 및 바텀시트 표시
-  useEffect(() => {
-    checkDraftCount()
-  }, [workReports])
-
   const fetchWorkReports = async () => {
     setLoading(true)
     try {
@@ -59,28 +54,24 @@ export default function WorkReportPage() {
       }
 
       const data = await response.json()
-      setWorkReports(data.reports || [])
-      setFilteredReports(data.reports || [])
-      setDraftCount(data.draftCount || 0)
+      const reports = data.reports || []
+      setWorkReports(reports)
+      setFilteredReports(reports)
+
+      // 임시저장 개수 및 바텀시트 표시 로직
+      const drafts = reports.filter((r: WorkReport) => r.status === 'draft')
+      setDraftCount(drafts.length)
+
+      const hideUntil = localStorage.getItem('hideDraftSheet')
+      const shouldShow = drafts.length > 0 && (!hideUntil || new Date(hideUntil) < new Date())
+      setIsBottomSheetVisible(shouldShow)
     } catch (error) {
       console.error('Failed to fetch work reports:', error)
-      // Fallback to empty array on error
       setWorkReports([])
       setFilteredReports([])
     } finally {
       setLoading(false)
     }
-  }
-
-  const checkDraftCount = () => {
-    const drafts = workReports.filter(r => r.status === 'draft')
-    setDraftCount(drafts.length)
-
-    // localStorage 체크하여 바텀시트 표시 여부 결정
-    const hideUntil = localStorage.getItem('hideDraftSheet')
-    const shouldShow = drafts.length > 0 && (!hideUntil || new Date(hideUntil) < new Date())
-
-    setIsBottomSheetVisible(shouldShow)
   }
 
   const handleTabChange = (status: WorkReportStatus) => {
@@ -152,7 +143,7 @@ export default function WorkReportPage() {
       <WorkReportTabs
         activeTab={activeTab}
         onTabChange={handleTabChange}
-        draftCount={workReports.filter(r => r.status === 'draft').length}
+        draftCount={draftCount}
         completedCount={workReports.filter(r => r.status === 'completed').length}
       />
 
