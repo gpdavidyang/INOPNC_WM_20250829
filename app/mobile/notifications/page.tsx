@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useUnifiedAuth } from '@/providers/unified-auth-provider'
 import { Card, CardContent, Button, Stack, Row, Chip, Badge } from '@/modules/shared/ui'
 
 export default function MobileNotificationsPage() {
@@ -15,7 +15,7 @@ export default function MobileNotificationsPage() {
 }
 
 const NotificationsContent: React.FC = () => {
-  const { profile } = useMobileUser()
+  const { profile } = useUnifiedAuth()
   const [activeTab, setActiveTab] = useState<'all' | 'unread' | 'important'>('all')
 
   const notifications = [

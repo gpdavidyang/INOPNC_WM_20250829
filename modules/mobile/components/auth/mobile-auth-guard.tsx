@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useUnifiedAuth } from '@/providers/unified-auth-provider'
 import { LoadingPage } from '@/modules/shared/ui'
 
 interface MobileAuthGuardProps {
@@ -17,7 +17,7 @@ export const MobileAuthGuard: React.FC<MobileAuthGuardProps> = ({
   fallbackPath = '/auth/login',
 }) => {
   const router = useRouter()
-  const { user, profile, loading, error, canAccessMobile } = useMobileUser()
+  const { user, profile, loading, error, canAccessMobile } = useUnifiedAuth()
 
   React.useEffect(() => {
     if (loading) return

@@ -1,4 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
+import { revalidatePath } from 'next/cache'
+import { AppError, ErrorType } from '@/lib/errors'
+import { validateSupabaseResponse, logError } from '@/lib/supabase/client'
 ;('use server')
 
 import type {
@@ -97,13 +100,13 @@ export async function getNotificationStats(): Promise<{
     // 전체 알림 수
     const { count: total } = await supabase
       .from('notifications')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
 
     // 읽지 않은 알림 수
     const { count: unread } = await supabase
       .from('notifications')
-      .select('*', { count: 'exact', head: true })
+      .select('*', { count: 'exact' })
       .eq('user_id', user.id)
       .eq('is_read', false)
 

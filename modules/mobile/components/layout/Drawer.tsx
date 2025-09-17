@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useMobileAuth } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useUnifiedAuth } from '@/providers/unified-auth-provider'
 
 interface DrawerProps {
   isOpen: boolean
@@ -12,7 +12,7 @@ interface DrawerProps {
 
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const router = useRouter()
-  const { profile, loading: profileLoading, user, refreshProfile } = useMobileAuth()
+  const { profile, loading: profileLoading, user, refreshProfile, signOut } = useUnifiedAuth()
   const supabase = createClient()
   const [showAccountInfo, setShowAccountInfo] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
@@ -21,9 +21,9 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     new: '',
     confirm: '',
   })
-  // Simplified profile state logging without redundant retry logic
+  // Simplified profile state logging using unified auth provider
   useEffect(() => {
-    console.log('[DRAWER] Using profile from useMobileAuth hook:', {
+    console.log('[DRAWER] Using profile from UnifiedAuthProvider:', {
       loading: profileLoading,
       hasProfile: !!profile,
       profileName: profile?.full_name,
@@ -35,7 +35,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     }
   }, [profile, profileLoading, user])
 
-  // Remove the complex retry mechanism since useMobileAuth handles retries
+  // Authentication is now handled by unified provider
 
   useEffect(() => {
     // Lock body scroll when drawer is open (base.html match)
@@ -116,126 +116,16 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const handleLogout = async () => {
     if (confirm('정말 로그아웃하시겠습니까?')) {
       try {
-        console.log('[AUTH] Starting comprehensive logout process...')
+        console.log('[AUTH] Using unified auth provider logout...')
 
-        // Immediately show feedback and close drawer
+        // Close drawer immediately for better UX
         onClose()
 
-        // Phase 1: Clear client-side storage (selective clearing to preserve user preferences)
-        try {
-          const keysToRemove = [
-            'sb-access-token',
-            'sb-refresh-token',
-            'user-role',
-            'user-session',
-            'auth-token',
-          ]
-
-          keysToRemove.forEach(key => {
-            localStorage.removeItem(key)
-            sessionStorage.removeItem(key)
-          })
-
-          console.log('[AUTH] Client storage cleared')
-        } catch (storageError) {
-          console.warn('[AUTH] Storage clearing error:', storageError)
-        }
-
-        // Phase 2: Clear cookies (comprehensive pattern matching)
-        try {
-          const cookiePatterns = [
-            'sb-access-token',
-            'sb-refresh-token',
-            'sb-auth-token',
-            'sb-provider-token',
-            'supabase-auth-token',
-            'supabase.auth.token',
-            `sb-${process.env.NEXT_PUBLIC_SUPABASE_URL?.split('//')[1]?.split('.')[0]}-auth-token`,
-            'user-role',
-          ]
-
-          // Clear specific auth cookies
-          cookiePatterns.forEach(pattern => {
-            document.cookie = `${pattern}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`
-            document.cookie = `${pattern}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`
-            document.cookie = `${pattern}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${window.location.hostname}`
-          })
-
-          // Clear any remaining auth cookies
-          document.cookie.split(';').forEach(cookie => {
-            const cookieName = cookie.split('=')[0].trim()
-            if (
-              cookieName.includes('sb-') ||
-              cookieName.includes('supabase') ||
-              cookieName.includes('auth')
-            ) {
-              document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`
-              document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname}`
-            }
-          })
-
-          console.log('[AUTH] Cookies cleared')
-        } catch (cookieError) {
-          console.warn('[AUTH] Cookie clearing error:', cookieError)
-        }
-
-        // Phase 3: Server-side logout (with timeout)
-        try {
-          const logoutPromise = fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            credentials: 'include', // Include cookies in the request
-          })
-
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Logout timeout')), 5000)
-          )
-
-          const response = (await Promise.race([logoutPromise, timeoutPromise])) as Response
-
-          if (response.ok) {
-            console.log('[AUTH] Server logout successful')
-          } else {
-            console.warn('[AUTH] Server logout failed:', response.status)
-          }
-        } catch (serverError) {
-          console.warn('[AUTH] Server logout error:', serverError)
-          // Don't block logout on server error
-        }
-
-        // Phase 4: Supabase client logout
-        try {
-          await supabase.auth.signOut({
-            scope: 'local', // Only clear local session, server already handled
-          })
-          console.log('[AUTH] Supabase client logout successful')
-        } catch (clientError) {
-          console.warn('[AUTH] Supabase client logout error:', clientError)
-          // Don't block logout on client error
-        }
-
-        // Phase 5: Clear service worker caches
-        try {
-          if ('caches' in window) {
-            const cacheNames = await caches.keys()
-            await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)))
-            console.log('[AUTH] Service worker caches cleared')
-          }
-        } catch (cacheError) {
-          console.warn('[AUTH] Cache clearing error:', cacheError)
-        }
-
-        console.log('[AUTH] Logout process completed, redirecting...')
-
-        // Phase 6: Force redirect with cache prevention
-        // Add timestamp to prevent cached redirects
-        const loginUrl = `/auth/login?t=${Date.now()}`
-        window.location.replace(loginUrl)
+        // Use the unified auth provider's signOut method
+        await signOut()
       } catch (error) {
-        console.error('[AUTH] Logout process failed:', error)
-        // Force redirect even on complete failure
+        console.error('[AUTH] Logout failed:', error)
+        // Force redirect even on failure
         window.location.replace('/auth/login')
       }
     }
