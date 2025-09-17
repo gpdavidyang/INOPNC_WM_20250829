@@ -337,6 +337,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
         role="dialog"
         aria-modal="true"
         aria-hidden={!isOpen}
+        inert={!isOpen ? true : undefined}
       >
         <div className="drawer-container">
           <div className="drawer-body">

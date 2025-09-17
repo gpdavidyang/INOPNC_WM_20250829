@@ -25,7 +25,6 @@ import { SummarySection } from './SummarySection'
 import { toast } from 'sonner'
 import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
 import { useAuth } from '@/modules/mobile/providers/AuthProvider'
-import { initSessionSync } from '@/lib/auth/session-sync'
 
 // 현장 인터페이스 정의
 interface Site {
@@ -83,13 +82,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [userProfile, setUserProfile] = useState<any>(authProfile || initialProfile || null)
   const [profileLoading, setProfileLoading] = useState(false)
 
-  // Set today's date on mount - removed duplicate session monitoring
+  // Set today's date on mount
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]
     setWorkDate(today)
 
-    // Initialize session synchronization (lightweight)
-    initSessionSync()
+    // CRITICAL FIX: Removed initSessionSync() to prevent duplicate session monitoring
+    // Session sync is now handled entirely by the AuthProvider to avoid validation conflicts
+    console.log('[HomePage] Initialized without duplicate session sync')
   }, [])
 
   // Update profile when auth context changes
