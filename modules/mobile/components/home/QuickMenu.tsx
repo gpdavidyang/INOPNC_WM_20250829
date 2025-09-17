@@ -5,9 +5,9 @@ import Link from 'next/link'
 
 const quickMenuItems = [
   {
-    href: '/mobile/attendance/output',
+    href: '/mobile/attendance',
     icon: '/icons/pay_output.png',
-    label: '출력현황',
+    label: '출력정보',
   },
   {
     href: '/mobile/worklog',

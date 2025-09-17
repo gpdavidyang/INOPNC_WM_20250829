@@ -12,7 +12,7 @@ interface DrawerProps {
 
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   const router = useRouter()
-  const { profile, loading: profileLoading, user } = useMobileAuth()
+  const { profile, loading: profileLoading, user, refreshProfile } = useMobileAuth()
   const supabase = createClient()
   const [showAccountInfo, setShowAccountInfo] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
@@ -21,17 +21,46 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
     new: '',
     confirm: '',
   })
+  const [retryCount, setRetryCount] = useState(0)
 
   // Log profile data usage for debugging
   useEffect(() => {
+    console.log('[DRAWER] Profile state:', {
+      loading: profileLoading,
+      hasProfile: !!profile,
+      profileData: profile
+        ? {
+            id: profile.id,
+            full_name: profile.full_name,
+            email: profile.email,
+            role: profile.role,
+            phone: profile.phone,
+            created_at: profile.created_at,
+          }
+        : null,
+      hasUser: !!user,
+      userId: user?.id,
+      retryCount,
+    })
+
     if (profile) {
-      console.log('[DRAWER] Using mobile auth profile data:', profile.full_name)
-    } else if (!profileLoading) {
-      console.log('[DRAWER] No profile available from mobile auth')
+      console.log('[DRAWER] Profile loaded successfully:', profile.full_name)
+      setRetryCount(0) // Reset retry count on successful load
+    } else if (!profileLoading && user && retryCount < 3) {
+      console.log('[DRAWER] Profile not loaded, attempting retry', retryCount + 1)
+      // Retry fetching profile after a short delay
+      const retryTimer = setTimeout(() => {
+        refreshProfile()
+        setRetryCount(prev => prev + 1)
+      }, 1000)
+
+      return () => clearTimeout(retryTimer)
+    } else if (!profileLoading && !user) {
+      console.log('[DRAWER] No user session, cannot load profile')
     } else {
-      console.log('[DRAWER] Mobile auth still loading profile...')
+      console.log('[DRAWER] Still waiting for profile to load...')
     }
-  }, [profile, profileLoading])
+  }, [profile, profileLoading, user, retryCount, refreshProfile])
 
   useEffect(() => {
     // Lock body scroll when drawer is open (base.html match)
@@ -285,7 +314,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
   const menuItems = [
     { label: '홈', href: '/mobile' },
-    { label: '출력현황', href: '/mobile/attendance/output' },
+    { label: '출력정보', href: '/mobile/attendance' },
     { label: '작업일지', href: '/mobile/worklog' },
     { label: '현장정보', href: '/mobile/sites' },
     { label: '문서함', href: '/mobile/documents' },
@@ -316,13 +345,15 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
               <div className="profile-sec">
                 <div className="profile-header">
                   <div className="profile-name" id="profileUserName">
-                    {profileLoading ? '로딩 중...' : profile?.full_name || '사용자'}
-                    {!profileLoading && (
+                    {profileLoading && retryCount < 3
+                      ? '로딩 중...'
+                      : profile?.full_name || user?.email?.split('@')[0] || '사용자'}
+                    {(!profileLoading || retryCount >= 3) && (
                       <span
                         className="important-tag"
                         style={{ position: 'relative', top: 0, right: 0, marginLeft: '8px' }}
                       >
-                        {getRoleDisplay(profile?.role || '')}
+                        {getRoleDisplay(profile?.role || 'site_manager')}
                       </span>
                     )}
                   </div>
@@ -331,7 +362,9 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
                 <div className="profile-email" id="profileUserEmail">
-                  {profileLoading ? '로딩 중...' : profile?.email || ''}
+                  {profileLoading && retryCount < 3
+                    ? '로딩 중...'
+                    : profile?.email || user?.email || ''}
                 </div>
               </div>
 
@@ -373,7 +406,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
                   id="accountInfo"
                   style={{ display: showAccountInfo ? 'block' : 'none' }}
                 >
-                  {profileLoading ? (
+                  {profileLoading && retryCount < 3 ? (
                     <div className="account-info-item">
                       <span className="account-label">로딩 중...</span>
                       <span className="account-value">정보를 불러오는 중입니다</span>

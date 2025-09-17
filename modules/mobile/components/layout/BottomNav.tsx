@@ -16,9 +16,9 @@ export const BottomNav: React.FC = () => {
       icon: Home,
     },
     {
-      route: 'output',
-      label: '출력현황',
-      href: '/mobile/attendance/output',
+      route: 'attendance',
+      label: '출력정보',
+      href: '/mobile/attendance',
       icon: Calculator,
     },
     {
