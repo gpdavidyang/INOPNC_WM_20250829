@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { MobileHomeWrapper } from '@/modules/mobile/pages/mobile-home-wrapper'
+import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,8 +38,12 @@ export default async function MobileHomePage() {
       redirect('/dashboard/admin')
     }
 
-    // Pass validated data to client wrapper
-    return <MobileHomeWrapper initialProfile={profile} initialUser={user} />
+    // Pass validated data to client wrapper with AuthProvider at layout level
+    return (
+      <MobileLayoutWithAuth initialProfile={profile} initialUser={user}>
+        <MobileHomeWrapper initialProfile={profile} initialUser={user} />
+      </MobileLayoutWithAuth>
+    )
   } catch (error) {
     console.error('Mobile page error:', error)
     redirect('/auth/login')

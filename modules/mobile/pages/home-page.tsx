@@ -211,7 +211,7 @@ const HomeContent: React.FC = () => {
           <ul className="grid grid-cols-6 gap-1 list-none">
             <li>
               <a
-                href="/mobile/worklog"
+                href="/mobile/attendance/output"
                 className="flex flex-col items-center p-2 rounded-lg transition-all duration-300 hover:transform hover:-translate-y-1 hover:scale-105"
               >
                 <img
@@ -224,7 +224,7 @@ const HomeContent: React.FC = () => {
             </li>
             <li>
               <a
-                href="/mobile/worklog"
+                href="/mobile/work-report"
                 className="flex flex-col items-center p-2 rounded-lg transition-all duration-300 hover:transform hover:-translate-y-1 hover:scale-105"
               >
                 <img

@@ -30,7 +30,7 @@ const NAV_ITEMS: NavItem[] = [
     id: 'worklog',
     label: '출력현황',
     icon: 'worklog',
-    href: '/mobile/worklog',
+    href: '/mobile/attendance/output',
     roles: ['worker', 'site_manager'],
   },
   {
