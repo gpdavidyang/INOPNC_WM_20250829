@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { SiteManagerGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useUnifiedAuth } from '@/providers/unified-auth-provider'
 import {
   useTodayDailyReports,
   useRecentDailyReports,

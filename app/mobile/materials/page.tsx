@@ -5,7 +5,7 @@ import React, { useState } from 'react'
 export const dynamic = 'force-dynamic'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useUnifiedAuth } from '@/providers/unified-auth-provider'
 import {
   Card,
   CardContent,
@@ -27,7 +27,7 @@ export default function MobileMaterialsPage() {
 }
 
 const MaterialsContent: React.FC = () => {
-  const { profile, isSiteManager } = useMobileUser()
+  const { profile, isSiteManager } = useUnifiedAuth()
   const [activeTab, setActiveTab] = useState<'inventory' | 'requests' | 'history'>('inventory')
   const [searchQuery, setSearchQuery] = useState('')
 

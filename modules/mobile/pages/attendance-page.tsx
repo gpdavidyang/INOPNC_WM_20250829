@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useUnifiedAuth } from '@/providers/unified-auth-provider'
 import { Card, CardContent, Button, Stack, Chip, Badge, Row } from '@/modules/shared/ui'
 
 interface AttendanceRecord {
@@ -23,7 +23,7 @@ export const AttendancePage: React.FC = () => {
 }
 
 const AttendanceContent: React.FC = () => {
-  const { profile, isWorker, isSiteManager } = useMobileUser()
+  const { profile, isWorker, isSiteManager } = useUnifiedAuth()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isCheckedIn, setIsCheckedIn] = useState(false)
   const [checkInTime, setCheckInTime] = useState<string | null>(null)

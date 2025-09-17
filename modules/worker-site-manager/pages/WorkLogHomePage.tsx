@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
-import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useUnifiedAuth } from '@/providers/unified-auth-provider'
 import { WorkLogCard } from '@/modules/mobile/components/work-log/WorkLogCard'
 import { WorkLogModal } from '@/modules/mobile/components/work-log/WorkLogModal'
 import { WorkLogSearch } from '@/modules/mobile/components/work-log/WorkLogSearch'

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useMobileUser } from '@/modules/mobile/hooks/use-mobile-auth'
+import { useUnifiedAuth } from '@/providers/unified-auth-provider'
 import { useLongPress } from '@/modules/mobile/hooks/useLongPress'
 import { DocumentPreviewModal } from '@/modules/mobile/components/documents/DocumentPreviewModal'
 import { DocumentShareModal } from '@/modules/mobile/components/documents/DocumentShareModal'
@@ -37,7 +37,7 @@ export const DocumentsPageV2: React.FC = () => {
 }
 
 const DocumentsContentV2: React.FC = () => {
-  const { profile } = useMobileUser()
+  const { profile } = useUnifiedAuth()
 
   // 로컬스토리지 상태 훅들
   const {
