@@ -42,10 +42,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   const router = useRouter()
 
   const refreshSession = useCallback(async () => {
-    // CRITICAL FIX: Don't refresh if we already have valid initial data
-    if (initialProfile && initialSession?.user) {
-      console.log('[AuthProvider] Using initial server data, skipping refresh')
-      setLoading(false)
+    // CRITICAL FIX: Respect server validation - only refresh when explicitly needed
+    if (initialProfile && initialSession?.user && !loading) {
+      console.log('[AuthProvider] Server data already validated, skipping unnecessary refresh')
       return
     }
 
@@ -108,14 +107,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   }, [initialProfile, initialSession, profile])
 
   useEffect(() => {
-    // CRITICAL FIX: If we have initial data, don't do session refresh
+    // CRITICAL FIX: Trust server-provided initial data completely
     if (initialProfile && initialSession?.user) {
-      console.log('[AuthProvider] Initial data provided, ready immediately')
+      console.log(
+        '[AuthProvider] Server validation complete, trusting initial data:',
+        initialProfile.full_name
+      )
+      // Don't call refreshSession() - trust server validation
       setLoading(false)
-    } else {
-      // Only refresh if no initial data
-      refreshSession()
+      return
     }
+
+    // Only refresh if absolutely no server data provided
+    console.log('[AuthProvider] No server data, attempting client-side session refresh')
+    refreshSession()
 
     // Set up auth state change listener (keep for sign out handling)
     const supabase = createClient()
