@@ -47,6 +47,22 @@ export async function middleware(request: NextRequest) {
       return response
     }
 
+    // PRIORITY 1 FIX: Apply aggressive cache prevention to ALL pages FIRST
+    // This prevents browser/CDN from serving cached protected content before auth checks
+    response.headers.set(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+    )
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    response.headers.set('Surrogate-Control', 'no-store')
+    response.headers.set('CDN-Cache-Control', 'no-store')
+    response.headers.set('Cloudflare-CDN-Cache-Control', 'no-store')
+    response.headers.set('Vercel-CDN-Cache-Control', 'no-store')
+
+    // Add timestamp header to ensure unique responses
+    response.headers.set('X-Cache-Bust', Date.now().toString())
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -101,30 +117,42 @@ export async function middleware(request: NextRequest) {
     // Auth routes
     const isAuthRoute = pathname.startsWith('/auth/')
 
-    // If user is not signed in and tries to access protected route
+    // PRIORITY 4 FIX: Enhanced authentication debugging
     if (!user && !isPublicRoute) {
       logAuthEvent('UNAUTHORIZED_ACCESS_ATTEMPT', {
         ip,
         userAgent,
         path: pathname,
         reason: 'No valid session',
+        timestamp: new Date().toISOString(),
+        cacheHeaders: {
+          cacheControl: request.headers.get('cache-control'),
+          pragma: request.headers.get('pragma'),
+          ifNoneMatch: request.headers.get('if-none-match'),
+        },
+        hasAuthCookies: !!(
+          request.cookies.get('sb-access-token') || request.cookies.get('sb-refresh-token')
+        ),
+        requestType: request.method,
       })
 
+      // Clear all auth-related cookies on unauthorized access
       response.cookies.delete('user-role')
+      response.cookies.delete('sb-access-token')
+      response.cookies.delete('sb-refresh-token')
+
       const redirectUrl = new URL('/auth/login', request.url)
       redirectUrl.searchParams.set('redirectTo', pathname)
+
+      // Add debug header to track redirect source
+      response.headers.set('X-Auth-Redirect-Source', 'middleware-unauthorized')
+
       return NextResponse.redirect(redirectUrl)
     }
 
     // Add comprehensive security headers for protected pages
     if (!isPublicRoute && !isAuthRoute) {
-      // Cache control headers to prevent unauthorized access via cache
-      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
-      response.headers.set('Pragma', 'no-cache')
-      response.headers.set('Expires', '0')
-      response.headers.set('Surrogate-Control', 'no-store')
-
-      // Security headers
+      // Security headers (cache headers already applied above)
       response.headers.set('X-Frame-Options', 'DENY')
       response.headers.set('X-Content-Type-Options', 'nosniff')
       response.headers.set('X-XSS-Protection', '1; mode=block')
@@ -219,12 +247,22 @@ export async function middleware(request: NextRequest) {
         userId: user.id,
         userRole,
         redirectPath,
+        timestamp: new Date().toISOString(),
+        sessionExpiry: session?.expires_at
+          ? new Date(session.expires_at * 1000).toISOString()
+          : null,
+        authType: 'authenticated_redirect',
       })
 
-      return NextResponse.redirect(new URL(redirectPath, request.url))
+      // Add debug header for tracking
+      const redirectResponse = NextResponse.redirect(new URL(redirectPath, request.url))
+      redirectResponse.headers.set('X-Auth-Redirect-Source', 'middleware-role-based')
+      redirectResponse.headers.set('X-User-Role', userRole)
+
+      return redirectResponse
     }
 
-    // Log successful authenticated access to protected routes
+    // PRIORITY 4 FIX: Enhanced successful access logging
     if (user && !isPublicRoute && !isAuthRoute) {
       logAuthEvent('AUTHENTICATED_ACCESS', {
         ip,
@@ -232,7 +270,20 @@ export async function middleware(request: NextRequest) {
         path: pathname,
         userId: user.id,
         method: request.method,
+        timestamp: new Date().toISOString(),
+        sessionExpiry: session?.expires_at
+          ? new Date(session.expires_at * 1000).toISOString()
+          : null,
+        userEmail: user.email,
+        isSessionFresh: session?.expires_at
+          ? session.expires_at * 1000 - Date.now() > 3600000
+          : false, // Fresh if >1h remaining
+        cacheBypass: !!response.headers.get('X-Cache-Bust'),
       })
+
+      // Add debug headers for successful access
+      response.headers.set('X-Auth-Status', 'authenticated')
+      response.headers.set('X-User-Id', user.id)
     }
 
     return response
