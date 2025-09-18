@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useUnifiedAuth } from '@/providers/unified-auth-provider'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 
 interface DrawerProps {
   isOpen: boolean
@@ -114,20 +114,52 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   }, [isOpen])
 
   const handleLogout = async () => {
-    if (confirm('정말 로그아웃하시겠습니까?')) {
+    if (!confirm('정말 로그아웃하시겠습니까?')) {
+      return
+    }
+
+    try {
+      console.log('[DRAWER] Starting logout process...')
+
+      // Close drawer first to prevent UI issues
+      onClose()
+
+      // Add a small delay to ensure drawer closes properly
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      console.log('[DRAWER] Calling signOut...')
+
+      // Call signOut with a timeout to prevent hanging
+      const signOutPromise = signOut()
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Logout timeout')), 5000)
+      )
+
+      await Promise.race([signOutPromise, timeoutPromise])
+
+      console.log('[DRAWER] SignOut completed successfully')
+    } catch (error) {
+      console.error('[DRAWER] Logout error:', error)
+
+      // Manual cleanup on error
       try {
-        console.log('[AUTH] Using unified auth provider logout...')
+        // Clear auth cookies manually
+        document.cookie.split(';').forEach(c => {
+          document.cookie = c
+            .replace(/^ +/, '')
+            .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/')
+        })
 
-        // Close drawer immediately for better UX
-        onClose()
-
-        // Use the unified auth provider's signOut method
-        await signOut()
-      } catch (error) {
-        console.error('[AUTH] Logout failed:', error)
-        // Force redirect even on failure
-        window.location.replace('/auth/login')
+        // Clear storage
+        localStorage.clear()
+        sessionStorage.clear()
+      } catch (cleanupError) {
+        console.error('[DRAWER] Cleanup error:', cleanupError)
       }
+
+      // Force hard redirect as fallback
+      console.log('[DRAWER] Forcing redirect to login...')
+      window.location.href = '/auth/login'
     }
   }
 
@@ -191,7 +223,7 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
       <div
         id="drawerScrim"
         className={`drawer-scrim ${isOpen ? 'show' : ''}`}
-        aria-hidden={!isOpen}
+        aria-hidden={(!isOpen).toString()}
         onClick={onClose}
       />
 
@@ -201,8 +233,8 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
         className={`drawer ${isOpen ? 'show' : ''}`}
         role="dialog"
         aria-modal="true"
-        aria-hidden={!isOpen}
-        inert={!isOpen ? '' : undefined}
+        aria-hidden={(!isOpen).toString()}
+        {...(!isOpen ? { inert: '' } : {})}
       >
         <div className="drawer-container">
           <div className="drawer-body">

@@ -5,7 +5,7 @@ import React, { useState } from 'react'
 export const dynamic = 'force-dynamic'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useUnifiedAuth } from '@/providers/unified-auth-provider'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import {
   Card,
   CardContent,

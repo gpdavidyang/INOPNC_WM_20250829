@@ -73,8 +73,8 @@ export function UnifiedAuthProvider({
     isDevBypass ? mockProfile : initialProfile
   )
 
-  // Loading and error states
-  const [loading, setLoading] = useState(!isDevBypass && !initialUser)
+  // Loading and error states - Default to false for faster initial render
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   // Refs for preventing duplicate requests
@@ -96,7 +96,7 @@ export function UnifiedAuthProvider({
         const fetchWithTimeout = Promise.race([
           supabase?.from('profiles').select('*').eq('id', userId).single(),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Profile fetch timeout after 8 seconds')), 8000)
+            setTimeout(() => reject(new Error('Profile fetch timeout after 3 seconds')), 3000)
           ),
         ])
 
@@ -105,6 +105,16 @@ export function UnifiedAuthProvider({
         if (profileError) {
           console.error('[UNIFIED-AUTH] Profile fetch error:', profileError)
           setError(profileError.message)
+
+          // Set loading to false and provide fallback even on error
+          if (user) {
+            setProfile({
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              role: 'worker', // Default role
+            })
+          }
           return
         }
 
@@ -144,6 +154,7 @@ export function UnifiedAuthProvider({
 
     try {
       sessionRefreshing.current = true
+      setLoading(true)
       setError(null)
       console.log('[UNIFIED-AUTH] Getting session...')
 
@@ -198,13 +209,63 @@ export function UnifiedAuthProvider({
   const signOut = useCallback(async (): Promise<void> => {
     try {
       console.log('[UNIFIED-AUTH] Signing out...')
+
+      // 1. Clear Supabase authentication
       await supabase.auth.signOut()
+
+      // 2. Clear all authentication cookies set by middleware
+      const cookiesToClear = [
+        'auth-token',
+        'sb-access-token',
+        'sb-refresh-token',
+        'supabase-auth-token',
+        'user-role',
+        'user-id',
+        'session-id',
+      ]
+
+      cookiesToClear.forEach(cookieName => {
+        // Clear cookie for current domain
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`
+        // Clear cookie for all subdomains
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${window.location.hostname};`
+        // Clear secure cookies
+        document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure;`
+      })
+
+      // 3. Clear local storage authentication data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('supabase.auth.token')
+        localStorage.removeItem('auth-user')
+        localStorage.removeItem('user-role')
+        localStorage.removeItem('session-data')
+      }
+
+      // 4. Clear session storage
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('auth-session')
+        sessionStorage.removeItem('temp-auth')
+      }
+
+      // 5. Clear provider state
       setUser(null)
       setSession(null)
       setProfile(null)
       setError(null)
+      setLoading(false)
+
+      console.log('[UNIFIED-AUTH] Complete logout with cookie and storage cleanup')
+
+      // 6. Force redirect to login to prevent cached page access
+      window.location.href = '/auth/login'
     } catch (error) {
       console.error('[UNIFIED-AUTH] Sign out error:', error)
+      // Even if there's an error, still clear local state and redirect
+      setUser(null)
+      setSession(null)
+      setProfile(null)
+      setError(null)
+      window.location.href = '/auth/login'
     }
   }, [supabase])
 
@@ -259,7 +320,19 @@ export function UnifiedAuthProvider({
     }
 
     // Get initial session for client-side rendered components
-    getSession()
+    // But set a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (loading) {
+        console.log('[UNIFIED-AUTH] Session check timeout, setting loading to false')
+        setLoading(false)
+      }
+    }, 2000) // 2 second timeout for initial load
+
+    getSession().finally(() => {
+      clearTimeout(timeoutId)
+    })
+
+    return () => clearTimeout(timeoutId)
   }, [isDevBypass, initialUser, initialProfile, getSession])
 
   // Auth state change listener

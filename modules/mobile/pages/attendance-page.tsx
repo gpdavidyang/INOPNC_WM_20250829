@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useUnifiedAuth } from '@/providers/unified-auth-provider'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { Card, CardContent, Button, Stack, Chip, Badge, Row } from '@/modules/shared/ui'
 
 interface AttendanceRecord {

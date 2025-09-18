@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
 import { SiteManagerGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
-import { useUnifiedAuth } from '@/providers/unified-auth-provider'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import {
   useTodayDailyReports,
   useRecentDailyReports,
@@ -32,7 +32,7 @@ export const DailyReportsPage: React.FC = () => {
 }
 
 const DailyReportsContent: React.FC = () => {
-  const { profile } = useMobileUser()
+  const { profile } = useUnifiedAuth()
   const [activeTab, setActiveTab] = useState<'today' | 'recent' | 'templates'>('today')
 
   // Fetch real data using our hooks
