@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { useUnifiedAuth } from '@/providers/unified-auth-provider'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { LoadingPage } from '@/modules/shared/ui'
 
 interface MobileAuthGuardProps {
