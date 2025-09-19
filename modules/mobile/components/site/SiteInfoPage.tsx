@@ -1086,15 +1086,35 @@ export default function SiteInfoPage() {
   return (
     <div className="site-container">
       <style jsx>{`
+        /* Design system CSS variables from HTML reference */
+        :root {
+          --font: 'Noto Sans KR', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+          --bg: #f5f7fb;
+          --card: #ffffff;
+          --text: #101828;
+          --muted: #667085;
+          --brand: #1A254F;
+          --brand-ghost: rgba(26, 37, 79, 0.06);
+          --blue: #0068FE;
+          --border: rgba(16, 24, 40, 0.1);
+          --hover: rgba(16, 24, 40, 0.04);
+          --accent: rgba(0, 104, 254, 0.1);
+        }
+
+        [data-theme='dark'] {
+          --bg: #0f172a;
+          --card: #1e293b;
+          --text: #e9eef5;
+          --muted: #94a3b8;
+          --border: rgba(255, 255, 255, 0.1);
+          --hover: rgba(255, 255, 255, 0.08);
+          --accent: rgba(0, 104, 254, 0.2);
+        }
+
         .site-container {
           min-height: 100vh;
           background: var(--bg);
-          font-family:
-            'Pretendard',
-            'Noto Sans KR',
-            system-ui,
-            -apple-system,
-            sans-serif;
+          font-family: var(--font);
           color: var(--text);
           padding: 20px;
           padding-bottom: 100px;
@@ -1124,20 +1144,38 @@ export default function SiteInfoPage() {
         .btn-detail {
           background: var(--card);
           border: 1px solid var(--border);
-          border-radius: 12px;
-          padding: 8px 12px;
+          border-radius: 8px;
+          padding: 6px 12px;
           color: var(--text);
           font-size: 14px;
+          font-weight: 500;
           cursor: pointer;
           display: flex;
           align-items: center;
           gap: 6px;
-          transition: all 0.2s;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05);
         }
 
-        .btn-attachment:hover,
+        .btn-detail {
+          background: var(--brand);
+          color: white;
+          border-color: var(--brand);
+        }
+
         .btn-detail:hover {
-          background: var(--hover);
+          background: rgba(26, 37, 79, 0.9);
+          border-color: rgba(26, 37, 79, 0.9);
+        }
+        }
+
+        .btn-detail:hover {
+          background: rgba(26, 37, 79, 0.9);
+          border-color: rgba(26, 37, 79, 0.9);
+        }
+
+        .btn-attachment:hover {
+          background: var(--brand-ghost);
         }
 
         .search-section {
@@ -1161,33 +1199,33 @@ export default function SiteInfoPage() {
 
         .search-input:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: var(--blue);
+          box-shadow: 0 0 0 3px rgba(0, 104, 254, 0.1);
         }
 
         .site-list {
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
         }
 
         .site-item {
           background: var(--bg);
           border: 1px solid var(--border);
           border-radius: 12px;
-          padding: 16px;
+          padding: 12px 16px;
           cursor: pointer;
           transition: all 0.2s;
         }
 
         .site-item:hover {
           background: var(--hover);
-          border-color: #3b82f6;
+          border-color: var(--blue);
         }
 
         .site-item.selected {
           background: var(--accent);
-          border-color: #3b82f6;
+          border-color: var(--blue);
         }
 
         .site-item-name {
@@ -1206,8 +1244,9 @@ export default function SiteInfoPage() {
           background: var(--card);
           border: 1px solid var(--border);
           border-radius: 16px;
-          padding: 24px;
-          margin-bottom: 24px;
+          padding: 16px;
+          margin-bottom: 20px;
+          box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
         }
 
         .card-header {
@@ -1223,7 +1262,7 @@ export default function SiteInfoPage() {
         .site-icon {
           width: 32px;
           height: 32px;
-          background: #3b82f6;
+          background: var(--blue);
           border-radius: 8px;
           display: flex;
           align-items: center;
@@ -1294,7 +1333,7 @@ export default function SiteInfoPage() {
           display: grid;
           grid-template-columns: 80px 1fr auto;
           align-items: center;
-          gap: 12px;
+          gap: 8px;
           padding: 12px 0;
           border-bottom: 1px solid var(--border);
         }
@@ -1315,7 +1354,7 @@ export default function SiteInfoPage() {
         }
 
         .action-btn {
-          background: #3b82f6;
+          background: var(--blue);
           color: white;
           border: none;
           border-radius: 6px;
@@ -1326,7 +1365,7 @@ export default function SiteInfoPage() {
         }
 
         .action-btn:hover {
-          background: #2563eb;
+          background: rgba(0, 104, 254, 0.9);
         }
 
         .action-btn.secondary {
@@ -1395,10 +1434,6 @@ export default function SiteInfoPage() {
           overflow: hidden;
         }
 
-        .btn-attachment:hover {
-          background: var(--hover);
-          border-color: #3b82f6;
-        }
 
         /* HTML requirements: Dark mode support */
         [data-theme='dark'] .site-info-card .site-name {
@@ -1594,7 +1629,7 @@ export default function SiteInfoPage() {
           white-space: normal;
           word-break: break-all;
           background: var(--accent);
-          border: 1px solid #3b82f6;
+          border: 1px solid var(--blue);
         }
 
         .info-actions {
@@ -1618,7 +1653,7 @@ export default function SiteInfoPage() {
         }
 
         .action-btn {
-          background: #3b82f6;
+          background: var(--blue);
           color: white;
           border: none;
           border-radius: 6px;
@@ -1629,7 +1664,7 @@ export default function SiteInfoPage() {
         }
 
         .action-btn:hover {
-          background: #2563eb;
+          background: rgba(0, 104, 254, 0.9);
         }
 
         .action-btn.secondary {
@@ -1678,8 +1713,8 @@ export default function SiteInfoPage() {
 
         .npc-kpi {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 16px;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 8px;
           margin-bottom: 20px;
         }
 
@@ -1714,14 +1749,15 @@ export default function SiteInfoPage() {
         .npc-actions {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
+          gap: 8px;
         }
 
         .npc-btn {
           background: var(--bg);
           border: 1px solid var(--border);
           border-radius: 12px;
-          padding: 12px 16px;
+          padding: 0 12px;
+          height: 48px;
           font-size: 14px;
           font-weight: 600;
           color: var(--text);
@@ -1735,17 +1771,17 @@ export default function SiteInfoPage() {
 
         .npc-btn:hover {
           background: var(--hover);
-          border-color: #3b82f6;
+          border-color: var(--blue);
         }
 
         .npc-btn.add {
-          background: #3b82f6;
+          background: var(--blue);
           color: white;
-          border-color: #3b82f6;
+          border-color: var(--blue);
         }
 
         .npc-btn.add:hover {
-          background: #2563eb;
+          background: var(--brand);
         }
 
         .modal {
@@ -1862,12 +1898,12 @@ export default function SiteInfoPage() {
         }
 
         .btn-primary {
-          background: #3b82f6;
+          background: var(--brand);
           color: white;
         }
 
         .btn-primary:hover {
-          background: #2563eb;
+          background: rgba(26, 37, 79, 0.9);
         }
 
         .btn-secondary {
@@ -2249,13 +2285,13 @@ export default function SiteInfoPage() {
         }
 
         .npc-btn-primary {
-          background: #3b82f6;
+          background: var(--brand);
           color: white;
           border: none;
         }
 
         .npc-btn-primary:hover {
-          background: #2563eb;
+          background: rgba(26, 37, 79, 0.9);
         }
 
         .npc-btn-secondary {
