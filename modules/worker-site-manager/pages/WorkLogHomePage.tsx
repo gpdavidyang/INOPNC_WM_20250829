@@ -11,7 +11,8 @@ import { useWorkLogs } from '@/modules/mobile/hooks/use-work-logs'
 import { useTemporaryWorkLogs } from '@/modules/mobile/hooks/use-temporary-work-logs'
 import { WorkLogStatus, WorkLogTabStatus } from '@/modules/mobile/types/work-log.types'
 import { SimplifiedBottomSheet } from '@/modules/mobile/components/work-log/UncompletedBottomSheet'
-import { Plus } from 'lucide-react'
+import { TabSystem, TabPanel, type Tab } from '@/modules/mobile/components/ui/TabSystem'
+import { Plus, FileText, CheckCircle } from 'lucide-react'
 
 export const WorkLogHomePage: React.FC = () => {
   const { profile } = useMobileUser()
@@ -52,7 +53,7 @@ export const WorkLogHomePage: React.FC = () => {
       mainContainer.classList.remove('fs-100', 'fs-150')
       mainContainer.classList.add(savedFontSize === 'normal' ? 'fs-100' : 'fs-150')
     }
-  }, [])
+  }, []);
 
   const toggleFontSize = useCallback(() => {
     const newSize = fontSize === 'normal' ? 'large' : 'normal'
@@ -141,25 +142,47 @@ export const WorkLogHomePage: React.FC = () => {
   // 급여 통계는 서버 API에서 계산되므로 클라이언트 계산 로직 제거
   // fetchMonthlySalary에서 처리됨
 
+  // 승인된 작업일지 필터링
+  const filteredApprovedWorkLogs = useMemo(() => {
+    if (!workLogs || activeTab !== 'approved') return []
+    
+    return workLogs.filter(workLog => {
+      // 상태가 'approved' 또는 'completed'인 작업일지만 필터링
+      const isApproved = workLog.status === 'approved' || workLog.status === 'completed'
+      
+      // 검색 쿼리가 있는 경우 추가 필터링
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        const matchesTitle = workLog.title?.toLowerCase().includes(query)
+        const matchesSite = workLog.siteName?.toLowerCase().includes(query)
+        const matchesContent = workLog.workContent?.toLowerCase().includes(query)
+        
+        return isApproved && (matchesTitle || matchesSite || matchesContent)
+      }
+      
+      return isApproved
+    })
+  }, [workLogs, activeTab, searchQuery])
+
   // 작업일지 관련 이벤트 핸들러
-  const handleCreateWorkLog = () => {
+  const handleCreateWorkLog = useCallback(() => {
     setEditingWorkLog(null)
     setModalMode('create')
     setIsModalOpen(true)
-  }
+  }, [])
 
-  const handleEditWorkLog = (workLog: any) => {
+  const handleEditWorkLog = useCallback((workLog: any) => {
     setEditingWorkLog(workLog)
     setModalMode('edit')
     setIsModalOpen(true)
-  }
+  }, [])
 
-  const handleCloseModal = () => {
+  const handleCloseModal = useCallback(() => {
     setIsModalOpen(false)
     setEditingWorkLog(null)
-  }
+  }, [])
 
-  const handleSaveWorkLog = async (formData: any) => {
+  const handleSaveWorkLog = useCallback(async (formData: any) => {
     try {
       if (editingWorkLog) {
         await updateWorkLog(editingWorkLog.id, formData)
@@ -170,7 +193,7 @@ export const WorkLogHomePage: React.FC = () => {
     } catch (error) {
       console.error('작업일지 저장 실패:', error)
     }
-  }
+  }, [editingWorkLog, updateWorkLog, createWorkLog, handleCloseModal])
 
   // 작업일지 액션 핸들러들
   const handleSubmitWorkLog = useCallback(async (workLogId: string) => {
@@ -179,27 +202,27 @@ export const WorkLogHomePage: React.FC = () => {
     } catch (error) {
       console.error('작업일지 제출 실패:', error)
     }
-  }, [])
+  }, [updateWorkLog]);
 
   const handleViewWorkLog = useCallback((workLog: any) => {
     setEditingWorkLog(workLog)
     setModalMode('view')
     setIsModalOpen(true)
-  }, [])
+  }, []);
 
   const handlePrintWorkLog = useCallback((workLog: any) => {
     // TODO: 인쇄 기능 구현
     // console.log('인쇄:', workLog)
-  }, [])
+  }, []);
 
   // Bottom Sheet 핸들러들
   const handleCloseBottomSheet = useCallback(() => {
     setIsBottomSheetVisible(false)
-  }, [])
+  }, []);
 
   const handleCreateWorkLogFromBottomSheet = useCallback(() => {
     handleCreateWorkLog()
-  }, [handleCreateWorkLog])
+  }, [handleCreateWorkLog]);
 
   // 임시저장 관련 핸들러들
   const handleLoadTemporaryWorkLog = useCallback(async (tempLog: any) => {
@@ -211,7 +234,7 @@ export const WorkLogHomePage: React.FC = () => {
     } catch (error) {
       console.error('임시저장 불러오기 실패:', error)
     }
-  }, [])
+  }, []);
 
   const handleDeleteTemporaryWorkLog = useCallback(async (id: string) => {
     if (confirm('이 임시저장을 삭제하시겠습니까?')) {
@@ -222,7 +245,7 @@ export const WorkLogHomePage: React.FC = () => {
         console.error('임시저장 삭제 실패:', error)
       }
     }
-  }, [])
+  }, [deleteTemporaryWorkLog]);
 
   // 캘린더 네비게이션 함수
   const navigateMonth = useCallback(
@@ -232,79 +255,62 @@ export const WorkLogHomePage: React.FC = () => {
       setCurrentDate(newDate)
     },
     [currentDate]
-  )
+  );
 
-  // 캘린더 날짜 생성 함수 - 성능 최적화를 위해 useMemo 사용
-  const generateCalendarDays = useMemo(() => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDayOfWeek = firstDay.getDay()
-
-    const days = []
-
-    // 이전 달의 빈 칸들
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push({
-        date: null,
-        isCurrentMonth: false,
-        hasWorkLog: false,
-        workLogCount: 0,
-      })
-    }
-
-    // 현재 달의 날짜들
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(year, month, day)
-      const workLogsForDay =
-        workLogs?.filter(log => {
-          const logDate = new Date(log.date)
-          return logDate.toDateString() === date.toDateString()
-        }) || []
-
-      days.push({
-        date: day,
-        isCurrentMonth: true,
-        hasWorkLog: workLogsForDay.length > 0,
-        workLogCount: workLogsForDay.length,
-        dateObj: date,
-      })
-    }
-
-    return days
-  }, [currentDate, workLogs])
-
-  // 급여명세서 다운로드 핸들러 제거 - 별도 페이지로 이동
 
   return (
-    <MobileLayout
-      title=""
-      userRole={profile?.role === 'site_manager' ? 'site_manager' : 'worker'}
-      showNotification={false}
-    >
-      <div className="main-container worklog-body fs-100 px-4 sm:px-6 lg:px-8">
-        {/* Line Tabs Navigation */}
-        <div className="line-tabs flex overflow-x-auto scrollbar-hide gap-2 sm:gap-4 pb-2">
-          <button
-            onClick={() => setActiveTab('draft')}
-            className={`line-tab ${activeTab === 'draft' ? 'active' : ''} flex-shrink-0 min-w-[100px] h-12 px-4 active:scale-[0.98] transition-transform`}
-            data-tab="draft"
-          >
-            임시저장
-          </button>
-          <button
-            onClick={() => setActiveTab('approved')}
-            className={`line-tab ${activeTab === 'approved' ? 'active' : ''} flex-shrink-0 min-w-[100px] h-12 px-4 active:scale-[0.98] transition-transform`}
-            data-tab="approved"
-          >
-            작성완료
-          </button>
-        </div>
+    <div className="worklog-page">
+      <style jsx global>{`
+        :root {
+          --brand: #1A254F;
+          --num: #0068FE;
+          --bg: #f5f7fb;
+          --card: #ffffff;
+          --text: #101828;
+          --muted: #667085;
+          --border: #e0e0e0;
+          --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+          --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
 
+        .dark {
+          --bg: #0f172a;
+          --card: #1e293b;
+          --text: #f1f5f9;
+          --muted: #94a3b8;
+          --border: #334155;
+        }
+
+        .worklog-page {
+          font-family: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+          background: var(--bg);
+          min-height: 100vh;
+        }
+
+        .worklog-body {
+          background: var(--bg);
+          padding: 20px 16px;
+          max-width: 100%;
+        }
+
+        @media (min-width: 640px) {
+          .worklog-body {
+            padding: 24px;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          .worklog-body {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px;
+          }
+        }
+      `}</style>
+      
+      <div className="main-container worklog-body">
         {/* Search Section */}
-        <div className="search-section">
+        <div className="search-section mb-4">
           <div className="search-container flex gap-2 items-center">
             <div className="search-input-wrapper flex-1">
               <WorkLogSearch
@@ -324,10 +330,27 @@ export const WorkLogHomePage: React.FC = () => {
           </div>
         </div>
 
-        {/* Main Content Area */}
-        <div className="content-wrapper">
-          {/* 임시저장 탭 콘텐츠 */}
-          {activeTab === 'draft' && (
+        {/* Main Content Area with Semantic Tab System */}
+        <TabSystem
+          tabs={[
+            {
+              id: 'draft',
+              label: '임시저장',
+              icon: <FileText size={16} />,
+              count: temporaryWorkLogs.length
+            },
+            {
+              id: 'approved',
+              label: '작성완료',
+              icon: <CheckCircle size={16} />
+            }
+          ]}
+          activeTab={activeTab}
+          onTabChange={(tabId) => setActiveTab(tabId as WorkLogTabStatus)}
+          variant="line"
+          className="content-wrapper"
+        >
+          <TabPanel data-panel="draft">
             <div className="space-y-6">
               {/* 임시저장 목록 헤더 */}
               <div className="summary-section">
@@ -459,10 +482,9 @@ export const WorkLogHomePage: React.FC = () => {
                 </div>
               )}
             </div>
-          )}
+          </TabPanel>
 
-          {/* 작성완료 탭 콘텐츠 */}
-          {activeTab === 'approved' && (
+          <TabPanel data-panel="approved">
             <div className="space-y-4">
               {/* 작성완료 작업일지 목록 */}
               {filteredApprovedWorkLogs.length > 0 ? (
@@ -498,7 +520,8 @@ export const WorkLogHomePage: React.FC = () => {
                 </div>
               )}
             </div>
-          )}
+          </TabPanel>
+        </TabSystem>
         </div>
 
         {/* Floating Action Button */}
@@ -528,84 +551,7 @@ export const WorkLogHomePage: React.FC = () => {
           onClose={handleCloseBottomSheet}
           onCreateWorkLog={handleCreateWorkLogFromBottomSheet}
         />
-      </div>
 
-      <style jsx>{`
-        .button-ripple {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .button-ripple::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 0;
-          height: 0;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.3);
-          transform: translate(-50%, -50%);
-          transition:
-            width 0.4s ease,
-            height 0.4s ease;
-        }
-
-        .button-ripple:active::before {
-          width: 300px;
-          height: 300px;
-        }
-
-        .button-primary {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .button-primary::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 0;
-          height: 0;
-          border-radius: 50%;
-          background: rgba(255, 255, 255, 0.25);
-          transform: translate(-50%, -50%);
-          transition:
-            width 0.35s ease,
-            height 0.35s ease;
-        }
-
-        .button-primary:active::before {
-          width: 200px;
-          height: 200px;
-        }
-
-        .button-secondary {
-          position: relative;
-          overflow: hidden;
-        }
-
-        .button-secondary::before {
-          content: '';
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          width: 0;
-          height: 0;
-          border-radius: 50%;
-          background: rgba(26, 37, 79, 0.15);
-          transform: translate(-50%, -50%);
-          transition:
-            width 0.35s ease,
-            height 0.35s ease;
-        }
-
-        .button-secondary:active::before {
-          width: 150px;
-          height: 150px;
-        }
-      `}</style>
-    </MobileLayout>
+    </div>
   )
 }

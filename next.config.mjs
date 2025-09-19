@@ -2,14 +2,14 @@
 const nextConfig = {
   reactStrictMode: false, // Disable strict mode to prevent double rendering
   
-  // TypeScript 빌드 최적화 - 프로덕션 배포를 위해 일시적으로 에러 무시
+  // Enable TypeScript error checking to catch build issues
   typescript: {
-    ignoreBuildErrors: true, // Temporarily ignore TypeScript errors for deployment
+    ignoreBuildErrors: false, // Check TypeScript errors to identify build issues
   },
   
-  // ESLint 빌드 최적화 - 임시로 무시하여 빠른 배포 가능
+  // Enable ESLint during builds to catch code quality issues
   eslint: {
-    ignoreDuringBuilds: true, // Temporarily ignore ESLint during builds for faster deployment
+    ignoreDuringBuilds: false, // Check ESLint during builds to catch potential issues
   },
   
   // Enable SWC for better performance
@@ -25,7 +25,7 @@ const nextConfig = {
     // Enable instrumentation hook for build-time setup
     instrumentationHook: true,
     
-    // 메모리 캐시 최적화
+    // 메모리 캐시 최적화 - lucide-react 제거하여 tree-shaking 문제 해결
     optimizePackageImports: [
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
@@ -35,7 +35,6 @@ const nextConfig = {
       '@radix-ui/react-progress',
       '@supabase/supabase-js',
       '@supabase/ssr',
-      'lucide-react',
       'date-fns',
       'clsx',
       'tailwind-merge',
