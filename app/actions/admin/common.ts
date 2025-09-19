@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { requireAdminAuth } from '@/lib/utils/auth'
+import { requireAdminAuth } from '../../../lib/utils/auth'
 
 /**
  * Base admin action result type
