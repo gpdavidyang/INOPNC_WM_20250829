@@ -146,16 +146,16 @@ export const formatFileSize = (bytes: number): string => {
 }
 
 /**
- * 상태별 색상 클래스
+ * 상태별 색상 클래스 - HTML 참조 파일 기반
  */
 export const getStatusColor = (status: WorkLogStatus): string => {
   switch (status) {
     case 'draft':
-      return 'bg-orange-50 text-orange-700'
+      return 'bg-[rgba(255,45,128,0.15)] text-[#FF2980]'
     case 'approved':
-      return 'bg-green-50 text-green-700'
+      return 'bg-[rgba(20,184,166,0.15)] text-[#14B8A6]'
     default:
-      return 'bg-[var(--bg)] text-[var(--muted)]'
+      return 'bg-[#f5f7fb] text-[#667085]'
   }
 }
 

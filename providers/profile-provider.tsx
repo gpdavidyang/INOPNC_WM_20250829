@@ -60,10 +60,11 @@ export function ProfileProvider({ children, initialProfile = null }: ProfileProv
         setLoading(true)
         console.log('[PROFILE] Fetching profile for user:', userId)
 
+        // Increase timeout for production environment
         const fetchWithTimeout = Promise.race([
           supabase?.from('profiles').select('*').eq('id', userId).single(),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Profile fetch timeout after 3 seconds')), 3000)
+            setTimeout(() => reject(new Error('Profile fetch timeout after 10 seconds')), 10000)
           ),
         ])
 
@@ -73,14 +74,18 @@ export function ProfileProvider({ children, initialProfile = null }: ProfileProv
           console.error('[PROFILE] Profile fetch error:', profileError)
           setError(profileError.message)
 
-          // Set loading to false and provide fallback even on error
+          // Provide more robust fallback data even on error
           if (user) {
-            setProfile({
+            const fallbackProfile: UnifiedProfile = {
               id: user.id,
               email: user.email || '',
-              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-              role: 'worker', // Default role
-            })
+              full_name: user.email?.split('@')[0] || 'User',
+              role: 'worker' as const,
+              created_at: new Date().toISOString(),
+              status: 'active'
+            }
+            setProfile(fallbackProfile)
+            console.log('[PROFILE] Using fallback profile due to fetch error')
           }
           return
         }

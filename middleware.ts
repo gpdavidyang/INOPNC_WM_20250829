@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 import { getAuth, getUITrack } from '@/lib/auth/ultra-simple'
 
 // Authentication event logging utility

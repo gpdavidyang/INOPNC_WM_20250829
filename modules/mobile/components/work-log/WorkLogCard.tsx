@@ -63,23 +63,73 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
 
     return (
       <div
-        className="bg-[var(--card)] rounded-2xl shadow-sm border border-[var(--line)] p-4 transition-all duration-300 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+        className="worklog-card"
         onClick={handleCardClick}
+        style={{
+          background: 'var(--card, #ffffff)',
+          borderRadius: '12px',
+          padding: '16px',
+          boxShadow: 'var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.1))',
+          border: '1px solid var(--border, #e0e0e0)',
+          transition: 'all 0.3s ease',
+          cursor: 'pointer',
+          marginBottom: '12px',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.boxShadow = 'var(--shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.1))'
+          e.currentTarget.style.transform = 'translateY(-2px)'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.boxShadow = 'var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.1))'
+          e.currentTarget.style.transform = 'translateY(0)'
+        }}
       >
         {/* 헤더 */}
         <div className="worklog-header flex justify-between items-start mb-2">
-          <span className="worklog-site text-sm font-semibold text-[var(--text)]">
+          <span className="worklog-site text-sm font-semibold text-[#101828]">
             [{workLog.partnerName || 'INOPNC'}] {workLog.siteName}
           </span>
           <div className="worklog-header-left flex items-center gap-2">
             <span
-              className={`status-tag px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(workLog.status)}`}
+              className="status-tag"
+              style={{
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: '500',
+                background: workLog.status === 'temporary' 
+                  ? 'rgba(255, 45, 128, 0.15)' 
+                  : workLog.status === 'approved'
+                  ? 'rgba(20, 184, 166, 0.15)'
+                  : 'rgba(102, 112, 133, 0.1)',
+                color: workLog.status === 'temporary'
+                  ? '#FF2980'
+                  : workLog.status === 'approved'
+                  ? '#14B8A6'
+                  : 'var(--muted, #667085)',
+              }}
             >
               {getStatusText(workLog.status)}
             </span>
             <button
               onClick={toggleExpanded}
-              className="worklog-detail-btn px-3 py-1 text-xs bg-[var(--line)] hover:bg-[var(--muted)] rounded-md transition-colors"
+              className="worklog-detail-btn"
+              style={{
+                padding: '4px 12px',
+                fontSize: '12px',
+                background: 'var(--bg, #f5f7fb)',
+                color: 'var(--text, #101828)',
+                borderRadius: '6px',
+                border: 'none',
+                transition: 'all 0.2s ease',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--border, #e0e0e0)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'var(--bg, #f5f7fb)'
+              }}
             >
               상세
             </button>
@@ -240,18 +290,52 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
 
         {/* 액션 버튼 - 확장 시에만 표시 */}
         {isExpanded && (
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-8px" style={{ marginTop: '12px', gap: '8px' }}>
             {workLog.status === 'temporary' ? (
               <>
                 <button
                   onClick={handleEdit}
-                  className="flex-1 h-10 bg-[var(--bg)] text-[var(--muted)] rounded-lg text-sm font-medium hover:bg-[var(--line)] active:scale-95 transition-all duration-200"
+                  style={{
+                    flex: 1,
+                    height: '40px',
+                    background: 'var(--bg, #f5f7fb)',
+                    color: 'var(--muted, #667085)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--border, #e0e0e0)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--bg, #f5f7fb)'
+                  }}
                 >
                   수정하기
                 </button>
                 <button
                   onClick={handleSubmit}
-                  className="flex-1 h-10 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:bg-[var(--accent)] hover:opacity-90 active:scale-95 transition-all duration-200"
+                  style={{
+                    flex: 1,
+                    height: '40px',
+                    background: 'var(--brand, #1A254F)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.9'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1'
+                  }}
                 >
                   제출하기
                 </button>
@@ -260,13 +344,47 @@ export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
               <>
                 <button
                   onClick={handleView}
-                  className="flex-1 h-10 bg-[var(--bg)] text-[var(--muted)] rounded-lg text-sm font-medium hover:bg-[var(--line)] active:scale-95 transition-all duration-200"
+                  style={{
+                    flex: 1,
+                    height: '40px',
+                    background: 'var(--bg, #f5f7fb)',
+                    color: 'var(--muted, #667085)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--border, #e0e0e0)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--bg, #f5f7fb)'
+                  }}
                 >
                   상세보기
                 </button>
                 <button
                   onClick={handlePrint}
-                  className="flex-1 h-10 bg-[var(--num)] text-white rounded-lg text-sm font-medium hover:bg-[var(--num)] hover:opacity-90 active:scale-95 transition-all duration-200"
+                  style={{
+                    flex: 1,
+                    height: '40px',
+                    background: 'var(--num, #0068FE)',
+                    color: 'white',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    border: 'none',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.9'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '1'
+                  }}
                 >
                   인쇄하기
                 </button>

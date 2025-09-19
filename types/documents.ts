@@ -1,6 +1,46 @@
 // Document-specific type definitions
 
+// Document types
+export type DocumentType = 
+  | 'personal' 
+  | 'shared' 
+  | 'blueprint' 
+  | 'drawing' 
+  | 'report' 
+  | 'certificate' 
+  | 'contract' 
+  | 'manual' 
+  | 'other'
 
+// Upload status
+export type UploadStatus = 'pending' | 'uploading' | 'uploaded' | 'failed'
+
+// Permission roles
+export type PermissionRole = 'viewer' | 'editor' | 'owner'
+
+// Enhanced document interface for mobile document management
+export interface Document {
+  id: string
+  title: string
+  type: 'personal' | 'shared'
+  category: DocumentCategory
+  uploadStatus: UploadStatus
+  fileSize?: number
+  fileType?: string
+  uploadedAt?: Date
+  updatedAt?: Date
+  permissions: DocumentPermission[]
+  // Additional metadata
+  description?: string | null
+  tags?: string[]
+  version?: number
+  thumbnailUrl?: string | null
+  downloadUrl?: string | null
+  isArchived?: boolean
+  expiresAt?: Date | null
+}
+
+// Legacy interface (for backward compatibility)
 export interface DocumentFile {
   id: string
   title: string
