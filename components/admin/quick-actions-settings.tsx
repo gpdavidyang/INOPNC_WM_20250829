@@ -1,6 +1,53 @@
 'use client'
 
+import React, { useState, useEffect } from 'react'
+import {
+  Users,
+  Building2,
+  DollarSign,
+  Package,
+  FileText,
+  Layers,
+  Home,
+  Search,
+  Calendar,
+  Bell,
+  Shield,
+  Monitor,
+  Database,
+  Settings,
+  Settings as SettingsIcon,
+  HelpCircle,
+  Plus,
+  Trash2,
+  GripVertical,
+  X,
+  Edit2,
+} from 'lucide-react'
+import { toast } from 'sonner'
 import type { QuickAction } from '@/types'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
+import { useFontSize } from '@/contexts/FontSizeContext'
+import { useTouchMode } from '@/contexts/TouchModeContext'
+import { getFullTypographyClass } from '@/contexts/FontSizeContext'
 
 interface QuickActionsSettingsProps {
   onUpdate?: () => void
@@ -22,7 +69,7 @@ const AVAILABLE_ICONS = [
   { name: 'Monitor', icon: Monitor, label: '모니터' },
   { name: 'Database', icon: Database, label: '데이터베이스' },
   { name: 'Settings', icon: SettingsIcon, label: '설정' },
-  { name: 'HelpCircle', icon: HelpCircle, label: '도움말' }
+  { name: 'HelpCircle', icon: HelpCircle, label: '도움말' },
 ]
 
 interface QuickActionFormData {
@@ -40,13 +87,13 @@ const initialFormData: QuickActionFormData = {
   icon_name: 'Home',
   link_url: '',
   is_active: true,
-  display_order: 0
+  display_order: 0,
 }
 
 export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
-  
+
   const [isOpen, setIsOpen] = useState(false)
   const [quickActions, setQuickActions] = useState<QuickAction[]>([])
   const [editingAction, setEditingAction] = useState<QuickAction | null>(null)
@@ -59,7 +106,7 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
     try {
       const response = await fetch('/api/admin/quick-actions')
       if (!response.ok) throw new Error('Failed to fetch quick actions')
-      
+
       const data = await response.json()
       setQuickActions(data.quickActions || [])
     } catch (error) {
@@ -81,12 +128,12 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
     setError(null)
 
     try {
-      const url = editingAction 
+      const url = editingAction
         ? `/api/admin/quick-actions/${editingAction.id}`
         : '/api/admin/quick-actions'
-      
+
       const method = editingAction ? 'PUT' : 'POST'
-      
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -140,7 +187,7 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
       icon_name: action.icon_name,
       link_url: action.link_url,
       is_active: action.is_active,
-      display_order: action.display_order
+      display_order: action.display_order,
     })
   }
 
@@ -157,7 +204,10 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
     const IconComponent = selectedIcon?.icon || Home
 
     return (
-      <Select value={formData.icon_name} onValueChange={(value) => setFormData(prev => ({ ...prev, icon_name: value }))}>
+      <Select
+        value={formData.icon_name}
+        onValueChange={value => setFormData(prev => ({ ...prev, icon_name: value }))}
+      >
         <SelectTrigger className="w-full">
           <SelectValue>
             <div className="flex items-center gap-2">
@@ -167,7 +217,7 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
           </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {AVAILABLE_ICONS.map((icon) => {
+          {AVAILABLE_ICONS.map(icon => {
             const IconComp = icon.icon
             return (
               <SelectItem key={icon.name} value={icon.name}>
@@ -190,15 +240,17 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
           variant="ghost"
           size="sm"
           className={`${
-            touchMode === 'glove' ? 'h-12 w-12' : touchMode === 'precision' ? 'h-8 w-8' : 'h-10 w-10'
+            touchMode === 'glove'
+              ? 'h-12 w-12'
+              : touchMode === 'precision'
+                ? 'h-8 w-8'
+                : 'h-10 w-10'
           } p-0`}
         >
-          <Settings className={`${
-            touchMode === 'glove' ? 'h-6 w-6' : 'h-4 w-4'
-          }`} />
+          <Settings className={`${touchMode === 'glove' ? 'h-6 w-6' : 'h-4 w-4'}`} />
         </Button>
       </DialogTrigger>
-      <DialogContent 
+      <DialogContent
         className="sm:max-w-4xl"
         style={{
           position: 'fixed',
@@ -212,164 +264,188 @@ export function QuickActionsSettings({ onUpdate }: QuickActionsSettingsProps) {
           flexDirection: 'column',
           padding: 0,
           gap: 0,
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
       >
-        <DialogHeader className="px-6 py-4 border-b border-gray-200 dark:border-gray-700" style={{ flexShrink: 0 }}>
+        <DialogHeader
+          className="px-6 py-4 border-b border-gray-200 dark:border-gray-700"
+          style={{ flexShrink: 0 }}
+        >
           <DialogTitle className={getFullTypographyClass('heading', 'lg', isLargeFont)}>
             빠른 작업 설정
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="px-6 py-4" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
           <div className="space-y-6">
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-              <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-red-600`}>
-                {error}
-              </p>
-            </div>
-          )}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-red-600`}>
+                  {error}
+                </p>
+              </div>
+            )}
 
-          {/* 새 빠른 작업 추가/편집 폼 */}
-          <div className="border rounded-lg p-4">
-            <h3 className={`${getFullTypographyClass('heading', 'base', isLargeFont)} font-medium mb-4`}>
-              {editingAction ? '빠른 작업 편집' : '새 빠른 작업 추가'}
-            </h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* 새 빠른 작업 추가/편집 폼 */}
+            <div className="border rounded-lg p-4">
+              <h3
+                className={`${getFullTypographyClass('heading', 'base', isLargeFont)} font-medium mb-4`}
+              >
+                {editingAction ? '빠른 작업 편집' : '새 빠른 작업 추가'}
+              </h3>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">제목 *</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                      required
+                      placeholder="예: 사용자 관리"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="icon">아이콘 *</Label>
+                    {renderIconSelect()}
+                  </div>
+                </div>
+
                 <div>
-                  <Label htmlFor="title">제목 *</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    required
-                    placeholder="예: 사용자 관리"
+                  <Label htmlFor="description">설명</Label>
+                  <Textarea
+                    id="description"
+                    value={formData.description}
+                    onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="빠른 작업에 대한 설명을 입력하세요"
+                    rows={2}
                   />
                 </div>
-                
-                <div>
-                  <Label htmlFor="icon">아이콘 *</Label>
-                  {renderIconSelect()}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="link_url">링크 URL *</Label>
+                    <Input
+                      id="link_url"
+                      value={formData.link_url}
+                      onChange={e => setFormData(prev => ({ ...prev, link_url: e.target.value }))}
+                      required
+                      placeholder="/dashboard/admin/users"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="display_order">표시 순서</Label>
+                    <Input
+                      id="display_order"
+                      type="number"
+                      value={formData.display_order}
+                      onChange={e =>
+                        setFormData(prev => ({
+                          ...prev,
+                          display_order: parseInt(e.target.value) || 0,
+                        }))
+                      }
+                      min="0"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="description">설명</Label>
-                <Textarea
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="빠른 작업에 대한 설명을 입력하세요"
-                  rows={2}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="link_url">링크 URL *</Label>
-                  <Input
-                    id="link_url"
-                    value={formData.link_url}
-                    onChange={(e) => setFormData(prev => ({ ...prev, link_url: e.target.value }))}
-                    required
-                    placeholder="/dashboard/admin/users"
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="is_active"
+                    checked={formData.is_active}
+                    onCheckedChange={checked =>
+                      setFormData(prev => ({ ...prev, is_active: checked }))
+                    }
                   />
+                  <Label htmlFor="is_active">활성화</Label>
                 </div>
-                
-                <div>
-                  <Label htmlFor="display_order">표시 순서</Label>
-                  <Input
-                    id="display_order"
-                    type="number"
-                    value={formData.display_order}
-                    onChange={(e) => setFormData(prev => ({ ...prev, display_order: parseInt(e.target.value) || 0 }))}
-                    min="0"
-                  />
-                </div>
-              </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="is_active"
-                  checked={formData.is_active}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_active: checked }))}
-                />
-                <Label htmlFor="is_active">활성화</Label>
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? '저장 중...' : editingAction ? '수정' : '추가'}
-                </Button>
-                {editingAction && (
-                  <Button type="button" variant="outline" onClick={cancelEdit}>
-                    취소
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={isLoading}>
+                    {isLoading ? '저장 중...' : editingAction ? '수정' : '추가'}
                   </Button>
+                  {editingAction && (
+                    <Button type="button" variant="outline" onClick={cancelEdit}>
+                      취소
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* 기존 빠른 작업 목록 */}
+            <div>
+              <h3
+                className={`${getFullTypographyClass('heading', 'base', isLargeFont)} font-medium mb-4`}
+              >
+                현재 빠른 작업 목록
+              </h3>
+
+              <div className="space-y-2">
+                {quickActions.map(action => {
+                  const IconComponent =
+                    AVAILABLE_ICONS.find(icon => icon.name === action.icon_name)?.icon || Home
+
+                  return (
+                    <div
+                      key={action.id}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`flex items-center justify-center w-8 h-8 rounded ${action.is_active ? 'bg-blue-100' : 'bg-gray-100'}`}
+                        >
+                          <IconComponent
+                            className={`h-4 w-4 ${action.is_active ? 'text-blue-600' : 'text-gray-400'}`}
+                          />
+                        </div>
+
+                        <div>
+                          <h4
+                            className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium ${!action.is_active ? 'text-gray-500' : ''}`}
+                          >
+                            {action.title}
+                          </h4>
+                          <p
+                            className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}
+                          >
+                            순서: {action.display_order} | URL: {action.link_url}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => startEdit(action)}>
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDelete(action.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {quickActions.length === 0 && (
+                  <div className="text-center py-8">
+                    <p
+                      className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}
+                    >
+                      등록된 빠른 작업이 없습니다.
+                    </p>
+                  </div>
                 )}
               </div>
-            </form>
-          </div>
-
-          {/* 기존 빠른 작업 목록 */}
-          <div>
-            <h3 className={`${getFullTypographyClass('heading', 'base', isLargeFont)} font-medium mb-4`}>
-              현재 빠른 작업 목록
-            </h3>
-            
-            <div className="space-y-2">
-              {quickActions.map((action) => {
-                const IconComponent = AVAILABLE_ICONS.find(icon => icon.name === action.icon_name)?.icon || Home
-                
-                return (
-                  <div key={action.id} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`flex items-center justify-center w-8 h-8 rounded ${action.is_active ? 'bg-blue-100' : 'bg-gray-100'}`}>
-                        <IconComponent className={`h-4 w-4 ${action.is_active ? 'text-blue-600' : 'text-gray-400'}`} />
-                      </div>
-                      
-                      <div>
-                        <h4 className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium ${!action.is_active ? 'text-gray-500' : ''}`}>
-                          {action.title}
-                        </h4>
-                        <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500`}>
-                          순서: {action.display_order} | URL: {action.link_url}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => startEdit(action)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(action.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )
-              })}
-              
-              {quickActions.length === 0 && (
-                <div className="text-center py-8">
-                  <p className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
-                    등록된 빠른 작업이 없습니다.
-                  </p>
-                </div>
-              )}
             </div>
-          </div>
           </div>
         </div>
       </DialogContent>
