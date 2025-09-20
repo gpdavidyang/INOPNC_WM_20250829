@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server"
+import { redirect } from 'next/navigation'
 import { AdminAccountSettings } from './admin-account-settings'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,9 +9,9 @@ export default async function AdminAccountPage() {
   const supabase = createClient()
   
   // Get the current user
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  const auth = await getAuthForClient(supabase)
   
-  if (authError || !user) {
+  if (!auth) {
     redirect('/auth/login')
   }
   
@@ -17,7 +19,7 @@ export default async function AdminAccountPage() {
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', auth.userId)
     .single()
   
   if (profileError || !profile) {
@@ -36,7 +38,7 @@ export default async function AdminAccountPage() {
         <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">개인 정보 및 보안 설정을 관리합니다</p>
       </div>
       
-      <AdminAccountSettings profile={profile} user={user} />
+      <AdminAccountSettings profile={profile} />
     </div>
   )
 }

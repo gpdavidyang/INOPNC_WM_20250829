@@ -1,34 +1,34 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
+
     const { 
       equipmentId,
       equipmentName,
-      maintenanceType, // routine, urgent, inspection
+      maintenanceType,
       scheduledDate,
       description,
       assignedTo,
       priority = 'medium'
     } = await request.json()
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user has permission to schedule maintenance
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin', 'site_manager', 'equipment_manager'].includes(profile.role)) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         assigned_to: assignedTo,
         priority,
         status: 'scheduled',
-        created_by: user.id,
+        created_by: authResult.userId,
         organization_id: profile.organization_id
       })
       .select()
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
             related_entity_type: 'equipment_maintenance',
             related_entity_id: maintenance.id,
             action_url: `/dashboard/equipment/maintenance/${maintenance.id}`,
-            created_by: user.id
+            created_by: authResult.userId
           })
 
         // Send push notification
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
           related_entity_type: 'equipment_maintenance',
           related_entity_id: maintenance.id,
           action_url: `/dashboard/equipment/maintenance/${maintenance.id}`,
-          created_by: user.id
+          created_by: authResult.userId
         }))
 
         await supabase
@@ -150,17 +150,16 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { searchParams } = new URL(request.url)
     const equipmentId = searchParams.get('equipmentId')
     const status = searchParams.get('status') || 'scheduled'
     const upcoming = searchParams.get('upcoming') === 'true'
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Build query
     let query = supabase

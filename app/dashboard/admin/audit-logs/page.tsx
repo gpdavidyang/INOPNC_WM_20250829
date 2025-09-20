@@ -1,3 +1,4 @@
+import AuditLogSystem from '@/components/admin/AuditLogs'
 
 export default function AuditLogsPage() {
   return (

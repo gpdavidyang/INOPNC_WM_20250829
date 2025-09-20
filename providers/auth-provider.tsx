@@ -89,10 +89,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(initialSession.user)
 
           // Verify the session is still valid
-          const {
-            data: { user: verifiedUser },
-          } = await supabase.auth.getUser()
-          if (!verifiedUser) {
+            const {
+              data: { session: verifiedSession },
+              error: verifyError,
+            } = await supabase.auth.getSession()
+
+          if (verifyError) {
+            console.error('Failed to verify session:', verifyError)
+          }
+
+          if (!verifiedSession?.user) {
             // Session invalid, attempting refresh
             await refreshSession()
           }

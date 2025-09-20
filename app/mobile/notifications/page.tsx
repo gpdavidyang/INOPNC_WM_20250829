@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { Card, CardContent, Button, Stack, Row, Chip, Badge } from '@/modules/shared/ui'
@@ -141,12 +141,11 @@ const NotificationsContent: React.FC = () => {
   const importantCount = notifications.filter(n => n.important).length
 
   return (
-    <MobileLayout
-      title="알림"
-      userRole={profile?.role as 'worker' | 'site_manager'}
-      showNotification={false} // Hide notification icon on notifications page
-    >
-      <div className="p-4 space-y-4">
+    <MobileLayoutShell>
+      <div className="px-4 pb-6 space-y-4">
+        <header className="pt-6">
+          <h1 className="t-h2">알림</h1>
+        </header>
         {/* Tab Navigation */}
         <Card>
           <CardContent className="p-3">
@@ -336,6 +335,6 @@ const NotificationsContent: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-    </MobileLayout>
+    </MobileLayoutShell>
   )
 }

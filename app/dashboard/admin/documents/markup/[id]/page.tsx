@@ -1,13 +1,28 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-export default function MarkupDocumentDetailPage() {
+export const metadata: Metadata = {
+  title: '마크업 문서 상세 (준비 중)',
+}
+
+interface MarkupDocumentPageProps {
+  params: {
+    id: string
+  }
+}
+
+export default async function AdminMarkupDocumentDetailPage({ params }: MarkupDocumentPageProps) {
+  await requireAdminProfile()
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">도면마킹 상세</h1>
-        <p className="text-gray-600 mt-1">도면마킹 문서의 상세 정보와 편집 도구입니다.</p>
-      </div>
-      
-      <MarkupDocumentDetail />
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title={`마크업 문서 상세 – ${params.id}`}
+        description="문서 주석 보기/편집 기능은 준비 중입니다."
+      >
+        <p>파일 뷰어와 버전 기록 UI는 Phase 2에서 Supabase 스토리지와 연동 후 재작업 예정입니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

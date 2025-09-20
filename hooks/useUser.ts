@@ -33,12 +33,16 @@ export function useUser(): UseUserReturn {
         setLoading(true)
         setError(null)
 
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-        
-        if (authError) {
-          throw authError
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          throw sessionError
         }
 
+        const authUser = session?.user ?? null
         setUser(authUser)
 
         if (authUser) {

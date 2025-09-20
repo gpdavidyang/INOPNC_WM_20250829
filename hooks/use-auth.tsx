@@ -1,5 +1,10 @@
 'use client'
 
+import { createContext, useContext, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { ProfileManager, type UserProfile } from '@/lib/auth/profile-manager'
+import type { User } from '@supabase/supabase-js'
 
 interface AuthContextType {
   user: User | null
@@ -34,7 +39,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (!result.exists || !result.isComplete) {
         // Profile doesn't exist or is incomplete, try to create/update it
-        const { data: { user: authUser } } = await supabase.auth.getUser()
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('Error checking session:', sessionError)
+        }
+
+        const authUser = session?.user
         if (authUser) {
           const upsertResult = await profileManager.upsertProfile(authUser)
           if (upsertResult.success) {

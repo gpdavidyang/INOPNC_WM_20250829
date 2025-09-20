@@ -1,28 +1,25 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // 사용자 프로필 조회
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
@@ -37,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // 권한 확인: 관리자는 모든 사용자, 일반 사용자는 본인만
     if (profile.role !== 'admin' && profile.role !== 'system_admin') {
-      if (userId !== user.id) {
+      if (userId !== authResult.userId) {
         return NextResponse.json(
           { error: 'Forbidden: Can only view own salary' },
           { status: 403 }
@@ -47,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     // 급여 계산
     const result = await salaryCalculationService.calculateMonthlySalary(
-      userId || user.id,
+      userId || authResult.userId,
       year,
       month,
       siteId
@@ -68,16 +65,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const searchParams = request.nextUrl.searchParams
     const year = parseInt(searchParams.get('year') || new Date().getFullYear().toString())
@@ -86,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     // 본인 급여만 조회
     const result = await salaryCalculationService.calculateMonthlySalary(
-      user.id,
+      authResult.userId,
       year,
       month,
       siteId

@@ -1,5 +1,6 @@
 'use client'
 
+import { getCurrentSession } from '@/lib/supabase/session'
 
 interface SessionDiagnostics {
   timestamp: string
@@ -51,11 +52,10 @@ export function SessionDiagnosticsPanel() {
       
       // Check client-side session
       try {
-        const { data: { session }, error } = await supabase.auth.getSession()
+        const session = await getCurrentSession(supabase)
         result.client.hasSession = !!session
         result.client.userEmail = session?.user?.email
         result.client.userId = session?.user?.id
-        if (error) result.client.error = error.message
       } catch (err) {
         result.client.error = err instanceof Error ? err.message : 'Unknown error'
       }

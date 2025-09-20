@@ -1,15 +1,16 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from 'next/navigation'
 import TeamList from './team-list'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export default async function TeamPage() {
   const supabase = createClient()
   
-  const { data: { user } } = await supabase.auth.getUser()
+  const auth = await getAuthForClient(supabase)
   
-  if (!user) {
+  if (!auth) {
     redirect('/auth/login')
   }
 
@@ -17,7 +18,7 @@ export default async function TeamPage() {
   const { data: currentProfile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', auth.userId)
     .single()
 
   // Get all team members
@@ -26,10 +27,12 @@ export default async function TeamPage() {
     .select('*')
     .order('created_at', { ascending: false })
 
+  const currentUser = { id: auth.userId, email: auth.email }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <TeamList 
-        currentUser={user} 
+        currentUser={currentUser} 
         currentProfile={currentProfile} 
         teamMembers={teamMembers || []} 
       />

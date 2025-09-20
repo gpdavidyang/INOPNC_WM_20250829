@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -60,24 +61,24 @@ export async function POST(request: NextRequest) {
     console.log('[SYNC-SESSION API] Session set successfully:', data.user?.email)
     
     // Verify the session is accessible
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const simpleAuth = await getAuthForClient(supabase)
     
-    if (userError || !user) {
-      console.error('[SYNC-SESSION API] User verification failed:', userError)
+    if (!simpleAuth) {
+      console.error('[SYNC-SESSION API] User verification failed')
       return NextResponse.json(
         { success: false, error: 'Session verification failed' },
         { status: 500 }
       )
     }
     
-    console.log('[SYNC-SESSION API] Session verified for user:', user.email)
+    console.log('[SYNC-SESSION API] Session verified for user:', simpleAuth.email)
     
     // Return success with user info
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email
+        id: simpleAuth.userId,
+        email: simpleAuth.email
       }
     })
   } catch (error) {
@@ -101,17 +102,15 @@ export async function GET() {
     
     // Check current session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    
-    // Check current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const simpleAuth = await getAuthForClient(supabase)
     
     return NextResponse.json({
       success: true,
       hasSession: !!session,
-      hasUser: !!user,
-      userEmail: user?.email,
+      hasUser: !!simpleAuth,
+      userEmail: simpleAuth?.email,
       sessionError: sessionError?.message,
-      userError: userError?.message
+      userError: null
     })
   } catch (error) {
     return NextResponse.json({

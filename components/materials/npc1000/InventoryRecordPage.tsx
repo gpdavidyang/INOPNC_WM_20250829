@@ -1,5 +1,6 @@
 'use client'
 
+import { getSessionUser } from '@/lib/supabase/session'
 
 export default function InventoryRecordPage() {
   const router = useRouter()
@@ -42,7 +43,7 @@ export default function InventoryRecordPage() {
         const supabase = createClient()
         
         // Get user info to check role
-        const { data: { user } } = await supabase.auth.getUser()
+        const user = await getSessionUser(supabase)
         if (!user) return
         
         // Get user profile
@@ -183,8 +184,8 @@ export default function InventoryRecordPage() {
     try {
       const supabase = createClient()
       
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
+      // Get current user session
+      const user = await getSessionUser(supabase)
       if (!user) throw new Error('로그인이 필요합니다.')
 
       // Get NPC-1000 material ID from database

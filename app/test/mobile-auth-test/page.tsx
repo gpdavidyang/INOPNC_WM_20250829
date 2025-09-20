@@ -16,28 +16,32 @@ export default function MobileAuthTestPage() {
         console.log('🔍 Testing authentication...')
         
         // Test 1: Get current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser()
-        console.log('User result:', { user: !!user, error: userError?.message })
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+        const currentUser = session?.user ?? null
+        console.log('Session result:', { user: !!currentUser, error: sessionError?.message })
         
-        if (userError) {
-          setError(`Auth Error: ${userError.message}`)
+        if (sessionError) {
+          setError(`Auth Error: ${sessionError.message}`)
           setLoading(false)
           return
         }
-        
-        if (!user) {
+
+        if (!currentUser) {
           setError('No authenticated user found')
           setLoading(false)
           return
         }
-        
-        setUser(user)
-        
+
+        setUser(currentUser)
+
         // Test 2: Get profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('*')
-          .eq('id', user.id)
+          .eq('id', currentUser.id)
           .single()
         
         console.log('Profile result:', { profile: !!profile, error: profileError?.message })

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
 
 import type { AsyncState, ApiResponse } from '@/types/utils'
@@ -77,9 +78,8 @@ export async function createEquipmentCheckout(checkoutData: {
 }) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error('Unauthorized')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('Unauthorized')
 
     // Check if equipment is available
     const { data: equipment, error: equipmentError } = await (supabase
@@ -100,9 +100,9 @@ export async function createEquipmentCheckout(checkoutData: {
 
     const { data, error } = await (supabase
       .from('equipment_checkouts')
-      .insert({
-        ...checkoutData,
-        checked_out_by: user.id,
+        .insert({
+          ...checkoutData,
+        checked_out_by: auth.userId,
         checked_out_at: new Date().toISOString()
       } as unknown)
       .select()
@@ -127,15 +127,14 @@ export async function returnEquipment(
 ) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error('Unauthorized')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('Unauthorized')
 
     const { data, error } = await (supabase
       .from('equipment_checkouts')
       .update({
         actual_return_date: new Date().toISOString().split('T')[0],
-        checked_in_by: user.id,
+        checked_in_by: auth.userId,
         checked_in_at: new Date().toISOString(),
         condition_in: returnData.condition_in,
         damage_notes: returnData.damage_notes
@@ -213,13 +212,17 @@ export async function createEquipmentMaintenance(maintenanceData: {
 }) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error('Unauthorized')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('Unauthorized')
+
+    const maintenanceInsert = {
+      ...maintenanceData,
+      created_by: auth.userId,
+    }
 
     const { data, error } = await (supabase
       .from('equipment_maintenance')
-      .insert(maintenanceData as unknown)
+      .insert(maintenanceInsert as unknown)
       .select()
       .single() as unknown)
 
@@ -396,14 +399,13 @@ export async function createResourceAllocation(allocationData: {
 }) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error('Unauthorized')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('Unauthorized')
 
     // Calculate hours and costs
     let calculatedData: unknown = {
       ...allocationData,
-      created_by: user.id
+      created_by: auth.userId
     }
 
     if (allocationData.hours_worked && allocationData.hourly_rate) {

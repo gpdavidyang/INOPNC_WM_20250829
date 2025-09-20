@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
 
 import type { AsyncState, ApiResponse } from '@/types/utils'
@@ -182,9 +183,8 @@ export async function updateMaterialStock(
 ) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error('Unauthorized')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('Unauthorized')
 
     // Get current stock
     const { data: currentInventory } = await (supabase
@@ -207,7 +207,7 @@ export async function updateMaterialStock(
         quantity: Math.abs(difference),
         notes: notes || `Stock adjustment: ${currentStock} → ${newStock}`,
         transaction_date: new Date().toISOString().split('T')[0],
-        created_by: user.id
+        created_by: auth.userId
       } as unknown) as unknown)
 
     if (transactionError) throw transactionError
@@ -236,9 +236,8 @@ export async function createMaterialTransaction(transactionData: {
 }) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error('Unauthorized')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('Unauthorized')
 
     // For transfers, set up the sites correctly
     if (transactionData.transaction_type === 'transfer') {
@@ -251,7 +250,7 @@ export async function createMaterialTransaction(transactionData: {
       .insert({
         ...transactionData,
         transaction_date: new Date().toISOString().split('T')[0],
-        created_by: user.id,
+        created_by: auth.userId,
         total_price: transactionData.unit_price ? transactionData.unit_price * transactionData.quantity : undefined
       } as unknown)
       .select()
@@ -332,9 +331,8 @@ export async function createMaterialRequest(requestData: {
 }) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error('Unauthorized')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('Unauthorized')
 
     // Generate request number
     const timestamp = Date.now().toString().slice(-6)
@@ -346,7 +344,7 @@ export async function createMaterialRequest(requestData: {
       .insert({
         request_number,
         site_id: requestData.site_id,
-        requested_by: user.id,
+        requested_by: auth.userId,
         priority: requestData.priority || 'normal',
         needed_by: requestData.needed_by,
         notes: requestData.notes
@@ -433,9 +431,8 @@ export async function updateMaterialRequestStatus(
 ) {
   try {
     const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    
-    if (!user) throw new Error('Unauthorized')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('Unauthorized')
 
     const updates: unknown = {
       status,
@@ -443,7 +440,7 @@ export async function updateMaterialRequestStatus(
     }
 
     if (status === 'approved' || status === 'rejected') {
-      updates.approved_by = user.id
+      updates.approved_by = auth.userId
       updates.approved_at = new Date().toISOString()
     } else if (status === 'fulfilled') {
       updates.fulfilled_at = new Date().toISOString()

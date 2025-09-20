@@ -1,5 +1,6 @@
 'use server'
 
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import { withAdminAuth } from './common'
 
 interface DailyReportsFilter {
@@ -280,10 +281,8 @@ export async function getDailyReportById(id: string) {
 
 export async function createDailyReport(reportData: any) {
   return withAdminAuth(async supabase => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (!user) throw new Error('User not authenticated')
+    const auth = await getAuthForClient(supabase)
+    if (!auth) throw new Error('User not authenticated')
 
     const { worker_ids, ...reportFields } = reportData
 
@@ -292,7 +291,7 @@ export async function createDailyReport(reportData: any) {
       .from('daily_reports')
       .insert({
         ...reportFields,
-        created_by: user.id,
+        created_by: auth.userId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

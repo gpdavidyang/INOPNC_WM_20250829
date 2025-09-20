@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
 
 import type { AsyncState, ApiResponse } from '@/types/utils'
@@ -417,8 +418,8 @@ export async function restoreBackup(
     const supabase = createClient()
     
     // Get the current user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       throw new AppError('인증이 필요합니다.')
     }
     
@@ -432,7 +433,7 @@ export async function restoreBackup(
         overwrite_existing: request.overwrite_existing ?? false,
         restore_point: request.restore_point,
         status: 'pending',
-        created_by: user.id
+        created_by: auth.userId
       } as unknown)
       .select('id')
       .single() as unknown)

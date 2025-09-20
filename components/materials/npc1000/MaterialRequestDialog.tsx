@@ -1,5 +1,6 @@
 'use client'
 
+import { getSessionUser } from '@/lib/supabase/session'
 
 
 interface Props {
@@ -71,9 +72,8 @@ export default function MaterialRequestDialog({
     try {
       const supabase = createClient()
       
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('로그인이 필요합니다.')
+      // Get current user session
+      if (!(await getSessionUser(supabase))) throw new Error('로그인이 필요합니다.')
 
       // Get NPC-1000 material ID from database
       const { data: npcMaterial } = await supabase

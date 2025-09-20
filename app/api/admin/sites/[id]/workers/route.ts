@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,49 +9,26 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication and admin role with timeout
-    let user = null
-    let authError = null
-    
-    try {
-      // Add timeout for auth check to prevent hanging
-      const authPromise = supabase.auth.getUser()
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Auth timeout')), 10000) // 10 second timeout
-      })
-      
-      const authResult = await Promise.race([authPromise, timeoutPromise]) as unknown
-      user = authResult.data?.user
-      authError = authResult.error
-    } catch (error) {
-      console.error('Auth check failed or timed out:', error)
-      authError = error
-    }
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Verify user role - allow admin, site_manager, and worker
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const { role, userId } = authResult
 
-    if (!profile || !['admin', 'site_manager', 'worker'].includes(profile.role)) {
+    if (!role || !['admin', 'site_manager', 'worker'].includes(role)) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
+    const supabase = createClient()
+
     // For non-admin users, verify they have access to this site
-    if (profile.role !== 'admin') {
+    if (role !== 'admin') {
       // Get user's profile to check site_id
       const { data: userProfile, error: profileFetchError } = await supabase
         .from('profiles')
         .select('site_id')
-        .eq('id', user.id)
+        .eq('id', userId)
         .single()
 
       // Check access through site_assignments OR direct site assignment
@@ -59,16 +36,19 @@ export async function GET(
         .from('site_assignments')
         .select('id')
         .eq('site_id', params.id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('is_active', true)
         .single()
 
       // Site manager can access if they are assigned via site_assignments OR if their profile.site_id matches
-      const hasDirectSiteAccess = userProfile?.site_id === params.id && profile.role === 'site_manager'
+      const hasDirectSiteAccess = userProfile?.site_id === params.id && role === 'site_manager'
       const hasSiteAssignment = !!siteAccess
 
       if (!hasDirectSiteAccess && !hasSiteAssignment) {
-        console.log(`Access denied for user ${user.id}: site_id=${userProfile?.site_id}, target=${params.id}, role=${profile.role}, assignment=${!!siteAccess}`)
+        if (profileFetchError) {
+          console.error('Profile fetch error:', profileFetchError)
+        }
+        console.log(`Access denied for user ${userId}: site_id=${userProfile?.site_id}, target=${params.id}, role=${role}, assignment=${!!siteAccess}`)
         return NextResponse.json({ error: 'Site access denied' }, { status: 403 })
       }
     }

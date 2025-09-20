@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server"
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = "force-dynamic"
 
@@ -10,8 +11,8 @@ export default async function AdminNewDailyReportPage() {
   const supabase = createClient()
   
   // Check authentication and admin role
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
+  const auth = await getAuthForClient(supabase)
+  if (!auth) {
     redirect('/auth/login')
   }
 
@@ -19,10 +20,10 @@ export default async function AdminNewDailyReportPage() {
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', auth.userId)
     .single()
 
-  if (!profile || profile.role !== 'admin') {
+  if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
     redirect('/dashboard')
   }
 

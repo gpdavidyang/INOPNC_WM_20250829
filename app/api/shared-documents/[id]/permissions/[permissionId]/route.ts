@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -11,12 +12,12 @@ export async function PUT(
   { params }: { params: { id: string; permissionId: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const {
@@ -38,10 +39,10 @@ export async function PUT(
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
-    if (!permission || (permission.created_by !== user.id && profile?.role !== 'admin')) {
+    if (!permission || (permission.created_by !== authResult.userId && profile?.role !== 'admin')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
@@ -81,12 +82,12 @@ export async function DELETE(
   { params }: { params: { id: string; permissionId: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Check if user can delete this permission (admin or creator)
     const { data: permission } = await supabase
@@ -98,10 +99,10 @@ export async function DELETE(
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
-    if (!permission || (permission.created_by !== user.id && profile?.role !== 'admin')) {
+    if (!permission || (permission.created_by !== authResult.userId && profile?.role !== 'admin')) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 

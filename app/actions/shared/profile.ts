@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 ;('use server')
 
 import type { Profile } from '@/types'
@@ -6,35 +7,35 @@ import type { Profile } from '@/types'
 export async function getProfile() {
   try {
     const supabase = createClient()
-    const user = await getAuthenticatedUser()
+    const auth = await getAuthForClient(supabase)
 
-    if (!user) {
+    if (!auth) {
       return { success: false, error: 'Unauthorized' }
     }
 
-    const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', auth.userId).single()
 
     if (error) throw error
 
     return { success: true, data: data as Profile }
   } catch (error: unknown) {
-    return { success: false, error: error.message }
+    return { success: false, error: (error as Error).message }
   }
 }
 
 export async function updateProfile(updates: Partial<Profile>) {
   try {
     const supabase = createClient()
-    const user = await getAuthenticatedUser()
+    const auth = await getAuthForClient(supabase)
 
-    if (!user) {
+    if (!auth) {
       return { success: false, error: 'Unauthorized' }
     }
 
     const { data, error } = await supabase
       .from('profiles')
       .update(updates)
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .select()
       .single()
 
@@ -42,7 +43,7 @@ export async function updateProfile(updates: Partial<Profile>) {
 
     return { success: true, data: data as Profile }
   } catch (error: unknown) {
-    return { success: false, error: error.message }
+    return { success: false, error: (error as Error).message }
   }
 }
 

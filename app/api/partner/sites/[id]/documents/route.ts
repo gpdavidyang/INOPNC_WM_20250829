@@ -1,31 +1,30 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
-    const supabase = createClient()
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Get user profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
+
+    const role = profile.role || authResult.role || ''
 
     const siteId = params.id
     const { searchParams } = new URL(request.url)
@@ -40,7 +39,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .eq('is_active', true)
       .single()
 
-    if (!sitePartner && !['admin', 'system_admin'].includes(profile.role || '')) {
+    if (!sitePartner && !['admin', 'system_admin'].includes(role)) {
       return NextResponse.json({ error: 'Access denied to this site' }, { status: 403 })
     }
 

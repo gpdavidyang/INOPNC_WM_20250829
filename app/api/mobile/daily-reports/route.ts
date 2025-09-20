@@ -1,30 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Check if user is site_manager or admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
-    if (!profile || !['site_manager', 'admin', 'system_admin'].includes(profile.role)) {
+    const role = profile?.role || authResult.role || ''
+
+    if (!profile || !['site_manager', 'admin', 'system_admin'].includes(role)) {
       return NextResponse.json({ error: 'Site manager or admin access required' }, { status: 403 })
     }
 
@@ -70,12 +69,12 @@ export async function GET(request: NextRequest) {
     }
 
     // For site managers, only show reports from their assigned sites
-    if (profile.role === 'site_manager') {
+    if (role === 'site_manager') {
       // Get sites assigned to this site manager
       const { data: assignedSites } = await supabase
         .from('site_managers')
         .select('site_id')
-        .eq('user_id', user.id)
+        .eq('user_id', authResult.userId)
 
       if (assignedSites && assignedSites.length > 0) {
         const siteIds = assignedSites.map(s => s.site_id)
@@ -131,25 +130,23 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-
-    // Check authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Check if user is site_manager or admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
-    if (!profile || !['site_manager', 'admin', 'system_admin'].includes(profile.role)) {
+    const role = profile?.role || authResult.role || ''
+
+    if (!profile || !['site_manager', 'admin', 'system_admin'].includes(role)) {
       return NextResponse.json({ error: 'Site manager or admin access required' }, { status: 403 })
     }
 
@@ -183,11 +180,11 @@ export async function POST(request: NextRequest) {
     }
 
     // For site managers, verify they can create reports for this site
-    if (profile.role === 'site_manager') {
+    if (role === 'site_manager') {
       const { data: siteAssignment } = await supabase
         .from('site_managers')
         .select('id')
-        .eq('user_id', user.id)
+        .eq('user_id', authResult.userId)
         .eq('site_id', site_id)
         .single()
 
@@ -229,7 +226,7 @@ export async function POST(request: NextRequest) {
         safety_notes,
         special_notes,
         status,
-        created_by: user.id,
+        created_by: authResult.userId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })

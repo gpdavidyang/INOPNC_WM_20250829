@@ -1,29 +1,23 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 // GET: List all partner-site mappings
 export async function GET(request: NextRequest) {
-  const supabase = createClient()
-
   try {
-    // Check admin authorization
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
     }
+
+    const supabase = createClient()
 
     // Get partner-site mappings with related data
     const { data: mappings, error } = await supabase
@@ -100,24 +94,17 @@ export async function GET(request: NextRequest) {
 
 // POST: Create new partner-site mapping
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
-
   try {
-    // Check admin authorization
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { partner_company_id, site_id, start_date, end_date, notes } = body
@@ -156,7 +143,7 @@ export async function POST(request: NextRequest) {
         end_date: end_date || null,
         notes: notes || null,
         is_active: true,
-        created_by: user.id
+        created_by: authResult.userId
       })
       .select()
       .single()

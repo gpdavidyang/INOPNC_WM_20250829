@@ -1,19 +1,19 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = await createClient()
     
     // Check if request has a body
     const contentLength = request.headers.get('content-length')
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const { error: upsertError } = await supabase
       .from('push_subscriptions')
       .upsert({
-        user_id: user.id,
+        user_id: authResult.userId,
         endpoint: subscription.endpoint,
         p256dh: subscription.keys?.p256dh,
         auth: subscription.keys?.auth,
@@ -56,13 +56,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = await createClient()
     
     const { searchParams } = new URL(request.url)
     const endpoint = searchParams.get('endpoint')
@@ -75,7 +74,7 @@ export async function DELETE(request: NextRequest) {
     const { error: deleteError } = await supabase
       .from('push_subscriptions')
       .delete()
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
       .eq('endpoint', endpoint)
     
     if (deleteError) {

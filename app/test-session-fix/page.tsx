@@ -99,12 +99,10 @@ export default function TestSessionFixPage() {
         addLog('Client session invalid after sync!', 'error')
       }
       
-      // Step 9: Verify user with fresh client
-      addLog('Verifying user with fresh client...')
-      const { data: { user: clientUser } } = await supabase.auth.getUser()
-      
-      if (clientUser) {
-        addLog(`Client user verified: ${clientUser.email}`, 'success')
+      // Step 9: Verify user was populated in the session
+      addLog('Verifying user from refreshed session...')
+      if (clientSession?.user) {
+        addLog(`Client user verified: ${clientSession.user.email}`, 'success')
       } else {
         addLog('Client user verification failed!', 'error')
       }

@@ -66,12 +66,9 @@ describe('TabSystem Keyboard Navigation', () => {
     test('should prevent default behavior on arrow key press', () => {
       render(<TestTabSystem />)
       const tabList = screen.getByRole('tablist')
-      const event = new KeyboardEvent('keydown', { key: 'ArrowRight' })
-      const preventDefaultSpy = jest.spyOn(event, 'preventDefault')
-      
-      fireEvent.keyDown(tabList, event)
-      
-      expect(preventDefaultSpy).toHaveBeenCalled()
+      const result = fireEvent.keyDown(tabList, { key: 'ArrowRight' })
+
+      expect(result).toBe(false)
     })
   })
 
@@ -98,34 +95,30 @@ describe('TabSystem Keyboard Navigation', () => {
     test('should stay on first tab when already on first tab and Home is pressed', () => {
       render(<TestTabSystem activeTab="tab1" />)
       const tabList = screen.getByRole('tablist')
-      
+
       fireEvent.keyDown(tabList, { key: 'Home' })
-      
-      expect(mockOnTabChange).toHaveBeenCalledWith('tab1')
+
+      expect(mockOnTabChange).not.toHaveBeenCalled()
     })
 
     test('should stay on last tab when already on last tab and End is pressed', () => {
       render(<TestTabSystem activeTab="tab3" />)
       const tabList = screen.getByRole('tablist')
-      
+
       fireEvent.keyDown(tabList, { key: 'End' })
-      
-      expect(mockOnTabChange).toHaveBeenCalledWith('tab3')
+
+      expect(mockOnTabChange).not.toHaveBeenCalled()
     })
 
     test('should prevent default behavior on Home/End key press', () => {
       render(<TestTabSystem />)
       const tabList = screen.getByRole('tablist')
       
-      const homeEvent = new KeyboardEvent('keydown', { key: 'Home' })
-      const homePreventDefaultSpy = jest.spyOn(homeEvent, 'preventDefault')
-      fireEvent.keyDown(tabList, homeEvent)
-      expect(homePreventDefaultSpy).toHaveBeenCalled()
-      
-      const endEvent = new KeyboardEvent('keydown', { key: 'End' })
-      const endPreventDefaultSpy = jest.spyOn(endEvent, 'preventDefault')
-      fireEvent.keyDown(tabList, endEvent)
-      expect(endPreventDefaultSpy).toHaveBeenCalled()
+      const homeResult = fireEvent.keyDown(tabList, { key: 'Home' })
+      expect(homeResult).toBe(false)
+
+      const endResult = fireEvent.keyDown(tabList, { key: 'End' })
+      expect(endResult).toBe(false)
     })
   })
 
@@ -356,9 +349,7 @@ describe('TabSystem Keyboard Navigation', () => {
       fireEvent.keyDown(tabList, { key: 'Home' })
       fireEvent.keyDown(tabList, { key: 'End' })
       
-      // Should be called 4 times, all with the same tab
-      expect(mockOnTabChange).toHaveBeenCalledTimes(4)
-      expect(mockOnTabChange).toHaveBeenCalledWith('only-tab')
+      expect(mockOnTabChange).not.toHaveBeenCalled()
     })
   })
 })

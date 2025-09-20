@@ -1,3 +1,5 @@
+import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import type { PhotoGridReport, PhotoGridPDFOptions, PhotoGridReportStats, Document } from '@/types'
 
 const supabase = createClient()
@@ -79,8 +81,8 @@ export async function createPhotoGridReport(
     // 4. 통합 문서 시스템에도 저장
     try {
       // 현재 사용자 정보 조회
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      const auth = await getAuthForClient(supabase)
+      if (auth) {
         // 작업일지에서 site_id 조회
         const { data: dailyReport } = await supabase
           .from('daily_reports')
@@ -102,7 +104,7 @@ export async function createPhotoGridReport(
             mime_type: 'application/pdf',
             category_type: 'photo_grid',
             site_id: siteId,
-            uploaded_by: user.id,
+            uploaded_by: auth.userId,
             status: 'uploaded',
             is_public: false,
             metadata: {
@@ -246,12 +248,13 @@ export async function getPhotoGridReport(id: string): Promise<PhotoGridReport | 
 // PDF 다운로드 추적
 export async function trackPhotoGridReportDownload(id: string): Promise<boolean> {
   try {
+    const auth = await getAuthForClient(supabase)
     const { error } = await supabase
       .from('photo_grid_reports')
       .update({
         download_count: supabase.raw('download_count + 1'),
         last_downloaded_at: new Date().toISOString(),
-        last_downloaded_by: (await supabase.auth.getUser()).data.user?.id
+        last_downloaded_by: auth?.userId ?? null
       })
       .eq('id', id)
     

@@ -1,32 +1,25 @@
 'use client'
 
-import { User, Session } from '@supabase/supabase-js'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { QueryProvider } from '@/providers/query-provider'
-import { CompositeAuthProvider } from '@/providers/composite-auth-provider'
+import { FontSizeProvider } from '@/contexts/FontSizeContext'
+import { TouchModeProvider } from '@/contexts/TouchModeContext'
+import { ContrastModeProvider } from '@/contexts/ContrastModeContext'
 
 interface ProvidersProps {
   children: React.ReactNode
-  initialUser?: User | null
-  initialSession?: Session | null
-  initialProfile?: any | null
 }
 
-export function Providers({
-  children,
-  initialUser,
-  initialSession,
-  initialProfile,
-}: ProvidersProps) {
+export function Providers({ children }: ProvidersProps) {
   return (
     <ErrorBoundary>
-      <CompositeAuthProvider
-        initialUser={initialUser}
-        initialSession={initialSession}
-        initialProfile={initialProfile}
-      >
-        <QueryProvider>{children}</QueryProvider>
-      </CompositeAuthProvider>
+      <ContrastModeProvider>
+        <FontSizeProvider>
+          <TouchModeProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </TouchModeProvider>
+        </FontSizeProvider>
+      </ContrastModeProvider>
     </ErrorBoundary>
   )
 }

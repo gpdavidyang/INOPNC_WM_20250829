@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -47,24 +48,16 @@ interface DailyReport {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication first
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Check user permissions
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile || !['site_manager', 'admin', 'system_admin'].includes(profile.role)) {
+    if (!['site_manager', 'admin', 'system_admin'].includes(authResult.role ?? '')) {
       return NextResponse.json({ error: '내보내기 권한이 없습니다.' }, { status: 403 })
     }
+
+    const supabase = createClient()
 
     const { searchParams } = new URL(request.url)
     
@@ -232,7 +225,7 @@ export async function GET(request: NextRequest) {
       await (supabase
         .from('activity_logs')
         .insert({
-          user_id: user.id,
+          user_id: authResult.userId,
           action: 'export_data',
           entity_type: 'daily_reports',
           entity_id: 'excel_export',

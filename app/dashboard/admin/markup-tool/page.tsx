@@ -1,65 +1,22 @@
-'use client'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import AdminMarkupTool from '@/components/admin/tools/AdminMarkupTool'
-import type { Profile } from '@/types'
+export const metadata: Metadata = {
+  title: '도면 마크업 도구 (준비 중)',
+}
 
-export default function AdminMarkupToolPage() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const supabase = createClient()
+export default async function AdminMarkupToolPage() {
+  await requireAdminProfile()
 
-  const loadProfile = useCallback(async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error) throw error
-
-      if (profileData.role !== 'admin') {
-        router.push('/dashboard')
-        return
-      }
-
-      setProfile(profileData)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-      router.push('/login')
-    } finally {
-      setLoading(false)
-    }
-  }, [router, supabase])
-
-  useEffect(() => {
-    loadProfile()
-  }, [loadProfile])
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    )
-  }
-
-  if (!profile) {
-    return null
-  }
-
-  return <AdminMarkupTool profile={profile} />
+  return (
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="도면 마크업 도구"
+        description="실시간 마크업 도구는 경량화 작업 이후 복원될 예정입니다."
+      >
+        <p>모듈 리팩토링이 완료되면 저장 및 공유 기능과 함께 다시 제공할 계획입니다.</p>
+      </AdminPlaceholder>
+    </div>
+  )
 }

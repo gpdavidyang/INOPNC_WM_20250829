@@ -1,3 +1,4 @@
+import { test as base, expect } from '@playwright/test'
 
 // Define custom fixtures for authentication
 export type AuthFixtures = {
@@ -62,4 +63,4 @@ export const test = base.extend<AuthFixtures>({
   },
 })
 
-export { expect } from '@playwright/test'
+export { expect }

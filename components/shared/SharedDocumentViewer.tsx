@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/client'
+import { getSessionUser, getSessionUserId } from '@/lib/supabase/session'
 import type { SharedDocument } from '@/types/shared-documents'
 import { FILE_TYPE_ICONS, formatFileSize } from '@/types/shared-documents'
 
@@ -68,15 +69,13 @@ export default function SharedDocumentViewer({
           setHasPermission(true)
         } else {
           // Check if user is authenticated and has permission
-          const {
-            data: { user },
-          } = await supabase.auth.getUser()
+          const currentUser = await getSessionUser(supabase)
 
-          if (user) {
+          if (currentUser) {
             // Check document permissions
             const hasAccess = await supabase.rpc('check_document_permission', {
               p_document_id: document.id,
-              p_user_id: user.id,
+              p_user_id: currentUser.id,
               p_permission_type: 'view',
             })
 
@@ -105,13 +104,11 @@ export default function SharedDocumentViewer({
 
   const logDocumentView = useCallback(async () => {
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const sessionUserId = await getSessionUserId(supabase)
 
       await supabase.from('document_access_logs').insert({
         document_id: document.id,
-        user_id: user?.id || null,
+        user_id: sessionUserId,
         action: 'view',
         ip_address: null,
         user_agent: navigator.userAgent,
@@ -130,13 +127,11 @@ export default function SharedDocumentViewer({
 
     setLoading(true)
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const sessionUserId = await getSessionUserId(supabase)
 
       await supabase.from('document_access_logs').insert({
         document_id: document.id,
-        user_id: user?.id || null,
+        user_id: sessionUserId,
         action: 'download',
         details: { token_used: !!token },
       })
@@ -152,7 +147,7 @@ export default function SharedDocumentViewer({
     } finally {
       setLoading(false)
     }
-  }, [document.file_name, document.file_url, document.id, hasPermission, supabase, token])
+  }, [document.file_name, document.file_url, document.id, getSessionUserId, hasPermission, supabase, token])
 
   const renderFileIcon = () => (
     <div className="h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center text-3xl">

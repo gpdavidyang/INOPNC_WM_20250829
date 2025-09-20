@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 ;('use server')
 
 export async function getSites() {
@@ -8,16 +9,13 @@ export async function getSites() {
     const supabase = createClient()
 
     // Step 1: Check authentication
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      console.error('❌ Authentication failed in getSites:', userError)
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
+      console.error('❌ Authentication failed in getSites: No auth context')
       return { success: false, error: 'User not authenticated' }
     }
 
-    // console.log('✅ User authenticated:', user.id)
+    // console.log('✅ User authenticated:', auth.userId)
 
     // Step 2: Try to get sites with detailed logging
     // console.log('📍 Querying sites table...')

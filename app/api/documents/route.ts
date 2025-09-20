@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 // 정적 생성 오류 해결을 위한 dynamic 설정
 export const dynamic = 'force-dynamic'
@@ -11,6 +12,11 @@ export const runtime = 'nodejs' // Use Node.js runtime for better Buffer support
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
 
@@ -23,14 +29,6 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
 
     // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     let query = supabase.from('documents').select(`
         *,
         owner:owner_id (
@@ -49,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     // 문서 타입별 필터링
     if (documentType === 'personal') {
-      query = query.eq('owner_id', user.id).eq('is_public', false)
+      query = query.eq('owner_id', authResult.userId).eq('is_public', false)
     } else if (documentType === 'shared') {
       query = query.eq('is_public', true)
     }
@@ -78,7 +76,7 @@ export async function GET(request: NextRequest) {
     let countQuery = supabase.from('documents').select('*', { count: 'exact', head: true })
 
     if (documentType === 'personal') {
-      countQuery = countQuery.eq('owner_id', user.id).eq('is_public', false)
+      countQuery = countQuery.eq('owner_id', authResult.userId).eq('is_public', false)
     } else if (documentType === 'shared') {
       countQuery = countQuery.eq('is_public', true)
     }
@@ -153,37 +151,20 @@ export async function POST(request: NextRequest) {
   console.log('📤 Request headers:', Object.fromEntries(request.headers.entries()))
 
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = await createClient()
-
-    // 현재 사용자 확인 - Add retry for auth check
-    let user = null
-    let authError = null
-
-    for (let i = 0; i < 2; i++) {
-      const authResult = await supabase.auth.getUser()
-      user = authResult.data.user
-      authError = authResult.error
-
-      if (user) break
-
-      // If first attempt fails, wait briefly and retry
-      if (i === 0) {
-        console.log('⚠️ First auth attempt failed, retrying...')
-        await new Promise(resolve => setTimeout(resolve, 100))
-      }
-    }
-
-    if (authError || !user) {
-      console.error('❌ Authentication failed after retries:', authError)
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    console.log('✅ User authenticated:', user.id)
+    const userId = authResult.userId
+    console.log('✅ User authenticated:', userId)
 
     // Get user's site information
     const { data: profile } = await supabase
       .from('profiles')
       .select('site_id')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single()
 
     console.log('📍 User profile site_id:', profile?.site_id)
@@ -243,11 +224,11 @@ export async function POST(request: NextRequest) {
 
     // 안전한 파일명 생성 (한글 포함)
     let fileName = generateSafeFileName(file.name)
-    let filePath = `documents/${user.id}/${fileName}`
+    let filePath = `documents/${userId}/${fileName}`
     console.log('📁 Original filename:', file.name)
     console.log('📁 Safe filename:', fileName)
     console.log('📁 Uploading to path:', filePath)
-    console.log('📁 User ID for path:', user.id)
+    console.log('📁 User ID for path:', userId)
     console.log('📁 Buffer type:', buffer.constructor.name)
     console.log('📁 Buffer size:', buffer.byteLength || buffer.length)
 
@@ -273,7 +254,7 @@ export async function POST(request: NextRequest) {
       if (uploadError.message?.includes('already exists')) {
         // Try with a different filename (regenerate with new timestamp)
         const uniqueFileName = generateSafeFileName(file.name)
-        const uniqueFilePath = `documents/${user.id}/${uniqueFileName}`
+        const uniqueFilePath = `documents/${userId}/${uniqueFileName}`
 
         console.log('🔄 Retrying with unique filename:', uniqueFileName)
         console.log('🔄 Retry path:', uniqueFilePath)
@@ -327,7 +308,7 @@ export async function POST(request: NextRequest) {
           mime_type: file.type,
           document_type: documentType || 'other',
           folder_path: filePath,
-          owner_id: user.id,
+          owner_id: userId,
           site_id: profile?.site_id || null,
           is_public: formData.get('isPublic') === 'true' || false,
           description: (formData.get('description') as string) || `업로드된 파일: ${file.name}`,
@@ -352,7 +333,7 @@ export async function POST(request: NextRequest) {
         mime_type: file.type,
         document_type: documentType || 'other',
         folder_path: filePath,
-        owner_id: user.id,
+        owner_id: userId,
         site_id: profile?.site_id || null,
         is_public: formData.get('isPublic') === 'true' || false,
         description: (formData.get('description') as string) || `업로드된 파일: ${file.name}`,
@@ -392,7 +373,7 @@ export async function POST(request: NextRequest) {
             category_type: 'required_user_docs',
             sub_category: requirement.document_type,
             tags: [requirement.document_type],
-            uploaded_by: user.id,
+            uploaded_by: userId,
             site_id: profile?.site_id || null,
             status: 'uploaded',
           },
@@ -451,21 +432,17 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = await createClient()
     const { searchParams } = new URL(request.url)
     const documentId = searchParams.get('id')
 
     if (!documentId) {
       return NextResponse.json({ error: 'Document id is required' }, { status: 400 })
-    }
-
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { data: document, error: fetchError } = await supabase
@@ -478,7 +455,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    if (document.owner_id !== user.id) {
+    if (document.owner_id !== authResult.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

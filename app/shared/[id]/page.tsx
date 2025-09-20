@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 
 import SharedDocumentViewer from '@/components/shared/SharedDocumentViewer'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import type { SharedDocument } from '@/types/shared-documents'
 
 interface SharedDocumentPageProps {
@@ -42,22 +43,23 @@ async function verifyToken(
   return { valid: true as const, allowDownload: tokenRow.allow_download }
 }
 
-async function hasUserAccess(documentId: string, supabase: ReturnType<typeof createClient>) {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+async function hasUserAccess(
+  documentId: string,
+  supabase: ReturnType<typeof createClient>
+) {
+  const auth = await getAuthForClient(supabase)
 
-  if (!user) return { granted: false as const, userId: null }
+  if (!auth) return { granted: false as const, userId: null }
 
   const { data: permissionResult } = await supabase.rpc('check_document_permission', {
     p_document_id: documentId,
-    p_user_id: user.id,
+    p_user_id: auth.userId,
     p_permission_type: 'view',
   } as unknown)
 
   return {
     granted: Boolean(permissionResult),
-    userId: user.id,
+    userId: auth.userId,
   }
 }
 

@@ -1,10 +1,15 @@
+import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient, type SimpleAuth } from '@/lib/auth/ultra-simple'
+import { createErrorResponse } from '@/lib/utils/api-response'
+import { ErrorCodes } from '@/lib/errors'
+import type { ApiResponse } from '@/types/utils'
+
 /**
  * Authentication and authorization utilities
  */
 
-
 export interface AuthResult {
-  user: unknown
+  user: SimpleAuth
   profile: unknown
 }
 
@@ -13,19 +18,17 @@ export interface AuthResult {
  */
 export async function requireAdminAuth(): Promise<ApiResponse<AuthResult> | AuthResult> {
   try {
-    const supabase = await createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const supabase = createClient()
+    const auth = await getAuthForClient(supabase)
+
+    if (!auth) {
       return createErrorResponse('인증이 필요합니다.', ErrorCodes.UNAUTHORIZED)
     }
 
-    // 관리자 권한 확인
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role, full_name')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (profileError) {
@@ -39,8 +42,7 @@ export async function requireAdminAuth(): Promise<ApiResponse<AuthResult> | Auth
       return createErrorResponse('관리자 권한이 필요합니다.', ErrorCodes.FORBIDDEN)
     }
 
-    return { user, profile }
-
+    return { user: auth, profile }
   } catch (error) {
     return createErrorResponse('인증 처리 중 오류가 발생했습니다.', ErrorCodes.INTERNAL_ERROR)
   }
@@ -51,19 +53,17 @@ export async function requireAdminAuth(): Promise<ApiResponse<AuthResult> | Auth
  */
 export async function requireRole(allowedRoles: string[]): Promise<ApiResponse<AuthResult> | AuthResult> {
   try {
-    const supabase = await createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const supabase = createClient()
+    const auth = await getAuthForClient(supabase)
+
+    if (!auth) {
       return createErrorResponse('인증이 필요합니다.', ErrorCodes.UNAUTHORIZED)
     }
 
-    // 권한 확인
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role, full_name')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (profileError) {
@@ -77,8 +77,7 @@ export async function requireRole(allowedRoles: string[]): Promise<ApiResponse<A
       return createErrorResponse('권한이 부족합니다.', ErrorCodes.FORBIDDEN)
     }
 
-    return { user, profile }
-
+    return { user: auth, profile }
   } catch (error) {
     return createErrorResponse('권한 확인 중 오류가 발생했습니다.', ErrorCodes.INTERNAL_ERROR)
   }
@@ -89,19 +88,17 @@ export async function requireRole(allowedRoles: string[]): Promise<ApiResponse<A
  */
 export async function requireAuth(): Promise<ApiResponse<AuthResult> | AuthResult> {
   try {
-    const supabase = await createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const supabase = createClient()
+    const auth = await getAuthForClient(supabase)
+
+    if (!auth) {
       return createErrorResponse('인증이 필요합니다.', ErrorCodes.UNAUTHORIZED)
     }
 
-    // 기본 프로필 정보 조회
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role, full_name')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (profileError) {
@@ -111,8 +108,7 @@ export async function requireAuth(): Promise<ApiResponse<AuthResult> | AuthResul
       return createErrorResponse('프로필 조회 중 오류가 발생했습니다.', ErrorCodes.DATABASE_ERROR)
     }
 
-    return { user, profile }
-
+    return { user: auth, profile }
   } catch (error) {
     return createErrorResponse('인증 처리 중 오류가 발생했습니다.', ErrorCodes.INTERNAL_ERROR)
   }

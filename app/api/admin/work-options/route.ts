@@ -1,6 +1,6 @@
-import { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -8,20 +8,21 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!authResult.role || !['admin', 'system_admin', 'site_manager'].includes(authResult.role)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    
-    // Get query parameters
+
     const searchParams = request.nextUrl.searchParams
     const optionType = searchParams.get('option_type')
     const includeInactive = searchParams.get('include_inactive') === 'true'
-    
-    // Check if user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    // Build query
+
     let query = supabase
       .from('work_option_settings')
       .select('*')
@@ -33,18 +34,8 @@ export async function GET(request: NextRequest) {
     }
     
     // Filter by active status unless explicitly including inactive
-    if (!includeInactive) {
-      // Check if user is system admin
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      
-      // Only show inactive options to system admins and admins
-      if (profile?.role !== 'system_admin' && profile?.role !== 'admin') {
-        query = query.eq('is_active', true)
-      }
+    if (!includeInactive && authResult.role !== 'system_admin' && authResult.role !== 'admin') {
+      query = query.eq('is_active', true)
     }
     
     const { data, error } = await query
@@ -66,23 +57,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (authResult.role !== 'system_admin' && authResult.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    
-    // Check if user is authenticated and is system admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    if (profile?.role !== 'system_admin' && profile?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
     
     const body = await request.json()
     const { option_type, option_value, option_label, display_order } = body
@@ -111,7 +95,7 @@ export async function POST(request: NextRequest) {
         option_value,
         option_label,
         display_order: display_order || 0,
-        created_by: user.id
+        created_by: authResult.userId
       })
       .select()
       .single()
@@ -139,23 +123,16 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (authResult.role !== 'system_admin' && authResult.role !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    
-    // Check if user is authenticated and is system admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    if (profile?.role !== 'system_admin' && profile?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
     
     const body = await request.json()
     const { id, option_label, display_order, is_active } = body
@@ -169,7 +146,7 @@ export async function PUT(request: NextRequest) {
     }
     
     // Build update object
-    const updateData: unknown = {}
+    const updateData: Record<string, unknown> = {}
     if (option_label !== undefined) updateData.option_label = option_label
     if (display_order !== undefined) updateData.display_order = display_order
     if (is_active !== undefined) updateData.is_active = is_active
@@ -203,24 +180,17 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check if user is authenticated and is system admin
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    
-    if (profile?.role !== 'system_admin' && profile?.role !== 'admin') {
+
+    if (authResult.role !== 'system_admin' && authResult.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     
+    const supabase = await createClient()
+
     const searchParams = request.nextUrl.searchParams
     const id = searchParams.get('id')
     

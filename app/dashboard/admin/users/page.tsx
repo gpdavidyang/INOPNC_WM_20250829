@@ -1,18 +1,22 @@
-import UserManagement from '@/components/admin/UserManagement'
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-// Force dynamic rendering to avoid static build issues
-export const dynamic = 'force-dynamic'
+export const metadata: Metadata = {
+  title: '사용자 관리 (준비 중)',
+}
 
-export default function UserManagementPage() {
+export default async function AdminUsersPage() {
+  await requireAdminProfile()
+
   return (
-    <div className="px-2 sm:px-3 lg:px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">사용자 관리</h1>
-        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-          사용자 계정 관리, 역할 배정 및 권한 설정
-        </p>
-      </div>
-      <UserManagement />
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="사용자 관리"
+        description="사용자 목록 및 권한 관리 화면은 재정비 중입니다."
+      >
+        <p>Phase 2에서 인증/권한 API를 정리하고 나서 UI를 복원할 계획입니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

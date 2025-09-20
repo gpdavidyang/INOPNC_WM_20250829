@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -11,19 +12,19 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const { expiresInHours = 24, allowDownload = true } = await request.json()
 
     // Check if user has share permission for this document
     const hasPermission = await supabase.rpc('check_document_permission', {
       p_document_id: params.id,
-      p_user_id: user.id,
+      p_user_id: authResult.userId,
       p_permission_type: 'share'
     } as unknown)
 
@@ -42,7 +43,7 @@ export async function POST(
       .insert({
         document_id: params.id,
         token,
-        created_by: user.id,
+        created_by: authResult.userId,
         expires_at: expiresAt.toISOString(),
         allow_download: allowDownload,
         max_uses: null, // Unlimited uses for now
@@ -63,7 +64,7 @@ export async function POST(
     // Log share action
     await supabase.from('document_access_logs').insert({
       document_id: params.id,
-      user_id: user.id,
+      user_id: authResult.userId,
       action: 'generate_share_link',
       details: {
         token_id: shareToken.id,
@@ -91,17 +92,17 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Check if user has share permission for this document
     const hasPermission = await supabase.rpc('check_document_permission', {
       p_document_id: params.id,
-      p_user_id: user.id,
+      p_user_id: authResult.userId,
       p_permission_type: 'share'
     } as unknown)
 
@@ -152,17 +153,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Check if user has share permission for this document
     const hasPermission = await supabase.rpc('check_document_permission', {
       p_document_id: params.id,
-      p_user_id: user.id,
+      p_user_id: authResult.userId,
       p_permission_type: 'share'
     } as unknown)
 
@@ -185,7 +186,7 @@ export async function DELETE(
     // Log revocation
     await supabase.from('document_access_logs').insert({
       document_id: params.id,
-      user_id: user.id,
+      user_id: authResult.userId,
       action: 'revoke_share_links',
       details: { revoked_at: new Date().toISOString() }
     })

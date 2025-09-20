@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -10,15 +11,14 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { id: requestId } = params
     const { status, reason } = await request.json()
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Validate status
     if (!['approved', 'rejected'].includes(status)) {
@@ -40,7 +40,7 @@ export async function POST(
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
@@ -60,7 +60,7 @@ export async function POST(
       .from('material_requests')
       .update({
         status,
-        approved_by: user.id,
+        approved_by: authResult.userId,
         approved_at: new Date().toISOString(),
         rejection_reason: status === 'rejected' ? reason : null,
         updated_at: new Date().toISOString()
@@ -93,7 +93,7 @@ export async function POST(
         related_entity_type: 'material_request',
         related_entity_id: requestId,
         action_url: `/dashboard/materials/requests/${requestId}`,
-        created_by: user.id
+        created_by: authResult.userId
       })
 
     // Send push notification if the user has push enabled

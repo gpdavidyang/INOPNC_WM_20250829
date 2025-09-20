@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import type { AsyncState, ApiResponse } from '@/types/utils'
 
 export const runtime = 'nodejs'
@@ -8,19 +9,18 @@ export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Get user profile to check permissions
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*, organization:organizations(*)')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (profileError || !profile) {
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       const { data: assignedSites } = await supabase
         .from('site_members')
         .select('site_id')
-        .eq('user_id', user.id)
+        .eq('user_id', authResult.userId)
         .eq('role', 'site_manager')
 
       if (assignedSites && assignedSites.length > 0) {

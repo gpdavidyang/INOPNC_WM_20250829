@@ -1,29 +1,23 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 // POST: Bulk create user assignments
 export async function POST(request: NextRequest) {
-  const supabase = createClient()
-
   try {
-    // Check admin authorization
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { assignments } = body
@@ -83,7 +77,7 @@ export async function POST(request: NextRequest) {
       role: assignment.role || 'worker',
       notes: assignment.notes || null,
       is_active: true,
-      assigned_by: user.id,
+      assigned_by: authResult.userId,
       assigned_date: new Date().toISOString()
     }))
 

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
 
 import type { Database } from '@/types/database'
@@ -15,7 +16,17 @@ export async function approveWorkflow(
   reportId: string,
   userRole: string
 ): Promise<WorkflowResult> {
-  const supabase = await createClient()
+  const supabase = createClient()
+  const auth = await getAuthForClient(supabase)
+
+  if (!auth) {
+    return {
+      success: false,
+      error: 'User not authenticated'
+    }
+  }
+
+  const auditUserId = auth.userId
   
   try {
     // Get current report status
@@ -61,7 +72,7 @@ export async function approveWorkflow(
       entity_type: 'daily_report',
       entity_id: reportId,
       action: 'status_change',
-      user_id: (await supabase.auth.getUser()).data.user?.id || '',
+      user_id: auditUserId,
       changes: {
         status: { from: currentStatus, to: nextStatus }
       }
@@ -84,7 +95,7 @@ export async function rejectWorkflow(
   userRole: string,
   reason: string
 ): Promise<WorkflowResult> {
-  const supabase = await createClient()
+  const supabase = createClient()
   
   try {
     const { data: report, error: fetchError } = await supabase
@@ -187,7 +198,18 @@ export async function handleConcurrentEdit(
 export async function cascadeDeleteSite(
   siteId: string
 ): Promise<WorkflowResult> {
-  const supabase = await createClient()
+  const supabase = createClient()
+  const auth = await getAuthForClient(supabase)
+
+  if (!auth) {
+    return {
+      success: false,
+      error: 'User not authenticated'
+    }
+  }
+
+  const auditUserId = auth.userId
+
   const deletedEntities = {
     daily_reports: 0,
     work_records: 0,
@@ -240,7 +262,7 @@ export async function cascadeDeleteSite(
       entity_type: 'site',
       entity_id: siteId,
       action: 'cascade_delete',
-      user_id: (await supabase.auth.getUser()).data.user?.id || '',
+      user_id: auditUserId,
       changes: {
         deletedEntities
       }
@@ -269,7 +291,7 @@ export async function createAuditLog(data: {
   changes: Record<string, unknown>
   metadata?: Record<string, unknown>
 }): Promise<WorkflowResult> {
-  const supabase = await createClient()
+  const supabase = createClient()
   
   try {
     const auditData = {

@@ -1,29 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication and admin role
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Verify admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || profile.role !== 'admin') {
+    if (authResult.role !== 'admin' && authResult.role !== 'system_admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
+
+    const supabase = createClient()
 
     // Fetch all daily reports with site and user information
     const { data: reports, error } = await supabase
@@ -64,13 +57,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    if (authResult.role !== 'admin' && authResult.role !== 'system_admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    const supabase = createClient()
 
     // Get request body
     const body = await request.json()
@@ -100,7 +96,7 @@ export async function POST(request: NextRequest) {
         work_content: work_content || '',
         location_info: location_info || {},
         additional_notes: additional_notes || '',
-        submitted_by: user.id,
+        submitted_by: authResult.userId,
         status: 'draft',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

@@ -165,9 +165,9 @@ export const getStatusColor = (status: WorkLogStatus): string => {
 export const getStatusText = (status: WorkLogStatus): string => {
   switch (status) {
     case 'draft':
-      return '임시 저장'
+      return '임시저장'
     case 'approved':
-      return '작성 완료'
+      return '작성완료'
     default:
       return '알 수 없음'
   }

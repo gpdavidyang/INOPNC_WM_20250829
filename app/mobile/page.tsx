@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { MobileHomeWrapper } from '@/modules/mobile/pages/mobile-home-wrapper'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import { mockUser, mockProfile } from '@/lib/dev-auth'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,7 +15,7 @@ export default async function MobileHomePage() {
   ) {
     console.log('🔓 [DEV] Using mock data for mobile page')
     return (
-      <MobileLayoutWithAuth initialProfile={mockProfile as any} initialUser={mockUser as any}>
+      <MobileLayoutWithAuth>
         <MobileHomeWrapper initialProfile={mockProfile as any} initialUser={mockUser as any} />
       </MobileLayoutWithAuth>
     )
@@ -24,21 +25,27 @@ export default async function MobileHomePage() {
   // Let middleware handle most auth logic, just do basic verification here
   try {
     const supabase = createClient()
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    const auth = await getAuthForClient(supabase)
 
     // If middleware didn't catch auth issues but we have none, redirect
-    if (userError || !user) {
+    if (!auth) {
       redirect('/auth/login')
+    }
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      console.error('Mobile home session error:', sessionError)
     }
 
     // Quick profile check (don't duplicate all validation here)
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role, full_name, email, site_id')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     // Basic validation only
@@ -53,9 +60,11 @@ export default async function MobileHomePage() {
     }
 
     // Pass validated data to client wrapper with AuthProvider at layout level
+    const initialUser = session?.user ?? null
+
     return (
-      <MobileLayoutWithAuth initialProfile={profile} initialUser={user}>
-        <MobileHomeWrapper initialProfile={profile} initialUser={user} />
+      <MobileLayoutWithAuth>
+        <MobileHomeWrapper initialProfile={profile} initialUser={initialUser ?? undefined} />
       </MobileLayoutWithAuth>
     )
   } catch (error) {

@@ -1,15 +1,16 @@
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from 'next/navigation'
 import TaskForm from './task-form'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export default async function NewTaskPage() {
   const supabase = createClient()
   
-  const { data: { user } } = await supabase.auth.getUser()
+  const auth = await getAuthForClient(supabase)
   
-  if (!user) {
+  if (!auth) {
     redirect('/auth/login')
   }
 
@@ -17,7 +18,7 @@ export default async function NewTaskPage() {
   const { data: currentProfile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', auth.userId)
     .single()
 
   // TODO: Get all projects for selection when projects table is created
@@ -35,10 +36,12 @@ export default async function NewTaskPage() {
     .select('id, full_name, email')
     .order('full_name')
 
+  const currentUser = { id: auth.userId, email: auth.email }
+
   return (
     <div className="min-h-screen bg-gray-100">
       <TaskForm 
-        currentUser={user} 
+        currentUser={currentUser} 
         currentProfile={currentProfile}
         projects={projects || []}
         users={users || []}

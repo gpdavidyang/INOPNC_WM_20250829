@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth, canAccessData } from '@/lib/auth/ultra-simple'
+import { createServiceClient } from '@/lib/supabase/service'
 
 // Force dynamic rendering for this route
 export const dynamic = 'force-dynamic'
@@ -22,15 +24,15 @@ export async function POST(request: NextRequest) {
     // Log request headers for debugging
     console.log('Request headers:', Object.fromEntries(request.headers.entries()))
     
-    const user = await getAuthenticatedUser()
-    if (!user) {
-      console.log('POST /api/photo-grids - Unauthorized user')
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+    const auth = authResult
 
     const formData = await request.formData()
     const supabase = await createClient()
-    
+
     // Try to create service client for storage operations
     let serviceClient
     try {
@@ -47,12 +49,12 @@ export async function POST(request: NextRequest) {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (profileError || !profile) {
       console.log('Profile lookup error:', profileError)
-      console.log('User ID:', user.id)
+      console.log('User ID:', auth.userId)
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
 
@@ -78,6 +80,30 @@ export async function POST(request: NextRequest) {
       beforePhotosCount: beforePhotos.length,
       afterPhotosCount: afterPhotos.length
     })
+
+    if (auth.isRestricted) {
+      const { data: site, error: siteError } = await supabase
+        .from('sites')
+        .select('organization_id')
+        .eq('id', site_id)
+        .single()
+
+      if (siteError || !site) {
+        console.error('Site lookup error for restricted user:', siteError)
+        return NextResponse.json({ error: 'Invalid site' }, { status: 400 })
+      }
+
+      if (!(await canAccessData(auth, site.organization_id))) {
+        console.warn('Restricted user attempted to access foreign site', {
+          userId: auth.userId,
+          siteId: site_id,
+          siteOrg: site.organization_id,
+          restrictedOrg: auth.restrictedOrgId,
+        })
+
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+    }
 
     // Validate photo limits
     if (beforePhotos.length > 3 || afterPhotos.length > 3) {
@@ -180,7 +206,7 @@ export async function POST(request: NextRequest) {
         work_process,
         work_section,
         work_date: work_date || new Date().toISOString().split('T')[0],
-        created_by: user.id,
+        created_by: auth.userId,
         // Keep backward compatibility - store first photos in original columns
         before_photo_url: uploadedPhotos.find(p => p.type === 'before' && p.order === 0)?.url || null,
         after_photo_url: uploadedPhotos.find(p => p.type === 'after' && p.order === 0)?.url || null,
@@ -228,19 +254,19 @@ export async function POST(request: NextRequest) {
 // Handle GET request for fetching photo grids
 export async function GET(request: NextRequest) {
   try {
-    const user = await getAuthenticatedUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const supabase = await createClient()
-    
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+    const auth = authResult
+
     // Get photo grids with related data
     const { data: photoGrids, error } = await supabase
       .from('photo_grids')
       .select(`
         *,
-        site:sites(id, name, address),
+        site:sites(id, name, address, organization_id),
         creator:profiles(id, full_name)
       `)
       .order('created_at', { ascending: false })
@@ -251,8 +277,12 @@ export async function GET(request: NextRequest) {
     }
 
     // For each photo grid, fetch associated images from photo_grid_images table
+    const scopedGrids = auth.isRestricted
+      ? photoGrids.filter(grid => grid.site?.organization_id === auth.restrictedOrgId)
+      : photoGrids
+
     const photoGridsWithImages = await Promise.all(
-      photoGrids.map(async (grid: unknown) => {
+      scopedGrids.map(async (grid: any) => {
         const { data: images } = await supabase
           .from('photo_grid_images')
           .select('*')

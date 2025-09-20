@@ -1,22 +1,19 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { year, month, siteId } = body
@@ -25,7 +22,7 @@ export async function POST(request: NextRequest) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
@@ -51,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // 급여 계산
     const salary = await salaryCalculationService.calculateMonthlySalary(
-      user.id,
+      authResult.userId,
       year,
       month,
       siteId
@@ -60,7 +57,7 @@ export async function POST(request: NextRequest) {
     // PDF 생성
     const payslipData = {
       employee: {
-        id: user.id,
+        id: authResult.userId,
         name: profile.full_name || '',
         email: profile.email || '',
         role: profile.role || 'worker',

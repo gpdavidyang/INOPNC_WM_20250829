@@ -64,13 +64,23 @@ export function useRealtimeNotifications({
     // Get current user
     const setupSubscription = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('[REALTIME] Failed to retrieve session:', sessionError)
+        }
+
+        const currentUser = session?.user
+
+        if (!currentUser) {
           console.log('[REALTIME] No authenticated user, skipping subscription')
           return
         }
 
-        console.log('[REALTIME] Setting up subscription for user:', user.id)
+        console.log('[REALTIME] Setting up subscription for user:', currentUser.id)
 
         // Subscribe to new notifications for the current user with enhanced error handling
         const channel = supabase
@@ -88,7 +98,7 @@ export function useRealtimeNotifications({
               event: 'INSERT',
               schema: 'public',
               table: 'notifications',
-              filter: `user_id=eq.${user.id}`
+              filter: `user_id=eq.${currentUser.id}`
             },
             (payload) => {
               console.log('[REALTIME] Received notification:', payload)

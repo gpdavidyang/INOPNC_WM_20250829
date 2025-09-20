@@ -1,46 +1,28 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import { createClient } from "@/lib/supabase/server"
-
-export const dynamic = "force-dynamic"
-
-interface DocumentTypePageProps {
-  params: { documentType: string }
+export const metadata: Metadata = {
+  title: '필수 문서 상세 (준비 중)',
 }
 
-export default async function DocumentTypeDetailPage({ params }: DocumentTypePageProps) {
-  const supabase = createClient()
-  
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      redirect('/auth/login')
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      redirect('/auth/login')
-    }
-
-    // 필수제출서류함 접근 권한 확인
-    if (!canAccessDocumentCategory(profile.role as unknown, 'required')) {
-      redirect('/dashboard')
-    }
-
-    const documentType = decodeURIComponent(params.documentType)
-
-    return (
-      <div className="space-y-6">
-        <RequiredDocumentTypeDetailPage documentType={documentType} />
-      </div>
-    )
-  } catch (error) {
-    console.error('Error loading document type detail page:', error)
-    redirect('/auth/login')
+interface DocumentTypePageProps {
+  params: {
+    documentType: string
   }
+}
+
+export default async function RequiredDocumentTypePage({ params }: DocumentTypePageProps) {
+  await requireAdminProfile()
+
+  return (
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title={`필수 문서 상세 – ${decodeURIComponent(params.documentType)}`}
+        description="문서 유형별 상세 설정은 준비 중입니다."
+      >
+        <p>Phase 2에서 문서 유형별 필드와 승인 흐름을 재정의한 뒤 UI를 복원할 예정입니다.</p>
+      </AdminPlaceholder>
+    </div>
+  )
 }

@@ -1,26 +1,25 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { siteIds, scheduleTime = '17:00', enabled = true } = await request.json()
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check if user has permission (must be site manager or admin)
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin', 'site_manager'].includes(profile.role)) {
@@ -69,7 +68,7 @@ export async function POST(request: NextRequest) {
           site_ids: targetSiteIds,
           notification_type: 'daily_report_reminder',
           scheduled_at: nextReminder.toISOString(),
-          created_by: user.id,
+          created_by: authResult.userId,
           organization_id: profile.organization_id
         })
         .select()
@@ -95,7 +94,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('notification_type', 'daily_report_reminder')
         .eq('status', 'pending')
-        .eq('created_by', user.id)
+        .eq('created_by', authResult.userId)
         .in('site_ids', targetSiteIds)
 
       if (cancelError) {
@@ -120,13 +119,12 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Get user's scheduled reminders
     const { data: reminders, error: fetchError } = await supabase
@@ -134,7 +132,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('notification_type', 'daily_report_reminder')
       .eq('status', 'pending')
-      .eq('created_by', user.id)
+      .eq('created_by', authResult.userId)
       .order('scheduled_at', { ascending: true })
 
     if (fetchError) {

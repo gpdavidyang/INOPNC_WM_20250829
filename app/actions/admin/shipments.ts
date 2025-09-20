@@ -1,5 +1,32 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient, type SimpleAuth } from "@/lib/auth/ultra-simple"
 'use server'
+
+type AdminAuthResult = { auth: SimpleAuth; role: string | null } | { error: string }
+
+async function requireAdminAuth(supabase: ReturnType<typeof createClient>): Promise<AdminAuthResult> {
+  const auth = await getAuthForClient(supabase)
+  if (!auth) {
+    return { error: '인증이 필요합니다.' }
+  }
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', auth.userId)
+    .single()
+
+  if (error) {
+    console.error('관리자 권한 확인 중 오류:', error)
+    return { error: '사용자 정보를 확인할 수 없습니다.' }
+  }
+
+  if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    return { error: '관리자 권한이 필요합니다.' }
+  }
+
+  return { auth, role: profile.role }
+}
 
 
 // 출고 처리
@@ -13,24 +40,15 @@ export async function processShipment(data: {
   notes?: string
 }) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
+    const adminContext = await requireAdminAuth(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
-    }
+    const { auth } = adminContext
 
     // 입력값 검증
     if (!data.site_id || data.quantity_shipped <= 0) {
@@ -79,7 +97,7 @@ export async function processShipment(data: {
         carrier: data.carrier,
         notes: data.notes,
         status: 'preparing',
-        created_by: user.id
+        created_by: auth.userId
       })
       .select(`
         *,
@@ -104,23 +122,12 @@ export async function processShipment(data: {
 // 출고 상태 업데이트
 export async function updateShipmentStatus(id: string, status: 'preparing' | 'shipped' | 'in_transit' | 'delivered' | 'cancelled') {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminAuth(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 상태별 추가 업데이트 데이터
@@ -174,23 +181,12 @@ export async function updateShipmentInfo(id: string, updates: Partial<{
   notes: string
 }>) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminAuth(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 수정할 데이터 준비
@@ -233,23 +229,12 @@ export async function getShipmentHistory(site_id?: string, filters?: {
   limit?: number
 }) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminAuth(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 쿼리 구성
@@ -298,23 +283,12 @@ export async function getShipmentHistory(site_id?: string, filters?: {
 // 출고 분석 데이터 조회
 export async function getShipmentAnalytics(period: 'week' | 'month' | 'year' = 'month') {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminAuth(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 뷰에서 출고 분석 데이터 조회
@@ -340,23 +314,12 @@ export async function getShipmentAnalytics(period: 'week' | 'month' | 'year' = '
 // 대기 중인 출고 요청 조회
 export async function getPendingShipmentRequests() {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminAuth(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 처리되지 않은 자재 요청 조회

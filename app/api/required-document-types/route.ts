@@ -1,27 +1,30 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = await createClient()
 
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
+
+    const role = profile.role || authResult.role || ''
 
     console.log('Required document types API - User profile:', profile)
 
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       required_documents: transformedDocuments,
-      user_role: profile.role,
+      user_role: role,
       site_id: profile.site_id,
       total_count: transformedDocuments.length
     })

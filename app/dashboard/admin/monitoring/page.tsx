@@ -1,24 +1,22 @@
-/**
- * Admin Monitoring Dashboard Page
- * Displays comprehensive system monitoring and performance metrics
- */
-
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
 export const metadata: Metadata = {
-  title: 'System Monitoring - INOPNC Admin',
-  description: 'Real-time system monitoring and performance metrics for INOPNC Construction Management System'
+  title: '모니터링 (준비 중)',
 }
 
-export default async function MonitoringPage() {
-  // Note: AdminPageLayout requires a profile prop but it's not being fetched here
-  // This will need to be fixed to fetch the user's profile
+export default async function AdminMonitoringPage() {
+  await requireAdminProfile()
+
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold">System Monitoring</h1>
-        <p className="text-gray-600 mt-1">Real-time monitoring and performance metrics</p>
-      </div>
-      <MonitoringDashboard />
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="시스템 모니터링"
+        description="실시간 모니터링 화면은 현재 리팩토링 중입니다."
+      >
+        <p>알림/로그 모니터링 API 준비 후 UI를 다시 제공하겠습니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

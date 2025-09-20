@@ -1,19 +1,19 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const { subscription, userAgent } = await request.json()
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         push_subscription_updated_at: new Date().toISOString(),
         user_agent: userAgent || null
       })
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .select('id, push_subscription')
       .single()
 
@@ -47,13 +47,13 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('notification_logs')
       .insert({
-        user_id: user.id,
+        user_id: authResult.userId,
         notification_type: 'subscription',
         title: 'Push Subscription',
         body: 'User subscribed to push notifications',
         status: 'delivered',
         sent_at: new Date().toISOString(),
-        sent_by: user.id
+        sent_by: authResult.userId
       })
 
     return NextResponse.json({ 
@@ -73,13 +73,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Remove push subscription from user profile
     const { error: updateError } = await supabase
@@ -88,7 +87,7 @@ export async function DELETE(request: NextRequest) {
         push_subscription: null,
         push_subscription_updated_at: new Date().toISOString()
       })
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
 
     if (updateError) {
       console.error('Error removing push subscription:', updateError)
@@ -99,13 +98,13 @@ export async function DELETE(request: NextRequest) {
     await supabase
       .from('notification_logs')
       .insert({
-        user_id: user.id,
+        user_id: authResult.userId,
         notification_type: 'unsubscription',
         title: 'Push Unsubscription',
         body: 'User unsubscribed from push notifications',
         status: 'delivered',
         sent_at: new Date().toISOString(),
-        sent_by: user.id
+        sent_by: authResult.userId
       })
 
     return NextResponse.json({ 

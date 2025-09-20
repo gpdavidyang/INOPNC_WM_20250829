@@ -1,12 +1,18 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { 
       title,
@@ -18,25 +24,21 @@ export async function POST(request: NextRequest) {
       affectedWorkers = []
     } = await request.json()
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     // Check if user has permission to create safety alerts
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
-    if (!profile || !['admin', 'system_admin', 'site_manager', 'safety_manager'].includes(profile.role)) {
+    const role = profile?.role || authResult.role || ''
+
+    if (!profile || !['admin', 'system_admin', 'site_manager', 'safety_manager'].includes(role)) {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
     // Validate site access
-    if (profile.role === 'site_manager' && profile.site_id !== siteId) {
+    if (role === 'site_manager' && profile.site_id !== siteId) {
       return NextResponse.json({ error: 'Cannot create alerts for other sites' }, { status: 403 })
     }
 
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
         incident_type: incidentType,
         location,
         affected_workers: affectedWorkers,
-        created_by: user.id,
+        created_by: authResult.userId,
         organization_id: profile.organization_id,
         status: 'active'
       })
@@ -80,7 +82,7 @@ export async function POST(request: NextRequest) {
         related_entity_type: 'safety_alert',
         related_entity_id: safetyAlert.id,
         action_url: `/dashboard/safety/alerts/${safetyAlert.id}`,
-        created_by: user.id
+        created_by: authResult.userId
       }))
 
       await supabase
@@ -116,27 +118,28 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get('siteId')
     const status = searchParams.get('status') || 'active'
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     // Get user profile to check site access
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
+
+    const role = profile.role || authResult.role || ''
 
     // Build query
     let query = supabase
@@ -152,7 +155,7 @@ export async function GET(request: NextRequest) {
     // Filter by site if specified or if user is site-specific
     if (siteId) {
       query = query.eq('site_id', siteId)
-    } else if (profile.role === 'worker' || profile.role === 'site_manager') {
+    } else if (role === 'worker' || role === 'site_manager') {
       query = query.eq('site_id', profile.site_id)
     }
 

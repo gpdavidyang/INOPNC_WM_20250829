@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,19 +16,18 @@ function withApiMonitoring(handler: (request: NextRequest) => Promise<NextRespon
 export const GET = withApiMonitoring(
   async (request: NextRequest) => {
     try {
-      const supabase = createClient()
-      
-      // Check authentication
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      const authResult = await requireApiAuth()
+      if (authResult instanceof NextResponse) {
+        return authResult
       }
+
+      const supabase = createClient()
 
       // Get user profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('role, organization_id, site_id')
-        .eq('id', user.id)
+        .eq('id', authResult.userId)
         .single()
 
       if (!profile) {

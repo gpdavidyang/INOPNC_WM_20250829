@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -11,13 +12,12 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // First, get the current download count
     const { data: currentData, error: fetchError } = await supabase
@@ -40,7 +40,7 @@ export async function POST(
       .update({
         download_count: (currentData?.download_count || 0) + 1,
         last_downloaded_at: new Date().toISOString(),
-        last_downloaded_by: user.id
+        last_downloaded_by: authResult.userId
       })
       .eq('id', params.id)
       .select(`

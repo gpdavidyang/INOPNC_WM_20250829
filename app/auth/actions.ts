@@ -4,6 +4,7 @@ import { cookies } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { getAuth, getAuthForClient } from '@/lib/auth/ultra-simple'
 import type { UserRole } from '@/types'
 
 export async function signIn(email: string, password: string) {
@@ -78,16 +79,9 @@ export async function signIn(email: string, password: string) {
             console.error('[SIGN_IN] Profile update error:', updateError)
           }
 
-          // Simple role-based routing
-          const roleRoutes: Record<string, string> = {
-            'system_admin': '/dashboard/admin',
-            'admin': '/dashboard/admin', 
-            'customer_manager': '/partner/dashboard',
-            'partner': '/partner/dashboard',
-            'site_manager': '/mobile',
-            'worker': '/mobile'
-          }
-          redirectPath = roleRoutes[profile.role] || '/dashboard/admin'
+          // Ultra Simple Auth UI Track routing
+          const auth = await getAuth()
+          redirectPath = auth?.uiTrack || '/mobile'
 
           // Set role cookie for UI mode detection
           try {
@@ -235,13 +229,9 @@ export async function signUp(
 
 export async function signOut() {
   const supabase = createClient()
+  const auth = await getAuthForClient(supabase)
 
-  // Get current user before signing out
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (user) {
+  if (auth) {
     // TODO: Log logout event when log_auth_event function is created
     // try {
     //   await supabase.rpc('log_auth_event', {
@@ -276,18 +266,15 @@ export async function updatePassword(currentPassword: string, newPassword: strin
   const supabase = createClient()
 
   // 먼저 현재 비밀번호로 재인증
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+  const auth = await getAuthForClient(supabase)
 
-  if (userError || !user) {
+  if (!auth) {
     return { success: false, error: '사용자를 찾을 수 없습니다.' }
   }
 
   // 현재 비밀번호로 재로그인 시도하여 검증
   const { error: signInError } = await supabase.auth.signInWithPassword({
-    email: user.email!,
+    email: auth.email,
     password: currentPassword,
   })
 
@@ -310,12 +297,9 @@ export async function updatePassword(currentPassword: string, newPassword: strin
 export async function updateNotificationPreferences(preferences: any) {
   const supabase = createClient()
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+  const auth = await getAuthForClient(supabase)
 
-  if (userError || !user) {
+  if (!auth) {
     return { success: false, error: '사용자를 찾을 수 없습니다.' }
   }
 
@@ -325,7 +309,7 @@ export async function updateNotificationPreferences(preferences: any) {
       notification_preferences: preferences,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', user.id)
+    .eq('id', auth.userId)
 
   if (error) {
     return { success: false, error: error.message }
@@ -689,20 +673,16 @@ export async function rejectSignupRequest(requestId: string, adminUserId: string
 
 export async function getProfile() {
   const supabase = createClient()
+  const auth = await getAuthForClient(supabase)
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
+  if (!auth) {
     return { error: 'Not authenticated' }
   }
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', auth.userId)
     .single()
 
   if (profileError || !profile) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import type { UnifiedDocument } from '@/hooks/use-unified-documents'
 
 export const dynamic = 'force-dynamic'
@@ -9,21 +10,21 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const supabase = createClient()
-    
-    // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
+
+    const supabase = createClient()
+
     // 사용자 프로필 및 역할 확인
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, role, customer_company_id, full_name')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
-    
+    const role = profile.role || authResult.role || ''
+
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
@@ -72,7 +73,7 @@ export async function GET(request: NextRequest) {
       `, { count: 'exact' })
     
     // 역할 기반 필터링
-    if (profile.role === 'customer_manager') {
+    if (role === 'customer_manager') {
       // 파트너사: 자사 문서만
       query = query.eq('customer_company_id', profile.customer_company_id)
     }
@@ -154,7 +155,7 @@ export async function GET(request: NextRequest) {
       statistics,
       user: {
         id: profile.id,
-        role: profile.role,
+        role,
         name: profile.full_name,
         company_id: profile.customer_company_id
       }
@@ -172,19 +173,18 @@ export async function GET(request: NextRequest) {
 // POST /api/unified-documents/v2 - 새 문서 생성
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
+
+    const supabase = createClient()
+
     // 사용자 프로필 확인
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, role, customer_company_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
     
     if (!profile) {
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
     // 필수 필드 설정
     const documentData = {
       ...body,
-      uploaded_by: user.id,
+      uploaded_by: authResult.userId,
       status: body.status || 'active',
       workflow_status: body.workflow_status || 'draft',
       is_public: body.is_public ?? false,
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
       .insert({
         document_id: document.id,
         action: 'created',
-        changed_by: user.id,
+        changed_by: authResult.userId,
         changes: documentData,
         ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
         user_agent: request.headers.get('user-agent')
@@ -264,27 +264,15 @@ export async function POST(request: NextRequest) {
 // PATCH /api/unified-documents/v2 - 문서 일괄 업데이트
 export async function PATCH(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-    
-    // 사용자 프로필 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, role, customer_company_id')
-      .eq('id', user.id)
-      .single()
-    
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-    
+
     const { action, documentIds, updateData } = await request.json()
-    
+
     if (!action || !documentIds || !Array.isArray(documentIds)) {
       return NextResponse.json(
         { error: 'Invalid request parameters' },
@@ -294,6 +282,8 @@ export async function PATCH(request: NextRequest) {
     
     let result
     
+    const role = authResult.role || ''
+
     switch (action) {
       case 'delete': {
         // 소프트 삭제
@@ -335,7 +325,7 @@ export async function PATCH(request: NextRequest) {
         }
       case 'approve': {
         // 승인 (관리자만)
-        if (!['admin', 'system_admin'].includes(profile.role)) {
+        if (!['admin', 'system_admin'].includes(role)) {
           return NextResponse.json(
             { error: 'Only administrators can approve documents' },
             { status: 403 }
@@ -345,7 +335,7 @@ export async function PATCH(request: NextRequest) {
           .from('unified_documents')
           .update({ 
             workflow_status: 'approved',
-            approved_by: user.id,
+            approved_by: authResult.userId,
             approved_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
@@ -355,7 +345,7 @@ export async function PATCH(request: NextRequest) {
         }
       case 'reject': {
         // 반려 (관리자만)
-        if (!['admin', 'system_admin'].includes(profile.role)) {
+        if (!['admin', 'system_admin'].includes(role)) {
           return NextResponse.json(
             { error: 'Only administrators can reject documents' },
             { status: 403 }
@@ -424,7 +414,7 @@ export async function PATCH(request: NextRequest) {
         .insert({
           document_id: docId,
           action,
-          changed_by: user.id,
+          changed_by: authResult.userId,
           changes: updateData || { action },
           ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
           user_agent: request.headers.get('user-agent')

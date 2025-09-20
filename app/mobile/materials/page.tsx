@@ -1,9 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-
-export const dynamic = 'force-dynamic'
-import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import {
@@ -17,6 +15,8 @@ import {
   Grid,
   Badge,
 } from '@/modules/shared/ui'
+
+export const dynamic = 'force-dynamic'
 
 export default function MobileMaterialsPage() {
   return (
@@ -148,12 +148,11 @@ const MaterialsContent: React.FC = () => {
   }
 
   return (
-    <MobileLayout
-      title="자재 관리"
-      userRole={profile?.role as 'worker' | 'site_manager'}
-      showNotification={true}
-    >
-      <div className="p-4 space-y-4">
+    <MobileLayoutShell>
+      <div className="px-4 pb-6 space-y-4">
+        <header className="pt-6">
+          <h1 className="t-h2">자재 관리</h1>
+        </header>
         {/* Tab Navigation */}
         <Card>
           <CardContent className="p-3">
@@ -436,6 +435,6 @@ const MaterialsContent: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-    </MobileLayout>
+    </MobileLayoutShell>
   )
 }

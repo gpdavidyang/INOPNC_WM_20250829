@@ -1,33 +1,20 @@
-
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
-    
-    // Check authentication and admin role
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
-    // Get user profile to determine access level
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Check if user is admin or regular user
-    const isAdmin = ['admin', 'system_admin'].includes(profile.role)
-    const isRegularUser = ['user', 'admin', 'system_admin', 'site_manager', 'worker', 'customer_manager'].includes(profile.role)
+    const role = authResult.role || 'worker'
+    const isAdmin = ['admin', 'system_admin'].includes(role)
 
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get('site_id')
@@ -67,7 +54,7 @@ export async function GET(request: Request) {
       // 1. Documents they uploaded themselves
       // 2. Public documents
       // 3. Documents shared with their sites (if they have site access)
-      query = query.or(`uploaded_by.eq.${user.id},is_public.eq.true`)
+      query = query.or(`uploaded_by.eq.${authResult.userId},is_public.eq.true`)
     }
     // Admin users can see all documents - no additional filtering needed
     
@@ -107,7 +94,7 @@ export async function GET(request: Request) {
 
     // Apply same role-based filtering for count
     if (!isAdmin) {
-      countQuery = countQuery.or(`uploaded_by.eq.${user.id},is_public.eq.true`)
+      countQuery = countQuery.or(`uploaded_by.eq.${authResult.userId},is_public.eq.true`)
     }
     // Admin users can see all documents for count
 
@@ -136,7 +123,7 @@ export async function GET(request: Request) {
       .eq('is_archived', false)
     
     if (!isAdmin) {
-      categoryStatsQuery = categoryStatsQuery.or(`uploaded_by.eq.${user.id},is_public.eq.true`)
+      categoryStatsQuery = categoryStatsQuery.or(`uploaded_by.eq.${authResult.userId},is_public.eq.true`)
     }
     // Admin users can see all document statistics
 
@@ -155,7 +142,7 @@ export async function GET(request: Request) {
       .eq('is_archived', false)
       
     if (!isAdmin) {
-      statusStatsQuery = statusStatsQuery.or(`uploaded_by.eq.${user.id},is_public.eq.true`)
+      statusStatsQuery = statusStatsQuery.or(`uploaded_by.eq.${authResult.userId},is_public.eq.true`)
     }
     // Admin users can see all status statistics
 
@@ -217,28 +204,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
-    // Get user profile to determine access level
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
+    const role = authResult.role || 'worker'
+    const isRegularUser = ['user', 'admin', 'system_admin', 'site_manager', 'worker', 'customer_manager'].includes(role)
 
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // Check if user is admin or regular user
-    const isRegularUser = ['user', 'admin', 'system_admin', 'site_manager', 'worker', 'customer_manager'].includes(profile.role)
-    
     if (!isRegularUser) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
@@ -303,7 +278,7 @@ export async function POST(request: Request) {
       .from('unified_document_system')
       .insert({
         ...body,
-        uploaded_by: user.id,
+        uploaded_by: authResult.userId,
         status: 'uploaded',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

@@ -1,66 +1,22 @@
-'use client'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import AdminMarkupTool from '@/components/admin/tools/AdminMarkupTool'
-import type { Profile } from '@/types'
+export const metadata: Metadata = {
+  title: '마크업 도구 (준비 중)',
+}
 
-// 캐시 비활성화 - Client component이므로 dynamic만 사용
-export const dynamic = 'force-dynamic'
+export default async function AdminMarkupToolPage() {
+  await requireAdminProfile()
 
-export default function AdminMarkupToolPage() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const router = useRouter()
-  const supabase = createClient()
-
-  useEffect(() => {
-    loadProfile()
-  }, [])
-
-  const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (error) throw error
-
-      if (profileData.role !== 'admin') {
-        router.push('/dashboard')
-        return
-      }
-
-      setProfile(profileData)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-      router.push('/login')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
-      </div>
-    )
-  }
-
-  if (!profile) {
-    return null
-  }
-
-  return <AdminMarkupTool profile={profile} />
+  return (
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="문서 마크업 도구"
+        description="브라우저 마크업 에디터는 현재 재작성 중입니다."
+      >
+        <p>파일 주석 도구 및 저장 기능은 Phase 2 일정에서 제공할 예정입니다.</p>
+      </AdminPlaceholder>
+    </div>
+  )
 }

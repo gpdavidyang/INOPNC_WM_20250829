@@ -1,22 +1,23 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = "force-dynamic"
 
 export default async function BackupPage() {
   const supabase = createClient()
 
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  const auth = await getAuthForClient(supabase)
   
-  if (userError || !user) {
+  if (!auth) {
     redirect('/auth/login')
   }
 
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', auth.userId)
     .single()
 
   if (profileError || !profile) {

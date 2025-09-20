@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
@@ -9,22 +10,23 @@ export const dynamic = 'force-dynamic'
 // GET /api/markup-documents/usage-stats - 도구 사용 통계 조회
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
+
+    const supabase = createClient()
+
     // 관리자 권한 확인
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
     
-    if (!profile || profile.role !== 'admin') {
+    const role = profile?.role || authResult.role || ''
+
+    if (!profile || role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
     

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from "@/lib/auth/ultra-simple"
 'use server'
 
 
@@ -14,17 +15,17 @@ interface TeamSalaryParams {
 export async function exportTeamSalaryReport(params: TeamSalaryParams & { format: 'pdf' | 'excel' }) {
   try {
     const supabase = createClient()
-    
+
     // 권한 확인
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: '인증되지 않은 사용자입니다' }
     }
 
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (!profile || profile.role !== 'site_manager' || profile.site_id !== params.siteId) {

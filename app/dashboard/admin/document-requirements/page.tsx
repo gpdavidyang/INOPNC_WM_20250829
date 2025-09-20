@@ -1,47 +1,22 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import { createClient } from "@/lib/supabase/server"
+export const metadata: Metadata = {
+  title: '필수 문서 유형 (준비 중)',
+}
 
-export const dynamic = "force-dynamic"
+export default async function AdminDocumentRequirementsPage() {
+  await requireAdminProfile()
 
-export default async function DocumentRequirementsPage() {
-  const supabase = await createClient()
-  
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      redirect('/auth/login')
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      redirect('/auth/login')
-    }
-
-    // system_admin 또는 admin 권한 확인
-    if (!['system_admin', 'admin'].includes(profile.role)) {
-      redirect('/dashboard')
-    }
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">필수서류 설정</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            작업자와 현장관리자가 제출해야 할 필수 서류를 설정하고 관리합니다.
-          </p>
-        </div>
-        
-        <RequiredDocumentTypesAdmin />
-      </div>
-    )
-  } catch (error) {
-    console.error('Error loading document requirements page:', error)
-    redirect('/auth/login')
-  }
+  return (
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="필수 문서 유형 관리"
+        description="필수 문서 템플릿 및 관리 기능은 재정비 중입니다."
+      >
+        <p>Phase 2에서 문서 유형 정의 및 승인 프로세스를 확정한 뒤 UI를 복원합니다.</p>
+      </AdminPlaceholder>
+    </div>
+  )
 }

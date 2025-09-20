@@ -1,11 +1,17 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth, getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const {
       title,
@@ -18,19 +24,11 @@ export async function POST(request: NextRequest) {
     } = await request.json()
 
     // Verify user authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     // Check if user has permission to create announcements
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin', 'site_manager'].includes(profile.role)) {
@@ -53,7 +51,7 @@ export async function POST(request: NextRequest) {
         priority,
         target_sites: targetSiteIds,
         target_roles: targetRoles,
-        created_by: user.id,
+        created_by: authResult.userId,
         is_active: true,
       })
       .select()
@@ -90,11 +88,8 @@ export async function GET(request: NextRequest) {
     const priority = searchParams.get('priority')
 
     // For unauthenticated users, return empty list to prevent 500 errors
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const authResult = await getAuthForClient(supabase)
+    if (!authResult) {
       console.log('Announcements: User not authenticated, returning empty list')
       return NextResponse.json({
         success: true,
@@ -106,7 +101,7 @@ export async function GET(request: NextRequest) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
@@ -136,7 +131,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Filter by role if user is not admin
-    if (!['admin', 'system_admin'].includes(profile.role)) {
+    if (!['admin', 'system_admin'].includes(profile.role || '')) {
       query = query.or(`target_roles.is.null,target_roles.cs.{${profile.role}}`)
     }
 

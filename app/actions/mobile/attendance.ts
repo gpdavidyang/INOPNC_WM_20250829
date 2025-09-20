@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 ;('use server')
 
 // ==========================================
@@ -17,16 +18,13 @@ export async function getAttendanceRecords(params: {
     const supabase = createClient()
 
     // Step 1: Verify authentication
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      console.error('❌ Authentication failed in getAttendanceRecords:', userError)
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
+      console.error('❌ Authentication failed in getAttendanceRecords: no auth')
       return { success: false, error: 'User not authenticated' }
     }
 
-    console.log('✅ User authenticated:', user.id)
+    console.log('✅ User authenticated:', auth.userId)
 
     // Step 2: Build query with proper field selection
     // IMPORTANT: Changed from attendance_records to work_records for data consistency
@@ -190,12 +188,8 @@ export async function checkIn(data: {
 }) {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -218,10 +212,10 @@ export async function checkIn(data: {
         .insert({
           site_id: data.site_id,
           work_date: today,
-          member_name: user.email || 'Unknown',
+          member_name: auth.email || 'Unknown',
           process_type: 'general',
           status: 'draft',
-          created_by: user.id,
+          created_by: auth.userId,
         })
         .select()
         .single()
@@ -238,7 +232,7 @@ export async function checkIn(data: {
       .from('work_records')
       .select('id')
       .eq('site_id', data.site_id)
-      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
+      .or(`user_id.eq.${auth.userId},profile_id.eq.${auth.userId}`)
       .eq('work_date', today)
       .single()
 
@@ -251,8 +245,8 @@ export async function checkIn(data: {
       .from('work_records')
       .insert({
         site_id: data.site_id,
-        user_id: user.id,
-        profile_id: user.id, // Set both for compatibility
+        user_id: auth.userId,
+        profile_id: auth.userId, // Set both for compatibility
         work_date: today,
         check_in_time: checkInTime,
         status: 'present' as AttendanceStatus,
@@ -305,12 +299,8 @@ export async function checkOut(data: {
 }) {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -321,7 +311,7 @@ export async function checkOut(data: {
       .from('work_records')
       .select('*')
       .eq('id', data.attendance_id)
-      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
+      .or(`user_id.eq.${auth.userId},profile_id.eq.${auth.userId}`)
       .single()
 
     if (fetchError || !attendance) {
@@ -348,7 +338,7 @@ export async function checkOut(data: {
         check_out_time: checkOutTime,
         work_hours: hoursWorked,
         overtime_hours: overtimeHours,
-        updated_by: user.id,
+        updated_by: auth.userId,
         updated_at: new Date().toISOString(),
       })
       .eq('id', data.attendance_id)
@@ -392,12 +382,8 @@ export async function checkOut(data: {
 export async function getTodayAttendance(site_id?: string) {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -439,12 +425,8 @@ export async function getMyAttendance(filters: {
 }) {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -461,7 +443,7 @@ export async function getMyAttendance(filters: {
         )
       `
       )
-      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
+      .or(`user_id.eq.${auth.userId},profile_id.eq.${auth.userId}`)
       .order('work_date', { ascending: false })
 
     if (filters.start_date) {
@@ -504,11 +486,8 @@ export async function updateAttendanceRecord(id: string, data: Partial<Attendanc
   try {
     const supabase = createClient()
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -516,7 +495,7 @@ export async function updateAttendanceRecord(id: string, data: Partial<Attendanc
       .from('work_records')
       .update({
         ...data,
-        updated_by: user.id,
+        updated_by: auth.userId,
         updated_at: new Date().toISOString(),
       })
       .eq('id', id)
@@ -549,11 +528,8 @@ export async function addBulkAttendance(
   try {
     const supabase = createClient()
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -599,11 +575,8 @@ export async function getMonthlyAttendance(year: number, month: number) {
   try {
     const supabase = createClient()
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -622,7 +595,7 @@ export async function getMonthlyAttendance(year: number, month: number) {
         )
       `
       )
-      .or(`user_id.eq.${user.id},profile_id.eq.${user.id}`)
+      .or(`user_id.eq.${auth.userId},profile_id.eq.${auth.userId}`)
       .gte('work_date', startDate)
       .lte('work_date', endDate)
       .order('work_date', { ascending: true })

@@ -4,10 +4,10 @@
 
 /**
  * 작업일지 상태
- * temporary: 임시저장
- * completed: 작성완료
+ * draft: 임시저장
+ * approved: 작성완료
  */
-export type WorkLogStatus = 'temporary' | 'completed'
+export type WorkLogStatus = 'draft' | 'approved'
 
 /**
  * 작업일지 탭 상태
@@ -87,6 +87,8 @@ export interface WorkLog {
   date: string
   siteId: string
   siteName: string
+  title?: string
+  author?: string
   status: WorkLogStatus
 
   // 작업 상세

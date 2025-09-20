@@ -1,35 +1,22 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import { createClient } from "@/lib/supabase/server"
-import SystemManagement from '@/components/admin/SystemManagement'
-
-export const dynamic = "force-dynamic"
+export const metadata: Metadata = {
+  title: '시스템 관리 (준비 중)',
+}
 
 export default async function SystemManagementPage() {
-  const supabase = createClient()
-  
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    redirect('/auth/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || profile.role !== 'admin') {
-    redirect('/dashboard')
-  }
+  await requireAdminProfile()
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
-    <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">시스템 관리</h1>
-          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">시스템 설정, 백업 관리 및 감사 로그</p>
-    </div>
-
-      <SystemManagement profile={profile as any} />
+      <AdminPlaceholder
+        title="시스템 관리"
+        description="시스템 설정, 백업 관리, 감사 로그 화면은 재구성 중입니다."
+      >
+        <p>Phase 2 일정에서 운영 가이드에 맞게 시스템 모듈을 복구할 예정입니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

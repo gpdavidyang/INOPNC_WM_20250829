@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -10,21 +11,21 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
+
+    const supabase = createClient()
+
     // 사용자 프로필 확인
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, role, customer_company_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
-    
+    const role = profile.role || authResult.role || ''
+
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
@@ -75,7 +76,7 @@ export async function GET(
     }
     
     // 파트너사 접근 권한 확인
-    if (profile.role === 'customer_manager') {
+    if (role === 'customer_manager') {
       if (document.customer_company_id !== profile.customer_company_id) {
         return NextResponse.json(
           { error: 'Access denied' },
@@ -83,13 +84,13 @@ export async function GET(
         )
       }
     }
-    
+
     // 접근 로그 기록
     await supabase
       .from('document_access_logs')
       .insert({
         document_id: params.id,
-        accessed_by: user.id,
+        accessed_by: authResult.userId,
         action: 'view',
         ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
         user_agent: request.headers.get('user-agent')
@@ -131,19 +132,18 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
+
+    const supabase = createClient()
+
     // 사용자 프로필 확인
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, role, customer_company_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
     
     if (!profile) {
@@ -165,10 +165,11 @@ export async function PUT(
     }
     
     // 권한 확인
-    const isAdmin = ['admin', 'system_admin'].includes(profile.role)
-    const isOwner = existingDoc.uploaded_by === user.id
-    const isGeneralUser = ['worker', 'site_manager'].includes(profile.role)
-    const isPartner = profile.role === 'customer_manager'
+    const role = profile.role || authResult.role || ''
+    const isAdmin = ['admin', 'system_admin'].includes(role)
+    const isOwner = existingDoc.uploaded_by === authResult.userId
+    const isGeneralUser = ['worker', 'site_manager'].includes(role)
+    const isPartner = role === 'customer_manager'
     
     // 파트너사는 자사 문서만 수정 가능
     if (isPartner && existingDoc.customer_company_id !== profile.customer_company_id) {
@@ -255,7 +256,7 @@ export async function PUT(
       .insert({
         document_id: params.id,
         action: 'updated',
-        changed_by: user.id,
+        changed_by: authResult.userId,
         changes,
         comment: updateData.update_comment,
         ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
@@ -285,21 +286,19 @@ export async function DELETE(
     const { searchParams } = new URL(request.url)
     const hardDelete = searchParams.get('hard') === 'true'
     
-    const supabase = createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
-    // 사용자 프로필 확인
+
+    const supabase = createClient()
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, role, customer_company_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
-    
+
     if (!profile) {
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
     }
@@ -319,8 +318,9 @@ export async function DELETE(
     }
     
     // 권한 확인
-    const isAdmin = ['admin', 'system_admin'].includes(profile.role)
-    const isOwner = existingDoc.uploaded_by === user.id
+    const role = profile.role || authResult.role || ''
+    const isAdmin = ['admin', 'system_admin'].includes(role)
+    const isOwner = existingDoc.uploaded_by === authResult.userId
     
     // 관리자가 아니면 자신의 문서만 삭제 가능
     if (!isAdmin && !isOwner) {
@@ -394,7 +394,7 @@ export async function DELETE(
       .insert({
         document_id: params.id,
         action: hardDelete ? 'hard_deleted' : 'deleted',
-        changed_by: user.id,
+        changed_by: authResult.userId,
         comment: `Document ${hardDelete ? 'permanently' : 'soft'} deleted`,
         ip_address: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip'),
         user_agent: request.headers.get('user-agent')
