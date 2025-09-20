@@ -1,5 +1,22 @@
 'use client'
+/* eslint-disable @next/next/no-img-element */
 
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  AlertTriangle,
+  Building2,
+  Calendar,
+  CheckCircle,
+  Download,
+  ExternalLink,
+  FileText,
+  Shield,
+  User,
+} from 'lucide-react'
+
+import { createClient } from '@/lib/supabase/client'
+import type { SharedDocument } from '@/types/shared-documents'
+import { FILE_TYPE_ICONS, formatFileSize } from '@/types/shared-documents'
 
 interface SharedDocumentViewerProps {
   document: SharedDocument & {
@@ -7,18 +24,38 @@ interface SharedDocumentViewerProps {
     profiles?: { name: string; email: string } | null
   }
   token?: string
+  allowDownload?: boolean
 }
 
-export default function SharedDocumentViewer({ 
-  document, 
-  token 
+export default function SharedDocumentViewer({
+  document,
+  token,
+  allowDownload = true,
 }: SharedDocumentViewerProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasPermission, setHasPermission] = useState(false)
   const [permissionChecked, setPermissionChecked] = useState(false)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
+
+  const fileType = useMemo(() => {
+    const mimeOrType = (document.mime_type || document.file_type || '').toLowerCase()
+    if (mimeOrType.includes('/')) {
+      return mimeOrType
+    }
+    return mimeOrType || (document.file_name?.split('.').pop()?.toLowerCase() ?? '')
+  }, [document.file_name, document.file_type, document.mime_type])
+
+  const fileIcon = useMemo(() => {
+    const extension =
+      document.file_name?.split('.').pop()?.toLowerCase() ?? document.file_type?.toLowerCase() ?? ''
+    return FILE_TYPE_ICONS[extension] ?? FILE_TYPE_ICONS[fileType] ?? FILE_TYPE_ICONS.default
+  }, [document.file_name, document.file_type, fileType])
+
+  const isPdf = fileType.includes('pdf')
+  const isImage =
+    fileType.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(fileType)
 
   // Check if user has permission to view this document
   useEffect(() => {
@@ -31,16 +68,18 @@ export default function SharedDocumentViewer({
           setHasPermission(true)
         } else {
           // Check if user is authenticated and has permission
-          const { data: { user } } = await supabase.auth.getUser()
-          
+          const {
+            data: { user },
+          } = await supabase.auth.getUser()
+
           if (user) {
             // Check document permissions
             const hasAccess = await supabase.rpc('check_document_permission', {
               p_document_id: document.id,
               p_user_id: user.id,
-              p_permission_type: 'view'
+              p_permission_type: 'view',
             })
-            
+
             setHasPermission(hasAccess.data || false)
           } else {
             setHasPermission(false)
@@ -62,59 +101,64 @@ export default function SharedDocumentViewer({
     if (hasPermission) {
       logDocumentView()
     }
-  }, [hasPermission])
+  }, [hasPermission, logDocumentView])
 
-  const logDocumentView = async () => {
+  const logDocumentView = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       await supabase.from('document_access_logs').insert({
         document_id: document.id,
         user_id: user?.id || null,
         action: 'view',
-        ip_address: null, // Would be set by server in production
+        ip_address: null,
         user_agent: navigator.userAgent,
         details: {
           token_used: !!token,
-          referrer: document.referrer
-        }
+          referrer: (document as Record<string, unknown>).referrer ?? null,
+        },
       })
     } catch (error) {
       console.debug('Failed to log document view:', error)
     }
-  }
+  }, [document, supabase, token])
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     if (!hasPermission) return
 
     setLoading(true)
     try {
-      // Log download action
-      const { data: { user } } = await supabase.auth.getUser()
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       await supabase.from('document_access_logs').insert({
         document_id: document.id,
         user_id: user?.id || null,
         action: 'download',
-        details: { token_used: !!token }
+        details: { token_used: !!token },
       })
 
-      // Trigger download
       const link = window.document.createElement('a')
       link.href = document.file_url
       link.download = document.file_name
+      link.target = '_blank'
+      link.rel = 'noopener noreferrer'
       link.click()
     } catch (err) {
       setError('다운로드에 실패했습니다.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [document.file_name, document.file_url, document.id, hasPermission, supabase, token])
 
-  const getFileIcon = () => {
-    const IconComponent = FILE_TYPE_ICONS[document.file_type] || FileText
-    return <IconComponent className="h-16 w-16 text-blue-600" />
-  }
+  const renderFileIcon = () => (
+    <div className="h-16 w-16 rounded-full bg-blue-50 flex items-center justify-center text-3xl">
+      {fileIcon}
+    </div>
+  )
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR', {
@@ -122,7 +166,7 @@ export default function SharedDocumentViewer({
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
@@ -144,11 +188,10 @@ export default function SharedDocumentViewer({
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center max-w-md mx-auto p-6">
           <Shield className="h-16 w-16 text-red-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            접근이 제한됩니다
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">접근이 제한됩니다</h1>
           <p className="text-gray-600 mb-6">
-            이 문서에 접근할 권한이 없습니다. 문서 소유자에게 권한을 요청하거나 올바른 공유 링크를 확인하세요.
+            이 문서에 접근할 권한이 없습니다. 문서 소유자에게 권한을 요청하거나 올바른 공유 링크를
+            확인하세요.
           </p>
           <div className="space-y-3">
             <a
@@ -157,9 +200,7 @@ export default function SharedDocumentViewer({
             >
               로그인
             </a>
-            <p className="text-sm text-gray-500">
-              계정이 있으시면 로그인 후 다시 시도하세요
-            </p>
+            <p className="text-sm text-gray-500">계정이 있으시면 로그인 후 다시 시도하세요</p>
           </div>
         </div>
       </div>
@@ -172,24 +213,16 @@ export default function SharedDocumentViewer({
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
-            {getFileIcon()}
+            {renderFileIcon()}
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">
-                {document.title}
-              </h1>
-              {document.description && (
-                <p className="text-gray-600 mb-3">
-                  {document.description}
-                </p>
-              )}
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">{document.title}</h1>
+              {document.description && <p className="text-gray-600 mb-3">{document.description}</p>}
               <div className="flex items-center space-x-4 text-sm text-gray-500">
                 <span className="flex items-center">
                   <Calendar className="h-4 w-4 mr-1" />
                   {formatDate(document.created_at)}
                 </span>
-                <span>
-                  {formatFileSize(document.file_size)}
-                </span>
+                <span>{formatFileSize(document.file_size)}</span>
               </div>
             </div>
           </div>
@@ -205,7 +238,7 @@ export default function SharedDocumentViewer({
 
             <button
               onClick={handleDownload}
-              disabled={loading}
+              disabled={loading || !allowDownload}
               className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors disabled:opacity-50"
             >
               {loading ? (
@@ -215,6 +248,11 @@ export default function SharedDocumentViewer({
               )}
               다운로드
             </button>
+            {!allowDownload && (
+              <span className="text-xs text-gray-500">
+                공유 설정으로 다운로드가 제한되었습니다.
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -222,19 +260,15 @@ export default function SharedDocumentViewer({
       {/* Document Info */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">문서 정보</h2>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h3 className="text-sm font-medium text-gray-500 mb-2">업로더</h3>
             <div className="flex items-center">
               <User className="h-4 w-4 text-gray-400 mr-2" />
-              <span className="text-gray-900">
-                {document.profiles?.name || '알 수 없음'}
-              </span>
+              <span className="text-gray-900">{document.profiles?.name || '알 수 없음'}</span>
               {document.profiles?.email && (
-                <span className="text-gray-500 ml-2 text-sm">
-                  ({document.profiles.email})
-                </span>
+                <span className="text-gray-500 ml-2 text-sm">({document.profiles.email})</span>
               )}
             </div>
           </div>
@@ -247,9 +281,7 @@ export default function SharedDocumentViewer({
                 <div>
                   <span className="text-gray-900">{document.sites.name}</span>
                   {document.sites.address && (
-                    <div className="text-gray-500 text-sm">
-                      {document.sites.address}
-                    </div>
+                    <div className="text-gray-500 text-sm">{document.sites.address}</div>
                   )}
                 </div>
               </div>
@@ -259,7 +291,7 @@ export default function SharedDocumentViewer({
           <div>
             <h3 className="text-sm font-medium text-gray-500 mb-2">파일 형식</h3>
             <span className="text-gray-900">
-              {document.mime_type || document.file_type.toUpperCase()}
+              {document.mime_type || document.file_type?.toUpperCase() || '알 수 없음'}
             </span>
           </div>
 
@@ -275,7 +307,7 @@ export default function SharedDocumentViewer({
               <h3 className="text-sm font-medium text-gray-500 mb-2">태그</h3>
               <div className="flex flex-wrap gap-2">
                 {document.tags.map((tag, index) => (
-                  <span 
+                  <span
                     key={index}
                     className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
                   >
@@ -298,13 +330,12 @@ export default function SharedDocumentViewer({
             rel="noopener noreferrer"
             className="inline-flex items-center text-blue-600 hover:text-blue-700 text-sm"
           >
-            <ExternalLink className="h-4 w-4 mr-1" />
-            새 탭에서 열기
+            <ExternalLink className="h-4 w-4 mr-1" />새 탭에서 열기
           </a>
         </div>
 
         {/* Preview based on file type */}
-        {document.file_type === 'pdf' ? (
+        {isPdf ? (
           <div className="aspect-[4/3] border rounded-lg overflow-hidden">
             <iframe
               src={`${document.file_url}#view=FitH`}
@@ -312,7 +343,7 @@ export default function SharedDocumentViewer({
               title={`${document.title} 미리보기`}
             />
           </div>
-        ) : document.file_type.match(/^image\/(jpeg|jpg|png|gif|webp)$/i) ? (
+        ) : isImage ? (
           <div className="text-center">
             <img
               src={document.file_url}

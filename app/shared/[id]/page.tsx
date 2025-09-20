@@ -1,61 +1,140 @@
-import { createClient } from "@/lib/supabase/server"
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+
+import SharedDocumentViewer from '@/components/shared/SharedDocumentViewer'
+import { createClient } from '@/lib/supabase/server'
+import type { SharedDocument } from '@/types/shared-documents'
 
 interface SharedDocumentPageProps {
   params: { id: string }
   searchParams: { token?: string }
 }
 
-export default async function SharedDocumentPage({ 
-  params, 
-  searchParams 
+export const dynamic = 'force-dynamic'
+
+async function verifyToken(
+  documentId: string,
+  token: string,
+  supabase: ReturnType<typeof createClient>
+) {
+  const { data: tokenRow } = await supabase
+    .from('document_share_tokens')
+    .select('id, allow_download, expires_at, used_count, max_uses')
+    .eq('document_id', documentId)
+    .eq('token', token)
+    .gt('expires_at', new Date().toISOString())
+    .maybeSingle()
+
+  if (!tokenRow) {
+    return { valid: false as const, allowDownload: true }
+  }
+
+  if (typeof tokenRow.max_uses === 'number' && tokenRow.used_count >= tokenRow.max_uses) {
+    return { valid: false as const, allowDownload: tokenRow.allow_download }
+  }
+
+  // Increment usage count (fire and forget)
+  await supabase
+    .from('document_share_tokens')
+    .update({ used_count: (tokenRow.used_count ?? 0) + 1 })
+    .eq('id', tokenRow.id)
+
+  return { valid: true as const, allowDownload: tokenRow.allow_download }
+}
+
+async function hasUserAccess(documentId: string, supabase: ReturnType<typeof createClient>) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (!user) return { granted: false as const, userId: null }
+
+  const { data: permissionResult } = await supabase.rpc('check_document_permission', {
+    p_document_id: documentId,
+    p_user_id: user.id,
+    p_permission_type: 'view',
+  } as unknown)
+
+  return {
+    granted: Boolean(permissionResult),
+    userId: user.id,
+  }
+}
+
+export default async function SharedDocumentPage({
+  params,
+  searchParams,
 }: SharedDocumentPageProps) {
   const supabase = createClient()
+  const shareToken = searchParams.token
 
-  // Verify document exists and is accessible
   const { data: document, error } = await supabase
     .from('shared_documents')
-    .select(`
+    .select(
+      `
       *,
       sites(name, address),
-      profiles!shared_documents_uploaded_by_fkey(name, email)
-    `)
+      profiles:profiles!shared_documents_uploaded_by_fkey(name, email)
+    `
+    )
     .eq('id', params.id)
-    .eq('is_deleted', false)
-    .single()
+    .maybeSingle()
 
   if (error || !document) {
     notFound()
   }
 
-  // TODO: Validate sharing token if required
-  // In a production system, you'd verify the token here
-  
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <h1 className="text-2xl font-bold mb-4">{document.title}</h1>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">{document.description}</p>
-          <div className="text-sm text-gray-500">
-            <p>사이트: {document.sites?.name}</p>
-            <p>업로드: {document.profiles?.name} ({document.profiles?.email})</p>
+  let hasAccess = Boolean(document.is_public)
+  let allowDownload = true
+
+  if (!hasAccess && shareToken) {
+    const tokenResult = await verifyToken(params.id, shareToken, supabase)
+    hasAccess = tokenResult.valid
+    allowDownload = tokenResult.allowDownload
+  }
+
+  if (!hasAccess) {
+    const permissionResult = await hasUserAccess(params.id, supabase)
+    hasAccess = permissionResult.granted
+    if (!hasAccess) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
+            <h1 className="text-xl font-semibold text-gray-900">접근 권한이 필요합니다</h1>
+            <p className="mt-4 text-sm text-gray-600">
+              공유 링크가 만료되었거나 이 문서에 대한 권한이 없습니다. 링크를 제공한 관리자에게
+              문의해주세요.
+            </p>
           </div>
         </div>
-      </div>
+      )
+    }
+  }
+
+  const viewerDocument = document as SharedDocument & {
+    sites?: { name: string; address?: string } | null
+    profiles?: { name: string; email: string } | null
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-6">
+      <SharedDocumentViewer
+        document={viewerDocument}
+        token={shareToken}
+        allowDownload={allowDownload}
+      />
     </div>
   )
 }
 
-// Generate metadata for the shared document
-export async function generateMetadata({ params }: { params: { id: string } }) {
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const supabase = createClient()
 
   const { data: document } = await supabase
     .from('shared_documents')
     .select('title, description')
     .eq('id', params.id)
-    .single()
+    .maybeSingle()
 
   if (!document) {
     return {
