@@ -5,6 +5,7 @@ import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/l
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { useLongPress } from '@/modules/mobile/hooks/useLongPress'
+import { DocumentPreviewModal } from '@/modules/mobile/components/documents/DocumentPreviewModal'
 import { DocumentShareModal } from '@/modules/mobile/components/documents/DocumentShareModal'
 import { DocumentUploadModal } from '@/modules/mobile/components/documents/DocumentUploadModal'
 import { useDocumentState } from '@/modules/mobile/hooks/useLocalStorage'
@@ -19,6 +20,11 @@ interface DocumentItem {
   title: string
   hasUpload: boolean
   fileUrl?: string
+}
+
+interface PreviewModalState {
+  isOpen: boolean
+  document: DocumentItem | null
 }
 
 interface ShareModalState {
@@ -78,6 +84,10 @@ const DocumentsContentV2: React.FC = () => {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [expandedTitleId, setExpandedTitleId] = useState<string | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
+  const [previewModal, setPreviewModal] = useState<PreviewModalState>({
+    isOpen: false,
+    document: null,
+  })
   const [shareModal, setShareModal] = useState<ShareModalState>({ isOpen: false })
   const [uploadModal, setUploadModal] = useState<UploadModalState>({
     isOpen: false,
@@ -291,6 +301,17 @@ const DocumentsContentV2: React.FC = () => {
       documentId: document.id,
       documentTitle: document.title,
     })
+  }
+
+  const handlePreviewDocument = (docId: string) => {
+    const document = currentDocuments.find(doc => doc.id === docId)
+    if (!document) return
+
+    setPreviewModal({
+      isOpen: true,
+      document,
+    })
+    clearDeleteMode()
   }
 
   const openDocument = (document: DocumentItem) => {
@@ -566,6 +587,12 @@ const DocumentsContentV2: React.FC = () => {
             공유하기
           </button>
         </div>
+
+        <DocumentPreviewModal
+          isOpen={previewModal.isOpen}
+          onClose={() => setPreviewModal({ isOpen: false, document: null })}
+          document={previewModal.document}
+        />
 
         <DocumentShareModal
           isOpen={shareModal.isOpen}
