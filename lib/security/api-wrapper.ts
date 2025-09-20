@@ -13,6 +13,8 @@
 
 import { withRateLimit, getRateLimitIdentifier, getRateLimitType } from './rate-limiter'
 import { z } from 'zod'
+import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient, type SimpleAuth } from '@/lib/auth/ultra-simple'
 
 export interface SecurityConfig {
   requireAuth?: boolean
@@ -25,7 +27,7 @@ export interface SecurityConfig {
 }
 
 export interface ApiContext {
-  user?: unknown
+  user?: SimpleAuth
   profile?: unknown
   ip: string
   userAgent: string
@@ -131,9 +133,9 @@ export function withSecurity(
       // Authentication check
       if (config.requireAuth !== false) {
         const supabase = createClient()
-        const { data: { user }, error } = await supabase.auth.getUser()
-        
-        if (!user || error) {
+        const auth = await getAuthForClient(supabase)
+
+        if (!auth) {
           logSecurityEvent({
             type: 'unauthorized_access',
             severity: 'medium',
@@ -149,14 +151,14 @@ export function withSecurity(
           return createErrorResponse(API_ERRORS.UNAUTHORIZED, context)
         }
 
-        context.user = user
+        context.user = auth
 
         // Get user profile for role checking
         if (config.requiredRole) {
           const { data: profile } = await supabase
             .from('profiles')
             .select('role, organization_id, site_id')
-            .eq('id', user.id)
+            .eq('id', auth.userId)
             .single()
 
           if (!profile || !config.requiredRole.includes(profile.role)) {
@@ -169,7 +171,7 @@ export function withSecurity(
               details: {
                 endpoint: request.nextUrl.pathname,
                 requestId,
-                userId: user.id,
+                userId: auth.userId,
                 userRole: profile?.role,
                 requiredRoles: config.requiredRole,
                 reason: 'insufficient_role_permissions'

@@ -1,59 +1,22 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import { createClient } from "@/lib/supabase/server"
-import SignupRequestsClient from './signup-requests-client'
+export const metadata: Metadata = {
+  title: '가입 요청 관리 (준비 중)',
+}
 
-export const dynamic = "force-dynamic"
-
-export default async function SignupRequestsPage() {
-  const supabase = createClient()
-  
-  // Check authentication and admin permissions
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  
-  if (userError || !user) {
-    redirect('/auth/login')
-  }
-
-  // Get user profile and check admin permissions
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !profile || !['admin', 'system_admin'].includes(profile.role)) {
-    redirect('/dashboard')
-  }
-
-  // Fetch signup requests from database
-  const { data: signupRequests, error: requestsError } = await supabase
-    .from('signup_requests')
-    .select(`
-      *,
-      approved_by_profile:approved_by(full_name),
-      rejected_by_profile:rejected_by(full_name)
-    `)
-    .order('requested_at', { ascending: false })
-
-  if (requestsError) {
-    console.error('Error fetching signup requests:', requestsError)
-  }
+export default async function AdminSignupRequestsPage() {
+  await requireAdminProfile()
 
   return (
-    <div className="space-y-6">
-    <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          가입 요청 관리
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          새로운 회원가입 요청을 검토하고 승인/거절할 수 있습니다.
-        </p>
-    </div>
-
-      <SignupRequestsClient 
-        requests={signupRequests || []} 
-        currentUser={profile}
-      />
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="가입 요청 관리"
+        description="가입 승인/거절 화면은 현재 리팩토링 중입니다."
+      >
+        <p>요청 목록 및 승인 플로우는 Phase 2에서 새 API 기준으로 제공될 예정입니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

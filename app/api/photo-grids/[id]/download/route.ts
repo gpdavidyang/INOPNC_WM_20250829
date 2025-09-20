@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth, canAccessData } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -10,19 +11,19 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await getAuthenticatedUser()
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const supabase = await createClient()
-    
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+    const auth = authResult
+
     // Get the photo grid data
     const { data: photoGrid, error } = await supabase
       .from('photo_grids')
       .select(`
         *,
-        site:sites(id, name, address),
+        site:sites(id, name, address, organization_id),
         creator:profiles(id, full_name)
       `)
       .eq('id', params.id)
@@ -31,6 +32,10 @@ export async function GET(
     if (error || !photoGrid) {
       console.error('Error fetching photo grid:', error)
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    }
+
+    if (auth.isRestricted && !(await canAccessData(auth, photoGrid.site?.organization_id))) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
     // Get all images from photo_grid_images table

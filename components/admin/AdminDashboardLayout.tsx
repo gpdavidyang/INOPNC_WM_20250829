@@ -31,7 +31,7 @@ import { getFullTypographyClass } from '@/contexts/FontSizeContext'
 import { useFontSize } from '@/contexts/FontSizeContext'
 import { useTouchMode } from '@/contexts/TouchModeContext'
 import type { Profile } from '@/lib/supabase'
-import { AdminHeader } from './AdminHeader'
+import AdminHeader from './AdminHeader'
 import { signOut } from '@/app/auth/actions'
 
 interface AdminDashboardLayoutProps {

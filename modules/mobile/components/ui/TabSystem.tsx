@@ -30,7 +30,28 @@ export const TabSystem: React.FC<TabSystemProps> = ({
   // 키보드 네비게이션 처리
   const handleKeyDown = useCallback(
     (e: KeyboardEvent<HTMLDivElement>) => {
-      const currentIndex = tabs.findIndex(tab => tab.id === activeTab)
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+        return
+      }
+
+      if (tabs.length === 0) {
+        e.preventDefault()
+        return
+      }
+
+      let currentIndex = tabs.findIndex(tab => tab.id === activeTab)
+
+      if (currentIndex === -1) {
+        e.preventDefault()
+        const fallbackTab = tabs[0]
+        onTabChange(fallbackTab.id)
+        const fallbackElement = document.querySelector(
+          `[role="tab"][data-tab-id="${fallbackTab.id}"]`
+        ) as HTMLButtonElement | null
+        fallbackElement?.focus()
+        return
+      }
+
       let newIndex = currentIndex
 
       switch (e.key) {
@@ -52,19 +73,19 @@ export const TabSystem: React.FC<TabSystemProps> = ({
           break
       }
 
-      if (newIndex !== currentIndex) {
-        onTabChange(tabs[newIndex].id)
-        // Focus the new tab
+      const nextTab = tabs[newIndex]
+      if (nextTab && newIndex !== currentIndex) {
+        onTabChange(nextTab.id)
         const newTab = document.querySelector(
-          `[role="tab"][data-tab-id="${tabs[newIndex].id}"]`
-        ) as HTMLButtonElement
+          `[role="tab"][data-tab-id="${nextTab.id}"]`
+        ) as HTMLButtonElement | null
         newTab?.focus()
       }
     },
     [tabs, activeTab, onTabChange]
   )
 
-  const getTabClasses = () => {
+  const getTabClasses = (isActive: boolean) => {
     const baseClasses =
       'tab relative font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1A254F]'
 
@@ -72,12 +93,11 @@ export const TabSystem: React.FC<TabSystemProps> = ({
       case 'grid':
         return cn(
           baseClasses,
-          'h-14 bg-white border border-[#E5EAF3] text-[#667085] text-sm font-semibold',
-          'data-[state=active]:bg-[#1A254F] data-[state=active]:text-white data-[state=active]:border-[#1A254F]',
-          'data-[state=inactive]:bg-white data-[state=inactive]:text-[#667085] data-[state=inactive]:border-[#E5EAF3]',
-          'hover:bg-[#f8f9fb] hover:border-[#d0d5dd]',
-          'active:scale-[0.98]',
-          'flex items-center justify-center'
+          'h-14 text-sm font-semibold flex items-center justify-center border transition-colors',
+          'hover:bg-[#f8f9fb] hover:border-[#d0d5dd] active:scale-[0.98]',
+          isActive
+            ? 'bg-[#1A254F] text-white border-[#1A254F]'
+            : 'bg-white text-[#667085] border-[#E5EAF3]'
         )
       case 'solid':
         return cn(
@@ -131,14 +151,14 @@ export const TabSystem: React.FC<TabSystemProps> = ({
           <button
             key={tab.id}
             role="tab"
-            data-tab-id={tab.id}
-            data-state={activeTab === tab.id ? 'active' : 'inactive'}
-            aria-selected={activeTab === tab.id}
-            aria-controls={`panel-${tab.id}`}
-            tabIndex={activeTab === tab.id ? 0 : -1}
-            className={getTabClasses()}
-            onClick={() => onTabChange(tab.id)}
-          >
+          data-tab-id={tab.id}
+          data-state={activeTab === tab.id ? 'active' : 'inactive'}
+          aria-selected={activeTab === tab.id}
+          aria-controls={`panel-${tab.id}`}
+          tabIndex={activeTab === tab.id ? 0 : -1}
+          className={getTabClasses(activeTab === tab.id)}
+          onClick={() => onTabChange(tab.id)}
+        >
             <span className="flex items-center gap-2">
               {tab.icon && <span className="tab-icon">{tab.icon}</span>}
               <span className="tab-label">{tab.label}</span>

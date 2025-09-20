@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -11,13 +12,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const { data, error } = await supabase
       .from('photo_grid_reports')
@@ -70,13 +70,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const allowedFields = ['title', 'notes', 'status', 'version']
@@ -127,26 +126,19 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const { searchParams } = new URL(request.url)
     const permanent = searchParams.get('permanent') === 'true'
 
     if (permanent) {
       // 영구 삭제 (시스템 관리자만 가능)
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-
-      if (!profile || profile.role !== 'system_admin') {
+      if (authResult.role !== 'system_admin') {
         return NextResponse.json(
           { error: '권한이 없습니다.' },
           { status: 403 }

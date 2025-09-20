@@ -1,31 +1,22 @@
-import NotificationCenter from '@/components/admin/notifications/NotificationCenter'
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
+
+export const metadata: Metadata = {
+  title: '알림 센터 (준비 중)',
+}
 
 export default async function NotificationCenterPage() {
-  const { data: profile } = await getProfile()
-  
-  if (!profile) {
-    redirect('/auth/login')
-  }
-  
-  // Only admin role can access admin notifications
-  if (profile.role !== 'admin') {
-    redirect('/dashboard')
-  }
+  await requireAdminProfile()
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-            알림 관리
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            시스템 전체 알림을 관리하고 모니터링합니다
-          </p>
-        </div>
-      </div>
-      
-      <NotificationCenter profile={profile} />
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="알림 관리"
+        description="시스템 알림 및 공지 관리 화면은 재구성 중입니다."
+      >
+        <p>알림 템플릿과 발송 이력 관리는 Phase 2 데이터 정비 이후 복원할 예정입니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

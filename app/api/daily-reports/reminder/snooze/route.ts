@@ -1,26 +1,25 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { siteId, snoozeHours = 2 } = await request.json()
 
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user profile
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
@@ -45,7 +44,7 @@ export async function POST(request: NextRequest) {
         notification_preferences: preferences,
         updated_at: new Date().toISOString()
       })
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
 
     if (updateError) {
       console.error('Error updating snooze preference:', updateError)
@@ -56,13 +55,13 @@ export async function POST(request: NextRequest) {
     await supabase
       .from('notification_logs')
       .insert({
-        user_id: user.id,
+        user_id: authResult.userId,
         notification_type: 'daily_report_reminder',
         title: '작업일지 리마인더 연기',
         body: `작업일지 리마인더가 ${snoozeHours}시간 후로 연기되었습니다`,
         status: 'delivered',
         sent_at: new Date().toISOString(),
-        sent_by: user.id
+        sent_by: authResult.userId
       })
 
     return NextResponse.json({

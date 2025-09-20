@@ -1,20 +1,19 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      console.error('Auth error in workers GET:', authError)
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const searchParams = request.nextUrl.searchParams
     const reportId = searchParams.get('reportId')
@@ -24,7 +23,7 @@ export async function GET(request: NextRequest) {
     if (isTest) {
       return NextResponse.json({
         test: true,
-        user: user.email,
+        user: authResult.email,
         timestamp: new Date().toISOString(),
         gitCommit: process.env.VERCEL_GIT_COMMIT_SHA?.substring(0, 7)
       })
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Report ID is required' }, { status: 400 })
     }
 
-    console.log(`Fetching workers for report: ${reportId}, user: ${user.id}`)
+    console.log(`Fetching workers for report: ${reportId}, user: ${authResult.userId}`)
 
     const { data, error } = await supabase
       .from('daily_report_workers')
@@ -46,7 +45,7 @@ export async function GET(request: NextRequest) {
       console.error('Database error fetching workers:', {
         error,
         reportId,
-        userId: user.id
+        userId: authResult.userId
       })
       return NextResponse.json({ 
         error: error.message,
@@ -71,22 +70,18 @@ export async function POST(request: NextRequest) {
   console.log('Request headers:', Object.fromEntries(request.headers.entries()))
   
   try {
-    const supabase = await createClient()
-    console.log('Supabase client created')
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    console.log('Auth check:', {
-      hasUser: !!user,
-      userId: user?.id,
-      userEmail: user?.email,
-      authError: authError?.message
-    })
-    
-    if (authError || !user) {
-      console.error('Auth error in workers POST:', authError)
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    console.log('Auth check:', {
+      hasUser: true,
+      userId: authResult.userId,
+      userEmail: authResult.email
+    })
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { daily_report_id, worker_name, work_hours } = body
@@ -95,7 +90,7 @@ export async function POST(request: NextRequest) {
     console.log('Report ID:', daily_report_id)
     console.log('Worker Name:', worker_name)
     console.log('Work Hours:', work_hours)
-    console.log('User ID:', user.id)
+    console.log('User ID:', authResult.userId)
 
     if (!daily_report_id || !worker_name || !work_hours) {
       return NextResponse.json({ 
@@ -183,13 +178,12 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { id, worker_name, work_hours } = body
@@ -226,13 +220,12 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const searchParams = request.nextUrl.searchParams
     const workerId = searchParams.get('id')

@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
 
 
 export async function uploadPhotoToStorage(formData: FormData) {
   try {
     const supabase = createClient()
-    
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 

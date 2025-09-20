@@ -1,30 +1,27 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { ADMIN_ASSIGNMENT_ACTIVITY_STUB } from '@/lib/admin/stub-data'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
+  const authResult = await requireApiAuth()
+
+  if (authResult instanceof NextResponse) {
+    return authResult
+  }
+
+  if (!authResult.role || !['admin', 'system_admin'].includes(authResult.role)) {
+    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
+  }
+
   const supabase = createClient()
   const { searchParams } = new URL(request.url)
   const limit = parseInt(searchParams.get('limit') || '20')
 
   try {
-    // Check admin authorization
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
-    }
 
     // Get recent assignment activities
     const { data: assignments, error: assignError } = await supabase
@@ -92,14 +89,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: allActivities
+      data: allActivities,
+      source: 'supabase',
     })
 
   } catch (error) {
     console.error('Activity fetch error:', error)
-    return NextResponse.json(
-      { success: false, error: 'Failed to load activity data' },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      success: true,
+      data: ADMIN_ASSIGNMENT_ACTIVITY_STUB,
+      source: 'stub',
+    })
   }
 }

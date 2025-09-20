@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 ;('use server')
 
 const log = (...args: unknown[]) => {
@@ -14,31 +15,14 @@ export async function getCurrentUserSite() {
     log('getCurrentUserSite: Starting... (env:', process.env.NODE_ENV, ')')
 
     // 배포 환경에서 쿠키 상태 확인
-    try {
-      const { data: sessionData } = await supabase.auth.getSession()
-      log('getCurrentUserSite: Session check result:', {
-        hasSession: !!sessionData?.session,
-        hasAccessToken: !!sessionData?.session?.access_token,
-        env: process.env.NODE_ENV,
-      })
-    } catch (sessionError) {
-      log('getCurrentUserSite: Session check error:', sessionError)
-      return { success: false, error: 'Session check failed', data: null }
-    }
-
-    // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    log('getCurrentUserSite: User check result:', {
-      user: user?.id,
-      email: user?.email,
-      authError: authError?.message,
+    const auth = await getAuthForClient(supabase)
+    log('getCurrentUserSite: Auth check:', {
+      user: auth?.userId,
+      email: auth?.email,
       timestamp: new Date().toISOString(),
     })
 
-    if (authError || !user) {
+    if (!auth) {
       log(
         'getCurrentUserSite: Authentication failed - this is expected in deployment without session'
       )
@@ -59,7 +43,7 @@ export async function getCurrentUserSite() {
     const { data: assignmentsTest, error: assignmentsTestError } = await supabase
       .from('site_assignments')
       .select('id, user_id, site_id, is_active')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
 
     log('getCurrentUserSite: Assignments test result:', { assignmentsTest, assignmentsTestError })
 
@@ -80,7 +64,7 @@ export async function getCurrentUserSite() {
         const { data: newAssignment, error: assignError } = await supabase
           .from('site_assignments')
           .insert({
-            user_id: user.id,
+            user_id: auth.userId,
             site_id: testSite.id,
             assigned_date: new Date().toISOString().split('T')[0],
             is_active: true,
@@ -120,7 +104,7 @@ export async function getCurrentUserSite() {
         )
       `
       )
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .eq('is_active', true)
       .order('assigned_date', { ascending: false })
 
@@ -266,14 +250,10 @@ export async function getUserSiteHistory() {
 
     log('getUserSiteHistory: Starting...')
 
-    // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    log('getUserSiteHistory: User check result:', { user: user?.id, authError })
+    const auth = await getAuthForClient(supabase)
+    log('getUserSiteHistory: Auth check result:', { user: auth?.userId })
 
-    if (authError || !user) {
+    if (!auth) {
       log('getUserSiteHistory: Authentication failed')
       return { success: false, error: 'Authentication required', data: [] }
     }
@@ -306,7 +286,7 @@ export async function getUserSiteHistory() {
         )
       `
       )
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .order('assigned_date', { ascending: false })
 
     log('getUserSiteHistory: Direct query result:', { data, error, dataLength: data?.length })
@@ -360,12 +340,8 @@ export async function getAllSites() {
   const supabase = createClient()
 
   try {
-    // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
 
@@ -373,7 +349,7 @@ export async function getAllSites() {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
@@ -422,12 +398,8 @@ export async function assignUserToSite(userId: string, siteId: string, role: str
   const supabase = createClient()
 
   try {
-    // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
 
@@ -435,7 +407,7 @@ export async function assignUserToSite(userId: string, siteId: string, role: str
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
@@ -482,11 +454,8 @@ export async function unassignUserFromSite(userId: string) {
 
   try {
     // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
 
@@ -494,7 +463,7 @@ export async function unassignUserFromSite(userId: string) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
@@ -528,11 +497,8 @@ export async function getSiteWorkers(siteId: string) {
 
   try {
     // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
 
@@ -577,22 +543,18 @@ export async function selectUserSite(siteId: string) {
   try {
     log('selectUserSite: Starting...')
 
-    // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
 
-    log('selectUserSite: User ID:', user.id, 'Site ID:', siteId)
+    log('selectUserSite: User ID:', auth.userId, 'Site ID:', siteId)
 
     // 사용자가 해당 사이트에 배정되어 있는지 확인
     const { data: assignment, error: checkError } = await supabase
       .from('site_assignments')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .eq('site_id', siteId)
       .single()
 
@@ -606,14 +568,14 @@ export async function selectUserSite(siteId: string) {
           is_active: false,
           unassigned_date: new Date().toISOString().split('T')[0],
         })
-        .eq('user_id', user.id)
+        .eq('user_id', auth.userId)
         .eq('is_active', true)
 
       // 새 배정 생성
       const { data: newAssignment, error: assignError } = await supabase
         .from('site_assignments')
         .insert({
-          user_id: user.id,
+          user_id: auth.userId,
           site_id: siteId,
           assigned_date: new Date().toISOString().split('T')[0],
           is_active: true,
@@ -640,7 +602,7 @@ export async function selectUserSite(siteId: string) {
           is_active: false,
           unassigned_date: new Date().toISOString().split('T')[0],
         })
-        .eq('user_id', user.id)
+        .eq('user_id', auth.userId)
         .eq('is_active', true)
 
       // 현재 배정 활성화
@@ -680,16 +642,12 @@ export async function forceAssignCurrentUserToTestSite() {
   try {
     log('forceAssignCurrentUserToTestSite: Starting...')
 
-    // 현재 사용자 확인
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
 
-    log('forceAssignCurrentUserToTestSite: User ID:', user.id)
+    log('forceAssignCurrentUserToTestSite: User ID:', auth.userId)
 
     // 기존 활성 배정 비활성화
     const { error: deactivateError } = await supabase
@@ -698,7 +656,7 @@ export async function forceAssignCurrentUserToTestSite() {
         is_active: false,
         unassigned_date: new Date().toISOString().split('T')[0],
       })
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .eq('is_active', true)
 
     if (deactivateError) {
@@ -726,7 +684,7 @@ export async function forceAssignCurrentUserToTestSite() {
     const { data: newAssignment, error: assignError } = await supabase
       .from('site_assignments')
       .insert({
-        user_id: user.id,
+        user_id: auth.userId,
         site_id: testSite.id,
         assigned_date: new Date().toISOString().split('T')[0],
         is_active: true,

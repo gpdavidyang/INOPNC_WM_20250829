@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,12 +23,9 @@ export default async function DashboardPage() {
     const supabase = createClient()
 
     // Check user authentication
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    const auth = await getAuthForClient(supabase)
 
-    if (userError || !user) {
+    if (!auth) {
       console.log('[Dashboard] No authenticated user, redirecting to login')
       redirect('/auth/login')
     }
@@ -36,7 +34,7 @@ export default async function DashboardPage() {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, full_name, email')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (profileError || !profile) {

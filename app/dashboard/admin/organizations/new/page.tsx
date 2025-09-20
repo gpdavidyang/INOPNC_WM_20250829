@@ -1,33 +1,22 @@
-'use client'
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
+export const metadata: Metadata = {
+  title: '조직 등록 (준비 중)',
+}
 
-export default function NewOrganizationPage() {
-  const router = useRouter()
+export default async function AdminOrganizationCreatePage() {
+  await requireAdminProfile()
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          뒤로 가기
-        </button>
-      </div>
-
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
-          소속업체 등록
-        </h1>
-        
-        <OrganizationForm
-          organization={null}
-          onClose={() => router.push('/dashboard/admin/organizations')}
-          onSave={() => router.push('/dashboard/admin/organizations')}
-          isPage={true}
-        />
-      </div>
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="신규 조직 등록"
+        description="조직 등록 폼은 현재 재설계 중입니다."
+      >
+        <p>필수 필드와 검증 로직이 확정되면 Phase 2에서 UI를 복원합니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

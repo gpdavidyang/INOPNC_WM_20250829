@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -10,12 +11,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // First try to find in documents table (for site documents including blueprint/PTW)
     let document: unknown = null
@@ -62,7 +63,7 @@ export async function GET(
       // Check permissions for shared documents
       const hasPermission = await supabase.rpc('check_document_permission', {
         p_document_id: params.id,
-        p_user_id: user.id,
+        p_user_id: authResult.userId,
         p_permission_type: 'view'
       } as unknown)
 
@@ -115,7 +116,7 @@ export async function GET(
     // 액세스 로그 남기기
     await supabase.from('document_access_logs').insert({
       document_id: params.id,
-      user_id: user.id,
+      user_id: authResult.userId,
       action: 'view_file'
     })
 

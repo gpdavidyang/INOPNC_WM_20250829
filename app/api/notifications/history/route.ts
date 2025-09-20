@@ -1,19 +1,19 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Verify authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('notification_logs')
       .select('*', { count: 'exact' })
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
       .order('sent_at', { ascending: false })
       .range(offset, offset + limit - 1)
 
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       .from('notification_engagement')
       .select('*')
       .in('notification_id', notificationIds)
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
 
     // Map engagement data to notifications
     const notificationsWithEngagement = notifications?.map((notification: unknown) => {
@@ -105,13 +105,12 @@ export async function GET(request: NextRequest) {
 // Mark notification as read
 export async function PATCH(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Verify authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const { notificationId, action } = await request.json()
 
@@ -137,7 +136,7 @@ export async function PATCH(request: NextRequest) {
       .from('notification_logs')
       .update(updates)
       .eq('id', notificationId)
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
 
     if (updateError) {
       throw updateError
@@ -147,7 +146,7 @@ export async function PATCH(request: NextRequest) {
     await supabase
       .from('notification_engagement')
       .insert({
-        user_id: user.id,
+        user_id: authResult.userId,
         notification_id: notificationId,
         engagement_type: action === 'read' ? 'notification_clicked' : 'notification_dismissed',
         engaged_at: new Date().toISOString()

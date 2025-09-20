@@ -1,154 +1,120 @@
 'use client'
 
+import { useCallback, useEffect, useState } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import {
+  Activity,
+  ArrowDown,
+  ArrowUp,
+  Building2,
+  DollarSign,
+  Download,
+  FileText,
+  Minus,
+  RefreshCw,
+  Users,
+} from 'lucide-react'
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
+import type { AdminAnalyticsDataset } from '@/lib/admin/stub-data'
+import { ADMIN_ANALYTICS_STUB } from '@/lib/admin/stub-data'
 
-interface AnalyticsDashboardProps {
-  profile?: Profile
+type DashboardData = {
+  overview: AdminAnalyticsDataset['overview']
+  attendanceData: AdminAnalyticsDataset['attendanceTrend']
+  sitePerformance: AdminAnalyticsDataset['sitePerformance']
+  documentStats: AdminAnalyticsDataset['documentDistribution']
+  materialUsage: AdminAnalyticsDataset['materialUsageTrend']
+  salaryDistribution: AdminAnalyticsDataset['salaryDistribution']
+  safetyIncidents: AdminAnalyticsDataset['safetyIncidents']
+  productivityMetrics: AdminAnalyticsDataset['productivityMetrics']
 }
+
+const mapAnalyticsDataset = (dataset: AdminAnalyticsDataset): DashboardData => ({
+  overview: dataset.overview,
+  attendanceData: dataset.attendanceTrend,
+  sitePerformance: dataset.sitePerformance,
+  documentStats: dataset.documentDistribution,
+  materialUsage: dataset.materialUsageTrend,
+  salaryDistribution: dataset.salaryDistribution,
+  safetyIncidents: dataset.safetyIncidents,
+  productivityMetrics: dataset.productivityMetrics,
+})
+
+const FALLBACK_DATA = mapAnalyticsDataset(ADMIN_ANALYTICS_STUB)
 
 // 차트 색상 팔레트
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316']
 
-export default function AnalyticsDashboard({ profile }: AnalyticsDashboardProps) {
+export default function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true)
   const [selectedPeriod, setSelectedPeriod] = useState('month')
-  const [selectedSite, setSelectedSite] = useState('all')
   const [refreshing, setRefreshing] = useState(false)
-  const supabase = createClient()
+  const [dashboardData, setDashboardData] = useState<DashboardData>(FALLBACK_DATA)
 
-  // 대시보드 데이터
-  const [dashboardData, setDashboardData] = useState({
-    overview: {
-      totalWorkers: 245,
-      activeSites: 12,
-      totalDocuments: 1847,
-      monthlyExpense: 487500000,
-      workersChange: 12,
-      sitesChange: 2,
-      documentsChange: 156,
-      expenseChange: -5.2
-    },
-    attendanceData: [],
-    sitePerformance: [],
-    documentStats: [],
-    materialUsage: [],
-    salaryDistribution: [],
-    safetyIncidents: [],
-    productivityMetrics: []
-  })
-
-  useEffect(() => {
-    fetchAnalyticsData()
-  }, [selectedPeriod, selectedSite])
-
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = useCallback(async () => {
     try {
       setLoading(true)
-      
-      // 모의 데이터 생성
-      const mockData = {
-        overview: {
-          totalWorkers: 245,
-          activeSites: 12,
-          totalDocuments: 1847,
-          monthlyExpense: 487500000,
-          workersChange: 12,
-          sitesChange: 2,
-          documentsChange: 156,
-          expenseChange: -5.2
-        },
-        attendanceData: generateAttendanceData(),
-        sitePerformance: generateSitePerformance(),
-        documentStats: generateDocumentStats(),
-        materialUsage: generateMaterialUsage(),
-        salaryDistribution: generateSalaryDistribution(),
-        safetyIncidents: generateSafetyIncidents(),
-        productivityMetrics: generateProductivityMetrics()
+      const params = new URLSearchParams({ period: selectedPeriod })
+      const response = await fetch(`/api/admin/analytics/dashboard?${params.toString()}`)
+
+      if (!response.ok) {
+        throw new Error(`Failed to load analytics (${response.status})`)
       }
-      
-      setDashboardData(mockData)
+
+      const result = await response.json()
+
+      if (result?.success && result.data) {
+        setDashboardData(mapAnalyticsDataset(result.data as AdminAnalyticsDataset))
+      } else {
+        throw new Error('Invalid analytics response')
+      }
     } catch (error) {
       console.error('Error fetching analytics:', error)
+      setDashboardData(FALLBACK_DATA)
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedPeriod])
 
-  // 데이터 생성 함수들
-  const generateAttendanceData = () => {
-    const days = selectedPeriod === 'week' ? 7 : selectedPeriod === 'month' ? 30 : 90
-    return Array.from({ length: days }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() - (days - i - 1))
-      return {
-        date: date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
-        출근: Math.floor(Math.random() * 50) + 180,
-        결근: Math.floor(Math.random() * 10) + 5,
-        지각: Math.floor(Math.random() * 5) + 2
-      }
-    })
-  }
-
-  const generateSitePerformance = () => [
-    { name: '강남 A현장', 진행률: 78, 작업자: 45, 안전점수: 92 },
-    { name: '송파 C현장', 진행률: 65, 작업자: 38, 안전점수: 88 },
-    { name: '서초 B현장', 진행률: 92, 작업자: 52, 안전점수: 95 },
-    { name: '강동 D현장', 진행률: 45, 작업자: 32, 안전점수: 90 },
-    { name: '구로 E현장', 진행률: 88, 작업자: 41, 안전점수: 87 }
-  ]
-
-  const generateDocumentStats = () => [
-    { name: '작업지시서', value: 450, percentage: 24.3 },
-    { name: '안전서류', value: 380, percentage: 20.6 },
-    { name: '도면', value: 320, percentage: 17.3 },
-    { name: '계약서', value: 290, percentage: 15.7 },
-    { name: '보고서', value: 407, percentage: 22.1 }
-  ]
-
-  const generateMaterialUsage = () => {
-    const days = selectedPeriod === 'week' ? 7 : 30
-    return Array.from({ length: days }, (_, i) => {
-      const date = new Date()
-      date.setDate(date.getDate() - (days - i - 1))
-      return {
-        date: date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }),
-        'NPC-1000': Math.floor(Math.random() * 500) + 300,
-        '기타자재': Math.floor(Math.random() * 300) + 200
-      }
-    })
-  }
-
-  const generateSalaryDistribution = () => [
-    { range: '200-250만', count: 45 },
-    { range: '250-300만', count: 78 },
-    { range: '300-350만', count: 62 },
-    { range: '350-400만', count: 38 },
-    { range: '400만+', count: 22 }
-  ]
-
-  const generateSafetyIncidents = () => [
-    { month: '1월', incidents: 2, nearMiss: 5 },
-    { month: '2월', incidents: 1, nearMiss: 3 },
-    { month: '3월', incidents: 0, nearMiss: 4 },
-    { month: '4월', incidents: 1, nearMiss: 2 },
-    { month: '5월', incidents: 0, nearMiss: 1 },
-    { month: '6월', incidents: 0, nearMiss: 2 }
-  ]
-
-  const generateProductivityMetrics = () => [
-    { metric: '작업효율', current: 85, target: 90, unit: '%' },
-    { metric: '품질점수', current: 92, target: 95, unit: '점' },
-    { metric: '안전준수', current: 96, target: 98, unit: '%' },
-    { metric: '일정준수', current: 88, target: 85, unit: '%' },
-    { metric: '비용효율', current: 82, target: 80, unit: '%' }
-  ]
+  useEffect(() => {
+    void fetchAnalyticsData()
+  }, [fetchAnalyticsData])
 
   const handleRefresh = async () => {
     setRefreshing(true)
     await fetchAnalyticsData()
-    setTimeout(() => setRefreshing(false), 500)
+    setRefreshing(false)
   }
 
-  const StatCard = ({ title, value, change, icon: Icon, color }: unknown) => (
+  const StatCard = ({
+    title,
+    value,
+    change,
+    icon: Icon,
+    color,
+  }: {
+    title: string
+    value: number
+    change?: number
+    icon: LucideIcon
+    color: string
+  }) => (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
       <div className="flex items-center justify-between">
         <div>

@@ -1,25 +1,24 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Verify authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Check if user is admin/manager
+    const supabase = createClient()
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin', 'site_manager'].includes(profile.role)) {

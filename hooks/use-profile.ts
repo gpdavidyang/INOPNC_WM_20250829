@@ -36,9 +36,18 @@ export function useProfile() {
   const loadProfile = async () => {
     try {
       setLoading(true)
-      const { data: { user } } = await supabase.auth.getUser()
-      
-      if (!user) {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error('Error getting session:', sessionError)
+      }
+
+      const currentUser = session?.user
+
+      if (!currentUser) {
         setProfile(null)
         return
       }
@@ -46,7 +55,7 @@ export function useProfile() {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', currentUser.id)
         .single()
 
       if (profileError) {

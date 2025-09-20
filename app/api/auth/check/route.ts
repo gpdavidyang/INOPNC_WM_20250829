@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
@@ -25,14 +26,14 @@ export async function GET(request: NextRequest) {
       data: { session },
       error: sessionError,
     } = await supabase.auth.getSession()
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+
+    const simpleAuth = await getAuthForClient(supabase)
+    const userId = simpleAuth?.userId || session?.user?.id || null
+    const userEmail = session?.user?.email || simpleAuth?.email || null
 
     // Get profile if user exists
     let profile = null
-    if (user) {
+    if (userId) {
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       profile = data
     }
@@ -43,10 +44,10 @@ export async function GET(request: NextRequest) {
       authCookieNames: authCookies.map(c => c.name),
       hasSession: !!session,
       sessionError: sessionError?.message || null,
-      hasUser: !!user,
-      userError: userError?.message || null,
-      userId: user?.id || null,
-      userEmail: user?.email || null,
+      hasUser: !!userId,
+      userError: null,
+      userId,
+      userEmail,
       profile: profile
         ? {
             id: profile.id,

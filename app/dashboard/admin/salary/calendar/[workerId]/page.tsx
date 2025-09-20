@@ -1,35 +1,26 @@
-import WorkerCalendarClient from './worker-calendar-client'
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-interface PageProps {
-  params: {
-    workerId: string
-  }
-  searchParams: {
-    name?: string
-    year?: string
-    month?: string
-  }
+export const metadata: Metadata = {
+  title: '근로자 급여 캘린더 (준비 중)',
 }
 
-export default function WorkerCalendarPage({ params, searchParams }: PageProps) {
-  const workerId = params.workerId
-  const workerName = searchParams.name || 'Unknown Worker'
-  const year = parseInt(searchParams.year || new Date().getFullYear().toString())
-  const month = parseInt(searchParams.month || (new Date().getMonth() + 1).toString())
+interface WorkerCalendarPageProps {
+  params: { workerId: string }
+}
+
+export default async function AdminWorkerSalaryCalendarPage({ params }: WorkerCalendarPageProps) {
+  await requireAdminProfile()
 
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600 dark:text-gray-300">로딩 중...</span>
-      </div>
-    }>
-      <WorkerCalendarClient 
-        workerId={workerId}
-        workerName={workerName}
-        year={year}
-        month={month}
-      />
-    </Suspense>
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title={`근로자 급여 캘린더 – ${params.workerId}`}
+        description="근로자별 급여 캘린더는 현재 준비 중입니다."
+      >
+        <p>근태 데이터와 연동한 급여 계산 화면은 Phase 2에서 제공될 예정입니다.</p>
+      </AdminPlaceholder>
+    </div>
   )
 }

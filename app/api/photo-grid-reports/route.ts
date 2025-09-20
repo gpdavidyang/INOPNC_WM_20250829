@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import type { PhotoGridReport } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -9,14 +10,13 @@ export const dynamic = 'force-dynamic'
 // GET /api/photo-grid-reports - PDF 보고서 목록 조회
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { searchParams } = new URL(request.url)
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
-    }
 
     // 쿼리 매개변수 파싱
     const dailyReportId = searchParams.get('dailyReportId')
@@ -99,13 +99,12 @@ export async function GET(request: NextRequest) {
 // POST /api/photo-grid-reports - 새 PDF 보고서 생성 (파일 업로드 포함)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -169,7 +168,7 @@ export async function POST(request: NextRequest) {
         file_url: urlData.publicUrl,
         file_size: file.size,
         mime_type: 'application/pdf',
-        generated_by: user.id,
+        generated_by: authResult.userId,
         ...metadata
       })
       .select()

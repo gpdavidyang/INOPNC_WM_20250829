@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,25 +13,15 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { id } = params
 
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 사용자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    const role = authResult.role || ''
 
     // 문서 조회
     const { data: document, error: docError } = await supabase
@@ -45,7 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // 권한 확인 - 공개 문서이거나 관리자이거나 소유자인 경우
-    if (!document.is_public && profile.role !== 'admin' && document.uploaded_by !== user.id) {
+    if (!document.is_public && role !== 'admin' && document.uploaded_by !== authResult.userId) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -11,12 +12,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const { data: document, error } = await supabase
       .from('v_shared_documents_with_permissions')
@@ -36,7 +37,7 @@ export async function GET(
     // Log view action
     await supabase.from('document_access_logs').insert({
       document_id: params.id,
-      user_id: user.id,
+      user_id: authResult.userId,
       action: 'view'
     })
 
@@ -53,12 +54,12 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { title, description, category, tags, site_id, organization_id } = body
@@ -66,7 +67,7 @@ export async function PUT(
     // Check if user has edit permission
     const hasPermission = await supabase.rpc('check_document_permission', {
       p_document_id: params.id,
-      p_user_id: user.id,
+      p_user_id: authResult.userId,
       p_permission_type: 'edit'
     } as unknown)
 
@@ -97,7 +98,7 @@ export async function PUT(
     // Log edit action
     await supabase.from('document_access_logs').insert({
       document_id: params.id,
-      user_id: user.id,
+      user_id: authResult.userId,
       action: 'edit',
       details: {
         changes: updateData
@@ -120,17 +121,17 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Check if user has delete permission
     const hasPermission = await supabase.rpc('check_document_permission', {
       p_document_id: params.id,
-      p_user_id: user.id,
+      p_user_id: authResult.userId,
       p_permission_type: 'delete'
     } as unknown)
 
@@ -143,7 +144,7 @@ export async function DELETE(
       .update({
         is_deleted: true,
         deleted_at: new Date().toISOString(),
-        deleted_by: user.id
+        deleted_by: authResult.userId
       })
       .eq('id', params.id)
 

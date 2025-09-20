@@ -1,5 +1,6 @@
 'use client'
 
+import { getCurrentSession } from '@/lib/supabase/session'
 
 export default function SiteDebugHelper() {
   const [debug, setDebug] = useState<unknown>({})
@@ -11,20 +12,31 @@ export default function SiteDebugHelper() {
     
     try {
       // 1. 세션 체크
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      const sessionResult = {
-        hasSession: !!session,
-        user: session?.user?.email,
-        error: sessionError?.message
+      let sessionUser = null
+      let sessionResult
+
+      try {
+        const session = await getCurrentSession(supabase)
+        sessionResult = {
+          hasSession: !!session,
+          user: session?.user?.email,
+          error: null as string | null
+        }
+        sessionUser = session?.user ?? null
+      } catch (sessionError) {
+        sessionResult = {
+          hasSession: false,
+          user: null,
+          error: sessionError instanceof Error ? sessionError.message : String(sessionError)
+        }
       }
 
-      // 2. 유저 체크
-      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      // 2. 유저 체크 (세션 기반)
       const userResult = {
-        hasUser: !!user,
-        userId: user?.id,
-        email: user?.email,
-        error: userError?.message
+        hasUser: !!sessionUser,
+        userId: sessionUser?.id,
+        email: sessionUser?.email,
+        error: null as string | null
       }
 
       // 3. 사이트 정보 가져오기
@@ -32,13 +44,13 @@ export default function SiteDebugHelper() {
       
       // 4. 프로필 정보 가져오기
       let profileResult = null
-      if (user) {
+      if (sessionUser) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('id, full_name, role, email')
-          .eq('id', user.id)
+          .eq('id', sessionUser.id)
           .single()
-        
+
         profileResult = {
           data: profile,
           error: profileError?.message

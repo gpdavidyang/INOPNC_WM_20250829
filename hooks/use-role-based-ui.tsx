@@ -1,6 +1,8 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 
+export type UserRole = 'admin' | 'system_admin' | 'site_manager' | 'customer_manager' | 'worker' | 'partner'
 export type UIMode = 'auto' | 'mobile' | 'desktop'
 
 interface RoleBasedUIReturn {

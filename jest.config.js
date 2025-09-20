@@ -71,6 +71,7 @@ const customJestConfig = {
     '<rootDir>/node_modules/',
     '<rootDir>/coverage/',
     '<rootDir>/dist/',
+    '<rootDir>/e2e/',
   ],
   
   // Module directories

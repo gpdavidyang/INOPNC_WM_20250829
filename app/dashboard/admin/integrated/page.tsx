@@ -1,23 +1,22 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-export default function IntegratedViewPage() {
+export const metadata: Metadata = {
+  title: '통합 대시보드 (준비 중)',
+}
+
+export default async function AdminIntegratedDashboardPage() {
+  await requireAdminProfile()
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">통합 관리 대시보드</h1>
-        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-          현장, 일일보고서, 문서를 한 번에 관리하는 통합 뷰
-        </p>
-      </div>
-      
-      <Suspense 
-        fallback={
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        }
+      <AdminPlaceholder
+        title="통합 관리자 대시보드"
+        description="통합 지표 화면은 Phase 2 API 정비 후 재구성될 예정입니다."
       >
-        <IntegratedDashboard />
-      </Suspense>
+        <p>현재는 시스템 통계/데이터 파이프라인을 검토 중이므로 임시로 접근을 제한합니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

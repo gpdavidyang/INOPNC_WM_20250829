@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -10,21 +11,20 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { id: announcementId } = params
-
-    // Verify user authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Check if already dismissed
     const { data: existingDismissal } = await supabase
       .from('announcement_dismissals')
       .select('id')
       .eq('announcement_id', announcementId)
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
       .single()
 
     if (existingDismissal) {
@@ -39,7 +39,7 @@ export async function POST(
       .from('announcement_dismissals')
       .insert({
         announcement_id: announcementId,
-        user_id: user.id,
+        user_id: authResult.userId,
         dismissed_at: new Date().toISOString()
       })
       .select()
@@ -58,7 +58,7 @@ export async function POST(
         read_at: new Date().toISOString(),
         dismissed_at: new Date().toISOString()
       })
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
       .eq('related_entity_type', 'announcement')
       .eq('related_entity_id', announcementId)
 
@@ -68,7 +68,7 @@ export async function POST(
       .insert({
         announcement_id: announcementId,
         action: 'dismissed',
-        performed_by: user.id,
+        performed_by: authResult.userId,
         performed_at: new Date().toISOString()
       })
 

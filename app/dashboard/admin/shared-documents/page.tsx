@@ -1,35 +1,23 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import { createClient } from "@/lib/supabase/server"
-import DocumentManagement from '@/components/admin/DocumentManagement'
-
-export const dynamic = "force-dynamic"
+export const metadata: Metadata = {
+  title: '공유 문서함 관리 (준비 중)',
+}
 
 export default async function SharedDocumentsManagementPage() {
-  const supabase = createClient()
-  
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    redirect('/auth/login')
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  if (!profile || profile.role !== 'admin') {
-    redirect('/dashboard')
-  }
+  await requireAdminProfile()
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
-    <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">공유 문서함 관리</h1>
-          <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">공유 문서 업로드, 카테고리 관리 및 권한 설정</p>
-    </div>
-
-      <DocumentManagement profile={profile as any} />
+      <AdminPlaceholder
+        title="공유 문서함 관리"
+        description="공유 문서 업로드, 카테고리 관리, 권한 설정 화면은 재구성 중입니다."
+      >
+        <p>문서 통합 관리 개편에 맞춰 이 화면은 Placeholder 상태로 유지됩니다.</p>
+        <p>필요한 기능은 Phase 2 API 작업 이후 우선순위에 따라 복원해 주세요.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

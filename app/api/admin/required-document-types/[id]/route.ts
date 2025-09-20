@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,22 +10,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!authResult.role || !['admin', 'system_admin'].includes(authResult.role)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     const { data, error } = await supabase
       .from('required_document_types')
@@ -68,22 +63,16 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!authResult.role || !['admin', 'system_admin'].includes(authResult.role)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     const body = await request.json()
     const {
@@ -99,8 +88,9 @@ export async function PUT(
       site_customizations
     } = body
 
-    const updateData: unknown = {
-      updated_at: new Date().toISOString()
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+      updated_by: authResult.userId,
     }
 
     if (code !== undefined) updateData.code = code
@@ -191,22 +181,16 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    if (!authResult.role || !['admin', 'system_admin'].includes(authResult.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    const supabase = await createClient()
 
     const { error } = await supabase
       .from('required_document_types')

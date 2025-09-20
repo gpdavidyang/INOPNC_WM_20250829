@@ -30,6 +30,7 @@ export interface CreateWorkLogData {
     drawings: AttachedFile[]
     confirmations: AttachedFile[]
   }
+  status?: 'draft' | 'approved'
 }
 
 export interface UpdateWorkLogData extends Partial<CreateWorkLogData> {
@@ -136,7 +137,7 @@ export class WorkLogService {
           location_info: data.location,
           additional_notes: data.notes,
           progress_rate: data.progress,
-          status: 'draft',
+          status: data.status ?? 'draft',
         })
         .select('id')
         .single()
@@ -187,6 +188,11 @@ export class WorkLogService {
 
       if (!createdWorkLog) {
         throw new Error('생성된 작업일지를 찾을 수 없습니다.')
+      }
+
+      if ((data.status ?? 'draft') === 'approved') {
+        await this.approveWorkLog(reportId)
+        return { ...createdWorkLog, status: 'approved' }
       }
 
       return createdWorkLog
@@ -341,9 +347,9 @@ export class WorkLogService {
       const workContent = item.work_content || {}
       const workers =
         item.worker_assignments?.map((assignment: any) => ({
-          id: assignment.profile_id,
-          name: assignment.profiles?.full_name || assignment.worker_name || '알 수 없음',
-          hours: (assignment.labor_hours || 0) * 8, // 공수를 시간으로 변환
+          id: assignment.profile_id || assignment.id,
+          name: assignment.profiles?.full_name || assignment.worker_name || '미정',
+          hours: (assignment.labor_hours || 0) * 8,
         })) || []
 
       const totalHours = workers.reduce((sum: number, worker: any) => sum + worker.hours, 0)
@@ -388,12 +394,18 @@ export class WorkLogService {
           }
         : undefined
 
+      const status = item.status === 'approved' ? 'approved' : 'draft'
+
+      const authorName = workers[0]?.name || item.created_by
+
       return {
         id: item.id,
         date: item.work_date,
         siteId: item.site_id,
         siteName: item.sites?.name || '알 수 없는 현장',
-        status: item.status || 'draft',
+        title: item.title || item.sites?.name,
+        author: authorName,
+        status,
         memberTypes: workContent.memberTypes || [],
         workProcesses: workContent.workProcesses || [],
         workTypes: workContent.workTypes || [],

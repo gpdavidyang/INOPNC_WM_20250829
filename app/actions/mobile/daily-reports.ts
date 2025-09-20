@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 ;('use server')
 
 // ==========================================
@@ -59,11 +60,8 @@ export async function createDailyReport(
     const supabase = await createClient()
 
     // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
@@ -73,7 +71,7 @@ export async function createDailyReport(
       .select('id, status')
       .eq('site_id', data.site_id)
       .eq('work_date', data.work_date)
-      .eq('created_by', user.id)
+      .eq('created_by', auth.userId)
       .single()
 
     // If report exists, update it instead of creating new one
@@ -122,7 +120,7 @@ export async function createDailyReport(
       if (data.hq_request && data.hq_request.trim() && report) {
         await createHeadquartersRequest(
           supabase,
-          user.id,
+          auth.userId,
           data.site_id,
           data.hq_request,
           data.work_date
@@ -139,7 +137,7 @@ export async function createDailyReport(
       .insert({
         ...data,
         status: 'draft' as DailyReportStatus,
-        created_by: user.id,
+        created_by: auth.userId,
       })
       .select()
       .single()
@@ -173,7 +171,7 @@ export async function createDailyReport(
     if (data.hq_request && data.hq_request.trim() && report) {
       await createHeadquartersRequest(
         supabase,
-        user.id,
+        auth.userId,
         data.site_id,
         data.hq_request,
         data.work_date
@@ -223,12 +221,8 @@ export async function submitDailyReport(id: string) {
   try {
     const supabase = await createClient()
 
-    // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
@@ -250,7 +244,7 @@ export async function submitDailyReport(id: string) {
     validateSupabaseResponse(report, error)
 
     // Send notification to site managers
-    await notifyDailyReportSubmitted(report as unknown as DailyReport, user.id)
+    await notifyDailyReportSubmitted(report as unknown as DailyReport, auth.userId)
 
     revalidatePath('/dashboard/daily-reports')
     revalidatePath(`/dashboard/daily-reports/${id}`)
@@ -268,11 +262,8 @@ export async function approveDailyReport(id: string, approve: boolean, comments?
   try {
     const supabase = await createClient()
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
@@ -280,7 +271,7 @@ export async function approveDailyReport(id: string, approve: boolean, comments?
       .from('daily_reports')
       .update({
         status: approve ? 'approved' : ('rejected' as DailyReportStatus),
-        approved_by: user.id,
+        approved_by: auth.userId,
         approved_at: new Date().toISOString(),
         notes: comments ? `${comments}\n\n---\nApproval comments` : undefined,
         updated_at: new Date().toISOString(),
@@ -298,9 +289,9 @@ export async function approveDailyReport(id: string, approve: boolean, comments?
 
     // Send notification based on approval status
     if (approve) {
-      await notifyDailyReportApproved(report as unknown as DailyReport, user.id)
+      await notifyDailyReportApproved(report as unknown as DailyReport, auth.userId)
     } else {
-      await notifyDailyReportRejected(report as unknown as DailyReport, user.id, comments)
+      await notifyDailyReportRejected(report as unknown as DailyReport, auth.userId, comments)
     }
 
     revalidatePath('/dashboard/daily-reports')
@@ -686,11 +677,8 @@ export async function uploadAdditionalPhotos(
     const supabase = await createClient()
 
     // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
@@ -763,7 +751,7 @@ export async function uploadAdditionalPhotos(
             file_size: photoData.file.size,
             description: photoData.description || '',
             upload_order: nextOrder,
-            uploaded_by: user.id,
+            uploaded_by: auth.userId,
           })
           .select()
           .single()
@@ -819,11 +807,8 @@ export async function deleteAdditionalPhoto(photoId: string) {
     const supabase = await createClient()
 
     // Get current user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
@@ -842,10 +827,10 @@ export async function deleteAdditionalPhoto(photoId: string) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
-    const isOwner = photo.uploaded_by === user.id
+    const isOwner = photo.uploaded_by === auth.userId
     const isManager =
       profile?.role && ['admin', 'system_admin', 'site_manager'].includes(profile.role)
 

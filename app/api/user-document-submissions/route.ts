@@ -1,21 +1,20 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    console.log('User document submissions API - User ID:', user.id)
+    const supabase = createClient()
+
+    console.log('User document submissions API - User ID:', authResult.userId)
 
     // Get user's document submission status
     const { data: submissions, error } = await supabase
@@ -25,7 +24,7 @@ export async function GET(request: NextRequest) {
         requirement:document_requirements(*),
         document:unified_document_system(id, title, file_name, file_url, created_at)
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
       .order('created_at', { ascending: false })
 
     console.log('User document submissions API - Submissions found:', submissions?.length || 0)
@@ -58,14 +57,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { requirement_id, document_id } = body
@@ -78,7 +75,7 @@ export async function POST(request: NextRequest) {
     const { data, error } = await supabase
       .from('user_document_submissions')
       .upsert({
-        user_id: user.id,
+        user_id: authResult.userId,
         requirement_id,
         document_id,
         submission_status: document_id ? 'submitted' : 'not_submitted',
@@ -113,20 +110,18 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Check if user is admin
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     const isAdmin = profile?.role && ['admin', 'system_admin'].includes(profile.role)

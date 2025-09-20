@@ -1,44 +1,22 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import { createClient } from "@/lib/supabase/server"
-
-export const dynamic = "force-dynamic"
+export const metadata: Metadata = {
+  title: '내 문서 관리 (준비 중)',
+}
 
 export default async function AdminMyDocumentsPage() {
-  const supabase = createClient()
-  
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      redirect('/auth/login')
-    }
+  await requireAdminProfile()
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      redirect('/auth/login')
-    }
-
-    if (profile.role !== 'admin') {
-      redirect('/dashboard')
-    }
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">내문서함 관리</h1>
-          <p className="text-gray-600 mt-1">모든 사용자의 개인 문서함을 관리합니다.</p>
-        </div>
-        
-        <MyDocumentsManagement />
-      </div>
-    )
-  } catch (error) {
-    console.error('Error loading my documents page:', error)
-    redirect('/auth/login')
-  }
+  return (
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="내 문서 관리"
+        description="개별 관리자의 문서함 기능은 준비 중입니다."
+      >
+        <p>개인 문서 열람 · 승인 흐름은 Phase 2에서 정리한 API와 연동해 복원할 예정입니다.</p>
+      </AdminPlaceholder>
+    </div>
+  )
 }

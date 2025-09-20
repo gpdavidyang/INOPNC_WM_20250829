@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,25 +10,18 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = createClient()
-  const assignmentId = params.id
-
   try {
-    // Check admin authorization
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
     }
+
+    const supabase = createClient()
+    const assignmentId = params.id
 
     // Check if assignment exists
     const { data: assignment, error: fetchError } = await supabase
@@ -87,25 +81,18 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const supabase = createClient()
-  const assignmentId = params.id
-
   try {
-    // Check admin authorization
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
     }
+
+    const supabase = createClient()
+    const assignmentId = params.id
 
     const body = await request.json()
     const { assignment_type, role, notes, is_active } = body

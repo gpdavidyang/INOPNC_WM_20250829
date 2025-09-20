@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { MobileLayoutWithAuth } from '@/modules/mobile/components/layout/MobileLayoutWithAuth'
 import SiteInfoPage from '@/modules/mobile/components/site/SiteInfoPage'
 import { mockUser, mockProfile } from '@/lib/dev-auth'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,21 +24,26 @@ export default async function MobileSitesPage() {
   // Server-side auth with minimal checks (following mobile home pattern)
   try {
     const supabase = createClient()
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
+    const auth = await getAuthForClient(supabase)
 
-    // If middleware didn't catch auth issues but we have none, redirect
-    if (userError || !user) {
+    if (!auth) {
       redirect('/auth/login')
+    }
+
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession()
+
+    if (sessionError) {
+      console.error('Mobile sites session error:', sessionError)
     }
 
     // Quick profile check
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, role, full_name, email, site_id')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     // Basic validation only
@@ -53,7 +59,7 @@ export default async function MobileSitesPage() {
 
     // Pass validated data to client wrapper with shared layout
     return (
-      <MobileLayoutWithAuth initialProfile={profile} initialUser={user}>
+      <MobileLayoutWithAuth>
         <SiteInfoPage />
       </MobileLayoutWithAuth>
     )

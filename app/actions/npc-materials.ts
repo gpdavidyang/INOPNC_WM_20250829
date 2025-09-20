@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from "@/lib/auth/ultra-simple"
 'use server'
 
 
@@ -77,13 +78,13 @@ export async function getSitesForMaterials() {
     const supabase = await createClient()
     
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      console.error('[getSitesForMaterials] User not authenticated:', userError)
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
+      console.error('[getSitesForMaterials] User not authenticated')
       return { success: false, error: 'Authentication required', data: [] }
     }
-    
-    // console.log('[getSitesForMaterials] User ID:', user.id)
+
+    // console.log('[getSitesForMaterials] User ID:', auth.userId)
     
     // Get sites assigned to the user
     const { data: userSites, error } = await supabase
@@ -96,7 +97,7 @@ export async function getSitesForMaterials() {
           status
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .eq('sites.status', 'active')
     
     if (error) {
@@ -131,10 +132,10 @@ export async function createMaterialRequest(data: {
 }) {
   try {
     const supabase = await createClient()
-    
+
     // Get user info
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
     
@@ -160,7 +161,7 @@ export async function createMaterialRequest(data: {
       .insert({
         request_number,
         site_id: data.siteId,
-        requested_by: user.id,
+        requested_by: auth.userId,
         status: 'pending',
         notes: data.notes
       })
@@ -207,15 +208,15 @@ export async function recordInventoryTransaction(data: {
     console.log('[recordInventoryTransaction] Input data:', data)
     
     const supabase = await createClient()
-    
+
     // Get user info
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      console.error('[recordInventoryTransaction] Authentication error:', userError)
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
+      console.error('[recordInventoryTransaction] Authentication error: missing auth context')
       return { success: false, error: 'Authentication required' }
     }
-    
-    console.log('[recordInventoryTransaction] User ID:', user.id)
+
+    console.log('[recordInventoryTransaction] User ID:', auth.userId)
     
     // Get material ID from code
     const { data: material, error: materialError } = await supabase
@@ -239,7 +240,7 @@ export async function recordInventoryTransaction(data: {
       quantity: data.quantity,
       transaction_date: new Date(data.transactionDate).toISOString().split('T')[0], // Ensure proper date format
       notes: data.notes,
-      created_by: user.id
+      created_by: auth.userId
     }
     
     console.log('[recordInventoryTransaction] Transaction data:', transactionData)

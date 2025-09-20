@@ -1,5 +1,32 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient, type SimpleAuth } from "@/lib/auth/ultra-simple"
 'use server'
+
+type AdminContext = { auth: SimpleAuth; role: string | null } | { error: string }
+
+async function requireAdminContext(supabase: ReturnType<typeof createClient>): Promise<AdminContext> {
+  const auth = await getAuthForClient(supabase)
+  if (!auth) {
+    return { error: '인증이 필요합니다.' }
+  }
+
+  const { data: profile, error } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', auth.userId)
+    .single()
+
+  if (error) {
+    console.error('관리자 권한 확인 중 오류:', error)
+    return { error: '사용자 정보를 확인할 수 없습니다.' }
+  }
+
+  if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    return { error: '관리자 권한이 필요합니다.' }
+  }
+
+  return { auth, role: profile.role }
+}
 
 
 // 생산 기록 생성
@@ -29,14 +56,19 @@ export async function createProductionRecord(data: {
       if (costValidation) return costValidation
     }
 
-    // 인증 및 권한 확인
-    const authResult = await requireAdminAuth()
-    if (isAuthError(authResult)) {
-      return createErrorResponse(authResult.error || '인증 실패', ErrorCodes.UNAUTHORIZED)
-    }
-    const { user, profile } = authResult
+    const supabase = createClient()
 
-    const supabase = await createClient()
+    // 인증 및 권한 확인
+    const adminContext = await requireAdminContext(supabase)
+    if ('error' in adminContext) {
+      const errorCode =
+        adminContext.error === '관리자 권한이 필요합니다.'
+          ? ErrorCodes.FORBIDDEN
+          : ErrorCodes.UNAUTHORIZED
+      return createErrorResponse(adminContext.error, errorCode)
+    }
+    const { auth } = adminContext
+
     const total_cost = (data.quantity_produced * (data.unit_cost || 0))
 
     // 재시도 가능한 데이터베이스 작업
@@ -49,7 +81,7 @@ export async function createProductionRecord(data: {
           unit_cost: data.unit_cost || 0,
           total_cost: total_cost,
           notes: data.notes,
-          created_by: user.id
+          created_by: auth.userId
         })
         .select()
         .single()
@@ -81,7 +113,7 @@ export async function createProductionRecord(data: {
       unit: 'units',
       tags: {
         date: data.production_date,
-        user_id: user.id
+        user_id: auth.userId
       }
     })
 
@@ -103,23 +135,12 @@ export async function updateProductionRecord(id: string, updates: Partial<{
   notes: string
 }>) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminContext(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 수정할 데이터 준비
@@ -154,23 +175,12 @@ export async function updateProductionRecord(id: string, updates: Partial<{
 // 생산 기록 삭제
 export async function deleteProductionRecord(id: string) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminContext(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 생산 기록 삭제
@@ -200,23 +210,12 @@ export async function getProductionHistory(filters?: {
   limit?: number
 }) {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminContext(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 쿼리 구성
@@ -257,23 +256,12 @@ export async function getProductionHistory(filters?: {
 // 생산 분석 데이터 조회
 export async function getProductionAnalytics(period: 'week' | 'month' | 'year' = 'month') {
   try {
-    const supabase = await createClient()
-    
+    const supabase = createClient()
+
     // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return { success: false, error: '인증이 필요합니다.' }
-    }
-
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return { success: false, error: '관리자 권한이 필요합니다.' }
+    const adminContext = await requireAdminContext(supabase)
+    if ('error' in adminContext) {
+      return { success: false, error: adminContext.error }
     }
 
     // 기간별 집계 쿼리
@@ -307,11 +295,11 @@ export async function getProductionAnalytics(period: 'week' | 'month' | 'year' =
 // 일일 생산 현황 조회
 export async function getDailyProductionStatus(date?: string) {
   try {
-    const supabase = await createClient()
-    
-    // 사용자 인증 및 권한 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const supabase = createClient()
+
+    // 사용자 인증
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: '인증이 필요합니다.' }
     }
 

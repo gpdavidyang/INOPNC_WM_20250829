@@ -12,17 +12,12 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Get the current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = await createClient()
 
     // Parse request body
     const body = await request.json()
@@ -57,7 +52,7 @@ export async function POST(request: NextRequest) {
         is_active: false,
         updated_at: new Date().toISOString()
       })
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
       .eq('is_active', true)
 
     if (deactivateError) {
@@ -68,7 +63,7 @@ export async function POST(request: NextRequest) {
     const { data: existingAssignment } = await supabase
       .from('site_assignments')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', authResult.userId)
       .eq('site_id', siteId)
       .single()
 
@@ -90,7 +85,7 @@ export async function POST(request: NextRequest) {
       const { error: insertError } = await supabase
         .from('site_assignments')
         .insert({
-          user_id: user.id,
+          user_id: authResult.userId,
           site_id: siteId,
           assigned_date: new Date().toISOString().split('T')[0],
           is_active: true
@@ -107,7 +102,7 @@ export async function POST(request: NextRequest) {
       const { data: preferences } = await supabase
         .from('site_preferences')
         .select('recent_site_ids')
-        .eq('user_id', user.id)
+        .eq('user_id', authResult.userId)
         .single()
 
       let recentSites = (preferences as unknown)?.recent_site_ids || []
@@ -124,12 +119,12 @@ export async function POST(request: NextRequest) {
             last_site_id: siteId,
             updated_at: new Date().toISOString()
           } as unknown)
-          .eq('user_id', user.id)
+          .eq('user_id', authResult.userId)
       } else {
         await supabase
           .from('site_preferences')
           .insert({
-            user_id: user.id,
+            user_id: authResult.userId,
             recent_site_ids: recentSites,
             last_site_id: siteId
           } as unknown)

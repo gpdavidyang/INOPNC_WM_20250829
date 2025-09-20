@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 import webpush from 'web-push'
 
@@ -50,19 +51,17 @@ interface NotificationRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Verify authentication and get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Check if user has permission to send notifications (admin/manager roles)
+    const supabase = createClient()
+
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin', 'site_manager'].includes(profile.role)) {
@@ -90,7 +89,7 @@ export async function POST(request: NextRequest) {
           roles: roles,
           notification_type: notificationType,
           scheduled_at: scheduleAt,
-          created_by: user.id,
+          created_by: authResult.userId,
           organization_id: profile.organization_id
         })
         .select()
@@ -276,7 +275,7 @@ export async function POST(request: NextRequest) {
             body: payload.body,
             status: 'delivered',
             sent_at: new Date().toISOString(),
-            sent_by: user.id
+        sent_by: authResult.userId
           })
 
         return { success: true, userId: user.id }

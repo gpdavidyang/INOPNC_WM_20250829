@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import type { AsyncState, ApiResponse } from '@/types/utils'
 
 export const dynamic = 'force-dynamic'
@@ -9,13 +10,12 @@ export const dynamic = 'force-dynamic'
 // POST /api/photo-grid-reports/bulk - 벌크 작업 (삭제, 상태 변경 등)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { action, reportIds, data: actionData } = body
@@ -99,13 +99,7 @@ export async function POST(request: NextRequest) {
 }
       case 'permanent_delete': {
         // 벌크 영구 삭제 (시스템 관리자만 가능)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-
-        if (!profile || profile.role !== 'system_admin') {
+        if (authResult.role !== 'system_admin') {
           return NextResponse.json(
             { error: '영구 삭제 권한이 없습니다.' },
             { status: 403 }

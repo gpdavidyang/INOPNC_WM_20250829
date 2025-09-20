@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'
@@ -11,7 +12,25 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient();
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authResult.userId)
+      .single()
+
+    const requesterRole = requesterProfile?.role || authResult.role || ''
+    const isAdmin = ['admin', 'system_admin'].includes(requesterRole)
+    const isSelf = authResult.userId === params.id
+
+    if (!isAdmin && !isSelf) {
+      return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 })
+    }
     const searchParams = request.nextUrl.searchParams;
     
     const activeOnly = searchParams.get('activeOnly') !== 'false';
@@ -64,7 +83,22 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient();
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authResult.userId)
+      .single()
+
+    const requesterRole = requesterProfile?.role || authResult.role || ''
+    if (!['admin', 'system_admin'].includes(requesterRole)) {
+      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
+    }
     const body = await request.json();
     
     const {
@@ -82,8 +116,6 @@ export async function POST(
     }
 
     // 현재 사용자 정보 가져오기 (승인자로 기록)
-    const { data: { user } } = await supabase.auth.getUser();
-
     // 이미 활성 배정이 있는지 확인
     const { data: existing } = await supabase
       .from('site_assignments')
@@ -109,7 +141,7 @@ export async function POST(
         role: role,
         assignment_type: assignmentType,
         notes: notes,
-        approved_by: user?.id || null,
+        approved_by: authResult.userId || null,
         approved_at: new Date().toISOString(),
         is_active: true,
         assigned_date: new Date().toISOString().split('T')[0]
@@ -138,7 +170,22 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient();
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authResult.userId)
+      .single()
+
+    const requesterRole = requesterProfile?.role || authResult.role || ''
+    if (!['admin', 'system_admin'].includes(requesterRole)) {
+      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
+    }
     const body = await request.json();
     
     const {
@@ -199,7 +246,22 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient();
+    const { data: requesterProfile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', authResult.userId)
+      .single()
+
+    const requesterRole = requesterProfile?.role || authResult.role || ''
+    if (!['admin', 'system_admin'].includes(requesterRole)) {
+      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
+    }
     const searchParams = request.nextUrl.searchParams;
     const siteId = searchParams.get('siteId');
 
@@ -238,4 +300,3 @@ export async function DELETE(
     );
   }
 }
-

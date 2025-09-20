@@ -1,19 +1,19 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Parse form data
     const formData = await request.formData()
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
         file_url: publicUrl,
         file_size: file.size,
         mime_type: file.type,
-        uploaded_by: user.id,
+        uploaded_by: authResult.userId,
         is_active: true,
         version: 1,
         notes: `Uploaded via admin interface on ${new Date().toLocaleDateString('ko-KR')}`

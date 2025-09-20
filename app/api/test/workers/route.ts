@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -10,11 +11,13 @@ export async function GET(request: NextRequest) {
   console.log('=== TEST ENDPOINT GET ===')
   
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = await createClient()
-    
-    // Get user
-    const { data: { user } } = await supabase.auth.getUser()
-    console.log('User:', user?.email)
+    console.log('User:', authResult.email)
     
     // Get all workers
     const { data: workers, error } = await supabase
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       success: !error,
-      user: user?.email,
+      user: authResult.email,
       workerCount: workers?.length || 0,
       workers: workers || [],
       error: error?.message
@@ -46,15 +49,13 @@ export async function POST(request: NextRequest) {
   console.log('=== TEST ENDPOINT POST ===')
   
   try {
-    const supabase = await createClient()
-    
-    // Get user
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      return NextResponse.json({ error: 'No user' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
-    console.log('User:', user.email)
+
+    const supabase = await createClient()
+    console.log('User:', authResult.email)
     
     // Get a report to test with
     const { data: reports } = await supabase

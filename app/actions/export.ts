@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
 
 import type { ExportOptions, ExportFormat } from '@/lib/export/types'
@@ -8,8 +9,8 @@ export async function prepareExportData(options: ExportOptions) {
     const supabase = createClient()
     
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
@@ -17,7 +18,7 @@ export async function prepareExportData(options: ExportOptions) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (!profile || !['site_manager', 'admin', 'system_admin'].includes(profile.role)) {
@@ -109,14 +110,14 @@ export async function logExportActivity(
   try {
     const supabase = createClient()
     
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    const auth = await getAuthForClient(supabase)
+    if (!auth) return
 
     // Log export activity
     const { error } = await (supabase
       .from('activity_logs')
       .insert({
-        user_id: user.id,
+        user_id: auth.userId,
         action: 'export_data',
         entity_type: 'daily_reports',
         entity_id: 'export',
@@ -142,15 +143,15 @@ export async function validateExportPermissions(targetSiteIds?: string[]) {
   try {
     const supabase = createClient()
     
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
     }
 
     const { data: profile } = await supabase
       .from('profiles')
       .select('role, site_ids')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (!profile) {

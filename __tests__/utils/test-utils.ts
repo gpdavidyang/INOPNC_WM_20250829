@@ -1,26 +1,38 @@
+let idCounter = 0
+
+const nextId = (prefix: string) => `${prefix}-${++idCounter}`
+const pastDate = () => new Date('2024-01-01T00:00:00Z').toISOString()
+const recentDate = () => new Date('2024-02-01T00:00:00Z').toISOString()
+const futureDate = () => new Date('2025-01-01T00:00:00Z').toISOString()
+const sample = <T,>(values: readonly T[]): T => values[0]
+const words = (count: number) => Array.from({ length: count }, (_, idx) => `word${idx + 1}`).join(' ')
+const sentence = () => 'Sample sentence for test data.'
+const paragraph = () => 'Sample paragraph describing mock data for tests.'
+const email = () => `${nextId('user')}@example.com`
+const phone = () => '010-0000-0000'
 
 /**
  * Create a mock daily report for testing
  */
 export function createMockDailyReport(overrides = {}) {
   return {
-    id: faker.string.uuid(),
-    site_id: faker.string.uuid(),
-    user_id: faker.string.uuid(),
-    date: faker.date.recent().toISOString(),
-    weather: faker.helpers.arrayElement(['sunny', 'cloudy', 'rainy', 'snowy']),
-    temperature: faker.number.int({ min: -10, max: 40 }),
-    work_content: faker.lorem.paragraph(),
-    safety_notes: faker.lorem.sentence(),
-    worker_count: faker.number.int({ min: 1, max: 50 }),
-    equipment_used: faker.lorem.words(3),
-    materials_used: faker.lorem.words(3),
-    progress_percentage: faker.number.int({ min: 0, max: 100 }),
-    issues: faker.lorem.sentence(),
-    tomorrow_plan: faker.lorem.sentence(),
+    id: nextId('daily-report'),
+    site_id: nextId('site'),
+    user_id: nextId('user'),
+    date: recentDate(),
+    weather: sample(['sunny', 'cloudy', 'rainy', 'snowy']),
+    temperature: 20,
+    work_content: paragraph(),
+    safety_notes: sentence(),
+    worker_count: 10,
+    equipment_used: words(3),
+    materials_used: words(3),
+    progress_percentage: 60,
+    issues: sentence(),
+    tomorrow_plan: sentence(),
     status: 'draft',
-    created_at: faker.date.recent().toISOString(),
-    updated_at: faker.date.recent().toISOString(),
+    created_at: pastDate(),
+    updated_at: recentDate(),
     ...overrides,
   }
 }
@@ -30,24 +42,24 @@ export function createMockDailyReport(overrides = {}) {
  */
 export function createMockSite(overrides = {}) {
   return {
-    id: faker.string.uuid(),
-    name: faker.company.name(),
-    code: faker.string.alphanumeric(6).toUpperCase(),
-    address: faker.location.streetAddress(),
-    city: faker.location.city(),
-    state: faker.location.state(),
-    zip: faker.location.zipCode(),
-    country: faker.location.country(),
-    latitude: faker.location.latitude(),
-    longitude: faker.location.longitude(),
-    start_date: faker.date.past().toISOString(),
-    end_date: faker.date.future().toISOString(),
+    id: nextId('site'),
+    name: 'Sample Construction Site',
+    code: nextId('SITE').toUpperCase(),
+    address: '123 Sample Street',
+    city: 'Seoul',
+    state: 'Seoul',
+    zip: '04540',
+    country: 'South Korea',
+    latitude: 37.5665,
+    longitude: 126.978,
+    start_date: pastDate(),
+    end_date: futureDate(),
     status: 'active',
-    project_manager: faker.person.fullName(),
-    contact_phone: faker.phone.number(),
-    contact_email: faker.internet.email(),
-    created_at: faker.date.past().toISOString(),
-    updated_at: faker.date.recent().toISOString(),
+    project_manager: 'Sample Manager',
+    contact_phone: phone(),
+    contact_email: email(),
+    created_at: pastDate(),
+    updated_at: recentDate(),
     ...overrides,
   }
 }
@@ -57,17 +69,18 @@ export function createMockSite(overrides = {}) {
  */
 export function createMockUser(overrides = {}) {
   return {
-    id: faker.string.uuid(),
-    email: faker.internet.email(),
-    full_name: faker.person.fullName(),
-    role: faker.helpers.arrayElement(['admin', 'site_manager', 'worker', 'customer_manager']),
-    phone: faker.phone.number(),
-    department: faker.commerce.department(),
-    employee_id: faker.string.alphanumeric(8).toUpperCase(),
-    avatar_url: faker.image.avatar(),
+    id: nextId('user'),
+    email: email(),
+    full_name: 'Sample User',
+    role: sample(['admin', 'site_manager', 'worker', 'customer_manager']),
+    phone: phone(),
+    department: 'Engineering',
+    employee_id: nextId('EMP').toUpperCase(),
+    avatar_url: 'https://example.com/avatar.png',
     is_active: true,
-    created_at: faker.date.past().toISOString(),
-    updated_at: faker.date.recent().toISOString(),
+    organization_id: nextId('org'),
+    created_at: pastDate(),
+    updated_at: recentDate(),
     ...overrides,
   }
 }
@@ -77,18 +90,18 @@ export function createMockUser(overrides = {}) {
  */
 export function createMockMaterial(overrides = {}) {
   return {
-    id: faker.string.uuid(),
-    name: faker.commerce.productName(),
-    code: faker.string.alphanumeric(8).toUpperCase(),
-    category: faker.commerce.department(),
-    unit: faker.helpers.arrayElement(['kg', 'ton', 'm³', 'piece', 'box']),
-    quantity: faker.number.int({ min: 0, max: 1000 }),
-    min_stock: faker.number.int({ min: 10, max: 100 }),
-    price_per_unit: faker.number.float({ min: 1, max: 1000, fractionDigits: 2 }),
-    supplier: faker.company.name(),
-    location: faker.location.city(),
-    created_at: faker.date.past().toISOString(),
-    updated_at: faker.date.recent().toISOString(),
+    id: nextId('material'),
+    name: 'Sample Material',
+    code: nextId('MAT').toUpperCase(),
+    category: 'Concrete',
+    unit: sample(['kg', 'ton', 'm³', 'piece', 'box']),
+    quantity: 100,
+    min_stock: 20,
+    price_per_unit: 49.99,
+    supplier: 'Sample Supplier',
+    location: 'Seoul',
+    created_at: pastDate(),
+    updated_at: recentDate(),
     ...overrides,
   }
 }
@@ -97,22 +110,19 @@ export function createMockMaterial(overrides = {}) {
  * Create a mock attendance record for testing
  */
 export function createMockAttendance(overrides = {}) {
-  const checkIn = faker.date.recent()
-  const checkOut = new Date(checkIn.getTime() + 8 * 60 * 60 * 1000) // 8 hours later
-
   return {
-    id: faker.string.uuid(),
-    user_id: faker.string.uuid(),
-    site_id: faker.string.uuid(),
-    date: checkIn.toISOString().split('T')[0],
-    check_in_time: checkIn.toISOString(),
-    check_out_time: checkOut.toISOString(),
+    id: nextId('attendance'),
+    user_id: nextId('user'),
+    site_id: nextId('site'),
+    date: recentDate().split('T')[0],
+    check_in_time: recentDate(),
+    check_out_time: futureDate(),
     work_hours: 8,
-    overtime_hours: faker.number.int({ min: 0, max: 4 }),
-    status: faker.helpers.arrayElement(['present', 'absent', 'late', 'leave']),
-    notes: faker.lorem.sentence(),
-    created_at: faker.date.past().toISOString(),
-    updated_at: faker.date.recent().toISOString(),
+    overtime_hours: 2,
+    status: sample(['present', 'absent', 'late', 'leave']),
+    notes: sentence(),
+    created_at: pastDate(),
+    updated_at: recentDate(),
     ...overrides,
   }
 }
@@ -122,17 +132,17 @@ export function createMockAttendance(overrides = {}) {
  */
 export function createMockDocument(overrides = {}) {
   return {
-    id: faker.string.uuid(),
-    name: faker.system.fileName(),
-    type: faker.helpers.arrayElement(['pdf', 'doc', 'xlsx', 'png', 'jpg']),
-    size: faker.number.int({ min: 1000, max: 10000000 }),
-    url: faker.internet.url(),
-    uploaded_by: faker.string.uuid(),
-    site_id: faker.string.uuid(),
-    category: faker.helpers.arrayElement(['drawing', 'report', 'invoice', 'permit', 'other']),
-    description: faker.lorem.sentence(),
-    created_at: faker.date.past().toISOString(),
-    updated_at: faker.date.recent().toISOString(),
+    id: nextId('document'),
+    name: 'document.pdf',
+    type: sample(['pdf', 'doc', 'xlsx', 'png', 'jpg']),
+    size: 1024,
+    url: 'https://example.com/document.pdf',
+    uploaded_by: nextId('user'),
+    site_id: nextId('site'),
+    category: sample(['drawing', 'report', 'invoice', 'permit', 'other']),
+    description: sentence(),
+    created_at: pastDate(),
+    updated_at: recentDate(),
     ...overrides,
   }
 }
@@ -142,16 +152,16 @@ export function createMockDocument(overrides = {}) {
  */
 export function createMockPhoto(overrides = {}) {
   return {
-    id: faker.string.uuid(),
-    url: faker.image.url(),
-    thumbnail_url: faker.image.url(),
-    caption: faker.lorem.sentence(),
-    daily_report_id: faker.string.uuid(),
-    uploaded_by: faker.string.uuid(),
-    file_size: faker.number.int({ min: 100000, max: 5000000 }),
-    width: faker.number.int({ min: 800, max: 4000 }),
-    height: faker.number.int({ min: 600, max: 3000 }),
-    created_at: faker.date.past().toISOString(),
+    id: nextId('photo'),
+    url: 'https://example.com/photo.png',
+    thumbnail_url: 'https://example.com/photo-thumb.png',
+    caption: sentence(),
+    daily_report_id: nextId('daily-report'),
+    uploaded_by: nextId('user'),
+    file_size: 500000,
+    width: 1920,
+    height: 1080,
+    created_at: recentDate(),
     ...overrides,
   }
 }
@@ -161,14 +171,23 @@ export function createMockPhoto(overrides = {}) {
  */
 export function createMockNotification(overrides = {}) {
   return {
-    id: faker.string.uuid(),
-    user_id: faker.string.uuid(),
-    title: faker.lorem.sentence(),
-    message: faker.lorem.paragraph(),
-    type: faker.helpers.arrayElement(['info', 'success', 'warning', 'error']),
+    id: nextId('notification'),
+    user_id: nextId('user'),
+    title: 'Sample Notification',
+    message: paragraph(),
+    type: sample(['info', 'success', 'warning', 'error']),
     read: false,
-    action_url: faker.internet.url(),
-    created_at: faker.date.recent().toISOString(),
+    action_url: 'https://example.com/action',
+    created_at: recentDate(),
     ...overrides,
   }
 }
+
+// Basic sanity check ensures the module is treated as a valid Jest suite.
+describe('test-utils helpers', () => {
+  it('creates mock user with required fields', () => {
+    const user = createMockUser()
+    expect(user.id).toBeTruthy()
+    expect(user.email).toContain('@')
+  })
+})

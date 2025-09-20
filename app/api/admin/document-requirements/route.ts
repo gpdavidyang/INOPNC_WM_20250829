@@ -1,31 +1,23 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 // GET: 필수서류 요구사항 목록 조회
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Check admin permissions
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
+
+    const supabase = await createClient()
 
     // Get all document requirements
     const { data: requirements, error } = await supabase
@@ -58,25 +50,16 @@ export async function GET(request: NextRequest) {
 // POST: 새 요구사항 추가
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check admin permissions
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     const body = await request.json()
     
@@ -97,8 +80,8 @@ export async function POST(request: NextRequest) {
         expiry_days: body.expiry_days,
         instructions: body.instructions,
         is_active: body.is_active ?? true,
-        created_by: user.id,
-        updated_by: user.id,
+        created_by: authResult.userId,
+        updated_by: authResult.userId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -130,25 +113,16 @@ export async function POST(request: NextRequest) {
 // PUT: 요구사항 수정
 export async function PUT(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check admin permissions
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     const body = await request.json()
     const { id, ...updateData } = body
@@ -161,7 +135,7 @@ export async function PUT(request: NextRequest) {
       .from('document_requirements')
       .update({
         ...updateData,
-        updated_by: user.id,
+        updated_by: authResult.userId,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
@@ -193,25 +167,16 @@ export async function PUT(request: NextRequest) {
 // DELETE: 요구사항 삭제
 export async function DELETE(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!['admin', 'system_admin'].includes(authResult.role ?? '')) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Check admin permissions
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
@@ -225,7 +190,7 @@ export async function DELETE(request: NextRequest) {
       .from('document_requirements')
       .update({
         is_active: false,
-        updated_by: user.id,
+        updated_by: authResult.userId,
         updated_at: new Date().toISOString()
       })
       .eq('id', id)

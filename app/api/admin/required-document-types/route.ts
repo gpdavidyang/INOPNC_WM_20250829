@@ -1,27 +1,21 @@
-import { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!authResult.role || !['admin', 'system_admin'].includes(authResult.role)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     const searchParams = request.nextUrl.searchParams
     const includeInactive = searchParams.get('include_inactive') === 'true'
@@ -95,22 +89,16 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    if (!authResult.role || !['admin', 'system_admin'].includes(authResult.role)) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
 
     const body = await request.json()
     const {
@@ -188,7 +176,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json(newDocType, { status: 201 })
+    return NextResponse.json({ success: true, data: newDocType }, { status: 201 })
 
   } catch (error) {
     console.error('Error in POST /api/admin/required-document-types:', error)

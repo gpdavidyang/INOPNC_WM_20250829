@@ -238,13 +238,17 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
 
         {/* 월별 목록 */}
         <div className="px-6 pb-4 max-h-60 overflow-y-auto">
-          {uncompletedByMonth.map((item, index) => (
+          {uncompletedByMonth.map((item, index) => {
+            const displayMonth = item.month.includes('-')
+              ? `${item.month.split('-')[0]}년 ${item.month.split('-')[1]}월`
+              : item.month
+            return (
             <div
               key={index}
               className="flex items-center justify-between p-3 mb-2 bg-gray-50 dark:bg-gray-700 rounded-lg"
             >
               <div>
-                <span className="font-medium text-gray-900 dark:text-white">{item.month}</span>
+                <span className="font-medium text-gray-900 dark:text-white">{displayMonth}</span>
                 <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
                   {item.count}개 미작성
                 </span>
@@ -264,7 +268,7 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
                 </button>
               </div>
             </div>
-          ))}
+          )})}
         </div>
 
         {/* 닫기 버튼 */}

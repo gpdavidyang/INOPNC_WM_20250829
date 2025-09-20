@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic'
@@ -11,19 +12,18 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient();
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient();
 
     // 사용자 프로필 확인
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, site_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile || !['admin', 'site_manager', 'worker'].includes(profile.role)) {
@@ -37,7 +37,7 @@ export async function GET(
         .from('site_assignments')
         .select('id')
         .eq('site_id', params.id)
-        .eq('user_id', user.id)
+        .eq('user_id', authResult.userId)
         .eq('is_active', true)
         .single()
 
@@ -103,9 +103,14 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient();
     const body = await request.json();
-    
+
     const {
       userIds,
       role = 'worker',
@@ -119,9 +124,6 @@ export async function POST(
         { status: 400 }
       );
     }
-
-    // 현재 사용자 정보 가져오기 (승인자로 기록)
-    const { data: { user } } = await supabase.auth.getUser();
     
     // bulk_assign_users_to_site 함수 호출
     const { data, error } = await supabase.rpc('bulk_assign_users_to_site', {
@@ -130,7 +132,7 @@ export async function POST(
       p_role: role,
       p_assignment_type: assignmentType,
       p_notes: notes,
-      p_assigned_by: user?.id || null
+      p_assigned_by: authResult.userId
     } as unknown);
 
     if (error) throw error;

@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { redirect } from 'next/navigation'
 import { NextResponse } from 'next/server'
+import type { Database } from '@/types/database'
 
 // UI 트랙 매핑 (DB 또는 환경 변수에서 로드 가능)
 const UI_TRACKS: Record<string, string> = {
@@ -8,6 +10,7 @@ const UI_TRACKS: Record<string, string> = {
   site_manager: '/mobile',
   production_manager: '/mobile/production', // 생산관리 UI
   customer_manager: '/partner/dashboard',
+  partner: '/partner/dashboard',
   admin: '/dashboard/admin',
   system_admin: '/dashboard/admin',
 }
@@ -25,6 +28,18 @@ export interface SimpleAuth {
 // 1. 인증 체크 (15줄)
 export async function getAuth(): Promise<SimpleAuth | null> {
   const supabase = createClient()
+  return fetchSimpleAuth(supabase)
+}
+
+export async function getAuthForClient(
+  supabase: SupabaseClient<Database>
+): Promise<SimpleAuth | null> {
+  return fetchSimpleAuth(supabase)
+}
+
+async function fetchSimpleAuth(
+  supabase: SupabaseClient<Database>
+): Promise<SimpleAuth | null> {
   const {
     data: { user },
   } = await supabase.auth.getUser()
@@ -33,14 +48,14 @@ export async function getAuth(): Promise<SimpleAuth | null> {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, organization_id, full_name')
+    .select('role, organization_id, full_name, site_id, status')
     .eq('id', user.id)
     .single()
 
   return {
     userId: user.id,
     email: user.email!,
-    isRestricted: profile?.role === 'customer_manager',
+    isRestricted: ['customer_manager', 'partner'].includes(profile?.role || ''),
     restrictedOrgId: profile?.organization_id,
     uiTrack: getUITrack(profile?.role),
     role: profile?.role,

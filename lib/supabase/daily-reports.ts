@@ -1,3 +1,6 @@
+import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
+import type { DailyReport } from '@/types'
 
 export async function getDailyReports(siteId?: string) {
   const supabase = createClient()
@@ -74,11 +77,14 @@ export async function getDailyReport(id: string) {
   return data
 }
 
-export async function createDailyReport(report: Partial<DailyReport>, workerDetails?: Array<{worker_name: string, labor_hours: number, worker_id?: string}>) {
+export async function createDailyReport(
+  report: Partial<DailyReport>,
+  workerDetails?: Array<{ worker_name: string; labor_hours: number; worker_id?: string }>
+) {
   const supabase = createClient()
-  
-  const { data: userData, error: userError } = await supabase.auth.getUser()
-  if (userError || !userData.user) {
+
+  const auth = await getAuthForClient(supabase)
+  if (!auth) {
     throw new Error('User not authenticated')
   }
   
@@ -88,7 +94,7 @@ export async function createDailyReport(report: Partial<DailyReport>, workerDeta
     .select('id, status')
     .eq('site_id', report.site_id)
     .eq('work_date', report.work_date)
-    .eq('created_by', userData.user.id)
+    .eq('created_by', auth.userId)
     .single()
   
   if (checkError && checkError.code !== 'PGRST116') {
@@ -166,7 +172,7 @@ export async function createDailyReport(report: Partial<DailyReport>, workerDeta
       npc1000_used: report.npc1000_used || 0,
       npc1000_remaining: report.npc1000_remaining || 0,
       issues: report.issues,
-      created_by: userData.user.id,
+      created_by: auth.userId,
       status: 'draft' as unknown
     } as unknown)
     .select()

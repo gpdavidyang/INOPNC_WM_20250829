@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -12,12 +13,12 @@ export const maxDuration = 30
 // GET /api/shared-documents - 문서 목록 조회
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
@@ -82,12 +83,12 @@ export async function GET(request: NextRequest) {
 // POST /api/shared-documents - 문서 업로드
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const randomId = Math.random().toString(36).substring(2)
     const fileName = `${timestamp}-${randomId}.${fileExt}`
-    const filePath = `shared-documents/${user.id}/${fileName}`
+    const filePath = `shared-documents/${authResult.userId}/${fileName}`
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest) {
       organization_id: organization_id || null,
       category: category || null,
       tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : null,
-      uploaded_by: user.id,
+      uploaded_by: authResult.userId,
       security_metadata: securityMetadata,
       is_secure: validationResult.securityFlags.passedSecurityScan && 
                  validationResult.securityFlags.hasValidSignature &&
@@ -204,7 +205,7 @@ export async function POST(request: NextRequest) {
         organization_id: organization_id || null,
         category: category || null,
         tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : null,
-        uploaded_by: user.id,
+        uploaded_by: authResult.userId,
         is_active: true,
         grid_data: null,
         metadata: {

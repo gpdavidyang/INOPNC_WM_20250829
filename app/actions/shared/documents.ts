@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 ;('use server')
 
 // ==========================================
@@ -9,11 +10,8 @@ export async function uploadDocument(formData: FormData) {
   try {
     const supabase = createClient()
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -31,7 +29,7 @@ export async function uploadDocument(formData: FormData) {
 
     // Generate unique file name
     const fileExt = file.name.split('.').pop()
-    const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+    const fileName = `${auth.userId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
 
     // Upload file to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
@@ -63,7 +61,7 @@ export async function uploadDocument(formData: FormData) {
         mime_type: file.type,
         document_type,
         folder_path,
-        owner_id: user.id,
+        owner_id: auth.userId,
         is_public,
         site_id,
       })
@@ -222,13 +220,12 @@ export async function getMyDocuments(params?: { category?: string; userId?: stri
   try {
     const supabase = createClient()
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
+
+    const ownerId = params?.userId ?? auth.userId
 
     // Query actual documents from database
     let query = supabase
@@ -257,7 +254,7 @@ export async function getMyDocuments(params?: { category?: string; userId?: stri
         )
       `
       )
-      .eq('owner_id', user.id)
+      .eq('owner_id', ownerId)
       .order('created_at', { ascending: false })
 
     // Apply category filter if provided
@@ -339,10 +336,8 @@ export async function deleteDocument(id: string) {
     }
 
     // Check ownership
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (document.owner_id !== user?.id) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth || document.owner_id !== auth.userId) {
       return { success: false, error: 'Unauthorized to delete this document' }
     }
 
@@ -489,11 +484,8 @@ export async function shareDocument(params: {
   try {
     const supabase = createClient()
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
 
@@ -514,7 +506,7 @@ export async function shareDocument(params: {
       return { success: false, error: 'Document not found' }
     }
 
-    if (document.owner_id !== user.id) {
+    if (document.owner_id !== auth.userId) {
       return { success: false, error: 'Unauthorized to share this document' }
     }
 
@@ -523,7 +515,7 @@ export async function shareDocument(params: {
       document_id: documentId,
       user_id: userId,
       permission_type: permissionType,
-      granted_by: user.id,
+      granted_by: auth.userId,
       ...(expiresAt && { expires_at: expiresAt }),
     }))
 
@@ -555,13 +547,12 @@ export async function getSharedDocuments(params: {
   try {
     const supabase = createClient()
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
+    const auth = await getAuthForClient(supabase)
+    if (!auth) {
       return { success: false, error: 'User not authenticated' }
     }
+
+    const currentUserId = params.userId || auth.userId
 
     // Query shared documents from database
     let query = supabase
@@ -590,7 +581,7 @@ export async function getSharedDocuments(params: {
         )
       `
       )
-      .neq('owner_id', user.id) // Exclude user's own documents
+      .neq('owner_id', currentUserId) // Exclude user's own documents
       .order('created_at', { ascending: false })
 
     // Apply filters based on access level
@@ -647,7 +638,7 @@ export async function getSharedDocuments(params: {
         permission
       `
       )
-      .eq('shared_with_id', user.id)
+      .eq('shared_with_id', currentUserId)
 
     if (sharesError) {
       console.error('Error fetching shared documents:', sharesError)

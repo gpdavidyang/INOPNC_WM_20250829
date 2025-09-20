@@ -25,11 +25,8 @@ import {
 } from 'lucide-react'
 import { updatePassword } from '@/app/auth/actions'
 import type { Profile } from '@/types'
-import type { User as SupabaseUser } from '@supabase/supabase-js'
-
 interface AdminAccountSettingsProps {
   profile: Profile
-  user: SupabaseUser
 }
 
 export function AdminAccountSettings({ profile }: AdminAccountSettingsProps) {

@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
-import { MobileLayout } from '@/modules/mobile/components/layout/mobile-layout'
+import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { SiteManagerGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import {
@@ -116,8 +116,11 @@ const DailyReportsContent: React.FC = () => {
   }
 
   return (
-    <MobileLayout title="일일 보고서" userRole={profile?.role as 'site_manager'} showBack={true}>
-      <div className="p-4 space-y-4">
+    <MobileLayoutShell>
+      <div className="px-4 pb-6 space-y-4">
+        <header className="pt-6">
+          <h1 className="t-h2">일일 보고서</h1>
+        </header>
         {/* Tab Navigation */}
         <Card>
           <CardContent className="p-3">
@@ -479,6 +482,6 @@ const DailyReportsContent: React.FC = () => {
           </div>
         )}
       </div>
-    </MobileLayout>
+    </MobileLayoutShell>
   )
 }

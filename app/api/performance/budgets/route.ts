@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,19 +16,17 @@ function withApiMonitoring(handler: (request: NextRequest) => Promise<NextRespon
 export const GET = withApiMonitoring(
   async (request: NextRequest) => {
     try {
-      const supabase = createClient()
-      
-      // Check authentication
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      const authResult = await requireApiAuth()
+      if (authResult instanceof NextResponse) {
+        return authResult
       }
 
-      // Get user profile
+      const supabase = createClient()
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('role, organization_id')
-        .eq('id', user.id)
+        .eq('id', authResult.userId)
         .single()
 
       if (!profile) {
@@ -69,19 +68,17 @@ export const GET = withApiMonitoring(
 export const POST = withApiMonitoring(
   async (request: NextRequest) => {
     try {
-      const supabase = createClient()
-      
-      // Check authentication
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      const authResult = await requireApiAuth()
+      if (authResult instanceof NextResponse) {
+        return authResult
       }
 
-      // Get user profile
+      const supabase = createClient()
+
       const { data: profile } = await supabase
         .from('profiles')
         .select('role, organization_id')
-        .eq('id', user.id)
+        .eq('id', authResult.userId)
         .single()
 
       if (!profile) {
@@ -117,7 +114,7 @@ export const POST = withApiMonitoring(
           config_key: 'performance_budgets',
           config_value: budgets,
           organization_id: profile.organization_id,
-          updated_by: user.id,
+          updated_by: authResult.userId,
           updated_at: new Date().toISOString(),
         })
 

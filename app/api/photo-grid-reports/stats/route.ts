@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import type { AsyncState, ApiResponse } from '@/types/utils'
 
 // Force dynamic rendering for this API route
@@ -10,27 +11,19 @@ export const dynamic = 'force-dynamic'
 // GET /api/photo-grid-reports/stats - PDF 보고서 통계 조회
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: '인증이 필요합니다.' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // 관리자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || !['admin', 'system_admin', 'site_manager'].includes(profile.role)) {
+    if (!['admin', 'system_admin', 'site_manager'].includes(authResult.role || '')) {
       return NextResponse.json(
         { error: '통계 조회 권한이 없습니다.' },
         { status: 403 }
       )
     }
+
+    const supabase = createClient()
 
     const { searchParams } = new URL(request.url)
     const includeDeleted = searchParams.get('includeDeleted') === 'true'

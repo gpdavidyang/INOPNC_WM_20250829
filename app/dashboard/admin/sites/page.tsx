@@ -1,12 +1,22 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-export default function SiteManagementPage() {
+export const metadata: Metadata = {
+  title: '현장 관리 (준비 중)',
+}
+
+export default async function AdminSitesPage() {
+  await requireAdminProfile()
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">현장 관리</h1>
-        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">현장 생성, 편집, 관리 및 담당자 배정</p>
-      </div>
-      <SiteManagementList />
+      <AdminPlaceholder
+        title="현장 관리"
+        description="현장 목록 및 세부 관리 화면은 재설계 중입니다."
+      >
+        <p>현재는 현장 데이터 API/권한 모델을 점검하고 있으며, Phase 2에서 UI를 다시 제공할 예정입니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

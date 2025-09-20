@@ -44,17 +44,12 @@ export function useAutoLogin(
         
         if (session && session.user) {
           // console.log('[USE-AUTO-LOGIN] Existing session found:', session.user.email)
-          
+
           // Verify the session is valid
-          const { data: { user: verifiedUser }, error: verifyError } = await supabase.auth.getUser()
-          
-          if (verifiedUser && !verifyError) {
-            // console.log('[USE-AUTO-LOGIN] Session verified')
-            setIsAuthenticated(true)
-            setUser(verifiedUser)
-            setIsLoading(false)
-            return
-          }
+          setIsAuthenticated(true)
+          setUser(session.user)
+          setIsLoading(false)
+          return
         }
         
         // Check if auto-login is disabled

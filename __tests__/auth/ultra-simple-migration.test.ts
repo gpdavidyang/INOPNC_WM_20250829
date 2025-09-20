@@ -1,5 +1,3 @@
-import { describe, it, expect, beforeEach, afterEach } from '@jest/testing-library/jest-dom'
-import { createClient } from '@supabase/supabase-js'
 import { createMockUser, createMockSite } from '../utils/test-utils'
 
 // Mock ultra-simple auth implementation for testing
@@ -106,10 +104,10 @@ describe('UltraSimpleAuth Migration Validation', () => {
 
       // Simulating canAccessData function logic
       const canAccessOwnOrg =
-        !partnerProfile.role !== 'customer_manager' ||
+        partnerProfile.role !== 'customer_manager' ||
         partnerProfile.organization_id === 'partner-123'
       const cannotAccessOtherOrg =
-        !partnerProfile.role !== 'customer_manager' ||
+        partnerProfile.role !== 'customer_manager' ||
         partnerProfile.organization_id === 'partner-456'
 
       expect(canAccessOwnOrg).toBe(true)

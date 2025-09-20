@@ -1,14 +1,15 @@
 'use client'
 
-import React, { useState, useMemo, useCallback } from 'react'
+import React from 'react'
 import { WorkLog } from '../../types/work-log.types'
+import { cn } from '@/lib/utils'
 import {
   formatDate,
   getStatusColor,
   getStatusText,
   getProgressColor,
 } from '../../utils/work-log-utils'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { FileText, Image, FileCheck2, Edit3, Send, Trash2, Printer } from 'lucide-react'
 
 interface WorkLogCardProps {
   workLog: WorkLog
@@ -16,383 +17,170 @@ interface WorkLogCardProps {
   onSubmit?: () => void
   onView?: () => void
   onPrint?: () => void
+  onDelete?: () => void
 }
 
 export const WorkLogCard: React.FC<WorkLogCardProps> = React.memo(
-  ({ workLog, onEdit, onSubmit, onView, onPrint }) => {
-    // 확장/축소 상태 관리
-    const [isExpanded, setIsExpanded] = useState(false)
+  ({ workLog, onEdit, onSubmit, onView, onPrint, onDelete }) => {
+    const isDraft = workLog.status === 'draft'
+    const statusClasses = getStatusColor(workLog.status)
 
-    // 첨부파일 존재 여부 메모이제이션
-    const hasAttachments = useMemo(
-      () =>
-        workLog.attachments.photos.length > 0 ||
-        workLog.attachments.drawings.length > 0 ||
-        workLog.attachments.confirmations.length > 0,
-      [workLog.attachments]
-    )
-
-    // 이벤트 핸들러 메모이제이션
-    const handleEdit = useCallback(() => {
-      onEdit?.()
-    }, [onEdit])
-
-    const handleSubmit = useCallback(() => {
-      onSubmit?.()
-    }, [onSubmit])
-
-    const handleView = useCallback(() => {
-      onView?.()
-    }, [onView])
-
-    const handlePrint = useCallback(() => {
-      onPrint?.()
-    }, [onPrint])
-
-    const handleCardClick = useCallback((e: React.MouseEvent) => {
-      // 버튼 클릭이 아닌 경우에만 확장/축소
-      if (!(e.target as HTMLElement).closest('button')) {
-        setIsExpanded(prev => !prev)
-      }
-    }, [])
-
-    const toggleExpanded = useCallback((e: React.MouseEvent) => {
-      e.stopPropagation()
-      setIsExpanded(prev => !prev)
-    }, [])
+    const photoCount = workLog.attachments.photos.length
+    const drawingCount = workLog.attachments.drawings.length
+    const confirmationCount = workLog.attachments.confirmations.length
 
     return (
-      <div
-        className="worklog-card"
-        onClick={handleCardClick}
-        style={{
-          background: 'var(--card, #ffffff)',
-          borderRadius: '12px',
-          padding: '16px',
-          boxShadow: 'var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.1))',
-          border: '1px solid var(--border, #e0e0e0)',
-          transition: 'all 0.3s ease',
-          cursor: 'pointer',
-          marginBottom: '12px',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = 'var(--shadow-lg, 0 10px 25px rgba(0, 0, 0, 0.1))'
-          e.currentTarget.style.transform = 'translateY(-2px)'
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = 'var(--shadow, 0 1px 3px rgba(0, 0, 0, 0.1))'
-          e.currentTarget.style.transform = 'translateY(0)'
-        }}
-      >
-        {/* 헤더 */}
-        <div className="worklog-header flex justify-between items-start mb-2">
-          <span className="worklog-site text-sm font-semibold text-[#101828]">
-            [{workLog.partnerName || 'INOPNC'}] {workLog.siteName}
-          </span>
-          <div className="worklog-header-left flex items-center gap-2">
-            <span
-              className="status-tag"
-              style={{
-                padding: '4px 12px',
-                borderRadius: '20px',
-                fontSize: '12px',
-                fontWeight: '500',
-                background: workLog.status === 'temporary' 
-                  ? 'rgba(255, 45, 128, 0.15)' 
-                  : workLog.status === 'approved'
-                  ? 'rgba(20, 184, 166, 0.15)'
-                  : 'rgba(102, 112, 133, 0.1)',
-                color: workLog.status === 'temporary'
-                  ? '#FF2980'
-                  : workLog.status === 'approved'
-                  ? '#14B8A6'
-                  : 'var(--muted, #667085)',
-              }}
-            >
+      <article className="rounded-2xl border border-[#e6eaf2] bg-white p-5 shadow-[0_6px_20px_rgba(16,24,40,0.06)]">
+        <header className="flex items-start justify-between gap-4">
+          <div className="min-w-0 space-y-1">
+            <p className="truncate text-sm font-semibold text-[#1A254F]">{workLog.siteName}</p>
+            {(workLog.title || workLog.notes) && (
+              <p className="truncate text-xs text-[#475467]">
+                {workLog.title || workLog.notes}
+              </p>
+            )}
+            <div className="flex flex-wrap gap-3 text-xs text-[#667085]">
+              <span>작성자: {workLog.author || workLog.createdBy || '미지정'}</span>
+              <span>작성일: {formatDate(workLog.date)}</span>
+              <span>
+                위치: {workLog.location.block}블럭 {workLog.location.dong}동 {workLog.location.unit}호
+              </span>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <span className={cn('inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold', statusClasses)}>
               {getStatusText(workLog.status)}
             </span>
             <button
-              onClick={toggleExpanded}
-              className="worklog-detail-btn"
-              style={{
-                padding: '4px 12px',
-                fontSize: '12px',
-                background: 'var(--bg, #f5f7fb)',
-                color: 'var(--text, #101828)',
-                borderRadius: '6px',
-                border: 'none',
-                transition: 'all 0.2s ease',
-                cursor: 'pointer',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--border, #e0e0e0)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'var(--bg, #f5f7fb)'
-              }}
+              type="button"
+              onClick={onView}
+              className="rounded-full border border-[#d0d5dd] px-3 py-1 text-xs font-semibold text-[#1A254F] transition-colors hover:bg-[#f4f6fb]"
             >
-              상세
+              상세보기
             </button>
           </div>
-        </div>
+        </header>
 
-        {/* 작성자 정보 */}
-        <div className="worklog-info-row flex justify-between items-center mb-3 text-xs text-[var(--muted)]">
-          <span className="worklog-author">작성자: {workLog.author || '미지정'}</span>
-          <span className="worklog-date">{formatDate(workLog.date)}</span>
-        </div>
-
-        {/* 위치 정보 */}
-        <div className="worklog-location mb-2">
-          <p className="text-xs text-[var(--muted)]">
-            {workLog.location.block}블럭 {workLog.location.dong}동 {workLog.location.unit}호
-          </p>
-        </div>
-
-        {/* 작업 상세 정보 - 항상 표시 */}
-        <div className="worklog-details mb-3">
-          <div className="worklog-detail-line flex gap-2 mb-1">
-            <span className="worklog-detail-label text-xs text-[var(--muted)]">부재명:</span>
-            <span className="worklog-detail-value text-xs text-[var(--text)]">
-              {workLog.memberTypes.join(' / ')}
-            </span>
-          </div>
-          <div className="worklog-detail-line flex gap-2 mb-1">
-            <span className="worklog-detail-label text-xs text-[var(--muted)]">작업공정:</span>
-            <span className="worklog-detail-value text-xs text-[var(--text)]">
-              {workLog.workProcesses.join(' / ')}
-            </span>
-          </div>
-          <div className="worklog-detail-line flex gap-2 mb-1">
-            <span className="worklog-detail-label text-xs text-[var(--muted)]">작업유형:</span>
-            <span className="worklog-detail-value text-xs text-[var(--text)]">
-              {workLog.workTypes.join(' / ')}
-            </span>
-          </div>
-          <div className="worklog-detail-line flex gap-2">
-            <span className="worklog-detail-label text-xs text-[var(--muted)]">공수:</span>
-            <span className="worklog-detail-value text-xs text-[var(--text)]">
-              {workLog.totalHours}일
-            </span>
-          </div>
-        </div>
-
-        {/* 확장 가능한 상세 정보 */}
-        <div
-          className={`transition-all duration-300 ease-in-out ${isExpanded ? 'opacity-100 max-h-screen' : 'opacity-0 max-h-0 overflow-hidden'}`}
-        >
-          {/* 작업자 정보 */}
-          <div className="mb-3">
-            <p className="text-xs text-[var(--muted)] mb-1">작업자</p>
-            <div className="flex flex-wrap gap-2">
-              {workLog.workers.map(worker => (
-                <span key={worker.id} className="text-xs text-[var(--text)]">
-                  {worker.name} ({worker.hours}h)
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* NPC-1000 사용량 */}
-          {workLog.npcUsage && (
-            <div className="mb-3 p-2 bg-yellow-50 rounded-lg">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-yellow-700">NPC-1000</span>
-                <span className="text-xs font-semibold text-yellow-900">
-                  {workLog.npcUsage.amount}
-                  {workLog.npcUsage.unit}
-                </span>
-              </div>
+        <dl className="mt-4 grid gap-3 text-xs text-[#475467] md:grid-cols-2">
+          {workLog.memberTypes.length > 0 && (
+            <div>
+              <dt className="text-[#667085]">부재명</dt>
+              <dd className="mt-1 font-semibold text-[#1A254F]">
+                {workLog.memberTypes.join(', ')}
+              </dd>
             </div>
           )}
-
-          {/* 첨부파일 정보 */}
-          {hasAttachments && (
-            <div className="mb-3">
-              <p className="text-xs text-[var(--muted)] mb-2">첨부파일</p>
-              <div className="flex gap-3">
-                {workLog.attachments.photos.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-blue-500"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <circle cx="8.5" cy="8.5" r="1.5" />
-                      <polyline points="21 15 16 10 5 21" />
-                    </svg>
-                    <span className="text-xs text-[var(--muted)]">
-                      사진 {workLog.attachments.photos.length}개
-                    </span>
-                  </div>
-                )}
-                {workLog.attachments.drawings.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-green-500"
-                    >
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <line x1="16" y1="13" x2="8" y2="13" />
-                      <line x1="16" y1="17" x2="8" y2="17" />
-                      <polyline points="10 9 9 9 8 9" />
-                    </svg>
-                    <span className="text-xs text-[var(--muted)]">
-                      도면 {workLog.attachments.drawings.length}개
-                    </span>
-                  </div>
-                )}
-                {workLog.attachments.confirmations.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      className="text-red-500"
-                    >
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <polyline points="14 2 14 8 20 8" />
-                      <polyline points="16 11 12 15 10 13" />
-                    </svg>
-                    <span className="text-xs text-[var(--muted)]">
-                      확인서 {workLog.attachments.confirmations.length}개
-                    </span>
-                  </div>
-                )}
-              </div>
+          {workLog.workProcesses.length > 0 && (
+            <div>
+              <dt className="text-[#667085]">작업공정</dt>
+              <dd className="mt-1 font-semibold text-[#1A254F]">
+                {workLog.workProcesses.join(', ')}
+              </dd>
             </div>
           )}
-
-          {/* 비고 */}
-          {workLog.notes && (
-            <div className="mb-3">
-              <p className="text-xs text-[var(--muted)] mb-1">비고</p>
-              <p className="text-xs text-[var(--text)] bg-[var(--bg)] p-2 rounded-lg">
-                {workLog.notes}
-              </p>
+          {workLog.workTypes.length > 0 && (
+            <div>
+              <dt className="text-[#667085]">작업공간</dt>
+              <dd className="mt-1 font-semibold text-[#1A254F]">
+                {workLog.workTypes.join(', ')}
+              </dd>
             </div>
           )}
+          <div>
+            <dt className="text-[#667085]">총 공수</dt>
+            <dd className="mt-1 font-semibold text-[#1A254F]">
+              {workLog.totalHours}시간
+            </dd>
+          </div>
+        </dl>
+
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-xs text-[#667085]">
+            <span>진행률</span>
+            <span className="font-semibold text-[#1A254F]">{workLog.progress}%</span>
+          </div>
+          <div className="mt-2 h-2 rounded-full bg-[#f2f4f7]">
+            <div
+              className={cn('h-full rounded-full transition-all duration-300 ease-out', getProgressColor(workLog.progress))}
+              style={{ width: `${workLog.progress}%` }}
+            />
+          </div>
         </div>
 
-        {/* 액션 버튼 - 확장 시에만 표시 */}
-        {isExpanded && (
-          <div className="flex gap-8px" style={{ marginTop: '12px', gap: '8px' }}>
-            {workLog.status === 'temporary' ? (
-              <>
-                <button
-                  onClick={handleEdit}
-                  style={{
-                    flex: 1,
-                    height: '40px',
-                    background: 'var(--bg, #f5f7fb)',
-                    color: 'var(--muted, #667085)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--border, #e0e0e0)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'var(--bg, #f5f7fb)'
-                  }}
-                >
-                  수정하기
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  style={{
-                    flex: 1,
-                    height: '40px',
-                    background: 'var(--brand, #1A254F)',
-                    color: 'white',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.9'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1'
-                  }}
-                >
-                  제출하기
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  onClick={handleView}
-                  style={{
-                    flex: 1,
-                    height: '40px',
-                    background: 'var(--bg, #f5f7fb)',
-                    color: 'var(--muted, #667085)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--border, #e0e0e0)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'var(--bg, #f5f7fb)'
-                  }}
-                >
-                  상세보기
-                </button>
-                <button
-                  onClick={handlePrint}
-                  style={{
-                    flex: 1,
-                    height: '40px',
-                    background: 'var(--num, #0068FE)',
-                    color: 'white',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.9'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '1'
-                  }}
-                >
-                  인쇄하기
-                </button>
-              </>
+        <div className="mt-4 grid gap-2 text-xs text-[#475467] md:grid-cols-2">
+          <div className="flex items-center gap-2">
+            <Image className="h-4 w-4 text-[#1A254F]" />
+            <span>사진대지</span>
+            <span className="ml-auto font-semibold text-[#1A254F]">{photoCount}개</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-[#1A254F]" />
+            <span>진행도면</span>
+            <span className="ml-auto font-semibold text-[#1A254F]">{drawingCount}개</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <FileCheck2 className="h-4 w-4 text-[#1A254F]" />
+            <span>확인서</span>
+            <span className="ml-auto font-semibold text-[#1A254F]">{confirmationCount}개</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[#667085]">NPC-1000</span>
+            <span className="ml-auto font-semibold text-[#1A254F]">
+              {workLog.npcUsage ? `${workLog.npcUsage.amount}${workLog.npcUsage.unit}` : '미입력'}
+            </span>
+          </div>
+        </div>
+
+        {isDraft && (onEdit || onSubmit || onDelete) && (
+          <div className="mt-5 flex flex-wrap gap-2">
+            {onEdit && (
+              <button
+                type="button"
+                onClick={onEdit}
+                className="inline-flex items-center gap-1 rounded-full border border-[#d0d5dd] px-3 py-1.5 text-xs font-semibold text-[#1A254F] transition-colors hover:bg-[#f4f6fb]"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                수정
+              </button>
+            )}
+            {onSubmit && (
+              <button
+                type="button"
+                onClick={onSubmit}
+                className="inline-flex items-center gap-1 rounded-full bg-[#0068FE] px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-transform hover:bg-blue-600 active:scale-95"
+              >
+                <Send className="h-3.5 w-3.5" />
+                작성완료
+              </button>
+            )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={onDelete}
+                className="inline-flex items-center gap-1 rounded-full border border-transparent px-3 py-1.5 text-xs font-semibold text-[#dc2626] transition-colors hover:bg-[#fee2e2]"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                삭제
+              </button>
             )}
           </div>
         )}
-      </div>
+
+        {!isDraft && onPrint && (
+          <div className="mt-5">
+            <button
+              type="button"
+              onClick={onPrint}
+              className="inline-flex items-center gap-2 rounded-full border border-[#d0d5dd] px-3 py-1.5 text-xs font-semibold text-[#1A254F] transition-colors hover:bg-[#f4f6fb]"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              출력하기
+            </button>
+          </div>
+        )}
+      </article>
     )
   }
 )
+
+WorkLogCard.displayName = 'WorkLogCard'

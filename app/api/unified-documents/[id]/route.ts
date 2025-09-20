@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,25 +13,15 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { id } = params
 
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 사용자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    const role = authResult.role || ''
 
     // 문서 조회 (관계 데이터 포함)
     let query = supabase
@@ -77,11 +68,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .eq('id', id)
 
     // 권한 기반 필터링
-    if (profile.role !== 'admin') {
-      if (profile.role === 'supervisor') {
-        query = query.or(`is_public.eq.true,owner_id.eq.${user.id},uploaded_by.eq.${user.id}`)
+    if (role !== 'admin') {
+      if (role === 'supervisor') {
+        query = query.or(`is_public.eq.true,owner_id.eq.${authResult.userId},uploaded_by.eq.${authResult.userId}`)
       } else {
-        query = query.or(`owner_id.eq.${user.id},uploaded_by.eq.${user.id},is_public.eq.true`)
+        query = query.or(`owner_id.eq.${authResult.userId},uploaded_by.eq.${authResult.userId},is_public.eq.true`)
       }
     }
 
@@ -111,26 +102,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { id } = params
     const body = await request.json()
 
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 사용자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    const role = authResult.role || ''
 
     // 문서 존재 및 권한 확인
     const { data: document, error: fetchError } = await supabase
@@ -144,7 +125,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     // 권한 확인
-    if (profile.role !== 'admin' && document.owner_id !== user.id && document.uploaded_by !== user.id) {
+    if (role !== 'admin' && document.owner_id !== authResult.userId && document.uploaded_by !== authResult.userId) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
     }
 
@@ -206,27 +187,17 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = createClient()
     const { id } = params
     const { searchParams } = new URL(request.url)
     const hardDelete = searchParams.get('hard') === 'true'
 
-    // 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // 사용자 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
+    const role = authResult.role || ''
 
     // 문서 존재 및 권한 확인
     const { data: document, error: fetchError } = await supabase
@@ -240,11 +211,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // 권한 확인 (hard delete는 관리자만 가능)
-    if (hardDelete && profile.role !== 'admin') {
+    if (hardDelete && role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required for permanent deletion' }, { status: 403 })
     }
 
-    if (!hardDelete && profile.role !== 'admin' && document.owner_id !== user.id && document.uploaded_by !== user.id) {
+    if (!hardDelete && role !== 'admin' && document.owner_id !== authResult.userId && document.uploaded_by !== authResult.userId) {
       return NextResponse.json({ error: 'Permission denied' }, { status: 403 })
     }
 

@@ -65,10 +65,17 @@ export default function TestSessionPage() {
       
       // Step 4: Verify client session
       addResult('Verifying client session...')
-      const { data: { user: clientUser } } = await supabase.auth.getUser()
-      
-      if (clientUser) {
-        addResult(`Client session valid: ${clientUser.email}`)
+      const {
+        data: { session: clientSession },
+        error: clientSessionError,
+      } = await supabase.auth.getSession()
+
+      if (clientSessionError) {
+        addResult(`Client session error: ${clientSessionError.message}`, false)
+      }
+
+      if (clientSession?.user) {
+        addResult(`Client session valid: ${clientSession.user.email}`)
       } else {
         addResult('Client session invalid!', false)
       }

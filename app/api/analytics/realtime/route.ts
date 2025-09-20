@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth, getAuthForClient } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -24,25 +25,24 @@ async function tableExists(supabase: unknown, tableName: string): Promise<boolea
 // GET endpoint to subscribe to real-time analytics events
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Get user profile with better error handling
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*, organization:organizations(*)')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (profileError) {
       console.error('Profile lookup error in realtime analytics:', {
         error: profileError,
-        userId: user.id,
+        userId: authResult.userId,
         timestamp: new Date().toISOString()
       })
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
         const { data: siteAccess, error: siteAccessError } = await supabase
           .from('site_members')
           .select('site_id')
-          .eq('user_id', user.id)
+          .eq('user_id', authResult.userId)
           .eq('site_id', siteId)
           .eq('role', 'site_manager')
           .single()
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
 // POST endpoint to emit real-time analytics events
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createClient()
     
     // Check if request has a body
     const contentLength = request.headers.get('content-length')
@@ -155,37 +155,38 @@ export async function POST(request: NextRequest) {
     // Check if this is a RUM event (these can be anonymous)
     const isRumEvent = eventType.startsWith('rum_')
     
-    let user = null
-    let profile = null
+    let userId: string | null = null
+    let profile: { role?: string; organization_id?: string } | null = null
     
     if (!isRumEvent) {
-      // For non-RUM events, require authentication
-      const { data: userData, error: authError } = await supabase.auth.getUser()
-      if (authError || !userData.user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      // For non-RUM events, require authentication via shared helper
+      const authResult = await requireApiAuth()
+      if (authResult instanceof NextResponse) {
+        return authResult
       }
-      user = userData.user
 
-      // Get user profile
+      userId = authResult.userId
+
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role, organization_id')
-        .eq('id', user.id)
+        .eq('id', authResult.userId)
         .single()
 
       if (profileError || !profileData) {
         return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
       }
+
       profile = profileData
     } else {
       // For RUM events, try to get user if available but don't require it
-      const { data: userData } = await supabase.auth.getUser()
-      if (userData?.user) {
-        user = userData.user
+      const rumAuth = await getAuthForClient(supabase)
+      if (rumAuth) {
+        userId = rumAuth.userId
         const { data: profileData } = await supabase
           .from('profiles')
           .select('role, organization_id')
-          .eq('id', user.id)
+          .eq('id', rumAuth.userId)
           .single()
         profile = profileData
       }
@@ -229,7 +230,7 @@ export async function POST(request: NextRequest) {
         event_type: String(eventType),
         organization_id: profile?.organization_id || null,
         site_id: siteId || null,
-        user_id: user?.id || null,
+        user_id: userId,
         event_data: eventData || {},
         event_timestamp: new Date().toISOString(),
         metadata: {

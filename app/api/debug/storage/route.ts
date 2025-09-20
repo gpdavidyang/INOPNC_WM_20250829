@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -9,11 +10,13 @@ export async function GET(request: NextRequest) {
   console.log('🔍 Storage Debug API called')
   
   try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
     const supabase = await createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
     const debugInfo: unknown = {
       timestamp: new Date().toISOString(),
       environment: {
@@ -24,10 +27,10 @@ export async function GET(request: NextRequest) {
         supabaseUrlStart: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30),
       },
       auth: {
-        isAuthenticated: !!user,
-        userId: user?.id,
-        userEmail: user?.email,
-        authError: authError?.message || null,
+        isAuthenticated: true,
+        userId: authResult.userId,
+        userEmail: authResult.email,
+        authError: null,
       },
       storage: {
         test: null,
@@ -40,12 +43,12 @@ export async function GET(request: NextRequest) {
     }
     
     // Test storage access
-    if (user) {
+    if (authResult.userId) {
       try {
         // Try to list files in the documents bucket
         const { data: files, error: listError } = await supabase.storage
           .from('documents')
-          .list(`documents/${user.id}`, {
+          .list(`documents/${authResult.userId}`, {
             limit: 1,
           })
         
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest) {
         // Try a small test upload with a tiny text file
         const testFileName = `test_${Date.now()}.txt`
         const testContent = new TextEncoder().encode('Test upload from debug endpoint')
-        const testPath = `documents/${user.id}/${testFileName}`
+        const testPath = `documents/${authResult.userId}/${testFileName}`
         
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('documents')
@@ -88,7 +91,7 @@ export async function GET(request: NextRequest) {
         const { data: profile, error: dbError } = await supabase
           .from('profiles')
           .select('id, full_name, role')
-          .eq('id', user.id)
+          .eq('id', authResult.userId)
           .single()
         
         debugInfo.database.test = {

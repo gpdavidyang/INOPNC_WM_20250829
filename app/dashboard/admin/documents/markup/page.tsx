@@ -1,45 +1,22 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import { createClient } from "@/lib/supabase/server"
-
-export const dynamic = "force-dynamic"
+export const metadata: Metadata = {
+  title: '마크업 문서 (준비 중)',
+}
 
 export default async function AdminMarkupDocumentsPage() {
-  const supabase = createClient()
-  
-  try {
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      redirect('/auth/login')
-    }
+  await requireAdminProfile()
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
-      redirect('/auth/login')
-    }
-
-    // 도면마킹문서함 접근 권한 확인
-    if (!canAccessDocumentCategory(profile.role as unknown, 'markup')) {
-      redirect('/dashboard')
-    }
-
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">도면마킹 관리</h1>
-          <p className="text-gray-600 mt-1">현장별 도면마킹 문서를 관리합니다.</p>
-        </div>
-        
-        <MarkupDocumentsManagement />
-      </div>
-    )
-  } catch (error) {
-    console.error('Error loading markup documents page:', error)
-    redirect('/auth/login')
-  }
+  return (
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="마크업 문서 관리"
+        description="문서 마크업/주석 기능은 현재 리팩토링 중입니다."
+      >
+        <p>Phase 2에서 문서 마크업 편집기와 저장 API를 정리한 뒤 UI를 재도입할 계획입니다.</p>
+      </AdminPlaceholder>
+    </div>
+  )
 }

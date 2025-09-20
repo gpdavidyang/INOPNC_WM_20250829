@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import { revalidatePath } from 'next/cache'
 import { AppError, ErrorType } from '@/lib/errors'
 import { validateSupabaseResponse, logError } from '@/lib/supabase/client'
@@ -11,24 +12,26 @@ import type {
   CreateNotificationRequest,
 } from '@/types/notifications'
 
+async function requireAuth(supabase: ReturnType<typeof createClient>) {
+  const auth = await getAuthForClient(supabase)
+  if (!auth) {
+    throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
+  }
+  return auth
+}
+
 // 알림 목록 조회
 export async function getNotifications(filter?: NotificationFilter) {
   try {
     const supabase = createClient()
 
     // 현재 사용자 확인
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
-    }
+    const auth = await requireAuth(supabase)
 
     let query = supabase
       .from('notifications')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .order('created_at', { ascending: false })
 
     // 필터 적용
@@ -81,40 +84,26 @@ export async function getNotificationStats(): Promise<{
 }> {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError) {
-      // Log the specific authentication error for debugging
-      console.warn('Auth error in getNotificationStats:', userError.message)
-    }
-    if (userError || !user) {
-      return {
-        success: false,
-        error: '로그인이 필요합니다.',
-      }
-    }
+    const auth = await requireAuth(supabase)
 
     // 전체 알림 수
     const { count: total } = await supabase
       .from('notifications')
       .select('*', { count: 'exact' })
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
 
     // 읽지 않은 알림 수
     const { count: unread } = await supabase
       .from('notifications')
       .select('*', { count: 'exact' })
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .eq('is_read', false)
 
     // 타입별 알림 수
     const { data: typeData } = await supabase
       .from('notifications')
       .select('type')
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
 
     const by_type =
       typeData?.reduce(
@@ -146,14 +135,7 @@ export async function getNotificationStats(): Promise<{
 export async function markNotificationAsRead(notificationId: string) {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
-    }
+    const auth = await requireAuth(supabase)
 
     const { data, error } = await supabase
       .from('notifications')
@@ -162,7 +144,7 @@ export async function markNotificationAsRead(notificationId: string) {
         read_at: new Date().toISOString(),
       })
       .eq('id', notificationId)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .select()
       .single()
 
@@ -183,14 +165,7 @@ export async function markNotificationAsRead(notificationId: string) {
 export async function markAllNotificationsAsRead() {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
-    }
+    const auth = await requireAuth(supabase)
 
     const { data, error } = await supabase
       .from('notifications')
@@ -198,7 +173,7 @@ export async function markAllNotificationsAsRead() {
         is_read: true,
         read_at: new Date().toISOString(),
       })
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .eq('is_read', false)
       .select()
 
@@ -219,20 +194,13 @@ export async function markAllNotificationsAsRead() {
 export async function deleteNotification(notificationId: string) {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
-    }
+    const auth = await requireAuth(supabase)
 
     const { error } = await supabase
       .from('notifications')
       .delete()
       .eq('id', notificationId)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
 
     if (error) throw error
 
@@ -253,19 +221,13 @@ export async function createNotification(request: CreateNotificationRequest) {
     const supabase = createClient()
 
     // 권한 확인
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
-    }
+    const auth = await requireAuth(supabase)
 
     // 관리자 권한 확인
     const { data: profile } = await supabase
       .from('profiles')
       .select('role')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (!profile || !['admin', 'system_admin'].includes(profile.role)) {
@@ -299,19 +261,12 @@ export async function createNotification(request: CreateNotificationRequest) {
 export async function getNotificationPreferences() {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
-    }
+    const auth = await requireAuth(supabase)
 
     const { data, error } = await (supabase
       .from('user_notification_preferences')
       .select('*')
-      .eq('user_id', user.id) as unknown)
+      .eq('user_id', auth.userId) as unknown)
 
     if (error && error.code !== 'PGRST116') throw error // PGRST116: no rows returned
 
@@ -336,20 +291,13 @@ export async function updateNotificationPreference(
 ) {
   try {
     const supabase = createClient()
-
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-    if (userError || !user) {
-      throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
-    }
+    const auth = await requireAuth(supabase)
 
     const { data, error } = await (supabase
       .from('user_notification_preferences')
       .upsert(
         {
-          user_id: user.id,
+          user_id: auth.userId,
           notification_type: notificationType,
           ...settings,
           updated_at: new Date().toISOString(),

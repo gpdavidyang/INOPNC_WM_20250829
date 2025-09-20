@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,17 +18,15 @@ export async function GET(request: NextRequest) {
     
     // Try to get session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-    
-    // Try to get user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const simpleAuth = await getAuthForClient(supabase)
     
     // Check site assignments if user exists
     let siteAssignment = null
-    if (user) {
+    if (simpleAuth?.userId) {
       const { data, error } = await supabase
         .from('site_assignments')
         .select('*, sites(name)')
-        .eq('user_id', user.id)
+        .eq('user_id', simpleAuth.userId)
         .eq('is_active', true)
         .single()
       
@@ -45,15 +44,15 @@ export async function GET(request: NextRequest) {
       },
       session: {
         exists: !!session,
-        user: session?.user?.email,
+        user: session?.user?.email || simpleAuth?.email,
         accessToken: session?.access_token ? 'Present' : 'Missing',
         error: sessionError?.message
       },
       user: {
-        exists: !!user,
-        email: user?.email,
-        id: user?.id,
-        error: userError?.message
+        exists: !!simpleAuth,
+        email: simpleAuth?.email,
+        id: simpleAuth?.userId,
+        error: null
       },
       siteAssignment: siteAssignment ? {
         siteName: siteAssignment.sites?.name,

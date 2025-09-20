@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
 
 
@@ -10,10 +11,10 @@ export async function forceSiteRefresh() {
     console.log('🔧 [FORCE-REFRESH] Starting force site refresh...')
     
     // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    console.log('🔧 [FORCE-REFRESH] User check:', { user: user?.id, error: authError?.message })
+    const auth = await getAuthForClient(supabase)
+    console.log('🔧 [FORCE-REFRESH] User check:', { user: auth?.userId })
     
-    if (authError || !user) {
+    if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
 
@@ -21,7 +22,7 @@ export async function forceSiteRefresh() {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, email, role, full_name')
-      .eq('id', user.id)
+      .eq('id', auth.userId)
       .single()
 
     if (profileError || !profile) {
@@ -55,7 +56,7 @@ export async function forceSiteRefresh() {
           end_date
         )
       `)
-      .eq('user_id', user.id)
+      .eq('user_id', auth.userId)
       .order('assigned_date', { ascending: false })
 
     console.log('🔧 [FORCE-REFRESH] All assignments:', { count: allAssignments?.length || 0, error: assignError })
@@ -122,14 +123,14 @@ export async function forceSiteRefresh() {
           is_active: false, 
           unassigned_date: new Date().toISOString().split('T')[0] 
         })
-        .eq('user_id', user.id)
+        .eq('user_id', auth.userId)
         .eq('is_active', true)
 
       // 새 배정 생성
       const { data: newAssignment, error: newAssignError } = await supabase
         .from('site_assignments')
         .insert({
-          user_id: user.id,
+          user_id: auth.userId,
           site_id: testSite.id,
           assigned_date: new Date().toISOString().split('T')[0],
           is_active: true,

@@ -1,25 +1,22 @@
-
-import { Metadata } from 'next'
-import { WorkOptionsManagement } from '@/components/admin/work-options/WorkOptionsManagement'
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
 export const metadata: Metadata = {
-  title: '작업 옵션 관리',
-  description: '작업일지 부재명 및 작업공정 옵션 관리',
+  title: '작업 옵션 관리 (준비 중)',
 }
 
-export default function WorkOptionsPage() {
+export default async function WorkOptionsPage() {
+  await requireAdminProfile()
+
   return (
-    <div className="container mx-auto p-6 max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-          작업 옵션 관리
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          작업일지에서 사용되는 부재명과 작업공정 옵션을 관리합니다.
-        </p>
-      </div>
-      
-      <WorkOptionsManagement />
+    <div className="px-4 sm:px-6 lg:px-8 py-8">
+      <AdminPlaceholder
+        title="작업 옵션 관리"
+        description="부재명/작업공정 등 작업 옵션 설정 화면은 리팩토링 중입니다."
+      >
+        <p>작업일지 구조 정비 후 새로운 옵션 관리 UI를 제공할 계획입니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

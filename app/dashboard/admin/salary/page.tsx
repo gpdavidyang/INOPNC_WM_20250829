@@ -1,38 +1,22 @@
+import type { Metadata } from 'next'
+import { requireAdminProfile } from '@/app/dashboard/admin/utils'
+import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
 
-import { createClient } from "@/lib/supabase/server"
-import SalaryManagement from '@/components/admin/SalaryManagement'
+export const metadata: Metadata = {
+  title: '급여 관리 (준비 중)',
+}
 
-export const dynamic = "force-dynamic"
-
-export default async function SalaryManagementPage() {
-  const supabase = createClient()
-  
-  // Check authentication and admin permissions
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  
-  if (userError || !user) {
-    redirect('/auth/login')
-  }
-
-  // Get user profile and check admin permissions
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError || !profile || !['admin', 'system_admin'].includes(profile.role)) {
-    redirect('/dashboard')
-  }
+export default async function AdminSalaryPage() {
+  await requireAdminProfile()
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">급여 관리</h1>
-        <p className="mt-2 text-sm text-gray-700 dark:text-gray-300">작업자 급여 규칙 설정 및 급여 계산</p>
-      </div>
-
-      <SalaryManagement profile={profile} />
+      <AdminPlaceholder
+        title="급여 관리"
+        description="급여 계산 및 정산 화면은 재정비 중입니다."
+      >
+        <p>급여 규칙, 산출 및 보고 기능은 Phase 2에서 새 API와 함께 복원할 예정입니다.</p>
+      </AdminPlaceholder>
     </div>
   )
 }

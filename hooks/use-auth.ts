@@ -25,11 +25,17 @@ export function useAuth() {
     const getInitialSession = async () => {
       try {
         const {
-          data: { user },
-        } = await supabase.auth.getUser()
-        setUser(user)
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('Error getting session:', sessionError)
+        }
+
+        setUser(session?.user ?? null)
       } catch (error) {
-        console.error('Error getting user:', error)
+        console.error('Error getting session:', error)
       } finally {
         setLoading(false)
       }

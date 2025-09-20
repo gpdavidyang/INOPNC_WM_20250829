@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth, getAuthForClient } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -23,25 +24,24 @@ async function tableExists(supabase: unknown, tableName: string): Promise<boolea
 
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient()
-    
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // Get user profile with better error handling
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('*, organization:organizations(*)')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (profileError) {
       console.error('Profile lookup error:', {
         error: profileError,
-        userId: user.id,
+        userId: authResult.userId,
         timestamp: new Date().toISOString()
       })
       return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
         const { data: assignedSites, error: sitesError } = await supabase
           .from('site_members')
           .select('site_id')
-          .eq('user_id', user.id)
+          .eq('user_id', authResult.userId)
           .eq('role', 'site_manager')
 
         if (sitesError) {
@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
 // POST endpoint for storing performance metrics and triggering aggregation
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
+    const supabase = createClient()
     
     // Check if request has a body
     const contentLength = request.headers.get('content-length')
@@ -281,15 +281,15 @@ export async function POST(request: NextRequest) {
       } = body
 
       // Get current user's organization (if available) with better error handling
-      const { data: { user } } = await supabase.auth.getUser()
+      const simpleAuth = await getAuthForClient(supabase)
       let organizationId = null
       
-      if (user) {
+      if (simpleAuth) {
         try {
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('organization_id')
-            .eq('id', user.id)
+            .eq('id', simpleAuth.userId)
             .single()
           
           if (profileError) {
@@ -428,16 +428,16 @@ export async function POST(request: NextRequest) {
 
     // Handle manual aggregation trigger (existing functionality)
     // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
     // Get user profile
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role, organization_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (profileError || !profile) {

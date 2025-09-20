@@ -1,6 +1,8 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { createServiceClient } from '@/lib/supabase/service'
 
 
 export const dynamic = 'force-dynamic'
@@ -30,24 +32,16 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication and admin role
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Verify admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || profile.role !== 'admin') {
+    if (authResult.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
+
+    const supabase = createClient()
 
     const userId = params.id
 
@@ -94,25 +88,16 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication and admin role
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Verify admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || profile.role !== 'admin') {
+    if (authResult.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
+    const supabase = createClient()
     const userId = params.id
     const formData = await request.formData()
     const file = formData.get('file') as File
@@ -127,10 +112,7 @@ export async function POST(
     }
 
     // Create service client for file operations
-    const serviceClient = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const serviceClient = createServiceClient()
 
     // Generate unique file name
     const fileExtension = file.name.split('.').pop()
@@ -187,7 +169,7 @@ export async function POST(
         file_path: fileName,
         file_size: file.size,
         mime_type: file.type,
-        uploaded_by: user.id
+        uploaded_by: authResult.userId
       })
       .select()
       .single()
@@ -226,7 +208,7 @@ export async function POST(
         category_type: 'required_user_docs',
         title: `${userInfo?.full_name || 'Unknown'} - ${DOCUMENT_LABELS[documentType]}`,
         description: `${userInfo?.organization?.name || ''} 소속 ${userInfo?.full_name || 'Unknown'}의 ${DOCUMENT_LABELS[documentType]}`,
-        uploaded_by: user.id,
+        uploaded_by: authResult.userId,
         tags: [documentType, 'required_document', 'user_document']
       }, {
         onConflict: 'profile_id,tags'
@@ -257,22 +239,12 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication and admin role
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // Verify admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile || profile.role !== 'admin') {
+    if (authResult.role !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
@@ -285,10 +257,7 @@ export async function DELETE(
     }
 
     // Create service client
-    const serviceClient = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const serviceClient = createServiceClient()
 
     // Get document record
     const { data: document, error: fetchError } = await serviceClient

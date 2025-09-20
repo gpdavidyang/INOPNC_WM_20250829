@@ -1,7 +1,6 @@
-
-import { redirect } from 'next/navigation'
-import { notFound } from 'next/navigation'
+import { redirect, notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import TaskDetail from './task-detail'
 
 export const dynamic = "force-dynamic"
@@ -9,9 +8,9 @@ export const dynamic = "force-dynamic"
 export default async function TaskDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient()
   
-  const { data: { user } } = await supabase.auth.getUser()
+  const auth = await getAuthForClient(supabase)
   
-  if (!user) {
+  if (!auth) {
     redirect('/auth/login')
   }
 
@@ -19,7 +18,7 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   const { data: currentProfile } = await supabase
     .from('profiles')
     .select('*')
-    .eq('id', user.id)
+    .eq('id', auth.userId)
     .single()
 
   // TODO: Get task details when tasks table is created
@@ -57,6 +56,8 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
     .select('id, full_name, email')
     .order('full_name')
 
+  const currentUser = { id: auth.userId, email: auth.email }
+
   // TODO: Get all projects when projects table is created
   // const { data: projects } = await supabase
   //   .from('projects')
@@ -70,7 +71,7 @@ export default async function TaskDetailPage({ params }: { params: { id: string 
   return (
     <div className="min-h-screen bg-gray-100">
       <TaskDetail 
-        currentUser={user} 
+        currentUser={currentUser} 
         currentProfile={currentProfile}
         task={task}
         comments={comments || []}

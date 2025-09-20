@@ -1,29 +1,24 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: Request) {
   try {
-    const supabase = createClient()
-    
-    // Check authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    const { role, restrictedOrgId } = authResult
+
+    if (!role) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Get user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 403 })
-    }
+    const supabase = createClient()
 
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get('site_id')
@@ -36,12 +31,12 @@ export async function GET(request: Request) {
     // 카테고리별 접근 권한 체크
     if (categoryType) {
       // 필수서류함: 파트너사 접근 불가
-      if (categoryType === 'required' && profile.role === 'customer_manager') {
+      if (categoryType === 'required' && role === 'customer_manager') {
         return NextResponse.json({ error: '필수서류함에 접근할 권한이 없습니다' }, { status: 403 })
       }
       
       // 기성청구함: 작업자/현장관리자 접근 불가
-      if (categoryType === 'invoice' && ['worker', 'site_manager'].includes(profile.role)) {
+      if (categoryType === 'invoice' && ['worker', 'site_manager'].includes(role)) {
         return NextResponse.json({ error: '기성청구함에 접근할 권한이 없습니다' }, { status: 403 })
       }
     }
@@ -152,9 +147,9 @@ export async function GET(request: Request) {
     }, {} as Record<string, any[]>) || {}
 
     // Set permissions based on user role
-    const isAdmin = ['admin', 'system_admin'].includes(profile.role)
-    const isWorker = ['worker', 'site_manager'].includes(profile.role)
-    const isPartner = profile.role === 'customer_manager'
+    const isAdmin = ['admin', 'system_admin'].includes(role)
+    const isWorker = ['worker', 'site_manager'].includes(role)
+    const isPartner = role === 'customer_manager'
 
     const response = {
       documents: documents || [],

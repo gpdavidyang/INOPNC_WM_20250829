@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -10,21 +11,21 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const supabase = createClient()
-    
-    // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
-    
+
     // 사용자 프로필 확인 (관리자 권한 체크)
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
-    
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'system_admin'
+
+    const role = profile?.role || authResult.role || ''
+    const isAdmin = role === 'admin' || role === 'system_admin'
     
     // 쿼리 파라미터
     const page = parseInt(searchParams.get('page') || '1')
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
     if (stats) {
       const statsQuery = isAdmin 
         ? supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false)
-        : supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false).eq('created_by', user.id)
+        : supabase.from('markup_documents').select('*', { count: 'exact' }).eq('is_deleted', false).eq('created_by', authResult.userId)
       
       const { count: total } = await statsQuery
 
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
     
     // 관리자가 아니면 자신이 생성한 문서만 조회 가능
     if (!admin || !isAdmin) {
-      query = query.eq('created_by', user.id)
+      query = query.eq('created_by', authResult.userId)
     }
     
     // 검색어 필터
@@ -148,19 +149,18 @@ export async function GET(request: NextRequest) {
 // POST /api/markup-documents - 새 마킹 도면 저장
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 현재 사용자 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // 사용자 프로필 조회
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, site_id')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
         original_blueprint_filename,
         markup_data: markup_data || [],
         preview_image_url,
-        created_by: user.id,
+        created_by: authResult.userId,
         site_id: (profile as unknown).site_id,
         markup_count,
         file_size: 0 // TODO: 실제 파일 크기 계산
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
           file_size: 0,
           mime_type: 'application/markup-document',
           category_type: 'markup',
-          uploaded_by: user.id,
+          uploaded_by: authResult.userId,
           site_id: (profile as unknown).site_id,
           status: 'uploaded',
           is_public: false, // 마킹 문서는 기본적으로 비공개

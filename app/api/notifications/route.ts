@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 
 export const dynamic = 'force-dynamic'
@@ -9,19 +10,18 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const supabase = createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     // 사용자 프로필 확인
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, role')
-      .eq('id', user.id)
+      .eq('id', authResult.userId)
       .single()
 
     if (!profile) {
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('notifications')
       .select('*')
-      .or(`user_id.is.null,user_id.eq.${user.id}`)
+      .or(`user_id.is.null,user_id.eq.${authResult.userId}`)
       .order('created_at', { ascending: false })
 
     // 타입 필터
@@ -107,29 +107,16 @@ export async function GET(request: NextRequest) {
 // POST /api/notifications - 새 알림 생성 (관리자 전용)
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
 
-    // 사용자 프로필 및 권한 확인
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
-    }
-
-    // 관리자만 알림 생성 가능
-    if (profile.role !== 'admin') {
+    if (authResult.role !== 'admin') {
       return NextResponse.json({ error: 'Only administrators can create notifications' }, { status: 403 })
     }
+
+    const supabase = createClient()
 
     const body = await request.json()
     const { 
@@ -207,13 +194,12 @@ export async function POST(request: NextRequest) {
 // DELETE /api/notifications - 알림 일괄 삭제
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient()
-    
-    // 사용자 인증 확인
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
     }
+
+    const supabase = createClient()
 
     const { notificationIds, deleteAll } = await request.json()
 
@@ -223,14 +209,14 @@ export async function DELETE(request: NextRequest) {
       result = await supabase
         .from('notifications')
         .delete()
-        .eq('user_id', user.id)
+        .eq('user_id', authResult.userId)
     } else if (notificationIds && Array.isArray(notificationIds)) {
       // 특정 알림들 삭제
       result = await supabase
         .from('notifications')
         .delete()
         .in('id', notificationIds)
-        .eq('user_id', user.id) // 자신의 알림만 삭제 가능
+        .eq('user_id', authResult.userId) // 자신의 알림만 삭제 가능
     } else {
       return NextResponse.json({ 
         error: 'Invalid request parameters' 
