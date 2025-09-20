@@ -1,8 +1,8 @@
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
-interface UseLongPressOptions {
-  onLongPress: () => void
-  onPress?: () => void
+interface UseLongPressOptions<T> {
+  onLongPress: (data: T) => void
+  onPress?: (data: T) => void
   delay?: number
 }
 
@@ -15,48 +15,65 @@ interface LongPressHandlers {
   onTouchMove: () => void
 }
 
-export const useLongPress = ({
-  onLongPress,
-  onPress,
-  delay = 800,
-}: UseLongPressOptions): LongPressHandlers => {
-  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
-  const isLongPressRef = useRef(false)
+export const useLongPress = <T>({ onLongPress, onPress, delay = 800 }: UseLongPressOptions<T>) => {
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const longPressTriggeredRef = useRef(false)
+  const payloadRef = useRef<T | null>(null)
 
-  const start = useCallback(() => {
-    isLongPressRef.current = false
-    longPressTimerRef.current = setTimeout(() => {
-      isLongPressRef.current = true
-      onLongPress()
-    }, delay)
-  }, [onLongPress, delay])
+  const onLongPressRef = useRef(onLongPress)
+  const onPressRef = useRef(onPress)
 
-  const clear = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current)
-      longPressTimerRef.current = null
+  useEffect(() => {
+    onLongPressRef.current = onLongPress
+  }, [onLongPress])
+
+  useEffect(() => {
+    onPressRef.current = onPress
+  }, [onPress])
+
+  const clearTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
     }
   }, [])
 
-  const handlePress = useCallback(() => {
-    // 롱프레스가 아닌 경우에만 일반 클릭 이벤트 실행
-    if (!isLongPressRef.current && onPress) {
-      onPress()
-    }
-  }, [onPress])
+  const startTimer = useCallback(
+    (data: T) => {
+      payloadRef.current = data
+      longPressTriggeredRef.current = false
+      timerRef.current = setTimeout(() => {
+        longPressTriggeredRef.current = true
+        onLongPressRef.current?.(data)
+      }, delay)
+    },
+    [delay]
+  )
 
-  return {
-    onMouseDown: start,
-    onMouseUp: () => {
-      clear()
-      handlePress()
-    },
-    onMouseLeave: clear,
-    onTouchStart: start,
-    onTouchEnd: () => {
-      clear()
-      handlePress()
-    },
-    onTouchMove: clear, // 터치가 이동하면 롱프레스 취소
-  }
+  const triggerPress = useCallback(() => {
+    if (!longPressTriggeredRef.current && payloadRef.current !== null) {
+      onPressRef.current?.(payloadRef.current)
+    }
+    payloadRef.current = null
+  }, [])
+
+  const bind = useCallback(
+    (data: T): LongPressHandlers => ({
+      onMouseDown: () => startTimer(data),
+      onMouseUp: () => {
+        clearTimer()
+        triggerPress()
+      },
+      onMouseLeave: () => clearTimer(),
+      onTouchStart: () => startTimer(data),
+      onTouchEnd: () => {
+        clearTimer()
+        triggerPress()
+      },
+      onTouchMove: () => clearTimer(),
+    }),
+    [clearTimer, startTimer, triggerPress]
+  )
+
+  return bind
 }
