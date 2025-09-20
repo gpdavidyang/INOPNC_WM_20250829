@@ -49,6 +49,18 @@ const INITIAL_DOCUMENTS: DocumentCollection = {
 
 const DOCUMENT_FETCH_LIMIT = 100
 
+const DOCUMENT_TYPE_MAPPING: Record<string, string> = {
+  A: 'pre-employment-checkup',
+  B: 'safety-training',
+  C: 'vehicle-insurance',
+  D: 'vehicle-registration',
+  E: 'bank-account-copy',
+  F: 'id-card',
+  G: 'senior-documents',
+  H: 'site-safety-rules',
+  I: 'equipment-checklist',
+}
+
 type DocumentTab = 'mine' | 'shared'
 
 enum DocumentTypeQuery {
@@ -332,14 +344,35 @@ const DocumentsContentV2: React.FC = () => {
     clearDeleteMode()
   }
 
-  const handleDeleteDocument = (docId: string) => {
+  const handleDeleteDocument = async (docId: string) => {
     const document = currentDocuments.find(doc => doc.id === docId)
     if (!document) return
 
     const confirmed = window.confirm(`"${document.title}" 문서를 삭제하시겠습니까?`)
-    if (confirmed) {
-      showInfo('문서 삭제 기능은 곧 제공될 예정입니다.', '준비 중')
+    if (!confirmed) {
+      clearDeleteMode()
+      return
     }
+
+    try {
+      const response = await fetch(`/api/documents?id=${document.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => ({}))
+        throw new Error(errorBody?.error || '문서 삭제에 실패했습니다.')
+      }
+
+      showSuccess('문서를 삭제했습니다.', '삭제 완료')
+      if (currentSelectedId === docId) {
+        updateSelectedDocument(activeTab, null)
+      }
+      await fetchDocuments()
+    } catch (error) {
+      showError(error instanceof Error ? error.message : '문서 삭제에 실패했습니다.', '삭제 실패')
+    }
+
     clearDeleteMode()
   }
 
@@ -606,6 +639,15 @@ const DocumentsContentV2: React.FC = () => {
           onClose={() => setUploadModal({ isOpen: false, documentId: null, documentTitle: null })}
           documentId={uploadModal.documentId ?? undefined}
           documentTitle={uploadModal.documentTitle ?? undefined}
+          documentType={
+            uploadModal.documentId
+              ? (DOCUMENT_TYPE_MAPPING[uploadModal.documentId] ??
+                (activeTab === 'shared' ? 'shared' : 'personal'))
+              : activeTab === 'shared'
+                ? 'shared'
+                : 'personal'
+          }
+          isPublic={activeTab === 'shared'}
           onUploadComplete={handleUploadComplete}
         />
       </div>
