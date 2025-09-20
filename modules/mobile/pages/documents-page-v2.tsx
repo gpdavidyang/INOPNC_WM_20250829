@@ -315,17 +315,6 @@ const DocumentsContentV2: React.FC = () => {
     })
   }
 
-  const handlePreviewDocument = (docId: string) => {
-    const document = currentDocuments.find(doc => doc.id === docId)
-    if (!document) return
-
-    setPreviewModal({
-      isOpen: true,
-      document,
-    })
-    clearDeleteMode()
-  }
-
   const openDocument = (document: DocumentItem) => {
     if (!document.fileUrl) {
       showWarning('업로드된 파일이 없습니다.', '파일 없음')
