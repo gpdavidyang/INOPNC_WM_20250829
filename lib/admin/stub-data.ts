@@ -1,3 +1,6 @@
+import type { DocumentType } from '@/types/documents'
+import type { ApprovalStatus } from '@/types'
+
 export interface AdminSiteSummary {
   id: string
   name: string
@@ -57,6 +60,37 @@ export interface AdminPartnerRelations {
     email?: string
     position?: string
   }>
+}
+
+export interface AdminDocumentSummary {
+  id: string
+  title: string
+  description?: string | null
+  file_url: string
+  file_name: string
+  file_size?: number | null
+  mime_type?: string | null
+  document_type: DocumentType
+  folder_path?: string | null
+  owner_id?: string | null
+  owner?: {
+    full_name: string
+    email?: string
+  } | null
+  site_id?: string | null
+  site?: {
+    name: string
+  } | null
+  is_public?: boolean | null
+  created_at: string
+  updated_at: string
+  approval_status?: ApprovalStatus
+  approval_requested_at?: string | null
+  approval_comments?: string | null
+  requested_by?: {
+    full_name: string
+    email: string
+  } | null
 }
 
 export interface AdminAuditLogEntry {
@@ -171,6 +205,185 @@ export const ADMIN_SITES_STUB: AdminSiteSummary[] = [
   },
 ]
 
+export const ADMIN_DOCUMENTS_STUB: AdminDocumentSummary[] = [
+  {
+    id: 'doc-blueprint-001',
+    title: '강남 A 현장 구조 도면',
+    description: '강남 A 현장의 최신 구조 도면입니다.',
+    file_url: 'https://example.com/documents/blueprint-001.pdf',
+    file_name: 'gangnam-a-structure-v3.pdf',
+    file_size: 2_560_000,
+    mime_type: 'application/pdf',
+    document_type: 'blueprint',
+    folder_path: '/sites/gangnam-a',
+    owner_id: 'admin-001',
+    owner: {
+      full_name: '김현우',
+      email: 'hyunwoo.kim@npc.co.kr',
+    },
+    site_id: 'site-gangnam-a',
+    site: {
+      name: '강남 A 현장',
+    },
+    is_public: true,
+    created_at: '2024-08-12T09:15:00+09:00',
+    updated_at: '2024-09-02T11:42:00+09:00',
+    approval_status: 'approved',
+    approval_requested_at: '2024-08-10T08:10:00+09:00',
+    approval_comments: '현장 공유 완료',
+    requested_by: {
+      full_name: '박지민',
+      email: 'jimin.park@npc.co.kr',
+    },
+  },
+  {
+    id: 'doc-report-002',
+    title: '8월 품질 점검 보고서',
+    description: '8월 현장 품질 점검 결과 보고서입니다.',
+    file_url: 'https://example.com/documents/report-002.pdf',
+    file_name: 'quality-inspection-2024-08.pdf',
+    file_size: 1_150_000,
+    mime_type: 'application/pdf',
+    document_type: 'report',
+    folder_path: '/reports/2024',
+    owner_id: 'qa-001',
+    owner: {
+      full_name: '최은미',
+      email: 'eunmi.choi@npc.co.kr',
+    },
+    site_id: 'site-songpa-c',
+    site: {
+      name: '송파 C 현장',
+    },
+    is_public: false,
+    created_at: '2024-09-01T14:20:00+09:00',
+    updated_at: '2024-09-03T09:35:00+09:00',
+    approval_status: 'pending',
+    approval_requested_at: '2024-09-03T09:30:00+09:00',
+    approval_comments: null,
+    requested_by: {
+      full_name: '구교민',
+      email: 'gyomin.koo@npc.co.kr',
+    },
+  },
+  {
+    id: 'doc-certificate-003',
+    title: '작업자 안전 교육 수료증 - 이지훈',
+    description: '2024년 2분기 안전 교육 수료증 사본',
+    file_url: 'https://example.com/documents/certificate-003.pdf',
+    file_name: 'safety-training-leejihun.pdf',
+    file_size: 420_000,
+    mime_type: 'application/pdf',
+    document_type: 'certificate',
+    folder_path: '/workers/safety',
+    owner_id: 'worker-342',
+    owner: {
+      full_name: '이지훈',
+      email: 'jihun.lee@npc.co.kr',
+    },
+    site_id: 'site-seocho-b',
+    site: {
+      name: '서초 B 현장',
+    },
+    is_public: false,
+    created_at: '2024-07-18T10:05:00+09:00',
+    updated_at: '2024-07-18T10:05:00+09:00',
+    approval_status: 'approved',
+    approval_requested_at: '2024-07-18T09:50:00+09:00',
+    approval_comments: '인사팀 확인 완료',
+    requested_by: {
+      full_name: '변정호',
+      email: 'jung-ho.byun@npc.co.kr',
+    },
+  },
+  {
+    id: 'doc-contract-004',
+    title: '하반기 자재 공급 계약서',
+    description: '서브플라이 자재와 체결한 2024년 하반기 공급 계약서',
+    file_url: 'https://example.com/documents/contract-004.pdf',
+    file_name: 'supply-contract-h2-2024.pdf',
+    file_size: 3_450_000,
+    mime_type: 'application/pdf',
+    document_type: 'contract',
+    folder_path: '/partners/contracts',
+    owner_id: 'procure-007',
+    owner: {
+      full_name: '장민수',
+      email: 'minsu.jang@npc.co.kr',
+    },
+    site_id: null,
+    site: null,
+    is_public: false,
+    created_at: '2024-06-25T16:45:00+09:00',
+    updated_at: '2024-08-01T13:20:00+09:00',
+    approval_status: 'approved',
+    approval_requested_at: '2024-06-26T09:10:00+09:00',
+    approval_comments: '법무팀 검토 후 승인',
+    requested_by: {
+      full_name: '유석진',
+      email: 'seokjin.yoo@npc.co.kr',
+    },
+  },
+  {
+    id: 'doc-manual-005',
+    title: 'NPC-1000 장비 운영 매뉴얼 v2',
+    description: '현장 작업자를 위한 NPC-1000 장비 운영 지침서',
+    file_url: 'https://example.com/documents/manual-005.pdf',
+    file_name: 'npc-1000-operation-manual-v2.pdf',
+    file_size: 5_200_000,
+    mime_type: 'application/pdf',
+    document_type: 'manual',
+    folder_path: '/shared/manuals',
+    owner_id: 'training-001',
+    owner: {
+      full_name: '정은채',
+      email: 'eunchae.jung@npc.co.kr',
+    },
+    site_id: null,
+    site: null,
+    is_public: true,
+    created_at: '2024-05-30T08:30:00+09:00',
+    updated_at: '2024-08-15T10:55:00+09:00',
+    approval_status: 'approved',
+    approval_requested_at: '2024-05-29T17:40:00+09:00',
+    approval_comments: '교육팀 배포 완료',
+    requested_by: {
+      full_name: '김나연',
+      email: 'nayeon.kim@npc.co.kr',
+    },
+  },
+  {
+    id: 'doc-other-006',
+    title: '긴급 안전 점검 요청서',
+    description: '9월 안전 점검을 위한 자료 요청 사항입니다.',
+    file_url: 'https://example.com/documents/other-006.docx',
+    file_name: 'emergency-safety-review.docx',
+    file_size: 280_000,
+    mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    document_type: 'other',
+    folder_path: '/safety/requests',
+    owner_id: 'safety-002',
+    owner: {
+      full_name: '한지호',
+      email: 'jiho.han@npc.co.kr',
+    },
+    site_id: 'site-guro-e',
+    site: {
+      name: '구로 E 현장',
+    },
+    is_public: false,
+    created_at: '2024-09-05T11:05:00+09:00',
+    updated_at: '2024-09-06T09:15:00+09:00',
+    approval_status: 'pending',
+    approval_requested_at: '2024-09-06T08:50:00+09:00',
+    approval_comments: null,
+    requested_by: {
+      full_name: '오세린',
+      email: 'serin.oh@npc.co.kr',
+    },
+  },
+]
+
 export const ADMIN_PARTNER_COMPANIES_STUB: AdminPartnerCompany[] = [
   {
     id: 'partner-npc',
@@ -262,7 +475,12 @@ export const ADMIN_ORGANIZATION_RELATIONS: Record<string, AdminOrganizationRelat
   },
   'org-supplies': {
     members: [
-      { id: 'user-supply-1', name: '정세영', role: 'customer_manager', email: 'jung@supplies.co.kr' },
+      {
+        id: 'user-supply-1',
+        name: '정세영',
+        role: 'customer_manager',
+        email: 'jung@supplies.co.kr',
+      },
     ],
     sites: [
       { id: 'site-gangnam-a', name: '강남 A 현장', status: 'active' },
@@ -278,15 +496,23 @@ export const ADMIN_PARTNER_RELATIONS: Record<string, AdminPartnerRelations> = {
       { id: 'site-seocho-b', name: '서초 B 현장', status: 'active' },
     ],
     contacts: [
-      { name: '최재훈', phone: '010-1234-5678', email: 'choi.jh@npc.co.kr', position: '프로젝트 총괄' },
+      {
+        name: '최재훈',
+        phone: '010-1234-5678',
+        email: 'choi.jh@npc.co.kr',
+        position: '프로젝트 총괄',
+      },
     ],
   },
   'partner-buildon': {
-    sites: [
-      { id: 'site-songpa-c', name: '송파 C 현장', status: 'active' },
-    ],
+    sites: [{ id: 'site-songpa-c', name: '송파 C 현장', status: 'active' }],
     contacts: [
-      { name: '박정민', phone: '010-7654-3210', email: 'jm.park@buildon.kr', position: '현장 담당' },
+      {
+        name: '박정민',
+        phone: '010-7654-3210',
+        email: 'jm.park@buildon.kr',
+        position: '현장 담당',
+      },
       { name: '이소윤', phone: '010-2222-7777', email: 'lee@buildon.kr', position: '안전 관리자' },
     ],
   },
@@ -296,7 +522,12 @@ export const ADMIN_PARTNER_RELATIONS: Record<string, AdminPartnerRelations> = {
       { id: 'site-gangnam-a', name: '강남 A 현장', status: 'active' },
     ],
     contacts: [
-      { name: '홍지수', phone: '010-9876-5432', email: 'hong@supplies.co.kr', position: '영업 대표' },
+      {
+        name: '홍지수',
+        phone: '010-9876-5432',
+        email: 'hong@supplies.co.kr',
+        position: '영업 대표',
+      },
     ],
   },
 }
