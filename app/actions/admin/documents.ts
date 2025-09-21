@@ -1,6 +1,7 @@
 'use server'
 
 import { withAdminAuth, AdminActionResult, AdminErrors } from './common'
+import { ADMIN_DOCUMENTS_STUB } from '@/lib/admin/stub-data'
 import type { DocumentFile } from '@/types/documents'
 import type { DocumentType, ApprovalStatus } from '@/types'
 
@@ -42,6 +43,62 @@ export async function getDocuments(
   approval_status?: ApprovalStatus,
   site_id?: string
 ): Promise<AdminActionResult<{ documents: DocumentWithApproval[]; total: number; pages: number }>> {
+  const shouldUseStubData = !process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (shouldUseStubData) {
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[admin/documents] Using stub data for document list')
+    }
+    const safeLimit = Number.isFinite(limit) && limit > 0 ? limit : 10
+    const safePage = Number.isFinite(page) && page > 0 ? page : 1
+    const normalizedSearch = search.trim().toLowerCase()
+
+    const filtered = ADMIN_DOCUMENTS_STUB.filter(doc => {
+      const matchesSearch = normalizedSearch
+        ? [doc.title, doc.description, doc.file_name]
+            .filter(Boolean)
+            .some(value => value!.toLowerCase().includes(normalizedSearch))
+        : true
+
+      const matchesType = type ? doc.document_type === type : true
+      const matchesSite = site_id ? doc.site_id === site_id : true
+      const matchesApproval = approval_status ? doc.approval_status === approval_status : true
+
+      return matchesSearch && matchesType && matchesSite && matchesApproval
+    })
+
+    const sorted = filtered.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    const total = sorted.length
+    const pages = Math.max(Math.ceil(total / safeLimit), 1)
+    const offset = (safePage - 1) * safeLimit
+    const documents = sorted.slice(offset, offset + safeLimit).map(doc => ({
+      ...doc,
+      owner: doc.owner ? { ...doc.owner } : undefined,
+      site: doc.site ? { ...doc.site } : undefined,
+      requested_by: doc.requested_by ? { ...doc.requested_by } : undefined,
+    })) as DocumentWithApproval[]
+
+    if (process.env.NODE_ENV === 'development') {
+      console.info('[admin/documents] stub result', {
+        total,
+        page: safePage,
+        pageSize: safeLimit,
+        returned: documents.length,
+      })
+    }
+
+    return {
+      success: true,
+      data: {
+        documents,
+        total,
+        pages,
+      },
+    }
+  }
+
   return withAdminAuth(async supabase => {
     try {
       let query = supabase
@@ -77,6 +134,11 @@ export async function getDocuments(
       // Apply site filter
       if (site_id) {
         query = query.eq('site_id', site_id)
+      }
+
+      // Apply approval status filter
+      if (approval_status) {
+        query = query.eq('approval_requests.status', approval_status)
       }
 
       // Apply pagination
