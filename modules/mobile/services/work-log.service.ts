@@ -59,12 +59,6 @@ export class WorkLogService {
           created_at,
           updated_at,
           created_by,
-          worker_assignments!inner(
-            id,
-            profile_id,
-            labor_hours,
-            profiles!inner(full_name)
-          ),
           material_usage(
             material_type,
             quantity,
@@ -110,8 +104,12 @@ export class WorkLogService {
         throw new Error('작업일지를 불러오는 중 오류가 발생했습니다.')
       }
 
+      const reports = data || []
+
+      await this.attachWorkerAssignments(reports)
+
       // 데이터 변환
-      return this.transformToWorkLogs(data || [])
+      return this.transformToWorkLogs(reports)
     } catch (error) {
       console.error('WorkLogService.getWorkLogs error:', error)
       throw error
@@ -336,6 +334,57 @@ export class WorkLogService {
       }
     } catch (error) {
       console.error('WorkLogService.uploadAttachments error:', error)
+    }
+  }
+
+  private static async attachWorkerAssignments(reports: any[]): Promise<void> {
+    if (!reports.length) return
+
+    const reportIds = reports
+      .map(report => report?.id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+
+    if (reportIds.length === 0) {
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('worker_assignments')
+        .select(
+          `
+          id,
+          daily_report_id,
+          profile_id,
+          worker_name,
+          labor_hours,
+          profiles(
+            full_name
+          )
+        `
+        )
+        .in('daily_report_id', reportIds)
+
+      if (error) {
+        console.error('작업자 배정 조회 오류:', error)
+        return
+      }
+
+      const assignmentsByReport = new Map<string, any[]>()
+
+      data?.forEach(assignment => {
+        const reportId = assignment.daily_report_id
+        if (!reportId) return
+        const existing = assignmentsByReport.get(reportId) ?? []
+        existing.push(assignment)
+        assignmentsByReport.set(reportId, existing)
+      })
+
+      reports.forEach(report => {
+        report.worker_assignments = assignmentsByReport.get(report.id) ?? []
+      })
+    } catch (error) {
+      console.error('attachWorkerAssignments error:', error)
     }
   }
 

@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { UI_TRACK_COOKIE_NAME } from '@/lib/auth/constants'
 import type { Session, User } from '@supabase/supabase-js'
+import { AuthContext } from '@/modules/mobile/providers/AuthProvider'
 
 type Role =
   | 'worker'
@@ -129,9 +130,21 @@ function parseProfile(profile: UnifiedProfile | null): UnifiedProfile | null {
 }
 
 export function useUnifiedAuth() {
+  const authContext = useContext(AuthContext)
+  const usingProvider = authContext?.isProvider || false
+
   const supabase = useMemo(() => createClient(), [])
-  const [authState, setAuthState] = useState<AuthState>(INITIAL_STATE)
-  const [loading, setLoading] = useState(true)
+  const [authState, setAuthState] = useState<AuthState>(() =>
+    usingProvider
+      ? {
+          ...INITIAL_STATE,
+          user: authContext.user,
+          session: authContext.session,
+          profile: parseProfile((authContext.profile as UnifiedProfile | null) ?? null),
+        }
+      : INITIAL_STATE
+  )
+  const [loading, setLoading] = useState(usingProvider ? authContext.loading : true)
   const [error, setError] = useState<string | null>(null)
   const isMountedRef = useRef(true)
 
@@ -288,13 +301,39 @@ export function useUnifiedAuth() {
 
   useEffect(() => {
     isMountedRef.current = true
-    bootstrap()
+    if (!usingProvider) {
+      bootstrap()
+    }
     return () => {
       isMountedRef.current = false
     }
-  }, [bootstrap])
+  }, [bootstrap, usingProvider])
+
+  useEffect(() => {
+    if (!usingProvider) return
+
+    setError(null)
+    setAuthState(prev => ({
+      ...prev,
+      user: authContext.user,
+      session: authContext.session,
+      profile: parseProfile((authContext.profile as UnifiedProfile | null) ?? null),
+    }))
+    setLoading(authContext.loading)
+  }, [
+    usingProvider,
+    authContext.user,
+    authContext.session,
+    authContext.profile,
+    authContext.loading,
+  ])
 
   const refreshProfile = useCallback(async () => {
+    if (usingProvider) {
+      await authContext.refreshProfile()
+      return
+    }
+
     const userId = authState.user?.id
     if (!userId) return
 
@@ -319,9 +358,14 @@ export function useUnifiedAuth() {
       setError(err instanceof Error ? err.message : 'Failed to refresh profile')
       throw err
     }
-  }, [authState.user?.id, supabase])
+  }, [authState.user?.id, supabase, usingProvider, authContext.refreshProfile])
 
   const refreshSession = useCallback(async () => {
+    if (usingProvider) {
+      await authContext.refreshSession()
+      return
+    }
+
     try {
       setLoading(true)
       setError(null)
@@ -346,9 +390,14 @@ export function useUnifiedAuth() {
         }
       }
     }
-  }, [fetchAuth, supabase])
+  }, [authContext.refreshSession, fetchAuth, supabase, usingProvider])
 
   const signOut = useCallback(async () => {
+    if (usingProvider) {
+      await authContext.signOut()
+      return
+    }
+
     try {
       await supabase.auth.signOut()
     } catch (err) {
@@ -389,7 +438,7 @@ export function useUnifiedAuth() {
         window.location.href = '/auth/login'
       }
     }
-  }, [supabase])
+  }, [supabase, usingProvider, authContext.signOut])
 
   const role = authState.profile?.role as Role
 
