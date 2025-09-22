@@ -70,28 +70,27 @@ export async function GET(request: NextRequest) {
 
     // For site managers, only show reports from their assigned sites
     if (role === 'site_manager') {
-      // Get sites assigned to this site manager
+      // Restrict to sites the manager is actively assigned to, but always include reports they authored.
       const { data: assignedSites } = await supabase
-        .from('site_managers')
+        .from('site_assignments')
         .select('site_id')
         .eq('user_id', authResult.userId)
+        .eq('role', 'site_manager')
+        .eq('is_active', true)
 
-      if (assignedSites && assignedSites.length > 0) {
-        const siteIds = assignedSites.map(s => s.site_id)
-        query = query.in('site_id', siteIds)
-      } else {
-        // No sites assigned, return empty result
-        return NextResponse.json({
-          success: true,
-          data: {
-            reports: [],
-            totalCount: 0,
-            totalPages: 0,
-            currentPage: page,
-            hasNextPage: false,
-            hasPreviousPage: false,
-          },
-        })
+      const assignedSiteIds = (assignedSites || [])
+        .map(s => s.site_id)
+        .filter((id): id is string => Boolean(id))
+
+      const orFilters: string[] = [`created_by.eq.${authResult.userId}`]
+
+      if (assignedSiteIds.length > 0) {
+        const formattedIds = assignedSiteIds.map(id => `"${id}"`).join(',')
+        orFilters.push(`site_id.in.(${formattedIds})`)
+      }
+
+      if (orFilters.length > 0) {
+        query = query.or(orFilters.join(','))
       }
     }
 
@@ -182,11 +181,14 @@ export async function POST(request: NextRequest) {
     // For site managers, verify they can create reports for this site
     if (role === 'site_manager') {
       const { data: siteAssignment } = await supabase
-        .from('site_managers')
+        .from('site_assignments')
         .select('id')
         .eq('user_id', authResult.userId)
+        .eq('role', 'site_manager')
         .eq('site_id', site_id)
-        .single()
+        .eq('is_active', true)
+        .is('unassigned_date', null)
+        .maybeSingle()
 
       if (!siteAssignment) {
         return NextResponse.json({ error: 'Not authorized for this site' }, { status: 403 })
