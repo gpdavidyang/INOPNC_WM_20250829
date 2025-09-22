@@ -44,6 +44,33 @@ const INITIAL_STATE: AuthState = {
   uiTrack: '/mobile',
 }
 
+const DEFAULT_UI_TRACK = '/mobile'
+const AUTH_ENDPOINT_TIMEOUT_MS = 5000
+const RESTRICTED_ROLES: ReadonlySet<Role> = new Set(['customer_manager', 'partner'])
+
+function readUiTrackFromCookie(): string {
+  if (typeof document === 'undefined') {
+    return DEFAULT_UI_TRACK
+  }
+
+  const cookieEntry = document.cookie
+    ?.split(';')
+    .map(entry => entry.trim())
+    .find(entry => entry.startsWith(`${UI_TRACK_COOKIE_NAME}=`))
+
+  if (!cookieEntry) {
+    return DEFAULT_UI_TRACK
+  }
+
+  const [, value] = cookieEntry.split('=')
+  try {
+    return decodeURIComponent(value || '') || DEFAULT_UI_TRACK
+  } catch (error) {
+    console.warn('[useUnifiedAuth] Failed to decode UI track cookie:', error)
+    return DEFAULT_UI_TRACK
+  }
+}
+
 type AuthResponse = {
   user: User | null
   profile: UnifiedProfile | null
@@ -78,27 +105,73 @@ export function useUnifiedAuth() {
   const [error, setError] = useState<string | null>(null)
   const isMountedRef = useRef(true)
 
-  const fetchAuth = useCallback(async (): Promise<AuthResponse> => {
-    const response = await fetch('/api/auth/me', {
-      credentials: 'include',
-      cache: 'no-store',
-    })
+  const loadProfile = useCallback(
+    async (userId: string): Promise<UnifiedProfile | null> => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', userId)
+          .maybeSingle()
 
-    if (response.status === 401) {
-      return {
-        ...INITIAL_STATE,
-        user: null,
-        profile: null,
-        session: null,
+        if (error) {
+          console.warn('[useUnifiedAuth] Failed to load profile fallback:', error)
+          return null
+        }
+
+        return parseProfile((data as UnifiedProfile) ?? null)
+      } catch (err) {
+        console.warn('[useUnifiedAuth] Unexpected profile fallback error:', err)
+        return null
+      }
+    },
+    [supabase]
+  )
+
+  const fetchAuth = useCallback(async (): Promise<AuthResponse> => {
+    const supportsAbort = typeof AbortController !== 'undefined'
+    const controller = supportsAbort ? new AbortController() : undefined
+    const timeoutId = controller
+      ? setTimeout(() => {
+          controller.abort()
+        }, AUTH_ENDPOINT_TIMEOUT_MS)
+      : undefined
+
+    let payload: Partial<AuthResponse> | null = null
+
+    try {
+      const response = await fetch('/api/auth/me', {
+        credentials: 'include',
+        cache: 'no-store',
+        signal: controller?.signal,
+      })
+
+      if (response.status === 401) {
+        return {
+          ...INITIAL_STATE,
+          user: null,
+          profile: null,
+          session: null,
+        }
+      }
+
+      if (!response.ok) {
+        const message = await response.text()
+        throw new Error(message || 'Failed to load auth state')
+      }
+
+      payload = (await response.json()) as Partial<AuthResponse>
+    } catch (err) {
+      if ((err as DOMException)?.name === 'AbortError') {
+        console.warn('[useUnifiedAuth] /api/auth/me request timed out. Using client fallback.')
+      } else {
+        console.warn('[useUnifiedAuth] /api/auth/me request failed. Using client fallback.', err)
+      }
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId)
       }
     }
-
-    if (!response.ok) {
-      const message = await response.text()
-      throw new Error(message || 'Failed to load auth state')
-    }
-
-    const payload = (await response.json()) as Partial<AuthResponse>
 
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
 
@@ -106,18 +179,41 @@ export function useUnifiedAuth() {
       console.warn('[useUnifiedAuth] Failed to retrieve client session:', sessionError)
     }
 
-    const session = sessionData.session ?? null
-    const user = session?.user ?? (payload.user as User | null) ?? null
+    const session = sessionData.session ?? (payload?.session as Session | null) ?? null
+    const user = session?.user ?? (payload?.user as User | null) ?? null
+
+    if (!user) {
+      return {
+        ...INITIAL_STATE,
+        uiTrack: payload?.uiTrack || readUiTrackFromCookie(),
+      }
+    }
+
+    let profile = parseProfile((payload?.profile as UnifiedProfile | null) ?? null)
+    if (!profile) {
+      profile = await loadProfile(user.id)
+    }
+
+    const restrictedOrgId =
+      (payload?.restrictedOrgId as string | null) ??
+      (profile?.organization_id ? String(profile.organization_id) : null)
+
+    const isRestricted =
+      typeof payload?.isRestricted === 'boolean'
+        ? payload.isRestricted
+        : !!(profile?.role && RESTRICTED_ROLES.has(profile.role))
+
+    const uiTrack = payload?.uiTrack || readUiTrackFromCookie() || DEFAULT_UI_TRACK
 
     return {
       user,
-      profile: parseProfile((payload.profile as UnifiedProfile | null) ?? null),
+      profile,
       session,
-      isRestricted: !!payload.isRestricted,
-      restrictedOrgId: (payload.restrictedOrgId as string | null) ?? null,
-      uiTrack: payload.uiTrack || '/mobile',
+      isRestricted,
+      restrictedOrgId,
+      uiTrack,
     }
-  }, [supabase])
+  }, [loadProfile, supabase])
 
   const bootstrap = useCallback(async () => {
     setLoading(true)
@@ -251,7 +347,9 @@ export function useUnifiedAuth() {
   const isCustomerManager = role === 'customer_manager' || role === 'partner'
   const isSiteManager = role === 'site_manager' || isAdmin
   const isWorker = role === 'worker'
-  const canAccessMobile = !!(role && ['worker', 'site_manager', 'customer_manager', 'partner'].includes(role))
+  const canAccessMobile = !!(
+    role && ['worker', 'site_manager', 'customer_manager', 'partner'].includes(role)
+  )
   const canAccessAdmin = !!(role && ['admin', 'system_admin'].includes(role))
 
   const canManageUsers = isAdmin || isSystemAdmin
