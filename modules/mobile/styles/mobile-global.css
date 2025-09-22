@@ -1,0 +1,1627 @@
+/* INOPNC Mobile Global Styles - 100% HTML Design Match */
+
+:root {
+  /* Colors - 100% HTML Match */
+  --font:
+    var(--font-noto-sans-kr, 'Noto Sans KR'), system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --bg: #f5f7fb;
+  --card: #ffffff;
+  --text: #101828;
+  --muted: #667085;
+  --line: #e6eaf2;
+  --brand: #1a254f;
+  --num: #0068fe;
+  --danger: #ea3829;
+  --info: #0068fe;
+
+  /* Layout */
+  --header-h: 60px;
+  --nav-h: 64px;
+  --nav-bg: #ffffff;
+  --nav-border: #e5e7eb;
+  --nav-text: #6b7280;
+  --nav-text-active: #2563eb;
+
+  /* Shadows & Effects */
+  --shadow: 0 2px 10px rgba(2, 6, 23, 0.04);
+  --radius: 8px;
+}
+
+/* Dark Theme */
+[data-theme='dark'] {
+  --bg: #0f172a;
+  --surface: #11151b;
+  --card: #0f172a;
+  --overlay: #0f172acc;
+  --line: #3a4048;
+  --line-soft: #2a2e35;
+  --text: #e9eef5;
+  --text-muted: #a8b0bb;
+  --icon: #b9c2ce;
+  --accent: #2f6bff;
+  --accent-weak: #1e4edc;
+  --accent-ghost: #2f6bff1a;
+  --success: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  --nav-bg: #11151b;
+  --nav-border: #3a4048;
+  --nav-text: #a8b0bb;
+  --nav-text-active: #2f6bff;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  /* Allow vertical scrolling while preventing horizontal */
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 400; /* Increased from 200 for better readability */
+  line-height: 1.6;
+  transition: font-size 0.3s ease;
+  overscroll-behavior: contain;
+  height: 100%;
+  overflow-x: hidden;
+  /* Allow vertical scrolling while preventing horizontal */
+}
+
+/* Font Size Switch Classes */
+body.fs-100 {
+  font-size: 15px;
+  font-weight: 400; /* Increased from 200 for elderly users */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Apple SD Gothic Neo,
+    Malgun Gothic,
+    sans-serif;
+}
+
+body.fs-150 {
+  font-size: 27px; /* 15px * 1.8 = 27px */
+  font-weight: 400; /* Increased from 200 for elderly users */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Apple SD Gothic Neo,
+    Malgun Gothic,
+    sans-serif;
+}
+
+/* Mobile Input Field Optimization */
+input,
+select,
+textarea {
+  font-size: 16px !important;
+  -webkit-appearance: none;
+  appearance: none;
+  border-radius: 0;
+}
+
+/* Header Styles - 100% HTML Match */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: var(--card);
+  padding: 0;
+  transition: background-color 0.3s ease;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80px; /* main.html: 80px */
+  padding: 0 20px; /* main.html: padding 0 20px */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-width: 120px;
+}
+
+.header-center {
+  display: none; /* 제목을 왼쪽으로 이동 */
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 0;
+}
+
+/* Brand Title */
+.brand-title,
+.header-title {
+  font-family: var(--font-poppins, 'Poppins'), var(--font);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--brand);
+  margin: 0;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+[data-theme='dark'] .brand-title {
+  color: #ffffff;
+}
+
+/* Header Icon Button */
+.header-icon-btn {
+  background: none;
+  border: none;
+  padding: 2px 3px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+  min-width: 32px;
+  min-height: 36px;
+  color: #374151;
+  gap: 2px;
+}
+
+[data-theme='dark'] .header-icon-btn {
+  color: #33e6f6;
+}
+
+.header-icon-btn:hover {
+  background-color: transparent;
+  transform: none;
+  box-shadow: none;
+}
+
+.header-icon-btn:active {
+  background-color: transparent !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.header-icon-btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.header-icon-btn .w-5 {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.5;
+}
+
+.header-icon-btn .icon-text {
+  font-size: 10px !important;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.3px;
+  color: #6b7280;
+}
+
+/* 큰글씨 모드에서도 헤더는 영향받지 않도록 */
+.app-header,
+.app-header * {
+  font-size: initial;
+}
+
+.app-header .brand-title {
+  font-size: 20px !important;
+}
+
+.app-header .header-icon-btn .icon-text {
+  font-size: 10px !important;
+}
+
+/* Transform positioning for header buttons - Removed for mobile */
+/* #btnTheme {
+  transform: translateX(9.5px);
+}
+#btnSearch {
+  transform: translateX(2px);
+} */
+
+.icon-btn:hover {
+  color: #1a254f;
+  background: rgba(26, 37, 79, 0.08);
+}
+
+[data-theme='dark'] .icon-btn {
+  color: #c9d1d9;
+}
+
+[data-theme='dark'] .icon-btn:hover {
+  color: #3182ce;
+  background: rgba(49, 130, 206, 0.1);
+}
+
+/* Remove background on header icon hover */
+.appbar .icon-btn:hover {
+  background: none !important;
+}
+[data-theme='dark'] .appbar .icon-btn:hover {
+  background: none !important;
+}
+
+/* Icon button with label - v2.0 style */
+.icon-btn-with-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 46px;
+  gap: 2px;
+  border-radius: 8px;
+}
+
+.icon-btn-with-label:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .icon-btn-with-label:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-btn-with-label .icon-img {
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+  color: var(--text);
+  object-fit: contain;
+  display: block;
+}
+
+.icon-btn-with-label .icon-text {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1;
+  display: block;
+}
+
+.icon-btn-with-label .icon-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 1px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* Notification button with label */
+.notif-btn {
+  position: relative;
+}
+
+.notif-icon-wrapper {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notif-icon-wrapper .notification-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ea3829;
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Notification button */
+.notif {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+.notif .icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Font Size Switch */
+.fswitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.6px;
+  height: 25px;
+  padding: 1.8px;
+  border-radius: 9999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+}
+
+.fswitch-btn {
+  min-width: 39px;
+  padding: 0 7px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Apple SD Gothic Neo,
+    Malgun Gothic,
+    sans-serif;
+  font-weight: 300;
+  font-size: 12px;
+  line-height: 22px;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fswitch-btn.active {
+  background: var(--brand);
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06) inset;
+}
+
+.fswitch-btn:focus {
+  outline: none;
+}
+
+[data-theme='dark'] .fswitch {
+  border-color: var(--line) !important;
+  background: #0b1220;
+}
+
+[data-theme='dark'] .fswitch-btn {
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .fswitch-btn.active {
+  background: #0068fe;
+  color: #fff;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+}
+
+/* Notification Badge - HTML Match */
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: #ff0000;
+  color: white;
+  font-size: 9px !important;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  border: 1.5px solid white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 하단 네비게이터 - 100% base.html match */
+.bottom-nav-wrap {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  width: 100%; /* 전체 폭 명시적 설정 */
+}
+
+.bottom-nav {
+  background: var(--card);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 16px rgba(17, 24, 39, 0.06);
+  height: 72px;
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%; /* 전체 폭 명시적 설정 */
+}
+
+.nav-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 0 16px;
+  list-style: none;
+}
+
+.nav-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+}
+
+.nav-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: center;
+  padding: 8px 4px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.nav-link.active {
+  color: #1a254f;
+}
+
+.nav-link.active .nav-svg,
+.nav-link.active .nav-label {
+  color: #1a254f !important;
+}
+
+/* 통합 전환 */
+.nav-link,
+.nav-svg,
+.nav-label {
+  transition: all 0.2s ease-out;
+  transform-origin: center;
+}
+
+/* 호버/클릭/포커스 모두 동일 효과 */
+.nav-link:is(:hover, :active, :focus-visible),
+.nav-link.pressed {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.nav-link:is(:hover, :active, :focus-visible) .nav-svg,
+.nav-link:is(:hover, :active, :focus-visible) .nav-label,
+.nav-link.pressed .nav-svg,
+.nav-link.pressed .nav-label {
+  color: #3182ce !important;
+}
+
+.nav-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-svg {
+  width: 24px;
+  height: 24px;
+  stroke-width: 2;
+}
+
+.nav-label {
+  font-size: 12px !important;
+  font-weight: 800; /* Increased from 600 for elderly users */
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+  margin-top: 2px;
+}
+
+/* 큰글씨 모드에서도 하단 네비게이션은 영향받지 않도록 */
+.bottom-nav-wrap,
+.bottom-nav-wrap * {
+  font-size: initial;
+}
+
+.bottom-nav-wrap .nav-label {
+  font-size: 12px !important;
+}
+
+/* 햄버거 드로어 스타일 - 100% base.html match */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: none;
+  z-index: 1400;
+}
+
+.drawer-scrim.show {
+  display: block;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  left: -320px;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  min-width: 280px;
+  height: 100vh;
+  background: var(--card);
+  color: var(--text);
+  border-right: 1px solid var(--line);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  z-index: 1500;
+  transition: left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  overflow: hidden; /* Hide overflow at drawer level */
+  contain: layout paint;
+  isolation: isolate;
+}
+
+/* New container for proper scrolling */
+.drawer-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px
+    calc(16px + env(safe-area-inset-bottom, 0px));
+}
+
+.drawer.show {
+  display: flex;
+  left: 0;
+}
+
+.drawer-body {
+  padding: 0;
+  flex: 1 1 auto; /* Changed to allow shrinking */
+  overflow-y: visible; /* Changed from auto to visible to prevent double scrolling */
+  -webkit-overflow-scrolling: touch;
+  color: var(--text);
+}
+
+.drawer-scale {
+  transform-origin: top center;
+  will-change: transform;
+  padding: 20px 16px;
+  min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.profile-sec {
+  display: flex;
+  flex-direction: column;
+  margin: 10px 0 16px;
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.profile-name {
+  font:
+    600 18px/1.2 'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: var(--text);
+  transition: color 0.3s ease;
+}
+
+.important-tag {
+  display: inline-block;
+  background: rgba(0, 104, 254, 0.1);
+  color: #0068fe;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Noto Sans KR', sans-serif;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+[data-theme='dark'] .important-tag {
+  background: rgba(0, 104, 254, 0.2);
+  color: #0068fe;
+}
+
+.profile-email {
+  font:
+    400 13px 'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: var(--muted);
+  text-align: left;
+  transition: color 0.3s ease;
+}
+
+.close-btn {
+  background-color: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.close-btn:hover {
+  background-color: #f5f5f5;
+  border-color: #d0d0d0;
+}
+
+[data-theme='dark'] .close-btn:hover {
+  background-color: rgba(0, 188, 212, 0.1);
+  border-color: #00bcd4;
+  color: #00bcd4;
+}
+
+.menu-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.menu-item {
+  display: block;
+  padding: 12px 0;
+  color: var(--text);
+  text-decoration: none;
+  width: 100%;
+  box-sizing: border-box;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  transition: color 0.3s ease;
+}
+
+.menu-item:hover {
+  background: transparent;
+}
+
+.menu-label {
+  font:
+    500 16px/1.2 'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  color: var(--text);
+  transition: color 0.3s ease;
+}
+
+/* 내정보 + 계정관리 버튼 스타일 */
+.menu-item-with-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.account-manage-btn {
+  background: transparent;
+  color: #0068fe;
+  border: 1px solid #0068fe;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.account-manage-btn:hover {
+  background: #0068fe;
+  color: white;
+}
+
+/* 계정 정보 스타일 */
+.account-info {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.account-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.account-label {
+  font:
+    500 14px/1.2 'Noto Sans KR',
+    sans-serif;
+  color: var(--text);
+}
+
+.account-value {
+  font:
+    400 14px/1.2 'Noto Sans KR',
+    sans-serif;
+  color: var(--muted);
+}
+
+.change-password-btn {
+  color: #0068fe !important;
+  cursor: pointer;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.change-password-btn:hover {
+  color: #0052cc !important;
+}
+
+/* 비밀번호 변경 폼 스타일 */
+.password-change-form {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.password-form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--card);
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  border-color: #0068fe;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 104, 254, 0.1);
+}
+
+.form-input::placeholder {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.cancel-btn,
+.save-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.cancel-btn {
+  background: var(--card);
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+
+.cancel-btn:hover {
+  background: #f5f5f5;
+  border-color: #d0d0d0;
+}
+
+.save-btn {
+  background: #00bcd4;
+  color: white;
+  border: 1px solid #00bcd4;
+}
+
+.save-btn:hover {
+  background: #00acc1;
+}
+
+.drawer-foot {
+  margin-top: auto;
+  padding: 16px;
+  border-top: 1px solid #e5e7eb;
+  padding-bottom: max(
+    24px,
+    env(safe-area-inset-bottom, 16px)
+  ); /* More padding for better visibility */
+  flex-shrink: 0; /* Ensure footer doesn't shrink */
+  background: var(--card); /* Same as drawer background */
+  min-height: 80px; /* Ensure minimum height for visibility */
+}
+
+.logout-btn {
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: 1px solid #dc2626;
+  background: #dc2626;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: #b91c1c;
+  border-color: #b91c1c;
+}
+
+/* 큰글씨 모드 대응 */
+body.large-text .drawer {
+  width: 360px;
+  max-width: calc(100vw - 20px);
+  min-width: 320px;
+}
+
+body.large-text .drawer .profile-name {
+  font-size: 20px;
+}
+
+body.large-text .drawer .profile-email {
+  font-size: 16px;
+}
+
+body.large-text .drawer .menu-item {
+  font-size: 18px;
+}
+
+body.large-text .drawer .menu-label {
+  font-size: 18px;
+}
+
+body.large-text .drawer .account-label {
+  font-size: 16px;
+}
+
+body.large-text .drawer .account-value {
+  font-size: 16px;
+}
+
+body.large-text .drawer .form-input {
+  font-size: 16px;
+}
+
+body.large-text .drawer .form-input::placeholder {
+  font-size: 14px;
+}
+
+body.large-text .drawer .cancel-btn,
+body.large-text .drawer .save-btn {
+  font-size: 16px;
+}
+
+body.large-text .drawer .logout-btn {
+  font-size: 16px;
+}
+
+/* Modal open state - body scroll lock */
+.modal-open {
+  overflow: hidden !important;
+  padding-right: 0 !important;
+}
+
+/* Additional drawer state management */
+body:not(.modal-open) .drawer {
+  display: none;
+}
+
+/* Ensure drawer scaling works properly */
+.drawer-scale {
+  transition: transform 0.2s ease-out;
+}
+
+/* Safe area adjustments for iOS */
+@supports (padding: max(0px)) {
+  .drawer {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) 12px 0;
+}
+
+.drawer-foot {
+  padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+}
+
+/* Search Page Overlay */
+.search-page {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--card);
+  display: none;
+  overflow: auto;
+}
+
+.search-page.show {
+  display: block;
+}
+
+/* Fullscreen Modal Overlay - Site Info Phase 3 */
+.fullscreen-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  cursor: pointer;
+}
+
+.fullscreen-modal-content {
+  position: relative;
+  max-width: 95vw;
+  max-height: 95vh;
+  background: var(--card);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: default;
+  box-shadow: var(--shadow);
+  animation: fullscreenFadeIn 0.2s ease-out;
+}
+
+.fullscreen-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.fullscreen-close-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.fullscreen-file-container {
+  position: relative;
+  max-width: 100%;
+  max-height: calc(95vh - 100px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreen-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.fullscreen-pdf {
+  width: 90vw;
+  height: 90vh;
+}
+
+.fullscreen-pdf-viewer {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: var(--radius);
+}
+
+.fullscreen-document {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  min-height: 400px;
+  color: var(--text);
+}
+
+.fullscreen-document .document-icon {
+  font-size: 80px;
+  margin-bottom: 20px;
+  opacity: 0.6;
+}
+
+.fullscreen-document h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.fullscreen-document p {
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.fullscreen-document .download-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--brand);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: opacity 0.2s;
+}
+
+.fullscreen-document .download-btn:hover {
+  opacity: 0.9;
+}
+
+.fullscreen-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+  color: white;
+  padding: 20px;
+  text-align: center;
+}
+
+.fullscreen-info h4 {
+  font-size: 16px;
+  margin: 0 0 4px 0;
+  font-weight: 600;
+}
+
+.fullscreen-info p {
+  font-size: 13px;
+  margin: 0;
+  opacity: 0.8;
+}
+
+@keyframes fullscreenFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Dark theme fullscreen modal */
+[data-theme='dark'] .fullscreen-modal-content {
+  background: var(--surface);
+}
+
+[data-theme='dark'] .fullscreen-document {
+  color: var(--text);
+}
+
+[data-theme='dark'] .fullscreen-document h3 {
+  color: var(--text);
+}
+
+[data-theme='dark'] .fullscreen-document .download-btn {
+  background: var(--accent);
+}
+
+/* Mobile responsiveness for fullscreen modal */
+@media (max-width: 768px) {
+  .fullscreen-modal-overlay {
+    padding: 10px;
+  }
+
+  .fullscreen-modal-content {
+    max-width: 98vw;
+    max-height: 98vh;
+  }
+
+  .fullscreen-close-btn {
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .fullscreen-pdf {
+    width: 95vw;
+    height: 95vh;
+  }
+
+  .fullscreen-document {
+    padding: 24px;
+    min-height: 300px;
+  }
+
+  .fullscreen-document .document-icon {
+    font-size: 60px;
+  }
+
+  .fullscreen-info {
+    padding: 16px;
+  }
+}
+
+/* Font size support for fullscreen modal */
+body.fs-150 .fullscreen-info h4 {
+  font-size: 18px;
+}
+
+body.fs-150 .fullscreen-info p {
+  font-size: 14px;
+}
+
+body.fs-150 .fullscreen-document h3 {
+  font-size: 20px;
+}
+
+body.fs-150 .fullscreen-document .download-btn {
+  font-size: 16px;
+  padding: 14px 28px;
+}
+
+/* ===============================================
+   Detail Toggle Section & Expandable Components
+   =============================================== */
+
+.toggle-section {
+  display: flex;
+  justify-content: center;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+  margin-top: 16px;
+}
+
+.btn-detail {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-detail::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, #5b52f0, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+
+.btn-detail:hover::before {
+  opacity: 1;
+}
+
+.btn-detail:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+
+.btn-detail.active {
+  background: linear-gradient(135deg, #059669, #10b981);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.btn-detail.active::before {
+  background: linear-gradient(135deg, #047857, #059669);
+}
+
+.btn-detail span {
+  position: relative;
+  z-index: 2;
+}
+
+/* Detail Section */
+.detail-section {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 0;
+  margin-top: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  max-height: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+}
+
+.detail-section.show {
+  max-height: 1000px;
+  opacity: 1;
+  padding: 16px 0;
+}
+
+.detail-section .info-row {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.2s ease;
+}
+
+.detail-section .info-row:last-child {
+  border-bottom: none;
+}
+
+.detail-section .info-row:hover {
+  background: var(--muted);
+}
+
+.detail-section .info-label {
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.detail-section .info-value {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* Expandable text fields */
+.expandable {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-height: 2.8em;
+  line-height: 1.4;
+  transition: all 0.3s ease;
+}
+
+.expandable:hover {
+  background: var(--muted);
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: -4px -8px;
+}
+
+.expandable.expanded {
+  -webkit-line-clamp: unset;
+  max-height: none;
+  background: var(--muted);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: -8px -12px;
+}
+
+.expandable::after {
+  content: '더보기';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(to right, transparent, var(--card) 60%);
+  padding: 0 4px;
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 500;
+}
+
+.expandable.expanded::after {
+  content: '접기';
+  position: static;
+  background: none;
+  display: block;
+  text-align: center;
+  margin-top: 8px;
+  padding: 4px;
+}
+
+/* Dark theme support */
+[data-theme='dark'] .btn-detail {
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+[data-theme='dark'] .btn-detail.active {
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
+}
+
+[data-theme='dark'] .detail-section {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .detail-section .info-row {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .expandable::after {
+  background: linear-gradient(to right, transparent, var(--card) 60%);
+}
+
+/* Font size compatibility */
+body.fs-150 .btn-detail {
+  font-size: 18px;
+  padding: 14px 36px;
+}
+
+body.fs-150 .detail-section .info-label {
+  font-size: 16px;
+}
+
+body.fs-150 .expandable::after,
+body.fs-150 .expandable.expanded::after {
+  font-size: 15px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .toggle-section {
+    padding: 16px 0;
+  }
+
+  .btn-detail {
+    padding: 10px 28px;
+    font-size: 14px;
+  }
+
+  .detail-section .info-row {
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-detail {
+    padding: 8px 24px;
+    font-size: 13px;
+  }
+
+  body.fs-150 .btn-detail {
+    font-size: 16px;
+    padding: 12px 28px;
+  }
+}
+
+.sp-head {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sp-back {
+  background: transparent;
+  border: 0;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.sp-input-wrap {
+  flex: 1;
+  position: relative;
+}
+
+.sp-input {
+  width: 100%;
+  height: 48px;
+  border-radius: 24px !important;
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
+  padding: 0 50px 0 20px;
+  font:
+    400 16px 'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Apple SD Gothic Neo,
+    Malgun Gothic,
+    sans-serif;
+  color: #333;
+  outline: none;
+}
+
+.sp-input::placeholder {
+  color: #8a8a8a;
+  font-weight: 400;
+}
+
+.sp-icon {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.7;
+  color: #8a8a8a;
+}
+
+/* Dark mode search page */
+[data-theme='dark'] .sp-input {
+  background: #2a2a2a;
+  border-color: #404040;
+  color: #e6e9f1;
+}
+
+[data-theme='dark'] .sp-input::placeholder {
+  color: #999;
+}
+
+[data-theme='dark'] .sp-back {
+  color: #ffffff;
+}
+
+[data-theme='dark'] .sp-icon {
+  color: #ffffff;
+  opacity: 0.8;
+}
+
+/* Root shell keeps header/footer fixed while the content area scrolls */
+.mobile-root {
+  min-height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+@supports (height: 100dvh) {
+  .mobile-root {
+    min-height: 100dvh;
+    height: 100dvh;
+  }
+}
+
+/* Main container padding to account for fixed header and bottom nav */
+.mobile-container {
+  padding-top: 80px; /* Match actual header height */
+  padding-bottom: 72px; /* Match bottom nav height */
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  position: relative;
+}

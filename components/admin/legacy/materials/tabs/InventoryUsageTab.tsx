@@ -1,0 +1,502 @@
+'use client'
+
+
+interface InventoryUsageTabProps {
+  profile: Profile
+}
+
+interface InventoryData {
+  id: string
+  site_id: string
+  site_name: string
+  work_date: string
+  incoming: number
+  used: number
+  remaining: number
+  efficiency_rate: number
+  status: 'normal' | 'low' | 'critical'
+  created_by: string
+  created_at: string
+}
+
+export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
+  const [inventoryData, setInventoryData] = useState<InventoryData[]>([])
+  const [loading, setLoading] = useState(true)
+  const [selectedSite, setSelectedSite] = useState<string>('')
+  const [selectedMonth, setSelectedMonth] = useState<string>(
+    new Date().toISOString().slice(0, 7)
+  )
+  const [sites, setSites] = useState<Array<{id: string, name: string}>>([])
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortField, setSortField] = useState<'work_date' | 'site_name' | 'incoming' | 'used' | 'remaining' | 'efficiency_rate' | 'status'>('work_date')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
+  
+  const supabase = createClient()
+
+  useEffect(() => {
+    loadSites()
+  }, [])
+
+  useEffect(() => {
+    loadInventoryData()
+  }, [selectedSite, selectedMonth])
+
+  const loadSites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('sites')
+        .select('id, name')
+        .eq('status', 'active')
+        .order('name')
+
+      if (!error && data) {
+        setSites(data)
+      }
+    } catch (error) {
+      console.error('Failed to load sites:', error)
+    }
+  }
+
+  const loadInventoryData = async () => {
+    setLoading(true)
+    try {
+      // Get NPC-1000 material ID
+      const { data: npcMaterial } = await supabase
+        .from('materials')
+        .select('id')
+        .eq('code', 'NPC-1000')
+        .single()
+
+      if (!npcMaterial) {
+        console.error('NPC-1000 material not found')
+        setLoading(false)
+        return
+      }
+
+      // Get transactions and inventory data
+      let transactionQuery = supabase
+        .from('material_transactions')
+        .select(`
+          id,
+          transaction_type,
+          quantity,
+          transaction_date,
+          site_id,
+          sites!material_transactions_site_id_fkey(name),
+          created_by,
+          created_at
+        `)
+        .eq('material_id', npcMaterial.id)
+        .gte('transaction_date', `${selectedMonth}-01`)
+        .lte('transaction_date', `${selectedMonth}-31`)
+
+      if (selectedSite) {
+        transactionQuery = transactionQuery.eq('site_id', selectedSite)
+      }
+
+      const { data: transactions, error: transError } = await transactionQuery
+
+      // Get inventory data for each site
+      let inventoryQuery = supabase
+        .from('material_inventory')
+        .select(`
+          site_id,
+          current_stock,
+          sites(name)
+        `)
+        .eq('material_id', npcMaterial.id)
+
+      if (selectedSite) {
+        inventoryQuery = inventoryQuery.eq('site_id', selectedSite)
+      }
+
+      const { data: inventories, error: invError } = await inventoryQuery
+
+      // Aggregate transactions by date and site
+      const aggregatedData = new Map<string, InventoryData>()
+
+      if (transactions) {
+        transactions.forEach(trans => {
+          const key = `${trans.site_id}_${trans.transaction_date}`
+          
+          if (!aggregatedData.has(key)) {
+            aggregatedData.set(key, {
+              id: key,
+              site_id: trans.site_id,
+              site_name: (trans as unknown).sites?.name || '알 수 없음',
+              work_date: trans.transaction_date,
+              incoming: 0,
+              used: 0,
+              remaining: 0,
+              efficiency_rate: 0,
+              status: 'normal',
+              created_by: trans.created_by || '',
+              created_at: trans.created_at
+            })
+          }
+
+          const data = aggregatedData.get(key)!
+          if (trans.transaction_type === 'in') {
+            data.incoming += Number(trans.quantity)
+          } else if (trans.transaction_type === 'out') {
+            data.used += Number(trans.quantity)
+          }
+        })
+      }
+
+      // Add current inventory levels
+      if (inventories) {
+        inventories.forEach(inv => {
+          aggregatedData.forEach((data, key) => {
+            if (data.site_id === inv.site_id) {
+              data.remaining = Number(inv.current_stock)
+            }
+          })
+        })
+      }
+
+      // Calculate efficiency and status
+      const formattedData: InventoryData[] = Array.from(aggregatedData.values()).map(data => {
+        const efficiency = data.incoming > 0 ? (data.used / data.incoming) * 100 : 0
+        
+        let status: 'normal' | 'low' | 'critical' = 'normal'
+        if (data.remaining < 100) status = 'critical'
+        else if (data.remaining < 500) status = 'low'
+
+        return {
+          ...data,
+          efficiency_rate: efficiency,
+          status: status
+        }
+      })
+
+      // Sort by date descending
+      formattedData.sort((a, b) => b.work_date.localeCompare(a.work_date))
+
+      setInventoryData(formattedData)
+    } catch (error) {
+      console.error('Failed to load inventory data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const badges = {
+      normal: { bg: 'bg-green-100 dark:bg-green-900/20', text: 'text-green-800 dark:text-green-200', label: '정상' },
+      low: { bg: 'bg-yellow-100 dark:bg-yellow-900/20', text: 'text-yellow-800 dark:text-yellow-200', label: '부족' },
+      critical: { bg: 'bg-red-100 dark:bg-red-900/20', text: 'text-red-800 dark:text-red-200', label: '긴급' }
+    }
+    const badge = badges[status as keyof typeof badges] || badges.normal
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+        {badge.label}
+      </span>
+    )
+  }
+
+  const calculateTotals = () => {
+    return inventoryData.reduce((acc, item) => ({
+      totalIncoming: acc.totalIncoming + item.incoming,
+      totalUsed: acc.totalUsed + item.used,
+      totalRemaining: acc.totalRemaining + item.remaining,
+      avgEfficiency: 0
+    }), { totalIncoming: 0, totalUsed: 0, totalRemaining: 0, avgEfficiency: 0 })
+  }
+
+  const totals = calculateTotals()
+  totals.avgEfficiency = totals.totalIncoming > 0 ? (totals.totalUsed / totals.totalIncoming) * 100 : 0
+
+  const handleSort = (field: typeof sortField) => {
+    if (field === sortField) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  const getSortIcon = (field: typeof sortField) => {
+    if (field !== sortField) {
+      return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
+    }
+    return sortDirection === 'asc' 
+      ? <ChevronUp className="h-4 w-4 text-blue-500" />
+      : <ChevronDown className="h-4 w-4 text-blue-500" />
+  }
+
+  const sortedData = [...inventoryData].sort((a, b) => {
+    let aValue: unknown = a[sortField]
+    let bValue: unknown = b[sortField]
+    
+    if (sortField === 'status') {
+      const statusOrder = { critical: 0, low: 1, normal: 2 }
+      aValue = statusOrder[aValue as keyof typeof statusOrder]
+      bValue = statusOrder[bValue as keyof typeof statusOrder]
+    }
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const filteredData = sortedData.filter(item => 
+    searchTerm === '' || 
+    item.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.work_date.includes(searchTerm)
+  )
+
+  const exportToCSV = () => {
+    const headers = ['날짜', '현장명', '입고량', '사용량', '재고량', '효율(%)', '상태']
+    const rows = filteredData.map(item => [
+      item.work_date,
+      item.site_name,
+      item.incoming,
+      item.used,
+      item.remaining,
+      item.efficiency_rate.toFixed(1),
+      item.status === 'normal' ? '정상' : item.status === 'low' ? '부족' : '긴급'
+    ])
+    
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `NPC1000_재고현황_${selectedMonth}.csv`
+    link.click()
+  }
+
+  return (
+    <div className="p-6">
+      {/* Filters */}
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            현장 선택
+          </label>
+          <select
+            value={selectedSite}
+            onChange={(e) => setSelectedSite(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          >
+            <option value="">전체 현장</option>
+            {sites.map(site => (
+              <option key={site.id} value={site.id}>{site.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            조회 월
+          </label>
+          <input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            검색
+          </label>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="현장명, 날짜 검색..."
+              className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-end">
+          <button
+            onClick={exportToCSV}
+            className="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            CSV 다운로드
+          </button>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-4 gap-3 sm:gap-4 mb-6">
+        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">총 입고량</p>
+              <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-100">
+                {totals.totalIncoming.toLocaleString()}
+              </p>
+            </div>
+            <Package className="h-6 w-6 sm:h-8 sm:w-8 text-blue-500 mt-2 sm:mt-0" />
+          </div>
+        </div>
+
+        <div className="bg-orange-50 dark:bg-orange-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 truncate">총 사용량</p>
+              <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">
+                {totals.totalUsed.toLocaleString()}
+              </p>
+            </div>
+            <TrendingDown className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 mt-2 sm:mt-0" />
+          </div>
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 truncate">총 재고량</p>
+              <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-100">
+                {totals.totalRemaining.toLocaleString()}
+              </p>
+            </div>
+            <TrendingUp className="h-6 w-6 sm:h-8 sm:w-8 text-green-500 mt-2 sm:mt-0" />
+          </div>
+        </div>
+
+        <div className="bg-purple-50 dark:bg-purple-900/20 p-3 sm:p-4 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 truncate">평균 효율</p>
+              <p className="text-lg sm:text-2xl font-bold text-purple-900 dark:text-purple-100">
+                {totals.avgEfficiency.toFixed(1)}%
+              </p>
+            </div>
+            <FileText className="h-6 w-6 sm:h-8 sm:w-8 text-purple-500 mt-2 sm:mt-0" />
+          </div>
+        </div>
+      </div>
+
+      {/* Data Table */}
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-700">
+            <tr>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('work_date')}
+              >
+                <div className="flex items-center gap-1">
+                  날짜
+                  {getSortIcon('work_date')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('site_name')}
+              >
+                <div className="flex items-center gap-1">
+                  현장명
+                  {getSortIcon('site_name')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('incoming')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  입고량
+                  {getSortIcon('incoming')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('used')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  사용량
+                  {getSortIcon('used')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('remaining')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  재고량
+                  {getSortIcon('remaining')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('efficiency_rate')}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  효율(%)
+                  {getSortIcon('efficiency_rate')}
+                </div>
+              </th>
+              <th 
+                className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
+                onClick={() => handleSort('status')}
+              >
+                <div className="flex items-center justify-center gap-1">
+                  상태
+                  {getSortIcon('status')}
+                </div>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+            {loading ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                  데이터를 불러오는 중...
+                </td>
+              </tr>
+            ) : filteredData.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-6 py-4 text-center text-gray-500 dark:text-gray-400">
+                  데이터가 없습니다.
+                </td>
+              </tr>
+            ) : (
+              filteredData.map((item) => (
+                <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    {item.work_date}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                    <div className="flex items-center">
+                      <Building2 className="h-4 w-4 mr-2 text-gray-400" />
+                      {item.site_name}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white">
+                    {item.incoming.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white">
+                    {item.used.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white">
+                    {item.remaining.toLocaleString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white">
+                    {item.efficiency_rate.toFixed(1)}%
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-center">
+                    {getStatusBadge(item.status)}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}

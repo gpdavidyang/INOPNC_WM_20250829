@@ -1,0 +1,1706 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<base href="./">
+<title>INOPNC - 작업일지</title>
+<link rel="icon" href="image/00_로고-세로조합.png?v=2" type="image/png" />
+<link rel="apple-touch-icon" href="image/00_로고-세로조합.png?v=2" />
+<link rel="manifest" href="manifest.json?v=2" />
+
+<script>
+  window.APP_VERSION = 'v' + Date.now();
+  
+  // 모바일 뷰포트 대응 초기화
+  function initMobileViewport() {
+    function setViewportHeight() {
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+    
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+    
+    if (window.visualViewport) {
+      function handleViewportChange() {
+        const viewport = window.visualViewport;
+        const height = viewport.height;
+        
+        if (height < window.innerHeight) {
+          document.body.style.height = `${height}px`;
+          document.body.style.paddingBottom = `${window.innerHeight - height}px`;
+        } else {
+          document.body.style.height = '';
+          document.body.style.paddingBottom = '';
+        }
+        
+        const activeElement = document.activeElement;
+        if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+          setTimeout(() => {
+            activeElement.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center',
+              inline: 'nearest'
+            });
+          }, 100);
+        }
+      }
+      
+      window.visualViewport.addEventListener('resize', handleViewportChange);
+      window.visualViewport.addEventListener('scroll', handleViewportChange);
+    }
+  }
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  .logo-text{ font-family:'Poppins', system-ui, sans-serif; font-weight:700; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; text-rendering:optimizeLegibility; }
+
+  :root{
+    --font:'Noto Sans KR',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+    --bg:#f5f7fb; --card:#ffffff; --text:#101828; --muted:#667085; --line:#e6eaf2;
+    --header-h:56px; --nav-h:64px; --nav-bg:#ffffff; --nav-border:#e5e7eb; --nav-text:#6b7280; --nav-text-active:#2563eb;
+    --brand:#1A254F; --num:#0068FE;
+    --label-fz:16px; --label-fw:800; --label-lh:1.2; --label-track:-0.2px;
+    
+    --vh: 1vh;
+    --dvh: 100dvh;
+    --svh: 100svh;
+    
+    --ink:#1A254F; --ok:#2563eb; --ok-bg:#e6efff; --ok-ink:#0b3fcc;
+    --warn:#9aa3b2; --radius:16px; --shadow:0 6px 20px rgba(16,24,40,.06);
+  }
+  
+  [data-theme="dark"]{
+    --bg:#0f172a; --surface:#11151B; --card:#0f172a; --overlay:#0f172aCC; --line:#4A5568; --line-soft:#3A4048;
+    --text:#E9EEF5; --text-muted:#A8B0BB; --icon:#B9C2CE;
+    --accent:#2F6BFF; --accent-weak:#1E4EDC; --accent-ghost:#2F6BFF1A;
+    --success:#22C55E; --warn:#F59E0B; --danger:#EF4444;
+    --shadow:0 10px 26px rgba(0,0,0,.35); --radius:8px;
+    --nav-bg:#11151B; --nav-border:#3A4048; --nav-text:#A8B0BB; --nav-text-active:#2F6BFF;
+    
+    --soft:#0f172a; --ink:#E6E9F1; --muted:#94A3B8;
+    --ok:#5b8cff; --ok-bg:#223358; --ok-ink:#8fb3ff;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;font-family:var(--font);background:var(--bg);color:var(--text);overflow-x:hidden}
+  
+  
+  /* 메인 컨테이너 */
+  .main-container {
+    padding: 16px;
+    min-height: 100vh;
+  }
+  
+  /* 작성중 항목 요약 섹션 */
+  .summary-section {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--line);
+  }
+  
+  .summary-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  
+  .summary-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  
+  .summary-item:last-child {
+    border-bottom: none;
+  }
+  
+  .summary-label {
+    font-size: 14px;
+    color: var(--text);
+  }
+  
+  .summary-status {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+  
+  .summary-status.missing {
+    background: #fef2f2;
+    color: #dc2626;
+  }
+  
+  .summary-status.completed {
+    background: #f0fdf4;
+    color: #16a34a;
+  }
+  
+  /* 현장 검색 섹션 */
+  .search-section {
+    margin-bottom: 16px;
+  }
+  
+  .search-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .search-input-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    padding: 12px 16px;
+    height: 48px;
+    min-width: 0;
+    width: 100%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .search-icon {
+    color: #9ca3af;
+    margin-right: 12px;
+    flex-shrink: 0;
+  }
+  
+  .search-input-new {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font: 400 16px 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    color: #333;
+    padding: 0;
+  }
+  
+  .search-input-new::placeholder {
+    color: #9ca3af;
+    font-weight: 400;
+  }
+  
+  /* 다크모드 스타일 */
+  [data-theme="dark"] .search-input-wrapper {
+    background: var(--card);
+    border-color: var(--line);
+  }
+  
+  [data-theme="dark"] .search-icon {
+    color: var(--text-muted);
+  }
+  
+  [data-theme="dark"] .search-input-new {
+    color: var(--text);
+  }
+  
+  [data-theme="dark"] .search-input-new::placeholder {
+    color: var(--text-muted);
+  }
+  
+  .search-input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  
+  .search-input:focus {
+    outline: none;
+    border-color: var(--ok);
+  }
+  
+  .cancel-btn {
+    background: none;
+    border: none;
+    color: #8a8a8a;
+    font: 400 16px 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    cursor: pointer;
+    padding: 8px 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  
+  .cancel-btn:hover {
+    color: #666;
+  }
+  
+  /* 탭 메뉴 스타일 (doc과 동일) */
+  .tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:2px solid #E5EAF3;background:transparent;width:100%;max-width:400px;margin:0 auto}
+  .tab{
+    position:relative; display:flex; align-items:center; justify-content:center;
+    padding:12px 16px; 
+    font-size: 17px !important;        
+    font-weight: 600 !important;       
+    color: #1A254F !important;         
+    font-family: "Noto Sans KR", system-ui, sans-serif !important;
+    cursor:pointer; 
+    transition:all .2s ease;
+    border:none; 
+    background:transparent;
+    min-height:48px;
+  }
+  .tab::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:2px; background:transparent;
+  }
+  .tab.active{ color:var(--ink); }
+  .tab.active::after{ background:#1A254F; }
+  
+  /* 작업일지 리스트 */
+  .worklog-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .worklog-card {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--line);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .worklog-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16,24,40,.1);
+  }
+  
+  .worklog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  
+  .worklog-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .worklog-site {
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: #1A254F;
+  }
+  
+  .worklog-detail-btn {
+    background: rgba(41, 52, 208, 0.15);
+    color: #2934D0;
+    border: none;
+    border-radius: 16px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .worklog-detail-btn:hover {
+    background: rgba(41, 52, 208, 0.25);
+  }
+  
+  .worklog-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .worklog-author {
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  .worklog-date {
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  
+  
+  .worklog-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .worklog-detail-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    font-size: 14px;
+    color: var(--text);
+  }
+  
+  .worklog-detail-label {
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    font-weight: 500;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+  
+  .worklog-detail-value {
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 500;
+  }
+  
+  /* 상태 태그 스타일 */
+  .status-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    white-space: nowrap;
+    height: 28px;
+    box-sizing: border-box;
+  }
+  
+  .status-tag.draft {
+    background: rgba(255, 45, 128, 0.15);
+    color: #FF2980;
+  }
+  
+  .status-tag.approved {
+    background: rgba(20, 184, 166, 0.15);
+    color: #14B8A6;
+  }
+  
+  /* 바텀시트 스타일 (첨부2 구조 참고) */
+  .bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 1000;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  
+  .bottom-sheet.active {
+    transform: translateY(0);
+  }
+  
+  .bottom-sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px 0;
+  }
+  
+  .bottom-sheet-close {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  
+  .bottom-sheet-close:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    color: #374151;
+  }
+  
+  .bottom-sheet-content {
+    padding: 20px;
+  }
+  
+  .bottom-sheet-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+    text-align: center;
+    flex: 1;
+  }
+  
+  .bottom-sheet-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  .bottom-sheet-item:last-child {
+    border-bottom: none;
+  }
+  
+  .bottom-sheet-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  
+  .bottom-sheet-value {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 600;
+  }
+  
+  .bottom-sheet-value.incomplete {
+    color: #0068FE;
+  }
+  
+  /* 년-월별 미작성 목록 스타일 */
+  .incomplete-list {
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+  
+  .incomplete-month {
+    margin-bottom: 16px;
+  }
+  
+  .incomplete-month-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+  }
+  
+  .incomplete-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    margin: 4px 0;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .incomplete-item:hover {
+    background: #f8fafc;
+    border-color: #0068FE;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 104, 254, 0.1);
+  }
+  
+  .incomplete-item-info {
+    flex: 1;
+  }
+  
+  .incomplete-item-site {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  
+  .incomplete-item-date {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  
+  .incomplete-item-status {
+    font-size: 12px;
+    color: #0068FE;
+    font-weight: 500;
+    background: rgba(0, 104, 254, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+  }
+  
+  /* 오늘은 그만 보기 기능 스타일 */
+  .bottom-sheet-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-top: 1px solid #e5e7eb;
+    background: #f8fafc;
+  }
+  
+  .bottom-sheet-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .bottom-sheet-cbx {
+    width: 16px;
+    height: 16px;
+    accent-color: #0068FE;
+    cursor: pointer;
+  }
+  
+  .bottom-sheet-label {
+    font-size: 14px;
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .bottom-sheet-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 999;
+  }
+  
+  .bottom-sheet-overlay.active {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .worklog-author {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  
+  .worklog-status {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  
+  .worklog-status.draft {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  
+  .worklog-status.submitted {
+    background: #d1fae5;
+    color: #065f46;
+  }
+  
+  .worklog-status.approved {
+    background: #dbeafe;
+    color: #1e40af;
+  }
+  
+  /* 모달 스타일 */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+  }
+  
+  .modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .modal-content {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 24px;
+    width: 95%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .modal-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  
+  .modal-close {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: "Noto Sans KR", system-ui, sans-serif;
+    cursor: pointer;
+    padding: 8px 16px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  
+  .modal-close:hover {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    color: #374151;
+  }
+  
+  /* 폼 스타일 */
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  
+  .form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--card);
+    color: var(--text);
+  }
+  
+  .form-input:focus {
+    outline: none;
+    border-color: var(--ok);
+  }
+  
+  .form-textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 14px;
+    background: var(--card);
+    color: var(--text);
+    resize: vertical;
+    min-height: 80px;
+  }
+  
+  .form-row {
+    display: flex;
+    gap: 12px;
+  }
+  
+  .form-row .form-group {
+    flex: 1;
+  }
+  
+  /* 버튼 스타일 */
+  .btn {
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .btn-primary {
+    background: var(--ok);
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background: var(--ok-ink);
+  }
+  
+  .btn-secondary {
+    background: var(--line);
+    color: var(--text);
+  }
+  
+  .btn-secondary:hover {
+    background: var(--muted);
+  }
+  
+  .btn-success {
+    background: #1A254F;
+    color: white;
+  }
+  
+  .btn-success:hover {
+    background: #0f1a3a;
+  }
+  
+  .btn-group {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+  }
+  
+  /* 파일 업로드 */
+  .file-upload {
+    border: 2px dashed var(--line);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .file-upload:hover {
+    border-color: var(--ok);
+    background: var(--ok-bg);
+  }
+  
+  .file-upload input {
+    display: none;
+  }
+  
+  .file-upload-text {
+    font-size: 14px;
+    color: var(--muted);
+  }
+  
+  /* NPC 자재현황 */
+  .npc-section {
+    background: #f8fafc;
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+  }
+  
+  .npc-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+  
+  .npc-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .npc-item:last-child {
+    border-bottom: none;
+  }
+  
+  .npc-label {
+    font-size: 13px;
+    color: var(--text);
+  }
+  
+  .npc-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ok);
+  }
+  
+  /* 다크모드 스타일 */
+  [data-theme="dark"] .summary-status.missing {
+    background: #451a03;
+    color: #fbbf24;
+  }
+  
+  [data-theme="dark"] .summary-status.completed {
+    background: #064e3b;
+    color: #6ee7b7;
+  }
+  
+  [data-theme="dark"] .worklog-status.draft {
+    background: #451a03;
+    color: #fbbf24;
+  }
+  
+  [data-theme="dark"] .worklog-status.submitted {
+    background: #064e3b;
+    color: #6ee7b7;
+  }
+  
+  [data-theme="dark"] .worklog-status.approved {
+    background: #1e3a8a;
+    color: #93c5fd;
+  }
+  
+  [data-theme="dark"] .npc-section {
+    background: #1e293b;
+  }
+  
+  [data-theme="dark"] .npc-item {
+    border-bottom-color: #334155;
+  }
+</style>
+</head>
+<body>
+
+  <!-- 메인 컨테이너 -->
+  <main class="main-container">
+    <!-- 탭 메뉴 -->
+    <div style="display:flex;justify-content:center;align-items:center;margin-bottom:12px">
+      <div class="tabs" role="tablist">
+        <div class="tab active" data-tab="draft" role="tab" aria-selected="true">작성중</div>
+        <div class="tab" data-tab="approved" role="tab" aria-selected="false">승인완료</div>
+      </div>
+    </div>
+
+    <!-- 현장 검색 -->
+    <section class="search-section">
+      <div class="search-container">
+        <div class="search-input-wrapper">
+          <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.35-4.35"></path>
+          </svg>
+          <input type="text" class="search-input-new" placeholder="현장명 검색" id="site-search">
+        </div>
+        <button class="cancel-btn" onclick="searchSites()">취소</button>
+      </div>
+    </section>
+
+    <!-- 작업일지 리스트 -->
+    <section class="worklog-list" id="worklog-list">
+      <!-- 샘플 작업일지들 -->
+      <div class="worklog-card" onclick="openWorklogDetail('worklog-1')">
+        <div class="worklog-header">
+          <span class="worklog-site">[INOPNC] 서울시청 신축공사</span>
+          <div class="worklog-header-left">
+            <span class="status-tag draft">작성중</span>
+            <button class="worklog-detail-btn" onclick="event.stopPropagation(); openWorklogDetail('worklog-1')">상세</button>
+          </div>
+        </div>
+        <div class="worklog-info-row">
+          <span class="worklog-author">작성자: 김철수</span>
+          <span class="worklog-date">2024-01-15 14:30</span>
+        </div>
+        <div class="worklog-details">
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">부재명:</span>
+            <span class="worklog-detail-value">슬라브 / 면</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업공정:</span>
+            <span class="worklog-detail-value">철근 배근</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업유형:</span>
+            <span class="worklog-detail-value">지하</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">블럭/동/호수:</span>
+            <span class="worklog-detail-value">A동 101호</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">공수:</span>
+            <span class="worklog-detail-value">1일</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="worklog-card" onclick="openWorklogDetail('worklog-2')">
+        <div class="worklog-header">
+          <span class="worklog-site">[현대] 강남구청 리모델링</span>
+          <div class="worklog-header-left">
+            <span class="status-tag approved">승인완료</span>
+            <button class="worklog-detail-btn" onclick="event.stopPropagation(); openWorklogDetail('worklog-2')">상세</button>
+          </div>
+        </div>
+        <div class="worklog-info-row">
+          <span class="worklog-author">작성자: 이영희</span>
+          <span class="worklog-date">2024-01-14 16:45</span>
+        </div>
+        <div class="worklog-details">
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">부재명:</span>
+            <span class="worklog-detail-value">벽체 / 면</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업공정:</span>
+            <span class="worklog-detail-value">거푸집 설치</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업유형:</span>
+            <span class="worklog-detail-value">지상</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">블럭/동/호수:</span>
+            <span class="worklog-detail-value">B동 201호</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">공수:</span>
+            <span class="worklog-detail-value">2일</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="worklog-card" onclick="openWorklogDetail('worklog-3')">
+        <div class="worklog-header">
+          <span class="worklog-site">[롯데] 송파구 아파트 신축</span>
+          <div class="worklog-header-left">
+            <span class="status-tag draft">작성중</span>
+            <button class="worklog-detail-btn" onclick="event.stopPropagation(); openWorklogDetail('worklog-3')">상세</button>
+          </div>
+        </div>
+        <div class="worklog-info-row">
+          <span class="worklog-author">작성자: 박민수</span>
+          <span class="worklog-date">2024-01-13 09:20</span>
+        </div>
+        <div class="worklog-details">
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">부재명:</span>
+            <span class="worklog-detail-value">기둥 / 면</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업공정:</span>
+            <span class="worklog-detail-value">콘크리트 타설</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업유형:</span>
+            <span class="worklog-detail-value">지상</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">블럭/동/호수:</span>
+            <span class="worklog-detail-value">C동 301호</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">공수:</span>
+            <span class="worklog-detail-value">1.5일</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="worklog-card" onclick="openWorklogDetail('worklog-4')">
+        <div class="worklog-header">
+          <span class="worklog-site">[한화] 시흥시청역 테라타워</span>
+          <div class="worklog-header-left">
+            <span class="status-tag approved">승인완료</span>
+            <button class="worklog-detail-btn" onclick="event.stopPropagation(); openWorklogDetail('worklog-4')">상세</button>
+          </div>
+        </div>
+        <div class="worklog-info-row">
+          <span class="worklog-author">작성자: 최영수</span>
+          <span class="worklog-date">2024-01-12 11:15</span>
+        </div>
+        <div class="worklog-details">
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">부재명:</span>
+            <span class="worklog-detail-value">보 / 면</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업공정:</span>
+            <span class="worklog-detail-value">마감 작업</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업유형:</span>
+            <span class="worklog-detail-value">지상</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">블럭/동/호수:</span>
+            <span class="worklog-detail-value">D동 401호</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">공수:</span>
+            <span class="worklog-detail-value">3일</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="worklog-card" onclick="openWorklogDetail('worklog-5')">
+        <div class="worklog-header">
+          <span class="worklog-site">[포스코] 포항 환호 2BL</span>
+          <div class="worklog-header-left">
+            <span class="status-tag draft">작성중</span>
+            <button class="worklog-detail-btn" onclick="event.stopPropagation(); openWorklogDetail('worklog-5')">상세</button>
+          </div>
+        </div>
+        <div class="worklog-info-row">
+          <span class="worklog-author">작성자: 정민호</span>
+          <span class="worklog-date">2024-01-11 13:40</span>
+        </div>
+        <div class="worklog-details">
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">부재명:</span>
+            <span class="worklog-detail-value">기초 / 면</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업공정:</span>
+            <span class="worklog-detail-value">시설 점검</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">작업유형:</span>
+            <span class="worklog-detail-value">지하</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">블럭/동/호수:</span>
+            <span class="worklog-detail-value">E동 501호</span>
+          </div>
+          <div class="worklog-detail-line">
+            <span class="worklog-detail-label">공수:</span>
+            <span class="worklog-detail-value">0.5일</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 바텀시트 (년-월별 미작성 목록) -->
+  <div class="bottom-sheet-overlay" id="bottom-sheet-overlay" onclick="closeBottomSheet()"></div>
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="bottom-sheet-header">
+      <div class="bottom-sheet-title">미작성 작업일지</div>
+      <button class="bottom-sheet-close" onclick="closeBottomSheet(true)">닫기</button>
+    </div>
+    <div class="bottom-sheet-content">
+      <div class="incomplete-list" id="incomplete-list">
+        <!-- 년-월별 미작성 목록이 여기에 동적으로 생성됩니다 -->
+      </div>
+    </div>
+    <div class="bottom-sheet-option">
+      <div class="bottom-sheet-left">
+        <input type="checkbox" id="taskDontAgain" class="bottom-sheet-cbx" aria-label="오늘은 그만 보기"/>
+        <label for="taskDontAgain" class="bottom-sheet-label">오늘은 그만 보기</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- 작업일지 작성/수정 모달 -->
+  <div id="worklog-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">작업일지 작성</h2>
+        <button class="modal-close" onclick="closeWorklogModal()">닫기</button>
+      </div>
+      
+      <form id="worklog-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="site-name">현장명</label>
+            <input type="text" id="site-name" class="form-input" placeholder="현장명을 입력하세요" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="work-date">작업일자</label>
+            <input type="date" id="work-date" class="form-input" required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="author">작성자</label>
+            <input type="text" id="author" class="form-input" placeholder="작성자명" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="building-name">부재명</label>
+            <input type="text" id="building-name" class="form-input" placeholder="부재명을 입력하세요">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="work-process">작업공정</label>
+            <select id="work-process" class="form-input">
+              <option value="">선택하세요</option>
+              <option value="기초공사">기초공사</option>
+              <option value="골조공사">골조공사</option>
+              <option value="마감공사">마감공사</option>
+              <option value="설비공사">설비공사</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="work-type">작업유형</label>
+            <select id="work-type" class="form-input">
+              <option value="">선택하세요</option>
+              <option value="신축">신축</option>
+              <option value="리모델링">리모델링</option>
+              <option value="보수">보수</option>
+              <option value="점검">점검</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" for="block">블럭</label>
+            <input type="text" id="block" class="form-input" placeholder="블럭">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="dong">동</label>
+            <input type="text" id="dong" class="form-input" placeholder="동">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="ho">호수</label>
+            <input type="text" id="ho" class="form-input" placeholder="호수">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="man-hours">공수</label>
+          <input type="number" id="man-hours" class="form-input" placeholder="공수를 입력하세요" min="0" step="0.5">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">사진대지</label>
+          <div class="file-upload" onclick="document.getElementById('photo-upload').click()">
+            <input type="file" id="photo-upload" accept="image/*" multiple>
+            <div class="file-upload-text">사진을 업로드하세요 (여러 장 가능)</div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">진행도면 (마킹한 도면)</label>
+          <div class="file-upload" onclick="document.getElementById('drawing-upload').click()">
+            <input type="file" id="drawing-upload" accept="image/*,.pdf">
+            <div class="file-upload-text">도면을 업로드하세요</div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">작업완료확인서</label>
+          <div class="file-upload" onclick="document.getElementById('completion-upload').click()">
+            <input type="file" id="completion-upload" accept="image/*,.pdf">
+            <div class="file-upload-text">작업완료확인서를 업로드하세요</div>
+          </div>
+        </div>
+        
+        <!-- NPC-1000 자재현황 -->
+        <div class="npc-section">
+          <div class="npc-title">NPC-1000 자재현황</div>
+          <div class="npc-item">
+            <span class="npc-label">입고 (말)</span>
+            <span class="npc-value" id="npc-inbound">-</span>
+          </div>
+          <div class="npc-item">
+            <span class="npc-label">사용 (말)</span>
+            <span class="npc-value" id="npc-used">-</span>
+          </div>
+          <div class="npc-item">
+            <span class="npc-label">재고 (말)</span>
+            <span class="npc-value" id="npc-stock">-</span>
+          </div>
+        </div>
+        
+        <div class="btn-group">
+          <button type="button" class="btn btn-secondary" onclick="saveDraft()">임시저장</button>
+          <button type="button" class="btn btn-success" onclick="submitWorklog()">제출</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 작업일지 상세보기 모달 -->
+  <div id="worklog-detail-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">작업일지 상세</h2>
+        <button class="modal-close" onclick="closeWorklogDetailModal()">닫기</button>
+      </div>
+      
+      <div id="worklog-detail-content">
+        <!-- 동적으로 내용이 채워집니다 -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 모바일 뷰포트 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      initMobileViewport();
+    });
+    
+    // 작업일지 모달 열기/닫기
+    function openWorklogModal() {
+      document.getElementById('worklog-modal').classList.add('active');
+    }
+    
+    function closeWorklogModal() {
+      document.getElementById('worklog-modal').classList.remove('active');
+      document.getElementById('worklog-form').reset();
+    }
+    
+    // 작업일지 상세보기 모달
+    function openWorklogDetail(worklogId) {
+      const worklogData = getWorklogData(worklogId);
+      const detailContent = document.getElementById('worklog-detail-content');
+      
+      detailContent.innerHTML = `
+        <div class="form-group">
+          <label class="form-label">현장명</label>
+          <div class="form-input" style="background: var(--bg);">${worklogData.siteName}</div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">작업일자</label>
+            <div class="form-input" style="background: var(--bg);">${worklogData.workDate}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">작성자</label>
+            <div class="form-input" style="background: var(--bg);">${worklogData.author}</div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">부재명</label>
+          <div class="form-input" style="background: var(--bg);">${worklogData.buildingName}</div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">작업공정</label>
+            <div class="form-input" style="background: var(--bg);">${worklogData.workProcess}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">작업유형</label>
+            <div class="form-input" style="background: var(--bg);">${worklogData.workType}</div>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">블럭</label>
+            <div class="form-input" style="background: var(--bg);">${worklogData.block}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">동</label>
+            <div class="form-input" style="background: var(--bg);">${worklogData.dong}</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">호수</label>
+            <div class="form-input" style="background: var(--bg);">${worklogData.ho}</div>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">공수</label>
+          <div class="form-input" style="background: var(--bg);">${worklogData.manHours}일</div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">사진대지</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            ${worklogData.photos.map(photo => `<img src="${photo}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">`).join('')}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">진행도면</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            ${worklogData.drawings.map(drawing => `<img src="${drawing}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px;">`).join('')}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">작업완료확인서</label>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            ${worklogData.completionDocs.map(doc => `<img src="${doc}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px;">`).join('')}
+          </div>
+        </div>
+        
+        <div class="npc-section">
+          <div class="npc-title">NPC-1000 자재현황</div>
+          <div class="npc-item">
+            <span class="npc-label">입고 (말)</span>
+            <span class="npc-value">${worklogData.npcData.inbound || '-'}</span>
+          </div>
+          <div class="npc-item">
+            <span class="npc-label">사용 (말)</span>
+            <span class="npc-value">${worklogData.npcData.used || '-'}</span>
+          </div>
+          <div class="npc-item">
+            <span class="npc-label">재고 (말)</span>
+            <span class="npc-value">${worklogData.npcData.stock || '-'}</span>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('worklog-detail-modal').classList.add('active');
+    }
+    
+    function closeWorklogDetailModal() {
+      document.getElementById('worklog-detail-modal').classList.remove('active');
+    }
+    
+    // 작업일지 데이터 (샘플)
+    function getWorklogData(worklogId) {
+      const sampleData = {
+        'worklog-1': {
+          siteName: '서울시청 신축공사',
+          workDate: '2024-01-15',
+          author: '김철수',
+          buildingName: '본관 1층',
+          workProcess: '골조공사',
+          workType: '신축',
+          block: 'A',
+          dong: '1',
+          ho: '101',
+          manHours: 8.5,
+          photos: ['image/사진대지.png', 'image/사진대지 (1).png'],
+          drawings: ['image/사진대지.png'],
+          completionDocs: ['image/사진대지.png'],
+          npcData: {
+            inbound: '1,250',
+            used: '850',
+            stock: '400'
+          }
+        },
+        'worklog-2': {
+          siteName: '강남구청 리모델링',
+          workDate: '2024-01-14',
+          author: '이영희',
+          buildingName: '별관 2층',
+          workProcess: '마감공사',
+          workType: '리모델링',
+          block: 'B',
+          dong: '2',
+          ho: '201',
+          manHours: 6.0,
+          photos: ['image/사진대지.png'],
+          drawings: ['image/사진대지.png'],
+          completionDocs: ['image/사진대지.png'],
+          npcData: {
+            inbound: '800',
+            used: '600',
+            stock: '200'
+          }
+        },
+        'worklog-3': {
+          siteName: '송파구 아파트 신축',
+          workDate: '2024-01-13',
+          author: '박민수',
+          buildingName: '101동',
+          workProcess: '기초공사',
+          workType: '신축',
+          block: 'C',
+          dong: '1',
+          ho: '101',
+          manHours: 10.0,
+          photos: ['image/사진대지.png', 'image/사진대지 (1).png'],
+          drawings: ['image/사진대지.png'],
+          completionDocs: ['image/사진대지.png'],
+          npcData: {
+            inbound: '2,000',
+            used: '1,500',
+            stock: '500'
+          }
+        }
+      };
+      
+      return sampleData[worklogId] || sampleData['worklog-1'];
+    }
+    
+    // NPC 자재현황 데이터 업데이트
+    function updateNPCData() {
+      // 실제 데이터 연동 시 여기서 API 호출
+      const npcData = {
+        inbound: '1,250',
+        used: '850', 
+        stock: '400'
+      };
+      
+      document.getElementById('npc-inbound').textContent = npcData.inbound;
+      document.getElementById('npc-used').textContent = npcData.used;
+      document.getElementById('npc-stock').textContent = npcData.stock;
+    }
+    
+    // 년-월별 미작성 목록 데이터
+    function getIncompleteWorklogs() {
+      return {
+        '2024-01': [
+          {
+            id: 'incomplete-1',
+            site: '[INOPNC] 서울시청 신축공사',
+            date: '2024-01-15',
+            status: '작업공정 미작성'
+          },
+          {
+            id: 'incomplete-2', 
+            site: '[현대] 강남구청 리모델링',
+            date: '2024-01-14',
+            status: '블럭/동/호수 미작성'
+          },
+          {
+            id: 'incomplete-3',
+            site: '[롯데] 송파구 아파트 신축',
+            date: '2024-01-13',
+            status: '사진대지 미작성'
+          }
+        ],
+        '2024-02': [
+          {
+            id: 'incomplete-4',
+            site: '[한화] 시흥시청역 테라타워',
+            date: '2024-02-05',
+            status: '작업공정 미작성'
+          },
+          {
+            id: 'incomplete-5',
+            site: '[포스코] 포항 환호 2BL',
+            date: '2024-02-03',
+            status: '진행도면 미작성'
+          }
+        ],
+      };
+    }
+    
+    // 미작성 목록 렌더링
+    function renderIncompleteList() {
+      const incompleteData = getIncompleteWorklogs();
+      const listContainer = document.getElementById('incomplete-list');
+      
+      let html = '';
+      
+      // 년-월별로 정렬 (최신순)
+      const sortedMonths = Object.keys(incompleteData).sort().reverse();
+      
+      sortedMonths.forEach(month => {
+        const items = incompleteData[month];
+        const monthTitle = month.replace('-', '년 ') + '월';
+        
+        html += `
+          <div class="incomplete-month">
+            <div class="incomplete-month-title">${monthTitle} (${items.length}건)</div>
+        `;
+        
+        items.forEach(item => {
+          html += `
+            <div class="incomplete-item" onclick="openIncompleteDetail('${item.id}')">
+              <div class="incomplete-item-info">
+                <div class="incomplete-item-site">${item.site}</div>
+                <div class="incomplete-item-date">${item.date}</div>
+              </div>
+              <div class="incomplete-item-status">${item.status}</div>
+            </div>
+          `;
+        });
+        
+        html += `</div>`;
+      });
+      
+      listContainer.innerHTML = html;
+    }
+    
+    // 미작성 항목 클릭 시 상세 모달 열기
+    function openIncompleteDetail(incompleteId) {
+      // 바텀시트 닫기
+      closeBottomSheet();
+      
+      // 작업일지 작성 모달 열기
+      setTimeout(() => {
+        openWorklogModal();
+      }, 300);
+    }
+    
+    // 현장 검색
+    function searchSites() {
+      const searchTerm = document.getElementById('site-search').value.toLowerCase();
+      const worklogCards = document.querySelectorAll('.worklog-card');
+      
+      worklogCards.forEach(card => {
+        const siteName = card.querySelector('.worklog-site').textContent.toLowerCase();
+        if (siteName.includes(searchTerm)) {
+          card.style.display = 'block';
+        } else {
+          card.style.display = 'none';
+        }
+      });
+    }
+    
+    // 임시저장
+    function saveDraft() {
+      alert('임시저장되었습니다.');
+      closeWorklogModal();
+    }
+    
+    // 제출
+    function submitWorklog() {
+      const form = document.getElementById('worklog-form');
+      const formData = new FormData(form);
+      
+      // 필수 필드 검증
+      const requiredFields = ['site-name', 'work-date', 'author'];
+      for (let field of requiredFields) {
+        if (!formData.get(field)) {
+          alert('필수 항목을 모두 입력해주세요.');
+          return;
+        }
+      }
+      
+      alert('작업일지가 제출되었습니다.');
+      closeWorklogModal();
+      
+      // 리스트에 새 항목 추가 (샘플)
+      addNewWorklogToList();
+    }
+    
+    // 새 작업일지를 리스트에 추가
+    function addNewWorklogToList() {
+      const worklogList = document.getElementById('worklog-list');
+      const newWorklog = document.createElement('div');
+      newWorklog.className = 'worklog-card';
+      newWorklog.onclick = () => openWorklogDetail('new-worklog');
+      
+      newWorklog.innerHTML = `
+        <div class="worklog-header">
+          <span class="worklog-site">새 현장</span>
+          <span class="worklog-date">${new Date().toISOString().split('T')[0]}</span>
+        </div>
+        <div class="worklog-author">작성자: 새 작성자</div>
+        <div class="worklog-status submitted">제출완료</div>
+      `;
+      
+      worklogList.insertBefore(newWorklog, worklogList.firstChild);
+    }
+    
+    // 모달 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('modal')) {
+        e.target.classList.remove('active');
+      }
+    });
+    
+    // ESC 키로 모달 닫기
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal.active').forEach(modal => {
+          modal.classList.remove('active');
+        });
+      }
+    });
+    
+    // 검색 입력 시 실시간 검색
+    document.getElementById('site-search').addEventListener('input', searchSites);
+    
+    // 바텀시트 열기 (페이지 로드 시 자동으로 열기)
+    setTimeout(() => {
+      if (shouldShowBottomSheet()) {
+        openBottomSheet();
+      }
+    }, 500);
+    
+    // NPC 데이터 업데이트
+    updateNPCData();
+    
+    // 미작성 목록 렌더링
+    renderIncompleteList();
+    
+    // 탭 전환 기능 (doc과 동일)
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+      tab.onclick = () => {
+        tabs.forEach(x => {
+          x.classList.remove('active'); 
+          x.setAttribute('aria-selected','false');
+        });
+        tab.classList.add('active'); 
+        tab.setAttribute('aria-selected','true');
+        
+        // 탭에 따른 카드 필터링
+        const worklogCards = document.querySelectorAll('.worklog-card');
+        const tabType = tab.dataset.tab;
+        
+        worklogCards.forEach(card => {
+          const statusTag = card.querySelector('.status-tag');
+          if (tabType === 'draft') {
+            card.style.display = statusTag && statusTag.classList.contains('draft') ? 'block' : 'none';
+          } else if (tabType === 'approved') {
+            card.style.display = statusTag && statusTag.classList.contains('approved') ? 'block' : 'none';
+          }
+        });
+      };
+    });
+    
+    // 바텀시트 제어 함수들
+    function openBottomSheet() {
+      const bottomSheet = document.getElementById('bottom-sheet');
+      const overlay = document.getElementById('bottom-sheet-overlay');
+      bottomSheet.classList.add('active');
+      overlay.classList.add('active');
+    }
+    
+    function closeBottomSheet(persist = false) {
+      const bottomSheet = document.getElementById('bottom-sheet');
+      const overlay = document.getElementById('bottom-sheet-overlay');
+      bottomSheet.classList.remove('active');
+      overlay.classList.remove('active');
+      
+      // "오늘은 그만 보기" 체크박스가 체크되어 있으면 오늘 날짜 저장
+      if (persist) {
+        const dontAgain = document.getElementById('taskDontAgain');
+        if (dontAgain && dontAgain.checked) {
+          try {
+            const KEY = 'inopnc_task_popup_date';
+            const today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem(KEY, today);
+          } catch (e) {
+            console.log('바텀시트 날짜 저장 오류:', e);
+          }
+        }
+      }
+    }
+    
+    // 바텀시트 표시 여부 확인
+    function shouldShowBottomSheet() {
+      try {
+        const KEY = 'inopnc_task_popup_date';
+        const today = new Date().toISOString().slice(0, 10);
+        return localStorage.getItem(KEY) !== today;
+      } catch (e) {
+        return true; // 오류 시 표시
+      }
+    }
+    
+  </script>
+</body>
+</html>

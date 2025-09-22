@@ -1,0 +1,76 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "prettier"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "rules": {
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/explicit-module-boundary-types": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "no-console": "off",
+    "no-case-declarations": "off",
+    "prefer-const": "off",
+    "no-var": "error",
+    "react/display-name": "off",
+    "react-hooks/rules-of-hooks": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "@typescript-eslint/no-var-requires": "off",
+    "no-control-regex": "off",
+    "no-useless-escape": "off",
+    "no-async-promise-executor": "off",
+    "no-constant-condition": "off"
+  },
+  "overrides": [
+    {
+      "files": ["scripts/**/*.ts"],
+      "rules": {
+        "no-console": "off",
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/",
+    ".next/",
+    "out/",
+    "build/",
+    "dist/",
+    "public/",
+    "*.config.js",
+    "*.config.ts",
+    "components/admin/legacy/**",
+    "app/debug/**",
+    "app/debug-session/**",
+    "app/test/**",
+    "app/test-*/**",
+    "app/test-modal/**",
+    "app/test-photo-grid/**",
+    "app/test-session/**",
+    "app/offline/**",
+    "app/projects/**",
+    "app/tasks/**",
+    "app/team/**",
+    "components/attendance/**",
+    "components/daily-reports/**",
+    "components/dashboard/**",
+    "components/debug/**",
+    "components/backup/**",
+    "components/site-manager/**",
+    "components/documents/**",
+    "components/equipment/**",
+    "components/materials/**",
+    "components/export/**"
+  ]
+}

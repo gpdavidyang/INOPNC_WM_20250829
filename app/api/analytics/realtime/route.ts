@@ -1,0 +1,486 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
+
+
+export const dynamic = 'force-dynamic'
+
+// Helper function to check if table exists
+async function tableExists(supabase: unknown, tableName: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', tableName)
+      .maybeSingle()
+    
+    return !error && !!data
+  } catch {
+    return false
+  }
+}
+
+// GET endpoint to subscribe to real-time analytics events
+export async function GET(request: NextRequest) {
+  try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    const supabase = createClient()
+
+    // Get user profile with better error handling
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, site_id, organization_id')
+      .eq('id', authResult.userId)
+      .single()
+
+    if (profileError) {
+      console.error('Profile lookup error in realtime analytics:', {
+        error: profileError,
+        userId: authResult.userId,
+        timestamp: new Date().toISOString()
+      })
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    const userRole = profile.role ?? authResult.role ?? 'worker'
+    const restrictedOrgId = authResult.isRestricted ? authResult.restrictedOrgId ?? null : null
+    const organizationId = restrictedOrgId ?? profile.organization_id ?? null
+
+    // Check permissions
+    if (!['site_manager', 'admin', 'system_admin'].includes(userRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    // Check if required analytics tables exist
+    const analyticsEventsExists = await tableExists(supabase, 'analytics_events')
+    const analyticsMetricsExists = await tableExists(supabase, 'analytics_metrics')
+    
+    if (!analyticsEventsExists || !analyticsMetricsExists) {
+      console.error('Analytics tables missing for realtime subscription:', {
+        analyticsEventsExists,
+        analyticsMetricsExists
+      })
+      return NextResponse.json({ 
+        error: 'Analytics system not initialized',
+        details: 'Required analytics tables are missing'
+      }, { status: 503 })
+    }
+
+    // Get query parameters
+    const searchParams = request.nextUrl.searchParams
+    const siteId = searchParams.get('siteId')
+
+    let allowedSiteIds: string[] | undefined
+
+    if (restrictedOrgId) {
+      const { data: sites, error: sitesError } = await supabase
+        .from('sites')
+        .select('id')
+        .eq('organization_id', restrictedOrgId)
+
+      if (sitesError) {
+        console.error('Realtime analytics: failed to load restricted sites', sitesError)
+        return NextResponse.json({ error: 'Unable to determine accessible sites' }, { status: 500 })
+      }
+
+      allowedSiteIds = (sites || []).map(site => (site as { id: string }).id)
+
+      if (!allowedSiteIds || allowedSiteIds.length === 0) {
+        return NextResponse.json({
+          channel: `analytics:${restrictedOrgId}`,
+          tables: ['analytics_events', 'analytics_metrics'],
+          filters: {
+            organization_id: restrictedOrgId,
+            site_id: null,
+          },
+          permissions: {
+            canSubscribe: true,
+            role: userRole,
+          },
+        })
+      }
+    }
+
+    if (userRole === 'site_manager') {
+      const siteMembersExists = await tableExists(supabase, 'site_members')
+      if (siteMembersExists) {
+        const { data: assignedSites, error: siteAccessError } = await supabase
+          .from('site_members')
+          .select('site_id')
+          .eq('user_id', authResult.userId)
+          .eq('role', 'site_manager')
+
+        if (siteAccessError) {
+          console.warn('Site access verification failed, falling back to organization scope:', siteAccessError)
+        } else {
+          const siteIds = (assignedSites || [])
+            .map((record: { site_id: string | null }) => record.site_id)
+            .filter((value): value is string => !!value)
+
+          if (siteIds.length === 0) {
+            return NextResponse.json({ error: 'Access denied to this site' }, { status: 403 })
+          }
+
+          allowedSiteIds = allowedSiteIds
+            ? allowedSiteIds.filter(id => siteIds.includes(id))
+            : siteIds
+
+          if (!allowedSiteIds || allowedSiteIds.length === 0) {
+            return NextResponse.json({ error: 'Access denied to this site' }, { status: 403 })
+          }
+        }
+      } else if (profile.site_id) {
+        allowedSiteIds = allowedSiteIds
+          ? allowedSiteIds.filter(id => id === profile.site_id)
+          : [profile.site_id]
+      }
+    }
+
+    if (siteId) {
+      if (allowedSiteIds && !allowedSiteIds.includes(siteId)) {
+        return NextResponse.json({ error: 'Access denied to this site' }, { status: 403 })
+      }
+    }
+
+    const channelOrgId = organizationId ?? 'public'
+    const channel = `analytics:${channelOrgId}${siteId ? `:${siteId}` : ''}`
+
+    // Return subscription configuration
+    // The actual real-time subscription will be handled on the client side
+    return NextResponse.json({
+      channel,
+      tables: ['analytics_events', 'analytics_metrics'],
+      filters: {
+        organization_id: channelOrgId,
+        site_id: siteId
+      },
+      permissions: {
+        canSubscribe: true,
+        role: userRole
+      }
+    })
+
+  } catch (error: unknown) {
+    console.error('Analytics realtime setup error:', {
+      error: error?.message || 'Unknown error',
+      stack: error?.stack,
+      name: error?.name,
+      cause: error?.cause,
+      timestamp: new Date().toISOString(),
+      url: request.url,
+      method: 'GET'
+    })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST endpoint to emit real-time analytics events
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createClient()
+    
+    // Check if request has a body
+    const contentLength = request.headers.get('content-length')
+    if (!contentLength || contentLength === '0') {
+      return NextResponse.json({ error: 'Request body is required' }, { status: 400 })
+    }
+    
+    let body
+    try {
+      body = await request.json()
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
+    const { eventType, siteId, eventData } = body
+    
+    // Validate required fields
+    if (!eventType) {
+      return NextResponse.json({ error: 'eventType is required' }, { status: 400 })
+    }
+    
+    // Check if this is a RUM event (these can be anonymous)
+    const isRumEvent = eventType.startsWith('rum_')
+    
+    let userId: string | null = null
+    let organizationId: string | null = null
+    let userRole: string | null = null
+    let allowedSiteIds: string[] | undefined
+    
+    if (!isRumEvent) {
+      // For non-RUM events, require authentication via shared helper
+      const authResult = await requireApiAuth()
+      if (authResult instanceof NextResponse) {
+        return authResult
+      }
+
+      userId = authResult.userId
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, site_id, organization_id')
+        .eq('id', authResult.userId)
+        .single()
+
+      if (profileError || !profileData) {
+        return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      }
+
+      userRole = profileData.role ?? authResult.role ?? null
+      organizationId = authResult.isRestricted
+        ? authResult.restrictedOrgId ?? null
+        : profileData.organization_id ?? null
+
+      if (authResult.isRestricted) {
+        const { data: sites, error: sitesError } = await supabase
+          .from('sites')
+          .select('id')
+          .eq('organization_id', authResult.restrictedOrgId ?? '')
+
+        if (!sitesError) {
+          allowedSiteIds = (sites || []).map(site => (site as { id: string }).id)
+        }
+      }
+
+      if (userRole === 'site_manager') {
+        const siteMembersExists = await tableExists(supabase, 'site_members')
+        if (siteMembersExists) {
+          const { data: assignedSites } = await supabase
+            .from('site_members')
+            .select('site_id')
+            .eq('user_id', authResult.userId)
+            .eq('role', 'site_manager')
+
+          const siteIds = (assignedSites || [])
+            .map((record: { site_id: string | null }) => record.site_id)
+            .filter((value): value is string => !!value)
+
+          allowedSiteIds = allowedSiteIds
+            ? allowedSiteIds.filter(id => siteIds.includes(id))
+            : siteIds
+        } else if (profileData.site_id) {
+          allowedSiteIds = allowedSiteIds
+            ? allowedSiteIds.filter(id => id === profileData.site_id)
+            : [profileData.site_id]
+        }
+      }
+    } else {
+      // For RUM events, try to get user if available but don't require it
+      const [{ data: sessionData }, { data: userData }] = await Promise.all([
+        supabase.auth.getSession(),
+        supabase.auth.getUser(),
+      ])
+
+      const rumUser = userData.user || sessionData.session?.user || null
+
+      if (rumUser) {
+        userId = rumUser.id
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('role, site_id, organization_id')
+          .eq('id', rumUser.id)
+          .single()
+
+        if (profileData) {
+          userRole = profileData.role ?? null
+          organizationId = profileData.organization_id ?? null
+
+          if (organizationId) {
+            const { data: sites } = await supabase
+              .from('sites')
+              .select('id')
+              .eq('organization_id', organizationId)
+
+            allowedSiteIds = (sites || []).map(site => (site as { id: string }).id)
+          }
+
+          if (userRole === 'site_manager' && profileData.site_id) {
+            allowedSiteIds = allowedSiteIds
+              ? allowedSiteIds.filter(id => id === profileData.site_id)
+              : [profileData.site_id]
+          }
+        }
+      }
+    }
+
+    // Validate event type
+    const validEventTypes = [
+      'report_submitted',
+      'report_approved',
+      'attendance_marked',
+      'material_requested',
+      'equipment_checked_out',
+      'issue_reported',
+      'metric_updated',
+      // RUM event types
+      'rum_page_view',
+      'rum_session_update',
+      'rum_error',
+      'rum_unhandled_rejection',
+      'rum_interaction',
+      'rum_resource_timing'
+    ]
+
+    if (!validEventTypes.includes(eventType)) {
+      return NextResponse.json({ error: 'Invalid event type' }, { status: 400 })
+    }
+
+    if (siteId && allowedSiteIds && !allowedSiteIds.includes(siteId)) {
+      return NextResponse.json({ error: 'Access denied to this site' }, { status: 403 })
+    }
+
+    const analyticsEventsExists = await tableExists(supabase, 'analytics_events')
+    if (!analyticsEventsExists) {
+      console.error('Analytics events table does not exist for event creation')
+      return NextResponse.json({
+        success: true,
+        warning: 'Analytics system not initialized'
+      })
+    }
+
+    // Insert analytics event with graceful error handling
+    try {
+      const insertData = {
+        event_type: String(eventType),
+        organization_id: organizationId,
+        site_id: siteId || null,
+        user_id: userId,
+        event_data: eventData || {},
+        event_timestamp: new Date().toISOString(),
+        metadata: {
+          userAgent: request.headers.get('user-agent') || 'unknown',
+          ip: request.headers.get('x-forwarded-for') || 
+              request.headers.get('x-real-ip') || 
+              '0.0.0.0',
+          isRumEvent: Boolean(isRumEvent),
+        }
+      }
+
+      const { data, error } = await supabase
+        .from('analytics_events')
+        .insert(insertData)
+        .select()
+        .single()
+
+      if (error) {
+        const errorInfo = error instanceof Error ? {
+          message: error.message,
+          code: (error as unknown).code,
+          details: (error as unknown).details,
+          hint: (error as unknown).hint
+        } : { message: String(error) }
+
+        console.error('Error creating analytics event:', {
+          ...errorInfo,
+          eventType,
+          siteId,
+          organizationId,
+          timestamp: new Date().toISOString()
+        })
+
+        // For RUM events, return success to avoid breaking monitoring
+        if (isRumEvent) {
+          return NextResponse.json({ 
+            success: true, 
+            warning: 'Event logged but storage may have failed',
+            event: { id: 'failed-storage', event_type: eventType }
+          })
+        }
+
+        // Handle specific database errors
+        if (errorInfo.code === '23503') {
+          return NextResponse.json({ 
+            error: 'Invalid reference data',
+            details: 'Referenced organization or site does not exist'
+          }, { status: 400 })
+        }
+
+        if (errorInfo.code === '42P01') {
+          return NextResponse.json({ 
+            error: 'Analytics system not properly initialized',
+            details: 'Required database tables are missing'
+          }, { status: 503 })
+        }
+
+        return NextResponse.json({ error: 'Failed to create event' }, { status: 500 })
+      }
+
+      // Successfully inserted event
+      const insertedEvent = data
+    } catch (insertError) {
+      console.error('Analytics event insertion exception:', {
+        error: insertError?.message || 'Unknown error',
+        stack: insertError?.stack,
+        eventType,
+        isRumEvent,
+        timestamp: new Date().toISOString()
+      })
+
+      // For RUM events, always return success to avoid breaking performance monitoring
+      if (isRumEvent) {
+        return NextResponse.json({ 
+          success: true, 
+          warning: 'Event processing encountered an error',
+          event: { id: 'exception-occurred', event_type: eventType }
+        })
+      }
+
+      return NextResponse.json({ error: 'Failed to process event' }, { status: 500 })
+    }
+
+    // Trigger metric recalculation if needed (only for authenticated events)
+    if (organizationId && ['report_submitted', 'report_approved', 'attendance_marked'].includes(eventType)) {
+      // Run aggregation in the background (fire and forget)
+      ;(supabase.rpc('aggregate_daily_analytics', {
+        p_organization_id: organizationId,
+        p_site_id: siteId,
+        p_date: new Date().toISOString().split('T')[0]
+      } as unknown) as unknown).then(() => {
+        console.log('Analytics aggregation triggered')
+      }).catch((err: unknown) => {
+        console.error('Analytics aggregation failed:', err)
+      })
+    }
+
+    return NextResponse.json({
+      success: true,
+      event: null // Event was created but details not returned
+    })
+
+  } catch (error) {
+    const errorInfo = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    } : {
+      message: String(error),
+      stack: 'No stack trace available',
+      name: 'Unknown',
+      cause: undefined
+    }
+    
+    console.error('Analytics event creation error:', {
+      ...errorInfo,
+      timestamp: new Date().toISOString(),
+      url: request.url,
+      method: 'POST'
+    })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}

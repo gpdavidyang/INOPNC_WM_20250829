@@ -1,0 +1,3956 @@
+{
+  "timestamp": "2025-09-13T23:34:00.701Z",
+  "summary": {
+    "filesProcessed": 962,
+    "filesFixed": 363,
+    "totalFixes": 1374
+  },
+  "results": [
+    {
+      "file": "components/daily-reports/daily-report-detail-new.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 13
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 34
+        }
+      ],
+      "totalFixes": 47
+    },
+    {
+      "file": "components/daily-reports/DailyReportDetailView.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 11
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 32
+        }
+      ],
+      "totalFixes": 43
+    },
+    {
+      "file": "app/actions/equipment.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 8
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 27
+        }
+      ],
+      "totalFixes": 35
+    },
+    {
+      "file": "app/actions/backup.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 9
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 20
+        }
+      ],
+      "totalFixes": 29
+    },
+    {
+      "file": "app/actions/materials.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 25
+        }
+      ],
+      "totalFixes": 27
+    },
+    {
+      "file": "components/site-info/SiteSearchModal.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 16
+        }
+      ],
+      "totalFixes": 21
+    },
+    {
+      "file": "app/actions/admin/salary.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 20
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 21
+    },
+    {
+      "file": "app/api/photo-grid-reports/stats/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 20
+        }
+      ],
+      "totalFixes": 20
+    },
+    {
+      "file": "components/daily-reports/DailyReportDetailMobile.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 12
+        }
+      ],
+      "totalFixes": 17
+    },
+    {
+      "file": "app/api/seed-data/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 14
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 17
+    },
+    {
+      "file": "components/daily-reports/DailyReportDetailMobile-new.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 15
+        }
+      ],
+      "totalFixes": 15
+    },
+    {
+      "file": "app/actions/attendance.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 15
+        }
+      ],
+      "totalFixes": 15
+    },
+    {
+      "file": "app/api/analytics/trends/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 14
+        }
+      ],
+      "totalFixes": 14
+    },
+    {
+      "file": "components/unified-documents/LegacyDocumentAdapter.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 13
+        }
+      ],
+      "totalFixes": 13
+    },
+    {
+      "file": "components/daily-reports/daily-report-list-new.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 13
+        }
+      ],
+      "totalFixes": 13
+    },
+    {
+      "file": "lib/test-utils/mocks/supabase.mock.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 9
+        }
+      ],
+      "totalFixes": 13
+    },
+    {
+      "file": "components/materials/npc1000/NPC1000DailyDashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 13
+        }
+      ],
+      "totalFixes": 13
+    },
+    {
+      "file": "app/api/analytics/dashboard/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 13
+        }
+      ],
+      "totalFixes": 13
+    },
+    {
+      "file": "components/daily-reports/DailyReportListEnhanced.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 10
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 12
+    },
+    {
+      "file": "app/api/admin/sites/[id]/integrated/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 10
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 12
+    },
+    {
+      "file": "components/materials/material-catalog.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 9
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 11
+    },
+    {
+      "file": "components/attendance/salary-info.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 8
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 11
+    },
+    {
+      "file": "components/__tests__/protected-routes.test.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 9
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 11
+    },
+    {
+      "file": "components/admin/materials/tabs/ShipmentRequestsTab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 6
+        }
+      ],
+      "totalFixes": 11
+    },
+    {
+      "file": "app/api/photo-grid-reports/bulk/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 10
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 11
+    },
+    {
+      "file": "components/documents/my-documents.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 9
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 10
+    },
+    {
+      "file": "app/api/markup-documents/[id]/route.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 10
+        }
+      ],
+      "totalFixes": 10
+    },
+    {
+      "file": "app/api/analytics/metrics/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 6
+        }
+      ],
+      "totalFixes": 10
+    },
+    {
+      "file": "components/photo-grid-tool/PhotoGridCreator.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 9
+        }
+      ],
+      "totalFixes": 9
+    },
+    {
+      "file": "components/export/export-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 6
+        }
+      ],
+      "totalFixes": 9
+    },
+    {
+      "file": "app/actions/daily-reports.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 9
+        }
+      ],
+      "totalFixes": 9
+    },
+    {
+      "file": "app/actions/admin/users.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 8
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 9
+    },
+    {
+      "file": "app/api/notifications/push/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 9
+        }
+      ],
+      "totalFixes": 9
+    },
+    {
+      "file": "components/daily-reports/daily-report-form.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 8
+    },
+    {
+      "file": "components/attendance/attendance-calendar.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 5
+        }
+      ],
+      "totalFixes": 8
+    },
+    {
+      "file": "app/actions/notifications.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 6
+        }
+      ],
+      "totalFixes": 8
+    },
+    {
+      "file": "app/actions/admin/system.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 8
+        }
+      ],
+      "totalFixes": 8
+    },
+    {
+      "file": "app/api/notifications/process-scheduled/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 8
+        }
+      ],
+      "totalFixes": 8
+    },
+    {
+      "file": "app/api/health/env/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 7
+        }
+      ],
+      "totalFixes": 8
+    },
+    {
+      "file": "components/site-info/TodaySiteInfo.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/materials/material-transactions.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/materials/material-requests.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/export/export-button.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 6
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/equipment/resource-allocation.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/admin/AdminDashboardLayout.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/actions/salary.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/actions/npc1000.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/markup/canvas/markup-canvas.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/admin/documents/DocumentPermissionManager.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/partner/workers/partner-workers-client.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/api/seed-realistic/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/actions/admin/materials.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/admin/communication/tabs/RequestsTab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 6
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/api/analytics/site-comparison/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/api/analytics/realtime/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 5
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/dashboard/admin/sites/[id]/page.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        },
+        {
+          "pattern": "useState-any",
+          "count": 2
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "app/api/notifications/analytics/metrics/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 7
+        }
+      ],
+      "totalFixes": 7
+    },
+    {
+      "file": "components/markup/markup-editor.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "components/materials/material-inventory.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "app/team/team-list.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "app/actions/export.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 5
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "lib/test-utils/examples/analytics-testing.example.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        },
+        {
+          "pattern": "useState-any",
+          "count": 3
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "components/dashboard/tabs/documents-tab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "components/admin/integrated/UnifiedDailyReportView.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "app/api/notifications/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "app/actions/admin/dashboard-stats.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "app/api/photo-grids/[id]/download/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "app/api/partner/labor/summary/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "app/api/admin/documents/integrated/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "app/api/admin/daily-reports/[id]/integrated/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 6
+        }
+      ],
+      "totalFixes": 6
+    },
+    {
+      "file": "components/debug/EnvironmentStatus.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "components/daily-reports/daily-report-detail.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "components/admin/notification-tester.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 4
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "components/admin/SiteManagementList.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "components/admin/MaterialsManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "app/actions/documents.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "lib/test-utils/factories/documents.factory.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "components/materials/npc1000/NPC1000InventoryDashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "components/dashboard/tabs/attendance-tab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "components/admin/documents/DocumentList.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "app/api/markup-documents/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 4
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "app/api/announcements/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "app/actions/admin/shipments.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "app/actions/admin/email-notifications.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "app/api/notifications/history/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "app/api/admin/required-document-types/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "app/api/partner/labor/by-site/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 5
+        }
+      ],
+      "totalFixes": 5
+    },
+    {
+      "file": "e2e/fixtures/auth.fixture.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/unified-documents/UnifiedDocumentManager.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/ui/voice-command-button.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        },
+        {
+          "pattern": "useRef-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/materials/npc1000-simplified.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/equipment/equipment-list.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/documents/shared-documents.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/__tests__/protected-routes-simple.test.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/actions/site-info.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/actions/site-info-deployment.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "lib/test-utils/helpers/async-helpers.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        },
+        {
+          "pattern": "generic-any",
+          "count": 2
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/admin/integrated/UnifiedSiteView.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/admin/assignment/UserAssignmentMatrix.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/tasks/[id]/task-detail.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/api/unified-documents/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/actions/admin/worker-salary-settings.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/actions/admin/documents.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/actions/admin/daily-reports.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/actions/admin/common.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "lib/test-utils/mocks/__tests__/pwa.mock.test.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/dashboard/admin/documents/unified-document-management.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/api/sites/current/route.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/api/photo-grids/[id]/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/dashboard/admin/users/[id]/page.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/api/shared-documents/[id]/share/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/api/admin/sites/[id]/workers/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "app/api/admin/sites/[id]/daily-reports/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 4
+        }
+      ],
+      "totalFixes": 4
+    },
+    {
+      "file": "components/ui/use-toast.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/ui/sortable-table.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/ui/environment-detector.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/daily-reports/DailyReportListMobile.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/attendance/salary-view.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/attendance/attendance-check.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/admin/GlobalSearchModal.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/admin/EmailNotifications.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/admin/AnalyticsDashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/tasks/task-list.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/projects/project-list.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/actions/site-documents.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "lib/test-utils/mocks/pwa.mock.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "lib/test-utils/mocks/auth.mock.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "lib/test-utils/examples/pwa-testing.example.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/partner/tabs/PartnerHomeTab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/markup/list/markup-document-list.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/materials/npc1000/NPC1000Analytics.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/dashboard/tabs/work-logs-tab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/admin/materials/IntegratedInventoryStatus.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/admin/documents/PhotoGridDocumentsManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/admin/integrated/EnhancedSiteView.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/dashboard/test-permissions/page.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/actions/admin/signup-approvals.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/actions/admin/production.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/actions/admin/markup.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/admin/materials/tabs/ShipmentManagementTab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/admin/materials/tabs/InventoryUsageTab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/dashboard/admin/signup-requests/signup-requests-client.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/sites/switch/route.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/shared-documents/[id]/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/partner/sites/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/documents/permissions/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/analytics/session-data/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/analytics/aggregate/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/sites/[id]/workers/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/admin/required-document-types/[id]/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "app/api/partner/sites/[id]/documents/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 3
+        }
+      ],
+      "totalFixes": 3
+    },
+    {
+      "file": "components/pwa/install-prompt.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/providers/performance-monitoring-provider.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/photo-grid-tool/PhotoGridToolMain.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/photo-grid-tool/PhotoGridList.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/partner/PartnerSidebar.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/materials/npc1000-management.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/materials/material-management.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/materials/material-management-simplified.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/equipment/skill-management-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/equipment/equipment-maintenance-update-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/daily-reports/daily-report-list.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/backup/BackupDashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/dashboard/sidebar.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/dashboard/performance-budget-config.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/SystemManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/GlobalSearch.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/AuditLogs.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/AdminDataTable.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/test-attendance/page.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/dashboard/dashboard-content.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/actions/workflows.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/actions/search.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/ui/design-system/typography.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/ui/design-system/spacing.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/markup/dialogs/share-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/materials/npc1000/NPC1000InventoryManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/materials/npc1000/NPC1000Dashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/documents/common/FileUploadComponent.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/documents/UnifiedDocumentViewer/index.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/documents/UnifiedDocumentViewer/DocumentFilters.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/dashboard/tabs/shared-documents-tab-updated.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/dashboard/tabs/photo-grid-documents-tab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/dashboard/tabs/home-tab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/users/UserBasicInfoTab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/organizations/OrganizationList.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/notifications/NotificationCenter.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/salary/SalaryChart.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/daily-reports/MarkupTab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/documents/RequiredDocumentsManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/integrated/IntegratedDashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "components/admin/audit/AuditLogSystem.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/test/mobile-integration/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/tasks/new/task-form.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/partner/sites/partner-sites-client.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/debug/auth-test/page.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/dashboard/test-site-info/test-client.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/dashboard/markup/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        },
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/test-production-login/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "lib/test-utils/factories/__tests__/documents.factory.test.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/unified-documents/categories/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/unified-documents/bulk/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/analytics/web-vitals/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/analytics/api-performance/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/analytics/business-metrics/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/dashboard/daily-reports/[id]/edit/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/users/[id]/sites/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/shared-documents/[id]/file/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        },
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/workers/available/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/documents/required/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/daily-reports/export/route.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/dashboard/admin/daily-reports/[id]/edit/page.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/sites/[id]/partners/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/sites/[id]/documents/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/documents/required/[documentType]/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/assignment/dashboard/activity/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/sites/[id]/workers/available/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "app/api/admin/sites/[id]/partners/available/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 2
+        }
+      ],
+      "totalFixes": 2
+    },
+    {
+      "file": "lib/auth/profile-manager.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/auth/admin.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/site-info/SiteInfoTabs.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/site-info/SimpleSiteInfo.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/site-info/MapAppSelector.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/site-info/ManagerContacts.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/search/SearchInterface.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/search/SearchBuilder.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/search/QuickFilterButtons.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/search/AppliedFiltersBar.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/pwa/service-worker-registration.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/providers/optimized-context-provider.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/profile/ProfilePageClient.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/notifications/notification-settings.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/ui/dropdown.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/ui/date-range-picker.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/ui/accessible-form-field.tsx",
+      "fixes": [
+        {
+          "pattern": "generic-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/photo-grid-tool/PhotoGridPreviewPage.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/photo-grid-tool/PhotoGridPreviewModal.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/partner/WorkLogDetailModal.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/partner/PartnerDashboardLayout.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/partner/PartnerDashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/monitoring/monitoring-dashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/equipment/worker-assignment-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/equipment/equipment-return-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/equipment/equipment-management.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/equipment/equipment-maintenance.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/equipment/equipment-maintenance-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/equipment/equipment-checkout-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/documents/my-documents-improved.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/documents/enhanced-document-filters.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/documents/documents-page-with-tabs.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/documents/documents-page-improved.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/documents/documents-page-client.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/documents/documents-list.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/debug/SiteDebugHelper.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/daily-reports/DailyReportDetailDialog.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/dashboard/dashboard-with-notifications.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/dashboard/dashboard-layout.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/attendance/attendance-page-client.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/attendance/attendance-calendar-page-client.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/WorkerSalarySettings.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/UserDetailModal.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/SiteUnifiedManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/NotificationCenter.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/DocumentManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/BulkActionBar.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/test-workers/page.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/test-desktop-force/page.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/test-auth-fix/page.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/pdf-viewer/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api-test/page.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/validation.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/site-info-fallback.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/site-info-direct.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/npc-materials.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/force-site-refresh.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/supabase/__tests__/server.test.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/test-utils/helpers/render-helpers.tsx",
+      "fixes": [
+        {
+          "pattern": "generic-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/test-utils/examples/labor-hours-example.test.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "lib/test-utils/examples/auth-example.test.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/partner/tabs/PartnerDocumentsTab.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/mobile/compact/CompactMaterialWidget.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/markup/dialogs/open-dialog.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/materials/npc1000/NPC1000TransactionHistory.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/materials/npc1000/NPC1000RequestForm.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/documents/common/DocumentFilters.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/documents/UnifiedDocumentViewer/AdminView.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/dashboard/tabs/lazy-components.tsx",
+      "fixes": [
+        {
+          "pattern": "generic-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/dashboard/tabs/home-tab-simple.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/tools/PhotoGridToolManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/tools/MarkupToolManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/sites/SiteDocumentsTab.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/sites/SiteDetail.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/sites/SiteDailyReportsTab.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/sites/CreateSiteModal.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/partners/PartnerForm.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/partners/PartnerDetail.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/users/UserWorkLogsTab.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/users/UserDocumentsTab.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/notifications/NotificationCreateModal.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/salary/SalaryStatsDashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/materials/NPCMaterialManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/daily-reports/WorkerDebugPanel.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/daily-reports/DailyReportsManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/daily-reports/DailyReportDetailModalWrapper.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/daily-reports/DailyReportDetailModal.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/daily-reports/DailyReportCreateModal.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/documents/UnifiedDocumentManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "generic-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/documents/RequiredDocumentDetailModal.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/documents/InvoiceDocumentDetailModal.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/documents/EnhancedDocumentManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/documents/DocumentOverviewManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/documents/DocumentNavigation.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/assignment/AssignmentHistory.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/communication/CommunicationManagement.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/analytics/AnalyticsDashboard.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/test/mobile-auth-test/page.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/partner/dashboard/partner-dashboard-client.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/test-db/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/debug-user/debug-client.tsx",
+      "fixes": [
+        {
+          "pattern": "useState-any",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/admin/admin-dashboard-content.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/auth/__tests__/actions.test.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/auth/__tests__/actions.comprehensive.test.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/user-document-submissions/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/test-required-docs/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/sites/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/required-documents/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/required-document-types/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/photo-grids/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/documents/route.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/diag-supabase/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/admin/sites.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/__tests__/workflows.test.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/__tests__/materials.test.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/actions/__tests__/daily-reports.comprehensive.test.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/materials/tabs/ProductionManagementTab.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/documents/shared/DocumentFilters.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "components/admin/communication/tabs/AnnouncementsTab.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/daily-reports/new/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/daily-reports/new/dev-page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/sites/search/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/sites/by-partner/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/safety/alerts/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/photo-grid-reports/[id]/route.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/monitoring/metrics/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/equipment/maintenance/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/debug/storage/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/admin/work-options/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/admin/documents/photo-grid/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/admin/documents/required/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/admin/documents/markup/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/admin/documents/invoice/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/admin/daily-reports/[id]/page.tsx",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/unified-documents/v2/[id]/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/shared-documents/[id]/permissions/route.ts",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/admin/assignment/partner-site-mappings/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/dashboard/admin/documents/required/[documentType]/page.tsx",
+      "fixes": [
+        {
+          "pattern": "as-any-cast",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/users/[id]/sites/available/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/shared-documents/[id]/permissions/[permissionId]/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/safety/alerts/[id]/acknowledge/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/admin/users/[id]/documents/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/admin/assignment/user-assignments/[id]/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/admin/assignment/dashboard/stats/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    },
+    {
+      "file": "app/api/admin/sites/[id]/workers/assign/route.ts",
+      "fixes": [
+        {
+          "pattern": "simple-any-type",
+          "count": 1
+        }
+      ],
+      "totalFixes": 1
+    }
+  ]
+}

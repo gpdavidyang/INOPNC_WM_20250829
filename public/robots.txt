@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://inopnc-wm-20250829.vercel.app/sitemap.xml

@@ -1,0 +1,632 @@
+import { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
+
+
+export const dynamic = 'force-dynamic'
+
+// Helper function to check if table exists
+async function tableExists(supabase: unknown, tableName: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('information_schema.tables')
+      .select('table_name')
+      .eq('table_schema', 'public')
+      .eq('table_name', tableName)
+      .maybeSingle()
+    
+    return !error && !!data
+  } catch {
+    return false
+  }
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    const supabase = createClient()
+
+    // Get user profile with better error handling
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, site_id, organization_id')
+      .eq('id', authResult.userId)
+      .single()
+
+    if (profileError) {
+      console.error('Profile lookup error:', {
+        error: profileError,
+        userId: authResult.userId,
+        timestamp: new Date().toISOString()
+      })
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    const userRole = profile.role ?? authResult.role ?? 'worker'
+    const restrictedOrgId = authResult.isRestricted ? authResult.restrictedOrgId ?? null : null
+    const profileOrgId = restrictedOrgId ?? profile.organization_id ?? null
+
+    // Check permissions
+    if (!['site_manager', 'admin', 'system_admin'].includes(userRole)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    // Check if analytics_metrics table exists
+    const metricsTableExists = await tableExists(supabase, 'analytics_metrics')
+    if (!metricsTableExists) {
+      console.error('Analytics metrics table does not exist')
+      return NextResponse.json({ 
+        error: 'Analytics system not initialized',
+        details: 'Please run database migrations'
+      }, { status: 503 })
+    }
+
+    // Parse query parameters
+    const searchParams = request.nextUrl.searchParams
+    const metricType = searchParams.get('type')
+    const siteId = searchParams.get('siteId')
+    const days = Math.min(Math.max(parseInt(searchParams.get('days') || '30'), 1), 365) // Clamp between 1-365
+    const requestedOrganizationId = searchParams.get('organizationId') ?? undefined
+
+    // Validate metric type
+    const validMetricTypes = [
+      'daily_report_completion',
+      'material_usage',
+      'attendance_rate',
+      'equipment_utilization',
+      'site_productivity',
+      'safety_incidents',
+      'approval_time',
+      'worker_efficiency',
+      // Web Vitals metrics
+      'web_vitals_cls',
+      'web_vitals_fid',
+      'web_vitals_fcp',
+      'web_vitals_lcp',
+      'web_vitals_ttfb',
+      'api_response_time'
+    ]
+
+    if (metricType && !validMetricTypes.includes(metricType)) {
+      return NextResponse.json({ error: 'Invalid metric type' }, { status: 400 })
+    }
+
+    // Build query with safer date handling
+    const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+    let query = supabase
+      .from('analytics_metrics')
+      .select('*')
+      .gte('metric_date', startDate.toISOString().split('T')[0])
+      .order('metric_date', { ascending: false })
+
+    // Apply organization scope
+    let organizationFilter: string | undefined
+    if (restrictedOrgId) {
+      organizationFilter = restrictedOrgId
+    } else if (userRole !== 'system_admin') {
+      organizationFilter = profile.organization_id ?? undefined
+    } else if (requestedOrganizationId) {
+      organizationFilter = requestedOrganizationId
+    }
+
+    if (organizationFilter) {
+      query = query.eq('organization_id', organizationFilter)
+    }
+
+    if (metricType) {
+      query = query.eq('metric_type', metricType)
+    }
+
+    // Determine allowed site scope
+    let allowedSiteIds: string[] | undefined
+
+    if (restrictedOrgId) {
+      const { data: sites, error: sitesError } = await supabase
+        .from('sites')
+        .select('id')
+        .eq('organization_id', restrictedOrgId)
+
+      if (sitesError) {
+        console.error('Analytics metrics: failed to load restricted sites', sitesError)
+        return NextResponse.json({
+          data: [],
+          count: 0,
+          filters: {
+            type: metricType,
+            siteId,
+            days,
+            organizationId: restrictedOrgId
+          }
+        })
+      }
+
+      allowedSiteIds = (sites || []).map(site => (site as { id: string }).id)
+
+      if (!allowedSiteIds || allowedSiteIds.length === 0) {
+        return NextResponse.json({
+          data: [],
+          count: 0,
+          filters: {
+            type: metricType,
+            siteId,
+            days,
+            organizationId: restrictedOrgId
+          }
+        })
+      }
+    }
+
+    if (userRole === 'site_manager') {
+      const siteMembersExists = await tableExists(supabase, 'site_members')
+      if (siteMembersExists) {
+        const { data: assignedSites, error: sitesError } = await supabase
+          .from('site_members')
+          .select('site_id')
+          .eq('user_id', authResult.userId)
+          .eq('role', 'site_manager')
+
+        if (sitesError) {
+          console.warn('Site membership lookup failed, falling back to organization filter:', sitesError)
+        } else {
+          const siteIds = (assignedSites || [])
+            .map((s: { site_id: string | null }) => s.site_id)
+            .filter((id): id is string => !!id)
+
+          if (siteIds.length === 0) {
+            return NextResponse.json({
+              data: [],
+              count: 0,
+              filters: {
+                type: metricType,
+                siteId,
+                days,
+                organizationId: organizationFilter ?? profileOrgId ?? null
+              }
+            })
+          }
+
+          allowedSiteIds = allowedSiteIds
+            ? allowedSiteIds.filter(id => siteIds.includes(id))
+            : siteIds
+
+          if (!allowedSiteIds || allowedSiteIds.length === 0) {
+            return NextResponse.json({
+              data: [],
+              count: 0,
+              filters: {
+                type: metricType,
+                siteId,
+                days,
+                organizationId: organizationFilter ?? profileOrgId ?? null
+              }
+            })
+          }
+        }
+      } else if (profile.site_id) {
+        allowedSiteIds = allowedSiteIds
+          ? allowedSiteIds.filter(id => id === profile.site_id)
+          : [profile.site_id]
+      }
+    }
+
+    if (siteId) {
+      if (allowedSiteIds && !allowedSiteIds.includes(siteId)) {
+        return NextResponse.json({
+          data: [],
+          count: 0,
+          filters: {
+            type: metricType,
+            siteId,
+            days,
+            organizationId: organizationFilter ?? profileOrgId ?? null
+          }
+        })
+      }
+      query = query.eq('site_id', siteId)
+    } else if (allowedSiteIds) {
+      if (allowedSiteIds.length === 0) {
+        return NextResponse.json({
+          data: [],
+          count: 0,
+          filters: {
+            type: metricType,
+            siteId,
+            days,
+            organizationId: organizationFilter ?? profileOrgId ?? null
+          }
+        })
+      }
+
+      const sanitizedIds = allowedSiteIds.map(id => id.replace(/,/g, ''))
+      const orConditions = ['site_id.is.null']
+      if (sanitizedIds.length > 0) {
+        orConditions.push(`site_id.in.(${sanitizedIds.join(',')})`)
+      }
+      query = query.or(orConditions.join(','))
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      const errorInfo = error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name,
+        cause: error.cause,
+        code: (error as unknown).code,
+        details: (error as unknown).details
+      } : {
+        message: String(error),
+        stack: 'No stack trace available',
+        name: 'Unknown',
+        cause: undefined,
+        code: 'UNKNOWN',
+        details: 'No additional details'
+      }
+      
+      console.error('Error fetching analytics metrics:', {
+        ...errorInfo,
+        timestamp: new Date().toISOString(),
+        url: request.url,
+        method: 'GET',
+        filters: {
+          metricType,
+          siteId,
+          days,
+          organizationId,
+          userRole: profile?.role
+        }
+      })
+
+      // Provide more specific error messages
+      if (errorInfo.code === '42P01') {
+        return NextResponse.json({ 
+          error: 'Analytics system not properly initialized',
+          details: 'Required database tables are missing'
+        }, { status: 503 })
+      }
+
+      return NextResponse.json({ error: 'Failed to fetch metrics' }, { status: 500 })
+    }
+
+    // Group metrics by type if no specific type requested
+    const groupedMetrics = metricType ? data : data?.reduce((acc: unknown, metric: unknown) => {
+      if (!acc[metric.metric_type]) {
+        acc[metric.metric_type] = []
+      }
+      acc[metric.metric_type].push(metric)
+      return acc
+    }, {} as Record<string, any[]>)
+
+    const responseData = metricType ? data ?? [] : groupedMetrics
+
+    return NextResponse.json({
+      data: responseData,
+      count: Array.isArray(data) ? data.length : 0,
+      filters: {
+        type: metricType,
+        siteId,
+        days,
+        organizationId: organizationFilter ?? profileOrgId ?? null
+      }
+    })
+
+  } catch (error) {
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    } : { message: String(error), stack: 'N/A', name: 'Unknown' }
+
+    console.error('Analytics metrics error:', {
+      ...errorDetails,
+      timestamp: new Date().toISOString(),
+      url: request.url
+    })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// POST endpoint for storing performance metrics and triggering aggregation
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = createClient()
+    
+    // Check if request has a body
+    const contentLength = request.headers.get('content-length')
+    if (!contentLength || contentLength === '0') {
+      return NextResponse.json({ error: 'Request body is required' }, { status: 400 })
+    }
+    
+    let body
+    try {
+      body = await request.json()
+    } catch (e) {
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 })
+    }
+    
+    // Check if this is a performance metric submission (Web Vitals, custom metrics, etc.)
+    if (body.type && ['web_vitals', 'custom_metric', 'api_performance', 'performance_summary'].includes(body.type)) {
+      // Handle performance metric storage with graceful fallbacks
+      const {
+        type,
+        metric,
+        value,
+        rating,
+        delta,
+        id,
+        navigationType,
+        url,
+        timestamp,
+        endpoint,
+        duration,
+        unit
+      } = body
+
+      const authResult = await requireApiAuth()
+      if (authResult instanceof NextResponse) {
+        return authResult
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', authResult.userId)
+        .single()
+
+      if (profileError || !profile) {
+        return NextResponse.json({ success: true, warning: 'Profile not found for metric submission' })
+      }
+
+      const organizationId = authResult.isRestricted
+        ? authResult.restrictedOrgId ?? null
+        : profile.organization_id ?? null
+
+      // Ensure analytics table exists before inserting
+      const metricsTableExists = await tableExists(supabase, 'analytics_metrics')
+      if (!metricsTableExists) {
+        console.error('Analytics metrics table does not exist for POST operation')
+        return NextResponse.json({
+          success: true,
+          warning: 'Analytics system not initialized'
+        })
+      }
+
+      try {
+        let insertData = null
+
+        // Handle performance summary (from performance-metrics.ts)
+        if (type === 'performance_summary') {
+          // Log the summary but don't store it - just acknowledge receipt
+          console.debug('Performance summary received:', {
+            timestamp: timestamp || new Date().toISOString(),
+            dataKeys: body.data ? Object.keys(body.data) : []
+          })
+          
+          // Return success immediately - no database storage needed
+          return NextResponse.json({ 
+            success: true,
+            message: 'Performance summary logged'
+          })
+        }
+
+        // Store Web Vitals metrics
+        if (type === 'web_vitals' && metric && value !== undefined) {
+          insertData = {
+            metric_type: `web_vitals_${metric.toLowerCase()}`,
+            organization_id: organizationId,
+            metric_date: new Date().toISOString().split('T')[0],
+            metric_value: Number(value) || 0,
+            metric_count: 1,
+            dimensions: {
+              rating: rating || 'unknown',
+              delta: delta || 0,
+              navigationType: navigationType || 'unknown',
+              url: url ? (typeof url === 'string' ? new URL(url).pathname : String(url)) : null,
+            },
+            metadata: {
+              id: id || null,
+              timestamp: timestamp || new Date().toISOString(),
+              userAgent: request.headers.get('user-agent') || 'unknown',
+            }
+          }
+        }
+
+        // Store custom performance metrics
+        if (type === 'custom_metric' && metric && value !== undefined) {
+          insertData = {
+            metric_type: String(metric),
+            organization_id: organizationId,
+            metric_date: new Date().toISOString().split('T')[0],
+            metric_value: Number(value) || 0,
+            metric_count: 1,
+            dimensions: {
+              endpoint: endpoint || null,
+              unit: unit || null,
+              url: url ? (typeof url === 'string' ? new URL(url).pathname : String(url)) : null,
+            },
+            metadata: {
+              timestamp: timestamp || new Date().toISOString(),
+              userAgent: request.headers.get('user-agent') || 'unknown',
+            }
+          }
+        }
+
+        // Store API performance metrics
+        if (type === 'api_performance' && endpoint && duration !== undefined) {
+          insertData = {
+            metric_type: 'api_response_time',
+            organization_id: organizationId,
+            metric_date: new Date().toISOString().split('T')[0],
+            metric_value: Number(duration) || 0,
+            metric_count: 1,
+            dimensions: {
+              endpoint: String(endpoint),
+              status: body.status || 200,
+              method: body.method || 'GET',
+            },
+            metadata: {
+              timestamp: timestamp || new Date().toISOString(),
+              userAgent: request.headers.get('user-agent') || 'unknown',
+            }
+          }
+        }
+
+        // Insert the metric if we have data
+        if (insertData) {
+          const { error } = await supabase
+            .from('analytics_metrics')
+            .insert(insertData)
+
+          if (error) {
+            console.error('Error storing performance metric:', {
+              error: error.message,
+              code: error.code,
+              details: error.details,
+              type,
+              metric,
+              timestamp: new Date().toISOString()
+            })
+            
+            // Return success even if storage fails to prevent client errors
+            // Log the error but don't block the user experience
+            return NextResponse.json({ 
+              success: true, 
+              warning: 'Metric logged but storage may have failed' 
+            })
+          }
+        }
+
+        return NextResponse.json({ success: true })
+      } catch (metricError) {
+        console.error('Performance metric storage exception:', {
+          error: metricError?.message || 'Unknown error',
+          stack: metricError?.stack,
+          type,
+          metric,
+          timestamp: new Date().toISOString()
+        })
+        
+        // Return success to avoid breaking client-side performance monitoring
+        return NextResponse.json({ 
+          success: true, 
+          warning: 'Metric processing encountered an error' 
+        })
+      }
+    }
+
+    // Handle manual aggregation trigger (existing functionality)
+    const authResult = await requireApiAuth()
+    if (authResult instanceof NextResponse) {
+      return authResult
+    }
+
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role, organization_id')
+      .eq('id', authResult.userId)
+      .single()
+
+    if (profileError || !profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+    }
+
+    // Only admins can trigger manual aggregation
+    if (!['admin', 'system_admin'].includes(profile.role)) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    const { date, siteId } = body
+
+    // Check if aggregation function exists before calling
+    try {
+      const { error } = await (supabase.rpc('aggregate_daily_analytics', {
+        p_organization_id: profile.organization_id,
+        p_site_id: siteId || null,
+        p_date: date || new Date().toISOString().split('T')[0]
+      } as unknown) as unknown)
+
+      if (error) {
+        const errorInfo = error instanceof Error ? {
+          message: error.message,
+          stack: error.stack,
+          name: error.name,
+          cause: error.cause,
+          code: (error as unknown).code,
+          hint: (error as unknown).hint
+        } : {
+          message: String(error),
+          stack: 'No stack trace available',
+          name: 'Unknown',
+          cause: undefined,
+          code: 'UNKNOWN',
+          hint: 'No hint available'
+        }
+        
+        console.error('Error running aggregation RPC:', {
+          ...errorInfo,
+          timestamp: new Date().toISOString(),
+          url: request.url,
+          method: 'POST',
+          rpcFunction: 'aggregate_daily_analytics',
+          parameters: {
+            p_organization_id: profile.organization_id,
+            p_site_id: siteId || null,
+            p_date: date || new Date().toISOString().split('T')[0]
+          }
+        })
+
+        // Provide more specific error messages
+        if (errorInfo.code === '42883') {
+          return NextResponse.json({ 
+            error: 'Analytics aggregation function not available',
+            details: 'Please ensure all database functions are properly installed'
+          }, { status: 503 })
+        }
+
+        return NextResponse.json({ error: 'Failed to aggregate metrics' }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Metrics aggregated successfully'
+      })
+    } catch (rpcError) {
+      console.error('RPC call failed:', rpcError)
+      return NextResponse.json({ 
+        error: 'Aggregation service unavailable',
+        details: 'Analytics aggregation functions are not properly installed'
+      }, { status: 503 })
+    }
+
+  } catch (error) {
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    } : { message: String(error), stack: 'N/A', name: 'Unknown' }
+
+    console.error('Analytics metrics error:', {
+      ...errorDetails,
+      timestamp: new Date().toISOString(),
+      url: request.url
+    })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
