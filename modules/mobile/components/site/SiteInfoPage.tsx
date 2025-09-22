@@ -1,12 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
-import {
-  Download,
-  Paperclip,
-  Search,
-  X,
-} from 'lucide-react'
+import { Download, Paperclip, Search, X } from 'lucide-react'
 
 type ManagerRole = 'construction_manager' | 'assistant_manager' | 'safety_manager'
 
@@ -143,13 +138,15 @@ async function fetchJSON<T>(input: RequestInfo | URL, init?: RequestInit): Promi
 
 async function loadCurrentSite(): Promise<SiteInfoResponse | null> {
   try {
-    const { data } = await fetchJSON<{ data: SiteInfoResponse }>(
-      '/api/sites/current',
-      { cache: 'no-store' }
-    )
+    const { data } = await fetchJSON<{ data: SiteInfoResponse }>('/api/sites/current', {
+      cache: 'no-store',
+    })
     return data
   } catch (error) {
     if (error instanceof HttpError) {
+      if (error.status === 404) {
+        return null
+      }
       throw error
     }
     console.error('[SiteInfo] Failed to load current site', error)
@@ -174,9 +171,7 @@ async function loadSiteAttachments(siteId: string): Promise<AttachmentBuckets> {
       drawings: [],
       ptw: [],
       photos: [],
-    }
-
-    (data || []).forEach(doc => {
+    }(data || []).forEach(doc => {
       if (!doc?.file_url || !doc?.file_name) return
 
       const attachment: AttachmentFile = {
@@ -228,10 +223,11 @@ async function loadNpcSummary(siteId: string): Promise<NpcSummary | null> {
     }>(`/api/mobile/daily-reports?${params.toString()}`, { cache: 'no-store' })
 
     const reports = data?.reports ?? []
-    if (!reports.length) return {
-      today: { incoming: 0, used: 0, stock: 0 },
-      cumulative: { totalIncoming: 0, totalUsed: 0, currentStock: 0 },
-    }
+    if (!reports.length)
+      return {
+        today: { incoming: 0, used: 0, stock: 0 },
+        cumulative: { totalIncoming: 0, totalUsed: 0, currentStock: 0 },
+      }
 
     const today = todayISO()
     const todayReport = reports.find(report => report.work_date === today)
@@ -293,14 +289,11 @@ async function loadSiteSearch(siteName: string): Promise<SiteSearchResult[]> {
 }
 
 async function switchCurrentSite(siteId: string) {
-  await fetchJSON<{ success: boolean }>(
-    '/api/sites/switch',
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ siteId }),
-    }
-  )
+  await fetchJSON<{ success: boolean }>('/api/sites/switch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ siteId }),
+  })
 }
 
 export default function SiteInfoPage() {
@@ -426,8 +419,8 @@ export default function SiteInfoPage() {
         {manager.role === 'construction_manager'
           ? '소장'
           : manager.role === 'safety_manager'
-          ? '안전'
-          : '담당'}
+            ? '안전'
+            : '담당'}
       </span>
       <span className="info-value" role="gridcell">
         {manager.name}
@@ -460,9 +453,9 @@ export default function SiteInfoPage() {
           --card: #ffffff;
           --text: #101828;
           --muted: #667085;
-          --brand: #1A254F;
+          --brand: #1a254f;
           --brand-ghost: rgba(26, 37, 79, 0.06);
-          --blue: #0068FE;
+          --blue: #0068fe;
           --border: rgba(16, 24, 40, 0.1);
           --hover: rgba(16, 24, 40, 0.04);
         }
@@ -707,7 +700,13 @@ export default function SiteInfoPage() {
           border: none;
           background: transparent;
           outline: none;
-          font: 400 16px 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+          font:
+            400 16px 'Noto Sans KR',
+            system-ui,
+            -apple-system,
+            'Segoe UI',
+            Roboto,
+            sans-serif;
           color: #333;
         }
 
@@ -991,7 +990,10 @@ export default function SiteInfoPage() {
       </div>
 
       {errorMessage && (
-        <div className="card" style={{ color: '#ef4444', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div
+          className="card"
+          style={{ color: '#ef4444', display: 'flex', flexDirection: 'column', gap: '12px' }}
+        >
           <div>{errorMessage}</div>
           {isSessionExpired && (
             <div>
@@ -1018,10 +1020,14 @@ export default function SiteInfoPage() {
               <h2 className="q" style={{ marginBottom: 4 }}>
                 {currentSite.name}
               </h2>
-              <div style={{ color: '#6b7280', fontSize: 14 }}>{currentSite.address.full_address}</div>
+              <div style={{ color: '#6b7280', fontSize: 14 }}>
+                {currentSite.address.full_address}
+              </div>
             </div>
             <div className="header-actions">
-              <div className="work-date">{formatDateDisplay(currentSite.construction_period?.end_date)}</div>
+              <div className="work-date">
+                {formatDateDisplay(currentSite.construction_period?.end_date)}
+              </div>
               <button className="btn-detail" onClick={() => setShowDetail(prev => !prev)}>
                 {showDetail ? '간단' : '상세'}
               </button>
@@ -1033,13 +1039,13 @@ export default function SiteInfoPage() {
 
             <div className="info-row" role="row">
               <span className="info-label">주소</span>
-              <span className="info-value">
-                {currentSite.address.full_address || '-'}
-              </span>
+              <span className="info-value">{currentSite.address.full_address || '-'}</span>
               <div className="info-actions">
                 <button
                   className="action-btn secondary"
-                  onClick={() => navigator.clipboard?.writeText(currentSite.address.full_address || '')}
+                  onClick={() =>
+                    navigator.clipboard?.writeText(currentSite.address.full_address || '')
+                  }
                 >
                   복사
                 </button>
@@ -1053,7 +1059,9 @@ export default function SiteInfoPage() {
                 <div className="info-actions">
                   <button
                     className="action-btn secondary"
-                    onClick={() => navigator.clipboard?.writeText(currentSite.accommodation?.full_address || '')}
+                    onClick={() =>
+                      navigator.clipboard?.writeText(currentSite.accommodation?.full_address || '')
+                    }
                   >
                     복사
                   </button>
@@ -1119,7 +1127,11 @@ export default function SiteInfoPage() {
               aria-label="현장명 검색"
             />
             {searchQuery && (
-              <button className="clear-btn" onClick={() => setSearchQuery('')} aria-label="검색어 지우기">
+              <button
+                className="clear-btn"
+                onClick={() => setSearchQuery('')}
+                aria-label="검색어 지우기"
+              >
                 <X size={12} />
               </button>
             )}
@@ -1179,7 +1191,9 @@ export default function SiteInfoPage() {
             </div>
             <div className="npc-kpi-item" role="group">
               <p className="npc-kpi-label">현재 재고</p>
-              <p className="npc-kpi-value">{npcSummary?.today.stock ?? npcSummary?.cumulative.currentStock ?? 0}</p>
+              <p className="npc-kpi-value">
+                {npcSummary?.today.stock ?? npcSummary?.cumulative.currentStock ?? 0}
+              </p>
             </div>
           </div>
 
@@ -1253,7 +1267,6 @@ export default function SiteInfoPage() {
           </div>
         </div>
       )}
-
     </div>
   )
 }
