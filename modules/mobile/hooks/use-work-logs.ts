@@ -22,7 +22,7 @@ export function useWorkLogs(initialFilter?: WorkLogFilter) {
       try {
         setLoading(true)
         setError(null)
-        const data = await WorkLogService.getWorkLogs(filter, sort)
+        const data = await WorkLogService.getWorkLogs(filter, sort, abortController.signal)
 
         // 컴포넌트가 언마운트되었는지 확인
         if (!abortController.signal.aborted) {

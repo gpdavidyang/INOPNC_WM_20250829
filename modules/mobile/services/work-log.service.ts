@@ -77,12 +77,17 @@ export class WorkLogService {
       }
 
       const payload = await response.json()
+
+      if (payload?.success === false) {
+        throw new Error(payload?.error || '작업일지를 불러오는 중 오류가 발생했습니다.')
+      }
+
       const reports = Array.isArray(payload?.data?.reports) ? payload.data.reports : []
 
-      const workLogs = this.transformToWorkLogs(reports)
+      const workLogs = transformToWorkLogs(reports)
 
       if (sort) {
-        return this.sortWorkLogs(workLogs, sort)
+        return sortWorkLogs(workLogs, sort)
       }
 
       return workLogs
@@ -314,139 +319,231 @@ export class WorkLogService {
       console.error('WorkLogService.uploadAttachments error:', error)
     }
   }
+}
 
-  private static async attachWorkerAssignments(reports: any[]): Promise<void> {
-    if (!reports.length) return
+function transformToWorkLogs(data: any[]): WorkLog[] {
+  return data.map(item => mapReportToWorkLog(item))
+}
 
-    const reportIds = reports
-      .map(report => report?.id)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+function mapReportToWorkLog(item: any): WorkLog {
+  const workContent = parseWorkContent(item?.work_content)
+  const location = parseLocationInfo(item?.location_info)
+  const workers = mapWorkerAssignments(item?.worker_assignments)
+  const attachments = mapAttachments(item?.document_attachments)
+  const npcUsage = extractNpcUsage(item?.material_usage)
+  const totalHours = workers.reduce((sum, worker) => sum + worker.hours, 0)
 
-    if (reportIds.length === 0) {
-      return
-    }
+  const status = resolveStatus(item?.status)
 
+  const authorName =
+    item?.profiles?.full_name || workers[0]?.name || item?.created_by || '알 수 없는 작성자'
+
+  return {
+    id: item?.id,
+    date: item?.work_date,
+    siteId: item?.site_id,
+    siteName: item?.sites?.name || item?.site_name || '알 수 없는 현장',
+    title: item?.title || item?.sites?.name || item?.work_description,
+    author: authorName,
+    status,
+    memberTypes: workContent.memberTypes,
+    workProcesses: workContent.workProcesses,
+    workTypes: workContent.workTypes,
+    location,
+    workers,
+    totalHours,
+    npcUsage,
+    attachments,
+    progress: item?.progress_rate ?? item?.progress ?? 0,
+    notes: item?.additional_notes ?? item?.special_notes ?? item?.notes ?? undefined,
+    createdAt: item?.created_at,
+    updatedAt: item?.updated_at,
+    createdBy: item?.created_by,
+  }
+}
+
+function parseWorkContent(raw: unknown): {
+  memberTypes: string[]
+  workProcesses: string[]
+  workTypes: string[]
+} {
+  if (!raw) {
+    return { memberTypes: [], workProcesses: [], workTypes: [] }
+  }
+
+  if (typeof raw === 'string') {
     try {
-      const { data, error } = await supabase
-        .from('worker_assignments')
-        .select(
-          `
-          id,
-          daily_report_id,
-          profile_id,
-          worker_name,
-          labor_hours,
-          profiles(
-            full_name
-          )
-        `
-        )
-        .in('daily_report_id', reportIds)
-
-      if (error) {
-        console.error('작업자 배정 조회 오류:', error)
-        return
+      const parsed = JSON.parse(raw)
+      return {
+        memberTypes: Array.isArray(parsed?.memberTypes) ? parsed.memberTypes : [],
+        workProcesses: Array.isArray(parsed?.workProcesses) ? parsed.workProcesses : [],
+        workTypes: Array.isArray(parsed?.workTypes) ? parsed.workTypes : [],
       }
-
-      const assignmentsByReport = new Map<string, any[]>()
-
-      data?.forEach(assignment => {
-        const reportId = assignment.daily_report_id
-        if (!reportId) return
-        const existing = assignmentsByReport.get(reportId) ?? []
-        existing.push(assignment)
-        assignmentsByReport.set(reportId, existing)
-      })
-
-      reports.forEach(report => {
-        report.worker_assignments = assignmentsByReport.get(report.id) ?? []
-      })
     } catch (error) {
-      console.error('attachWorkerAssignments error:', error)
+      console.warn('Failed to parse work_content JSON:', error)
+      return { memberTypes: [], workProcesses: [], workTypes: [] }
     }
   }
 
-  /**
-   * 데이터베이스 데이터를 WorkLog 타입으로 변환
-   */
-  private static transformToWorkLogs(data: any[]): WorkLog[] {
-    return data.map(item => {
-      const workContent = item.work_content || {}
-      const workers =
-        item.worker_assignments?.map((assignment: any) => ({
-          id: assignment.profile_id || assignment.id,
-          name: assignment.profiles?.full_name || assignment.worker_name || '미정',
-          hours: (assignment.labor_hours || 0) * 8,
-        })) || []
-
-      const totalHours = workers.reduce((sum: number, worker: any) => sum + worker.hours, 0)
-
-      // 첨부파일 분류
-      const attachments = {
-        photos: [],
-        drawings: [],
-        confirmations: [],
-      }
-
-      if (item.document_attachments) {
-        item.document_attachments.forEach((doc: any) => {
-          const file = {
-            id: doc.id,
-            url: doc.file_url,
-            name: doc.file_name,
-            size: doc.file_size,
-            uploadedAt: doc.uploaded_at,
-          }
-
-          switch (doc.document_type) {
-            case 'photo':
-              attachments.photos.push(file)
-              break
-            case 'drawing':
-              attachments.drawings.push(file)
-              break
-            case 'confirmation':
-              attachments.confirmations.push(file)
-              break
-          }
-        })
-      }
-
-      // NPC 사용량
-      const npcMaterial = item.material_usage?.find((m: any) => m.material_type === 'NPC-1000')
-      const npcUsage = npcMaterial
-        ? {
-            amount: npcMaterial.quantity,
-            unit: npcMaterial.unit,
-          }
-        : undefined
-
-      const status = item.status === 'approved' ? 'approved' : 'draft'
-
-      const authorName = workers[0]?.name || item.created_by
-
-      return {
-        id: item.id,
-        date: item.work_date,
-        siteId: item.site_id,
-        siteName: item.sites?.name || '알 수 없는 현장',
-        title: item.title || item.sites?.name,
-        author: authorName,
-        status,
-        memberTypes: workContent.memberTypes || [],
-        workProcesses: workContent.workProcesses || [],
-        workTypes: workContent.workTypes || [],
-        location: item.location_info || { block: '', dong: '', unit: '' },
-        workers,
-        totalHours,
-        npcUsage,
-        attachments,
-        progress: item.progress_rate || 0,
-        notes: item.additional_notes,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        createdBy: item.created_by,
-      } as WorkLog
-    })
+  return {
+    memberTypes: Array.isArray((raw as any)?.memberTypes) ? (raw as any).memberTypes : [],
+    workProcesses: Array.isArray((raw as any)?.workProcesses) ? (raw as any).workProcesses : [],
+    workTypes: Array.isArray((raw as any)?.workTypes) ? (raw as any).workTypes : [],
   }
+}
+
+function parseLocationInfo(raw: unknown): {
+  block: string
+  dong: string
+  unit: string
+} {
+  if (!raw || typeof raw !== 'object') {
+    return { block: '', dong: '', unit: '' }
+  }
+
+  return {
+    block: toSafeString((raw as any).block),
+    dong: toSafeString((raw as any).dong),
+    unit: toSafeString((raw as any).unit),
+  }
+}
+
+function mapWorkerAssignments(assignments: any[]): {
+  id: string
+  name: string
+  hours: number
+  role?: string
+}[] {
+  if (!Array.isArray(assignments)) {
+    return []
+  }
+
+  return assignments.map(assignment => {
+    const hours = Number(assignment?.labor_hours ?? 0) * 8
+    const profileName = assignment?.profiles?.full_name
+    const fallbackName = assignment?.worker_name || '미정'
+
+    return {
+      id: assignment?.profile_id || assignment?.id,
+      name: profileName || fallbackName,
+      hours: Number.isFinite(hours) ? hours : 0,
+    }
+  })
+}
+
+function mapAttachments(attachments: any[]): {
+  photos: AttachedFile[]
+  drawings: AttachedFile[]
+  confirmations: AttachedFile[]
+} {
+  const initial = {
+    photos: [] as AttachedFile[],
+    drawings: [] as AttachedFile[],
+    confirmations: [] as AttachedFile[],
+  }
+
+  if (!Array.isArray(attachments)) {
+    return initial
+  }
+
+  attachments.forEach(attachment => {
+    const file: AttachedFile = {
+      id: attachment?.id,
+      url: attachment?.file_url,
+      name: attachment?.file_name,
+      size: attachment?.file_size ?? 0,
+      uploadedAt: attachment?.uploaded_at,
+    }
+
+    switch (attachment?.document_type) {
+      case 'drawing':
+        initial.drawings.push(file)
+        break
+      case 'confirmation':
+        initial.confirmations.push(file)
+        break
+      default:
+        initial.photos.push(file)
+        break
+    }
+  })
+
+  return initial
+}
+
+function extractNpcUsage(materials: any[]):
+  | {
+      amount: number
+      unit: string
+    }
+  | undefined {
+  if (!Array.isArray(materials)) {
+    return undefined
+  }
+
+  const npcMaterial = materials.find(material => {
+    const type = String(material?.material_type || '').toUpperCase()
+    return type === 'NPC-1000'
+  })
+
+  if (!npcMaterial) {
+    return undefined
+  }
+
+  return {
+    amount: Number(npcMaterial?.quantity ?? 0),
+    unit: npcMaterial?.unit || '',
+  }
+}
+
+function resolveStatus(rawStatus: string | null | undefined): 'draft' | 'approved' {
+  if (!rawStatus) {
+    return 'draft'
+  }
+
+  const normalized = rawStatus.toLowerCase()
+
+  if (['approved', 'completed', 'submitted'].includes(normalized)) {
+    return 'approved'
+  }
+
+  return 'draft'
+}
+
+function toSafeString(value: unknown): string {
+  return typeof value === 'string' ? value : ''
+}
+
+function sortWorkLogs(workLogs: WorkLog[], sort: WorkLogSort): WorkLog[] {
+  const sorted = [...workLogs]
+
+  sorted.sort((a, b) => {
+    let aValue: unknown = a[sort.field]
+    let bValue: unknown = b[sort.field]
+
+    switch (sort.field) {
+      case 'date':
+        aValue = new Date(a.date).getTime()
+        bValue = new Date(b.date).getTime()
+        break
+      case 'siteName':
+        aValue = a.siteName?.toLowerCase() || ''
+        bValue = b.siteName?.toLowerCase() || ''
+        break
+      case 'status':
+        aValue = a.status
+        bValue = b.status
+        break
+      case 'progress':
+        aValue = a.progress ?? 0
+        bValue = b.progress ?? 0
+        break
+    }
+
+    if (aValue < bValue) return sort.order === 'asc' ? -1 : 1
+    if (aValue > bValue) return sort.order === 'asc' ? 1 : -1
+    return 0
+  })
+
+  return sorted
 }
