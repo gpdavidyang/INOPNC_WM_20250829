@@ -46,7 +46,38 @@ const INITIAL_STATE: AuthState = {
 
 const DEFAULT_UI_TRACK = '/mobile'
 const AUTH_ENDPOINT_TIMEOUT_MS = 5000
+const SUPABASE_SESSION_TIMEOUT_MS = 4000
+const PROFILE_FETCH_TIMEOUT_MS = 4000
 const RESTRICTED_ROLES: ReadonlySet<Role> = new Set(['customer_manager', 'partner'])
+
+type TimeoutResult<T> = { timedOut: false; value: T } | { timedOut: true }
+
+function runWithTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  label: string
+): Promise<TimeoutResult<T>> {
+  if (!timeoutMs || timeoutMs <= 0) {
+    return promise.then(value => ({ timedOut: false as const, value }))
+  }
+
+  return new Promise<TimeoutResult<T>>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      console.warn(`[useUnifiedAuth] ${label} timed out after ${timeoutMs}ms`)
+      resolve({ timedOut: true as const })
+    }, timeoutMs)
+
+    promise
+      .then(value => {
+        clearTimeout(timeoutId)
+        resolve({ timedOut: false as const, value })
+      })
+      .catch(error => {
+        clearTimeout(timeoutId)
+        reject(error)
+      })
+  })
+}
 
 function readUiTrackFromCookie(): string {
   if (typeof document === 'undefined') {
@@ -108,11 +139,17 @@ export function useUnifiedAuth() {
   const loadProfile = useCallback(
     async (userId: string): Promise<UnifiedProfile | null> => {
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', userId)
-          .maybeSingle()
+        const result = await runWithTimeout(
+          supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+          PROFILE_FETCH_TIMEOUT_MS,
+          'profile fallback query'
+        )
+
+        if (result.timedOut) {
+          return null
+        }
+
+        const { data, error } = result.value
 
         if (error) {
           console.warn('[useUnifiedAuth] Failed to load profile fallback:', error)
@@ -129,58 +166,81 @@ export function useUnifiedAuth() {
   )
 
   const fetchAuth = useCallback(async (): Promise<AuthResponse> => {
+    let payload: Partial<AuthResponse> | null = null
     const supportsAbort = typeof AbortController !== 'undefined'
     const controller = supportsAbort ? new AbortController() : undefined
-    const timeoutId = controller
-      ? setTimeout(() => {
-          controller.abort()
-        }, AUTH_ENDPOINT_TIMEOUT_MS)
-      : undefined
-
-    let payload: Partial<AuthResponse> | null = null
 
     try {
-      const response = await fetch('/api/auth/me', {
-        credentials: 'include',
-        cache: 'no-store',
-        signal: controller?.signal,
-      })
+      const fetchResult = await runWithTimeout(
+        fetch('/api/auth/me', {
+          credentials: 'include',
+          cache: 'no-store',
+          signal: controller?.signal,
+        }),
+        AUTH_ENDPOINT_TIMEOUT_MS,
+        '/api/auth/me request'
+      )
 
-      if (response.status === 401) {
-        return {
-          ...INITIAL_STATE,
-          user: null,
-          profile: null,
-          session: null,
+      if (fetchResult.timedOut) {
+        if (controller) {
+          controller.abort()
         }
-      }
+      } else {
+        const response = fetchResult.value
 
-      if (!response.ok) {
-        const message = await response.text()
-        throw new Error(message || 'Failed to load auth state')
-      }
+        if (response.status === 401) {
+          return {
+            ...INITIAL_STATE,
+            user: null,
+            profile: null,
+            session: null,
+          }
+        }
 
-      payload = (await response.json()) as Partial<AuthResponse>
+        if (!response.ok) {
+          const message = await response.text()
+          throw new Error(message || 'Failed to load auth state')
+        }
+
+        payload = (await response.json()) as Partial<AuthResponse>
+      }
     } catch (err) {
       if ((err as DOMException)?.name === 'AbortError') {
-        console.warn('[useUnifiedAuth] /api/auth/me request timed out. Using client fallback.')
+        console.warn('[useUnifiedAuth] /api/auth/me request aborted. Using client fallback.')
       } else {
         console.warn('[useUnifiedAuth] /api/auth/me request failed. Using client fallback.', err)
       }
-    } finally {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
+    }
+
+    let session: Session | null = null
+    let user: User | null = null
+
+    try {
+      const sessionResult = await runWithTimeout(
+        supabase.auth.getSession(),
+        SUPABASE_SESSION_TIMEOUT_MS,
+        'supabase.auth.getSession()'
+      )
+
+      if (!sessionResult.timedOut) {
+        const { data: sessionData, error: sessionError } = sessionResult.value
+
+        if (sessionError) {
+          console.warn('[useUnifiedAuth] Failed to retrieve client session:', sessionError)
+        }
+
+        session = sessionData.session ?? null
+        user = session?.user ?? null
       }
+    } catch (err) {
+      console.warn(
+        '[useUnifiedAuth] supabase.auth.getSession() failed. Using payload fallback.',
+        err
+      )
     }
 
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
-
-    if (sessionError) {
-      console.warn('[useUnifiedAuth] Failed to retrieve client session:', sessionError)
-    }
-
-    const session = sessionData.session ?? (payload?.session as Session | null) ?? null
-    const user = session?.user ?? (payload?.user as User | null) ?? null
+    session = session ?? (payload?.session as Session | null) ?? null
+    user = user ?? session?.user ?? (payload?.user as User | null) ?? null
 
     if (!user) {
       return {
