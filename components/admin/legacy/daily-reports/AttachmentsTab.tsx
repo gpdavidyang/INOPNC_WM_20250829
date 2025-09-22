@@ -1,0 +1,461 @@
+'use client'
+
+import { getSessionUser } from '@/lib/supabase/session'
+
+interface AttachmentFile {
+  id: string
+  filename: string
+  file_path: string
+  file_size: number
+  mime_type: string
+  description?: string
+  created_at: string
+  created_by: string
+}
+
+interface AttachmentsTabProps {
+  reportId: string
+  isEditing: boolean
+  onSaveComplete?: () => void
+}
+
+export default function AttachmentsTab({ 
+  reportId, 
+  isEditing,
+  onSaveComplete
+}: AttachmentsTabProps) {
+  const [files, setFiles] = useState<AttachmentFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' })
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchFiles()
+  }, [reportId])
+
+  useEffect(() => {
+    if (saveStatus.type) {
+      const timer = setTimeout(() => {
+        setSaveStatus({ type: null, message: '' })
+      }, 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [saveStatus])
+
+  const fetchFiles = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const supabase = createClient()
+      const { data, error } = await supabase
+        .from('daily_documents')
+        .select('*')
+        .eq('daily_report_id', reportId)
+        .eq('file_type', 'document')
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+      setFiles(data || [])
+    } catch (error) {
+      console.error('Error fetching attachments:', error)
+      setError('첨부파일을 불러오는데 실패했습니다.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const validateFile = (file: File) => {
+    const maxSize = 50 * 1024 * 1024 // 50MB
+
+    if (file.size > maxSize) {
+      throw new Error(`파일 크기가 너무 큽니다. 최대 50MB까지 업로드 가능합니다. (${file.name})`)
+    }
+
+    // 모든 파일 형식 허용 - 제한 제거
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploading(true)
+    setSaveStatus({ type: null, message: '' })
+
+    try {
+      // Validate all files first
+      const fileArray = Array.from(files)
+      for (const file of fileArray) {
+        validateFile(file)
+      }
+
+      const supabase = createClient()
+
+      // Check authentication
+      const sessionUser = await getSessionUser(supabase)
+      if (!sessionUser) {
+        throw new Error('인증이 필요합니다. 다시 로그인해주세요.')
+      }
+      const currentUserId = sessionUser.id
+
+      const uploadPromises = fileArray.map(async (file, index) => {
+        const fileExt = file.name.split('.').pop()
+        // Create safe filename - remove Korean characters and spaces
+        const timestamp = Date.now() + index
+        const safeFileName = `${timestamp}.${fileExt}`
+        const fileName = `${reportId}/attachments/${safeFileName}`
+
+        // Upload to storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('daily-report-attachments')
+          .upload(fileName, file)
+
+        if (uploadError) {
+          console.error('Storage upload error:', uploadError)
+          throw new Error(`파일 업로드 실패: ${uploadError.message} (${file.name})`)
+        }
+
+        // Get public URL for the uploaded file
+        const { data: urlData } = supabase.storage
+          .from('daily-report-attachments')
+          .getPublicUrl(fileName)
+
+        // Save metadata
+        const { data: fileData, error: dbError } = await supabase
+          .from('daily_documents')
+          .insert({
+            daily_report_id: reportId,
+            document_type: 'other', // Required field - attachments categorized as 'other'
+            file_url: urlData.publicUrl, // Required field  
+            filename: file.name,
+            file_name: file.name,
+            file_path: fileName,
+            file_type: 'document',
+            file_size: file.size,
+            mime_type: file.type,
+            created_by: currentUserId,
+            uploaded_by: currentUserId
+          })
+          .select()
+          .single()
+
+        if (dbError) {
+          console.error('Database insert error:', dbError)
+          // Try to clean up uploaded file
+          await supabase.storage
+            .from('daily-report-attachments')
+            .remove([fileName])
+          throw new Error(`메타데이터 저장 실패: ${dbError.message} (${file.name})`)
+        }
+
+        return fileData
+      })
+
+      await Promise.all(uploadPromises)
+      await fetchFiles()
+      setSaveStatus({ type: 'success', message: `${fileArray.length}개 파일이 업로드되었습니다.` })
+      
+      if (onSaveComplete) {
+        onSaveComplete()
+      }
+    } catch (error: unknown) {
+      console.error('Error uploading files:', error)
+      setSaveStatus({ 
+        type: 'error', 
+        message: error.message || '파일 업로드에 실패했습니다.' 
+      })
+    } finally {
+      setUploading(false)
+      // Reset file input
+      e.target.value = ''
+    }
+  }
+
+  const handleDownload = async (file: AttachmentFile) => {
+    try {
+      const supabase = createClient()
+      const { data, error } = await supabase.storage
+        .from('daily-report-attachments')
+        .download(file.file_path)
+
+      if (error) throw error
+
+      // Create download link
+      const url = URL.createObjectURL(data)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = file.filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Error downloading file:', error)
+      setSaveStatus({ type: 'error', message: '파일 다운로드에 실패했습니다.' })
+    }
+  }
+
+  const handleDelete = async (file: AttachmentFile) => {
+    if (!confirm(`'${file.filename}' 파일을 삭제하시겠습니까?`)) return
+
+    try {
+      const supabase = createClient()
+      
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('daily-report-attachments')
+        .remove([file.file_path])
+
+      if (storageError) console.error('Storage delete error:', storageError)
+
+      // Delete metadata
+      const { error: dbError } = await supabase
+        .from('daily_documents')
+        .delete()
+        .eq('id', file.id)
+
+      if (dbError) throw dbError
+
+      await fetchFiles()
+      setSaveStatus({ type: 'success', message: '파일이 삭제되었습니다.' })
+      
+      if (onSaveComplete) {
+        onSaveComplete()
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error)
+      setSaveStatus({ type: 'error', message: '파일 삭제에 실패했습니다.' })
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType?.startsWith('image/')) return FileImage
+    if (mimeType?.includes('pdf')) return FileText
+    if (mimeType?.includes('word') || mimeType?.includes('document')) return FileText
+    if (mimeType?.includes('sheet') || mimeType?.includes('excel')) return FileText
+    if (mimeType?.includes('presentation') || mimeType?.includes('powerpoint')) return FileText
+    if (mimeType?.includes('zip') || mimeType?.includes('rar') || mimeType?.includes('compressed')) return File
+    return File
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <p className="ml-3 text-gray-600">첨부파일을 불러오는 중...</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Save Status Alert */}
+      {saveStatus.type && (
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-lg ${
+          saveStatus.type === 'success' 
+            ? 'bg-green-50 text-green-800 border border-green-200' 
+            : 'bg-red-50 text-red-800 border border-red-200'
+        }`}>
+          {saveStatus.type === 'success' ? (
+            <CheckCircle className="h-5 w-5 text-green-600" />
+          ) : (
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+          )}
+          <span className="font-medium">{saveStatus.message}</span>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <File className="h-5 w-5 text-blue-600" />
+          첨부파일
+          <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+            {files.length}개
+          </span>
+        </h3>
+      </div>
+
+      {/* Upload Section */}
+      {isEditing && (
+        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+          <input
+            type="file"
+            id="attachment-upload"
+            className="hidden"
+            onChange={handleFileUpload}
+            multiple
+            disabled={uploading}
+          />
+          <label
+            htmlFor="attachment-upload"
+            className={`cursor-pointer inline-flex items-center gap-2 px-4 py-2 ${
+              uploading 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            } text-white rounded-lg transition-colors`}
+          >
+            {uploading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                업로드 중...
+              </>
+            ) : (
+              <>
+                <Upload className="h-5 w-5" />
+                파일 선택
+              </>
+            )}
+          </label>
+          <p className="mt-2 text-sm text-gray-600">
+            이미지, 문서, 압축 파일 등 모든 형식의 파일을 업로드할 수 있습니다.
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            여러 파일을 동시에 선택할 수 있습니다. (최대 50MB/파일)
+          </p>
+        </div>
+      )}
+
+      {/* Files List */}
+      {files.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <File className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600 mb-2">첨부된 파일이 없습니다.</p>
+          {isEditing && (
+            <p className="text-sm text-gray-500">위의 "파일 선택" 버튼을 클릭하여 파일을 업로드하세요.</p>
+          )}
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  파일명
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  크기
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
+                  업로드 일시
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                  작업
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {files.map((file) => {
+                const FileIcon = getFileIcon(file.mime_type)
+                const isImage = file.mime_type?.startsWith('image/')
+                
+                return (
+                  <tr key={file.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {isImage ? (
+                          <div 
+                            className="w-10 h-10 rounded overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                            onClick={() => setPreviewImage(file.file_path)}
+                          >
+                            <img 
+                              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/daily-report-attachments/${file.file_path}`}
+                              alt={file.filename}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                                e.currentTarget.parentElement!.innerHTML = '<div class="w-10 h-10 bg-gray-100 flex items-center justify-center"><svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>'
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <FileIcon className="h-5 w-5 text-gray-400" />
+                        )}
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {file.filename}
+                          </p>
+                          {file.description && (
+                            <p className="text-xs text-gray-500">{file.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {formatFileSize(file.file_size)}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-900">
+                      {format(new Date(file.created_at), 'MM/dd HH:mm', { locale: ko })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2 justify-center">
+                        {isImage && (
+                          <button
+                            onClick={() => setPreviewImage(file.file_path)}
+                            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors"
+                            title="미리보기"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleDownload(file)}
+                          className="p-2 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-md transition-colors"
+                          title="다운로드"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+                        {isEditing && (
+                          <button
+                            onClick={() => handleDelete(file)}
+                            className="p-2 text-red-600 hover:text-red-900 hover:bg-red-50 rounded-md transition-colors"
+                            title="삭제"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Image Preview Modal */}
+      {previewImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          onClick={() => setPreviewImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh]">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+              <X className="h-8 w-8" />
+            </button>
+            <img
+              src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/daily-report-attachments/${previewImage}`}
+              alt="Preview"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

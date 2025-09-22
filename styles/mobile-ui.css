@@ -1,0 +1,301 @@
+/* Mobile UI/UX Enhancement Styles */
+
+/* 터치 타겟 최적화 */
+.touch-target {
+  @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+}
+
+.touch-target-lg {
+  @apply min-h-[48px] min-w-[48px] flex items-center justify-center;
+}
+
+.touch-target-xl {
+  @apply min-h-[56px] min-w-[56px] flex items-center justify-center;
+}
+
+/* 모바일 패딩 시스템 */
+.mobile-padding {
+  @apply p-4 sm:p-6;
+}
+
+.mobile-padding-x {
+  @apply px-4 sm:px-6;
+}
+
+.mobile-padding-y {
+  @apply py-4 sm:py-6;
+}
+
+.mobile-section {
+  @apply px-4 py-6 sm:px-6 sm:py-8;
+}
+
+/* 모바일 텍스트 크기 */
+.mobile-text-xs {
+  @apply text-sm sm:text-xs;
+}
+
+.mobile-text-sm {
+  @apply text-base sm:text-sm;
+}
+
+.mobile-text-base {
+  @apply text-lg sm:text-base;
+}
+
+.mobile-text-lg {
+  @apply text-xl sm:text-lg;
+}
+
+.mobile-text-xl {
+  @apply text-2xl sm:text-xl;
+}
+
+.mobile-heading {
+  @apply text-xl font-semibold sm:text-lg;
+}
+
+/* 모바일 버튼 스타일 */
+.mobile-button {
+  @apply touch-target px-6 py-3 text-base font-medium rounded-lg 
+         transition-all duration-200 active:scale-95;
+}
+
+.mobile-button-primary {
+  @apply mobile-button bg-primary-600 text-white 
+         hover:bg-primary-700 active:bg-primary-800;
+}
+
+.mobile-button-secondary {
+  @apply mobile-button bg-gray-100 text-gray-700 
+         hover:bg-gray-200 active:bg-gray-300;
+}
+
+/* 모바일 입력 필드 */
+.mobile-input {
+  @apply h-12 px-4 text-base rounded-lg border border-gray-300 
+         focus:border-primary-500 focus:ring-2 focus:ring-primary-200;
+}
+
+.mobile-textarea {
+  @apply p-4 text-base rounded-lg border border-gray-300 
+         focus:border-primary-500 focus:ring-2 focus:ring-primary-200;
+}
+
+/* 모바일 카드 */
+.mobile-card {
+  @apply bg-white rounded-xl shadow-sm border border-gray-100 
+         p-4 sm:p-6 mb-4;
+}
+
+.mobile-card-clickable {
+  @apply mobile-card cursor-pointer transition-all duration-200 
+         hover:shadow-md active:scale-[0.98];
+}
+
+/* 모바일 리스트 아이템 */
+.mobile-list-item {
+  @apply flex items-center min-h-[56px] px-4 py-3 
+         border-b border-gray-100 last:border-b-0
+         cursor-pointer hover:bg-gray-50 active:bg-gray-100;
+}
+
+/* 모바일 네비게이션 */
+.mobile-nav-item {
+  @apply touch-target-lg flex flex-col items-center justify-center 
+         text-xs font-medium transition-colors duration-200;
+}
+
+.mobile-bottom-nav {
+  @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 
+         flex justify-around items-center h-16 px-2 z-50;
+}
+
+/* 모바일 모달/바텀시트 */
+.mobile-modal-overlay {
+  @apply fixed inset-0 bg-black/50 z-[100] flex items-end sm:items-center justify-center;
+}
+
+.mobile-bottom-sheet {
+  @apply w-full bg-white rounded-t-2xl max-h-[90vh] overflow-y-auto
+         animate-slide-up sm:rounded-2xl sm:max-w-lg sm:mx-4;
+}
+
+.mobile-modal {
+  @apply w-full bg-white rounded-2xl max-w-lg mx-4 
+         animate-scale-in sm:max-w-md;
+}
+
+/* 모바일 테이블 (카드 형식) */
+@media (max-width: 640px) {
+  .mobile-table {
+    @apply block;
+  }
+  
+  .mobile-table thead {
+    @apply hidden;
+  }
+  
+  .mobile-table tbody {
+    @apply block;
+  }
+  
+  .mobile-table tr {
+    @apply block mb-4 bg-white rounded-lg shadow-sm border border-gray-100 p-4;
+  }
+  
+  .mobile-table td {
+    @apply block text-sm;
+  }
+  
+  .mobile-table td::before {
+    @apply content-[attr(data-label)] font-medium text-gray-600 mr-2;
+  }
+}
+
+/* 스와이프 가능한 탭 */
+.mobile-tabs {
+  @apply flex overflow-x-auto scrollbar-hide gap-2 px-4 py-2;
+}
+
+.mobile-tab {
+  @apply flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium
+         transition-colors duration-200 whitespace-nowrap;
+}
+
+.mobile-tab-active {
+  @apply bg-primary-100 text-primary-700;
+}
+
+.mobile-tab-inactive {
+  @apply bg-gray-100 text-gray-600 hover:bg-gray-200;
+}
+
+/* 플로팅 액션 버튼 */
+.mobile-fab {
+  @apply fixed bottom-20 right-4 w-14 h-14 bg-primary-600 text-white 
+         rounded-full shadow-lg flex items-center justify-center z-40
+         hover:bg-primary-700 active:scale-95 transition-all duration-200;
+}
+
+/* 스켈레톤 로딩 */
+.mobile-skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+.mobile-skeleton-text {
+  @apply mobile-skeleton h-4 w-full mb-2;
+}
+
+.mobile-skeleton-button {
+  @apply mobile-skeleton h-12 w-full rounded-lg;
+}
+
+/* 풀다운 새로고침 */
+.pull-to-refresh {
+  @apply flex items-center justify-center h-16 text-gray-500;
+}
+
+/* 무한 스크롤 로더 */
+.infinite-scroll-loader {
+  @apply flex items-center justify-center py-8;
+}
+
+/* 빈 상태 */
+.mobile-empty-state {
+  @apply flex flex-col items-center justify-center py-12 px-8 text-center;
+}
+
+.mobile-empty-icon {
+  @apply w-24 h-24 text-gray-300 mb-4;
+}
+
+.mobile-empty-title {
+  @apply text-lg font-semibold text-gray-900 mb-2;
+}
+
+.mobile-empty-description {
+  @apply text-sm text-gray-500;
+}
+
+/* 토스트/스낵바 */
+.mobile-toast {
+  @apply fixed bottom-24 left-4 right-4 bg-gray-900 text-white 
+         px-4 py-3 rounded-lg shadow-lg z-[200] animate-slide-up;
+}
+
+/* 액션 시트 */
+.mobile-action-sheet {
+  @apply fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl 
+         shadow-xl z-[100] animate-slide-up;
+}
+
+.mobile-action-item {
+  @apply flex items-center min-h-[56px] px-6 py-4 
+         border-b border-gray-100 last:border-b-0
+         hover:bg-gray-50 active:bg-gray-100 transition-colors;
+}
+
+/* 스와이프 삭제 */
+.swipe-to-delete {
+  @apply relative overflow-hidden;
+}
+
+.swipe-action {
+  @apply absolute right-0 top-0 bottom-0 bg-red-500 text-white 
+         flex items-center px-6 translate-x-full transition-transform;
+}
+
+/* 접근성 개선 */
+.mobile-focus-visible {
+  @apply focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2;
+}
+
+/* 다크모드 지원 */
+@media (prefers-color-scheme: dark) {
+  .mobile-card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .mobile-input {
+    @apply bg-gray-800 border-gray-600 text-white;
+  }
+  
+  .mobile-list-item {
+    @apply border-gray-700 hover:bg-gray-700 active:bg-gray-600;
+  }
+}
+
+/* 제스처 힌트 */
+.gesture-hint {
+  @apply absolute -top-1 left-1/2 transform -translate-x-1/2 
+         w-12 h-1 bg-gray-300 rounded-full;
+}
+
+/* 세이프 에어리어 대응 */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* 반응형 그리드 */
+.mobile-grid {
+  @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.mobile-grid-2 {
+  @apply grid grid-cols-2 gap-3 sm:gap-4;
+}
+
+/* 스크롤바 숨기기 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

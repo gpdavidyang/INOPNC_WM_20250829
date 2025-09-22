@@ -1,0 +1,26 @@
+/* 프로덕션 폰트 렌더링 최적화 CSS - UI Guidelines 준수 */
+
+/* 폰트 렌더링 품질 최적화 - 미세 조정만 */
+html, body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 고해상도 디스플레이에서 폰트 품질 향상 */
+@media (-webkit-min-device-pixel-ratio: 1.5), (min-resolution: 144dpi) {
+  html, body {
+    -webkit-font-smoothing: subpixel-antialiased;
+    text-rendering: geometricPrecision;
+  }
+}
+
+/* 프로덕션 환경에서만 압축 보호 */
+@media (min-width: 1px) {
+  /* 압축 방지를 위한 최소한의 보호 */
+  .text-slate-600 { color: rgb(71 85 105); }
+  .text-slate-700 { color: rgb(51 65 85); }
+  .text-blue-600 { color: rgb(37 99 235); }
+  .bg-white { background-color: rgb(255 255 255); }
+  .border-gray-200 { border-color: rgb(229 231 235); }
+}
