@@ -46,7 +46,6 @@ const INITIAL_STATE: AuthState = {
 
 const DEFAULT_UI_TRACK = '/mobile'
 const AUTH_ENDPOINT_TIMEOUT_MS = 5000
-const SUPABASE_SESSION_TIMEOUT_MS = 4000
 const PROFILE_FETCH_TIMEOUT_MS = 4000
 const RESTRICTED_ROLES: ReadonlySet<Role> = new Set(['customer_manager', 'partner'])
 
@@ -216,22 +215,14 @@ export function useUnifiedAuth() {
     let user: User | null = null
 
     try {
-      const sessionResult = await runWithTimeout(
-        supabase.auth.getSession(),
-        SUPABASE_SESSION_TIMEOUT_MS,
-        'supabase.auth.getSession()'
-      )
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
 
-      if (!sessionResult.timedOut) {
-        const { data: sessionData, error: sessionError } = sessionResult.value
-
-        if (sessionError) {
-          console.warn('[useUnifiedAuth] Failed to retrieve client session:', sessionError)
-        }
-
-        session = sessionData.session ?? null
-        user = session?.user ?? null
+      if (sessionError) {
+        console.warn('[useUnifiedAuth] Failed to retrieve client session:', sessionError)
       }
+
+      session = sessionData.session ?? null
+      user = session?.user ?? null
     } catch (err) {
       console.warn(
         '[useUnifiedAuth] supabase.auth.getSession() failed. Using payload fallback.',
