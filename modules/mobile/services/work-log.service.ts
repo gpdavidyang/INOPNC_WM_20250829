@@ -44,75 +44,53 @@ export class WorkLogService {
   /**
    * 작업일지 목록 조회
    */
-  static async getWorkLogs(filter?: WorkLogFilter, sort?: WorkLogSort): Promise<WorkLog[]> {
+  static async getWorkLogs(
+    filter?: WorkLogFilter,
+    sort?: WorkLogSort,
+    signal?: AbortSignal
+  ): Promise<WorkLog[]> {
     try {
-      let query = supabase.from('daily_reports').select(`
-          id,
-          work_date,
-          site_id,
-          sites!inner(name),
-          work_content,
-          location_info,
-          additional_notes,
-          progress_rate,
-          status,
-          created_at,
-          updated_at,
-          created_by,
-          material_usage(
-            material_type,
-            quantity,
-            unit
-          ),
-          document_attachments(
-            id,
-            file_name,
-            file_url,
-            file_size,
-            document_type,
-            uploaded_at
-          )
-        `)
+      const params = new URLSearchParams({ page: '1', limit: '200' })
 
-      // 필터 적용
-      if (filter?.status) {
-        query = query.eq('status', filter.status)
-      }
       if (filter?.siteId) {
-        query = query.eq('site_id', filter.siteId)
+        params.set('site_id', filter.siteId)
       }
       if (filter?.dateFrom) {
-        query = query.gte('work_date', filter.dateFrom)
+        params.set('start_date', filter.dateFrom)
       }
       if (filter?.dateTo) {
-        query = query.lte('work_date', filter.dateTo)
+        params.set('end_date', filter.dateTo)
+      }
+      if (filter?.status) {
+        const statusValue = filter.status === 'approved' ? 'approved' : 'draft'
+        params.set('status', statusValue)
       }
 
-      // 정렬
-      if (sort) {
-        query = query.order(sort.field === 'date' ? 'work_date' : sort.field, {
-          ascending: sort.order === 'asc',
-        })
-      } else {
-        query = query.order('work_date', { ascending: false })
-      }
+      const response = await fetch(`/api/mobile/daily-reports?${params.toString()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+        signal,
+      })
 
-      const { data, error } = await query
-
-      if (error) {
-        console.error('작업일지 조회 오류:', error)
+      if (!response.ok) {
         throw new Error('작업일지를 불러오는 중 오류가 발생했습니다.')
       }
 
-      const reports = data || []
+      const payload = await response.json()
+      const reports = Array.isArray(payload?.data?.reports) ? payload.data.reports : []
 
-      await this.attachWorkerAssignments(reports)
+      const workLogs = this.transformToWorkLogs(reports)
 
-      // 데이터 변환
-      return this.transformToWorkLogs(reports)
+      if (sort) {
+        return this.sortWorkLogs(workLogs, sort)
+      }
+
+      return workLogs
     } catch (error) {
       console.error('WorkLogService.getWorkLogs error:', error)
-      throw error
+      throw error instanceof Error
+        ? error
+        : new Error('작업일지를 불러오는 중 오류가 발생했습니다.')
     }
   }
 

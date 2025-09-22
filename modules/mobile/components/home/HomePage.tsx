@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -25,20 +24,20 @@ import { SummarySection } from './SummarySection'
 import { toast } from 'sonner'
 import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
 import { useAuth } from '@/modules/mobile/providers/AuthProvider'
-
-// 현장 인터페이스 정의
-interface Site {
-  id: string
-  name: string
-  organization_id: string
-}
+import { User } from '@supabase/supabase-js'
 import '@/modules/mobile/styles/home.css'
 import '@/modules/mobile/styles/work-form.css'
 import '@/modules/mobile/styles/upload.css'
 import '@/modules/mobile/styles/summary.css'
 import '@/modules/mobile/styles/summary-section.css'
 import '@/modules/mobile/styles/drawing-quick.css'
-import { User } from '@supabase/supabase-js'
+
+// 현장 인터페이스 정의
+interface Site {
+  id: string
+  name: string
+  organization_id?: string | null
+}
 
 interface HomePageProps {
   initialProfile?: {
@@ -130,48 +129,72 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
   // 선택된 파트너사(소속)에 따라 현장 목록 불러오기
   useEffect(() => {
-    const fetchSites = async () => {
-      if (!department) {
-        setSites([])
-        return
-      }
+    if (!department) {
+      setSites([])
+      setSitesLoading(false)
+      setSitesError(null)
+      return
+    }
 
+    const controller = new AbortController()
+    let isActive = true
+
+    const fetchSites = async () => {
       setSitesLoading(true)
       setSitesError(null)
 
       try {
-        const supabase = createClient()
-        const { data, error } = await supabase
-          .from('partner_site_mappings')
-          .select('site_id, sites(id, name)')
-          .eq('partner_company_id', department)
-          .eq('is_active', true)
+        const response = await fetch(
+          `/api/sites/by-partner?partner_company_id=${encodeURIComponent(department)}`,
+          {
+            method: 'GET',
+            signal: controller.signal,
+            headers: {
+              Accept: 'application/json',
+            },
+            cache: 'no-store',
+          }
+        )
 
-        if (error) {
-          console.error('현장 조회 실패:', error)
-          setSitesError('현장 목록을 불러올 수 없습니다.')
+        if (!response.ok) {
+          throw new Error(`Failed to load partner sites (status: ${response.status})`)
+        }
+
+        const payload = await response.json()
+        const siteList: Site[] = Array.isArray(payload)
+          ? payload.map(site => ({
+              id: site.id,
+              name: site.name,
+              organization_id: site.organization_id ?? null,
+            }))
+          : []
+
+        if (isActive) {
+          setSites(siteList)
+        }
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
           return
         }
 
-        // 데이터 변환: partner_site_mappings 결과를 Site 인터페이스에 맞게 변환
-        const siteList = (data || [])
-          .filter(mapping => mapping.sites) // sites가 null이 아닌 경우만
-          .map(mapping => ({
-            id: mapping.sites.id,
-            name: mapping.sites.name,
-            organization_id: '', // 필요시 추가
-          }))
-
-        setSites(siteList)
-      } catch (err) {
         console.error('현장 조회 오류:', err)
-        setSitesError('현장 목록을 불러올 수 없습니다.')
+        if (isActive) {
+          setSitesError('현장 목록을 불러올 수 없습니다.')
+          setSites([])
+        }
       } finally {
-        setSitesLoading(false)
+        if (isActive) {
+          setSitesLoading(false)
+        }
       }
     }
 
     fetchSites()
+
+    return () => {
+      isActive = false
+      controller.abort()
+    }
   }, [department])
 
   // 소속 변경시 현장 선택 초기화

@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Check if user is site_manager or admin
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, organization_id')
+      .select('role, organization_id, site_id')
       .eq('id', authResult.userId)
       .single()
 
@@ -48,6 +48,30 @@ export async function GET(request: NextRequest) {
           id,
           full_name,
           role
+        ),
+        worker_assignments(
+          id,
+          profile_id,
+          worker_name,
+          labor_hours,
+          profiles(
+            id,
+            full_name
+          )
+        ),
+        material_usage(
+          id,
+          material_type,
+          quantity,
+          unit
+        ),
+        document_attachments(
+          id,
+          file_name,
+          file_url,
+          file_size,
+          document_type,
+          uploaded_at
         )
       `)
 
@@ -75,12 +99,17 @@ export async function GET(request: NextRequest) {
         .from('site_assignments')
         .select('site_id')
         .eq('user_id', authResult.userId)
-        .eq('role', 'site_manager')
         .eq('is_active', true)
 
       const assignedSiteIds = (assignedSites || [])
         .map(s => s.site_id)
         .filter((id): id is string => Boolean(id))
+
+      if (profile?.site_id) {
+        if (!assignedSiteIds.includes(profile.site_id)) {
+          assignedSiteIds.push(profile.site_id)
+        }
+      }
 
       const orFilters: string[] = [`created_by.eq.${authResult.userId}`]
 
