@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server'
 import { UI_TRACK_COOKIE_MAX_AGE, UI_TRACK_COOKIE_NAME } from '@/lib/auth/constants'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import { createEdgeSupabaseClient } from '@/lib/supabase/edge'
+import { getSupabaseEnv } from '@/lib/supabase/env'
 
 // Authentication event logging utility
 function logAuthEvent(event: string, details: Record<string, any> = {}) {
@@ -40,6 +41,14 @@ export async function middleware(request: NextRequest) {
     })
 
     const supabase = createEdgeSupabaseClient(request, response)
+
+    let supabaseHost: string | null = null
+    try {
+      const { supabaseUrl } = getSupabaseEnv()
+      supabaseHost = new URL(supabaseUrl).host
+    } catch (error) {
+      console.warn('[middleware] Failed to resolve Supabase host for CSP:', error)
+    }
 
     // Extract request metadata for logging
     const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown'
@@ -158,13 +167,30 @@ export async function middleware(request: NextRequest) {
       response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
 
       // CSP for protected routes (more restrictive)
+      const supabaseHttpOrigin = supabaseHost ? `https://${supabaseHost}` : ''
+      const supabaseWsOrigin = supabaseHost ? `wss://${supabaseHost}` : ''
+
+      const imgSources = ["'self'", 'data:', 'blob:']
+      if (supabaseHttpOrigin) {
+        imgSources.push(supabaseHttpOrigin)
+      }
+
+      const connectSources = ["'self'"]
+      if (supabaseHttpOrigin) {
+        connectSources.push(supabaseHttpOrigin)
+      }
+      if (supabaseWsOrigin) {
+        connectSources.push(supabaseWsOrigin)
+      }
+      connectSources.push('wss://realtime.supabase.co')
+
       const csp = [
         "default-src 'self'",
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net",
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com",
-        "img-src 'self' data: blob: https://yjtnpscnnsnvfsyvajku.supabase.co",
-        "connect-src 'self' https://yjtnpscnnsnvfsyvajku.supabase.co wss://realtime.supabase.co",
+        `img-src ${imgSources.join(' ')}`,
+        `connect-src ${connectSources.join(' ')}`,
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

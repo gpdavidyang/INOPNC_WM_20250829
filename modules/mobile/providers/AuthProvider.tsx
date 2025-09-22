@@ -1,8 +1,9 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
+import { UI_TRACK_COOKIE_NAME } from '@/lib/auth/constants'
 import { useRouter } from 'next/navigation'
 
 interface AuthContextType {
@@ -11,14 +12,22 @@ interface AuthContextType {
   profile: any | null
   loading: boolean
   refreshSession: () => Promise<void>
+  refreshProfile: () => Promise<void>
+  signOut: () => Promise<void>
+  hasHydrated: boolean
+  isProvider: boolean
 }
 
-const AuthContext = createContext<AuthContextType>({
+export const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   profile: null,
   loading: true,
   refreshSession: async () => {},
+  refreshProfile: async () => {},
+  signOut: async () => {},
+  hasHydrated: false,
+  isProvider: false,
 })
 
 export const useAuth = () => useContext(AuthContext)
@@ -34,6 +43,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
   initialSession,
   initialProfile,
 }) => {
+  const supabase = useMemo(() => createClient(), [])
   // CRITICAL FIX: Trust initial server data and start ready if provided
   const [user, setUser] = useState<User | null>(initialSession?.user || null)
   const [session, setSession] = useState<Session | null>(initialSession || null)
@@ -45,13 +55,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     // CRITICAL FIX: Respect server validation - only refresh when explicitly needed
     if (initialProfile && initialSession?.user && !loading) {
       console.log('[AuthProvider] Server data already validated, skipping unnecessary refresh')
-      return
-    }
-
-    const supabase = createClient()
-    if (!supabase) {
-      console.error('Supabase client not available')
-      setLoading(false)
       return
     }
 
@@ -104,7 +107,71 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     } finally {
       setLoading(false)
     }
-  }, [initialProfile, initialSession, profile])
+  }, [initialProfile, initialSession, loading, profile, supabase])
+
+  const refreshProfile = useCallback(async () => {
+    const targetUserId = user?.id || initialSession?.user?.id
+    if (!targetUserId) return
+
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', targetUserId)
+        .maybeSingle()
+
+      if (error) {
+        console.error('[AuthProvider] refreshProfile error:', error)
+        return
+      }
+
+      if (data) {
+        setProfile(data)
+      }
+    } catch (err) {
+      console.error('[AuthProvider] refreshProfile unexpected error:', err)
+    }
+  }, [supabase, user?.id, initialSession?.user?.id])
+
+  const signOut = useCallback(async () => {
+    try {
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('[AuthProvider] signOut error:', error)
+    } finally {
+      setSession(null)
+      setUser(null)
+      setProfile(null)
+
+      try {
+        const cookiesToClear = [
+          'auth-token',
+          'sb-access-token',
+          'sb-refresh-token',
+          'supabase-auth-token',
+          'user-role',
+          UI_TRACK_COOKIE_NAME,
+          'user-id',
+          'session-id',
+        ]
+
+        cookiesToClear.forEach(cookieName => {
+          document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/;`
+        })
+
+        localStorage.removeItem('supabase.auth.token')
+        localStorage.removeItem('auth-user')
+        localStorage.removeItem('user-role')
+        localStorage.removeItem('session-data')
+        sessionStorage.removeItem('auth-session')
+        sessionStorage.removeItem('temp-auth')
+      } catch (cleanupError) {
+        console.warn('[AuthProvider] signOut cleanup warning:', cleanupError)
+      }
+
+      router.push('/auth/login')
+    }
+  }, [router, supabase])
 
   useEffect(() => {
     // CRITICAL FIX: Trust server-provided initial data completely
@@ -115,16 +182,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
       )
       // Don't call refreshSession() - trust server validation
       setLoading(false)
-      return
     }
 
-    // Only refresh if absolutely no server data provided
-    console.log('[AuthProvider] No server data, attempting client-side session refresh')
-    refreshSession()
-
-    // Set up auth state change listener (keep for sign out handling)
-    const supabase = createClient()
-    if (!supabase) return
+    if (!initialSession?.user) {
+      // Only refresh if absolutely no server data provided
+      console.log('[AuthProvider] No server data, attempting client-side session refresh')
+      refreshSession()
+    }
 
     const {
       data: { subscription },
@@ -147,10 +211,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({
     return () => {
       subscription.unsubscribe()
     }
-  }, [router, initialProfile, initialSession, refreshSession])
+  }, [router, initialProfile, initialSession, refreshSession, supabase])
+
+  useEffect(() => {
+    if (!initialSession?.access_token || !initialSession.refresh_token) {
+      return
+    }
+
+    supabase.auth
+      .setSession({
+        access_token: initialSession.access_token,
+        refresh_token: initialSession.refresh_token,
+      })
+      .catch(error => {
+        console.warn('[AuthProvider] Failed to hydrate Supabase session:', error)
+      })
+  }, [initialSession?.access_token, initialSession?.refresh_token, supabase])
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, refreshSession }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        profile,
+        loading,
+        refreshSession,
+        refreshProfile,
+        signOut,
+        hasHydrated: !loading || !!profile || !!user,
+        isProvider: true,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
