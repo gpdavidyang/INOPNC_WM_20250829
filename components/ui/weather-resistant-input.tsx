@@ -1,5 +1,7 @@
 'use client'
 
+import { forwardRef, InputHTMLAttributes, useId } from 'react'
+import { cn } from '@/lib/utils'
 
 interface WeatherResistantInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
@@ -10,8 +12,13 @@ interface WeatherResistantInputProps extends InputHTMLAttributes<HTMLInputElemen
 }
 
 const WeatherResistantInput = forwardRef<HTMLInputElement, WeatherResistantInputProps>(
-  ({ className, label, error, helpText, isWeatherMode = true, variant = 'default', id, ...props }, ref) => {
-    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`
+  (
+    { className, label, error, helpText, isWeatherMode = true, variant = 'default', id, ...props },
+    ref
+  ) => {
+    const generatedId = useId()
+    const sanitizedId = generatedId.replace(/[:]/g, '-')
+    const inputId = id || `weather-input-${sanitizedId}`
     const errorId = error ? `${inputId}-error` : undefined
     const helpId = helpText ? `${inputId}-help` : undefined
 
@@ -24,9 +31,12 @@ const WeatherResistantInput = forwardRef<HTMLInputElement, WeatherResistantInput
 
       // Default sizing
       {
-        'px-3 py-2 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 min-h-[40px]': variant === 'default',
-        'px-4 py-3 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500 min-h-[48px]': variant === 'large',
-        'px-5 py-4 text-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 min-h-[56px]': variant === 'xl',
+        'px-3 py-2 text-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 min-h-[40px]':
+          variant === 'default',
+        'px-4 py-3 text-base border-gray-300 focus:border-blue-500 focus:ring-blue-500 min-h-[48px]':
+          variant === 'large',
+        'px-5 py-4 text-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500 min-h-[56px]':
+          variant === 'xl',
       },
 
       // Weather-resistant enhancements
@@ -38,9 +48,12 @@ const WeatherResistantInput = forwardRef<HTMLInputElement, WeatherResistantInput
 
       // Weather-resistant sizing
       isWeatherMode && {
-        'px-4 py-3 text-base border-gray-400 focus:border-blue-600 focus:ring-blue-600 min-h-[48px]': variant === 'default',
-        'px-5 py-4 text-lg border-gray-400 focus:border-blue-600 focus:ring-blue-600 min-h-[56px]': variant === 'large', 
-        'px-6 py-5 text-xl border-gray-400 focus:border-blue-600 focus:ring-blue-600 min-h-[64px]': variant === 'xl',
+        'px-4 py-3 text-base border-gray-400 focus:border-blue-600 focus:ring-blue-600 min-h-[48px]':
+          variant === 'default',
+        'px-5 py-4 text-lg border-gray-400 focus:border-blue-600 focus:ring-blue-600 min-h-[56px]':
+          variant === 'large',
+        'px-6 py-5 text-xl border-gray-400 focus:border-blue-600 focus:ring-blue-600 min-h-[64px]':
+          variant === 'xl',
       },
 
       // Error states
@@ -73,11 +86,13 @@ const WeatherResistantInput = forwardRef<HTMLInputElement, WeatherResistantInput
           <label htmlFor={inputId} className={labelClasses}>
             {label}
             {props.required && (
-              <span className="text-red-500 ml-1" aria-label="필수 입력">*</span>
+              <span className="text-red-500 ml-1" aria-label="필수 입력">
+                *
+              </span>
             )}
           </label>
         )}
-        
+
         <div className="relative">
           <input
             ref={ref}
@@ -87,10 +102,10 @@ const WeatherResistantInput = forwardRef<HTMLInputElement, WeatherResistantInput
             aria-invalid={error ? 'true' : 'false'}
             {...props}
           />
-          
+
           {/* Weather-resistant visual enhancement */}
           {isWeatherMode && (
-            <div 
+            <div
               className="absolute inset-0 rounded-[inherit] pointer-events-none border border-gray-300/50 dark:border-gray-600/50"
               aria-hidden="true"
             />
@@ -98,32 +113,26 @@ const WeatherResistantInput = forwardRef<HTMLInputElement, WeatherResistantInput
         </div>
 
         {helpText && !error && (
-          <p 
+          <p
             id={helpId}
-            className={cn(
-              'mt-1 text-gray-600 dark:text-gray-400',
-              {
-                'text-xs': variant === 'default',
-                'text-sm': variant === 'large', 
-                'text-base': variant === 'xl',
-              }
-            )}
+            className={cn('mt-1 text-gray-600 dark:text-gray-400', {
+              'text-xs': variant === 'default',
+              'text-sm': variant === 'large',
+              'text-base': variant === 'xl',
+            })}
           >
             {helpText}
           </p>
         )}
 
         {error && (
-          <p 
+          <p
             id={errorId}
-            className={cn(
-              'mt-1 text-red-600 dark:text-red-400',
-              {
-                'text-xs': variant === 'default',
-                'text-sm': variant === 'large',
-                'text-base': variant === 'xl',
-              }
-            )}
+            className={cn('mt-1 text-red-600 dark:text-red-400', {
+              'text-xs': variant === 'default',
+              'text-sm': variant === 'large',
+              'text-base': variant === 'xl',
+            })}
             role="alert"
           >
             {error}
