@@ -31,13 +31,13 @@ export async function GET(request: NextRequest) {
         status,
         site_partners!inner(
           partner_company_id,
-          status
+          contract_status
         )
       `)
       .eq('site_partners.partner_company_id', partnerCompanyId)
-      .eq('site_partners.status', 'active')
+      .eq('site_partners.contract_status', 'active')
       .eq('status', 'active')
-      .order('name')
+      .order('name', { ascending: true })
 
     if (error) {
       console.error('Error fetching sites by partner:', error)
