@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 // Force dynamic rendering for this API route
@@ -137,12 +138,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch daily reports' }, { status: 500 })
     }
 
+    const enrichedReports = await enrichReportsWithDetails(reports || [])
+
     const totalPages = Math.ceil((totalCount || 0) / limit)
 
     return NextResponse.json({
       success: true,
       data: {
-        reports: reports || [],
+        reports: enrichedReports,
         totalCount: totalCount || 0,
         totalPages,
         currentPage: page,
@@ -153,6 +156,80 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+async function enrichReportsWithDetails(reports: any[]) {
+  if (!reports.length) return reports
+
+  try {
+    const serviceClient = createServiceRoleClient()
+
+    const siteIds = Array.from(
+      new Set(reports.map(report => report?.site_id).filter((id): id is string => Boolean(id)))
+    )
+
+    const authorIds = Array.from(
+      new Set(reports.map(report => report?.created_by).filter((id): id is string => Boolean(id)))
+    )
+
+    const workerProfileIds = Array.from(
+      new Set(
+        reports
+          .flatMap(report => report?.worker_assignments ?? [])
+          .map((assignment: any) => assignment?.profile_id)
+          .filter((id): id is string => Boolean(id))
+      )
+    )
+
+    const profileIds = Array.from(new Set([...authorIds, ...workerProfileIds]))
+
+    const [sitesResult, profilesResult] = await Promise.all([
+      siteIds.length
+        ? serviceClient.from('sites').select('id, name, address, status').in('id', siteIds)
+        : Promise.resolve({ data: [] }),
+      profileIds.length
+        ? serviceClient.from('profiles').select('id, full_name, role').in('id', profileIds)
+        : Promise.resolve({ data: [] }),
+    ])
+
+    const siteMap = new Map<string, any>((sitesResult.data ?? []).map(site => [site.id, site]))
+
+    const profileMap = new Map<string, any>(
+      (profilesResult.data ?? []).map(profile => [profile.id, profile])
+    )
+
+    return reports.map(report => {
+      const enriched = { ...report }
+
+      const siteInfo = siteMap.get(report?.site_id)
+      if (siteInfo) {
+        enriched.sites = siteInfo
+      }
+
+      const authorProfile = profileMap.get(report?.created_by)
+      if (authorProfile) {
+        enriched.profiles = authorProfile
+      }
+
+      if (Array.isArray(report?.worker_assignments)) {
+        enriched.worker_assignments = report.worker_assignments.map((assignment: any) => {
+          if (assignment?.worker_name) return assignment
+          const profile = profileMap.get(assignment?.profile_id)
+          if (!profile) return assignment
+          return {
+            ...assignment,
+            worker_name: profile.full_name,
+            profiles: profile,
+          }
+        })
+      }
+
+      return enriched
+    })
+  } catch (error) {
+    console.error('Failed to enrich daily reports with site/profile details:', error)
+    return reports
   }
 }
 
