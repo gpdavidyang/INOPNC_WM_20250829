@@ -29,20 +29,7 @@ import {
   parseISO,
 } from 'date-fns'
 import { ko } from 'date-fns/locale'
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts'
+// charts removed – recharts import not needed
 import clsx from 'clsx'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import '@/modules/mobile/styles/attendance.css'
@@ -847,41 +834,7 @@ const AttendanceContent: React.FC = () => {
     }
   }, [currentSalaryData.totalSalary])
 
-  // Salary chart data preparation functions
-  const prepareSalaryTrendData = () => {
-    return recentSalaryHistory.map(item => ({
-      month: item.month,
-      총급여: item.totalSalary,
-      기본급: item.baseSalary,
-      연장수당: item.overtimePay,
-      식대: item.mealAllowance,
-    }))
-  }
-
-  const prepareSalaryBreakdownData = () => {
-    return [
-      { name: '기본급', value: currentSalaryData.baseSalary, color: '#3b82f6' },
-      { name: '연장수당', value: currentSalaryData.overtimePay, color: '#10b981' },
-      { name: '식대', value: currentSalaryData.mealAllowance, color: '#f59e0b' },
-    ]
-  }
-
-  const prepareSalaryComparisonData = () => {
-    const thisMonth = currentSalaryData.totalSalary
-    const lastMonth =
-      recentSalaryHistory.length > 1 ? recentSalaryHistory[1].totalSalary : thisMonth
-    const avgSalary =
-      recentSalaryHistory.length > 0
-        ? recentSalaryHistory.reduce((sum, item) => sum + item.totalSalary, 0) /
-          recentSalaryHistory.length
-        : thisMonth
-
-    return [
-      { name: '이번 달', value: thisMonth, color: '#3b82f6' },
-      { name: '지난 달', value: lastMonth, color: '#6b7280' },
-      { name: '평균', value: Math.round(avgSalary), color: '#10b981' },
-    ]
-  }
+  // charts removed – related helper functions deleted
 
   return (
     <MobileLayoutShell>
@@ -1144,94 +1097,7 @@ const AttendanceContent: React.FC = () => {
                   </Stack>
                 </div>
 
-                <div>
-                  <h4 className="t-h4 mb-3">급여 추이</h4>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={prepareSalaryTrendData()}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="month" />
-                        <YAxis />
-                        <Tooltip formatter={(value: number) => `₩${value.toLocaleString()}`} />
-                        <Line
-                          type="monotone"
-                          dataKey="총급여"
-                          stroke="#3b82f6"
-                          strokeWidth={2}
-                          dot={{ r: 4 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="기본급"
-                          stroke="#10b981"
-                          strokeWidth={2}
-                          dot={{ r: 4 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="연장수당"
-                          stroke="#f59e0b"
-                          strokeWidth={2}
-                          dot={{ r: 4 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="t-h4 mb-3">급여 구성</h4>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={prepareSalaryBreakdownData()}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {prepareSalaryBreakdownData().map((entry, index) => (
-                            <Cell key={`salary-breakdown-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number) => `₩${value.toLocaleString()}`} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="t-h4 mb-3">급여 비교</h4>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={prepareSalaryComparisonData()}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fontSize: 12 }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 12 }}
-                          axisLine={false}
-                          tickLine={false}
-                          tickFormatter={value => `₩${(value / 10000).toFixed(0)}만`}
-                        />
-                        <Tooltip formatter={(value: number) => `₩${value.toLocaleString()}`} />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                          {prepareSalaryComparisonData().map((entry, index) => (
-                            <Cell key={`salary-compare-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+                {/* '급여 추이', '급여 구성', '급여 비교' 섹션 제거 */}
               </CardContent>
             </Card>
           </section>

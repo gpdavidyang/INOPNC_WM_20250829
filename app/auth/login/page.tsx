@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
-import { signIn } from '@/app/auth/actions'
+import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -24,9 +24,12 @@ export default function LoginPage() {
     }
   }, [])
 
-  const handleLogin = async (formData: FormData) => {
-    const email = formData.get('email') as string
-    const password = formData.get('password') as string
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    const form = e.currentTarget
+    const formData = new FormData(form)
+    const email = (formData.get('email') as string) || ''
+    const password = (formData.get('password') as string) || ''
 
     if (!email || !password) {
       setError('이메일과 비밀번호를 입력해주세요.')
@@ -46,18 +49,49 @@ export default function LoginPage() {
         localStorage.removeItem('savedEmail')
       }
 
-      const result = await signIn(email, password)
-
-      // Server Action이 에러 객체를 반환하면 처리
-      if (result && result.error) {
-        console.error('Login error:', result.error)
-        setError(result.error)
+      // 1) 클라이언트에서 Supabase 로그인 수행 (세션 획득)
+      const supabase = createClient(undefined, true)
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        console.error('Login error:', error)
+        setError(error.message || '로그인에 실패했습니다.')
         setIsLoading(false)
         return
       }
 
-      // 성공시 Server Action에서 자동 리다이렉트됨
-      // 여기 도달하면 성공한 것이므로 아무것도 하지 않음
+      // 2) 서버 세션 동기화 (쿠키 세팅 보장)
+      const access_token = data.session?.access_token
+      const refresh_token = data.session?.refresh_token
+      if (!access_token || !refresh_token) {
+        setError('세션 토큰이 없습니다. 다시 시도해주세요.')
+        setIsLoading(false)
+        return
+      }
+
+      const syncRes = await fetch('/api/auth/sync-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token, refresh_token }),
+        cache: 'no-store',
+      })
+
+      if (!syncRes.ok) {
+        const payload = await syncRes.json().catch(() => ({}))
+        console.error('Session sync failed:', payload)
+        setError('서버와의 세션 동기화에 실패했습니다. 다시 시도해주세요.')
+        setIsLoading(false)
+        return
+      }
+
+      // 3) 사용자의 UI 트랙 조회 후 이동
+      const meRes = await fetch('/api/auth/me', { cache: 'no-store' })
+      let redirectPath = '/mobile'
+      if (meRes.ok) {
+        const me = await meRes.json().catch(() => null)
+        if (me?.uiTrack) redirectPath = me.uiTrack
+      }
+
+      window.location.replace(redirectPath)
     } catch (error) {
       console.error('Login exception:', error)
       setError('로그인에 실패했습니다.')
@@ -368,7 +402,7 @@ export default function LoginPage() {
             <h1 className="login-title">로그인</h1>
           </div>
 
-          <form action={handleLogin}>
+          <form onSubmit={handleLogin}>
             <div className="form-group">
               <div className="input-wrapper">
                 <input
