@@ -103,6 +103,7 @@ interface MonthlySalaryApi {
     period_start: string
     period_end: string
   }
+  source?: 'snapshot' | 'calculated'
 }
 
 export const AttendancePage: React.FC = () => {
@@ -1109,9 +1110,17 @@ const AttendanceContent: React.FC = () => {
               <CardContent className="p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <h3 className="t-h3">이번 달 급여 요약</h3>
-                  <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600">
-                    월 합산
-                  </span>
+                  {salaryMonthly && (
+                    <span
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        salaryMonthly.source === 'snapshot'
+                          ? 'bg-green-50 text-green-600'
+                          : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {salaryMonthly.source === 'snapshot' ? '확정' : '예상'}
+                    </span>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div className="flex items-center justify-between">
