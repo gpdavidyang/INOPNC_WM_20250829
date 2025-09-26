@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     let query = supabase
       .from('markup_documents')
       .select(
-        `id, title, original_blueprint_url, markup_data, site_id, created_by, created_by_name, creator_email, mode, created_at, updated_at`
+        `id, title, original_blueprint_url, markup_data, site_id, created_by, created_at, updated_at, markup_count, preview_image_url, original_blueprint_filename`
       )
       .order('created_at', { ascending: false })
 
@@ -57,13 +57,18 @@ export async function GET(request: NextRequest) {
       siteId: doc.site_id,
       siteName: '알 수 없는 현장',
       createdBy: doc.created_by,
-      createdByName: doc.created_by_name || '알 수 없음',
-      creatorEmail: doc.creator_email,
-      mode: doc.mode,
+      createdByName: undefined,
+      creatorEmail: undefined,
+      mode: undefined,
       createdAt: doc.created_at,
       updatedAt: doc.updated_at,
       isMarked: doc.markup_data && doc.markup_data.length > 0,
-      markupCount: doc.markup_data ? doc.markup_data.length : 0,
+      markupCount:
+        typeof doc.markup_count === 'number'
+          ? doc.markup_count
+          : doc.markup_data
+            ? doc.markup_data.length
+            : 0,
     }))
 
     return NextResponse.json({
