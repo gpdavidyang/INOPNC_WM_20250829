@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
 import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
@@ -20,11 +20,29 @@ interface DrawingFile {
 export default function MarkupToolPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, profile } = useUser()
+  const { user, profile, isLoading } = useUser()
   const [drawingFile, setDrawingFile] = useState<DrawingFile | null>(null)
   const [markupDocument, setMarkupDocument] = useState<any>(null)
   const [showBrowser, setShowBrowser] = useState(false)
   const [selectedSite, setSelectedSite] = useState<{ id: string; name: string } | null>(null)
+
+  const resolvedProfile = useMemo(() => {
+    if (profile) return profile
+    if (!user) return null
+
+    const fallbackName =
+      typeof user.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()
+        ? user.user_metadata.full_name.trim()
+        : (user.email ?? '모바일 사용자')
+
+    return {
+      id: user.id,
+      full_name: fallbackName,
+      role: (user.user_metadata?.role as string) || 'worker',
+      email: user.email ?? null,
+      site_id: (user.user_metadata?.site_id as string) || null,
+    }
+  }, [profile, user])
 
   // URL 파라미터로 모드 확인
   const mode = searchParams.get('mode')
@@ -143,11 +161,41 @@ export default function MarkupToolPage() {
   }
 
   // 사용자 정보가 없거나 도면이 없는 경우
-  if (!profile) {
+  if (isLoading && !resolvedProfile) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <p className="text-gray-600 mb-4">사용자 정보를 불러오는 중...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!resolvedProfile) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-50 px-6">
+        <div className="text-center max-w-sm">
+          <h1 className="text-xl font-semibold text-gray-900 mb-3">
+            접근 권한을 확인할 수 없습니다
+          </h1>
+          <p className="text-sm text-gray-600 mb-4">
+            로그인 정보가 만료되었거나 프로필을 불러오지 못했습니다. 다시 로그인하거나 홈 화면으로
+            돌아가 주세요.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => router.replace('/mobile')}
+              className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 text-sm font-medium"
+            >
+              홈으로 이동
+            </button>
+            <button
+              onClick={() => router.replace('/auth/sign-in')}
+              className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-sm font-medium"
+            >
+              다시 로그인
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -179,7 +227,7 @@ export default function MarkupToolPage() {
           <DrawingBrowser
             selectedSite={selectedSite?.id}
             siteName={selectedSite?.name}
-            userId={profile?.id || user?.id}
+            userId={resolvedProfile.id}
             onDrawingSelect={handleDrawingSelect}
             initialMode={mode === 'upload' ? 'upload' : 'browse'}
           />
@@ -265,7 +313,7 @@ export default function MarkupToolPage() {
       {/* 마킹 에디터 - 스크롤 가능한 컨테이너 */}
       <div className="flex-1 min-h-0 overflow-hidden">
         <SharedMarkupEditor
-          profile={profile}
+          profile={resolvedProfile}
           mode="worker"
           onSave={handleSave}
           onClose={handleClose}
