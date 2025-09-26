@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { format, parseISO, startOfMonth } from 'date-fns'
 import {
   FilterBar,
@@ -25,6 +26,7 @@ const periodOptions = [
 ] as const
 
 export default function WorklogsPage() {
+  const router = useRouter()
   const [selectedSite, setSelectedSite] = useState('all')
   const [selectedPeriod, setSelectedPeriod] = useState<WorklogPeriod>('recent')
   const [query, setQuery] = useState('')
@@ -143,6 +145,21 @@ export default function WorklogsPage() {
         onClose={() => setIsViewerOpen(false)}
         onDownload={id => console.log('download', id)}
         onOpenDocument={attachment => console.log('open document', attachment)}
+        onOpenMarkup={worklog => {
+          const params = new URLSearchParams()
+          params.set('mode', 'browse')
+          params.set('siteId', worklog.siteId)
+          params.set('worklogId', worklog.id)
+          router.push(`/mobile/markup-tool?${params.toString()}`)
+        }}
+        onOpenMarkupDoc={(docId, worklog) => {
+          const params = new URLSearchParams()
+          params.set('mode', 'start')
+          params.set('siteId', worklog.siteId)
+          params.set('worklogId', worklog.id)
+          params.set('docId', docId)
+          router.push(`/mobile/markup-tool?${params.toString()}`)
+        }}
       />
     </main>
   )

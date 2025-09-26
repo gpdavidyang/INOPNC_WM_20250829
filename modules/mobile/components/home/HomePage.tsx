@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
+import Link from 'next/link'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -18,10 +19,12 @@ import { AdditionalManpower as AdditionalManpowerComponent } from './AdditionalM
 import { PhotoUploadCard } from './PhotoUploadCard'
 import { DrawingQuickAction } from './DrawingQuickAction'
 import { SummarySection } from './SummarySection'
+import { MaterialsInput } from './MaterialsInput'
 import { toast } from 'sonner'
-import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
+import { WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
 import { useAuth } from '@/modules/mobile/providers/AuthProvider'
 import { User } from '@supabase/supabase-js'
+import { useCreateWorklog, MaterialEntry } from '@/modules/mobile/hooks/use-worklog-mutations'
 import '@/modules/mobile/styles/home.css'
 import '@/modules/mobile/styles/work-form.css'
 import '@/modules/mobile/styles/upload.css'
@@ -129,6 +132,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [mainManpower, setMainManpower] = useState(1)
   const [workSections, setWorkSections] = useState<WorkSection[]>([])
   const [additionalManpower, setAdditionalManpower] = useState<AdditionalManpower[]>([])
+  const [materials, setMaterials] = useState<MaterialEntry[]>([])
   const [actionStatus, setActionStatus] = useState<{
     type: 'success' | 'error'
     message: string
@@ -146,6 +150,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     () => normalizeSelections(workTypes, WORK_TYPE_VALUES),
     [workTypes]
   )
+  const createWorklogMutation = useCreateWorklog()
 
   // 현장 데이터 상태
   const [sites, setSites] = useState<Site[]>([])
@@ -303,69 +308,57 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       setMainManpower(1)
       setWorkSections([])
       setAdditionalManpower([])
+      setMaterials([])
       setActionStatus({ type: 'success', message: '입력 내용을 초기화했습니다.' })
       toast.success('초기화되었습니다.')
     }
   }
 
+  const buildPayload = (status: 'draft' | 'submitted') => {
+    const totalWorkers =
+      mainManpower + additionalManpower.reduce((sum, m) => sum + (Number(m.manpower) || 0), 0)
+
+    const filteredMaterials = materials
+      .filter(material => material.material_name.trim())
+      .map(material => ({
+        material_name: material.material_name,
+        quantity: Number(material.quantity) || 0,
+        unit: material.unit || '개',
+        notes: material.notes,
+      }))
+
+    return {
+      site_id: selectedSite,
+      work_date: workDate,
+      status,
+      work_description: normalizedWorkProcesses.join(', '),
+      total_workers: totalWorkers,
+      member_types: normalizedMemberTypes,
+      processes: normalizedWorkProcesses,
+      work_types: normalizedWorkTypes,
+      location: location,
+      main_manpower: mainManpower,
+      additional_manpower: additionalManpower.map(worker => ({
+        name: worker.workerName,
+        manpower: worker.manpower,
+      })),
+      materials: filteredMaterials,
+    }
+  }
+
   const handleTemporarySave = async () => {
-    // 최소 필수 값 확인 (임시저장은 더 관대하게)
-    if (!selectedSite && !department && !workDate) {
-      toast.error('최소한 현장, 소속, 또는 작업일자 중 하나는 입력해주세요.')
+    if (!selectedSite) {
+      toast.error('현장을 선택해주세요.')
       setActionStatus({
         type: 'error',
-        message: '임시저장을 진행하려면 현장, 소속 또는 작업일자를 입력해주세요.',
+        message: '현장을 선택한 뒤 임시저장을 진행해주세요.',
       })
       return
     }
 
     try {
       setActionStatus(null)
-      // 임시저장 제목 생성
-      const siteInfo = sites.find(s => s.id === selectedSite)
-      const title = `${siteInfo?.name || '미지정'} - ${workDate || '날짜미정'}`
-
-      const tempData = {
-        site_id: selectedSite,
-        work_date: workDate,
-        department: department,
-        location_info: {
-          block: location.block,
-          dong: location.dong,
-          unit: location.unit,
-        },
-        member_types: normalizedMemberTypes,
-        work_contents: normalizedWorkProcesses,
-        work_types: normalizedWorkTypes,
-        main_manpower: { count: mainManpower },
-        additional_manpower: additionalManpower.map(m => ({
-          worker_name: m.workerName,
-          manpower: m.manpower,
-        })),
-        work_sections: workSections.map(section => ({
-          id: section.id,
-          memberTypes: section.memberTypes,
-          workContents: section.workContents,
-          workTypes: section.workTypes,
-          location: section.location,
-        })),
-        title: title,
-      }
-
-      const response = await fetch('/api/mobile/temporary-work-logs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(tempData),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to save temporary work log')
-      }
-
+      await createWorklogMutation.mutateAsync(buildPayload('draft'))
       toast.success('임시저장되었습니다.')
       setActionStatus({ type: 'success', message: '임시저장을 완료했습니다.' })
     } catch (error) {
@@ -397,51 +390,9 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
     try {
       setActionStatus(null)
-      // 작업 내용 구성
-      const workContentDetails = {
-        memberTypes: normalizedMemberTypes,
-        workContents: normalizedWorkProcesses,
-        workTypes: normalizedWorkTypes,
-        mainManpower: mainManpower,
-        additionalManpower: additionalManpower.map(m => ({
-          name: m.workerName,
-          manpower: m.manpower,
-        })),
-      }
-
-      const workData = {
-        site_id: selectedSite,
-        partner_company_id: department, // department가 파트너사 ID
-        work_date: workDate,
-        work_content: normalizedWorkProcesses.join(', ') || '',
-        location_info: {
-          block: location.block,
-          dong: location.dong,
-          unit: location.unit,
-        },
-        additional_notes: JSON.stringify(workContentDetails),
-        total_manpower: mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0),
-      }
-
-      const response = await fetch('/api/admin/daily-reports', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(workData),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to save work log')
-      }
-
+      await createWorklogMutation.mutateAsync(buildPayload('submitted'))
       toast.success('작업일지가 저장되었습니다.')
       setActionStatus({ type: 'success', message: '작업일지를 저장했습니다.' })
-
-      // 저장 후 폼 초기화는 선택적으로
-      // handleReset()
     } catch (error) {
       console.error('Save error:', error)
       toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.')
@@ -466,6 +417,18 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         {/* 작업일지 작성 제목 */}
         <div className="work-form-title">
           <h2 className="work-form-main-title">작업일지 작성</h2>
+        </div>
+
+        <div className="worklog-upgrade-banner" role="status">
+          <div className="banner-text">
+            <p className="banner-title">새로운 작업일지 화면(베타)을 이용해 보세요</p>
+            <p className="banner-description">
+              필터, 캘린더, 상세 뷰를 한 곳에서 확인할 수 있습니다.
+            </p>
+          </div>
+          <Link href="/mobile/worklogs" className="banner-link" prefetch={false}>
+            열어보기
+          </Link>
         </div>
 
         {/* 선택 현장 */}
@@ -745,15 +708,25 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           </div>
         ))}
 
+        <MaterialsInput materials={materials} onChange={setMaterials} />
+
         {/* 액션 버튼 */}
         <div className="form-actions">
           <button className="btn btn-secondary" onClick={handleReset}>
             처음부터
           </button>
-          <button className="btn btn-temp-save" onClick={handleTemporarySave}>
+          <button
+            className="btn btn-temp-save"
+            onClick={handleTemporarySave}
+            disabled={createWorklogMutation.isPending}
+          >
             임시저장
           </button>
-          <button className="btn btn-primary" onClick={handleSave}>
+          <button
+            className="btn btn-primary"
+            onClick={handleSave}
+            disabled={createWorklogMutation.isPending}
+          >
             저장하기
           </button>
         </div>

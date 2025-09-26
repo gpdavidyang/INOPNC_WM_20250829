@@ -78,6 +78,33 @@ interface CalendarDaySummary {
   sites: string[]
 }
 
+interface MonthlySalaryApi {
+  month: string
+  employment_type: string | null
+  daily_rate: number | null
+  siteCount: number
+  workDays: number
+  totalManDays: number
+  salary: {
+    work_days: number
+    total_labor_hours: number
+    total_work_hours: number
+    total_overtime_hours: number
+    base_pay: number
+    overtime_pay: number
+    bonus_pay: number
+    total_gross_pay: number
+    tax_deduction: number
+    national_pension: number
+    health_insurance: number
+    employment_insurance: number
+    total_deductions: number
+    net_pay: number
+    period_start: string
+    period_end: string
+  }
+}
+
 export const AttendancePage: React.FC = () => {
   return (
     <MobileAuthGuard>
@@ -87,7 +114,7 @@ export const AttendancePage: React.FC = () => {
 }
 
 const AttendanceContent: React.FC = () => {
-  const { profile } = useUnifiedAuth()
+  const { profile, user } = useUnifiedAuth()
   const [activeTab, setActiveTab] = useState<'work' | 'salary'>('work')
 
   // Filters & UI states
@@ -99,11 +126,16 @@ const AttendanceContent: React.FC = () => {
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedYearMonth, setSelectedYearMonth] = useState(() => format(new Date(), 'yyyy-MM'))
+  // 급여 탭은 월 합산 관점으로 단순화: 현장 선택 제거
   const [salarySiteId, setSalarySiteId] = useState<string>('all')
   const [salarySelectedYearMonth, setSalarySelectedYearMonth] = useState(() =>
     format(new Date(), 'yyyy-MM')
   )
   const [previewScale, setPreviewScale] = useState(100)
+  const [salaryMonthly, setSalaryMonthly] = useState<MonthlySalaryApi | null>(null)
+  const [salaryMonthlyLoading, setSalaryMonthlyLoading] = useState(false)
+
+  const userId = profile?.id ?? user?.id ?? null
 
   // Real-time data states
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([])
@@ -157,7 +189,7 @@ const AttendanceContent: React.FC = () => {
 
   // Load work records from Supabase
   useEffect(() => {
-    if (!profile?.id) return
+    if (!userId) return
 
     const fetchWorkRecords = async () => {
       setLoading(true)
@@ -198,7 +230,7 @@ const AttendanceContent: React.FC = () => {
             )
           `
           )
-          .or(`user_id.eq.${profile.id},profile_id.eq.${profile.id}`)
+          .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
           .gte('work_date', rangeStart)
           .lte('work_date', rangeEnd)
           .order('work_date', { ascending: true })
@@ -222,11 +254,11 @@ const AttendanceContent: React.FC = () => {
     }
 
     fetchWorkRecords()
-  }, [profile?.id, currentDate, salarySelectedYearMonth, supabase, transformWorkRecord])
+  }, [userId, currentDate, salarySelectedYearMonth, supabase, transformWorkRecord])
 
   // Load assigned sites so filters include current user's 현장 목록
   useEffect(() => {
-    if (!profile?.id) return
+    if (!userId) return
 
     let isCancelled = false
 
@@ -245,7 +277,7 @@ const AttendanceContent: React.FC = () => {
             )
           `
           )
-          .eq('user_id', profile.id)
+          .eq('user_id', userId)
           .order('assigned_date', { ascending: false })
 
         if (error) {
@@ -275,11 +307,57 @@ const AttendanceContent: React.FC = () => {
           })
           .filter((option): option is SiteOption => option !== null)
 
-        const uniqueAssignments = Array.from(
-          new Map(mapped.map(option => [option.value, option])).values()
+        const uniqueAssignmentsMap = new Map<string, SiteOption>(
+          mapped.map(option => [option.value, option])
         )
 
-        setAssignmentOptions(uniqueAssignments)
+        const role = profile?.role
+        const shouldLoadAllSites = role
+          ? ['worker', 'site_manager', 'admin', 'system_admin', 'customer_manager'].includes(role)
+          : false
+
+        if (shouldLoadAllSites) {
+          try {
+            const { data: allSites, error: allSitesError } = await supabase
+              .from('sites')
+              .select('id, name')
+              .order('name', { ascending: true })
+
+            if (!allSitesError && Array.isArray(allSites)) {
+              allSites.forEach(site => {
+                if (!site?.id) return
+                const label = site.name && site.name.trim().length > 0 ? site.name : '현장 미지정'
+                uniqueAssignmentsMap.set(site.id, { value: site.id, label })
+              })
+            }
+          } catch (allSitesErr) {
+            console.error('Error loading full site list:', allSitesErr)
+          }
+        }
+
+        if (uniqueAssignmentsMap.size === 0 && profile?.site_id) {
+          try {
+            const { data: siteRecord, error: siteError } = await supabase
+              .from('sites')
+              .select('id, name')
+              .eq('id', profile.site_id)
+              .maybeSingle()
+
+            if (!siteError && siteRecord?.id) {
+              uniqueAssignmentsMap.set(siteRecord.id, {
+                value: siteRecord.id,
+                label:
+                  siteRecord.name && siteRecord.name.trim().length > 0
+                    ? siteRecord.name
+                    : '현장 미지정',
+              })
+            }
+          } catch (siteFetchError) {
+            console.error('Error loading fallback site:', siteFetchError)
+          }
+        }
+
+        setAssignmentOptions(Array.from(uniqueAssignmentsMap.values()))
       } catch (err) {
         console.error('Error loading site assignments:', err)
       }
@@ -290,7 +368,7 @@ const AttendanceContent: React.FC = () => {
     return () => {
       isCancelled = true
     }
-  }, [profile?.id, supabase])
+  }, [userId, profile?.site_id, profile?.role, supabase])
 
   // Derive site filter options from loaded records
   useEffect(() => {
@@ -342,10 +420,10 @@ const AttendanceContent: React.FC = () => {
 
   // Real-time subscription for attendance updates
   useEffect(() => {
-    if (!profile?.id) return
+    if (!userId) return
 
     const channel = supabase
-      .channel(`work-records-${profile.id}`)
+      .channel(`work-records-${userId}`)
       .on(
         'postgres_changes',
         {
@@ -358,7 +436,7 @@ const AttendanceContent: React.FC = () => {
           const oldRecord = payload.old as Record<string, any>
 
           const belongsToUser = (record: Record<string, any> | null | undefined) =>
-            Boolean(record && (record.user_id === profile.id || record.profile_id === profile.id))
+            Boolean(record && (record.user_id === userId || record.profile_id === userId))
 
           if (payload.eventType === 'DELETE') {
             if (!belongsToUser(oldRecord)) return
@@ -673,13 +751,12 @@ const AttendanceContent: React.FC = () => {
     return format(new Date(), 'yyyy년 MM월', { locale: ko })
   }, [salaryYearMonthOptions, salarySelectedYearMonth])
 
-  const salarySiteLabel = useMemo(() => {
-    return siteOptions.find(option => option.value === salarySiteId)?.label || '전체 현장'
-  }, [siteOptions, salarySiteId])
+  // 현장 라벨은 사용하지 않음(드롭다운 제거)
+  const salarySiteLabel = useMemo(() => '전체 현장', [])
 
   const salaryStats = useMemo(() => {
     if (salaryAttendanceData.length === 0) {
-      return { workDays: 0, restDays: 0, totalManDays: 0 }
+      return { workDays: 0, siteCount: 0, totalManDays: 0 }
     }
 
     const targetDate = parseISO(`${salarySelectedYearMonth}-01`)
@@ -692,6 +769,7 @@ const AttendanceContent: React.FC = () => {
     })
 
     const workDaySet = new Set<string>()
+    const siteSet = new Set<string>()
     let totalHours = 0
 
     attendanceInPeriod.forEach(record => {
@@ -702,19 +780,39 @@ const AttendanceContent: React.FC = () => {
       ) {
         workDaySet.add(record.date)
       }
+      if (record.site_id) siteSet.add(record.site_id)
       totalHours += record.workHours || 0
     })
 
-    const workDays = workDaySet.size
-    const totalDaysInMonth = monthEnd.getDate()
-    const restDays = Math.max(totalDaysInMonth - workDays, 0)
-
     return {
-      workDays,
-      restDays,
+      workDays: workDaySet.size,
+      siteCount: siteSet.size,
       totalManDays: Number((totalHours / 8).toFixed(1)),
     }
   }, [salaryAttendanceData, salarySelectedYearMonth])
+
+  // Fetch monthly salary summary (server API)
+  useEffect(() => {
+    const fetchMonthly = async () => {
+      try {
+        setSalaryMonthlyLoading(true)
+        const [y, m] = salarySelectedYearMonth.split('-')
+        const res = await fetch(`/api/salary/monthly?year=${y}&month=${parseInt(m)}`)
+        const json = await res.json()
+        if (json?.success) {
+          setSalaryMonthly(json.data as MonthlySalaryApi)
+        } else {
+          setSalaryMonthly(null)
+        }
+      } catch (e) {
+        console.error('Fetch monthly salary failed', e)
+        setSalaryMonthly(null)
+      } finally {
+        setSalaryMonthlyLoading(false)
+      }
+    }
+    fetchMonthly()
+  }, [salarySelectedYearMonth])
 
   // Calculate recent salary history (last 3 months)
   const calculateRecentSalaryHistory = (records: AttendanceRecord[], targetYearMonth: string) => {
@@ -783,6 +881,19 @@ const AttendanceContent: React.FC = () => {
     () => calculateRecentSalaryHistory(salaryAttendanceData, salarySelectedYearMonth),
     [salaryAttendanceData, salarySelectedYearMonth]
   )
+
+  const salaryTaxInfo = useMemo(() => {
+    const gross = currentSalaryData.totalSalary
+    const incomeTax = Math.round(gross * 0.033)
+    const localTax = Math.round(gross * 0.003)
+    const netPay = Math.max(gross - incomeTax - localTax, 0)
+
+    return {
+      incomeTax,
+      localTax,
+      netPay,
+    }
+  }, [currentSalaryData.totalSalary])
 
   // Salary chart data preparation functions
   const prepareSalaryTrendData = () => {
@@ -948,15 +1059,15 @@ const AttendanceContent: React.FC = () => {
               <div className="stat-grid">
                 <div className="stat stat-sites">
                   <div className="num">{monthlyStats.siteCount}</div>
-                  <div className="label">총 현장(수)</div>
+                  <div className="label">현장수</div>
                 </div>
                 <div className="stat stat-hours">
                   <div className="num">{monthlyStats.totalManDays}</div>
-                  <div className="label">총 공수(공수)</div>
+                  <div className="label">공수</div>
                 </div>
                 <div className="stat stat-workdays">
                   <div className="num">{monthlyStats.workDays}</div>
-                  <div className="label">총 근무(일)</div>
+                  <div className="label">근무일</div>
                 </div>
               </div>
             </section>
@@ -966,27 +1077,7 @@ const AttendanceContent: React.FC = () => {
         {activeTab === 'salary' && (
           <section className="space-y-4">
             <div className="pay-filter-section">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="w-full">
-                  <CustomSelect value={salarySiteId} onValueChange={setSalarySiteId}>
-                    <CustomSelectTrigger
-                      className={clsx(
-                        'calendar-filter-trigger text-[15px] font-semibold w-full',
-                        'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]'
-                      )}
-                      aria-label="급여 현장 선택"
-                    >
-                      <CustomSelectValue>{salarySiteLabel}</CustomSelectValue>
-                    </CustomSelectTrigger>
-                    <CustomSelectContent>
-                      {siteOptions.map(option => (
-                        <CustomSelectItem key={`salary-${option.value}`} value={option.value}>
-                          {option.label}
-                        </CustomSelectItem>
-                      ))}
-                    </CustomSelectContent>
-                  </CustomSelect>
-                </div>
+              <div className="grid grid-cols-1 gap-3">
                 <div className="w-full">
                   <CustomSelect
                     value={salarySelectedYearMonth}
@@ -1013,26 +1104,87 @@ const AttendanceContent: React.FC = () => {
               </div>
             </div>
 
+            {/* 급여 요약 (HTML-first) */}
+            <Card>
+              <CardContent className="p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h3 className="t-h3">이번 달 급여 요약</h3>
+                  <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-600">
+                    월 합산
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">고용형태</span>
+                    <span className="font-medium">{salaryMonthly?.employment_type || '-'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">일급</span>
+                    <span className="font-medium">
+                      {salaryMonthly?.daily_rate
+                        ? `₩${salaryMonthly.daily_rate.toLocaleString()}`
+                        : '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">기본급(월)</span>
+                    <span className="font-medium">
+                      {salaryMonthly
+                        ? `₩${salaryMonthly.salary.total_gross_pay.toLocaleString()}`
+                        : '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">세금</span>
+                    <span className="font-medium">
+                      {salaryMonthly
+                        ? `₩${salaryMonthly.salary.total_deductions.toLocaleString()}`
+                        : '-'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between col-span-2">
+                    <span className="text-muted-foreground">실수령액</span>
+                    <span className="font-semibold text-[#1A254F] text-base">
+                      {salaryMonthly ? `₩${salaryMonthly.salary.net_pay.toLocaleString()}` : '-'}
+                    </span>
+                  </div>
+                </div>
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    className="px-3 py-2 text-sm rounded-md bg-[#0068FE] text-white"
+                    onClick={() => {
+                      const [y, m] = salarySelectedYearMonth.split('-')
+                      window.open(`/payslip/${profile?.id || ''}/${y}/${parseInt(m)}`, '_blank')
+                    }}
+                  >
+                    급여명세서 보기
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
+
             <section className="stat-grid">
-              <div className="stat stat-workdays">
-                <div className="num">{salaryStats.workDays}</div>
-                <div className="label">출근(일)</div>
-              </div>
               <div className="stat stat-sites">
-                <div className="num">{salaryStats.restDays}</div>
-                <div className="label">휴무일</div>
+                <div className="num">{salaryStats.siteCount}</div>
+                <div className="label">현장수</div>
               </div>
               <div className="stat stat-hours">
-                <div className="num">{salaryStats.totalManDays}</div>
-                <div className="label">총공수</div>
+                <div className="num">
+                  {Number.isInteger(salaryStats.totalManDays)
+                    ? salaryStats.totalManDays
+                    : salaryStats.totalManDays.toFixed(1)}
+                </div>
+                <div className="label">공수</div>
+              </div>
+              <div className="stat stat-workdays">
+                <div className="num">{salaryStats.workDays}</div>
+                <div className="label">근무일</div>
               </div>
             </section>
 
-            {/* 제거된 '급여 정보 입력' 섹션 */}
-
             <Card>
               <CardContent className="p-3 space-y-2">
-                <h3 className="t-h3">이번 달 급여 현황</h3>
                 <div className="pay-summary-row">
                   <span className="t-body">기본급</span>
                   <span className="t-body font-medium">
@@ -1040,21 +1192,37 @@ const AttendanceContent: React.FC = () => {
                   </span>
                 </div>
                 <div className="pay-summary-row">
-                  <span className="t-body">연장 수당</span>
+                  <span className="t-body">출근(일)</span>
+                  <span className="t-body font-medium">{salaryStats.workDays}일</span>
+                </div>
+                <div className="pay-summary-row">
+                  <span className="t-body">휴무</span>
+                  <span className="t-body font-medium">{salaryStats.restDays}일</span>
+                </div>
+                <div className="pay-summary-row">
+                  <span className="t-body">실제 공수</span>
                   <span className="t-body font-medium">
-                    ₩{currentSalaryData.overtimePay.toLocaleString()}
+                    {Number.isInteger(salaryStats.totalManDays)
+                      ? `${salaryStats.totalManDays}공수`
+                      : `${salaryStats.totalManDays.toFixed(1)}공수`}
                   </span>
                 </div>
                 <div className="pay-summary-row">
-                  <span className="t-body">식대</span>
-                  <span className="t-body font-medium">
-                    ₩{currentSalaryData.mealAllowance.toLocaleString()}
+                  <span className="t-body">소득세 (3.3%)</span>
+                  <span className="t-body font-medium text-[#dc2626]">
+                    -₩{salaryTaxInfo.incomeTax.toLocaleString()}
+                  </span>
+                </div>
+                <div className="pay-summary-row">
+                  <span className="t-body">지방소득세 (0.3%)</span>
+                  <span className="t-body font-medium text-[#dc2626]">
+                    -₩{salaryTaxInfo.localTax.toLocaleString()}
                   </span>
                 </div>
                 <div className="pay-summary-row border-t pt-2">
-                  <span className="t-body font-bold">합계</span>
+                  <span className="t-body font-bold">실수령액</span>
                   <span className="t-body font-bold text-primary">
-                    ₩{currentSalaryData.totalSalary.toLocaleString()}
+                    ₩{salaryTaxInfo.netPay.toLocaleString()}
                   </span>
                 </div>
               </CardContent>
@@ -1172,35 +1340,6 @@ const AttendanceContent: React.FC = () => {
                 </div>
               </CardContent>
             </Card>
-
-            <section className="pay-preview">
-              <div className="preview-header">
-                <h3 className="t-h3">급여명세서 미리보기</h3>
-                <div className="preview-zoomgroup">
-                  <button
-                    type="button"
-                    onClick={() => setPreviewScale(scale => Math.max(50, scale - 10))}
-                  >
-                    -
-                  </button>
-                  <span>{previewScale}%</span>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewScale(scale => Math.min(150, scale + 10))}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <div
-                className="preview-stage"
-                style={{ transform: `scale(${previewScale / 100})`, transformOrigin: 'top left' }}
-              >
-                <p className="t-body text-muted-foreground text-sm">
-                  A4 미리보기 콘텐츠가 여기에 표시됩니다.
-                </p>
-              </div>
-            </section>
           </section>
         )}
       </div>

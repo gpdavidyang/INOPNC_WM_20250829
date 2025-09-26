@@ -260,26 +260,24 @@ export async function POST(request: NextRequest) {
     const {
       site_id,
       work_date,
-      weather,
-      temperature_high,
-      temperature_low,
-      work_start_time,
-      work_end_time,
-      total_workers,
       work_description,
-      safety_notes,
-      special_notes,
-      materials_used,
-      equipment_used,
+      total_workers,
       status = 'draft',
+      member_types = [],
+      processes = [],
+      work_types = [],
+      location = {},
+      main_manpower = 0,
+      additional_manpower = [],
+      notes,
+      safety_notes,
+      materials = [],
     } = body
 
     // Validate required fields
-    if (!site_id || !work_date || !weather || !work_description) {
+    if (!site_id || !work_date || !work_description) {
       return NextResponse.json(
-        {
-          error: 'Missing required fields: site_id, work_date, weather, work_description',
-        },
+        { error: 'Missing required fields: site_id, work_date, work_description' },
         { status: 400 }
       )
     }
@@ -318,22 +316,50 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const normalizedAdditionalManpower = Array.isArray(additional_manpower)
+      ? additional_manpower.map((item: any, index: number) => ({
+          name: item?.name || item?.worker_name || `추가 인력 ${index + 1}`,
+          manpower: Number(item?.manpower) || 0,
+        }))
+      : []
+
+    const locationPayload = {
+      block: location?.block ?? '',
+      dong: location?.dong ?? '',
+      unit: location?.unit ?? '',
+    }
+
+    const totalManpowerFromPayload = Number(total_workers)
+    const calculatedManpower =
+      (Number(main_manpower) || 0) +
+      normalizedAdditionalManpower.reduce((sum, item) => sum + item.manpower, 0)
+    const totalManpower = !isNaN(totalManpowerFromPayload)
+      ? totalManpowerFromPayload
+      : calculatedManpower
+
+    const additionalNotesPayload = {
+      memberTypes: Array.isArray(member_types) ? member_types : [],
+      workContents: Array.isArray(processes) ? processes : [],
+      workTypes: Array.isArray(work_types) ? work_types : [],
+      mainManpower: Number(main_manpower) || 0,
+      additionalManpower: normalizedAdditionalManpower,
+      notes: notes || '',
+      safetyNotes: safety_notes || '',
+    }
+
     // Create daily report
     const { data: report, error: insertError } = await supabase
       .from('daily_reports')
       .insert({
         site_id,
         work_date,
-        weather,
-        temperature_high,
-        temperature_low,
-        work_start_time,
-        work_end_time,
-        total_workers,
+        total_workers: totalManpower,
         work_description,
-        safety_notes,
-        special_notes,
+        safety_notes: safety_notes ?? null,
+        special_notes: notes ?? null,
         status,
+        additional_notes: additionalNotesPayload,
+        location_info: locationPayload,
         created_by: authResult.userId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -366,9 +392,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If materials_used provided, insert material usage records
-    if (materials_used && materials_used.length > 0) {
-      const materialRecords = materials_used.map((material: any) => ({
+    // If materials provided, insert material usage records
+    if (materials && materials.length > 0) {
+      const materialRecords = materials.map((material: any) => ({
         daily_report_id: report.id,
         material_name: material.material_name,
         quantity: material.quantity,
@@ -378,20 +404,6 @@ export async function POST(request: NextRequest) {
       }))
 
       await supabase.from('material_usage').insert(materialRecords)
-    }
-
-    // If equipment_used provided, insert equipment usage records
-    if (equipment_used && equipment_used.length > 0) {
-      const equipmentRecords = equipment_used.map((equipment: any) => ({
-        daily_report_id: report.id,
-        equipment_name: equipment.equipment_name,
-        hours_used: equipment.hours_used,
-        operator_name: equipment.operator_name || null,
-        fuel_consumption: equipment.fuel_consumption || null,
-        notes: equipment.notes || null,
-      }))
-
-      await supabase.from('equipment_usage').insert(equipmentRecords)
     }
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { SharedMarkupEditor } from '@/components/markup/SharedMarkupEditor'
 import { DrawingBrowser } from '@/modules/mobile/components/markup/DrawingBrowser'
@@ -21,6 +22,7 @@ export default function MarkupToolPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, profile, isLoading } = useUser()
+  const queryClient = useQueryClient()
   const [drawingFile, setDrawingFile] = useState<DrawingFile | null>(null)
   const [markupDocument, setMarkupDocument] = useState<any>(null)
   const [showBrowser, setShowBrowser] = useState(false)
@@ -46,6 +48,7 @@ export default function MarkupToolPage() {
 
   // URL 파라미터로 모드 확인
   const mode = searchParams.get('mode')
+  const linkWorklogId = searchParams.get('worklogId')
 
   useEffect(() => {
     // 모드에 따라 초기 화면 설정
@@ -100,35 +103,66 @@ export default function MarkupToolPage() {
 
   const handleSave = async (document: any) => {
     try {
-      // 로컬 스토리지에 마킹 데이터 저장
-      const markupData = {
-        ...document,
-        originalDrawing: drawingFile,
-        savedAt: new Date().toISOString(),
+      // 1) 서버 저장
+      const payload = {
+        title: document.title || (drawingFile?.name ?? '무제 도면'),
+        description: document.description || '',
+        original_blueprint_url: document.original_blueprint_url || drawingFile?.url,
+        original_blueprint_filename: drawingFile?.name || 'blueprint.png',
+        markup_data: Array.isArray(document.markup_data) ? document.markup_data : [],
+        preview_image_url: document.preview_image_url || undefined,
       }
 
-      localStorage.setItem('saved_markup_document', JSON.stringify(markupData))
+      const res = await fetch('/api/markup-documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      const json = await res.json()
+      if (!res.ok || json?.error) throw new Error(json?.error || '마킹 문서 저장 실패')
 
-      // 최근 마킹 도면으로 저장
+      // 2-1) 작업일지 링크(있다면)
+      if (linkWorklogId && json?.data?.id) {
+        try {
+          await fetch(`/api/markup-documents/${json.data.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ linked_worklog_id: linkWorklogId }),
+          })
+        } catch (e) {
+          console.warn('Linking to worklog failed:', e)
+        }
+      }
+
+      // 2) 로컬 fallback 업데이트
       const recentMarkup = {
-        id: document.id,
-        title: document.title,
-        blueprintUrl: document.original_blueprint_url,
+        id: json.data?.id || document.id || `local-${Date.now()}`,
+        title: payload.title,
+        blueprintUrl: payload.original_blueprint_url,
         updatedAt: new Date().toISOString(),
-        markupCount: document.markup_data?.length || 0,
+        markupCount: payload.markup_data?.length || 0,
       }
       localStorage.setItem('recent_markup', JSON.stringify(recentMarkup))
 
-      console.log('📐 마킹 도면 저장:', markupData)
       toast.success('마킹이 저장되었습니다.')
 
       // 저장 후 뒤로 가기
+      try {
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['worklogs'] }),
+          queryClient.invalidateQueries({ queryKey: ['worklog-calendar'] }),
+          queryClient.invalidateQueries({ queryKey: ['markup-documents'] }),
+        ])
+      } catch (e) {
+        // best-effort cache invalidation; ignore failures
+      }
+
       setTimeout(() => {
         router.back()
       }, 1000)
     } catch (error) {
       console.error('Save error:', error)
-      toast.error('저장에 실패했습니다.')
+      toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.')
     }
   }
 

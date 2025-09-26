@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import '@/modules/mobile/styles/worklogs.css'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
@@ -10,6 +11,7 @@ interface Blueprint {
   title: string
   fileUrl: string
   uploadDate: string
+  isPrimary?: boolean
 }
 
 interface RecentMarkup {
@@ -37,6 +39,9 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
   const [primaryBlueprint, setPrimaryBlueprint] = useState<Blueprint | null>(null)
   const [recentMarkup, setRecentMarkup] = useState<RecentMarkup | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [blueprintChoices, setBlueprintChoices] = useState<Blueprint[]>([])
+  const [showChooser, setShowChooser] = useState(false)
 
   // 현장별 주요 공도면 조회 (최대 1개만)
   useEffect(() => {
@@ -48,6 +53,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
 
   const fetchPrimaryBlueprint = async (siteId: string) => {
     setIsLoading(true)
+    setError(null)
     try {
       const response = await fetch(`/api/partner/sites/${siteId}/documents?type=drawing`)
       const data = await response.json()
@@ -57,34 +63,77 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
           (doc: any) => doc.categoryType === 'drawing' || doc.categoryType === 'blueprint'
         )
 
-        if (drawingDocuments.length > 0) {
-          // 가장 최근 또는 주요 공도면 1개만 선택
-          const primary = drawingDocuments[0]
-          setPrimaryBlueprint({
-            id: primary.id,
-            name: primary.name,
-            title: primary.title || primary.name,
-            fileUrl: primary.fileUrl,
-            uploadDate: primary.uploadDate,
-          })
+        const mapped: Blueprint[] = drawingDocuments.map((doc: any) => ({
+          id: doc.id,
+          name: doc.name,
+          title: doc.title || doc.name,
+          fileUrl: doc.fileUrl,
+          uploadDate: doc.uploadDate,
+          isPrimary:
+            doc.is_primary_blueprint === true ||
+            doc.isPrimary === true ||
+            doc.metadata?.is_primary === true,
+        }))
+
+        // 정렬: 대표 도면 우선 -> 최신 업로드 순
+        const sorted = mapped.sort((a, b) => {
+          if (a.isPrimary && !b.isPrimary) return -1
+          if (!a.isPrimary && b.isPrimary) return 1
+          const ta = new Date(a.uploadDate).getTime()
+          const tb = new Date(b.uploadDate).getTime()
+          return tb - ta
+        })
+
+        setBlueprintChoices(sorted)
+
+        if (sorted.length > 0) {
+          setPrimaryBlueprint(sorted[0])
+        } else {
+          setPrimaryBlueprint(null)
         }
+      } else {
+        setPrimaryBlueprint(null)
       }
     } catch (error) {
-      // Silently handle error - no console logging
+      setError('공도면 조회에 실패했습니다')
+      setPrimaryBlueprint(null)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const fetchRecentMarkup = () => {
-    // localStorage에서 최근 마킹 도면 조회
+  const fetchRecentMarkup = async () => {
+    // 1) 서버 최근 마킹 (있으면 최우선)
+    try {
+      if (selectedSite) {
+        const res = await fetch(
+          `/api/markup-documents/list?site_id=${encodeURIComponent(selectedSite)}`
+        )
+        const json = await res.json()
+        if (json?.success && Array.isArray(json.data) && json.data.length > 0) {
+          const top = json.data[0]
+          setRecentMarkup({
+            id: top.id,
+            title: top.title || top.name,
+            blueprintUrl: top.blueprintUrl || top.fileUrl || '',
+            updatedAt: top.updatedAt || top.createdAt || new Date().toISOString(),
+            markupCount: top.markupCount || (top.markup_data?.length ?? 0),
+          })
+          return
+        }
+      }
+    } catch (e) {
+      // ignore and fallback to localStorage
+    }
+
+    // 2) localStorage fallback
     const recentMarkupData = localStorage.getItem('recent_markup')
     if (recentMarkupData) {
       try {
         const markup = JSON.parse(recentMarkupData)
         setRecentMarkup(markup)
-      } catch (error) {
-        // Silently handle parse error
+      } catch (e) {
+        // ignore JSON parse error
       }
     }
   }
@@ -118,12 +167,16 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
     }
 
     if (!primaryBlueprint) {
-      toast.info('등록된 공도면이 없습니다. 본사 관리자에게 문의해주세요.')
+      toast.info('등록된 공도면이 없습니다. 아래 대체 경로를 이용해주세요.')
       return
     }
 
     // 공도면이 이미 localStorage에 저장되어 있으므로 바로 이동
-    router.push('/mobile/markup-tool')
+    const params = new URLSearchParams()
+    params.set('mode', 'start')
+    if (selectedSite) params.set('siteId', selectedSite)
+    if (primaryBlueprint?.id) params.set('docId', primaryBlueprint.id)
+    router.push(`/mobile/markup-tool?${params.toString()}`)
   }
 
   const handleDrawingManagement = () => {
@@ -209,6 +262,17 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
               <span className="btn-arrow">→</span>
             </button>
 
+            {/* 다건일 때 대표 도면 선택 */}
+            {blueprintChoices.length > 1 && (
+              <button
+                className="upload-btn"
+                onClick={() => setShowChooser(true)}
+                aria-label="대표 도면 선택"
+              >
+                다른 공도면 선택하기
+              </button>
+            )}
+
             {/* 최근 마킹 도면 (있는 경우) */}
             {recentMarkup && (
               <div className="recent-markup" onClick={handleRecentMarkupOpen}>
@@ -234,6 +298,11 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
                   <br />
                   사용 가능합니다.
                 </p>
+                {error && (
+                  <div className="text-sm" style={{ color: '#b91c1c', marginTop: 6 }}>
+                    {error}
+                  </div>
+                )}
                 <div className="support-section">
                   <p className="support-label">도움이 필요하신가요?</p>
                   <a
@@ -247,15 +316,70 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
                   </a>
                 </div>
                 <div className="divider"></div>
-                <button
-                  className="upload-btn"
-                  onClick={() => router.push('/mobile/markup-tool?mode=upload')}
-                >
-                  <span className="upload-icon">📁</span>
-                  직접 공도면 업로드하기
-                </button>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    className="upload-btn"
+                    onClick={() =>
+                      router.push('/mobile/markup-tool?mode=upload&source=photo&saveOnly=1')
+                    }
+                  >
+                    <span className="upload-icon">📷</span>
+                    촬영본 업로드(저장)
+                  </button>
+                  <button
+                    className="upload-btn"
+                    onClick={() => router.push('/mobile/markup-tool?mode=upload&source=photo')}
+                  >
+                    <span className="upload-icon">✏️</span>
+                    사진으로 마킹하기
+                  </button>
+                  <button
+                    className="upload-btn"
+                    onClick={() => fetchPrimaryBlueprint(selectedSite!)}
+                  >
+                    재시도
+                  </button>
+                </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* 도면 선택 모달 */}
+        {showChooser && blueprintChoices.length > 1 && (
+          <div className="diary-viewer-overlay" onClick={() => setShowChooser(false)}>
+            <div
+              className="diary-viewer-panel"
+              style={{ maxWidth: 520 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="diary-viewer-header">
+                <div className="diary-viewer-title">공도면 선택</div>
+                <button
+                  className="diary-viewer-close"
+                  onClick={() => setShowChooser(false)}
+                  aria-label="닫기"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="diary-viewer-body" style={{ gridTemplateColumns: '1fr' }}>
+                {blueprintChoices.map(choice => (
+                  <div
+                    key={choice.id}
+                    className="diary-info-item"
+                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      setPrimaryBlueprint(choice)
+                      setShowChooser(false)
+                    }}
+                  >
+                    <span>{choice.title}</span>
+                    <strong>{new Date(choice.uploadDate).toLocaleDateString('ko-KR')}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
