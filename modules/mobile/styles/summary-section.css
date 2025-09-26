@@ -55,14 +55,8 @@
 }
 
 /* 마지막 행의 아이템들은 border 제거 */
-.summary-row:last-child .summary-item,
-.summary-item:last-child {
+.summary-row:last-child .summary-item {
   border-bottom: none;
-}
-
-/* 각 행의 왼쪽 아이템에만 오른쪽 경계선 추가 */
-.summary-row .summary-item:first-child {
-  border-right: 1px solid rgba(229, 231, 235, 0.5);
 }
 
 .summary-label {
@@ -87,10 +81,6 @@
 /* 다크모드 스타일 */
 [data-theme='dark'] .summary-item {
   border-bottom-color: rgba(75, 85, 99, 0.5);
-}
-
-[data-theme='dark'] .summary-row .summary-item:first-child {
-  border-right-color: rgba(75, 85, 99, 0.5);
 }
 
 [data-theme='dark'] .summary-label {

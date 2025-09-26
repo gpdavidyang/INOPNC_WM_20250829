@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
-import { Card, CardContent, Stack, Chip, Row } from '@/modules/shared/ui'
+import { Card, CardContent, Stack, Row } from '@/modules/shared/ui'
 import { createClient } from '@/lib/supabase/client'
 import {
   CustomSelect,
@@ -321,40 +321,6 @@ const AttendanceContent: React.FC = () => {
       supabase.removeChannel(channel)
     }
   }, [profile?.id, supabase, transformWorkRecord])
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'present':
-        return 'tag1'
-      case 'late':
-        return 'tag4'
-      case 'early':
-        return 'tag3'
-      case 'absent':
-        return 'tag2'
-      case 'in-progress':
-        return 'tag3'
-      default:
-        return 'tag1'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'present':
-        return '정상'
-      case 'late':
-        return '지각'
-      case 'early':
-        return '조퇴'
-      case 'absent':
-        return '결근'
-      case 'in-progress':
-        return '진행 중'
-      default:
-        return '정상'
-    }
-  }
 
   // Dynamic salary calculation helper functions
   const calculateMonthlySalary = (records: AttendanceRecord[]) => {
@@ -901,35 +867,6 @@ const AttendanceContent: React.FC = () => {
                 </div>
               </div>
             </section>
-
-            <Card>
-              <CardContent className="p-3">
-                <Stack gap="sm">
-                  {getFilteredAttendanceData().map((record, index) => (
-                    <div
-                      key={`${record.date}-${index}`}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-slate-900/40"
-                    >
-                      <div className="flex-1">
-                        <p className="t-body font-medium">
-                          {new Date(record.date).toLocaleDateString('ko-KR', {
-                            month: 'short',
-                            day: 'numeric',
-                            weekday: 'short',
-                          })}
-                        </p>
-                        <p className="t-cap text-muted-foreground">
-                          {record.checkIn} ~ {record.checkOut} ({record.workHours}h)
-                        </p>
-                      </div>
-                      <Chip variant={getStatusColor(record.status) as any}>
-                        {getStatusText(record.status)}
-                      </Chip>
-                    </div>
-                  ))}
-                </Stack>
-              </CardContent>
-            </Card>
           </section>
         )}
 
