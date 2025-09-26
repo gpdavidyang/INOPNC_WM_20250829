@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { MobileAuthGuard } from '@/modules/mobile/components/auth/mobile-auth-guard'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
-import { Card, CardContent, Button, Stack, Chip, Badge, Row } from '@/modules/shared/ui'
+import { Card, CardContent, Stack, Chip, Row } from '@/modules/shared/ui'
 import { createClient } from '@/lib/supabase/client'
 import {
   CustomSelect,
@@ -44,6 +44,7 @@ import {
   Cell,
 } from 'recharts'
 import clsx from 'clsx'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import '@/modules/mobile/styles/attendance.css'
 
 interface AttendanceRecord {
@@ -87,10 +88,6 @@ export const AttendancePage: React.FC = () => {
 
 const AttendanceContent: React.FC = () => {
   const { profile } = useUnifiedAuth()
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [isCheckedIn, setIsCheckedIn] = useState(false)
-  const [checkInTime, setCheckInTime] = useState<string | null>(null)
-  const [checkOutTime, setCheckOutTime] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'work' | 'salary'>('work')
 
   // Filters & UI states
@@ -116,15 +113,6 @@ const AttendanceContent: React.FC = () => {
 
   // Supabase client initialization
   const supabase = useMemo(() => createClient(), [])
-
-  // Update current time every second
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [])
 
   const transformWorkRecord = useCallback((record: any): AttendanceRecord => {
     const rawWorkHours =
@@ -262,23 +250,6 @@ const AttendanceContent: React.FC = () => {
     }
   }, [attendanceData, selectedSiteId, salarySiteId])
 
-  const todayRecord = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0]
-    return attendanceData.find(record => record.date === today) ?? null
-  }, [attendanceData])
-
-  useEffect(() => {
-    if (todayRecord) {
-      setCheckInTime(todayRecord.checkIn)
-      setCheckOutTime(todayRecord.checkOut)
-      setIsCheckedIn(!!todayRecord.checkIn && !todayRecord.checkOut)
-    } else {
-      setCheckInTime(null)
-      setCheckOutTime(null)
-      setIsCheckedIn(false)
-    }
-  }, [todayRecord])
-
   const filteredAttendanceData = useMemo(() => {
     return attendanceData.filter(record => {
       if (selectedSiteId !== 'all' && record.site_id && record.site_id !== selectedSiteId) {
@@ -351,41 +322,6 @@ const AttendanceContent: React.FC = () => {
     }
   }, [profile?.id, supabase, transformWorkRecord])
 
-  const handleCheckIn = () => {
-    const now = new Date()
-    setIsCheckedIn(true)
-    setCheckInTime(now.toTimeString().slice(0, 5))
-  }
-
-  const handleCheckOut = () => {
-    const now = new Date()
-    setCheckOutTime(now.toTimeString().slice(0, 5))
-    setIsCheckedIn(false)
-  }
-
-  const formattedCurrentDate = currentTime.toLocaleDateString('ko-KR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    weekday: 'long',
-  })
-
-  const currentTimeString = currentTime.toTimeString().slice(0, 8)
-
-  // Calculate work hours for today
-  const calculateWorkHours = (checkIn: string | null, checkOut: string | null): string => {
-    if (!checkIn) return '-'
-    if (!checkOut) return '진행 중'
-
-    const inTime = new Date(`1970-01-01T${checkIn}:00`)
-    const outTime = new Date(`1970-01-01T${checkOut}:00`)
-    const diffMs = outTime.getTime() - inTime.getTime()
-    const hours = Math.floor(diffMs / (1000 * 60 * 60))
-    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-
-    return minutes > 0 ? `${hours}시간 ${minutes}분` : `${hours}시간`
-  }
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'present':
@@ -418,14 +354,6 @@ const AttendanceContent: React.FC = () => {
       default:
         return '정상'
     }
-  }
-
-  // Format work hours for display
-  const formatWorkHours = (workHours: number): string => {
-    if (workHours === 0) return '-'
-    const hours = Math.floor(workHours)
-    const minutes = Math.round((workHours - hours) * 60)
-    return minutes > 0 ? `${hours}시간 ${minutes}분` : `${hours}시간`
   }
 
   // Dynamic salary calculation helper functions
@@ -517,8 +445,8 @@ const AttendanceContent: React.FC = () => {
     setCurrentDate(subWeeks(currentDate, 1))
   }
 
-  const handleViewModeChange = (mode: 'month' | 'week') => {
-    setViewMode(mode)
+  const handleToggleViewMode = () => {
+    setViewMode(prev => (prev === 'month' ? 'week' : 'month'))
   }
 
   // Get filtered attendance data based on current view
@@ -559,117 +487,6 @@ const AttendanceContent: React.FC = () => {
       }
     }
   }
-
-  // Chart data preparation helper functions - memoized to prevent re-renders
-  const attendanceTrendData = useMemo(() => {
-    if (filteredAttendanceData.length === 0) return []
-
-    if (viewMode === 'month') {
-      const daysInMonth = new Date(
-        currentDate.getFullYear(),
-        currentDate.getMonth() + 1,
-        0
-      ).getDate()
-
-      return Array.from({ length: daysInMonth }, (_, idx) => {
-        const dateStr = format(
-          new Date(currentDate.getFullYear(), currentDate.getMonth(), idx + 1),
-          'yyyy-MM-dd'
-        )
-        const dayAttendance = filteredAttendanceData.filter(record => record.date === dateStr)
-        const totalHours = dayAttendance.reduce((sum, record) => sum + (record.workHours || 0), 0)
-
-        return {
-          date: `${idx + 1}일`,
-          hours: Number(totalHours.toFixed(1)),
-          records: dayAttendance.length,
-        }
-      })
-    }
-
-    const startWeek = startOfWeek(currentDate, { locale: ko })
-    return Array.from({ length: 7 }, (_, idx) => {
-      const currentDay = addDays(startWeek, idx)
-      const dateStr = format(currentDay, 'yyyy-MM-dd')
-      const dayAttendance = filteredAttendanceData.filter(record => record.date === dateStr)
-      const totalHours = dayAttendance.reduce((sum, record) => sum + (record.workHours || 0), 0)
-
-      return {
-        date: format(currentDay, 'E', { locale: ko }),
-        hours: Number(totalHours.toFixed(1)),
-        records: dayAttendance.length,
-      }
-    })
-  }, [viewMode, currentDate, filteredAttendanceData])
-
-  const attendanceStatusData = useMemo(() => {
-    const statusCounts = filteredAttendanceData.reduce(
-      (acc, record) => {
-        acc[record.status] = (acc[record.status] || 0) + 1
-        return acc
-      },
-      {} as Record<string, number>
-    )
-
-    const statusLabels = {
-      present: '출근',
-      absent: '결근',
-      late: '지각',
-      early_leave: '조퇴',
-      'in-progress': '진행 중',
-      vacation: '휴가',
-    }
-
-    const colors = {
-      present: '#10b981',
-      absent: '#ef4444',
-      late: '#f59e0b',
-      early_leave: '#f97316',
-      'in-progress': '#f97316',
-      vacation: '#6366f1',
-    }
-
-    return Object.entries(statusCounts).map(([status, count]) => ({
-      name: statusLabels[status as keyof typeof statusLabels] || status,
-      value: count,
-      color: colors[status as keyof typeof colors] || '#6b7280',
-    }))
-  }, [filteredAttendanceData])
-
-  const weeklyComparisonData = useMemo(() => {
-    const comparisonData = [] as Array<{
-      week: string
-      hours: number
-      workDays: number
-      avgHours: number
-    }>
-    const currentWeekStart = startOfWeek(currentDate, { locale: ko })
-
-    for (let i = 0; i < 4; i++) {
-      const weekStart = addDays(currentWeekStart, -7 * i)
-      const weekEnd = endOfWeek(weekStart, { locale: ko })
-
-      const weekAttendance = filteredAttendanceData.filter(record => {
-        const recordDate = parseISO(record.date)
-        return recordDate >= weekStart && recordDate <= weekEnd
-      })
-
-      const totalHours = weekAttendance.reduce((sum, record) => sum + (record.workHours || 0), 0)
-      const workDays = weekAttendance.filter(
-        record =>
-          record.status === 'present' || record.status === 'late' || record.status === 'in-progress'
-      ).length
-
-      comparisonData.unshift({
-        week: i === 0 ? '이번주' : `${i}주 전`,
-        hours: Number(totalHours.toFixed(1)),
-        workDays,
-        avgHours: workDays > 0 ? Number((totalHours / workDays).toFixed(1)) : 0,
-      })
-    }
-
-    return comparisonData
-  }, [filteredAttendanceData, currentDate])
 
   const monthlyAttendance = useMemo(() => {
     const start = startOfMonth(currentDate)
@@ -1015,68 +832,53 @@ const AttendanceContent: React.FC = () => {
               <div className="cal-head">
                 <button
                   type="button"
-                  className="cal-head-button"
+                  className="cal-nav-button"
                   onClick={viewMode === 'month' ? handlePreviousMonth : handlePreviousWeek}
                   aria-label="이전 기간"
                 >
-                  ‹
+                  <ChevronLeft className="cal-nav-icon" />
                 </button>
-                <div className="flex items-center gap-2">
-                  <span className="cal-title">{getCurrentPeriodText()}</span>
-                  <div className="flex gap-1">
-                    <Button
-                      variant={viewMode === 'month' ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => handleViewModeChange('month')}
-                    >
-                      월
-                    </Button>
-                    <Button
-                      variant={viewMode === 'week' ? 'primary' : 'outline'}
-                      size="sm"
-                      onClick={() => handleViewModeChange('week')}
-                    >
-                      주
-                    </Button>
-                  </div>
-                </div>
                 <button
                   type="button"
-                  className="cal-head-button"
+                  className="cal-title-button"
+                  onClick={handleToggleViewMode}
+                  aria-label={viewMode === 'month' ? '주간 보기로 전환' : '월간 보기로 전환'}
+                >
+                  {getCurrentPeriodText()}
+                </button>
+                <button
+                  type="button"
+                  className="cal-nav-button"
                   onClick={viewMode === 'month' ? handleNextMonth : handleNextWeek}
                   aria-label="다음 기간"
                 >
-                  ›
+                  <ChevronRight className="cal-nav-icon" />
                 </button>
               </div>
-              <div className="cal-grid pt-0 pb-2">
+              <div className="cal-grid cal-grid-header">
                 {['일', '월', '화', '수', '목', '금', '토'].map((label, index) => (
                   <div key={label} className={clsx('dow', index === 0 && 'sun')}>
                     {label}
                   </div>
                 ))}
               </div>
-              <div className="cal-grid pb-4">
+              <div className="cal-grid cal-grid-body">
                 {calendarDays.map(day => (
-                  <div
-                    key={day.iso}
-                    className={clsx('calendar-cell', !day.isCurrentMonth && 'out')}
-                  >
-                    <span className={clsx('calendar-date', day.isSunday && 'sun')}>
-                      {day.date.getDate()}
-                    </span>
-                    <div className="cell-data">
-                      {day.sites.length > 0 ? (
-                        <>
-                          <span className="site-name">{day.sites[0]?.slice(0, 2)}</span>
-                          {day.sites.length > 1 && (
-                            <span className="site-name">외 {day.sites.length - 1}</span>
-                          )}
-                        </>
-                      ) : null}
-                      <span className="work-hours">
-                        {day.totalManDays > 0 ? day.totalManDays : ''}
-                      </span>
+                  <div key={day.iso} className={clsx('cal-cell', !day.isCurrentMonth && 'out')}>
+                    <div className={clsx('date', day.isSunday && 'sun')}>{day.date.getDate()}</div>
+                    <div className="site-name">
+                      {day.sites.length > 0
+                        ? day.sites.length === 1
+                          ? day.sites[0]
+                          : `${day.sites[0]} 외 ${day.sites.length - 1}`
+                        : ''}
+                    </div>
+                    <div className="work-hours">
+                      {day.totalManDays > 0
+                        ? Number.isInteger(day.totalManDays)
+                          ? `${day.totalManDays}일`
+                          : `${day.totalManDays.toFixed(1)}일`
+                        : ''}
                     </div>
                   </div>
                 ))}
@@ -1102,155 +904,6 @@ const AttendanceContent: React.FC = () => {
                 </div>
               </div>
             </section>
-
-            <Card>
-              <CardContent className="p-3">
-                <Stack gap="md">
-                  <div className="text-center">
-                    <h2 className="t-h1 mb-2">{currentTimeString}</h2>
-                    <p className="t-body text-muted-foreground">{formattedCurrentDate}</p>
-                  </div>
-
-                  <div className="text-center space-y-2">
-                    {!isCheckedIn && !checkInTime ? (
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        className="w-full h-16 text-lg"
-                        onClick={handleCheckIn}
-                      >
-                        📋 출근 체크
-                      </Button>
-                    ) : isCheckedIn && checkInTime ? (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-center gap-2">
-                          <Badge variant="tag1" />
-                          <span className="t-body font-medium">출근 완료: {checkInTime}</span>
-                        </div>
-                        <Button
-                          variant="gray"
-                          size="lg"
-                          className="w-full h-16 text-lg"
-                          onClick={handleCheckOut}
-                        >
-                          🚪 퇴근 체크
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center gap-2">
-                        <Badge variant="tag3" />
-                        <span className="t-body font-medium">
-                          {checkInTime} ~ {checkOutTime} (완료)
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-3">
-                <h3 className="t-h3 mb-3">오늘의 근무 현황</h3>
-                <Stack gap="sm">
-                  <Row justify="between">
-                    <span className="t-body">출근 시간</span>
-                    <span className="t-body font-medium">{checkInTime || '-'}</span>
-                  </Row>
-                  <Row justify="between">
-                    <span className="t-body">퇴근 시간</span>
-                    <span className="t-body font-medium">{checkOutTime || '-'}</span>
-                  </Row>
-                  <Row justify="between">
-                    <span className="t-body">근무 시간</span>
-                    <span className="t-body font-medium">
-                      {calculateWorkHours(checkInTime, checkOutTime)}
-                    </span>
-                  </Row>
-                  <Row justify="between">
-                    <span className="t-body">상태</span>
-                    <Chip variant="tag1">정상</Chip>
-                  </Row>
-                </Stack>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="p-3 space-y-6">
-                <div>
-                  <h3 className="t-h3 mb-3">출근 현황 분석</h3>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={attendanceTrendData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip
-                          labelFormatter={label => `날짜: ${label}`}
-                          formatter={(value, name) => [
-                            value,
-                            name === 'hours' ? '근무시간' : '출근일수',
-                          ]}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="hours"
-                          stroke="#3b82f6"
-                          strokeWidth={2}
-                          dot={{ fill: '#3b82f6', strokeWidth: 2 }}
-                          name="hours"
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="t-h4 mb-3">출근 상태 분포</h4>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={attendanceStatusData}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={80}
-                          dataKey="value"
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        >
-                          {attendanceStatusData.map((entry, index) => (
-                            <Cell key={`status-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip formatter={(value: number) => [`${value}일`, '일수']} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="t-h4 mb-3">주간 비교</h4>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={weeklyComparisonData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="week" />
-                        <YAxis />
-                        <Tooltip
-                          formatter={(value, name) => {
-                            if (name === 'hours') return [`${value}시간`, '총 근무시간']
-                            if (name === 'workDays') return [`${value}일`, '출근일수']
-                            if (name === 'avgHours') return [`${value}시간`, '평균 근무시간']
-                            return [value, name]
-                          }}
-                        />
-                        <Bar dataKey="hours" fill="#10b981" name="hours" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
 
             <Card>
               <CardContent className="p-3">
