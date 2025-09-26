@@ -18,7 +18,7 @@
   padding: 12px 8px;
   font-size: 17px;
   font-weight: 600;
-  color: #1a254f;
+  color: #4b5874;
   text-align: center;
   transition: all 0.2s ease;
   background: transparent;
@@ -37,12 +37,16 @@
   transition: background 0.2s ease;
 }
 
+.line-tab:hover {
+  color: #31a3fa;
+}
+
 .line-tab.active {
-  color: #1a254f;
+  color: #31a3fa;
 }
 
 .line-tab.active::after {
-  background: #1a254f;
+  background: #31a3fa;
 }
 
 [data-theme='dark'] .line-tabs {
@@ -51,11 +55,16 @@
 }
 
 [data-theme='dark'] .line-tab {
-  color: #e9eef5;
+  color: #9aa8cc;
 }
 
 [data-theme='dark'] .line-tab.active::after {
-  background: #2f6bff;
+  background: #4f8bff;
+}
+
+[data-theme='dark'] .line-tab:hover,
+[data-theme='dark'] .line-tab.active {
+  color: #63b3ed;
 }
 
 .select-shell {
