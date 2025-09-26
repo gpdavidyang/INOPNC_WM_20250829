@@ -84,10 +84,10 @@ export class WorkLogService {
 
       const reports = Array.isArray(payload?.data?.reports) ? payload.data.reports : []
 
-      const workLogs = transformToWorkLogs(reports)
+      const workLogs = this.transformToWorkLogs(reports)
 
       if (sort) {
-        return sortWorkLogs(workLogs, sort)
+        return this.sortWorkLogs(workLogs, sort)
       }
 
       return workLogs
@@ -319,6 +319,14 @@ export class WorkLogService {
       console.error('WorkLogService.uploadAttachments error:', error)
     }
   }
+
+  static transformToWorkLogs(data: any[]): WorkLog[] {
+    return transformToWorkLogs(data)
+  }
+
+  static sortWorkLogs(workLogs: WorkLog[], sort: WorkLogSort): WorkLog[] {
+    return sortWorkLogs(workLogs, sort)
+  }
 }
 
 function transformToWorkLogs(data: any[]): WorkLog[] {
@@ -335,15 +343,28 @@ function mapReportToWorkLog(item: any): WorkLog {
 
   const status = resolveStatus(item?.status)
 
+  const profileRelation = normalizeProfileRelation(item)
   const authorName =
-    item?.profiles?.full_name || workers[0]?.name || item?.created_by || '알 수 없는 작성자'
+    profileRelation?.full_name ||
+    profileRelation?.name ||
+    workers[0]?.name ||
+    (isLikelyUuid(item?.created_by) ? '알 수 없는 작성자' : item?.created_by) ||
+    '알 수 없는 작성자'
+
+  const siteRelation = normalizeSiteRelation(item)
+  const siteName =
+    siteRelation?.name ||
+    siteRelation?.site_name ||
+    item?.site_name ||
+    item?.site_label ||
+    '알 수 없는 현장'
 
   return {
     id: item?.id,
     date: item?.work_date,
     siteId: item?.site_id,
-    siteName: item?.sites?.name || item?.site_name || '알 수 없는 현장',
-    title: item?.title || item?.sites?.name || item?.work_description,
+    siteName,
+    title: item?.title || siteName || item?.work_description,
     author: authorName,
     status,
     memberTypes: workContent.memberTypes,
@@ -420,8 +441,11 @@ function mapWorkerAssignments(assignments: any[]): {
 
   return assignments.map(assignment => {
     const hours = Number(assignment?.labor_hours ?? 0) * 8
-    const profileName = assignment?.profiles?.full_name
-    const fallbackName = assignment?.worker_name || '미정'
+    const profileData = assignment?.profiles
+    const profileName = Array.isArray(profileData)
+      ? profileData[0]?.full_name
+      : profileData?.full_name
+    const fallbackName = assignment?.worker_name || profileName || '미정'
 
     return {
       id: assignment?.profile_id || assignment?.id,
@@ -547,3 +571,63 @@ function sortWorkLogs(workLogs: WorkLog[], sort: WorkLogSort): WorkLog[] {
 
   return sorted
 }
+
+function normalizeProfileRelation(item: any): { full_name?: string; name?: string } | undefined {
+  const candidates = [
+    item?.profiles,
+    item?.profile,
+    item?.created_by_profile,
+    item?.author_profile,
+    item?.submitted_by_profile,
+  ]
+
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    if (Array.isArray(candidate)) {
+      if (candidate[0]) {
+        return candidate[0]
+      }
+    } else if (typeof candidate === 'object') {
+      return candidate
+    }
+  }
+
+  return undefined
+}
+
+function normalizeSiteRelation(item: any): { name?: string; site_name?: string } | undefined {
+  const candidates = [item?.sites, item?.site, item?.site_info, item?.site_detail]
+
+  for (const candidate of candidates) {
+    if (!candidate) continue
+    if (Array.isArray(candidate)) {
+      if (candidate[0]) {
+        return candidate[0]
+      }
+    } else if (typeof candidate === 'object') {
+      return candidate
+    }
+  }
+
+  return undefined
+}
+
+function isLikelyUuid(value: unknown): boolean {
+  return typeof value === 'string'
+    ? /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    : false
+}
+
+// Backwards compatibility for legacy static references
+;(
+  WorkLogService as unknown as {
+    transformToWorkLogs: typeof transformToWorkLogs
+    sortWorkLogs: typeof sortWorkLogs
+  }
+).transformToWorkLogs = transformToWorkLogs
+;(
+  WorkLogService as unknown as {
+    transformToWorkLogs: typeof transformToWorkLogs
+    sortWorkLogs: typeof sortWorkLogs
+  }
+).sortWorkLogs = sortWorkLogs
