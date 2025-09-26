@@ -211,7 +211,8 @@
   padding: 16px 20px;
   min-height: 70px;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  gap: 16px;
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
@@ -227,12 +228,12 @@
 }
 
 .doc-selection-meta {
-  margin-top: 6px;
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 13px;
   color: var(--muted);
+  flex-wrap: wrap;
 }
 
 .doc-site-chip {
@@ -244,6 +245,10 @@
   background: var(--surface-soft);
   color: var(--accent);
   font: 500 12px var(--font-family);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 [data-theme='dark'] .doc-site-chip {
@@ -295,33 +300,37 @@
 
 .doc-selection-content {
   flex: 1;
+  min-width: 0;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .doc-selection-title {
   font-size: 16px;
   font-weight: 600;
   color: var(--brand);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   position: relative;
   padding-right: 16px;
   transition: color 0.2s ease;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
 }
 
 .doc-selection-title.expanded {
-  white-space: normal;
   color: var(--accent);
+  -webkit-line-clamp: unset;
 }
 
 .doc-selection-title::after {
   content: '▶';
   position: absolute;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 4px;
   font-size: 11px;
   color: var(--muted);
 }
@@ -336,6 +345,8 @@
   align-items: center;
   gap: 8px;
   margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .upload-btn,
