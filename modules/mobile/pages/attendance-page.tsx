@@ -78,33 +78,7 @@ interface CalendarDaySummary {
   sites: string[]
 }
 
-interface MonthlySalaryApi {
-  month: string
-  employment_type: string | null
-  daily_rate: number | null
-  siteCount: number
-  workDays: number
-  totalManDays: number
-  salary: {
-    work_days: number
-    total_labor_hours: number
-    total_work_hours: number
-    total_overtime_hours: number
-    base_pay: number
-    overtime_pay: number
-    bonus_pay: number
-    total_gross_pay: number
-    tax_deduction: number
-    national_pension: number
-    health_insurance: number
-    employment_insurance: number
-    total_deductions: number
-    net_pay: number
-    period_start: string
-    period_end: string
-  }
-  source?: 'snapshot' | 'calculated'
-}
+// MonthlySalaryApi interface removed with summary section
 
 export const AttendancePage: React.FC = () => {
   return (
@@ -132,9 +106,7 @@ const AttendanceContent: React.FC = () => {
   const [salarySelectedYearMonth, setSalarySelectedYearMonth] = useState(() =>
     format(new Date(), 'yyyy-MM')
   )
-  const [previewScale, setPreviewScale] = useState(100)
-  const [salaryMonthly, setSalaryMonthly] = useState<MonthlySalaryApi | null>(null)
-  const [salaryMonthlyLoading, setSalaryMonthlyLoading] = useState(false)
+  // preview scale removed with summary/preview sections
 
   const userId = profile?.id ?? user?.id ?? null
 
@@ -792,28 +764,7 @@ const AttendanceContent: React.FC = () => {
     }
   }, [salaryAttendanceData, salarySelectedYearMonth])
 
-  // Fetch monthly salary summary (server API)
-  useEffect(() => {
-    const fetchMonthly = async () => {
-      try {
-        setSalaryMonthlyLoading(true)
-        const [y, m] = salarySelectedYearMonth.split('-')
-        const res = await fetch(`/api/salary/monthly?year=${y}&month=${parseInt(m)}`)
-        const json = await res.json()
-        if (json?.success) {
-          setSalaryMonthly(json.data as MonthlySalaryApi)
-        } else {
-          setSalaryMonthly(null)
-        }
-      } catch (e) {
-        console.error('Fetch monthly salary failed', e)
-        setSalaryMonthly(null)
-      } finally {
-        setSalaryMonthlyLoading(false)
-      }
-    }
-    fetchMonthly()
-  }, [salarySelectedYearMonth])
+  // Removed monthly salary summary fetch (UI section removed)
 
   // Calculate recent salary history (last 3 months)
   const calculateRecentSalaryHistory = (records: AttendanceRecord[], targetYearMonth: string) => {
@@ -1105,73 +1056,7 @@ const AttendanceContent: React.FC = () => {
               </div>
             </div>
 
-            {/* 급여 요약 (HTML-first) */}
-            <Card>
-              <CardContent className="p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="t-h3">이번 달 급여 요약</h3>
-                  {salaryMonthly && (
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        salaryMonthly.source === 'snapshot'
-                          ? 'bg-green-50 text-green-600'
-                          : 'bg-amber-50 text-amber-700'
-                      }`}
-                    >
-                      {salaryMonthly.source === 'snapshot' ? '확정' : '예상'}
-                    </span>
-                  )}
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">고용형태</span>
-                    <span className="font-medium">{salaryMonthly?.employment_type || '-'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">일급</span>
-                    <span className="font-medium">
-                      {salaryMonthly?.daily_rate
-                        ? `₩${salaryMonthly.daily_rate.toLocaleString()}`
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">기본급(월)</span>
-                    <span className="font-medium">
-                      {salaryMonthly
-                        ? `₩${salaryMonthly.salary.total_gross_pay.toLocaleString()}`
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">세금</span>
-                    <span className="font-medium">
-                      {salaryMonthly
-                        ? `₩${salaryMonthly.salary.total_deductions.toLocaleString()}`
-                        : '-'}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between col-span-2">
-                    <span className="text-muted-foreground">실수령액</span>
-                    <span className="font-semibold text-[#1A254F] text-base">
-                      {salaryMonthly ? `₩${salaryMonthly.salary.net_pay.toLocaleString()}` : '-'}
-                    </span>
-                  </div>
-                </div>
-                <div className="pt-2 flex justify-end">
-                  <button
-                    type="button"
-                    className="px-3 py-2 text-sm rounded-md bg-[#0068FE] text-white"
-                    onClick={() => {
-                      const [y, m] = salarySelectedYearMonth.split('-')
-                      window.open(`/payslip/${profile?.id || ''}/${y}/${parseInt(m)}`, '_blank')
-                    }}
-                  >
-                    급여명세서 보기
-                  </button>
-                </div>
-              </CardContent>
-            </Card>
+            {/* '이번 달 급여 요약' 섹션 제거됨 */}
 
             <section className="stat-grid">
               <div className="stat stat-sites">
