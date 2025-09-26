@@ -1,4 +1,53 @@
 /* =============== MOBILE LAYOUT =============== */
+body.mobile-ui {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+body.mobile-ui strong,
+body.mobile-ui b {
+  font-weight: 600;
+}
+
+body.mobile-ui .t-body {
+  font-size: var(--fs-body);
+  font-weight: 400;
+}
+
+body.mobile-ui .t-h2,
+body.mobile-ui .section-title {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+body.mobile-ui .stat .num {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+body.mobile-ui .stat .label {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+body.mobile-ui .text-sm,
+body.mobile-ui .text-base,
+body.mobile-ui p,
+body.mobile-ui li,
+body.mobile-ui span,
+body.mobile-ui label {
+  font-size: var(--fs-body);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
 .mobile-header {
   position: fixed;
   top: 0;
@@ -207,11 +256,13 @@
 
   /* Better text sizing */
   .t-title {
-    font-size: 22px;
+    font-size: 24px;
+    font-weight: 700;
   }
 
   .t-h2 {
-    font-size: 16px;
+    font-size: 20px;
+    font-weight: 600;
   }
 }
 

@@ -382,31 +382,32 @@
 
 .stat .num {
   font-size: 22px;
-  font-weight: 900;
-  line-height: 1;
+  font-weight: 700;
+  line-height: 1.4;
 }
 
 .stat .label {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
+  line-height: 1.4;
 }
 
 .stat-workdays {
-  color: #0068fe;
-  background-color: rgba(0, 104, 254, 0.05);
-  border-color: rgba(0, 104, 254, 0.2);
+  color: #99a4be;
+  background-color: rgba(153, 164, 190, 0.05);
+  border-color: rgba(153, 164, 190, 0.2);
 }
 
 .stat-sites {
-  color: #2934d0;
-  background-color: rgba(41, 52, 208, 0.05);
-  border-color: rgba(41, 52, 208, 0.2);
+  color: #31a3fa;
+  background-color: rgba(49, 163, 250, 0.05);
+  border-color: rgba(49, 163, 250, 0.2);
 }
 
 .stat-hours {
-  color: #00bcd4;
-  background-color: rgba(77, 208, 225, 0.12);
-  border-color: rgba(77, 208, 225, 0.3);
+  color: #1a254f;
+  background-color: rgba(26, 37, 79, 0.05);
+  border-color: rgba(26, 37, 79, 0.2);
 }
 
 [data-theme='dark'] .cal-wrap,
