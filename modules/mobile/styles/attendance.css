@@ -113,6 +113,28 @@
   border-top-color: #e9eef5;
 }
 
+.calendar-filter-trigger {
+  height: 48px !important;
+  padding: 0 16px !important;
+  background: #ffffff !important;
+  border: 1px solid #e6ecf4 !important;
+  border-radius: 14px !important;
+  box-shadow: none !important;
+  justify-content: space-between !important;
+}
+
+.calendar-filter-trigger:hover {
+  border-color: #d6deef !important;
+}
+
+.calendar-filter-trigger svg {
+  color: #31a3fa !important;
+}
+
+[data-theme='dark'] .calendar-filter-trigger svg {
+  color: #63b3ed !important;
+}
+
 .cal-wrap {
   position: static;
   margin: 18px 0 0 0;
@@ -143,25 +165,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  padding: 6px;
   border: none;
   background: transparent;
   color: #1a254f;
   cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
+  transition: color 0.2s ease;
 }
 
 .cal-nav-button:hover {
-  background: rgba(47, 107, 255, 0.08);
+  color: #31a3fa;
 }
 
 .cal-nav-icon {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 
 [data-theme='dark'] .cal-nav-button {
@@ -203,7 +221,7 @@
 }
 
 .cal-grid-body {
-  background: #f3f5fb;
+  background: #ffffff;
 }
 
 [data-theme='dark'] .cal-grid-body {
@@ -239,14 +257,14 @@
   justify-content: flex-start;
   padding: 12px 4px 10px;
   border-top: 1px solid #e6ecf4;
-  cursor: pointer;
+  cursor: default;
   transition:
     background-color 0.2s ease,
     color 0.2s ease;
 }
 
 .cal-cell:hover {
-  background: rgba(47, 107, 255, 0.05);
+  background: rgba(47, 107, 255, 0.04);
 }
 
 .cal-cell.out {
@@ -275,7 +293,7 @@
 }
 
 .site-name {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 400;
   color: #6b7280;
   width: 100%;

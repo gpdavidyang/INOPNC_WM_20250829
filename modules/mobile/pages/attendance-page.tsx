@@ -754,9 +754,8 @@ const AttendanceContent: React.FC = () => {
                 <CustomSelect value={selectedSiteId} onValueChange={setSelectedSiteId}>
                   <CustomSelectTrigger
                     className={clsx(
-                      '!h-12 !bg-white !border-[#e6eaf2] !text-[#1a254f]',
-                      'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]',
-                      'text-[15px] font-semibold shadow-sm'
+                      'calendar-filter-trigger text-[15px] font-semibold',
+                      'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]'
                     )}
                     aria-label="현장 선택"
                   >
@@ -775,9 +774,8 @@ const AttendanceContent: React.FC = () => {
                 <CustomSelect value={selectedYearMonth} onValueChange={handleYearMonthChange}>
                   <CustomSelectTrigger
                     className={clsx(
-                      '!h-12 !bg-white !border-[#e6eaf2] !text-[#1a254f]',
-                      'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]',
-                      'text-[15px] font-semibold shadow-sm'
+                      'calendar-filter-trigger text-[15px] font-semibold',
+                      'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]'
                     )}
                     aria-label="연도와 월 선택"
                   >
