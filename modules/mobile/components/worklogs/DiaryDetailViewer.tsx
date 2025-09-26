@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import clsx from 'clsx'
 import { X, DownloadCloud, ExternalLink } from 'lucide-react'
 import '@/modules/mobile/styles/worklogs.css'
@@ -12,6 +12,8 @@ export interface DiaryDetailViewerProps {
   onClose?: () => void
   onDownload?: (worklogId: string) => void
   onOpenDocument?: (attachment: WorklogAttachment) => void
+  onOpenMarkup?: (worklog: WorklogDetail) => void
+  onOpenMarkupDoc?: (docId: string, worklog: WorklogDetail) => void
   className?: string
 }
 
@@ -28,9 +30,51 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
   onClose,
   onDownload,
   onOpenDocument,
+  onOpenMarkup,
+  onOpenMarkupDoc,
   className = '',
 }) => {
   if (!open || !worklog) return null
+
+  const [linkedMarkups, setLinkedMarkups] = useState<
+    Array<{
+      id: string
+      title: string
+      updatedAt?: string
+      previewUrl?: string
+      blueprintUrl?: string
+    }>
+  >([])
+  const [loadingMarkups, setLoadingMarkups] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      if (!worklog?.id) return
+      setLoadingMarkups(true)
+      try {
+        const res = await fetch(`/api/markup-documents?worklogId=${encodeURIComponent(worklog.id)}`)
+        const json = await res.json()
+        const arr = Array.isArray(json?.data)
+          ? json.data
+          : Array.isArray(json?.documents)
+            ? json.documents
+            : []
+        const items = arr.map((doc: any) => ({
+          id: doc.id,
+          title: doc.title || '마킹 문서',
+          updatedAt: doc.updated_at,
+          previewUrl: doc.preview_image_url || doc.previewUrl || undefined,
+          blueprintUrl: doc.original_blueprint_url || doc.blueprintUrl || undefined,
+        }))
+        setLinkedMarkups(items)
+      } catch {
+        setLinkedMarkups([])
+      } finally {
+        setLoadingMarkups(false)
+      }
+    }
+    if (open) load()
+  }, [open, worklog?.id])
 
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) {
@@ -141,6 +185,55 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
             ) : null}
           </section>
 
+          {/* 링크된 마킹 문서 */}
+          <section
+            aria-label="진행도면(마킹)"
+            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+          >
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>진행도면(마킹)</h3>
+            {loadingMarkups ? (
+              <div className="list-footer" aria-live="polite">
+                불러오는 중...
+              </div>
+            ) : linkedMarkups.length === 0 ? (
+              <p style={{ color: '#94a3b8', fontSize: 13 }}>연결된 마킹 문서가 없습니다.</p>
+            ) : (
+              <div className="attachment-gallery">
+                {linkedMarkups.map(doc => (
+                  <div key={doc.id} className="attachment-card">
+                    <div className="attachment-card-title">{doc.title}</div>
+                    {doc.previewUrl || doc.blueprintUrl ? (
+                      <img
+                        className="attachment-preview"
+                        src={doc.previewUrl || doc.blueprintUrl}
+                        alt={doc.title}
+                      />
+                    ) : (
+                      <div className="attachment-preview" aria-hidden="true" />
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      {onOpenMarkupDoc ? (
+                        <button
+                          className="viewer-action-btn primary"
+                          onClick={() => onOpenMarkupDoc(doc.id, worklog)}
+                        >
+                          열기
+                        </button>
+                      ) : (
+                        <a
+                          className="viewer-action-btn primary"
+                          href={`/mobile/markup-tool?mode=start&siteId=${encodeURIComponent(worklog.siteId)}&docId=${encodeURIComponent(doc.id)}&worklogId=${encodeURIComponent(worklog.id)}`}
+                        >
+                          열기
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
           <section
             aria-label="첨부 문서 목록"
             style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
@@ -162,9 +255,18 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
           <button type="button" className="viewer-action-btn secondary" onClick={onClose}>
             닫기
           </button>
+          {onOpenMarkup && worklog && (
+            <button
+              type="button"
+              className="viewer-action-btn primary"
+              onClick={() => onOpenMarkup(worklog)}
+            >
+              마킹 열기
+            </button>
+          )}
           <button
             type="button"
-            className="viewer-action-btn primary"
+            className="viewer-action-btn secondary"
             onClick={() => onDownload?.(worklog.id)}
           >
             전체 다운로드

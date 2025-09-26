@@ -575,6 +575,17 @@ textarea.form-input {
   color: #b91c1c;
 }
 
+.material-row {
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.material-row .material-remove {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 8px;
+}
+
 [data-theme='dark'] .form-actions {
   border-top-color: var(--line);
 }

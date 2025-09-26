@@ -1,19 +1,13 @@
 'use client'
+
+import React, { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-
-
-interface Profile {
-  id: string
-  full_name: string
-  email: string
-  role: string
-  salary_type: string
-  daily_wage: number
-}
+import { payslipGeneratorKorean } from '@/lib/services/payslip-generator-korean'
 
 export default function PayslipPage() {
   const params = useParams()
-  const { userId, year, month } = params
+  const { userId, year, month } = params as { userId: string; year: string; month: string }
   const [htmlContent, setHtmlContent] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>('')
@@ -22,81 +16,66 @@ export default function PayslipPage() {
     async function generatePayslip() {
       try {
         const supabase = createClient()
-        
-        // 1. 사용자 정보 조회
+
+        // 1. 사용자 정보
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, full_name, email, role, employment_type')
           .eq('id', userId)
           .single()
+        if (profileError || !profile) throw new Error('사용자 정보를 찾을 수 없습니다.')
 
-        if (profileError || !profile) {
-          setError('사용자 정보를 찾을 수 없습니다.')
-          return
-        }
+        // 2. 월 급여 요약(서버 API)
+        const y = Number(year)
+        const m = Number(month)
+        const res = await fetch(`/api/salary/monthly?year=${y}&month=${m}`)
+        const json = await res.json()
+        if (!json?.success) throw new Error(json?.error || '급여 정보를 계산할 수 없습니다.')
 
-        // 2. 급여 계산
-        const salaryResult = await calculateMonthlySalary({
-          user_id: userId as string,
-          year: parseInt(year as string),
-          month: parseInt(month as string)
-        })
-
-        if (!salaryResult.success || !salaryResult.data) {
-          setError('급여 정보를 계산할 수 없습니다.')
-          return
-        }
-
-        // 3. 사이트 정보 조회 (최근 근무 사이트)
-        const { data: attendanceData } = await supabase
+        // 3. 월 내 최근 근무 사이트 1건 조회
+        const { data: recentWork } = await supabase
           .from('work_records')
-          .select(`
-            site_id,
-            sites (name)
-          `)
+          .select('site_id, sites (name)')
           .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
-          .gte('work_date', `${year}-${String(month).padStart(2, '0')}-01`)
-          .lte('work_date', `${year}-${String(month).padStart(2, '0')}-31`)
+          .gte('work_date', `${y}-${String(m).padStart(2, '0')}-01`)
+          .lte('work_date', `${y}-${String(m).padStart(2, '0')}-31`)
+          .order('work_date', { ascending: false })
           .limit(1)
-          .single()
+          .maybeSingle()
 
-        const siteName = attendanceData?.sites?.name || '미지정'
+        const siteName = recentWork?.sites?.name || '미지정'
 
-        // 4. HTML 급여명세서 생성
+        // 4. HTML 생성
         const payslipData = {
           employee: {
             id: profile.id,
             name: profile.full_name || '',
             email: profile.email || '',
-            role: profile.role,
-            department: profile.salary_type || '일용직',
-            employeeNumber: `W-${profile.id.slice(0, 6)}`
+            role: profile.role || 'worker',
+            department: profile.employment_type || '일용직',
+            employeeNumber: `W-${profile.id.slice(0, 6)}`,
           },
           company: {
             name: 'INOPNC',
             address: '서울특별시 강남구 테헤란로 123',
             phone: '02-1234-5678',
-            registrationNumber: '123-45-67890'
+            registrationNumber: '123-45-67890',
           },
-          site: {
-            id: attendanceData?.site_id || '',
-            name: siteName
-          },
-          salary: salaryResult.data,
-          paymentDate: new Date(`${year}-${String(month).padStart(2, '0')}-25`),
-          paymentMethod: '계좌이체'
+          site: { id: recentWork?.site_id || '', name: siteName },
+          salary: json.data.salary,
+          paymentDate: new Date(`${y}-${String(m).padStart(2, '0')}-25`),
+          paymentMethod: '계좌이체',
         }
 
         const html = payslipGeneratorKorean.generateHTML(payslipData)
         setHtmlContent(html)
-      } catch (err) {
+      } catch (err: any) {
         console.error('Payslip generation error:', err)
-        setError('급여명세서 생성 중 오류가 발생했습니다.')
+        setError(err?.message || '급여명세서 생성 중 오류가 발생했습니다.')
       } finally {
         setLoading(false)
       }
     }
-
     generatePayslip()
   }, [userId, year, month])
 
@@ -118,8 +97,8 @@ export default function PayslipPage() {
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h1 className="text-2xl font-bold text-gray-800 mb-2">오류 발생</h1>
           <p className="text-gray-600 mb-4">{error}</p>
-          <button 
-            onClick={() => window.close()} 
+          <button
+            onClick={() => window.close()}
             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
           >
             닫기
@@ -129,10 +108,5 @@ export default function PayslipPage() {
     )
   }
 
-  return (
-    <div>
-      {/* HTML Content */}
-      <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
-    </div>
-  )
+  return <div dangerouslySetInnerHTML={{ __html: htmlContent }} />
 }
