@@ -17,27 +17,11 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient()
 
-    // 기본 쿼리 빌더
+    // 기본 쿼리 빌더 (관계 조인 제거 - 프로덕션 FK 환경 차이로 인한 오류 방지)
     let query = supabase
       .from('markup_documents')
       .select(
-        `
-        id,
-        title,
-        original_blueprint_url,
-        markup_data,
-        site_id,
-        created_by,
-        created_by_name,
-        creator_email,
-        mode,
-        created_at,
-        updated_at,
-        sites (
-          id,
-          name
-        )
-      `
+        `id, title, original_blueprint_url, markup_data, site_id, created_by, created_by_name, creator_email, mode, created_at, updated_at`
       )
       .order('created_at', { ascending: false })
 
@@ -71,7 +55,7 @@ export async function GET(request: NextRequest) {
       blueprintUrl: doc.original_blueprint_url,
       markupData: doc.markup_data,
       siteId: doc.site_id,
-      siteName: doc.sites?.name || '알 수 없는 현장',
+      siteName: '알 수 없는 현장',
       createdBy: doc.created_by,
       createdByName: doc.created_by_name || '알 수 없음',
       creatorEmail: doc.creator_email,
