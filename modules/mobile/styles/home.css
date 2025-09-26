@@ -47,12 +47,18 @@
 }
 
 .section-title {
-  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-size: 18px; /* main.html: 18px */
-  font-weight: 600; /* main.html: 600 */
-  color: #1A254F; /* main.html: #1A254F */
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a254f;
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.4;
 }
 
 /* Card */
@@ -126,12 +132,18 @@
 
 /* Quick menu text - main.html exact match */
 .quick-item span {
-  font-family: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family:
+    'Noto Sans KR',
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
   font-size: 13px !important; /* Slightly smaller for better fit */
   font-weight: 600 !important;
   line-height: 1.2;
   text-align: center;
-  color: #1A254F !important;
+  color: #1a254f !important;
   margin-top: 2px !important; /* Reduced margin */
   white-space: nowrap;
   transition: color 0.3s ease;
@@ -205,17 +217,17 @@ body.fs-150 .quick-item span,
 }
 
 /* Dark theme support for notice section */
-[data-theme="dark"] .notice-card {
+[data-theme='dark'] .notice-card {
   background: var(--card, #0f172a) !important;
   color: var(--text, #e9eef5) !important;
   border-color: var(--line, #3a4048);
 }
 
-[data-theme="dark"] .notice-text {
+[data-theme='dark'] .notice-text {
   color: var(--text, #e9eef5) !important;
 }
 
-[data-theme="dark"] .tag-label {
+[data-theme='dark'] .tag-label {
   color: var(--text, #e9eef5) !important;
 }
 
@@ -627,16 +639,16 @@ body.fs-150 .quick-item span,
 }
 
 [data-theme='dark'] .section-title {
-  color: #E5E7EB;
+  color: #e5e7eb;
 }
 
 /* Dark mode quick menu text */
 [data-theme='dark'] .quick-item span {
-  color: #00BCD4 !important;
+  color: #00bcd4 !important;
 }
 
 [data-theme='dark'] .quick-item:hover span {
-  color: #2F6BFF !important;
+  color: #2f6bff !important;
 }
 
 [data-theme='dark'] .chip {

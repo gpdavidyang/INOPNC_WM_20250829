@@ -2,59 +2,61 @@
 
 :root {
   /* Typography */
-  --font-sans: "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --fs-title: 24px;
-  --fs-body: 16px;
+  --fs-heading: 20px;
+  --fs-body: 15px;
+  --fs-ctl: 14px;
   --fs-small: 14px;
   --fs-tiny: 12px;
-  
+
   /* Colors */
-  --brand: #1A254F;
-  --accent: #0068FE;
-  --success: #22C55E;
-  --warning: #F59E0B;
-  --danger: #EF4444;
-  
+  --brand: #1a254f;
+  --accent: #0068fe;
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+
   /* Layout Colors */
-  --background: #FFFFFF;
-  --surface: #F9FAFB;
-  --card: #FFFFFF;
-  --line: #E5E7EB;
-  --text: #1F2937;
-  --text-secondary: #6B7280;
-  --text-disabled: #9CA3AF;
-  
+  --background: #ffffff;
+  --surface: #f9fafb;
+  --card: #ffffff;
+  --line: #e5e7eb;
+  --text: #1f2937;
+  --text-secondary: #6b7280;
+  --text-disabled: #9ca3af;
+
   /* Spacing */
   --gap: 12px;
   --gap-sm: 8px;
   --gap-lg: 16px;
   --gap-xl: 24px;
-  
+
   /* Border Radius */
   --r: 8px;
   --r-sm: 4px;
   --r-lg: 12px;
   --r-full: 9999px;
-  
+
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  
+
   /* Transitions */
   --transition: all 0.2s ease-in-out;
   --transition-fast: all 0.1s ease-in-out;
 }
 
 /* Dark theme overrides */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --background: #111827;
-  --surface: #1F2937;
-  --card: #1F2937;
+  --surface: #1f2937;
+  --card: #1f2937;
   --line: #374151;
-  --text: #F9FAFB;
-  --text-secondary: #D1D5DB;
-  --text-disabled: #6B7280;
+  --text: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-disabled: #6b7280;
 }
 
 /* Document Page Layout */
@@ -91,7 +93,7 @@
   color: var(--text-secondary);
   border: none;
   border-radius: var(--r-sm);
-  font-size: var(--fs-body);
+  font-size: var(--fs-ctl);
   font-weight: 500;
   cursor: pointer;
   transition: var(--transition);
@@ -195,9 +197,16 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-4px); }
-  75% { transform: translateX(4px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
 }
 
 .doc-card-header {
@@ -208,7 +217,7 @@
 }
 
 .doc-card-title {
-  font-size: var(--fs-body);
+  font-size: var(--fs-heading);
   font-weight: 600;
   color: var(--text);
   flex: 1;
@@ -279,7 +288,7 @@
 }
 
 .doc-action-btn.upload:hover {
-  background: #16A34A;
+  background: #16a34a;
 }
 
 .doc-action-btn.delete {
@@ -436,7 +445,7 @@
 }
 
 .btn-primary:hover {
-  background: #0052CC;
+  background: #0052cc;
 }
 
 .btn.clicked::after {
@@ -479,19 +488,18 @@
 
 /* Loading States */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--surface) 25%,
-    var(--line) 50%,
-    var(--surface) 75%
-  );
+  background: linear-gradient(90deg, var(--surface) 25%, var(--line) 50%, var(--surface) 75%);
   background-size: 200% 100%;
   animation: loading 1.5s infinite;
 }
 
 @keyframes loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Responsive Design */
