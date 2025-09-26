@@ -14,6 +14,8 @@ export interface SalarySnapshot {
   status?: 'issued' | 'approved' | 'paid'
   approved_at?: string | null
   approver_id?: string | null
+  paid_at?: string | null
+  payer_id?: string | null
   employment_type: string | null
   daily_rate: number | null
   siteCount: number
@@ -103,6 +105,8 @@ export async function saveSalarySnapshot(
       status: snapshot.status || 'issued',
       approved_at: snapshot.approved_at || null,
       approver_id: snapshot.approver_id || null,
+      paid_at: snapshot.paid_at || null,
+      payer_id: snapshot.payer_id || null,
     })
     if (!error) {
       return { success: true, source: 'db' }
@@ -139,7 +143,7 @@ export async function listSalarySnapshots(params: {
     let query = supabase
       .from('salary_snapshots')
       .select(
-        'worker_id, year, month, data_json, issued_at, issuer_id, status, approved_at, approver_id'
+        'worker_id, year, month, data_json, issued_at, issuer_id, status, approved_at, approver_id, paid_at, payer_id'
       )
       .order('issued_at', { ascending: false })
       .limit(limit)
@@ -158,6 +162,8 @@ export async function listSalarySnapshots(params: {
             snap.status = (r as any).status || snap.status || 'issued'
             snap.approved_at = (r as any).approved_at || snap.approved_at || null
             snap.approver_id = (r as any).approver_id || snap.approver_id || null
+            snap.paid_at = (r as any).paid_at || snap.paid_at || null
+            snap.payer_id = (r as any).payer_id || snap.payer_id || null
           }
           return snap
         })
@@ -227,5 +233,38 @@ export async function approveSalarySnapshot(
     return { success: res.success, error: res.error }
   } catch (e: any) {
     return { success: false, error: e?.message || 'Approve failed' }
+  }
+}
+
+export async function paySalarySnapshot(
+  workerId: string,
+  year: number,
+  month: number,
+  payerId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient()
+  const paid_at = new Date().toISOString()
+  try {
+    const { error } = await supabase
+      .from('salary_snapshots')
+      .update({ status: 'paid', paid_at, payer_id: payerId })
+      .eq('worker_id', workerId)
+      .eq('year', year)
+      .eq('month', month)
+    if (!error) return { success: true }
+  } catch (e) {
+    // fall through
+  }
+
+  try {
+    const { snapshot } = await getSalarySnapshot(workerId, year, month)
+    if (!snapshot) return { success: false, error: 'Snapshot not found' }
+    snapshot.status = 'paid'
+    snapshot.paid_at = paid_at
+    snapshot.payer_id = payerId
+    const res = await saveSalarySnapshot(snapshot)
+    return { success: res.success, error: res.error }
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Pay failed' }
   }
 }
