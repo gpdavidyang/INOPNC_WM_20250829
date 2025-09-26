@@ -1108,9 +1108,14 @@ const AttendanceContent: React.FC = () => {
                         }}
                         className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900/40 cursor-pointer"
                       >
-                        <Row justify="between">
+                        <Row justify="between" className="items-center">
                           <span className="t-body font-medium">{salaryRecord.month}</span>
-                          <span className="t-body">지급일: {salaryRecord.paidDate}</span>
+                          <span className="inline-flex items-center gap-3">
+                            <span className="t-cap text-muted-foreground">
+                              지급일: {salaryRecord.paidDate}
+                            </span>
+                            <span className="t-ctl text-[#0068FE]">보기</span>
+                          </span>
                         </Row>
                         <Row justify="between" className="mt-1">
                           <span className="t-cap text-muted-foreground">총급여</span>
