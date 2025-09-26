@@ -851,17 +851,17 @@ const AttendanceContent: React.FC = () => {
 
             <section className="monthly-stats-section">
               <div className="stat-grid">
-                <div className="stat stat-workdays">
-                  <div className="num">{monthlyStats.workDays}</div>
-                  <div className="label">출근(일)</div>
-                </div>
                 <div className="stat stat-sites">
                   <div className="num">{monthlyStats.siteCount}</div>
-                  <div className="label">현장수</div>
+                  <div className="label">총 현장(수)</div>
                 </div>
                 <div className="stat stat-hours">
                   <div className="num">{monthlyStats.totalManDays}</div>
-                  <div className="label">총공수</div>
+                  <div className="label">총 공수(공수)</div>
+                </div>
+                <div className="stat stat-workdays">
+                  <div className="num">{monthlyStats.workDays}</div>
+                  <div className="label">총 근무(일)</div>
                 </div>
               </div>
             </section>
