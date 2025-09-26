@@ -190,7 +190,6 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
             {primaryBlueprint && (
               <div className="blueprint-preview">
                 <div className="preview-header">
-                  <span className="preview-icon">📐</span>
                   <span className="preview-label">현장 공도면</span>
                 </div>
                 <div className="preview-title">{primaryBlueprint.title}</div>
@@ -204,7 +203,6 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
               aria-label="공도면 마킹 시작"
               disabled={!primaryBlueprint}
             >
-              <span className="btn-icon">✏️</span>
               <span className="btn-text">
                 {primaryBlueprint ? '마킹 시작' : '공도면 준비 중...'}
               </span>

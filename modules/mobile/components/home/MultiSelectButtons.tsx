@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 interface MultiSelectOption {
   value: string
@@ -22,23 +22,59 @@ export const MultiSelectButtons: React.FC<MultiSelectButtonsProps> = ({
   selectedValues,
   onChange,
   customInputPlaceholder = '직접 입력하세요',
-  className = ''
+  className = '',
 }) => {
   const [customInput, setCustomInput] = useState('')
   const [showCustomInput, setShowCustomInput] = useState(false)
 
+  const optionValues = useMemo(() => options.map(option => option.value), [options])
+
+  useEffect(() => {
+    if (selectedValues.includes('other')) {
+      setShowCustomInput(true)
+      const existingCustom = selectedValues.find(
+        value => value !== 'other' && !optionValues.includes(value)
+      )
+
+      if (existingCustom) {
+        const normalized = existingCustom.replace(/^기타[:\s]*/, '').trim()
+        if (normalized && normalized !== customInput) {
+          setCustomInput(normalized)
+        }
+      }
+    } else if (showCustomInput) {
+      setShowCustomInput(false)
+      setCustomInput('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedValues, optionValues])
+
+  const removeCustomEntries = (values: string[]) =>
+    values.filter(value => value === 'other' || optionValues.includes(value))
+
+  const formatCustomValue = (value: string) => {
+    const trimmed = value.trim()
+    if (!trimmed) return ''
+    return trimmed.startsWith('기타') ? trimmed : `기타: ${trimmed}`
+  }
+
   const handleButtonClick = (value: string) => {
     if (value === 'other') {
       if (selectedValues.includes('other')) {
-        // 기타 선택 해제
-        const newValues = selectedValues.filter(v => v !== 'other')
-        onChange(newValues)
+        // 기타 선택 해제 + 커스텀 값 제거
+        const cleanedValues = removeCustomEntries(selectedValues).filter(v => v !== 'other')
+        onChange(cleanedValues)
         setShowCustomInput(false)
         setCustomInput('')
       } else {
         // 기타 선택
-        const newValues = [...selectedValues, 'other']
-        onChange(newValues)
+        const cleanedValues = removeCustomEntries(selectedValues).filter(v => v !== 'other')
+        const nextValues = [...cleanedValues, 'other']
+        if (customInput.trim()) {
+          const customValue = formatCustomValue(customInput)
+          if (customValue) nextValues.push(customValue)
+        }
+        onChange(nextValues)
         setShowCustomInput(true)
       }
     } else {
@@ -57,11 +93,13 @@ export const MultiSelectButtons: React.FC<MultiSelectButtonsProps> = ({
     setCustomInput(value)
     // 기타가 선택되어 있고 입력값이 있는 경우만 상태에 반영
     if (selectedValues.includes('other')) {
-      const otherValues = selectedValues.filter(v => v !== 'other')
-      if (value.trim()) {
-        onChange([...otherValues, 'other', value.trim()])
+      const baseValues = removeCustomEntries(selectedValues)
+      const customValue = formatCustomValue(value)
+      if (customValue) {
+        const withoutOther = baseValues.filter(v => v !== 'other')
+        onChange([...withoutOther, 'other', customValue])
       } else {
-        onChange([...otherValues, 'other'])
+        onChange(baseValues)
       }
     }
   }
@@ -69,8 +107,8 @@ export const MultiSelectButtons: React.FC<MultiSelectButtonsProps> = ({
   const handleCustomInputBlur = () => {
     if (!customInput.trim() && selectedValues.includes('other')) {
       // 입력값이 없으면 기타 선택 해제
-      const newValues = selectedValues.filter(v => v !== 'other')
-      onChange(newValues)
+      const cleanedValues = removeCustomEntries(selectedValues).filter(v => v !== 'other')
+      onChange(cleanedValues)
       setShowCustomInput(false)
     }
   }
@@ -79,7 +117,7 @@ export const MultiSelectButtons: React.FC<MultiSelectButtonsProps> = ({
     <div className={`form-group ${className}`}>
       <label className="form-label">{label}</label>
       <div className="button-group">
-        {options.map((option) => (
+        {options.map(option => (
           <button
             key={option.value}
             type="button"
@@ -96,12 +134,12 @@ export const MultiSelectButtons: React.FC<MultiSelectButtonsProps> = ({
           className="form-input custom-input"
           placeholder={customInputPlaceholder}
           value={customInput}
-          onChange={(e) => handleCustomInputChange(e.target.value)}
+          onChange={e => handleCustomInputChange(e.target.value)}
           onBlur={handleCustomInputBlur}
           style={{
             display: 'block',
             marginTop: '8px',
-            borderRadius: '14px'
+            borderRadius: '14px',
           }}
           autoFocus
         />

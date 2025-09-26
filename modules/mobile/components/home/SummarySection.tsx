@@ -44,7 +44,21 @@ export const SummarySection: React.FC<SummarySectionProps> = ({
   }
 
   const formatArray = (arr: string[]) => {
-    return arr.length > 0 ? arr.join(', ') : '없음'
+    if (!arr || arr.length === 0) return '없음'
+
+    const formatted = arr
+      .filter(value => value && value.trim() && value !== 'other')
+      .map(value => {
+        const trimmed = value.trim()
+        if (trimmed.startsWith('기타')) {
+          const normalized = trimmed.replace(/^기타[:\s]*/, '').trim()
+          return `기타: ${normalized}`
+        }
+        return trimmed
+      })
+
+    const uniqueValues = Array.from(new Set(formatted))
+    return uniqueValues.length > 0 ? uniqueValues.join(', ') : '없음'
   }
 
   return (
