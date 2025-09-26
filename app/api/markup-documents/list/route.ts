@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
       .select(
         `id, title, original_blueprint_url, markup_data, site_id, created_by, created_at, updated_at, markup_count, preview_image_url, original_blueprint_filename`
       )
+      .eq('is_deleted', false)
       .order('created_at', { ascending: false })
 
     // 사이트 필터링
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 데이터 포맷팅
-    const formattedDocuments = (data || []).map(doc => ({
+    let formattedDocuments = (data || []).map(doc => ({
       id: doc.id,
       title: doc.title,
       blueprintUrl: doc.original_blueprint_url,
@@ -70,6 +71,49 @@ export async function GET(request: NextRequest) {
             ? doc.markup_data.length
             : 0,
     }))
+
+    // include_shared=true + siteId가 지정되면, 본인 소유이며 site_id가 비어있는 개인 문서도 추가 노출
+    if (includeShared && siteId) {
+      try {
+        const { data: ownPersonal } = await supabase
+          .from('markup_documents')
+          .select(
+            'id, title, original_blueprint_url, markup_data, site_id, created_by, created_at, updated_at, markup_count, preview_image_url, original_blueprint_filename'
+          )
+          .is('site_id', null)
+          .eq('created_by', auth.userId)
+          .eq('is_deleted', false)
+          .order('created_at', { ascending: false })
+
+        if (ownPersonal && ownPersonal.length) {
+          const extras = ownPersonal.map(doc => ({
+            id: doc.id,
+            title: doc.title,
+            blueprintUrl: doc.original_blueprint_url,
+            markupData: doc.markup_data,
+            siteId: doc.site_id,
+            siteName: '미지정',
+            createdBy: doc.created_by,
+            createdByName: undefined,
+            creatorEmail: undefined,
+            mode: undefined,
+            createdAt: doc.created_at,
+            updatedAt: doc.updated_at,
+            isMarked: doc.markup_data && doc.markup_data.length > 0,
+            markupCount:
+              typeof doc.markup_count === 'number'
+                ? doc.markup_count
+                : doc.markup_data
+                  ? doc.markup_data.length
+                  : 0,
+          }))
+          const existingIds = new Set(formattedDocuments.map(d => d.id))
+          formattedDocuments = formattedDocuments.concat(extras.filter(e => !existingIds.has(e.id)))
+        }
+      } catch (_) {
+        // ignore
+      }
+    }
 
     return NextResponse.json({
       success: true,
