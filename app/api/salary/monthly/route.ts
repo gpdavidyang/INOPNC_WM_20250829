@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
+import { getSalarySnapshot } from '@/lib/services/salary-snapshot.service'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,8 +23,13 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient()
 
-    // 1) 월간 급여 계산 (work_records 기반, 세율 포함)
-    const monthly = await salaryCalculationService.calculateMonthlySalary(auth.userId, year, month)
+    // 0) 스냅샷 우선 조회
+    const { snapshot } = await getSalarySnapshot(auth.userId, year, month)
+
+    // 1) 월간 급여 계산 (스냅샷 없으면 서버 계산)
+    const monthly = snapshot
+      ? snapshot.salary
+      : await salaryCalculationService.calculateMonthlySalary(auth.userId, year, month)
 
     // 2) 급여 정보(일급/고용형태) 조회
     const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
@@ -43,10 +49,10 @@ export async function GET(request: NextRequest) {
       .eq('id', auth.userId)
       .single()
 
-    const daily_rate = salaryInfo?.hourly_rate
-      ? Math.round((salaryInfo.hourly_rate || 0) * 8)
-      : null
-    const employment_type = profile?.employment_type || 'regular'
+    const daily_rate =
+      snapshot?.daily_rate ??
+      (salaryInfo?.hourly_rate ? Math.round((salaryInfo.hourly_rate || 0) * 8) : null)
+    const employment_type = snapshot?.employment_type ?? (profile?.employment_type || 'regular')
 
     // 3) 현장수 계산 (해당 월 내 고유 site_id 개수)
     const periodStart = `${year}-${String(month).padStart(2, '0')}-01`
@@ -58,9 +64,9 @@ export async function GET(request: NextRequest) {
       .gte('work_date', periodStart)
       .lte('work_date', periodEnd)
 
-    const siteCount = Array.from(
-      new Set((workInMonth || []).map(r => r.site_id).filter(Boolean))
-    ).length
+    const siteCount =
+      snapshot?.siteCount ??
+      Array.from(new Set((workInMonth || []).map(r => r.site_id).filter(Boolean))).length
 
     return NextResponse.json({
       success: true,
@@ -72,6 +78,7 @@ export async function GET(request: NextRequest) {
         workDays: monthly.work_days,
         totalManDays: Number(monthly.total_labor_hours.toFixed(1)),
         salary: monthly,
+        source: snapshot ? 'snapshot' : 'calculated',
       },
     })
   } catch (error: any) {
