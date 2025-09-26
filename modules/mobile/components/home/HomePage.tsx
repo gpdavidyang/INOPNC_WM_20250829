@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -10,16 +10,13 @@ import {
 } from '@/components/ui/custom-select'
 import { QuickMenu } from './QuickMenu'
 import { NoticeSection } from './NoticeSection'
-import { WorkCard } from './WorkCard'
 import { DepartmentSelect } from './DepartmentSelect'
 import { LocationInput } from './LocationInput'
 import { MultiSelectButtons } from './MultiSelectButtons'
 import { NumberInput } from './NumberInput'
 import { AdditionalManpower as AdditionalManpowerComponent } from './AdditionalManpower'
 import { PhotoUploadCard } from './PhotoUploadCard'
-import { DrawingCard } from './DrawingCard'
 import { DrawingQuickAction } from './DrawingQuickAction'
-import { SummaryPanel } from './SummaryPanel'
 import { SummarySection } from './SummarySection'
 import { toast } from 'sonner'
 import { WorkLogState, WorkLogLocation, WorkSection, AdditionalManpower } from '@/types/worklog'
@@ -31,6 +28,69 @@ import '@/modules/mobile/styles/upload.css'
 import '@/modules/mobile/styles/summary.css'
 import '@/modules/mobile/styles/summary-section.css'
 import '@/modules/mobile/styles/drawing-quick.css'
+
+const MEMBER_TYPE_OPTIONS = [
+  { value: '슬라브', label: '슬라브' },
+  { value: '거더', label: '거더' },
+  { value: '기둥', label: '기둥' },
+  { value: 'other', label: '기타' },
+] as const
+
+const WORK_PROCESS_OPTIONS = [
+  { value: '균열', label: '균열' },
+  { value: '면', label: '면' },
+  { value: '마감', label: '마감' },
+  { value: 'other', label: '기타' },
+] as const
+
+const WORK_TYPE_OPTIONS = [
+  { value: '지하', label: '지하' },
+  { value: '지붕', label: '지붕' },
+  { value: 'other', label: '기타' },
+] as const
+
+const MEMBER_TYPE_VALUES = MEMBER_TYPE_OPTIONS.filter(option => option.value !== 'other').map(
+  option => option.value
+)
+const WORK_PROCESS_VALUES = WORK_PROCESS_OPTIONS.filter(option => option.value !== 'other').map(
+  option => option.value
+)
+const WORK_TYPE_VALUES = WORK_TYPE_OPTIONS.filter(option => option.value !== 'other').map(
+  option => option.value
+)
+
+const normalizeSelections = (values: string[], allowedValues: string[]) => {
+  const allowedSet = new Set(allowedValues)
+  const normalized: string[] = []
+  let pendingCustom = false
+
+  values.forEach(rawValue => {
+    if (!rawValue) return
+    if (rawValue === 'other') {
+      pendingCustom = true
+      return
+    }
+
+    let value = rawValue.trim()
+    if (!value) return
+
+    if (pendingCustom) {
+      value = value.startsWith('기타') ? value.replace(/^기타[:\s]*/, '').trim() : value
+      value = value ? `기타: ${value}` : ''
+      pendingCustom = false
+    } else if (!allowedSet.has(value)) {
+      value = value.startsWith('기타')
+        ? `기타: ${value.replace(/^기타[:\s]*/, '').trim()}`
+        : `기타: ${value}`
+    }
+
+    if (value && !normalized.includes(value)) {
+      normalized.push(value)
+    }
+  })
+
+  return normalized
+}
 
 // 현장 인터페이스 정의
 interface Site {
@@ -68,9 +128,23 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [mainManpower, setMainManpower] = useState(1)
   const [workSections, setWorkSections] = useState<WorkSection[]>([])
   const [additionalManpower, setAdditionalManpower] = useState<AdditionalManpower[]>([])
+  const [actionStatus, setActionStatus] = useState<{
+    type: 'success' | 'error'
+    message: string
+  } | null>(null)
 
-  // 요약 패널 표시 상태
-  const [showSummary, setShowSummary] = useState(false)
+  const normalizedMemberTypes = useMemo(
+    () => normalizeSelections(memberTypes, MEMBER_TYPE_VALUES),
+    [memberTypes]
+  )
+  const normalizedWorkProcesses = useMemo(
+    () => normalizeSelections(workContents, WORK_PROCESS_VALUES),
+    [workContents]
+  )
+  const normalizedWorkTypes = useMemo(
+    () => normalizeSelections(workTypes, WORK_TYPE_VALUES),
+    [workTypes]
+  )
 
   // 현장 데이터 상태
   const [sites, setSites] = useState<Site[]>([])
@@ -228,7 +302,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       setMainManpower(1)
       setWorkSections([])
       setAdditionalManpower([])
-      setShowSummary(false)
+      setActionStatus({ type: 'success', message: '입력 내용을 초기화했습니다.' })
       toast.success('초기화되었습니다.')
     }
   }
@@ -237,10 +311,15 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     // 최소 필수 값 확인 (임시저장은 더 관대하게)
     if (!selectedSite && !department && !workDate) {
       toast.error('최소한 현장, 소속, 또는 작업일자 중 하나는 입력해주세요.')
+      setActionStatus({
+        type: 'error',
+        message: '임시저장을 진행하려면 현장, 소속 또는 작업일자를 입력해주세요.',
+      })
       return
     }
 
     try {
+      setActionStatus(null)
       // 임시저장 제목 생성
       const siteInfo = sites.find(s => s.id === selectedSite)
       const title = `${siteInfo?.name || '미지정'} - ${workDate || '날짜미정'}`
@@ -254,9 +333,9 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           dong: location.dong,
           unit: location.unit,
         },
-        member_types: memberTypes,
-        work_contents: workContents,
-        work_types: workTypes,
+        member_types: normalizedMemberTypes,
+        work_contents: normalizedWorkProcesses,
+        work_types: normalizedWorkTypes,
         main_manpower: { count: mainManpower },
         additional_manpower: additionalManpower.map(m => ({
           worker_name: m.workerName,
@@ -287,35 +366,41 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       }
 
       toast.success('임시저장되었습니다.')
+      setActionStatus({ type: 'success', message: '임시저장을 완료했습니다.' })
     } catch (error) {
       console.error('Temporary save error:', error)
       toast.error(error instanceof Error ? error.message : '임시저장에 실패했습니다.')
+      setActionStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : '임시저장에 실패했습니다.',
+      })
     }
   }
 
   const handleSave = async () => {
     if (!department) {
       toast.error('소속을 선택해주세요.')
+      setActionStatus({ type: 'error', message: '소속을 선택한 뒤 저장을 진행해주세요.' })
       return
     }
     if (!selectedSite) {
       toast.error('현장을 선택해주세요.')
+      setActionStatus({ type: 'error', message: '현장을 선택한 뒤 저장을 진행해주세요.' })
       return
     }
     if (!workDate) {
       toast.error('작업일자를 입력해주세요.')
+      setActionStatus({ type: 'error', message: '작업일자를 입력한 뒤 저장을 진행해주세요.' })
       return
     }
 
-    // 요약 패널 표시
-    setShowSummary(true)
-
     try {
+      setActionStatus(null)
       // 작업 내용 구성
       const workContentDetails = {
-        memberTypes: memberTypes,
-        workContents: workContents,
-        workTypes: workTypes,
+        memberTypes: normalizedMemberTypes,
+        workContents: normalizedWorkProcesses,
+        workTypes: normalizedWorkTypes,
         mainManpower: mainManpower,
         additionalManpower: additionalManpower.map(m => ({
           name: m.workerName,
@@ -327,7 +412,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         site_id: selectedSite,
         partner_company_id: department, // department가 파트너사 ID
         work_date: workDate,
-        work_content: workContents.join(', ') || '',
+        work_content: normalizedWorkProcesses.join(', ') || '',
         location_info: {
           block: location.block,
           dong: location.dong,
@@ -352,12 +437,17 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
       }
 
       toast.success('작업일지가 저장되었습니다.')
+      setActionStatus({ type: 'success', message: '작업일지를 저장했습니다.' })
 
       // 저장 후 폼 초기화는 선택적으로
       // handleReset()
     } catch (error) {
       console.error('Save error:', error)
       toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.')
+      setActionStatus({
+        type: 'error',
+        message: error instanceof Error ? error.message : '작업일지 저장에 실패했습니다.',
+      })
     }
   }
 
@@ -523,12 +613,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           {/* 부재명 멀티 선택 */}
           <MultiSelectButtons
             label="부재명"
-            options={[
-              { value: '슬라브', label: '슬라브' },
-              { value: '거더', label: '거더' },
-              { value: '기둥', label: '기둥' },
-              { value: 'other', label: '기타' },
-            ]}
+            options={MEMBER_TYPE_OPTIONS}
             selectedValues={memberTypes}
             onChange={setMemberTypes}
             customInputPlaceholder="부재명을 직접 입력하세요"
@@ -538,12 +623,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           {/* 작업공정 멀티 선택 */}
           <MultiSelectButtons
             label="작업공정"
-            options={[
-              { value: '균열', label: '균열' },
-              { value: '면', label: '면' },
-              { value: '마감', label: '마감' },
-              { value: 'other', label: '기타' },
-            ]}
+            options={WORK_PROCESS_OPTIONS}
             selectedValues={workContents}
             onChange={setWorkContents}
             customInputPlaceholder="작업공정을 직접 입력하세요"
@@ -560,11 +640,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           {/* 작업유형 멀티 선택 */}
           <MultiSelectButtons
             label="작업유형"
-            options={[
-              { value: '지하', label: '지하' },
-              { value: '지붕', label: '지붕' },
-              { value: 'other', label: '기타' },
-            ]}
+            options={WORK_TYPE_OPTIONS}
             selectedValues={workTypes}
             onChange={setWorkTypes}
             customInputPlaceholder="작업유형을 직접 입력하세요"
@@ -680,6 +756,12 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             저장하기
           </button>
         </div>
+
+        {actionStatus && (
+          <div className={`action-feedback ${actionStatus.type}`} role="status" aria-live="polite">
+            {actionStatus.message}
+          </div>
+        )}
       </div>
 
       {/* 사진 업로드 - 별도 카드 */}
@@ -692,34 +774,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         userId={userProfile?.id || user?.id}
       />
 
-      {/* 요약 패널 */}
-      {showSummary && (
-        <SummaryPanel
-          selectedSite={selectedSite}
-          workDate={workDate}
-          department={department}
-          location={location}
-          memberTypes={memberTypes}
-          workTypes={workTypes}
-          mainManpower={mainManpower}
-          workSections={workSections}
-          additionalManpower={additionalManpower}
-          workContents={workContents}
-          beforePhotosCount={0}
-          afterPhotosCount={0}
-          drawingsCount={0}
-          className="mb-4"
-        />
-      )}
-
       {/* 작성 내용 요약 - 페이지 맨 아래 배치 */}
       <SummarySection
         site={sites.find(s => s.id === selectedSite)?.name || ''}
         workDate={workDate}
         author={userProfile?.full_name || ''}
-        memberTypes={memberTypes}
-        workContents={workContents}
-        workTypes={workTypes}
+        memberTypes={normalizedMemberTypes}
+        workContents={normalizedWorkProcesses}
+        workTypes={normalizedWorkTypes}
         personnelCount={mainManpower + additionalManpower.reduce((sum, m) => sum + m.manpower, 0)}
         location={location}
         beforePhotosCount={0}
