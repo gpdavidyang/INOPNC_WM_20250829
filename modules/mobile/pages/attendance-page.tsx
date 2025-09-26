@@ -800,6 +800,8 @@ const AttendanceContent: React.FC = () => {
 
       history.push({
         month: targetDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' }),
+        yearNumber: year,
+        monthNumber: month + 1,
         paidDate: new Date(year, month + 1, 0).toISOString().split('T')[0],
         totalSalary,
         baseSalary,
@@ -1081,7 +1083,31 @@ const AttendanceContent: React.FC = () => {
                   <h3 className="t-h3 mb-3">최근 급여 내역</h3>
                   <Stack gap="sm">
                     {recentSalaryHistory.map((salaryRecord, index) => (
-                      <div key={index} className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900/40">
+                      <div
+                        key={index}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          if (!userId) return
+                          const y = (salaryRecord as any).yearNumber
+                          const m = (salaryRecord as any).monthNumber
+                          if (y && m) {
+                            window.open(`/payslip/${userId}/${y}/${m}`, '_blank')
+                          }
+                        }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            if (!userId) return
+                            const y = (salaryRecord as any).yearNumber
+                            const m = (salaryRecord as any).monthNumber
+                            if (y && m) {
+                              window.open(`/payslip/${userId}/${y}/${m}`, '_blank')
+                            }
+                          }
+                        }}
+                        className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900/40 cursor-pointer"
+                      >
                         <Row justify="between">
                           <span className="t-body font-medium">{salaryRecord.month}</span>
                           <span className="t-body">지급일: {salaryRecord.paidDate}</span>
