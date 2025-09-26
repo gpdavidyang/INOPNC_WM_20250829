@@ -10,7 +10,7 @@ const quickMenuItems = [
     label: '출력정보',
   },
   {
-    href: '/mobile/worklog',
+    href: '/mobile/worklogs',
     icon: '/icons/report_worklog.png',
     label: '작업일지',
   },

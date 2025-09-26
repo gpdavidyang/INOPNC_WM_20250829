@@ -20,7 +20,7 @@ interface PartnerCompanySelectProps {
 export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
   value,
   onChange,
-  required = false
+  required = false,
 }) => {
   const [partnerCompanies, setPartnerCompanies] = useState<PartnerCompany[]>([])
   const [loading, setLoading] = useState(false)
@@ -58,10 +58,10 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
 
   const getCompanyTypeDisplay = (type: string) => {
     const typeMap: { [key: string]: string } = {
-      'subcontractor': '하청업체',
-      'supplier': '공급업체',
-      'consultant': '컨설턴트',
-      'partner': '파트너사'
+      subcontractor: '하청업체',
+      supplier: '공급업체',
+      consultant: '컨설턴트',
+      partner: '파트너사',
     }
     return typeMap[type] || type
   }
@@ -71,7 +71,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
       <label className="form-label">
         파트너사 {required && <span className="required">*</span>}
       </label>
-      
+
       <div className="partner-select-container">
         <button
           type="button"
@@ -101,21 +101,15 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
             {error ? (
               <div className="partner-select-error">
                 {error}
-                <button 
-                  type="button" 
-                  className="retry-btn"
-                  onClick={fetchPartnerCompanies}
-                >
+                <button type="button" className="retry-btn" onClick={fetchPartnerCompanies}>
                   다시 시도
                 </button>
               </div>
             ) : partnerCompanies.length === 0 ? (
-              <div className="partner-select-empty">
-                등록된 파트너사가 없습니다
-              </div>
+              <div className="partner-select-empty">등록된 파트너사가 없습니다</div>
             ) : (
               <div className="partner-select-options">
-                {partnerCompanies.map((company) => (
+                {partnerCompanies.map(company => (
                   <button
                     key={company.id}
                     type="button"
@@ -125,9 +119,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
                       setIsOpen(false)
                     }}
                   >
-                    <div className="company-main">
-                      {company.company_name}
-                    </div>
+                    <div className="company-main">{company.company_name}</div>
                     <div className="company-details">
                       <span className="company-type-badge">
                         {getCompanyTypeDisplay(company.company_type)}
@@ -147,12 +139,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
       </div>
 
       {/* Overlay to close dropdown when clicking outside */}
-      {isOpen && (
-        <div 
-          className="partner-select-overlay"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <div className="partner-select-overlay" onClick={() => setIsOpen(false)} />}
 
       <style jsx>{`
         .partner-select-container {
@@ -168,7 +155,8 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
           background: var(--surface);
           border: 1px solid var(--line);
           border-radius: 14px;
-          font-size: 16px;
+          font-size: var(--fs-body, 15px);
+          font-weight: 400;
           color: var(--text);
           cursor: pointer;
           transition: all 0.2s ease;
@@ -203,7 +191,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
         }
 
         .company-type {
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           color: var(--muted-ink);
         }
 
@@ -247,7 +235,8 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
           border: none;
           border-radius: 6px;
           cursor: pointer;
-          font-size: 12px;
+          font-size: var(--fs-ctl, 14px);
+          font-weight: 500;
         }
 
         .partner-select-empty {
@@ -273,6 +262,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
           cursor: pointer;
           transition: background 0.2s ease;
           text-align: left;
+          font-size: var(--fs-body, 15px);
         }
 
         .partner-select-option:hover {
@@ -289,7 +279,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
         }
 
         .company-main {
-          font-size: 16px;
+          font-size: var(--fs-body, 15px);
           font-weight: 500;
           color: var(--text);
           margin-bottom: 4px;
@@ -303,7 +293,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
           display: flex;
           align-items: center;
           gap: 8px;
-          font-size: 12px;
+          font-size: var(--fs-tiny, 12px);
         }
 
         .company-type-badge {
@@ -311,6 +301,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
           background: var(--tag-blue-20);
           color: var(--tag-blue);
           border-radius: 4px;
+          font-size: var(--fs-tiny, 12px);
           font-weight: 500;
         }
 

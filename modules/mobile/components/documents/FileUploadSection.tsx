@@ -40,7 +40,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
     maxFileSize: 10 * 1024 * 1024, // 10MB
     allowedTypes: ['.pdf', '.jpg', '.jpeg', '.png', '.doc', '.docx'],
     maxFiles: 5,
-    onUploadComplete: (file) => {
+    onUploadComplete: file => {
       console.log('Upload completed:', file)
       onUploadComplete?.(completedFiles)
     },
@@ -73,11 +73,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 
   if (!showUpload) {
     return (
-      <button
-        className="upload-trigger-btn"
-        onClick={handleUploadClick}
-        disabled={isUploading}
-      >
+      <button className="upload-trigger-btn" onClick={handleUploadClick} disabled={isUploading}>
         <span className="upload-icon">📁</span>
         업로드
       </button>
@@ -90,11 +86,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         {/* Header */}
         <div className="upload-header">
           <h3>{documentTitle} 파일 업로드</h3>
-          <button
-            className="upload-close-btn"
-            onClick={handleCloseUpload}
-            aria-label="업로드 닫기"
-          >
+          <button className="upload-close-btn" onClick={handleCloseUpload} aria-label="업로드 닫기">
             ✕
           </button>
         </div>
@@ -109,15 +101,13 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           onClick={selectFiles}
         >
           <div className="drag-drop-content">
-            <div className="drag-drop-icon">
-              {isUploading ? '⏳' : dragActive ? '📤' : '📁'}
-            </div>
+            <div className="drag-drop-icon">{isUploading ? '⏳' : dragActive ? '📤' : '📁'}</div>
             <div className="drag-drop-text">
               {isUploading
                 ? '업로드 중...'
                 : dragActive
-                ? '파일을 여기에 놓으세요'
-                : '파일을 드래그하거나 클릭하여 업로드'}
+                  ? '파일을 여기에 놓으세요'
+                  : '파일을 드래그하거나 클릭하여 업로드'}
             </div>
             <div className="drag-drop-subtitle">
               {!isUploading && 'PDF, JPG, PNG, DOC 파일 (최대 10MB)'}
@@ -125,10 +115,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           </div>
           {isUploading && (
             <div className="upload-progress-bar">
-              <div
-                className="upload-progress-fill"
-                style={{ width: `${overallProgress}%` }}
-              />
+              <div className="upload-progress-fill" style={{ width: `${overallProgress}%` }} />
             </div>
           )}
         </div>
@@ -156,14 +143,12 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
             </div>
 
             <div className="file-list">
-              {uploadedFiles.map((file) => (
+              {uploadedFiles.map(file => (
                 <div key={file.id} className={`file-item file-${file.status}`}>
                   <div className="file-info">
                     <div className="file-name">{file.name}</div>
                     <div className="file-details">
-                      <span className="file-size">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </span>
+                      <span className="file-size">{(file.size / 1024 / 1024).toFixed(2)} MB</span>
                       <span className="file-status">
                         {file.status === 'uploading' && '업로드 중...'}
                         {file.status === 'completed' && '✅ 완료'}
@@ -203,14 +188,10 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         <div className="upload-actions">
           <div className="upload-info">
             {completedFiles.length > 0 && (
-              <span className="completed-count">
-                {completedFiles.length}개 파일 업로드 완료
-              </span>
+              <span className="completed-count">{completedFiles.length}개 파일 업로드 완료</span>
             )}
             {errorFiles.length > 0 && (
-              <span className="error-count">
-                {errorFiles.length}개 파일 업로드 실패
-              </span>
+              <span className="error-count">{errorFiles.length}개 파일 업로드 실패</span>
             )}
           </div>
 
@@ -270,7 +251,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           color: white;
           border: none;
           border-radius: 6px;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           font-weight: 500;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -288,7 +269,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         }
 
         .upload-icon {
-          font-size: 16px;
+          font-size: var(--fs-body, 15px);
         }
 
         .upload-header {
@@ -300,7 +281,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         }
 
         .upload-header h3 {
-          font-size: 18px;
+          font-size: var(--fs-heading, 20px);
           font-weight: 600;
           color: var(--text-primary, #1a1a1a);
           margin: 0;
@@ -365,19 +346,24 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         }
 
         @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-5px); }
+          0%,
+          100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-5px);
+          }
         }
 
         .drag-drop-text {
-          font-size: 16px;
+          font-size: var(--fs-body, 15px);
           font-weight: 600;
           color: var(--text-primary, #1a1a1a);
           margin-bottom: 8px;
         }
 
         .drag-drop-subtitle {
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           color: var(--text-secondary, #666666);
         }
 
@@ -411,14 +397,14 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         }
 
         .status-header h4 {
-          font-size: 16px;
+          font-size: var(--fs-body, 15px);
           font-weight: 600;
           color: var(--text-primary, #1a1a1a);
           margin: 0;
         }
 
         .clear-all-btn {
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           color: var(--danger-color, #dc2626);
           background: none;
           border: none;
@@ -467,7 +453,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         }
 
         .file-name {
-          font-size: 14px;
+          font-size: var(--fs-body, 15px);
           font-weight: 500;
           color: var(--text-primary, #1a1a1a);
           margin-bottom: 4px;
@@ -477,7 +463,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         .file-details {
           display: flex;
           gap: 12px;
-          font-size: 12px;
+          font-size: var(--fs-tiny, 12px);
           color: var(--text-secondary, #666666);
         }
 
@@ -503,7 +489,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
         }
 
         .file-progress-text {
-          font-size: 12px;
+          font-size: var(--fs-tiny, 12px);
           color: var(--text-secondary, #666666);
           min-width: 30px;
         }
@@ -515,7 +501,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           cursor: pointer;
           padding: 4px;
           border-radius: 4px;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           transition: all 0.2s ease;
         }
 
@@ -534,7 +520,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           display: flex;
           gap: 16px;
           margin-bottom: 16px;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
         }
 
         .completed-count {
@@ -555,7 +541,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
           padding: 12px 16px;
           border: none;
           border-radius: 8px;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;

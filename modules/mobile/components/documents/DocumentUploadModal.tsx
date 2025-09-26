@@ -164,13 +164,13 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         .selected-file {
           display: flex;
           justify-content: space-between;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           color: #4b5563;
         }
 
         .upload-error {
           color: #ef4444;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
         }
 
         .upload-actions {
@@ -184,7 +184,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
           padding: 10px 16px;
           border-radius: 8px;
           font-weight: 600;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           cursor: pointer;
           border: none;
           transition: opacity 0.2s ease;

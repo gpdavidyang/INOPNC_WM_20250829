@@ -95,17 +95,15 @@ const AttendanceContent: React.FC = () => {
   const [siteOptions, setSiteOptions] = useState<SiteOption[]>([
     { value: 'all', label: '전체 현장' },
   ])
+  const [assignmentOptions, setAssignmentOptions] = useState<SiteOption[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedYearMonth, setSelectedYearMonth] = useState(() => format(new Date(), 'yyyy-MM'))
   const [salarySiteId, setSalarySiteId] = useState<string>('all')
-  const [salaryPeriod, setSalaryPeriod] = useState<'3' | '6' | '12' | '24'>('3')
-  const [employmentType, setEmploymentType] = useState<'freelance' | 'daily' | 'regular'>(
-    'freelance'
+  const [salarySelectedYearMonth, setSalarySelectedYearMonth] = useState(() =>
+    format(new Date(), 'yyyy-MM')
   )
-  const [isSalaryFormOpen, setIsSalaryFormOpen] = useState(false)
   const [previewScale, setPreviewScale] = useState(100)
-  const [manualBaseSalary, setManualBaseSalary] = useState('')
 
   // Real-time data states
   const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([])
@@ -165,9 +163,10 @@ const AttendanceContent: React.FC = () => {
       setLoading(true)
 
       try {
-        const salaryMonths = Number(salaryPeriod)
+        const salaryMonths = 12
+        const selectedSalaryDate = parseISO(`${salarySelectedYearMonth}-01`)
         const calendarStart = startOfWeek(startOfMonth(currentDate), { locale: ko })
-        const salaryStart = startOfMonth(addMonths(new Date(), -(salaryMonths - 1)))
+        const salaryStart = startOfMonth(addMonths(selectedSalaryDate, -(salaryMonths - 1)))
         const rangeStartDate = calendarStart < salaryStart ? calendarStart : salaryStart
 
         const calendarEnd = endOfWeek(endOfMonth(currentDate), { locale: ko })
@@ -223,11 +222,84 @@ const AttendanceContent: React.FC = () => {
     }
 
     fetchWorkRecords()
-  }, [profile?.id, currentDate, salaryPeriod, supabase, transformWorkRecord])
+  }, [profile?.id, currentDate, salarySelectedYearMonth, supabase, transformWorkRecord])
+
+  // Load assigned sites so filters include current user's 현장 목록
+  useEffect(() => {
+    if (!profile?.id) return
+
+    let isCancelled = false
+
+    const fetchAssignments = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('site_assignments')
+          .select(
+            `
+            site_id,
+            is_active,
+            assigned_date,
+            sites (
+              id,
+              name
+            )
+          `
+          )
+          .eq('user_id', profile.id)
+          .order('assigned_date', { ascending: false })
+
+        if (error) {
+          console.error('Error fetching site assignments:', error)
+          return
+        }
+
+        if (isCancelled) return
+
+        const assignments = (data as SiteAssignmentRow[] | null) ?? []
+        const mapped = assignments
+          .map(assignment => {
+            if (assignment.is_active === false) {
+              return null
+            }
+
+            const siteId = assignment.site_id ?? assignment.sites?.id ?? null
+            if (!siteId) {
+              return null
+            }
+
+            const siteName = assignment.sites?.name?.trim()
+            return {
+              value: siteId,
+              label: siteName && siteName.length > 0 ? siteName : '현장 미지정',
+            }
+          })
+          .filter((option): option is SiteOption => option !== null)
+
+        const uniqueAssignments = Array.from(
+          new Map(mapped.map(option => [option.value, option])).values()
+        )
+
+        setAssignmentOptions(uniqueAssignments)
+      } catch (err) {
+        console.error('Error loading site assignments:', err)
+      }
+    }
+
+    fetchAssignments()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [profile?.id, supabase])
 
   // Derive site filter options from loaded records
   useEffect(() => {
     const uniqueSites = new Map<string, string>()
+    assignmentOptions.forEach(option => {
+      if (option.value !== 'all') {
+        uniqueSites.set(option.value, option.label)
+      }
+    })
     attendanceData.forEach(record => {
       if (record.site_id && record.siteName) {
         uniqueSites.set(record.site_id, record.siteName)
@@ -248,7 +320,7 @@ const AttendanceContent: React.FC = () => {
     if (salarySiteId !== 'all' && !uniqueSites.has(salarySiteId)) {
       setSalarySiteId('all')
     }
-  }, [attendanceData, selectedSiteId, salarySiteId])
+  }, [attendanceData, assignmentOptions, selectedSiteId, salarySiteId])
 
   const filteredAttendanceData = useMemo(() => {
     return attendanceData.filter(record => {
@@ -323,7 +395,7 @@ const AttendanceContent: React.FC = () => {
   }, [profile?.id, supabase, transformWorkRecord])
 
   // Dynamic salary calculation helper functions
-  const calculateMonthlySalary = (records: AttendanceRecord[]) => {
+  const calculateMonthlySalary = (records: AttendanceRecord[], targetYearMonth: string) => {
     if (!records || records.length === 0) {
       return {
         baseSalary: 0,
@@ -333,13 +405,14 @@ const AttendanceContent: React.FC = () => {
       }
     }
 
-    const currentMonth = new Date().getMonth()
-    const currentYear = new Date().getFullYear()
+    const targetDate = parseISO(`${targetYearMonth}-01`)
+    const targetMonth = targetDate.getMonth()
+    const targetYear = targetDate.getFullYear()
 
-    // Filter attendance for current month
+    // Filter attendance for target month
     const monthlyAttendance = records.filter(record => {
       const recordDate = new Date(record.date)
-      return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear
+      return recordDate.getMonth() === targetMonth && recordDate.getFullYear() === targetYear
     })
 
     // Base calculation parameters
@@ -392,6 +465,10 @@ const AttendanceContent: React.FC = () => {
     }
 
     setSelectedYearMonth(value)
+  }
+
+  const handleSalaryYearMonthChange = (value: string) => {
+    setSalarySelectedYearMonth(value)
   }
 
   // Calendar navigation helper functions
@@ -574,6 +651,28 @@ const AttendanceContent: React.FC = () => {
     return siteOptions.find(option => option.value === selectedSiteId)?.label || '전체 현장'
   }, [siteOptions, selectedSiteId])
 
+  const salaryYearMonthOptions = yearMonthOptions
+
+  const salarySelectedYearMonthLabel = useMemo(() => {
+    const matchedOption = salaryYearMonthOptions.find(
+      option => option.value === salarySelectedYearMonth
+    )
+
+    if (matchedOption) {
+      return matchedOption.label
+    }
+
+    const [yearStr, monthStr] = salarySelectedYearMonth.split('-')
+    const year = Number(yearStr)
+    const month = Number(monthStr) - 1
+
+    if (!Number.isNaN(year) && !Number.isNaN(month)) {
+      return format(new Date(year, month, 1), 'yyyy년 MM월', { locale: ko })
+    }
+
+    return format(new Date(), 'yyyy년 MM월', { locale: ko })
+  }, [salaryYearMonthOptions, salarySelectedYearMonth])
+
   const salarySiteLabel = useMemo(() => {
     return siteOptions.find(option => option.value === salarySiteId)?.label || '전체 현장'
   }, [siteOptions, salarySiteId])
@@ -583,13 +682,13 @@ const AttendanceContent: React.FC = () => {
       return { workDays: 0, restDays: 0, totalManDays: 0 }
     }
 
-    const months = Number(salaryPeriod)
-    const periodEnd = endOfMonth(new Date())
-    const periodStart = startOfMonth(addMonths(periodEnd, -(months - 1)))
+    const targetDate = parseISO(`${salarySelectedYearMonth}-01`)
+    const monthStart = startOfMonth(targetDate)
+    const monthEnd = endOfMonth(targetDate)
 
     const attendanceInPeriod = salaryAttendanceData.filter(record => {
       const recordDate = parseISO(record.date)
-      return recordDate >= periodStart && recordDate <= periodEnd
+      return recordDate >= monthStart && recordDate <= monthEnd
     })
 
     const workDaySet = new Set<string>()
@@ -606,28 +705,24 @@ const AttendanceContent: React.FC = () => {
       totalHours += record.workHours || 0
     })
 
-    const totalDaysInPeriod = Math.max(
-      0,
-      Math.floor((periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    )
-
     const workDays = workDaySet.size
-    const restDays = Math.max(totalDaysInPeriod - workDays, 0)
+    const totalDaysInMonth = monthEnd.getDate()
+    const restDays = Math.max(totalDaysInMonth - workDays, 0)
 
     return {
       workDays,
       restDays,
       totalManDays: Number((totalHours / 8).toFixed(1)),
     }
-  }, [salaryAttendanceData, salaryPeriod])
+  }, [salaryAttendanceData, salarySelectedYearMonth])
 
   // Calculate recent salary history (last 3 months)
-  const calculateRecentSalaryHistory = (records: AttendanceRecord[]) => {
+  const calculateRecentSalaryHistory = (records: AttendanceRecord[], targetYearMonth: string) => {
     const history = []
-    const now = new Date()
+    const baseDate = parseISO(`${targetYearMonth}-01`)
 
-    for (let i = 1; i <= 3; i++) {
-      const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    for (let i = 0; i < 3; i++) {
+      const targetDate = addMonths(baseDate, -i)
       const month = targetDate.getMonth()
       const year = targetDate.getFullYear()
 
@@ -681,12 +776,12 @@ const AttendanceContent: React.FC = () => {
 
   // Get current month salary data
   const currentSalaryData = useMemo(
-    () => calculateMonthlySalary(salaryAttendanceData),
-    [salaryAttendanceData]
+    () => calculateMonthlySalary(salaryAttendanceData, salarySelectedYearMonth),
+    [salaryAttendanceData, salarySelectedYearMonth]
   )
   const recentSalaryHistory = useMemo(
-    () => calculateRecentSalaryHistory(salaryAttendanceData),
-    [salaryAttendanceData]
+    () => calculateRecentSalaryHistory(salaryAttendanceData, salarySelectedYearMonth),
+    [salaryAttendanceData, salarySelectedYearMonth]
   )
 
   // Salary chart data preparation functions
@@ -711,11 +806,11 @@ const AttendanceContent: React.FC = () => {
   const prepareSalaryComparisonData = () => {
     const thisMonth = currentSalaryData.totalSalary
     const lastMonth =
-      recentSalaryHistory.length > 0 ? recentSalaryHistory[0].totalSalary : thisMonth
+      recentSalaryHistory.length > 1 ? recentSalaryHistory[1].totalSalary : thisMonth
     const avgSalary =
       recentSalaryHistory.length > 0
-        ? recentSalaryHistory.reduce((sum, item) => sum + item.totalSalary, thisMonth) /
-          (recentSalaryHistory.length + 1)
+        ? recentSalaryHistory.reduce((sum, item) => sum + item.totalSalary, 0) /
+          recentSalaryHistory.length
         : thisMonth
 
     return [
@@ -871,36 +966,50 @@ const AttendanceContent: React.FC = () => {
         {activeTab === 'salary' && (
           <section className="space-y-4">
             <div className="pay-filter-section">
-              <div className="flex gap-3">
-                <label className="select-shell flex-1" aria-label="급여 현장 선택">
-                  <div className="box text-gray-900 dark:text-white">{salarySiteLabel}</div>
-                  <span className="arrow" aria-hidden="true" />
-                  <select
-                    value={salarySiteId}
-                    onChange={event => setSalarySiteId(event.target.value)}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="w-full">
+                  <CustomSelect value={salarySiteId} onValueChange={setSalarySiteId}>
+                    <CustomSelectTrigger
+                      className={clsx(
+                        'calendar-filter-trigger text-[15px] font-semibold w-full',
+                        'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]'
+                      )}
+                      aria-label="급여 현장 선택"
+                    >
+                      <CustomSelectValue>{salarySiteLabel}</CustomSelectValue>
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      {siteOptions.map(option => (
+                        <CustomSelectItem key={`salary-${option.value}`} value={option.value}>
+                          {option.label}
+                        </CustomSelectItem>
+                      ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
+                <div className="w-full">
+                  <CustomSelect
+                    value={salarySelectedYearMonth}
+                    onValueChange={handleSalaryYearMonthChange}
                   >
-                    {siteOptions.map(option => (
-                      <option key={`salary-${option.value}`} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="select-shell flex-1" aria-label="급여 기간 선택">
-                  <div className="box text-gray-900 dark:text-white">최근 {salaryPeriod}개월</div>
-                  <span className="arrow" aria-hidden="true" />
-                  <select
-                    value={salaryPeriod}
-                    onChange={event =>
-                      setSalaryPeriod(event.target.value as '3' | '6' | '12' | '24')
-                    }
-                  >
-                    <option value="3">최근 3개월</option>
-                    <option value="6">최근 6개월</option>
-                    <option value="12">최근 12개월</option>
-                    <option value="24">최근 24개월</option>
-                  </select>
-                </label>
+                    <CustomSelectTrigger
+                      className={clsx(
+                        'calendar-filter-trigger text-[15px] font-semibold w-full',
+                        'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]'
+                      )}
+                      aria-label="연도와 월 선택"
+                    >
+                      <CustomSelectValue>{salarySelectedYearMonthLabel}</CustomSelectValue>
+                    </CustomSelectTrigger>
+                    <CustomSelectContent>
+                      {salaryYearMonthOptions.map(option => (
+                        <CustomSelectItem key={`salary-month-${option.value}`} value={option.value}>
+                          {option.label}
+                        </CustomSelectItem>
+                      ))}
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
               </div>
             </div>
 
@@ -919,79 +1028,7 @@ const AttendanceContent: React.FC = () => {
               </div>
             </section>
 
-            <Card>
-              <CardContent className="p-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="t-h3">급여 정보 입력</h3>
-                  <button
-                    type="button"
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                    onClick={() => setIsSalaryFormOpen(prev => !prev)}
-                  >
-                    {isSalaryFormOpen ? '접기' : '펼치기'}
-                  </button>
-                </div>
-
-                {isSalaryFormOpen && (
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="label-part block mb-1">공수(자동)</label>
-                        <input
-                          className="w-full h-12 px-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white rounded-xl"
-                          value={salaryStats.totalManDays}
-                          readOnly
-                        />
-                      </div>
-                      <div>
-                        <label className="label-part block mb-1">휴무일(자동)</label>
-                        <input
-                          className="w-full h-12 px-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white rounded-xl"
-                          value={salaryStats.restDays}
-                          readOnly
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="label-part block mb-1">기본급(자동)</label>
-                        <input
-                          className="w-full h-12 px-3 border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-slate-900/60 text-gray-900 dark:text-white rounded-xl"
-                          value={`₩${currentSalaryData.baseSalary.toLocaleString()}`}
-                          readOnly
-                        />
-                      </div>
-                      <div>
-                        <label className="label-part block mb-1">기본급(직접입력)</label>
-                        <input
-                          className="w-full h-12 px-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-slate-900/60 text-gray-900 dark:text-white rounded-xl"
-                          placeholder="기본급 직접입력"
-                          value={manualBaseSalary}
-                          onChange={event => setManualBaseSalary(event.target.value)}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="label-part block mb-2">고용형태</label>
-                      <div className="chip-group">
-                        {(['freelance', 'daily', 'regular'] as const).map(type => (
-                          <button
-                            key={type}
-                            type="button"
-                            className={clsx('chip', employmentType === type && 'active')}
-                            onClick={() => setEmploymentType(type)}
-                          >
-                            {type === 'freelance' ? '프리' : type === 'daily' ? '일용' : '상용'}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* 제거된 '급여 정보 입력' 섹션 */}
 
             <Card>
               <CardContent className="p-3 space-y-2">
