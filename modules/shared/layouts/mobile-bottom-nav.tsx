@@ -18,7 +18,7 @@ export const MobileBottomNav: React.FC = () => {
     { label: '출근', href: '/mobile/attendance', icon: 'clock' },
     { label: '작업일지', href: '/mobile/worklog', icon: 'clipboard' },
     { label: '현장정보', href: '/mobile/sites', icon: 'map' },
-    { label: '문서함', href: '/mobile/docs', icon: 'folder' },
+    { label: '문서함', href: '/mobile/documents', icon: 'folder' },
   ]
 
   const getIcon = (iconName: string) => {
