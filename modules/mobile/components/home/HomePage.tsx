@@ -45,6 +45,7 @@ const WORK_PROCESS_OPTIONS = [
 
 const WORK_TYPE_OPTIONS = [
   { value: '지하', label: '지하' },
+  { value: '지상', label: '지상' },
   { value: '지붕', label: '지붕' },
   { value: 'other', label: '기타' },
 ] as const
