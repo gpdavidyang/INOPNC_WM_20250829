@@ -28,7 +28,9 @@ export default function PayslipPage() {
         // 2. 월 급여 요약(서버 API)
         const y = Number(year)
         const m = Number(month)
-        const res = await fetch(`/api/salary/monthly?year=${y}&month=${m}`)
+        const res = await fetch(
+          `/api/salary/monthly?year=${y}&month=${m}&workerId=${encodeURIComponent(userId)}`
+        )
         const json = await res.json()
         if (!json?.success) throw new Error(json?.error || '급여 정보를 계산할 수 없습니다.')
 

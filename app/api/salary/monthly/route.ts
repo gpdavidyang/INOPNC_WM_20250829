@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const year = Number(searchParams.get('year'))
     const month = Number(searchParams.get('month'))
+    const workerIdParam = searchParams.get('workerId') || undefined
     if (!year || !month) {
       return NextResponse.json(
         { success: false, error: 'year, month가 필요합니다.' },
@@ -23,20 +24,24 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient()
 
+    // Resolve target worker: admin/system_admin can query others, otherwise self only
+    const isAdmin = auth.role === 'admin' || auth.role === 'system_admin'
+    const targetWorkerId = workerIdParam && isAdmin ? workerIdParam : auth.userId
+
     // 0) 스냅샷 우선 조회
-    const { snapshot } = await getSalarySnapshot(auth.userId, year, month)
+    const { snapshot } = await getSalarySnapshot(targetWorkerId, year, month)
 
     // 1) 월간 급여 계산 (스냅샷 없으면 서버 계산)
     const monthly = snapshot
       ? snapshot.salary
-      : await salaryCalculationService.calculateMonthlySalary(auth.userId, year, month)
+      : await salaryCalculationService.calculateMonthlySalary(targetWorkerId, year, month)
 
     // 2) 급여 정보(일급/고용형태) 조회
     const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
     const { data: salaryInfo } = await supabase
       .from('salary_info')
       .select('*')
-      .eq('user_id', auth.userId)
+      .eq('user_id', targetWorkerId)
       .lte('effective_date', monthStart)
       .is('end_date', null)
       .order('effective_date', { ascending: false })
@@ -46,7 +51,7 @@ export async function GET(request: NextRequest) {
     const { data: profile } = await supabase
       .from('profiles')
       .select('employment_type, full_name')
-      .eq('id', auth.userId)
+      .eq('id', targetWorkerId)
       .single()
 
     const daily_rate =
@@ -60,7 +65,7 @@ export async function GET(request: NextRequest) {
     const { data: workInMonth } = await supabase
       .from('work_records')
       .select('site_id')
-      .or(`user_id.eq.${auth.userId},profile_id.eq.${auth.userId}`)
+      .or(`user_id.eq.${targetWorkerId},profile_id.eq.${targetWorkerId}`)
       .gte('work_date', periodStart)
       .lte('work_date', periodEnd)
 
