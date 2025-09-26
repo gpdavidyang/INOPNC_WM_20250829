@@ -749,8 +749,8 @@ const AttendanceContent: React.FC = () => {
 
         {activeTab === 'work' && (
           <section className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="flex-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="w-full">
                 <CustomSelect value={selectedSiteId} onValueChange={setSelectedSiteId}>
                   <CustomSelectTrigger
                     className={clsx(
@@ -770,7 +770,7 @@ const AttendanceContent: React.FC = () => {
                   </CustomSelectContent>
                 </CustomSelect>
               </div>
-              <div className="flex-1">
+              <div className="w-full">
                 <CustomSelect value={selectedYearMonth} onValueChange={handleYearMonthChange}>
                   <CustomSelectTrigger
                     className={clsx(
