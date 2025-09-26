@@ -188,6 +188,7 @@ export async function POST(request: NextRequest) {
       markup_data,
       preview_image_url,
     } = body
+    const siteIdFromBody = body?.site_id as string | undefined
 
     // 필수 필드 검증
     if (!title || !original_blueprint_url || !original_blueprint_filename) {
@@ -198,6 +199,25 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       )
+    }
+
+    // 유효한 site_id 결정 순서: 요청 바디 > 활성 배정 > 프로필 기본값
+    let effectiveSiteId: string | null = null
+    if (siteIdFromBody) {
+      effectiveSiteId = String(siteIdFromBody)
+    } else {
+      try {
+        const { data: activeAssignment } = await supabase
+          .from('site_assignments')
+          .select('site_id')
+          .eq('user_id', authResult.userId)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle()
+        effectiveSiteId = activeAssignment?.site_id ?? (profile as any).site_id ?? null
+      } catch {
+        effectiveSiteId = (profile as any).site_id ?? null
+      }
     }
 
     // 마킹 개수 계산
@@ -214,7 +234,7 @@ export async function POST(request: NextRequest) {
         markup_data: markup_data || [],
         preview_image_url,
         created_by: authResult.userId,
-        site_id: (profile as unknown).site_id,
+        site_id: effectiveSiteId,
         markup_count,
         file_size: 0, // TODO: 실제 파일 크기 계산
       } as unknown)
