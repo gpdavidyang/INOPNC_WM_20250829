@@ -7,6 +7,13 @@ import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 import { Card, CardContent, Button, Stack, Chip, Badge, Row } from '@/modules/shared/ui'
 import { createClient } from '@/lib/supabase/client'
 import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import {
   format,
   startOfMonth,
   endOfMonth,
@@ -88,12 +95,17 @@ const AttendanceContent: React.FC = () => {
 
   // Filters & UI states
   const [selectedSiteId, setSelectedSiteId] = useState<string>('all')
-  const [siteOptions, setSiteOptions] = useState<SiteOption[]>([{ value: 'all', label: '전체 현장' }])
+  const [siteOptions, setSiteOptions] = useState<SiteOption[]>([
+    { value: 'all', label: '전체 현장' },
+  ])
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
   const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedYearMonth, setSelectedYearMonth] = useState(() => format(new Date(), 'yyyy-MM'))
   const [salarySiteId, setSalarySiteId] = useState<string>('all')
   const [salaryPeriod, setSalaryPeriod] = useState<'3' | '6' | '12' | '24'>('3')
-  const [employmentType, setEmploymentType] = useState<'freelance' | 'daily' | 'regular'>('freelance')
+  const [employmentType, setEmploymentType] = useState<'freelance' | 'daily' | 'regular'>(
+    'freelance'
+  )
   const [isSalaryFormOpen, setIsSalaryFormOpen] = useState(false)
   const [previewScale, setPreviewScale] = useState(100)
   const [manualBaseSalary, setManualBaseSalary] = useState('')
@@ -303,11 +315,7 @@ const AttendanceContent: React.FC = () => {
           const oldRecord = payload.old as Record<string, any>
 
           const belongsToUser = (record: Record<string, any> | null | undefined) =>
-            Boolean(
-              record &&
-              (record.user_id === profile.id ||
-                record.profile_id === profile.id)
-            )
+            Boolean(record && (record.user_id === profile.id || record.profile_id === profile.id))
 
           if (payload.eventType === 'DELETE') {
             if (!belongsToUser(oldRecord)) return
@@ -480,6 +488,18 @@ const AttendanceContent: React.FC = () => {
     }
   }
 
+  const handleYearMonthChange = (value: string) => {
+    const [yearStr, monthStr] = value.split('-')
+    const year = Number(yearStr)
+    const month = Number(monthStr) - 1
+
+    if (!Number.isNaN(year) && !Number.isNaN(month)) {
+      setCurrentDate(new Date(year, month, 1))
+    }
+
+    setSelectedYearMonth(value)
+  }
+
   // Calendar navigation helper functions
   const handleNextMonth = () => {
     setCurrentDate(addMonths(currentDate, 1))
@@ -521,9 +541,7 @@ const AttendanceContent: React.FC = () => {
       return recordDate >= startDate && recordDate <= endDate
     })
 
-    return results
-      .slice()
-      .sort((a, b) => b.date.localeCompare(a.date))
+    return results.slice().sort((a, b) => b.date.localeCompare(a.date))
   }
 
   // Format current period for display
@@ -619,7 +637,12 @@ const AttendanceContent: React.FC = () => {
   }, [filteredAttendanceData])
 
   const weeklyComparisonData = useMemo(() => {
-    const comparisonData = [] as Array<{ week: string; hours: number; workDays: number; avgHours: number }>
+    const comparisonData = [] as Array<{
+      week: string
+      hours: number
+      workDays: number
+      avgHours: number
+    }>
     const currentWeekStart = startOfWeek(currentDate, { locale: ko })
 
     for (let i = 0; i < 4; i++) {
@@ -634,9 +657,7 @@ const AttendanceContent: React.FC = () => {
       const totalHours = weekAttendance.reduce((sum, record) => sum + (record.workHours || 0), 0)
       const workDays = weekAttendance.filter(
         record =>
-          record.status === 'present' ||
-          record.status === 'late' ||
-          record.status === 'in-progress'
+          record.status === 'present' || record.status === 'late' || record.status === 'in-progress'
       ).length
 
       comparisonData.unshift({
@@ -669,7 +690,11 @@ const AttendanceContent: React.FC = () => {
     let totalHours = 0
 
     monthlyAttendance.forEach(record => {
-      if (record.status === 'present' || record.status === 'late' || record.status === 'in-progress') {
+      if (
+        record.status === 'present' ||
+        record.status === 'late' ||
+        record.status === 'in-progress'
+      ) {
         workDaySet.add(record.date)
       }
       if (record.site_id) {
@@ -699,15 +724,15 @@ const AttendanceContent: React.FC = () => {
         )
       )
 
-        return {
-          date: targetDate,
-          iso,
-          isCurrentMonth: targetDate.getMonth() === currentDate.getMonth(),
-          isSunday: targetDate.getDay() === 0,
-          totalHours: Number(totalHours.toFixed(1)),
-          totalManDays: Number(totalManDays.toFixed(1)),
-          sites: dayRecords.length > 0 ? siteLabels : [],
-        }
+      return {
+        date: targetDate,
+        iso,
+        isCurrentMonth: targetDate.getMonth() === currentDate.getMonth(),
+        isSunday: targetDate.getDay() === 0,
+        totalHours: Number(totalHours.toFixed(1)),
+        totalManDays: Number(totalManDays.toFixed(1)),
+        sites: dayRecords.length > 0 ? siteLabels : [],
+      }
     }
 
     if (viewMode === 'week') {
@@ -727,6 +752,40 @@ const AttendanceContent: React.FC = () => {
 
     return days
   }, [filteredAttendanceData, currentDate, viewMode])
+
+  const yearMonthOptions = useMemo(() => {
+    const start = subMonths(startOfMonth(currentDate), 5)
+
+    return Array.from({ length: 12 }, (_, idx) => {
+      const date = addMonths(start, idx)
+      return {
+        value: format(date, 'yyyy-MM'),
+        label: format(date, 'yyyy년 MM월', { locale: ko }),
+      }
+    })
+  }, [currentDate])
+
+  const selectedYearMonthLabel = useMemo(() => {
+    const matchedOption = yearMonthOptions.find(option => option.value === selectedYearMonth)
+    if (matchedOption) {
+      return matchedOption.label
+    }
+
+    const [yearStr, monthStr] = selectedYearMonth.split('-')
+    const year = Number(yearStr)
+    const month = Number(monthStr) - 1
+
+    if (!Number.isNaN(year) && !Number.isNaN(month)) {
+      return format(new Date(year, month, 1), 'yyyy년 MM월', { locale: ko })
+    }
+
+    return format(currentDate, 'yyyy년 MM월', { locale: ko })
+  }, [yearMonthOptions, selectedYearMonth, currentDate])
+
+  useEffect(() => {
+    const formatted = format(currentDate, 'yyyy-MM')
+    setSelectedYearMonth(prev => (prev === formatted ? prev : formatted))
+  }, [currentDate])
 
   const selectedSiteLabel = useMemo(() => {
     return siteOptions.find(option => option.value === selectedSiteId)?.label || '전체 현장'
@@ -754,7 +813,11 @@ const AttendanceContent: React.FC = () => {
     let totalHours = 0
 
     attendanceInPeriod.forEach(record => {
-      if (record.status === 'present' || record.status === 'late' || record.status === 'in-progress') {
+      if (
+        record.status === 'present' ||
+        record.status === 'late' ||
+        record.status === 'in-progress'
+      ) {
         workDaySet.add(record.date)
       }
       totalHours += record.workHours || 0
@@ -881,10 +944,7 @@ const AttendanceContent: React.FC = () => {
 
   return (
     <MobileLayoutShell>
-      <div className="attendance-page w-full max-w-[480px] mx-auto px-4 pb-6 space-y-4">
-        <header className="flex items-center justify-between pt-2">
-          <h1 className="t-h2">출력정보</h1>
-        </header>
+      <div className="attendance-page w-full max-w-[480px] mx-auto px-4 pt-3 pb-6 space-y-4">
         <nav className="line-tabs">
           <button
             type="button"
@@ -906,21 +966,49 @@ const AttendanceContent: React.FC = () => {
 
         {activeTab === 'work' && (
           <section className="space-y-4">
-            <div className="site-filter-section">
-              <label className="select-shell" aria-label="현장 선택">
-                <div className="box text-gray-900 dark:text-white">{selectedSiteLabel}</div>
-                <span className="arrow" aria-hidden="true" />
-                <select
-                  value={selectedSiteId}
-                  onChange={event => setSelectedSiteId(event.target.value)}
-                >
-                  {siteOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            <div className="site-filter-section flex flex-col gap-3 sm:flex-row sm:items-center">
+              <div className="w-full sm:flex-1">
+                <CustomSelect value={selectedSiteId} onValueChange={setSelectedSiteId}>
+                  <CustomSelectTrigger
+                    className={clsx(
+                      '!h-12 !bg-white !border-[#e6eaf2] !text-[#1a254f]',
+                      'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]',
+                      'text-[15px] font-semibold shadow-sm'
+                    )}
+                    aria-label="현장 선택"
+                  >
+                    <CustomSelectValue>{selectedSiteLabel}</CustomSelectValue>
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    {siteOptions.map(option => (
+                      <CustomSelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
+              </div>
+              <div className="w-full sm:w-[180px]">
+                <CustomSelect value={selectedYearMonth} onValueChange={handleYearMonthChange}>
+                  <CustomSelectTrigger
+                    className={clsx(
+                      '!h-12 !bg-white !border-[#e6eaf2] !text-[#1a254f]',
+                      'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]',
+                      'text-[15px] font-semibold shadow-sm'
+                    )}
+                    aria-label="연도와 월 선택"
+                  >
+                    <CustomSelectValue>{selectedYearMonthLabel}</CustomSelectValue>
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    {yearMonthOptions.map(option => (
+                      <CustomSelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
+              </div>
             </div>
 
             <section className="cal-wrap" aria-label="출력현황 달력">
@@ -1219,7 +1307,9 @@ const AttendanceContent: React.FC = () => {
                   <span className="arrow" aria-hidden="true" />
                   <select
                     value={salaryPeriod}
-                    onChange={event => setSalaryPeriod(event.target.value as '3' | '6' | '12' | '24')}
+                    onChange={event =>
+                      setSalaryPeriod(event.target.value as '3' | '6' | '12' | '24')
+                    }
                   >
                     <option value="3">최근 3개월</option>
                     <option value="6">최근 6개월</option>
@@ -1324,19 +1414,27 @@ const AttendanceContent: React.FC = () => {
                 <h3 className="t-h3">이번 달 급여 현황</h3>
                 <div className="pay-summary-row">
                   <span className="t-body">기본급</span>
-                  <span className="t-body font-medium">₩{currentSalaryData.baseSalary.toLocaleString()}</span>
+                  <span className="t-body font-medium">
+                    ₩{currentSalaryData.baseSalary.toLocaleString()}
+                  </span>
                 </div>
                 <div className="pay-summary-row">
                   <span className="t-body">연장 수당</span>
-                  <span className="t-body font-medium">₩{currentSalaryData.overtimePay.toLocaleString()}</span>
+                  <span className="t-body font-medium">
+                    ₩{currentSalaryData.overtimePay.toLocaleString()}
+                  </span>
                 </div>
                 <div className="pay-summary-row">
                   <span className="t-body">식대</span>
-                  <span className="t-body font-medium">₩{currentSalaryData.mealAllowance.toLocaleString()}</span>
+                  <span className="t-body font-medium">
+                    ₩{currentSalaryData.mealAllowance.toLocaleString()}
+                  </span>
                 </div>
                 <div className="pay-summary-row border-t pt-2">
                   <span className="t-body font-bold">합계</span>
-                  <span className="t-body font-bold text-primary">₩{currentSalaryData.totalSalary.toLocaleString()}</span>
+                  <span className="t-body font-bold text-primary">
+                    ₩{currentSalaryData.totalSalary.toLocaleString()}
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -1354,7 +1452,9 @@ const AttendanceContent: React.FC = () => {
                         </Row>
                         <Row justify="between" className="mt-1">
                           <span className="t-cap text-muted-foreground">총급여</span>
-                          <span className="t-body font-semibold">₩{salaryRecord.totalSalary.toLocaleString()}</span>
+                          <span className="t-body font-semibold">
+                            ₩{salaryRecord.totalSalary.toLocaleString()}
+                          </span>
                         </Row>
                       </div>
                     ))}
@@ -1370,9 +1470,27 @@ const AttendanceContent: React.FC = () => {
                         <XAxis dataKey="month" />
                         <YAxis />
                         <Tooltip formatter={(value: number) => `₩${value.toLocaleString()}`} />
-                        <Line type="monotone" dataKey="총급여" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
-                        <Line type="monotone" dataKey="기본급" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
-                        <Line type="monotone" dataKey="연장수당" stroke="#f59e0b" strokeWidth={2} dot={{ r: 4 }} />
+                        <Line
+                          type="monotone"
+                          dataKey="총급여"
+                          stroke="#3b82f6"
+                          strokeWidth={2}
+                          dot={{ r: 4 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="기본급"
+                          stroke="#10b981"
+                          strokeWidth={2}
+                          dot={{ r: 4 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="연장수당"
+                          stroke="#f59e0b"
+                          strokeWidth={2}
+                          dot={{ r: 4 }}
+                        />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
@@ -1409,7 +1527,12 @@ const AttendanceContent: React.FC = () => {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={prepareSalaryComparisonData()}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <XAxis
+                          dataKey="name"
+                          tick={{ fontSize: 12 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
                         <YAxis
                           tick={{ fontSize: 12 }}
                           axisLine={false}
@@ -1433,11 +1556,17 @@ const AttendanceContent: React.FC = () => {
               <div className="preview-header">
                 <h3 className="t-h3">급여명세서 미리보기</h3>
                 <div className="preview-zoomgroup">
-                  <button type="button" onClick={() => setPreviewScale(scale => Math.max(50, scale - 10))}>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewScale(scale => Math.max(50, scale - 10))}
+                  >
                     -
                   </button>
                   <span>{previewScale}%</span>
-                  <button type="button" onClick={() => setPreviewScale(scale => Math.min(150, scale + 10))}>
+                  <button
+                    type="button"
+                    onClick={() => setPreviewScale(scale => Math.min(150, scale + 10))}
+                  >
                     +
                   </button>
                 </div>
@@ -1446,7 +1575,9 @@ const AttendanceContent: React.FC = () => {
                 className="preview-stage"
                 style={{ transform: `scale(${previewScale / 100})`, transformOrigin: 'top left' }}
               >
-                <p className="t-body text-muted-foreground text-sm">A4 미리보기 콘텐츠가 여기에 표시됩니다.</p>
+                <p className="t-body text-muted-foreground text-sm">
+                  A4 미리보기 콘텐츠가 여기에 표시됩니다.
+                </p>
               </div>
             </section>
           </section>
