@@ -20,6 +20,8 @@ export default function SnapshotList() {
   const [items, setItems] = useState<Snapshot[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const [status, setStatus] = useState<'all' | 'issued' | 'approved' | 'paid'>('all')
+  const [yearMonth, setYearMonth] = useState<string>('')
 
   useEffect(() => {
     const load = async () => {
@@ -42,9 +44,17 @@ export default function SnapshotList() {
     setLoading(true)
     setError('')
     try {
-      const res = await fetch(
-        `/api/salary/snapshot/list?workerId=${encodeURIComponent(selectedWorker)}`
-      )
+      const params = new URLSearchParams()
+      params.set('workerId', selectedWorker)
+      if (status !== 'all') params.set('status', status)
+      if (yearMonth) {
+        const [y, m] = yearMonth.split('-')
+        if (y && m) {
+          params.set('year', String(Number(y)))
+          params.set('month', String(Number(m)))
+        }
+      }
+      const res = await fetch(`/api/salary/snapshot/list?${params.toString()}`)
       const json = await res.json()
       if (!json?.success) throw new Error(json?.error || '목록 조회 실패')
       setItems(json.data as Snapshot[])
@@ -77,7 +87,7 @@ export default function SnapshotList() {
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <select
           className="border rounded-md px-3 py-2 text-sm"
           value={selectedWorker}
@@ -90,6 +100,24 @@ export default function SnapshotList() {
             </option>
           ))}
         </select>
+        <select
+          className="border rounded-md px-3 py-2 text-sm"
+          value={status}
+          onChange={e => setStatus(e.target.value as any)}
+          aria-label="상태 필터"
+        >
+          <option value="all">전체</option>
+          <option value="issued">issued</option>
+          <option value="approved">approved</option>
+          <option value="paid">paid</option>
+        </select>
+        <input
+          type="month"
+          className="border rounded-md px-3 py-2 text-sm"
+          value={yearMonth}
+          onChange={e => setYearMonth(e.target.value)}
+          aria-label="년월 필터"
+        />
         <button
           className="px-3 py-2 text-sm border rounded-md"
           type="button"

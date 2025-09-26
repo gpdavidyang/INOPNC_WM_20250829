@@ -13,10 +13,17 @@ export async function GET(request: NextRequest) {
     const year = searchParams.get('year') ? Number(searchParams.get('year')) : undefined
     const month = searchParams.get('month') ? Number(searchParams.get('month')) : undefined
     const workerIdParam = searchParams.get('workerId') || undefined
+    const statusParam = searchParams.get('status') as 'issued' | 'approved' | 'paid' | null
     const isAdmin = auth.role === 'admin' || auth.role === 'system_admin'
     const workerId = workerIdParam && isAdmin ? workerIdParam : auth.userId
 
-    const { snapshots } = await listSalarySnapshots({ workerId, year, month, limit: 100 })
+    const { snapshots } = await listSalarySnapshots({
+      workerId,
+      year,
+      month,
+      status: statusParam || undefined,
+      limit: 100,
+    })
     return NextResponse.json({ success: true, data: snapshots })
   } catch (e: any) {
     console.error('GET /api/salary/snapshot/list error:', e)
