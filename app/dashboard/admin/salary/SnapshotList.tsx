@@ -80,6 +80,21 @@ export default function SnapshotList() {
     }
   }
 
+  const handlePay = async (s: Snapshot) => {
+    try {
+      const res = await fetch('/api/salary/snapshot/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workerId: s.worker_id, year: s.year, month: s.month }),
+      })
+      const json = await res.json()
+      if (!json?.success) throw new Error(json?.error || '지급 처리 실패')
+      await fetchList()
+    } catch (e: any) {
+      alert(e?.message || '지급 처리 실패')
+    }
+  }
+
   useEffect(() => {
     fetchList()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -186,6 +201,14 @@ export default function SnapshotList() {
                       onClick={() => handleApprove(s)}
                     >
                       승인
+                    </button>
+                  )}
+                  {s.status !== 'paid' && (
+                    <button
+                      className="px-2 py-1 text-xs rounded-md bg-indigo-600 text-white"
+                      onClick={() => handlePay(s)}
+                    >
+                      지급
                     </button>
                   )}
                 </td>
