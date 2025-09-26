@@ -749,12 +749,12 @@ const AttendanceContent: React.FC = () => {
 
         {activeTab === 'work' && (
           <section className="space-y-4">
-            <div className="site-filter-section grid grid-cols-2 gap-3">
-              <div className="w-full">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <div className="flex-1">
                 <CustomSelect value={selectedSiteId} onValueChange={setSelectedSiteId}>
                   <CustomSelectTrigger
                     className={clsx(
-                      'calendar-filter-trigger text-[15px] font-semibold',
+                      'calendar-filter-trigger text-[15px] font-semibold w-full',
                       'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]'
                     )}
                     aria-label="현장 선택"
@@ -770,11 +770,11 @@ const AttendanceContent: React.FC = () => {
                   </CustomSelectContent>
                 </CustomSelect>
               </div>
-              <div className="w-full">
+              <div className="flex-1">
                 <CustomSelect value={selectedYearMonth} onValueChange={handleYearMonthChange}>
                   <CustomSelectTrigger
                     className={clsx(
-                      'calendar-filter-trigger text-[15px] font-semibold',
+                      'calendar-filter-trigger text-[15px] font-semibold w-full',
                       'dark:!bg-slate-900/80 dark:!text-slate-100 dark:!border-[#3a4048]'
                     )}
                     aria-label="연도와 월 선택"
