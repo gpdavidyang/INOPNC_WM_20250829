@@ -258,14 +258,14 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
 
         .summary-label {
           display: block;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           font-weight: 600;
           color: #1a254f;
           margin-bottom: 12px;
         }
 
         .summary-empty {
-          font-size: 13px;
+          font-size: var(--fs-ctl, 14px);
           color: #64748b;
           margin: 0;
         }
@@ -283,14 +283,14 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
           display: flex;
           justify-content: space-between;
           align-items: center;
-          font-size: 13px;
+          font-size: var(--fs-ctl, 14px);
           color: #1f2937;
         }
 
         .summary-status {
           padding: 2px 8px;
           border-radius: 9999px;
-          font-size: 11px;
+          font-size: var(--fs-tiny, 12px);
           font-weight: 600;
         }
 
@@ -315,12 +315,12 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
         .share-warning strong {
           display: block;
           margin-bottom: 4px;
-          font-size: 13px;
+          font-size: var(--fs-ctl, 14px);
         }
 
         .share-warning p {
           margin: 0;
-          font-size: 12px;
+          font-size: var(--fs-tiny, 12px);
         }
 
         .share-link-panel {
@@ -334,23 +334,23 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
         }
 
         .share-link-title {
-          font-size: 13px;
+          font-size: var(--fs-ctl, 14px);
           font-weight: 600;
           color: #1a254f;
         }
 
         .share-link-message {
-          font-size: 12px;
+          font-size: var(--fs-tiny, 12px);
           color: #64748b;
         }
 
         .share-link-error {
-          font-size: 12px;
+          font-size: var(--fs-tiny, 12px);
           color: #dc2626;
         }
 
         .share-link-value {
-          font-size: 12px;
+          font-size: var(--fs-tiny, 12px);
           color: #1e3a8a;
           word-break: break-all;
           background: rgba(255, 255, 255, 0.9);
@@ -373,7 +373,7 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
           border: 1px solid rgba(37, 99, 235, 0.15);
           background: #ffffff;
           color: #1a254f;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           font-weight: 600;
           cursor: pointer;
           transition:
@@ -407,7 +407,7 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
         }
 
         .action-icon {
-          font-size: 18px;
+          font-size: var(--fs-heading, 20px);
         }
 
         [data-theme='dark'] .share-summary {

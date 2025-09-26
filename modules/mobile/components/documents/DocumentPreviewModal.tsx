@@ -26,7 +26,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     if (isOpen && document) {
       setIsLoading(true)
       setError(null)
-      
+
       // 실제 구현에서는 API 호출을 통해 문서 데이터를 가져옴
       const loadDocumentData = setTimeout(() => {
         setIsLoading(false)
@@ -94,9 +94,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
             <div className="error-icon">📄</div>
             <h4>문서 미리보기 불가</h4>
             <p>{error}</p>
-            <p className="error-hint">
-              문서를 먼저 업로드해주세요.
-            </p>
+            <p className="error-hint">문서를 먼저 업로드해주세요.</p>
           </div>
         ) : (
           <div className="document-content">
@@ -117,15 +115,11 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
               </div>
               <div className="info-row">
                 <span className="info-label">업로드 날짜:</span>
-                <span className="info-value">
-                  {document.hasUpload ? '2025.09.16' : '-'}
-                </span>
+                <span className="info-value">{document.hasUpload ? '2025.09.16' : '-'}</span>
               </div>
               <div className="info-row">
                 <span className="info-label">파일 크기:</span>
-                <span className="info-value">
-                  {document.hasUpload ? '2.3 MB' : '-'}
-                </span>
+                <span className="info-value">{document.hasUpload ? '2.3 MB' : '-'}</span>
               </div>
             </div>
           </div>
@@ -134,17 +128,11 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         <div className="document-actions">
           {document.hasUpload && !error && (
             <>
-              <button
-                className="action-btn action-btn-secondary"
-                onClick={handleShare}
-              >
+              <button className="action-btn action-btn-secondary" onClick={handleShare}>
                 <span className="btn-icon">🔗</span>
                 공유하기
               </button>
-              <button
-                className="action-btn action-btn-primary"
-                onClick={handleDownload}
-              >
+              <button className="action-btn action-btn-primary" onClick={handleDownload}>
                 <span className="btn-icon">⬇️</span>
                 다운로드
               </button>
@@ -180,7 +168,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         }
 
         .document-title {
-          font-size: 18px;
+          font-size: var(--fs-heading, 20px);
           font-weight: 600;
           color: var(--text-primary, #1a1a1a);
           margin-bottom: 8px;
@@ -193,7 +181,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         }
 
         .document-status {
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           padding: 4px 8px;
           border-radius: 6px;
           background: var(--success-bg, #f0f9ff);
@@ -237,14 +225,14 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         }
 
         .document-error h4 {
-          font-size: 16px;
+          font-size: var(--fs-body, 15px);
           font-weight: 600;
           color: var(--text-primary, #1a1a1a);
           margin: 0 0 8px 0;
         }
 
         .error-hint {
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           color: var(--text-muted, #9ca3af);
           margin-top: 8px;
         }
@@ -278,7 +266,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         }
 
         .preview-subtitle {
-          font-size: 12px;
+          font-size: var(--fs-tiny, 12px);
           color: var(--text-muted, #9ca3af);
           margin-top: 8px;
           max-width: 200px;
@@ -300,12 +288,12 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         }
 
         .info-label {
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           color: var(--text-secondary, #666666);
         }
 
         .info-value {
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           font-weight: 500;
           color: var(--text-primary, #1a1a1a);
         }
@@ -326,7 +314,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
           padding: 12px 16px;
           border: none;
           border-radius: 8px;
-          font-size: 14px;
+          font-size: var(--fs-ctl, 14px);
           font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
@@ -352,7 +340,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
         }
 
         .btn-icon {
-          font-size: 16px;
+          font-size: var(--fs-body, 15px);
         }
 
         /* Dark theme */
