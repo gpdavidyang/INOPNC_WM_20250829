@@ -11,6 +11,9 @@ export interface SalarySnapshot {
   html_template_version: string
   issued_at: string
   issuer_id: string
+  status?: 'issued' | 'approved' | 'paid'
+  approved_at?: string | null
+  approver_id?: string | null
   employment_type: string | null
   daily_rate: number | null
   siteCount: number
@@ -97,6 +100,9 @@ export async function saveSalarySnapshot(
       issuer_id: snapshot.issuer_id,
       snapshot_version: snapshot.snapshot_version,
       html_template_version: snapshot.html_template_version,
+      status: snapshot.status || 'issued',
+      approved_at: snapshot.approved_at || null,
+      approver_id: snapshot.approver_id || null,
     })
     if (!error) {
       return { success: true, source: 'db' }
@@ -116,5 +122,107 @@ export async function saveSalarySnapshot(
     return { success: false, error: error?.message }
   } catch (e: any) {
     return { success: false, error: e?.message || 'Snapshot save failed' }
+  }
+}
+
+export async function listSalarySnapshots(params: {
+  workerId?: string
+  year?: number
+  month?: number
+  limit?: number
+}): Promise<{ snapshots: SalarySnapshot[] }> {
+  const supabase = createClient()
+  const { workerId, year, month, limit = 50 } = params
+
+  try {
+    let query = supabase
+      .from('salary_snapshots')
+      .select(
+        'worker_id, year, month, data_json, issued_at, issuer_id, status, approved_at, approver_id'
+      )
+      .order('issued_at', { ascending: false })
+      .limit(limit)
+
+    if (workerId) query = query.eq('worker_id', workerId)
+    if (year) query = query.eq('year', year)
+    if (month) query = query.eq('month', month)
+
+    const { data, error } = await query
+    if (!error && Array.isArray(data)) {
+      const snapshots = data
+        .map(r => {
+          const snap = (r as any).data_json as SalarySnapshot
+          if (snap) {
+            snap.status = (r as any).status || snap.status || 'issued'
+            snap.approved_at = (r as any).approved_at || snap.approved_at || null
+            snap.approver_id = (r as any).approver_id || snap.approver_id || null
+          }
+          return snap
+        })
+        .filter(Boolean)
+      return { snapshots }
+    }
+  } catch (e) {
+    // fall through to storage listing
+  }
+
+  if (!workerId) {
+    return { snapshots: [] }
+  }
+
+  try {
+    const base = `salary-snapshots/${workerId}`
+    const { data: files, error } = await supabase.storage.from('documents').list(base, {
+      limit,
+      sortBy: { column: 'created_at', order: 'desc' },
+    })
+    if (error || !files) return { snapshots: [] }
+    const snapshots: SalarySnapshot[] = []
+    for (const f of files) {
+      if (!f.name.endsWith('.json')) continue
+      const [ym] = f.name.split('.json')
+      const [yStr, mStr] = ym.split('-')
+      if (!yStr || !mStr) continue
+      const y = Number(yStr)
+      const m = Number(mStr)
+      const { snapshot } = await getSalarySnapshot(workerId, y, m)
+      if (snapshot) snapshots.push(snapshot)
+    }
+    return { snapshots }
+  } catch (e) {
+    return { snapshots: [] }
+  }
+}
+
+export async function approveSalarySnapshot(
+  workerId: string,
+  year: number,
+  month: number,
+  approverId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createClient()
+  const approved_at = new Date().toISOString()
+  try {
+    const { error } = await supabase
+      .from('salary_snapshots')
+      .update({ status: 'approved', approved_at, approver_id: approverId })
+      .eq('worker_id', workerId)
+      .eq('year', year)
+      .eq('month', month)
+    if (!error) return { success: true }
+  } catch (e) {
+    // fall through
+  }
+
+  try {
+    const { snapshot } = await getSalarySnapshot(workerId, year, month)
+    if (!snapshot) return { success: false, error: 'Snapshot not found' }
+    snapshot.status = 'approved'
+    snapshot.approved_at = approved_at
+    snapshot.approver_id = approverId
+    const res = await saveSalarySnapshot(snapshot)
+    return { success: res.success, error: res.error }
+  } catch (e: any) {
+    return { success: false, error: e?.message || 'Approve failed' }
   }
 }

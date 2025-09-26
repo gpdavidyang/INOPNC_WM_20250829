@@ -21,6 +21,18 @@ export default async function AdminSalaryPage() {
       <div className="rounded-lg border bg-white p-4">
         <SalarySnapshotTool />
       </div>
+      <div className="rounded-lg border bg-white p-4 mt-6">
+        <h2 className="text-lg font-medium mb-3">발행 이력</h2>
+        {/** 관리자 목록 화면(급여 레코드/발행 이력) - HTML 보기/승인 제공 */}
+        {/** 클라이언트 컴포넌트 분리 */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        {/* Snapshot list */}
+        {/** 동적 import로 SSR 비활성화 */}
+        {(() => {
+          const DynamicList = dynamic(() => import('./SnapshotList'), { ssr: false })
+          return <DynamicList />
+        })()}
+      </div>
     </div>
   )
 }
