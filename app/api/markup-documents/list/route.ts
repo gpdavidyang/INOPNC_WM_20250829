@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    // Ensure authenticated (return 401/403 instead of 500 on auth errors)
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
+
     const searchParams = request.nextUrl.searchParams
     const siteId = searchParams.get('site_id')
     const userId = searchParams.get('user_id')
@@ -31,11 +36,6 @@ export async function GET(request: NextRequest) {
         sites (
           id,
           name
-        ),
-        profiles!markup_documents_created_by_fkey (
-          id,
-          full_name,
-          email
         )
       `
       )
@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
       siteId: doc.site_id,
       siteName: doc.sites?.name || '알 수 없는 현장',
       createdBy: doc.created_by,
-      createdByName: doc.created_by_name || doc.profiles?.full_name || '알 수 없음',
-      creatorEmail: doc.creator_email || doc.profiles?.email,
+      createdByName: doc.created_by_name || '알 수 없음',
+      creatorEmail: doc.creator_email,
       mode: doc.mode,
       createdAt: doc.created_at,
       updatedAt: doc.updated_at,
