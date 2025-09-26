@@ -783,8 +783,8 @@ const AttendanceContent: React.FC = () => {
 
         {activeTab === 'work' && (
           <section className="space-y-4">
-            <div className="site-filter-section flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="w-full sm:flex-1">
+            <div className="site-filter-section grid grid-cols-2 gap-3">
+              <div className="w-full">
                 <CustomSelect value={selectedSiteId} onValueChange={setSelectedSiteId}>
                   <CustomSelectTrigger
                     className={clsx(
@@ -805,7 +805,7 @@ const AttendanceContent: React.FC = () => {
                   </CustomSelectContent>
                 </CustomSelect>
               </div>
-              <div className="w-full sm:w-[180px]">
+              <div className="w-full">
                 <CustomSelect value={selectedYearMonth} onValueChange={handleYearMonthChange}>
                   <CustomSelectTrigger
                     className={clsx(
@@ -886,9 +886,6 @@ const AttendanceContent: React.FC = () => {
             </section>
 
             <section className="monthly-stats-section">
-              <div className="stat-head">
-                <span className="stat-title">월간 통계</span>
-              </div>
               <div className="stat-grid">
                 <div className="stat stat-workdays">
                   <div className="num">{monthlyStats.workDays}</div>
@@ -907,7 +904,6 @@ const AttendanceContent: React.FC = () => {
 
             <Card>
               <CardContent className="p-3">
-                <h3 className="t-h3 mb-3">{viewMode === 'month' ? '월별' : '주별'} 출근 기록</h3>
                 <Stack gap="sm">
                   {getFilteredAttendanceData().map((record, index) => (
                     <div
