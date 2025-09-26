@@ -20,6 +20,8 @@ interface DocumentItem {
   title: string
   hasUpload: boolean
   fileUrl?: string
+  siteId?: string | null
+  siteName?: string | null
 }
 
 interface PreviewModalState {
@@ -40,6 +42,11 @@ interface UploadModalState {
 interface DocumentCollection {
   mine: DocumentItem[]
   shared: DocumentItem[]
+}
+
+interface SiteOption {
+  id: string
+  name: string
 }
 
 const INITIAL_DOCUMENTS: DocumentCollection = {
@@ -87,6 +94,7 @@ const DocumentsContentV2: React.FC = () => {
     updateActiveTab,
     updateSearchQuery,
     updateDeleteMode,
+    updateSharedSiteFilter,
   } = useDocumentState()
 
   const { showSuccess, showWarning, showInfo, showError } = useNotificationHelpers()
@@ -106,10 +114,12 @@ const DocumentsContentV2: React.FC = () => {
     documentId: null,
     documentTitle: null,
   })
+  const [sharedSiteOptions, setSharedSiteOptions] = useState<SiteOption[]>([])
 
   const activeTab = documentState.activeTab
   const searchQuery = documentState.searchQuery
   const selectedByTab = documentState.selectedDocuments
+  const sharedSiteFilter = documentState.sharedSiteFilter ?? 'all'
 
   const transformDocuments = useCallback((items: unknown[]): DocumentItem[] => {
     if (!Array.isArray(items)) {
@@ -126,12 +136,20 @@ const DocumentsContentV2: React.FC = () => {
           (typeof doc.file_name === 'string' && doc.file_name.trim()) ||
           '제목 없음'
         const fileUrl = typeof doc.file_url === 'string' ? doc.file_url : undefined
+        const siteInfo =
+          doc.site && typeof doc.site === 'object'
+            ? (doc.site as { id?: unknown; name?: unknown })
+            : undefined
+        const siteId = siteInfo && siteInfo.id != null ? String(siteInfo.id) : null
+        const siteName = siteInfo && typeof siteInfo.name === 'string' ? siteInfo.name : null
 
         return {
           id,
           title,
           hasUpload: Boolean(fileUrl),
           fileUrl,
+          siteId,
+          siteName,
         }
       })
   }, [])
@@ -141,16 +159,27 @@ const DocumentsContentV2: React.FC = () => {
     setFetchError(null)
 
     try {
-      const query = (type: DocumentTypeQuery) =>
-        `/api/documents?type=${type}&limit=${DOCUMENT_FETCH_LIMIT}&page=1`
+      const buildQuery = (type: DocumentTypeQuery) => {
+        const params = new URLSearchParams({
+          type,
+          limit: String(DOCUMENT_FETCH_LIMIT),
+          page: '1',
+        })
+
+        if (type === DocumentTypeQuery.Shared && sharedSiteFilter && sharedSiteFilter !== 'all') {
+          params.set('site_id', sharedSiteFilter)
+        }
+
+        return `/api/documents?${params.toString()}`
+      }
 
       const [personalResponse, sharedResponse] = await Promise.all([
-        fetch(query(DocumentTypeQuery.Personal), {
+        fetch(buildQuery(DocumentTypeQuery.Personal), {
           method: 'GET',
           credentials: 'include',
           cache: 'no-store',
         }),
-        fetch(query(DocumentTypeQuery.Shared), {
+        fetch(buildQuery(DocumentTypeQuery.Shared), {
           method: 'GET',
           credentials: 'include',
           cache: 'no-store',
@@ -181,6 +210,30 @@ const DocumentsContentV2: React.FC = () => {
         mine: personalDocuments,
         shared: sharedDocuments,
       })
+
+      setSharedSiteOptions(prev => {
+        if (sharedDocuments.length === 0) {
+          return sharedSiteFilter === 'all' ? [] : prev
+        }
+
+        const seed = sharedSiteFilter === 'all' ? [] : prev
+        const optionMap = new Map<string, SiteOption>()
+
+        seed.forEach(option => {
+          optionMap.set(option.id, option)
+        })
+
+        sharedDocuments.forEach(doc => {
+          if (!doc.siteId) {
+            return
+          }
+
+          const name = doc.siteName && doc.siteName.trim().length > 0 ? doc.siteName : '현장 미지정'
+          optionMap.set(doc.siteId, { id: doc.siteId, name })
+        })
+
+        return Array.from(optionMap.values()).sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      })
     } catch (error) {
       const message = error instanceof Error ? error.message : '문서 목록을 불러오지 못했습니다.'
       setFetchError(message)
@@ -188,7 +241,7 @@ const DocumentsContentV2: React.FC = () => {
     } finally {
       setIsFetching(false)
     }
-  }, [showError, transformDocuments])
+  }, [sharedSiteFilter, showError, transformDocuments])
 
   useEffect(() => {
     fetchDocuments()
@@ -218,6 +271,19 @@ const DocumentsContentV2: React.FC = () => {
   useEffect(() => {
     ensureSelection('shared', documents.shared, selectedByTab.shared)
   }, [documents.shared, ensureSelection, selectedByTab.shared])
+
+  useEffect(() => {
+    if (sharedSiteFilter === 'all') {
+      return
+    }
+
+    const hasOption = sharedSiteOptions.some(option => option.id === sharedSiteFilter)
+
+    if (!hasOption) {
+      updateSharedSiteFilter('all')
+      updateSelectedDocument('shared', null)
+    }
+  }, [sharedSiteFilter, sharedSiteOptions, updateSharedSiteFilter, updateSelectedDocument])
 
   const activateDeleteMode = useCallback(
     (docId: string) => {
@@ -302,6 +368,17 @@ const DocumentsContentV2: React.FC = () => {
 
   const handleSearchCancel = () => {
     updateSearchQuery('')
+  }
+
+  const handleSharedSiteFilterChange = (value: string) => {
+    if (value === sharedSiteFilter) {
+      return
+    }
+
+    updateSharedSiteFilter(value)
+    updateSelectedDocument('shared', null)
+    clearDeleteMode()
+    setExpandedTitleId(null)
   }
 
   const handleUploadDocument = (docId: string) => {
@@ -444,6 +521,8 @@ const DocumentsContentV2: React.FC = () => {
       const isDeleteTarget = deleteTargetId === doc.id
       const longPressHandlers = getLongPressHandlers(doc.id)
       const isExpanded = expandedTitleId === doc.id
+      const siteLabel =
+        doc.siteName && doc.siteName.trim().length > 0 ? doc.siteName : '현장 미지정'
 
       return (
         <div
@@ -464,6 +543,11 @@ const DocumentsContentV2: React.FC = () => {
             >
               {doc.title}
             </div>
+            {activeTab === 'shared' && (
+              <div className="doc-selection-meta">
+                <span className="doc-site-chip">{siteLabel}</span>
+              </div>
+            )}
           </div>
           <div className="doc-selection-actions">
             {doc.hasUpload && (
@@ -578,6 +662,27 @@ const DocumentsContentV2: React.FC = () => {
             </button>
           </div>
         </div>
+
+        {activeTab === 'shared' && (
+          <div className="site-filter-section">
+            <label className="site-filter-label" htmlFor="shared-site-filter">
+              현장
+            </label>
+            <select
+              id="shared-site-filter"
+              className="site-filter-select"
+              value={sharedSiteFilter}
+              onChange={event => handleSharedSiteFilterChange(event.target.value)}
+            >
+              <option value="all">전체</option>
+              {sharedSiteOptions.map(option => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="document-cards" role="list">
           {renderDocuments()}

@@ -14,6 +14,7 @@ interface DocumentState {
   searchQuery: string
   fontSize: 'fs-100' | 'fs-150'
   deleteMode: boolean
+  sharedSiteFilter: string
 }
 
 const DEFAULT_DOCUMENT_STATE: DocumentState = {
@@ -25,6 +26,7 @@ const DEFAULT_DOCUMENT_STATE: DocumentState = {
   searchQuery: '',
   fontSize: 'fs-100',
   deleteMode: false,
+  sharedSiteFilter: 'all',
 }
 
 // 로컬스토리지 키 타입
@@ -138,6 +140,15 @@ export const useDocumentState = () => {
     }
   }, [documentState.selectedDocuments, normalizeSelection, setDocumentState])
 
+  useEffect(() => {
+    if (typeof documentState.sharedSiteFilter === 'undefined') {
+      setDocumentState(prev => ({
+        ...prev,
+        sharedSiteFilter: 'all',
+      }))
+    }
+  }, [documentState.sharedSiteFilter, setDocumentState])
+
   // 특정 필드만 업데이트하는 헬퍼 함수들
   const updateSelectedDocument = useCallback(
     (tab: 'mine' | 'shared', documentId: string | null) => {
@@ -192,6 +203,16 @@ export const useDocumentState = () => {
     [setDocumentState]
   )
 
+  const updateSharedSiteFilter = useCallback(
+    (siteId: string) => {
+      setDocumentState(prev => ({
+        ...prev,
+        sharedSiteFilter: siteId,
+      }))
+    },
+    [setDocumentState]
+  )
+
   // 상태 초기화 함수
   const resetDocumentState = useCallback(() => {
     setDocumentState(DEFAULT_DOCUMENT_STATE)
@@ -204,6 +225,7 @@ export const useDocumentState = () => {
     updateSearchQuery,
     updateFontSize,
     updateDeleteMode,
+    updateSharedSiteFilter,
     resetDocumentState,
     removeDocumentState,
   }
