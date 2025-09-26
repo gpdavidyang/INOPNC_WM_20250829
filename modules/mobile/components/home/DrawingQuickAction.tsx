@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react'
 import '@/modules/mobile/styles/worklogs.css'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useSiteBlueprints } from '@/modules/mobile/hooks/use-blueprints'
 import { toast } from 'sonner'
 
 interface Blueprint {
@@ -42,11 +44,16 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
   const [error, setError] = useState<string | null>(null)
   const [blueprintChoices, setBlueprintChoices] = useState<Blueprint[]>([])
   const [showChooser, setShowChooser] = useState(false)
+  const {
+    data: blueprintData,
+    isLoading: bpLoading,
+    error: bpError,
+    prefetch,
+  } = useSiteBlueprints(selectedSite)
 
-  // 현장별 주요 공도면 조회 (최대 1개만)
+  // 현장별 주요 공도면 조회 (React Query Hook 사용) + 최근 마킹 로드
   useEffect(() => {
     if (selectedSite) {
-      fetchPrimaryBlueprint(selectedSite)
       fetchRecentMarkup()
     }
   }, [selectedSite])
@@ -229,7 +236,7 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
         )}
 
         {/* 로딩 상태 */}
-        {selectedSite && isLoading && (
+        {selectedSite && (isLoading || bpLoading) && (
           <div className="loading-state">
             <div className="loading-spinner"></div>
             <p className="loading-text">공도면 확인 중...</p>
@@ -249,18 +256,23 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
               </div>
             )}
 
-            {/* 메인 CTA 버튼 */}
-            <button
-              className="primary-action-btn"
-              onClick={handleQuickMarkup}
-              aria-label="공도면 마킹 시작"
-              disabled={!primaryBlueprint}
-            >
-              <span className="btn-text">
-                {primaryBlueprint ? '마킹 시작' : '공도면 준비 중...'}
-              </span>
-              <span className="btn-arrow">→</span>
-            </button>
+            {/* 메인 CTA 버튼 - Link 프리패치 */}
+            {primaryBlueprint ? (
+              <Link
+                href={`/mobile/markup-tool?mode=start&siteId=${encodeURIComponent(selectedSite!)}&docId=${encodeURIComponent(primaryBlueprint.id)}`}
+                className="primary-action-btn"
+                aria-label="공도면 마킹 시작"
+                prefetch
+              >
+                <span className="btn-text">마킹 시작</span>
+                <span className="btn-arrow">→</span>
+              </Link>
+            ) : (
+              <button className="primary-action-btn" aria-label="공도면 준비 중..." disabled>
+                <span className="btn-text">공도면 준비 중...</span>
+                <span className="btn-arrow">→</span>
+              </button>
+            )}
 
             {/* 다건일 때 대표 도면 선택 */}
             {blueprintChoices.length > 1 && (

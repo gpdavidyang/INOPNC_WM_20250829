@@ -129,10 +129,11 @@ export async function listSalarySnapshots(params: {
   workerId?: string
   year?: number
   month?: number
+  status?: 'issued' | 'approved' | 'paid'
   limit?: number
 }): Promise<{ snapshots: SalarySnapshot[] }> {
   const supabase = createClient()
-  const { workerId, year, month, limit = 50 } = params
+  const { workerId, year, month, status, limit = 50 } = params
 
   try {
     let query = supabase
@@ -146,6 +147,7 @@ export async function listSalarySnapshots(params: {
     if (workerId) query = query.eq('worker_id', workerId)
     if (year) query = query.eq('year', year)
     if (month) query = query.eq('month', month)
+    if (status) query = query.eq('status', status)
 
     const { data, error } = await query
     if (!error && Array.isArray(data)) {
@@ -188,7 +190,8 @@ export async function listSalarySnapshots(params: {
       const { snapshot } = await getSalarySnapshot(workerId, y, m)
       if (snapshot) snapshots.push(snapshot)
     }
-    return { snapshots }
+    const filtered = status ? snapshots.filter(s => s.status === status) : snapshots
+    return { snapshots: filtered }
   } catch (e) {
     return { snapshots: [] }
   }

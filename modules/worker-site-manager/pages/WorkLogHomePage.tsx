@@ -11,6 +11,11 @@ import { UncompletedBottomSheet } from '@/modules/mobile/components/work-log/Unc
 import { TabSystem, TabPanel } from '@/modules/mobile/components/ui/TabSystem'
 import { dismissAlert } from '@/modules/mobile/utils/work-log-utils'
 import { Plus, FileText, CheckCircle } from 'lucide-react'
+// v3 list/detail (reference-style)
+import { TaskDiaryList } from '@/modules/mobile/components/worklogs/TaskDiaryList'
+import { DiaryDetailViewer } from '@/modules/mobile/components/worklogs/DiaryDetailViewer'
+import { fetchWorklogList, type WorklogListResult } from '@/modules/mobile/data/worklog-api'
+import type { WorklogDetail, WorklogSummary } from '@/types/worklog'
 
 interface SummaryItem {
   label: string
@@ -40,6 +45,49 @@ export const WorkLogHomePage: React.FC = () => {
     deleteWorkLog,
     approveWorkLog,
   } = useWorkLogs()
+
+  // ==============================================
+  // v3 목록/상세 (레퍼런스 스타일) 상태 및 로딩
+  // ==============================================
+  const [v3Loading, setV3Loading] = useState(false)
+  const [v3Error, setV3Error] = useState<string | null>(null)
+  const [v3Summaries, setV3Summaries] = useState<WorklogSummary[]>([])
+  const [v3DetailMap, setV3DetailMap] = useState<Record<string, WorklogDetail>>({})
+  const [selectedWorklogId, setSelectedWorklogId] = useState<string | null>(null)
+  const [viewerOpen, setViewerOpen] = useState(false)
+
+  const loadV3List = useCallback(async () => {
+    try {
+      setV3Loading(true)
+      setV3Error(null)
+      const result: WorklogListResult = await fetchWorklogList({
+        period: 'recent',
+        query: searchQuery || '',
+        statuses: [],
+      })
+      setV3Summaries(result.summaries)
+      setV3DetailMap(result.detailMap)
+    } catch (e) {
+      setV3Error(e instanceof Error ? e.message : '작업일지 목록을 불러오지 못했습니다.')
+    } finally {
+      setV3Loading(false)
+    }
+  }, [searchQuery])
+
+  useEffect(() => {
+    // 초기/검색 변경 시 v3 목록 로드
+    loadV3List()
+  }, [loadV3List])
+
+  const handleSelectV3Item = useCallback((id: string) => {
+    setSelectedWorklogId(id)
+    setViewerOpen(true)
+  }, [])
+
+  const selectedWorklogDetail = useMemo(() => {
+    if (!selectedWorklogId) return null
+    return v3DetailMap[selectedWorklogId] || null
+  }, [selectedWorklogId, v3DetailMap])
 
   // 폰트 크기 초기화 및 토글
   useEffect(() => {
@@ -479,30 +527,58 @@ export const WorkLogHomePage: React.FC = () => {
             />
           </div>
 
-          {/* Tabs */}
-          <div className="mt-6">
-            <TabSystem
-              tabs={[
-                { id: 'draft', label: '임시저장', icon: <FileText size={16} />, count: draftCount },
-                {
-                  id: 'approved',
-                  label: '작성완료',
-                  icon: <CheckCircle size={16} />,
-                  count: approvedCount,
-                },
-              ]}
-              activeTab={activeTab}
-              onTabChange={tabId => setActiveTab(tabId as WorkLogTabStatus)}
-              className="rounded-2xl border border-[#e6eaf2] bg-white p-3 shadow-[var(--shadow)]"
-            >
-              <TabPanel data-panel="draft" className="space-y-3">
-                {renderWorkLogList(draftWorkLogs, 'draft')}
-              </TabPanel>
-              <TabPanel data-panel="approved" className="space-y-3">
-                {renderWorkLogList(approvedWorkLogs, 'approved')}
-              </TabPanel>
-            </TabSystem>
-          </div>
+          {/* New: Reference-style List & Detail (v3) */}
+          <section className="mt-6">
+            <div className="mb-2 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-[#1A254F]">작업일지 목록(신규)</h3>
+              {v3Loading ? (
+                <span className="text-xs text-[#667085]">불러오는 중…</span>
+              ) : v3Error ? (
+                <span className="text-xs text-red-600">{v3Error}</span>
+              ) : (
+                <span className="text-xs text-[#667085]">총 {v3Summaries.length}건</span>
+              )}
+            </div>
+            <TaskDiaryList
+              items={v3Summaries}
+              onSelect={handleSelectV3Item}
+              activeId={selectedWorklogId}
+              isLoading={v3Loading}
+              hasMore={false}
+            />
+          </section>
+
+          {/* 기존 탭 목록은 유지하려면 아래 블록을 주석 해제하세요 */}
+          {false && (
+            <div className="mt-6">
+              <TabSystem
+                tabs={[
+                  {
+                    id: 'draft',
+                    label: '임시저장',
+                    icon: <FileText size={16} />,
+                    count: draftCount,
+                  },
+                  {
+                    id: 'approved',
+                    label: '작성완료',
+                    icon: <CheckCircle size={16} />,
+                    count: approvedCount,
+                  },
+                ]}
+                activeTab={activeTab}
+                onTabChange={tabId => setActiveTab(tabId as WorkLogTabStatus)}
+                className="rounded-2xl border border-[#e6eaf2] bg-white p-3 shadow-[var(--shadow)]"
+              >
+                <TabPanel data-panel="draft" className="space-y-3">
+                  {renderWorkLogList(draftWorkLogs, 'draft')}
+                </TabPanel>
+                <TabPanel data-panel="approved" className="space-y-3">
+                  {renderWorkLogList(approvedWorkLogs, 'approved')}
+                </TabPanel>
+              </TabSystem>
+            </div>
+          )}
         </div>
 
         {/* Floating Action Button */}
@@ -521,6 +597,38 @@ export const WorkLogHomePage: React.FC = () => {
           onSave={handleSaveWorkLog}
           workLog={editingWorkLog ?? undefined}
           mode={modalMode}
+        />
+
+        {/* Fullscreen Detail Viewer (v3) */}
+        <DiaryDetailViewer
+          open={viewerOpen}
+          worklog={selectedWorklogDetail || undefined}
+          onClose={() => setViewerOpen(false)}
+          onOpenDocument={attachment => {
+            try {
+              window.open(attachment.fileUrl, '_blank', 'noopener,noreferrer')
+            } catch (e) {
+              console.warn('문서 열기 실패', e)
+            }
+          }}
+          onDownload={worklogId => {
+            const detail = v3DetailMap[worklogId]
+            if (!detail) return
+            const all = [
+              ...detail.attachments.photos,
+              ...detail.attachments.drawings,
+              ...detail.attachments.completionDocs,
+              ...detail.attachments.others,
+            ]
+            // 1차: 개별 새 탭 오픈(간단 구현)
+            all.slice(0, 10).forEach(doc => {
+              try {
+                window.open(doc.fileUrl, '_blank', 'noopener,noreferrer')
+              } catch (err) {
+                // best effort open; ignore failures per-item
+              }
+            })
+          }}
         />
 
         {/* Uncompleted Bottom Sheet */}
