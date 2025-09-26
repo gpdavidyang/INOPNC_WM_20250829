@@ -31,10 +31,38 @@ export async function GET(request: NextRequest) {
     // 0) 스냅샷 우선 조회
     const { snapshot } = await getSalarySnapshot(targetWorkerId, year, month)
 
-    // 1) 월간 급여 계산 (스냅샷 없으면 서버 계산)
-    const monthly = snapshot
-      ? snapshot.salary
-      : await salaryCalculationService.calculateMonthlySalary(targetWorkerId, year, month)
+    // 1) 월간 급여 계산 (스냅샷 없으면 서버 계산). 실패 시 안전한 기본값 반환
+    let monthly = snapshot?.salary as any
+    if (!monthly) {
+      try {
+        monthly = await salaryCalculationService.calculateMonthlySalary(targetWorkerId, year, month)
+      } catch (calcError: any) {
+        console.error(
+          'Monthly salary calculation failed, using fallback:',
+          calcError?.message || calcError
+        )
+        const period_start = `${year}-${String(month).padStart(2, '0')}-01`
+        const period_end = new Date(year, month, 0).toISOString().split('T')[0]
+        monthly = {
+          work_days: 0,
+          total_labor_hours: 0,
+          total_work_hours: 0,
+          total_overtime_hours: 0,
+          base_pay: 0,
+          overtime_pay: 0,
+          bonus_pay: 0,
+          total_gross_pay: 0,
+          tax_deduction: 0,
+          national_pension: 0,
+          health_insurance: 0,
+          employment_insurance: 0,
+          total_deductions: 0,
+          net_pay: 0,
+          period_start,
+          period_end,
+        }
+      }
+    }
 
     // 2) 급여 정보(일급/고용형태) 조회
     const monthStart = `${year}-${String(month).padStart(2, '0')}-01`
@@ -62,16 +90,24 @@ export async function GET(request: NextRequest) {
     // 3) 현장수 계산 (해당 월 내 고유 site_id 개수)
     const periodStart = `${year}-${String(month).padStart(2, '0')}-01`
     const periodEnd = new Date(year, month, 0).toISOString().split('T')[0]
-    const { data: workInMonth } = await supabase
-      .from('work_records')
-      .select('site_id')
-      .or(`user_id.eq.${targetWorkerId},profile_id.eq.${targetWorkerId}`)
-      .gte('work_date', periodStart)
-      .lte('work_date', periodEnd)
+    let siteCount = snapshot?.siteCount
+    if (typeof siteCount !== 'number') {
+      try {
+        const { data: workInMonth } = await supabase
+          .from('work_records')
+          .select('site_id')
+          .or(`user_id.eq.${targetWorkerId},profile_id.eq.${targetWorkerId}`)
+          .gte('work_date', periodStart)
+          .lte('work_date', periodEnd)
 
-    const siteCount =
-      snapshot?.siteCount ??
-      Array.from(new Set((workInMonth || []).map(r => r.site_id).filter(Boolean))).length
+        siteCount = Array.from(
+          new Set((workInMonth || []).map(r => r.site_id).filter(Boolean))
+        ).length
+      } catch (workErr) {
+        console.error('work_records fetch failed, siteCount=0 fallback:', workErr)
+        siteCount = 0
+      }
+    }
 
     return NextResponse.json({
       success: true,
