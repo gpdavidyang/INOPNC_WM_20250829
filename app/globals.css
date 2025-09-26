@@ -4,6 +4,8 @@
 
 /* Import INOPNC Design System Tokens */
 @import '../styles/design-tokens.css';
+/* Mobile UI standard (type scale, stat card sizes, etc.) */
+@import '../styles/design-system/mobile.css';
 
 /* Import Component Styles */
 @import '../styles/components.css';
@@ -2157,7 +2159,7 @@ body.force-desktop-ui * {
 .tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border-bottom: 2px solid #E5EAF3;
+  border-bottom: 2px solid #e5eaf3;
   background: transparent;
   width: 100%;
   max-width: 400px;
@@ -2172,8 +2174,8 @@ body.force-desktop-ui * {
   padding: 12px 16px;
   font-size: 17px !important;
   font-weight: 600 !important;
-  color: #1A254F !important;
-  font-family: "Noto Sans KR", system-ui, sans-serif !important;
+  color: #1a254f !important;
+  font-family: 'Noto Sans KR', system-ui, sans-serif !important;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
@@ -2182,7 +2184,7 @@ body.force-desktop-ui * {
 }
 
 .tab::after {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   right: 0;
@@ -2196,7 +2198,7 @@ body.force-desktop-ui * {
 }
 
 .tab.active::after {
-  background: #1A254F;
+  background: #1a254f;
 }
 
 /* HTML Requirements - Work Log Card Styles */
@@ -2219,7 +2221,7 @@ body.force-desktop-ui * {
 
 .worklog-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(16,24,40,0.1);
+  box-shadow: 0 8px 25px rgba(16, 24, 40, 0.1);
 }
 
 .worklog-header {
@@ -2236,15 +2238,15 @@ body.force-desktop-ui * {
 }
 
 .worklog-site {
-  font-family: "Noto Sans KR", system-ui, sans-serif;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
   font-size: 16px;
   font-weight: 700;
-  color: #1A254F;
+  color: #1a254f;
 }
 
 .worklog-detail-btn {
   background: rgba(41, 52, 208, 0.15);
-  color: #2934D0;
+  color: #2934d0;
   border: none;
   border-radius: 16px;
   padding: 6px 12px;
@@ -2266,14 +2268,14 @@ body.force-desktop-ui * {
 }
 
 .worklog-author {
-  font-family: "Noto Sans KR", system-ui, sans-serif;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
   color: var(--text-muted);
   font-size: 14px;
   font-weight: 500;
 }
 
 .worklog-date {
-  font-family: "Noto Sans KR", system-ui, sans-serif;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
   font-size: 14px;
   color: var(--muted);
   font-weight: 500;
@@ -2289,20 +2291,20 @@ body.force-desktop-ui * {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-family: "Noto Sans KR", system-ui, sans-serif;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
   font-size: 14px;
   color: var(--text);
 }
 
 .worklog-detail-label {
-  font-family: "Noto Sans KR", system-ui, sans-serif;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
   font-weight: 500;
   color: var(--text-muted);
   font-size: 14px;
 }
 
 .worklog-detail-value {
-  font-family: "Noto Sans KR", system-ui, sans-serif;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
   color: var(--text);
   font-size: 14px;
   font-weight: 500;
@@ -2317,7 +2319,7 @@ body.force-desktop-ui * {
   border-radius: 16px;
   font-size: 13px;
   font-weight: 600;
-  font-family: "Noto Sans KR", system-ui, sans-serif;
+  font-family: 'Noto Sans KR', system-ui, sans-serif;
   white-space: nowrap;
   height: 28px;
   box-sizing: border-box;
@@ -2325,7 +2327,7 @@ body.force-desktop-ui * {
 
 .status-tag.draft {
   background: rgba(255, 45, 128, 0.15);
-  color: #FF2980;
+  color: #ff2980;
 }
 
 .status-tag.approved {
