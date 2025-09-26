@@ -18,7 +18,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const year = Number(searchParams.get('year'))
     const month = Number(searchParams.get('month'))
-    const workerId = searchParams.get('workerId') || auth.userId
+    const workerIdParam = searchParams.get('workerId') || undefined
+    const isAdmin = auth.role === 'admin' || auth.role === 'system_admin'
+    const workerId = workerIdParam && isAdmin ? workerIdParam : auth.userId
     if (!year || !month) {
       return NextResponse.json(
         { success: false, error: 'year, month가 필요합니다.' },
@@ -26,8 +28,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Only allow self-access for now
-    if (workerId !== auth.userId) {
+    // Non-admin can only access self
+    if (!isAdmin && workerId !== auth.userId) {
       return NextResponse.json({ success: false, error: '권한이 없습니다.' }, { status: 403 })
     }
 
@@ -56,6 +58,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const year = Number(body?.year)
     const month = Number(body?.month)
+    const workerIdParam = body?.workerId as string | undefined
+    const isAdmin = auth.role === 'admin' || auth.role === 'system_admin'
+    const workerId = workerIdParam && isAdmin ? workerIdParam : auth.userId
     if (!year || !month) {
       return NextResponse.json(
         { success: false, error: 'year, month가 필요합니다.' },
@@ -64,13 +69,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Calculate monthly salary
-    const monthly = await salaryCalculationService.calculateMonthlySalary(auth.userId, year, month)
+    const monthly = await salaryCalculationService.calculateMonthlySalary(workerId, year, month)
 
     // Build snapshot
     const month_label = `${year}-${String(month).padStart(2, '0')}`
 
     const snapshot: SalarySnapshot = {
-      worker_id: auth.userId,
+      worker_id: workerId,
       year,
       month,
       month_label,
