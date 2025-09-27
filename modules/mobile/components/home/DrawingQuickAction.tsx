@@ -31,6 +31,20 @@ interface DrawingQuickActionProps {
   userId?: string
 }
 
+const normalizeBlueprintDate = (value?: string) => {
+  if (!value) return new Date().toISOString()
+  const parsed = new Date(value)
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString()
+
+  const match = value.match(/(\d{4})[.\s-]*(\d{1,2})[.\s-]*(\d{1,2})/)
+  if (match) {
+    const [, year, month, day] = match
+    return new Date(Number(year), Number(month) - 1, Number(day)).toISOString()
+  }
+
+  return new Date().toISOString()
+}
+
 export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
   className = '',
   selectedSite,
@@ -58,11 +72,68 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
     }
   }, [selectedSite])
 
+  useEffect(() => {
+    if (!selectedSite) {
+      setBlueprintChoices([])
+      setPrimaryBlueprint(null)
+      setIsLoading(false)
+      setError(null)
+      return
+    }
+
+    if (bpLoading) {
+      setIsLoading(true)
+      return
+    }
+
+    if (bpError) {
+      setIsLoading(false)
+      setError('공도면 조회에 실패했습니다')
+      setBlueprintChoices([])
+      setPrimaryBlueprint(null)
+      return
+    }
+
+    if (Array.isArray(blueprintData) && blueprintData.length > 0) {
+      const normalized = blueprintData.map(item => ({
+        id: item.id,
+        name: item.title,
+        title: item.title,
+        fileUrl: item.fileUrl,
+        uploadDate: normalizeBlueprintDate(item.uploadDate),
+        isPrimary: item.isPrimary,
+      }))
+
+      setBlueprintChoices(normalized)
+
+      setPrimaryBlueprint(prev => {
+        if (prev && normalized.some(choice => choice.id === prev.id)) {
+          // 기존 선택이 목록에 있으면 유지
+          return normalized.find(choice => choice.id === prev.id) ?? normalized[0]
+        }
+
+        return normalized.find(choice => choice.isPrimary) ?? normalized[0]
+      })
+
+      setError(null)
+      setIsLoading(false)
+      return
+    }
+
+    // 데이터가 없으면 초기화
+    setBlueprintChoices([])
+    setPrimaryBlueprint(null)
+    setIsLoading(false)
+  }, [selectedSite, blueprintData, bpLoading, bpError])
+
   const fetchPrimaryBlueprint = async (siteId: string) => {
     setIsLoading(true)
     setError(null)
     try {
-      const response = await fetch(`/api/partner/sites/${siteId}/documents?type=drawing`)
+      // React Query 훅을 통해 가져온 데이터를 신뢰하지만, 재시도 버튼에서는 직접 호출하여 강제 갱신
+      const response = await fetch(`/api/partner/sites/${siteId}/documents?type=drawing`, {
+        cache: 'no-store',
+      })
       const data = await response.json()
 
       if (data.success && data.data?.documents) {
@@ -72,10 +143,10 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
 
         const mapped: Blueprint[] = drawingDocuments.map((doc: any) => ({
           id: doc.id,
-          name: doc.name,
-          title: doc.title || doc.name,
+          name: doc.name ?? doc.title ?? '공도면',
+          title: doc.title || doc.name || '공도면',
           fileUrl: doc.fileUrl,
-          uploadDate: doc.uploadDate,
+          uploadDate: normalizeBlueprintDate(doc.uploadDate ?? doc.createdAt ?? doc.created_at),
           isPrimary:
             doc.is_primary_blueprint === true ||
             doc.isPrimary === true ||
@@ -97,6 +168,16 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
           setPrimaryBlueprint(sorted[0])
         } else {
           setPrimaryBlueprint(null)
+        }
+
+        setError(null)
+
+        // React Query 캐시도 최신 상태로 맞춰둔다.
+        try {
+          await prefetch(siteId)
+        } catch (prefetchError) {
+          // 캐시 갱신 실패는 무시
+          console.warn('[DrawingQuickAction] Blueprint prefetch failed:', prefetchError)
         }
       } else {
         setPrimaryBlueprint(null)
