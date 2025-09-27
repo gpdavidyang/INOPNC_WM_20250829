@@ -1,7 +1,12 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, Paperclip, Search, X } from 'lucide-react'
+import {
+  createMaterialRequest as createNpcMaterialRequest,
+  recordInventoryTransaction,
+} from '@/app/actions/npc-materials'
+import { useToast } from '@/components/ui/use-toast'
 
 type ManagerRole = 'construction_manager' | 'assistant_manager' | 'safety_manager'
 
@@ -93,6 +98,12 @@ interface DailyReportItem {
   npc1000_incoming?: number | null
   npc1000_used?: number | null
   npc1000_remaining?: number | null
+}
+
+interface MonthlyStats {
+  siteCount: number
+  totalManDays: number
+  workDays: number
 }
 
 const EMPTY_ATTACHMENTS: AttachmentBuckets = {
@@ -296,6 +307,32 @@ async function switchCurrentSite(siteId: string) {
   })
 }
 
+async function loadMonthlyStats(date = new Date()): Promise<MonthlyStats | null> {
+  try {
+    const year = date.getFullYear()
+    const month = date.getMonth() + 1
+    const response = await fetchJSON<{
+      success: boolean
+      data?: { siteCount?: number; totalManDays?: number; workDays?: number }
+    }>(`/api/salary/monthly?year=${year}&month=${month}`, { cache: 'no-store' })
+
+    if (!response?.success || !response.data) {
+      return null
+    }
+
+    const { siteCount = 0, totalManDays = 0, workDays = 0 } = response.data
+
+    return {
+      siteCount,
+      totalManDays,
+      workDays,
+    }
+  } catch (error) {
+    console.error('[SiteInfo] Failed to load monthly stats', error)
+    return null
+  }
+}
+
 export default function SiteInfoPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -305,6 +342,8 @@ export default function SiteInfoPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isSessionExpired, setIsSessionExpired] = useState(false)
 
+  const [monthlyStats, setMonthlyStats] = useState<MonthlyStats | null>(null)
+
   const [searchQuery, setSearchQuery] = useState('')
   const [siteResults, setSiteResults] = useState<SiteSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -313,6 +352,33 @@ export default function SiteInfoPage() {
   const [attachmentFocus, setAttachmentFocus] = useState<'drawings' | 'ptw' | 'photos' | null>(null)
 
   const [showDetail, setShowDetail] = useState(false)
+  const { toast } = useToast()
+
+  const [showNpcRecordModal, setShowNpcRecordModal] = useState(false)
+  const [showNpcRequestModal, setShowNpcRequestModal] = useState(false)
+  const [recordTransactionType, setRecordTransactionType] = useState<'in' | 'out'>('in')
+  const [recordQuantity, setRecordQuantity] = useState('')
+  const [recordDate, setRecordDate] = useState(todayISO())
+  const [recordNotes, setRecordNotes] = useState('')
+  const [isSubmittingRecord, setIsSubmittingRecord] = useState(false)
+  const [requestQuantity, setRequestQuantity] = useState('')
+  const [requestNotes, setRequestNotes] = useState('')
+  const [requestUrgency, setRequestUrgency] = useState<'normal' | 'urgent' | 'emergency'>('normal')
+  const [isSubmittingRequest, setIsSubmittingRequest] = useState(false)
+
+  const refreshNpcSummary = useCallback(async () => {
+    if (!currentSite) return
+
+    try {
+      setIsRefreshing(true)
+      const updatedSummary = await loadNpcSummary(currentSite.id)
+      setNpcSummary(updatedSummary)
+    } catch (error) {
+      console.error('[SiteInfo] Failed to refresh NPC summary', error)
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [currentSite])
 
   const loadAll = async () => {
     setIsLoading(true)
@@ -320,7 +386,16 @@ export default function SiteInfoPage() {
     setIsSessionExpired(false)
 
     try {
-      const site = await loadCurrentSite()
+      const [site, stats] = await Promise.all([loadCurrentSite(), loadMonthlyStats()])
+
+      setMonthlyStats(
+        stats ?? {
+          siteCount: 0,
+          totalManDays: 0,
+          workDays: 0,
+        }
+      )
+
       if (!site) {
         setCurrentSite(null)
         setAttachments(EMPTY_ATTACHMENTS)
@@ -344,14 +419,33 @@ export default function SiteInfoPage() {
         setCurrentSite(null)
         setAttachments(EMPTY_ATTACHMENTS)
         setNpcSummary(null)
+        setMonthlyStats({ siteCount: 0, totalManDays: 0, workDays: 0 })
       } else {
         console.error('[SiteInfo] loadAll failed', error)
         setErrorMessage(error instanceof Error ? error.message : '데이터를 불러오지 못했습니다.')
+        setMonthlyStats(prev => prev ?? { siteCount: 0, totalManDays: 0, workDays: 0 })
       }
     } finally {
       setIsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (showNpcRecordModal) {
+      setRecordTransactionType('in')
+      setRecordQuantity('')
+      setRecordNotes('')
+      setRecordDate(todayISO())
+    }
+  }, [showNpcRecordModal])
+
+  useEffect(() => {
+    if (showNpcRequestModal) {
+      setRequestQuantity('')
+      setRequestNotes('')
+      setRequestUrgency('normal')
+    }
+  }, [showNpcRequestModal])
 
   useEffect(() => {
     loadAll()
@@ -411,6 +505,152 @@ export default function SiteInfoPage() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  }
+
+  const handleOpenNpcRecord = () => {
+    if (!currentSite) {
+      toast({
+        title: '현장 정보가 필요합니다.',
+        description: 'NPC-1000 기록을 등록하려면 먼저 현장을 선택해주세요.',
+        variant: 'warning',
+      })
+      return
+    }
+    setShowNpcRecordModal(true)
+  }
+
+  const handleOpenNpcRequest = () => {
+    if (!currentSite) {
+      toast({
+        title: '현장 정보가 필요합니다.',
+        description: '자재 요청은 현장을 선택한 뒤 진행할 수 있습니다.',
+        variant: 'warning',
+      })
+      return
+    }
+    setShowNpcRequestModal(true)
+  }
+
+  const handleNpcRecordSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!currentSite) {
+      toast({
+        title: '현장 정보 없음',
+        description: '현장을 선택한 뒤 다시 시도해주세요.',
+        variant: 'warning',
+      })
+      return
+    }
+
+    const quantityValue = Number(recordQuantity)
+    if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
+      toast({
+        title: '올바른 수량을 입력해주세요.',
+        description: '입고/사용 수량은 0보다 큰 숫자여야 합니다.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    if (!recordDate) {
+      toast({
+        title: '기록 일자를 선택해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSubmittingRecord(true)
+    try {
+      const result = await recordInventoryTransaction({
+        siteId: currentSite.id,
+        materialCode: 'NPC-1000',
+        transactionType: recordTransactionType,
+        quantity: quantityValue,
+        transactionDate: recordDate,
+        notes: recordNotes.trim() ? recordNotes.trim() : undefined,
+      })
+
+      if (!result?.success) {
+        throw new Error(result?.error || '입고 기록을 저장하지 못했습니다.')
+      }
+
+      toast({
+        title: recordTransactionType === 'in' ? '입고 기록 완료' : '사용 기록 완료',
+        description: `${currentSite.name}에 ${quantityValue.toLocaleString()}말 ${recordTransactionType === 'in' ? '입고' : '사용'} 처리되었습니다.`,
+        variant: 'success',
+      })
+
+      setShowNpcRecordModal(false)
+      await refreshNpcSummary()
+    } catch (error) {
+      console.error('[SiteInfo] Failed to save NPC record', error)
+      toast({
+        title: '기록 저장에 실패했습니다.',
+        description: error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmittingRecord(false)
+    }
+  }
+
+  const handleNpcRequestSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!currentSite) {
+      toast({
+        title: '현장 정보 없음',
+        description: '자재 요청은 현장을 선택한 뒤 진행해주세요.',
+        variant: 'warning',
+      })
+      return
+    }
+
+    const quantityValue = Number(requestQuantity)
+    if (!Number.isFinite(quantityValue) || quantityValue <= 0) {
+      toast({
+        title: '올바른 요청 수량이 필요합니다.',
+        description: '요청 수량은 0보다 큰 숫자로 입력해주세요.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    setIsSubmittingRequest(true)
+    try {
+      const urgencyLabel =
+        requestUrgency === 'normal' ? '일반' : requestUrgency === 'urgent' ? '긴급' : '최우선'
+      const combinedNotes = [`[${urgencyLabel}]`, requestNotes.trim()].filter(Boolean).join(' ')
+
+      const result = await createNpcMaterialRequest({
+        siteId: currentSite.id,
+        materialCode: 'NPC-1000',
+        requestedQuantity: quantityValue,
+        requestDate: new Date().toISOString(),
+        notes: combinedNotes || undefined,
+      })
+
+      if (!result?.success) {
+        throw new Error(result?.error || '자재 요청을 저장하지 못했습니다.')
+      }
+
+      toast({
+        title: '자재 요청이 등록되었습니다.',
+        description: `${currentSite.name}에 NPC-1000 ${quantityValue.toLocaleString()}말 요청이 본사로 전달되었습니다.`,
+        variant: 'success',
+      })
+
+      setShowNpcRequestModal(false)
+    } catch (error) {
+      console.error('[SiteInfo] Failed to submit NPC request', error)
+      toast({
+        title: '자재 요청 등록에 실패했습니다.',
+        description: error instanceof Error ? error.message : '잠시 후 다시 시도해주세요.',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsSubmittingRequest(false)
+    }
   }
 
   const renderManagerContact = (manager: ManagerContact) => (
@@ -523,6 +763,59 @@ export default function SiteInfoPage() {
           padding: 16px;
           margin-bottom: 24px;
           box-shadow: 0 1px 3px rgba(16, 24, 40, 0.1);
+        }
+
+        .site-stats-section {
+          margin-bottom: 24px;
+        }
+
+        .stat-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        .stat {
+          padding: 16px 0;
+          border-radius: 14px;
+          text-align: center;
+          border: 1px solid currentColor;
+        }
+
+        .stat .num {
+          font-size: 22px;
+          font-weight: 700;
+          line-height: 1.4;
+        }
+
+        .stat .label {
+          font-size: 16px;
+          font-weight: 600;
+          line-height: 1.4;
+        }
+
+        .stat-sites {
+          color: #31a3fa;
+          background-color: rgba(49, 163, 250, 0.05);
+          border-color: rgba(49, 163, 250, 0.2);
+        }
+
+        .stat-hours {
+          color: #1a254f;
+          background-color: rgba(26, 37, 79, 0.05);
+          border-color: rgba(26, 37, 79, 0.2);
+        }
+
+        .stat-workdays {
+          color: #99a4be;
+          background-color: rgba(153, 164, 190, 0.05);
+          border-color: rgba(153, 164, 190, 0.2);
+        }
+
+        :global([data-theme='dark']) .stat {
+          background: rgba(15, 23, 42, 0.9);
+          border-color: var(--attendance-border-dark, rgba(49, 163, 250, 0.25));
+          color: #e9eef5;
         }
 
         .card-header {
@@ -829,10 +1122,240 @@ export default function SiteInfoPage() {
           background: var(--hover);
         }
 
+        .npc-btn-ghost {
+          background: #f3f4f6;
+          color: #374151;
+          border-color: #d1d5db;
+        }
+
+        .npc-btn-ghost:hover {
+          background: #e5e7eb;
+          border-color: #9ca3af;
+        }
+
         .npc-btn-primary {
           background: var(--blue);
           color: #fff;
           border-color: var(--blue);
+        }
+
+        :global([data-theme='dark'] .npc-card .npc-btn-ghost) {
+          background: #374151;
+          color: #e5e7eb;
+          border-color: #4b5563;
+        }
+
+        :global([data-theme='dark'] .npc-card .npc-btn-ghost:hover) {
+          background: #4b5563;
+          border-color: #6b7280;
+        }
+
+        .npc-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1100;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          padding: 24px 16px;
+          background: rgba(15, 23, 42, 0.35);
+        }
+
+        @media (min-width: 640px) {
+          .npc-modal-overlay {
+            align-items: center;
+          }
+        }
+
+        .npc-modal {
+          width: min(520px, 100%);
+          max-height: 90vh;
+          background: var(--card);
+          border-radius: 20px;
+          border: 1px solid var(--border);
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        .npc-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 24px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .npc-modal-header h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 700;
+        }
+
+        .npc-modal-close {
+          border: none;
+          background: transparent;
+          color: var(--muted);
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 6px;
+          border-radius: 999px;
+          transition: background 0.2s ease;
+        }
+
+        .npc-modal-close:hover {
+          background: rgba(16, 24, 40, 0.06);
+          color: var(--text);
+        }
+
+        .npc-modal-body {
+          padding: 20px 24px 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+          overflow-y: auto;
+        }
+
+        .npc-modal-field {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .modal-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--muted);
+        }
+
+        .modal-value {
+          font-size: 15px;
+          font-weight: 600;
+          color: var(--text);
+        }
+
+        .modal-input,
+        .modal-select,
+        .modal-textarea {
+          width: 100%;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 12px 14px;
+          font-size: 15px;
+          font-family: inherit;
+          background: #f8fafc;
+          color: var(--text);
+          transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        }
+
+        .modal-select {
+          appearance: none;
+          background-image:
+            linear-gradient(45deg, transparent 50%, #94a3b8 50%),
+            linear-gradient(135deg, #94a3b8 50%, transparent 50%);
+          background-position:
+            calc(100% - 18px) calc(50% - 3px),
+            calc(100% - 12px) calc(50% - 3px);
+          background-size:
+            6px 6px,
+            6px 6px;
+          background-repeat: no-repeat;
+        }
+
+        .modal-textarea {
+          resize: vertical;
+          min-height: 96px;
+        }
+
+        .modal-input:focus,
+        .modal-select:focus,
+        .modal-textarea:focus {
+          border-color: var(--blue);
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(0, 104, 254, 0.15);
+        }
+
+        .npc-modal-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+          padding-top: 8px;
+        }
+
+        .modal-secondary-button,
+        .modal-primary-button {
+          min-width: 110px;
+          height: 44px;
+          border-radius: 12px;
+          font-weight: 600;
+          border: 1px solid transparent;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .modal-secondary-button {
+          background: transparent;
+          border-color: var(--border);
+          color: var(--text);
+        }
+
+        .modal-secondary-button:hover {
+          background: var(--hover);
+        }
+
+        .modal-primary-button {
+          background: var(--blue);
+          color: #fff;
+          border-color: var(--blue);
+        }
+
+        .modal-primary-button:hover {
+          background: rgba(0, 104, 254, 0.85);
+        }
+
+        .modal-secondary-button:disabled,
+        .modal-primary-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        :global([data-theme='dark'] .npc-modal) {
+          background: #111827;
+          border-color: rgba(148, 163, 184, 0.18);
+          box-shadow: 0 24px 60px rgba(2, 6, 23, 0.6);
+        }
+
+        :global([data-theme='dark'] .npc-modal-close:hover) {
+          background: rgba(148, 163, 184, 0.15);
+          color: #e2e8f0;
+        }
+
+        :global([data-theme='dark'] .npc-modal .modal-label) {
+          color: #94a3b8;
+        }
+
+        :global([data-theme='dark'] .npc-modal .modal-value) {
+          color: #e2e8f0;
+        }
+
+        :global([data-theme='dark'] .npc-modal .modal-input),
+        :global([data-theme='dark'] .npc-modal .modal-select),
+        :global([data-theme='dark'] .npc-modal .modal-textarea) {
+          background: rgba(30, 41, 59, 0.65);
+          border-color: rgba(148, 163, 184, 0.25);
+          color: #e2e8f0;
+        }
+
+        :global([data-theme='dark'] .npc-modal .modal-input:focus),
+        :global([data-theme='dark'] .npc-modal .modal-select:focus),
+        :global([data-theme='dark'] .npc-modal .modal-textarea:focus) {
+          border-color: #3b82f6;
+          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
         }
 
         .attachment-popup-overlay,
@@ -1109,6 +1632,29 @@ export default function SiteInfoPage() {
         <div className="card">현재 배정된 현장이 없습니다.</div>
       )}
 
+      {!isLoading && monthlyStats && (
+        <section className="site-stats-section" role="region" aria-label="출력 현황 통계">
+          <div className="stat-grid">
+            <div className="stat stat-sites">
+              <div className="num">{monthlyStats.siteCount}</div>
+              <div className="label">현장수</div>
+            </div>
+            <div className="stat stat-hours">
+              <div className="num">
+                {Number.isInteger(monthlyStats.totalManDays)
+                  ? monthlyStats.totalManDays
+                  : monthlyStats.totalManDays.toFixed(1)}
+              </div>
+              <div className="label">공수</div>
+            </div>
+            <div className="stat stat-workdays">
+              <div className="num">{monthlyStats.workDays}</div>
+              <div className="label">근무일</div>
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="card site-search-card" role="region" aria-label="참여 현장 검색">
         <div className="card-header">
           <div className="q">참여 현장</div>
@@ -1176,7 +1722,7 @@ export default function SiteInfoPage() {
 
         <div className="npc-card" role="region" aria-label="NPC-1000 재고관리">
           <div className="npc-header">
-            <div className="npc-title">📦 NPC-1000 재고관리</div>
+            <div className="npc-title">NPC-1000 재고관리</div>
             {isRefreshing && <span style={{ fontSize: 13, color: '#6b7280' }}>업데이트 중...</span>}
           </div>
 
@@ -1198,12 +1744,218 @@ export default function SiteInfoPage() {
           </div>
 
           <div className="npc-buttons">
-            <button className="npc-btn">로그 보기</button>
-            <button className="npc-btn">자재 요청</button>
-            <button className="npc-btn npc-btn-primary">입고 기록</button>
+            <button type="button" className="npc-btn npc-btn-ghost">
+              로그 보기
+            </button>
+            <button type="button" className="npc-btn npc-btn-ghost" onClick={handleOpenNpcRequest}>
+              자재 요청
+            </button>
+            <button type="button" className="npc-btn npc-btn-primary" onClick={handleOpenNpcRecord}>
+              입고 기록
+            </button>
           </div>
         </div>
       </section>
+
+      {showNpcRecordModal && (
+        <div className="npc-modal-overlay" role="dialog" aria-modal="true">
+          <div className="npc-modal">
+            <div className="npc-modal-header">
+              <h3>NPC-1000 입고·사용 기록</h3>
+              <button
+                type="button"
+                className="npc-modal-close"
+                onClick={() => setShowNpcRecordModal(false)}
+                aria-label="닫기"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form className="npc-modal-body" onSubmit={handleNpcRecordSubmit}>
+              <div className="npc-modal-field" role="group" aria-label="선택된 현장">
+                <span className="modal-label">현장</span>
+                <span className="modal-value">{currentSite?.name ?? '-'}</span>
+              </div>
+
+              <div className="npc-modal-field">
+                <label htmlFor="npc-transaction-type" className="modal-label">
+                  거래 유형
+                </label>
+                <select
+                  id="npc-transaction-type"
+                  className="modal-select"
+                  value={recordTransactionType}
+                  onChange={event =>
+                    setRecordTransactionType(event.target.value === 'out' ? 'out' : 'in')
+                  }
+                >
+                  <option value="in">입고</option>
+                  <option value="out">사용</option>
+                </select>
+              </div>
+
+              <div className="npc-modal-field">
+                <label htmlFor="npc-record-quantity" className="modal-label">
+                  수량 (말)
+                </label>
+                <input
+                  id="npc-record-quantity"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="modal-input"
+                  value={recordQuantity}
+                  onChange={event => setRecordQuantity(event.target.value)}
+                  placeholder="0"
+                  inputMode="decimal"
+                />
+              </div>
+
+              <div className="npc-modal-field">
+                <label htmlFor="npc-record-date" className="modal-label">
+                  기록 일자
+                </label>
+                <input
+                  id="npc-record-date"
+                  type="date"
+                  className="modal-input"
+                  value={recordDate}
+                  onChange={event => setRecordDate(event.target.value)}
+                />
+              </div>
+
+              <div className="npc-modal-field">
+                <label htmlFor="npc-record-notes" className="modal-label">
+                  비고
+                </label>
+                <textarea
+                  id="npc-record-notes"
+                  className="modal-textarea"
+                  rows={3}
+                  value={recordNotes}
+                  onChange={event => setRecordNotes(event.target.value)}
+                  placeholder="현장 메모나 관련 내용을 입력해주세요."
+                />
+              </div>
+
+              <div className="npc-modal-actions">
+                <button
+                  type="button"
+                  className="modal-secondary-button"
+                  onClick={() => setShowNpcRecordModal(false)}
+                  disabled={isSubmittingRecord}
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="modal-primary-button"
+                  disabled={isSubmittingRecord}
+                >
+                  {isSubmittingRecord ? '저장 중...' : '기록 저장'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showNpcRequestModal && (
+        <div className="npc-modal-overlay" role="dialog" aria-modal="true">
+          <div className="npc-modal">
+            <div className="npc-modal-header">
+              <h3>NPC-1000 자재 요청</h3>
+              <button
+                type="button"
+                className="npc-modal-close"
+                onClick={() => setShowNpcRequestModal(false)}
+                aria-label="닫기"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form className="npc-modal-body" onSubmit={handleNpcRequestSubmit}>
+              <div className="npc-modal-field" role="group" aria-label="선택된 현장">
+                <span className="modal-label">현장</span>
+                <span className="modal-value">{currentSite?.name ?? '-'}</span>
+              </div>
+
+              <div className="npc-modal-field">
+                <label htmlFor="npc-request-quantity" className="modal-label">
+                  요청 수량 (말)
+                </label>
+                <input
+                  id="npc-request-quantity"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="modal-input"
+                  value={requestQuantity}
+                  onChange={event => setRequestQuantity(event.target.value)}
+                  placeholder="0"
+                  inputMode="decimal"
+                />
+              </div>
+
+              <div className="npc-modal-field">
+                <label htmlFor="npc-request-urgency" className="modal-label">
+                  긴급도
+                </label>
+                <select
+                  id="npc-request-urgency"
+                  className="modal-select"
+                  value={requestUrgency}
+                  onChange={event =>
+                    setRequestUrgency(
+                      event.target.value === 'urgent'
+                        ? 'urgent'
+                        : event.target.value === 'emergency'
+                          ? 'emergency'
+                          : 'normal'
+                    )
+                  }
+                >
+                  <option value="normal">일반</option>
+                  <option value="urgent">긴급</option>
+                  <option value="emergency">최우선</option>
+                </select>
+              </div>
+
+              <div className="npc-modal-field">
+                <label htmlFor="npc-request-notes" className="modal-label">
+                  요청 내용
+                </label>
+                <textarea
+                  id="npc-request-notes"
+                  className="modal-textarea"
+                  rows={4}
+                  value={requestNotes}
+                  onChange={event => setRequestNotes(event.target.value)}
+                  placeholder="필요 수량과 사유를 입력해주세요."
+                />
+              </div>
+
+              <div className="npc-modal-actions">
+                <button
+                  type="button"
+                  className="modal-secondary-button"
+                  onClick={() => setShowNpcRequestModal(false)}
+                  disabled={isSubmittingRequest}
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  className="modal-primary-button"
+                  disabled={isSubmittingRequest}
+                >
+                  {isSubmittingRequest ? '요청 중...' : '요청 등록'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showAttachmentPopup && (
         <div

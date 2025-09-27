@@ -55,6 +55,15 @@ interface SiteOption {
   label: string
 }
 
+type SiteAssignmentRow = {
+  site_id: string | null
+  is_active: boolean | null
+  sites?: {
+    id?: string | null
+    name?: string | null
+  } | null
+}
+
 interface CalendarDaySummary {
   date: Date
   iso: string
@@ -317,6 +326,32 @@ const AttendanceContent: React.FC = () => {
           }
         }
 
+        if (profile?.organization_id) {
+          try {
+            const response = await fetch(
+              `/api/sites/by-partner?partner_company_id=${encodeURIComponent(profile.organization_id)}`,
+              { cache: 'no-store' }
+            )
+
+            if (response.ok) {
+              const partnerSites = await response.json()
+              const siteArray = Array.isArray(partnerSites)
+                ? partnerSites
+                : Array.isArray(partnerSites?.data)
+                  ? partnerSites.data
+                  : []
+
+              siteArray.forEach(site => {
+                if (!site?.id) return
+                const label = site.name && site.name.trim().length > 0 ? site.name : '현장 미지정'
+                uniqueAssignmentsMap.set(site.id, { value: site.id, label })
+              })
+            }
+          } catch (partnerSiteError) {
+            console.error('Error fetching partner sites:', partnerSiteError)
+          }
+        }
+
         setAssignmentOptions(Array.from(uniqueAssignmentsMap.values()))
       } catch (err) {
         console.error('Error loading site assignments:', err)
@@ -328,7 +363,7 @@ const AttendanceContent: React.FC = () => {
     return () => {
       isCancelled = true
     }
-  }, [userId, profile?.site_id, profile?.role, supabase])
+  }, [userId, profile?.site_id, profile?.role, profile?.organization_id, supabase])
 
   // Derive site filter options from loaded records
   useEffect(() => {

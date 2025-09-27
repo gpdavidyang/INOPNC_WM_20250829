@@ -27,7 +27,18 @@ async function fetchSiteBlueprints(siteId: string): Promise<BlueprintItem[]> {
       id: d.id,
       title: d.title || d.name || '공도면',
       fileUrl: d.fileUrl,
-      uploadDate: d.uploadDate,
+      uploadDate: (() => {
+        const value = d.uploadDate ?? d.createdAt ?? d.created_at
+        if (!value) return new Date().toISOString()
+        const parsed = new Date(value)
+        if (!Number.isNaN(parsed.getTime())) return parsed.toISOString()
+        const match = String(value).match(/(\d{4})[.\s-]*(\d{1,2})[.\s-]*(\d{1,2})/)
+        if (match) {
+          const [, year, month, day] = match
+          return new Date(Number(year), Number(month) - 1, Number(day)).toISOString()
+        }
+        return new Date().toISOString()
+      })(),
       isPrimary: !!(d.is_primary_blueprint || d.isPrimary || d.metadata?.is_primary),
     }))
 }
