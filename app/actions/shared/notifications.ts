@@ -1,9 +1,10 @@
+'use server'
+
 import { createClient } from '@/lib/supabase/server'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
 import { revalidatePath } from 'next/cache'
 import { AppError, ErrorType } from '@/lib/errors'
 import { validateSupabaseResponse, logError } from '@/lib/supabase/client'
-;('use server')
 
 import type {
   NotificationExtended,

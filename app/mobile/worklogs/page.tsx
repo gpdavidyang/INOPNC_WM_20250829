@@ -37,6 +37,7 @@ export default function WorklogsPage() {
   const [siteOptions, setSiteOptions] = useState<Array<{ value: string; label: string }>>([
     { value: 'all', label: '전체 현장' },
   ])
+  const [allSites, setAllSites] = useState<Array<{ value: string; label: string }>>([])
 
   const listFilters = useMemo(
     () => ({
@@ -59,7 +60,55 @@ export default function WorklogsPage() {
   const detailMap = listResult?.detailMap ?? {}
 
   useEffect(() => {
+    const controller = new AbortController()
+
+    const fetchSites = async () => {
+      try {
+        const response = await fetch('/api/mobile/sites/list', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          console.error('[Worklogs] Failed to load site list:', response.statusText)
+          return
+        }
+
+        const payload = await response.json().catch(() => null)
+        if (!payload || payload.success === false) {
+          console.error('[Worklogs] Failed to load site list:', payload?.error)
+          return
+        }
+
+        const data = Array.isArray(payload?.data) ? payload.data : []
+        const mapped = data
+          .filter(site => site?.id)
+          .map(site => ({
+            value: site.id,
+            label: site.name && site.name.trim().length > 0 ? site.name : '현장 미지정',
+          }))
+
+        setAllSites(mapped)
+      } catch (error) {
+        if (controller.signal.aborted) return
+        console.error('[Worklogs] Unexpected error loading site list:', error)
+      }
+    }
+
+    fetchSites()
+
+    return () => controller.abort()
+  }, [])
+
+  useEffect(() => {
     const nextOptions = new Map<string, string>([['all', '전체 현장']])
+
+    allSites.forEach(site => {
+      if (site.value) {
+        nextOptions.set(site.value, site.label)
+      }
+    })
+
     worklogs.forEach(item => {
       if (item.siteId) {
         nextOptions.set(item.siteId, item.siteName)
@@ -80,7 +129,7 @@ export default function WorklogsPage() {
       }
       return nextArray
     })
-  }, [worklogs])
+  }, [worklogs, allSites])
 
   const selectedWorklog = useWorklogDetailFromMap(detailMap, selectedId)
 

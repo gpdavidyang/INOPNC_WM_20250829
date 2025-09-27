@@ -30,53 +30,11 @@ export async function GET(request: NextRequest) {
     }
 
     const siteMap = new Map<string, SiteRecord>()
+    const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
+    const legacyInactiveStatuses = new Set(['terminated', 'inactive', 'suspended', 'cancelled'])
+    const queryErrors: Array<{ source: string; message: string; code: string | null }> = []
 
-    // 1) site_partners 테이블 기반 조회 (신규 구조)
-    const { data: sitePartnersData, error: sitePartnersError } = await supabase
-      .from('site_partners')
-      .select(
-        `
-        site_id,
-        contract_status,
-        sites:sites!inner(
-          id,
-          name,
-          address,
-          status,
-          organization_id
-        )
-      `
-      )
-      .eq('partner_company_id', partnerCompanyId)
-
-    if (sitePartnersError) {
-      console.warn('site_partners lookup failed, falling back to partner_site_mappings:', {
-        message: sitePartnersError.message,
-        code: sitePartnersError.code,
-      })
-    } else {
-      sitePartnersData
-        ?.filter(row => row.sites)
-        .forEach(row => {
-          const inactiveStatuses = new Set(['terminated', 'inactive', 'suspended', 'cancelled'])
-          if (row.contract_status && inactiveStatuses.has(row.contract_status)) {
-            return
-          }
-
-          const site = row.sites
-          if (site?.id) {
-            siteMap.set(site.id, {
-              id: site.id,
-              name: site.name,
-              address: site.address ?? null,
-              status: site.status ?? null,
-              organization_id: site.organization_id ?? null,
-            })
-          }
-        })
-    }
-
-    // 2) 기존 partner_site_mappings 기반 조회 (레거시 데이터 호환)
+    // 1) partner_site_mappings 기반 조회 (기본 경로)
     const { data: mappingData, error: mappingError } = await supabase
       .from('partner_site_mappings')
       .select(
@@ -99,6 +57,11 @@ export async function GET(request: NextRequest) {
         message: mappingError.message,
         code: mappingError.code,
       })
+      queryErrors.push({
+        source: 'partner_site_mappings',
+        message: mappingError.message,
+        code: mappingError.code ?? null,
+      })
     } else {
       mappingData
         ?.filter(row => row.is_active && row.sites)
@@ -116,8 +79,65 @@ export async function GET(request: NextRequest) {
         })
     }
 
-    if (!siteMap.size && sitePartnersError && mappingError) {
-      return NextResponse.json({ error: 'Failed to fetch sites' }, { status: 500 })
+    // 2) 필요 시 site_partners 테이블 기반 조회 (선택적 폴백)
+    if ((mappingError || siteMap.size === 0) && legacyFallbackEnabled) {
+      const { data: sitePartnersData, error: sitePartnersError } = await supabase
+        .from('site_partners')
+        .select(
+          `
+          site_id,
+          contract_status,
+          sites:sites!inner(
+            id,
+            name,
+            address,
+            status,
+            organization_id
+          )
+        `
+        )
+        .eq('partner_company_id', partnerCompanyId)
+
+      if (sitePartnersError) {
+        console.warn('site_partners fallback lookup failed:', {
+          message: sitePartnersError.message,
+          code: sitePartnersError.code,
+        })
+        queryErrors.push({
+          source: 'site_partners',
+          message: sitePartnersError.message,
+          code: sitePartnersError.code ?? null,
+        })
+      } else {
+        sitePartnersData
+          ?.filter(row => row.sites)
+          .forEach(row => {
+            if (row.contract_status && legacyInactiveStatuses.has(row.contract_status)) {
+              return
+            }
+
+            const site = row.sites
+            if (site?.id && !siteMap.has(site.id)) {
+              siteMap.set(site.id, {
+                id: site.id,
+                name: site.name,
+                address: site.address ?? null,
+                status: site.status ?? null,
+                organization_id: site.organization_id ?? null,
+              })
+            }
+          })
+      }
+    }
+
+    if (!siteMap.size && queryErrors.length) {
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch sites',
+          details: queryErrors,
+        },
+        { status: 500 }
+      )
     }
 
     const sites = Array.from(siteMap.values()).sort((a, b) => a.name.localeCompare(b.name))

@@ -1,16 +1,13 @@
+'use server'
+
 import { revalidatePath } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import {
-  requireServerActionAuth,
-  assertOrgAccess,
-  type SimpleAuth,
-} from '@/lib/auth/ultra-simple'
+import { requireServerActionAuth, assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType, logError } from '@/lib/error-handling'
 import type { AttendanceStatus } from '@/types'
 import type { AttendanceRecord } from '@/types/attendance'
 import type { Database } from '@/types/database'
-;('use server')
 
 // ==========================================
 // ATTENDANCE ACTIONS
@@ -35,11 +32,7 @@ async function getSiteOrganization(
   return data.organization_id ?? undefined
 }
 
-async function ensureSiteAccess(
-  supabase: SupabaseServerClient,
-  auth: SimpleAuth,
-  siteId?: string
-) {
+async function ensureSiteAccess(supabase: SupabaseServerClient, auth: SimpleAuth, siteId?: string) {
   if (!siteId || !auth.isRestricted) {
     return
   }
@@ -134,7 +127,9 @@ export async function getAttendanceRecords(params: {
     // Use OR condition to match both user_id and profile_id
     // This matches the logic used in salary-calculation.service.ts
     if (effectiveParams.user_id) {
-      query = query.or(`user_id.eq.${effectiveParams.user_id},profile_id.eq.${effectiveParams.user_id}`)
+      query = query.or(
+        `user_id.eq.${effectiveParams.user_id},profile_id.eq.${effectiveParams.user_id}`
+      )
     }
     if (effectiveParams.site_id) {
       query = query.eq('site_id', effectiveParams.site_id)
@@ -222,7 +217,11 @@ export async function getCompanyAttendanceSummary(params: {
     }
   } catch (error) {
     logError(error, 'getCompanyAttendanceSummary')
-    return { success: false, error: error instanceof AppError ? error.message : 'Failed to fetch company attendance summary' }
+    return {
+      success: false,
+      error:
+        error instanceof AppError ? error.message : 'Failed to fetch company attendance summary',
+    }
   }
 }
 
@@ -352,7 +351,11 @@ export async function checkOut(data: {
 
     const attendance = await fetchWorkRecordWithAccess(supabase, auth, data.attendance_id)
 
-    if (auth.isRestricted && attendance.user_id !== auth.userId && attendance.profile_id !== auth.userId) {
+    if (
+      auth.isRestricted &&
+      attendance.user_id !== auth.userId &&
+      attendance.profile_id !== auth.userId
+    ) {
       throw new AppError('본인 근태 기록만 수정할 수 있습니다.', ErrorType.AUTHORIZATION, 403)
     }
 
@@ -412,7 +415,10 @@ export async function checkOut(data: {
     return { success: true, data: updatedAttendance }
   } catch (error) {
     logError(error, 'checkOut')
-    return { success: false, error: error instanceof AppError ? error.message : 'Failed to check out' }
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : 'Failed to check out',
+    }
   }
 }
 
@@ -458,7 +464,10 @@ export async function getTodayAttendance(site_id?: string) {
     return { success: true, data }
   } catch (error) {
     logError(error, 'getTodayAttendance')
-    return { success: false, error: error instanceof AppError ? error.message : 'Failed to fetch attendance' }
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : 'Failed to fetch attendance',
+    }
   }
 }
 
@@ -523,7 +532,10 @@ export async function getMyAttendance(filters: {
     return { success: true, data, summary }
   } catch (error) {
     logError(error, 'getMyAttendance')
-    return { success: false, error: error instanceof AppError ? error.message : 'Failed to fetch attendance history' }
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : 'Failed to fetch attendance history',
+    }
   }
 }
 
@@ -557,7 +569,10 @@ export async function updateAttendanceRecord(id: string, data: Partial<Attendanc
     return { success: true, data: attendance }
   } catch (error) {
     logError(error, 'updateAttendanceRecord')
-    return { success: false, error: error instanceof AppError ? error.message : 'Failed to update attendance' }
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : 'Failed to update attendance',
+    }
   }
 }
 
@@ -614,7 +629,10 @@ export async function addBulkAttendance(
     return { success: true, data }
   } catch (error) {
     logError(error, 'addBulkAttendance')
-    return { success: false, error: error instanceof AppError ? error.message : 'Failed to add bulk attendance' }
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : 'Failed to add bulk attendance',
+    }
   }
 }
 
@@ -665,7 +683,10 @@ export async function getMonthlyAttendance(year: number, month: number) {
     return { success: true, data: transformedData }
   } catch (error) {
     logError(error, 'getMonthlyAttendance')
-    return { success: false, error: error instanceof AppError ? error.message : 'Failed to fetch monthly attendance' }
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : 'Failed to fetch monthly attendance',
+    }
   }
 }
 
@@ -758,6 +779,9 @@ export async function getAttendanceSummary(filters: {
     }
   } catch (error) {
     logError(error, 'getAttendanceSummary')
-    return { success: false, error: error instanceof AppError ? error.message : 'Failed to fetch attendance summary' }
+    return {
+      success: false,
+      error: error instanceof AppError ? error.message : 'Failed to fetch attendance summary',
+    }
   }
 }

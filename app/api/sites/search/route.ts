@@ -37,14 +37,16 @@ export async function GET(request: NextRequest) {
     // Start building query
     let query = supabase
       .from('sites')
-      .select(`
+      .select(
+        `
         id,
         name,
         address,
         start_date,
         end_date,
         status
-      `)
+      `
+      )
       .eq('status', 'active')
 
     // Apply site name filter (case-insensitive)
@@ -54,9 +56,7 @@ export async function GET(request: NextRequest) {
 
     // Apply date range filter if both dates provided
     if (startDate && endDate) {
-      query = query
-        .gte('start_date', startDate)
-        .lte('end_date', endDate)
+      query = query.gte('start_date', startDate).lte('end_date', endDate)
     }
 
     // Limit results
@@ -83,34 +83,39 @@ export async function GET(request: NextRequest) {
     }
 
     // Format results
-    const results: SiteSearchResult[] = (sites || []).map((site: unknown) => ({
-      id: site.id,
-      name: site.name,
-      address: site.address || '주소 정보 없음',
-      construction_period: {
-        start_date: new Date(site.start_date),
-        end_date: site.end_date ? new Date(site.end_date) : new Date()
-      },
-      progress_percentage: calculateProgress(
-        site.start_date,
-        site.end_date || new Date().toISOString()
-      ),
-      participant_count: 0, // TODO: Get actual count from site_assignments
-      is_active: site.status === 'active'
-    }))
+    const results: SiteSearchResult[] = (sites || []).map((site: any) => {
+      const startDate = site.start_date ?? null
+      const endDate = site.end_date ?? null
+      const lastWorkDate = endDate || startDate || null
+
+      return {
+        id: site.id,
+        name: site.name,
+        address: site.address || '주소 정보 없음',
+        construction_period: {
+          start_date: startDate,
+          end_date: endDate,
+        },
+        last_work_date: lastWorkDate,
+        customer_company_name: null,
+        progress_percentage: calculateProgress(
+          startDate || new Date().toISOString(),
+          endDate || new Date().toISOString()
+        ),
+        participant_count: 0, // TODO: Get actual count from site_assignments
+        is_active: site.status === 'active',
+      }
+    })
 
     // Sort by name for Korean language support
     results.sort((a, b) => a.name.localeCompare(b.name, 'ko'))
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       data: results,
-      total: results.length
+      total: results.length,
     })
   } catch (error) {
     console.error('Error searching sites:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

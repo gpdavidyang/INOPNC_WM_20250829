@@ -69,12 +69,37 @@ const searchHistoryUtils = {
   },
 }
 
+const EMPTY_SUGGESTIONS: SearchSuggestion[] = []
+
+const areSuggestionsEqual = (a: SearchSuggestion[], b: SearchSuggestion[]) => {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+
+  for (let i = 0; i < a.length; i += 1) {
+    const curr = a[i]
+    const next = b[i]
+
+    if (!next) return false
+
+    if (
+      curr.id !== next.id ||
+      curr.text !== next.text ||
+      curr.type !== next.type ||
+      curr.count !== next.count
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
 export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
   value,
   onChange,
   placeholder = '현장명으로 검색',
   showCancel = true,
-  suggestions = [],
+  suggestions = EMPTY_SUGGESTIONS,
   onSuggestionSelect,
   enableAutoComplete = true,
   enableHighlight = true,
@@ -114,10 +139,14 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
     setLocalValue(value)
   }, [value])
 
+  const updateFilteredSuggestions = useCallback((next: SearchSuggestion[]) => {
+    setFilteredSuggestions(prev => (areSuggestionsEqual(prev, next) ? prev : next))
+  }, [])
+
   // 검색어에 따른 제안 목록 필터링
   useEffect(() => {
     if (!enableAutoComplete) {
-      setFilteredSuggestions([])
+      updateFilteredSuggestions([])
       setShowSuggestions(false)
       return
     }
@@ -132,10 +161,10 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
             text: item,
             type: 'recent',
           }))
-        setFilteredSuggestions(historySuggestions)
+        updateFilteredSuggestions(historySuggestions)
         setShowSuggestions(true)
       } else {
-        setFilteredSuggestions([])
+        updateFilteredSuggestions([])
         setShowSuggestions(false)
       }
       setSelectedSuggestionIndex(-1)
@@ -167,10 +196,18 @@ export const WorkLogSearch: React.FC<WorkLogSearchProps> = ({
       .filter(suggestion => suggestion.text.toLowerCase().includes(localValue.toLowerCase()))
       .slice(0, maxSuggestions)
 
-    setFilteredSuggestions(filtered)
+    updateFilteredSuggestions(filtered)
     setShowSuggestions(filtered.length > 0)
     setSelectedSuggestionIndex(-1)
-  }, [localValue, suggestions, enableAutoComplete, maxSuggestions, enableHistory, searchHistory])
+  }, [
+    localValue,
+    suggestions,
+    enableAutoComplete,
+    maxSuggestions,
+    enableHistory,
+    searchHistory,
+    updateFilteredSuggestions,
+  ])
 
   // 키보드 네비게이션 처리
   const handleKeyDown = useCallback(

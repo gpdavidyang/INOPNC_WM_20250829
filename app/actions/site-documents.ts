@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
 'use server'
 
+import { createClient } from '@/lib/supabase/server'
 
 export interface SiteDocument {
   id: string
@@ -19,10 +19,13 @@ export interface SiteDocument {
 /**
  * Fetch site documents by site ID and document type
  */
-export async function getSiteDocuments(siteId: string, documentType?: 'ptw' | 'blueprint' | 'other') {
+export async function getSiteDocuments(
+  siteId: string,
+  documentType?: 'ptw' | 'blueprint' | 'other'
+) {
   try {
     const supabase = createClient()
-    
+
     let query = supabase
       .from('documents')
       .select('*')
@@ -41,27 +44,28 @@ export async function getSiteDocuments(siteId: string, documentType?: 'ptw' | 'b
     }
 
     // Convert documents table format to SiteDocument format
-    const siteDocuments = data?.map((doc: unknown) => ({
-      id: doc.id,
-      site_id: doc.site_id,
-      document_type: doc.document_type,
-      file_name: doc.file_name,
-      file_url: doc.file_url,
-      file_size: doc.file_size,
-      mime_type: doc.mime_type,
-      is_active: true, // documents table doesn't have is_active, assume true
-      created_at: doc.created_at,
-      updated_at: doc.updated_at,
-      title: doc.title // Additional field from documents table
-    })) || []
+    const siteDocuments =
+      data?.map((doc: unknown) => ({
+        id: doc.id,
+        site_id: doc.site_id,
+        document_type: doc.document_type,
+        file_name: doc.file_name,
+        file_url: doc.file_url,
+        file_size: doc.file_size,
+        mime_type: doc.mime_type,
+        is_active: true, // documents table doesn't have is_active, assume true
+        created_at: doc.created_at,
+        updated_at: doc.updated_at,
+        title: doc.title, // Additional field from documents table
+      })) || []
 
     return { success: true, data: siteDocuments as SiteDocument[], error: null }
   } catch (error) {
     console.error('Server error fetching site documents:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error', 
-      data: null 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      data: null,
     }
   }
 }
@@ -72,7 +76,7 @@ export async function getSiteDocuments(siteId: string, documentType?: 'ptw' | 'b
 export async function getSitePTWDocument(siteId: string) {
   try {
     const result = await getSiteDocuments(siteId, 'ptw')
-    
+
     if (!result.success || !result.data) {
       return { success: false, error: result.error, data: null }
     }
@@ -83,10 +87,10 @@ export async function getSitePTWDocument(siteId: string) {
     return { success: true, data: ptwDocument, error: null }
   } catch (error) {
     console.error('Server error fetching PTW document:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error', 
-      data: null 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      data: null,
     }
   }
 }
@@ -97,7 +101,7 @@ export async function getSitePTWDocument(siteId: string) {
 export async function getSiteBlueprintDocument(siteId: string) {
   try {
     const result = await getSiteDocuments(siteId, 'blueprint')
-    
+
     if (!result.success || !result.data) {
       return { success: false, error: result.error, data: null }
     }
@@ -108,10 +112,10 @@ export async function getSiteBlueprintDocument(siteId: string) {
     return { success: true, data: blueprintDocument, error: null }
   } catch (error) {
     console.error('Server error fetching blueprint document:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error', 
-      data: null 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      data: null,
     }
   }
 }
@@ -122,7 +126,7 @@ export async function getSiteBlueprintDocument(siteId: string) {
 export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
   try {
     const supabase = createClient()
-    
+
     // Fetch PTW and blueprint documents from unified_documents table
     // Look for specific sub_types that were defined in the upload process
     const { data: documents, error } = await supabase
@@ -138,9 +142,9 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
         success: true,
         data: {
           ptw_document: null,
-          blueprint_document: null
+          blueprint_document: null,
         },
-        error: null
+        error: null,
       }
     }
 
@@ -150,14 +154,10 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
 
     if (documents && documents.length > 0) {
       // Find blueprint document by sub_type
-      const blueprintDoc = documents.find((doc: unknown) => 
-        doc.sub_type === 'technical_drawing'
-      )
+      const blueprintDoc = documents.find((doc: unknown) => doc.sub_type === 'technical_drawing')
 
       // Find PTW document by sub_type
-      const ptwDoc = documents.find((doc: unknown) => 
-        doc.sub_type === 'safety_certificate'
-      )
+      const ptwDoc = documents.find((doc: unknown) => doc.sub_type === 'safety_certificate')
 
       if (blueprintDoc) {
         blueprintDocument = {
@@ -172,7 +172,7 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
           created_at: blueprintDoc.created_at,
           updated_at: blueprintDoc.updated_at || blueprintDoc.created_at,
           title: blueprintDoc.title || blueprintDoc.file_name,
-          filename: blueprintDoc.file_name // Add for compatibility
+          filename: blueprintDoc.file_name, // Add for compatibility
         }
       }
 
@@ -189,7 +189,7 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
           created_at: ptwDoc.created_at,
           updated_at: ptwDoc.updated_at || ptwDoc.created_at,
           title: ptwDoc.title || ptwDoc.file_name,
-          filename: ptwDoc.file_name // Add for compatibility
+          filename: ptwDoc.file_name, // Add for compatibility
         }
       }
     }
@@ -197,23 +197,23 @@ export async function getSiteDocumentsPTWAndBlueprint(siteId: string) {
     console.log('[Site Documents] Fetched unified documents for site:', siteId, {
       hasPTW: !!ptwDocument,
       hasBlueprint: !!blueprintDocument,
-      totalDocs: documents?.length || 0
+      totalDocs: documents?.length || 0,
     })
 
     return {
       success: true,
       data: {
         ptw_document: ptwDocument,
-        blueprint_document: blueprintDocument
+        blueprint_document: blueprintDocument,
       },
-      error: null
+      error: null,
     }
   } catch (error) {
     console.error('Server error fetching unified site documents:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error', 
-      data: null 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      data: null,
     }
   }
 }

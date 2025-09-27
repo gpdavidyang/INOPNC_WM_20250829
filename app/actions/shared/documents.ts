@@ -1,6 +1,7 @@
+'use server'
+
 import { createClient } from '@/lib/supabase/server'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
-;('use server')
 
 // ==========================================
 // DOCUMENT ACTIONS

@@ -1,13 +1,10 @@
+'use server'
+
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import {
-  requireServerActionAuth,
-  assertOrgAccess,
-  type SimpleAuth,
-} from '@/lib/auth/ultra-simple'
+import { requireServerActionAuth, assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
 import { AppError, ErrorType, logError } from '@/lib/error-handling'
 import type { Database } from '@/types/database'
-;('use server')
 
 const log = (...args: unknown[]) => {
   // Enable logging to debug site info issues
@@ -33,11 +30,7 @@ async function getSiteOrganization(
   return data.organization_id ?? undefined
 }
 
-async function ensureSiteAccess(
-  supabase: SupabaseServerClient,
-  auth: SimpleAuth,
-  siteId?: string
-) {
+async function ensureSiteAccess(supabase: SupabaseServerClient, auth: SimpleAuth, siteId?: string) {
   if (!siteId || !auth.isRestricted) {
     return
   }
