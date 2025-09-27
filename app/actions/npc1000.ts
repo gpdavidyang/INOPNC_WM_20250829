@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server"
 'use server'
 
+import { createClient } from '@/lib/supabase/server'
 
 export interface NPC1000DailyRecord {
   id: string
@@ -22,13 +22,17 @@ export interface NPC1000DailyRecord {
   }
 }
 
-export async function getNPC1000Records(siteId: string, period?: 'today' | '7days' | '30days' | 'all') {
+export async function getNPC1000Records(
+  siteId: string,
+  period?: 'today' | '7days' | '30days' | 'all'
+) {
   try {
     const supabase = createClient()
-    
+
     let query = supabase
       .from('daily_reports')
-      .select(`
+      .select(
+        `
         id,
         site_id,
         work_date,
@@ -39,7 +43,8 @@ export async function getNPC1000Records(siteId: string, period?: 'today' | '7day
         npc1000_remaining,
         created_at,
         created_by,
-      `)
+      `
+      )
       .eq('site_id', siteId)
       .not('npc1000_used', 'is', null)
       .order('work_date', { ascending: false })
@@ -74,43 +79,47 @@ export async function getNPC1000Records(siteId: string, period?: 'today' | '7day
     }
 
     // Transform data to match the expected format
-    const records: NPC1000DailyRecord[] = data?.map((report: unknown) => ({
-      id: report.id,
-      site_id: report.site_id,
-      date: report.work_date,
-      incoming_qty: report.npc1000_incoming || 0,
-      used_qty: report.npc1000_used || 0,
-      stock_qty: report.npc1000_remaining || 0,
-      work_log_id: report.id,
-      created_by: report.created_by,
-      created_at: report.created_at,
-      daily_report: {
+    const records: NPC1000DailyRecord[] =
+      data?.map((report: unknown) => ({
         id: report.id,
-        work_content: `${report.process_type}${report.issues ? ` - ${report.issues}` : ''}`,
-        created_by: {
-          id: report.created_by,
-          full_name: 'Unknown User'
-        }
-      }
-    })) || []
+        site_id: report.site_id,
+        date: report.work_date,
+        incoming_qty: report.npc1000_incoming || 0,
+        used_qty: report.npc1000_used || 0,
+        stock_qty: report.npc1000_remaining || 0,
+        work_log_id: report.id,
+        created_by: report.created_by,
+        created_at: report.created_at,
+        daily_report: {
+          id: report.id,
+          work_content: `${report.process_type}${report.issues ? ` - ${report.issues}` : ''}`,
+          created_by: {
+            id: report.created_by,
+            full_name: 'Unknown User',
+          },
+        },
+      })) || []
 
     // Calculate cumulative totals
-    const totals = records.reduce((acc: unknown, record: unknown) => ({
-      totalIncoming: acc.totalIncoming + record.incoming_qty,
-      totalUsed: acc.totalUsed + record.used_qty,
-      currentStock: records.length > 0 ? records[0].stock_qty : 0 // Latest stock
-    }), { totalIncoming: 0, totalUsed: 0, currentStock: 0 })
+    const totals = records.reduce(
+      (acc: unknown, record: unknown) => ({
+        totalIncoming: acc.totalIncoming + record.incoming_qty,
+        totalUsed: acc.totalUsed + record.used_qty,
+        currentStock: records.length > 0 ? records[0].stock_qty : 0, // Latest stock
+      }),
+      { totalIncoming: 0, totalUsed: 0, currentStock: 0 }
+    )
 
-    return { 
-      success: true, 
+    return {
+      success: true,
       data: records,
-      totals 
+      totals,
     }
   } catch (error) {
     console.error('Error in getNPC1000Records:', error)
-    return { 
-      success: false, 
-      error: 'Failed to fetch NPC-1000 records' 
+    return {
+      success: false,
+      error: 'Failed to fetch NPC-1000 records',
     }
   }
 }
@@ -118,7 +127,7 @@ export async function getNPC1000Records(siteId: string, period?: 'today' | '7day
 export async function getNPC1000Summary(siteId: string) {
   try {
     const supabase = createClient()
-    
+
     // Get today's record
     const today = new Date().toISOString().split('T')[0]
     const { data: todayData } = await supabase
@@ -140,13 +149,15 @@ export async function getNPC1000Summary(siteId: string) {
       today: {
         incoming: todayData?.npc1000_incoming || 0,
         used: todayData?.npc1000_used || 0,
-        stock: todayData?.npc1000_remaining || 0
+        stock: todayData?.npc1000_remaining || 0,
       },
       cumulative: {
-        totalIncoming: allData?.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_incoming || 0), 0) || 0,
-        totalUsed: allData?.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_used || 0), 0) || 0,
-        currentStock: allData && allData.length > 0 ? (allData[0].npc1000_remaining || 0) : 0
-      }
+        totalIncoming:
+          allData?.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_incoming || 0), 0) || 0,
+        totalUsed:
+          allData?.reduce((sum: unknown, r: unknown) => sum + (r.npc1000_used || 0), 0) || 0,
+        currentStock: allData && allData.length > 0 ? allData[0].npc1000_remaining || 0 : 0,
+      },
     }
 
     return { success: true, data: summary }

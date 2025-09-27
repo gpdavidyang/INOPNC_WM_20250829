@@ -94,6 +94,7 @@ const AttendanceContent: React.FC = () => {
     { value: 'all', label: '전체 현장' },
   ])
   const [assignmentOptions, setAssignmentOptions] = useState<SiteOption[]>([])
+  const [allSites, setAllSites] = useState<SiteOption[]>([])
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedYearMonth, setSelectedYearMonth] = useState(() => format(new Date(), 'yyyy-MM'))
@@ -177,41 +178,27 @@ const AttendanceContent: React.FC = () => {
         const rangeStart = format(rangeStartDate, 'yyyy-MM-dd')
         const rangeEnd = format(rangeEndDate, 'yyyy-MM-dd')
 
-        const { data, error } = await supabase
-          .from('work_records')
-          .select(
-            `
-            id,
-            user_id,
-            profile_id,
-            site_id,
-            work_date,
-            check_in_time,
-            check_out_time,
-            work_hours,
-            labor_hours,
-            overtime_hours,
-            status,
-            notes,
-            sites:sites!site_id (
-              id,
-              name
-            )
-          `
-          )
-          .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
-          .gte('work_date', rangeStart)
-          .lte('work_date', rangeEnd)
-          .order('work_date', { ascending: true })
-          .order('check_in_time', { ascending: true })
+        const params = new URLSearchParams({
+          start_date: rangeStart,
+          end_date: rangeEnd,
+          limit: '1000',
+        })
 
-        if (error) {
-          console.error('Error fetching work records:', error)
+        const response = await fetch(`/api/mobile/work-records?${params.toString()}`, {
+          cache: 'no-store',
+        })
+
+        const payload = await response.json().catch(() => null)
+
+        if (!response.ok || payload?.success === false) {
+          const message = payload?.error || response.statusText
+          console.error('Error fetching work records:', message)
           setAttendanceData([])
           return
         }
 
-        const transformed = (data ?? []).map(transformWorkRecord)
+        const rows: any[] = Array.isArray(payload?.data) ? payload.data : []
+        const transformed = rows.map(transformWorkRecord)
         transformed.sort((a, b) => a.date.localeCompare(b.date))
         setAttendanceData(transformed)
       } catch (error) {
@@ -223,7 +210,7 @@ const AttendanceContent: React.FC = () => {
     }
 
     fetchWorkRecords()
-  }, [userId, currentDate, salarySelectedYearMonth, supabase, transformWorkRecord])
+  }, [userId, currentDate, salarySelectedYearMonth, transformWorkRecord])
 
   // Load assigned sites so filters include current user's 현장 목록
   useEffect(() => {
@@ -365,14 +352,64 @@ const AttendanceContent: React.FC = () => {
     }
   }, [userId, profile?.site_id, profile?.role, profile?.organization_id, supabase])
 
+  // Fetch full site list via service-role API
+  useEffect(() => {
+    const controller = new AbortController()
+
+    const fetchAllSites = async () => {
+      try {
+        const response = await fetch('/api/mobile/sites/list', {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          console.error('Failed to load site list:', response.statusText)
+          return
+        }
+
+        const payload = await response.json().catch(() => null)
+        if (!payload || payload.success === false) {
+          console.error('Failed to load site list:', payload?.error)
+          return
+        }
+
+        const sitesArray = Array.isArray(payload?.data) ? payload.data : []
+        const options = sitesArray
+          .filter(site => site?.id)
+          .map(site => ({
+            value: site.id,
+            label: site.name && site.name.trim().length > 0 ? site.name : '현장 미지정',
+          }))
+
+        setAllSites(options)
+      } catch (error) {
+        if (controller.signal.aborted) return
+        console.error('Unexpected error loading site list:', error)
+      }
+    }
+
+    fetchAllSites()
+
+    return () => controller.abort()
+  }, [])
+
   // Derive site filter options from loaded records
   useEffect(() => {
     const uniqueSites = new Map<string, string>()
-    assignmentOptions.forEach(option => {
-      if (option.value !== 'all') {
+
+    allSites.forEach(option => {
+      if (option.value) {
         uniqueSites.set(option.value, option.label)
       }
     })
+
+    assignmentOptions.forEach(option => {
+      if (option.value && option.value !== 'all') {
+        uniqueSites.set(option.value, option.label)
+      }
+    })
+
     attendanceData.forEach(record => {
       if (record.site_id && record.siteName) {
         uniqueSites.set(record.site_id, record.siteName)
@@ -393,7 +430,36 @@ const AttendanceContent: React.FC = () => {
     if (salarySiteId !== 'all' && !uniqueSites.has(salarySiteId)) {
       setSalarySiteId('all')
     }
-  }, [attendanceData, assignmentOptions, selectedSiteId, salarySiteId])
+  }, [attendanceData, assignmentOptions, allSites, selectedSiteId, salarySiteId])
+
+  const siteLabelsById = useMemo(() => {
+    const map = new Map<string, string>()
+
+    allSites.forEach(option => {
+      if (option.value && option.value !== 'all') {
+        map.set(option.value, option.label)
+      }
+    })
+
+    assignmentOptions.forEach(option => {
+      if (option.value && option.value !== 'all' && !map.has(option.value)) {
+        map.set(option.value, option.label)
+      }
+    })
+
+    attendanceData.forEach(record => {
+      if (
+        record.site_id &&
+        record.siteName &&
+        record.siteName.trim() &&
+        record.siteName.trim() !== '현장 미지정'
+      ) {
+        map.set(record.site_id, record.siteName.trim())
+      }
+    })
+
+    return map
+  }, [allSites, assignmentOptions, attendanceData])
 
   const filteredAttendanceData = useMemo(() => {
     return attendanceData.filter(record => {
@@ -643,19 +709,66 @@ const AttendanceContent: React.FC = () => {
     }
   }, [monthlyAttendance])
 
+  const formatSiteLabelForCalendar = useCallback((rawName: string) => {
+    const base = rawName ?? ''
+    const cleaned = base
+      .replace(/\[[^\]]*\]/g, ' ')
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/현장|사업장|사이트|지점|공사|프로젝트/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    const compact = cleaned.replace(/\s+/g, '').trim()
+
+    if (!compact) {
+      return '미지'
+    }
+
+    const normalized = compact.normalize('NFC')
+    return normalized.length >= 2 ? normalized.slice(0, 2) : normalized
+  }, [])
+
   const calendarDays = useMemo(() => {
     const summarizeDay = (targetDate: Date) => {
       const iso = format(targetDate, 'yyyy-MM-dd')
       const dayRecords = filteredAttendanceData.filter(record => record.date === iso)
       const totalHours = dayRecords.reduce((sum, record) => sum + (record.workHours || 0), 0)
       const totalManDays = totalHours / 8
-      const siteLabels = Array.from(
-        new Set(
-          dayRecords.map(record =>
-            record.siteName && record.siteName.trim() ? record.siteName : '현장 미지정'
-          )
-        )
-      )
+      const uniqueSiteLabels: string[] = []
+      dayRecords
+        .map(record => {
+          const normalizedName = (() => {
+            if (
+              record.siteName &&
+              record.siteName.trim() &&
+              record.siteName.trim() !== '현장 미지정'
+            ) {
+              return record.siteName.trim()
+            }
+            if (record.site_id) {
+              const candidate = siteLabelsById.get(record.site_id)
+              if (candidate && candidate.trim()) {
+                return candidate.trim()
+              }
+            }
+            return '미지정'
+          })()
+
+          return formatSiteLabelForCalendar(normalizedName)
+        })
+        .forEach(label => {
+          if (label && !uniqueSiteLabels.includes(label)) {
+            uniqueSiteLabels.push(label)
+          }
+        })
+
+      if (uniqueSiteLabels.length > 1 && uniqueSiteLabels[0] === '미지') {
+        const firstValidIndex = uniqueSiteLabels.findIndex(label => label !== '미지')
+        if (firstValidIndex > 0) {
+          const [firstValid] = uniqueSiteLabels.splice(firstValidIndex, 1)
+          uniqueSiteLabels.unshift(firstValid)
+        }
+      }
 
       return {
         date: targetDate,
@@ -664,7 +777,7 @@ const AttendanceContent: React.FC = () => {
         isSunday: targetDate.getDay() === 0,
         totalHours: Number(totalHours.toFixed(1)),
         totalManDays: Number(totalManDays.toFixed(1)),
-        sites: dayRecords.length > 0 ? siteLabels : [],
+        sites: dayRecords.length > 0 ? uniqueSiteLabels : [],
       }
     }
 
@@ -684,7 +797,7 @@ const AttendanceContent: React.FC = () => {
     }
 
     return days
-  }, [filteredAttendanceData, currentDate, viewMode])
+  }, [filteredAttendanceData, currentDate, viewMode, formatSiteLabelForCalendar, siteLabelsById])
 
   const yearMonthOptions = useMemo(() => {
     const start = subMonths(startOfMonth(currentDate), 5)
@@ -986,11 +1099,7 @@ const AttendanceContent: React.FC = () => {
                         : ''}
                     </div>
                     <div className="work-hours">
-                      {day.totalManDays > 0
-                        ? Number.isInteger(day.totalManDays)
-                          ? `${day.totalManDays}일`
-                          : `${day.totalManDays.toFixed(1)}일`
-                        : ''}
+                      {day.totalManDays > 0 ? day.totalManDays.toFixed(1) : ''}
                     </div>
                   </div>
                 ))}

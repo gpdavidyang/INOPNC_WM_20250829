@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createClient()
+    const serviceClient = createServiceRoleClient()
 
     // Check if user is site_manager or admin
     const { data: profile } = await supabase
@@ -23,9 +24,18 @@ export async function GET(request: NextRequest) {
       .single()
 
     const role = profile?.role || authResult.role || ''
+    const organizationId = profile?.organization_id
 
-    if (!profile || !['site_manager', 'admin', 'system_admin'].includes(role)) {
-      return NextResponse.json({ error: 'Site manager or admin access required' }, { status: 403 })
+    const allowedRoles = new Set([
+      'worker',
+      'site_manager',
+      'admin',
+      'system_admin',
+      'customer_manager',
+    ])
+
+    if (!profile || (role && !allowedRoles.has(role))) {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -38,7 +48,7 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit
 
     // Build query
-    let query = supabase.from('daily_reports').select(`
+    let query = serviceClient.from('daily_reports').select(`
         *,
         sites(
           id,
@@ -93,41 +103,11 @@ export async function GET(request: NextRequest) {
       query = query.eq('status', status)
     }
 
-    // For site managers, only show reports from their assigned sites
-    if (role === 'site_manager') {
-      // Restrict to sites the manager is actively assigned to, but always include reports they authored.
-      const { data: assignedSites } = await supabase
-        .from('site_assignments')
-        .select('site_id')
-        .eq('user_id', authResult.userId)
-        .eq('is_active', true)
-
-      const assignedSiteIds = (assignedSites || [])
-        .map(s => s.site_id)
-        .filter((id): id is string => Boolean(id))
-
-      if (profile?.site_id) {
-        if (!assignedSiteIds.includes(profile.site_id)) {
-          assignedSiteIds.push(profile.site_id)
-        }
-      }
-
-      const orFilters: string[] = [`created_by.eq.${authResult.userId}`]
-
-      if (assignedSiteIds.length > 0) {
-        const formattedIds = assignedSiteIds.map(id => `"${id}"`).join(',')
-        orFilters.push(`site_id.in.(${formattedIds})`)
-      }
-
-      if (orFilters.length > 0) {
-        query = query.or(orFilters.join(','))
-      }
-    }
+    // 더 이상 조직 기반 필터를 적용하지 않는다. 모든 현장 데이터를 허용
 
     // Get total count
     const { count: totalCount } = await query.select('*', { count: 'exact', head: true })
 
-    // Get paginated data
     const { data: reports, error } = await query
       .order('work_date', { ascending: false })
       .order('created_at', { ascending: false })
@@ -292,6 +272,8 @@ export async function POST(request: NextRequest) {
         .eq('site_id', site_id)
         .eq('is_active', true)
         .is('unassigned_date', null)
+        .order('assigned_date', { ascending: false })
+        .limit(1)
         .maybeSingle()
 
       if (!siteAssignment) {

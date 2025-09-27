@@ -1,6 +1,7 @@
-import { createClient } from "@/lib/supabase/server"
-import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 import type { Database } from '@/types/database'
 
@@ -12,22 +13,19 @@ interface WorkflowResult<T = any> {
   error?: string
 }
 
-export async function approveWorkflow(
-  reportId: string,
-  userRole: string
-): Promise<WorkflowResult> {
+export async function approveWorkflow(reportId: string, userRole: string): Promise<WorkflowResult> {
   const supabase = createClient()
   const auth = await getAuthForClient(supabase)
 
   if (!auth) {
     return {
       success: false,
-      error: 'User not authenticated'
+      error: 'User not authenticated',
     }
   }
 
   const auditUserId = auth.userId
-  
+
   try {
     // Get current report status
     const { data: report, error: fetchError } = await supabase
@@ -35,15 +33,15 @@ export async function approveWorkflow(
       .select('*')
       .eq('id', reportId)
       .single()
-    
+
     if (fetchError || !report) {
       throw new Error('Report not found')
     }
-    
+
     // Determine next status based on current status and user role
     let nextStatus: string
     const currentStatus = report.status
-    
+
     if (userRole === 'worker' && currentStatus === 'draft') {
       nextStatus = 'pending_approval'
     } else if (userRole === 'site_manager' && currentStatus === 'pending_approval') {
@@ -53,20 +51,20 @@ export async function approveWorkflow(
     } else {
       throw new Error('Invalid workflow transition')
     }
-    
+
     // Update report status
     const { data: updatedReport, error: updateError } = await supabase
       .from('daily_reports')
-      .update({ 
+      .update({
         status: nextStatus,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', reportId)
       .select()
       .single()
-    
+
     if (updateError) throw updateError
-    
+
     // Create audit log
     await createAuditLog({
       entity_type: 'daily_report',
@@ -74,18 +72,18 @@ export async function approveWorkflow(
       action: 'status_change',
       user_id: auditUserId,
       changes: {
-        status: { from: currentStatus, to: nextStatus }
-      }
+        status: { from: currentStatus, to: nextStatus },
+      },
     })
-    
+
     return {
       success: true,
-      data: updatedReport
+      data: updatedReport,
     }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Approval failed'
+      error: error instanceof Error ? error.message : 'Approval failed',
     }
   }
 }
@@ -96,39 +94,39 @@ export async function rejectWorkflow(
   reason: string
 ): Promise<WorkflowResult> {
   const supabase = createClient()
-  
+
   try {
     const { data: report, error: fetchError } = await supabase
       .from('daily_reports')
       .select('*')
       .eq('id', reportId)
       .single()
-    
+
     if (fetchError || !report) {
       throw new Error('Report not found')
     }
-    
+
     const { data: updatedReport, error: updateError } = await supabase
       .from('daily_reports')
-      .update({ 
+      .update({
         status: 'rejected',
         rejection_reason: reason,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', reportId)
       .select()
       .single()
-    
+
     if (updateError) throw updateError
-    
+
     return {
       success: true,
-      data: updatedReport
+      data: updatedReport,
     }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Rejection failed'
+      error: error instanceof Error ? error.message : 'Rejection failed',
     }
   }
 }
@@ -139,7 +137,7 @@ export async function handleConcurrentEdit(
   updates: unknown
 ): Promise<WorkflowResult> {
   const supabase = await createClient()
-  
+
   try {
     // Check current version
     const { data: current, error: fetchError } = await supabase
@@ -147,64 +145,63 @@ export async function handleConcurrentEdit(
       .select('version')
       .eq('id', reportId)
       .single()
-    
+
     if (fetchError || !current) {
       throw new Error('Report not found')
     }
-    
+
     // Check for concurrent edit
     if (current.version !== expectedVersion) {
       return {
         success: false,
-        error: 'Document has been modified by another user (concurrent edit detected)'
+        error: 'Document has been modified by another user (concurrent edit detected)',
       }
     }
-    
+
     // Update with new version
     const { data: updated, error: updateError } = await supabase
       .from('daily_reports')
       .update({
         ...updates,
         version: expectedVersion + 1,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('id', reportId)
       .eq('version', expectedVersion) // Optimistic locking
       .select()
       .single()
-    
+
     if (updateError) {
-      if (updateError.code === 'PGRST116') { // No rows updated
+      if (updateError.code === 'PGRST116') {
+        // No rows updated
         return {
           success: false,
-          error: 'Document has been modified by another user (concurrent edit detected)'
+          error: 'Document has been modified by another user (concurrent edit detected)',
         }
       }
       throw updateError
     }
-    
+
     return {
       success: true,
-      data: updated
+      data: updated,
     }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Update failed'
+      error: error instanceof Error ? error.message : 'Update failed',
     }
   }
 }
 
-export async function cascadeDeleteSite(
-  siteId: string
-): Promise<WorkflowResult> {
+export async function cascadeDeleteSite(siteId: string): Promise<WorkflowResult> {
   const supabase = createClient()
   const auth = await getAuthForClient(supabase)
 
   if (!auth) {
     return {
       success: false,
-      error: 'User not authenticated'
+      error: 'User not authenticated',
     }
   }
 
@@ -214,14 +211,14 @@ export async function cascadeDeleteSite(
     daily_reports: 0,
     work_records: 0,
     documents: 0,
-    site_workers: 0
+    site_workers: 0,
   }
-  
+
   try {
     // Start transaction-like operation
     // Check for related entities
     const tables = ['daily_reports', 'work_records', 'documents', 'site_workers']
-    
+
     for (const table of tables) {
       const { data: related, error: fetchError } = await supabase
         .from(table)
@@ -229,24 +226,21 @@ export async function cascadeDeleteSite(
         .eq('site_id', siteId)
         .order('created_at', { ascending: false })
         .limit(1000)
-      
+
       if (fetchError) throw fetchError
-      
+
       if (related && related.length > 0) {
         // Delete related entities
-        const { error: deleteError } = await supabase
-          .from(table)
-          .delete()
-          .eq('site_id', siteId)
-        
+        const { error: deleteError } = await supabase.from(table).delete().eq('site_id', siteId)
+
         if (deleteError) {
           throw new Error(`Failed to delete ${table}: ${deleteError.message}`)
         }
-        
+
         deletedEntities[table as keyof typeof deletedEntities] = related.length
       }
     }
-    
+
     // Delete the site itself
     const { data: deletedSite, error: deleteError } = await supabase
       .from('sites')
@@ -254,9 +248,9 @@ export async function cascadeDeleteSite(
       .eq('id', siteId)
       .select()
       .single()
-    
+
     if (deleteError) throw deleteError
-    
+
     // Create audit log
     await createAuditLog({
       entity_type: 'site',
@@ -264,21 +258,21 @@ export async function cascadeDeleteSite(
       action: 'cascade_delete',
       user_id: auditUserId,
       changes: {
-        deletedEntities
-      }
+        deletedEntities,
+      },
     })
-    
+
     return {
       success: true,
       data: {
         site: deletedSite,
-        deletedEntities
-      }
+        deletedEntities,
+      },
     }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Cascade delete failed'
+      error: error instanceof Error ? error.message : 'Cascade delete failed',
     }
   }
 }
@@ -292,31 +286,31 @@ export async function createAuditLog(data: {
   metadata?: Record<string, unknown>
 }): Promise<WorkflowResult> {
   const supabase = createClient()
-  
+
   try {
     const auditData = {
       ...data,
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
     }
-    
+
     const { data: log, error } = await supabase
       .from('audit_logs')
       .insert(auditData)
       .select()
       .single()
-    
+
     if (error) throw error
-    
+
     return {
       success: true,
-      data: log
+      data: log,
     }
   } catch (error) {
     // Audit log failures should not break the main operation
     console.error('Audit log creation failed:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Audit log failed'
+      error: error instanceof Error ? error.message : 'Audit log failed',
     }
   }
 }
@@ -330,44 +324,39 @@ export async function rollbackTransaction(
 ): Promise<WorkflowResult> {
   const supabase = await createClient()
   const completed: unknown[] = []
-  
+
   try {
     for (const op of operations) {
-      const { data, error } = await supabase
-        .from(op.table)
-        [op.action](op.data)
-        .select()
-        .single()
-      
+      const { data, error } = await supabase.from(op.table)[op.action](op.data).select().single()
+
       if (error) {
         // Rollback completed operations
         for (const completedOp of completed) {
           if (completedOp.action === 'insert') {
-            await supabase
-              .from(completedOp.table)
-              .delete()
-              .eq('id', completedOp.data.id)
+            await supabase.from(completedOp.table).delete().eq('id', completedOp.data.id)
           }
           // Add more rollback logic for update/delete as needed
         }
-        
-        throw new Error(`Operation failed at ${op.table}: ${error.message}. All changes rolled back.`)
+
+        throw new Error(
+          `Operation failed at ${op.table}: ${error.message}. All changes rolled back.`
+        )
       }
-      
+
       completed.push({ ...op, result: data })
     }
-    
+
     return {
       success: true,
       data: {
         completed: completed.length,
-        operations: completed
-      }
+        operations: completed,
+      },
     }
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Transaction failed'
+      error: error instanceof Error ? error.message : 'Transaction failed',
     }
   }
 }

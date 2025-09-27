@@ -258,13 +258,14 @@
 }
 
 .cal-cell {
-  min-height: 60px;
+  min-height: 74px;
   background: #fff;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 12px 4px 10px;
+  padding: 10px 6px 14px;
+  gap: 4px;
   border-top: 1px solid #e6ecf4;
   cursor: default;
   transition:
@@ -302,21 +303,22 @@
 }
 
 .site-name {
-  font-size: 10px;
-  font-weight: 400;
-  color: #6b7280;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a254f;
   width: 100%;
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 4px;
+  line-height: 1.25;
 }
 
 .work-hours {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #31a3fa;
+  color: #0068fe;
+  line-height: 1.25;
 }
 
 [data-theme='dark'] .cal-cell {
@@ -347,7 +349,7 @@
 }
 
 [data-theme='dark'] .site-name {
-  color: #99a4be;
+  color: #c7d1eb;
 }
 
 [data-theme='dark'] .work-hours {

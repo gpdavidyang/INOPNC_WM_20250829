@@ -43,7 +43,9 @@ export async function getNPCMaterialsData(siteId: string) {
         `
         transaction_type,
         quantity,
+        transaction_date,
         created_at,
+        notes,
         materials!inner(
           code,
           name
@@ -52,6 +54,7 @@ export async function getNPCMaterialsData(siteId: string) {
       )
       .eq('site_id', siteId)
       .like('materials.code', 'NPC-%')
+      .order('transaction_date', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
       .limit(100)
 

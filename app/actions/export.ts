@@ -1,13 +1,14 @@
-import { createClient } from "@/lib/supabase/server"
-import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 import type { ExportOptions, ExportFormat } from '@/lib/export/types'
 
 export async function prepareExportData(options: ExportOptions) {
   try {
     const supabase = createClient()
-    
+
     // Get current user
     const auth = await getAuthForClient(supabase)
     if (!auth) {
@@ -27,17 +28,17 @@ export async function prepareExportData(options: ExportOptions) {
 
     // Prepare filters for getDailyReports
     const filters: unknown = {}
-    
+
     if (options.dateRange) {
       filters.start_date = options.dateRange.start
       filters.end_date = options.dateRange.end
     }
-    
+
     if (options.siteIds && options.siteIds.length > 0) {
       // For now, we'll handle single site. Multi-site support would need query modification
       filters.site_id = options.siteIds[0]
     }
-    
+
     if (options.status && options.status.length > 0) {
       // For now, we'll handle single status. Multi-status support would need query modification
       filters.status = options.status[0]
@@ -50,9 +51,7 @@ export async function prepareExportData(options: ExportOptions) {
     }
 
     // Get sites data
-    const { data: sites, error: sitesError } = await supabase
-      .from('sites')
-      .select('*')
+    const { data: sites, error: sitesError } = await supabase.from('sites').select('*')
 
     validateSupabaseResponse(sites, sitesError)
 
@@ -61,14 +60,14 @@ export async function prepareExportData(options: ExportOptions) {
       data: {
         reports: reportsResult.data,
         sites: sites || [],
-        options
-      }
+        options,
+      },
     }
   } catch (error) {
     logError(error, 'prepareExportData')
     return {
       success: false,
-      error: error instanceof AppError ? error.message : '데이터 준비에 실패했습니다.'
+      error: error instanceof AppError ? error.message : '데이터 준비에 실패했습니다.',
     }
   }
 }
@@ -82,23 +81,23 @@ export async function getExportFormats() {
         label: 'Excel 파일 (.xlsx)',
         description: '표 형태로 데이터를 정리하여 Excel에서 열어볼 수 있습니다',
         icon: 'FileSpreadsheet',
-        features: ['요약 시트', '현장별 분석', '차트 생성 가능']
+        features: ['요약 시트', '현장별 분석', '차트 생성 가능'],
       },
       {
         format: 'pdf' as ExportFormat,
         label: 'PDF 파일 (.pdf)',
         description: '인쇄하기 좋은 형태로 보고서를 생성합니다',
         icon: 'FileText',
-        features: ['인쇄 최적화', '요약 페이지', '읽기 전용']
+        features: ['인쇄 최적화', '요약 페이지', '읽기 전용'],
       },
       {
         format: 'csv' as ExportFormat,
         label: 'CSV 파일 (.csv)',
         description: '간단한 표 형태로 다른 프로그램에서 가져오기 쉽습니다',
         icon: 'Download',
-        features: ['경량 파일', '다양한 프로그램 호환', '한글 인코딩']
-      }
-    ]
+        features: ['경량 파일', '다양한 프로그램 호환', '한글 인코딩'],
+      },
+    ],
   }
 }
 
@@ -109,26 +108,24 @@ export async function logExportActivity(
 ) {
   try {
     const supabase = createClient()
-    
+
     const auth = await getAuthForClient(supabase)
     if (!auth) return
 
     // Log export activity
-    const { error } = await (supabase
-      .from('activity_logs')
-      .insert({
-        user_id: auth.userId,
-        action: 'export_data',
-        entity_type: 'daily_reports',
-        entity_id: 'export',
-        details: {
-          format,
-          record_count: recordCount,
-          date_range: options.dateRange,
-          site_ids: options.siteIds,
-          status_filter: options.status
-        }
-      } as unknown) as unknown)
+    const { error } = await (supabase.from('activity_logs').insert({
+      user_id: auth.userId,
+      action: 'export_data',
+      entity_type: 'daily_reports',
+      entity_id: 'export',
+      details: {
+        format,
+        record_count: recordCount,
+        date_range: options.dateRange,
+        site_ids: options.siteIds,
+        status_filter: options.status,
+      },
+    } as unknown) as unknown)
 
     if (error) {
       logError(error, 'logExportActivity')
@@ -142,7 +139,7 @@ export async function logExportActivity(
 export async function validateExportPermissions(targetSiteIds?: string[]) {
   try {
     const supabase = createClient()
-    
+
     const auth = await getAuthForClient(supabase)
     if (!auth) {
       throw new AppError('로그인이 필요합니다.', ErrorType.AUTHENTICATION, 401)
@@ -166,18 +163,22 @@ export async function validateExportPermissions(targetSiteIds?: string[]) {
     // Site managers can only export their assigned sites
     if ((profile as unknown).role === 'site_manager') {
       const userSiteIds = (profile as unknown).site_ids || []
-      
+
       if (targetSiteIds && targetSiteIds.length > 0) {
         const hasPermission = targetSiteIds.every(siteId => userSiteIds.includes(siteId))
         if (!hasPermission) {
-          throw new AppError('선택한 현장에 대한 내보내기 권한이 없습니다.', ErrorType.AUTHORIZATION, 403)
+          throw new AppError(
+            '선택한 현장에 대한 내보내기 권한이 없습니다.',
+            ErrorType.AUTHORIZATION,
+            403
+          )
         }
       }
-      
-      return { 
-        success: true, 
-        canExportAll: false, 
-        allowedSiteIds: userSiteIds 
+
+      return {
+        success: true,
+        canExportAll: false,
+        allowedSiteIds: userSiteIds,
       }
     }
 
@@ -186,7 +187,7 @@ export async function validateExportPermissions(targetSiteIds?: string[]) {
     logError(error, 'validateExportPermissions')
     return {
       success: false,
-      error: error instanceof AppError ? error.message : '권한 확인에 실패했습니다.'
+      error: error instanceof AppError ? error.message : '권한 확인에 실패했습니다.',
     }
   }
 }

@@ -23,6 +23,8 @@ export async function GET(_request: NextRequest) {
       .select('site_id')
       .eq('user_id', auth.userId)
       .eq('is_active', true)
+      .order('assigned_date', { ascending: false })
+      .limit(1)
       .maybeSingle()
 
     if (assignmentError) {
@@ -36,13 +38,31 @@ export async function GET(_request: NextRequest) {
     const siteId = assignment.site_id as string
 
     // 2) 현장 상세 정보 조회 (단일 쿼리, 조인 없음)
-    const { data: site, error: siteError } = await supabase
-      .from('sites')
-      .select(
-        'id, name, address, accommodation_name, accommodation_address, construction_manager_phone, safety_manager_phone, start_date, end_date, status'
-      )
-      .eq('id', siteId)
-      .maybeSingle()
+    const baseColumns =
+      'id, name, address, accommodation_name, accommodation_address, construction_manager_phone, safety_manager_phone, start_date, end_date, status'
+
+    const preferColumns = `${baseColumns}, customer_company_id, organization_id`
+
+    const fetchSite = async (columns: string) =>
+      supabase.from('sites').select(columns).eq('id', siteId).maybeSingle()
+
+    let { data: site, error: siteError } = await fetchSite(preferColumns)
+
+    if (siteError) {
+      const message = siteError.message?.toLowerCase() ?? ''
+
+      if (message.includes('customer_company_id')) {
+        const retry = await fetchSite(`${baseColumns}, organization_id`)
+        site = retry.data
+        siteError = retry.error
+      }
+
+      if (siteError) {
+        const fallback = await fetchSite(baseColumns)
+        site = fallback.data
+        siteError = fallback.error
+      }
+    }
 
     if (siteError) {
       console.error('[sites/current] site error:', siteError)
@@ -95,6 +115,51 @@ export async function GET(_request: NextRequest) {
       })
     }
 
+    let customerCompany: { id: string; company_name?: string | null } | undefined
+
+    const customerCompanyId = (site as Record<string, unknown>).customer_company_id as
+      | string
+      | null
+      | undefined
+    const organizationId = (site as Record<string, unknown>).organization_id as
+      | string
+      | null
+      | undefined
+
+    if (customerCompanyId) {
+      const { data: company, error: companyError } = await supabase
+        .from('customer_companies')
+        .select('id, company_name')
+        .eq('id', customerCompanyId)
+        .maybeSingle()
+
+      if (companyError) {
+        console.error('[sites/current] customer company error:', companyError)
+      } else if (company) {
+        customerCompany = {
+          id: company.id,
+          company_name: (company as any).company_name ?? null,
+        }
+      }
+    }
+
+    if (!customerCompany && organizationId) {
+      const { data: organization, error: organizationError } = await supabase
+        .from('organizations')
+        .select('id, name')
+        .eq('id', organizationId)
+        .maybeSingle()
+
+      if (organizationError) {
+        console.error('[sites/current] organization fallback error:', organizationError)
+      } else if (organization) {
+        customerCompany = {
+          id: organization.id,
+          company_name: (organization as any).name ?? null,
+        }
+      }
+    }
+
     const siteData: SiteInfo = {
       id: site.id,
       name: site.name,
@@ -106,6 +171,7 @@ export async function GET(_request: NextRequest) {
         longitude: undefined,
         postal_code: undefined,
       },
+      customer_company: customerCompany,
       accommodation: site.accommodation_address
         ? {
             id: site.id,

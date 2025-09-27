@@ -1,20 +1,27 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  ReactNode,
+} from 'react'
 
 interface SiteContextValue {
   // Current site state
   currentSite: SiteInfo | null
   isLoading: boolean
   error: Error | null
-  
+
   // Site management actions
   refreshCurrentSite: () => Promise<void>
   switchSite: (siteId: string) => Promise<void>
-  
+
   // Search functionality
   searchSites: (filters: SiteSearchFilters) => Promise<SiteSearchResult[]>
-  
+
   // Cache management
   clearCache: () => void
 }
@@ -41,15 +48,15 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   // Load cached site data
   const loadCachedSite = (): SiteInfo | null => {
     if (typeof window === 'undefined') return null
-    
+
     try {
       const cached = localStorage.getItem(SITE_CACHE_KEY)
       const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY)
-      
+
       if (cached && timestamp) {
         const cacheTime = parseInt(timestamp, 10)
         const now = Date.now()
-        
+
         // Check if cache is still valid
         if (now - cacheTime < CACHE_DURATION) {
           const data: CachedSiteData = JSON.parse(cached)
@@ -59,18 +66,18 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       console.error('Error loading cached site:', err)
     }
-    
+
     return null
   }
 
   // Save site data to cache
   const saveSiteToCache = (site: SiteInfo) => {
     if (typeof window === 'undefined') return
-    
+
     try {
       const cacheData: CachedSiteData = {
         site,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       }
       localStorage.setItem(SITE_CACHE_KEY, JSON.stringify(cacheData))
       localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString())
@@ -82,7 +89,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   // Clear cache
   const clearCache = useCallback(() => {
     if (typeof window === 'undefined') return
-    
+
     localStorage.removeItem(SITE_CACHE_KEY)
     localStorage.removeItem(CACHE_TIMESTAMP_KEY)
   }, [])
@@ -97,7 +104,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
     try {
       setError(null)
-      
+
       // Try to use cached data first
       const cachedSite = loadCachedSite()
       if (cachedSite) {
@@ -109,7 +116,8 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       // Fetch user's current site assignment
       const { data: assignment, error: assignmentError } = await supabase
         .from('site_assignments')
-        .select(`
+        .select(
+          `
           site:sites(
             id,
             name,
@@ -123,7 +131,8 @@ export function SiteProvider({ children }: { children: ReactNode }) {
             safety_manager_name,
             safety_manager_phone
           )
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .eq('is_active', true)
         .single()
@@ -149,19 +158,15 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       // Fetch related data in parallel
       const [addressResult, accommodationResult, latestReportResult] = await Promise.all([
         // Site address
-        (supabase as unknown)
-          .from('site_addresses')
-          .select('*')
-          .eq('site_id', site.id)
-          .single(),
-        
+        (supabase as unknown).from('site_addresses').select('*').eq('site_id', site.id).single(),
+
         // Accommodation address
         (supabase as unknown)
           .from('accommodation_addresses')
           .select('*')
           .eq('site_id', site.id)
           .single(),
-        
+
         // Latest daily report for process info
         supabase
           .from('daily_reports')
@@ -169,7 +174,7 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           .eq('site_id', site.id)
           .order('work_date', { ascending: false })
           .limit(1)
-          .single()
+          .single(),
       ])
 
       // Handle errors gracefully
@@ -178,17 +183,19 @@ export function SiteProvider({ children }: { children: ReactNode }) {
       const latestReport = latestReportResult.error ? null : latestReportResult.data
 
       // Create process info
-      const processInfo = latestReport ? {
-        member_name: (latestReport as unknown).member_name || '미정',
-        work_process: (latestReport as unknown).work_process || '미정',
-        work_section: (latestReport as unknown).work_section || '미정',
-        drawing_id: undefined
-      } : {
-        member_name: '미정',
-        work_process: '미정',
-        work_section: '미정',
-        drawing_id: undefined
-      }
+      const processInfo = latestReport
+        ? {
+            member_name: (latestReport as unknown).member_name || '미정',
+            work_process: (latestReport as unknown).work_process || '미정',
+            work_section: (latestReport as unknown).work_section || '미정',
+            drawing_id: undefined,
+          }
+        : {
+            member_name: '미정',
+            work_process: '미정',
+            work_section: '미정',
+            drawing_id: undefined,
+          }
 
       // Create manager contacts array
       const managers = []
@@ -196,21 +203,21 @@ export function SiteProvider({ children }: { children: ReactNode }) {
         managers.push({
           role: 'construction_manager' as const,
           name: site.construction_manager_name,
-          phone: site.construction_manager_phone
+          phone: site.construction_manager_phone,
         })
       }
       if (site.assistant_manager_name && site.assistant_manager_phone) {
         managers.push({
           role: 'assistant_manager' as const,
           name: site.assistant_manager_name,
-          phone: site.assistant_manager_phone
+          phone: site.assistant_manager_phone,
         })
       }
       if (site.safety_manager_name && site.safety_manager_phone) {
         managers.push({
           role: 'safety_manager' as const,
           name: site.safety_manager_name,
-          phone: site.safety_manager_phone
+          phone: site.safety_manager_phone,
         })
       }
 
@@ -224,16 +231,16 @@ export function SiteProvider({ children }: { children: ReactNode }) {
           full_address: '주소 정보 없음',
           latitude: undefined,
           longitude: undefined,
-          postal_code: undefined
+          postal_code: undefined,
         },
         accommodation: accommodation || undefined,
         process: processInfo,
         managers,
         construction_period: {
           start_date: site?.construction_start_date,
-          end_date: site?.construction_end_date
+          end_date: site?.construction_end_date,
         },
-        is_active: site?.is_active ?? false
+        is_active: site?.is_active ?? false,
       }
 
       setCurrentSite(siteData)
@@ -254,112 +261,125 @@ export function SiteProvider({ children }: { children: ReactNode }) {
   }, [fetchCurrentSite, clearCache])
 
   // Switch to a different site
-  const switchSite = useCallback(async (siteId: string) => {
-    if (!user) throw new Error('User not authenticated')
-    
-    try {
-      setIsLoading(true)
-      setError(null)
-      
-      // Optimistically update UI
-      clearCache()
-      
-      // Deactivate current assignments
-      const { error: updateError } = await supabase
-        .from('site_assignments')
-        .update({ is_active: false })
-        .eq('user_id', user.id)
-        .eq('is_active', true)
+  const switchSite = useCallback(
+    async (siteId: string) => {
+      if (!user) throw new Error('User not authenticated')
 
-      if (updateError) throw updateError
+      try {
+        setIsLoading(true)
+        setError(null)
 
-      // Create new assignment
-      const { error: insertError } = await supabase
-        .from('site_assignments')
-        .insert({
+        // Optimistically update UI
+        clearCache()
+
+        // Deactivate current assignments
+        const { error: updateError } = await supabase
+          .from('site_assignments')
+          .update({ is_active: false })
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+
+        if (updateError) throw updateError
+
+        // Create new assignment
+        const { error: insertError } = await supabase.from('site_assignments').insert({
           user_id: user.id,
           site_id: siteId,
           assigned_date: new Date().toISOString().split('T')[0],
-          is_active: true
+          is_active: true,
         })
 
-      if (insertError) throw insertError
+        if (insertError) throw insertError
 
-      // Fetch the new site data
-      await fetchCurrentSite()
-    } catch (err) {
-      console.error('Error switching site:', err)
-      setError(err as Error)
-      throw err
-    }
-  }, [user, supabase, fetchCurrentSite, clearCache])
+        // Fetch the new site data
+        await fetchCurrentSite()
+      } catch (err) {
+        console.error('Error switching site:', err)
+        setError(err as Error)
+        throw err
+      }
+    },
+    [user, supabase, fetchCurrentSite, clearCache]
+  )
 
   // Search sites
-  const searchSites = useCallback(async (filters: SiteSearchFilters): Promise<SiteSearchResult[]> => {
-    try {
-      let query = supabase
-        .from('sites')
-        .select(`
+  const searchSites = useCallback(
+    async (filters: SiteSearchFilters): Promise<SiteSearchResult[]> => {
+      try {
+        let query = supabase
+          .from('sites')
+          .select(
+            `
           id,
           name,
           construction_start_date,
           construction_end_date,
           is_active,
           site_addresses!inner(full_address)
-        `)
-        .eq('is_active', true)
+        `
+          )
+          .eq('is_active', true)
 
-      // Apply filters
-      if (filters.siteName) {
-        query = query.ilike('name', `%${filters.siteName}%`)
-      }
-
-      if (filters.workerName) {
-        // This would require a join with user assignments
-        // For now, we'll skip this filter
-      }
-
-      if (filters.dateRange) {
-        query = query
-          .gte('construction_start_date', filters.dateRange.startDate.toISOString())
-          .lte('construction_end_date', filters.dateRange.endDate.toISOString())
-      }
-
-      const { data, error } = await query.limit(50)
-
-      if (error) throw error
-
-      // Format results with defensive access
-      const results: SiteSearchResult[] = (data || []).map((site) => {
-        // Defensive check for invalid site objects
-        if (!site || typeof site !== 'object') {
-          console.warn('[SiteContext] Invalid site object in search results:', site)
-          return null
+        // Apply filters
+        if (filters.siteName) {
+          query = query.ilike('name', `%${filters.siteName}%`)
         }
-        
-        return {
-          id: site?.id || '',
-          name: site?.name || '이름 없음',
-          address: site?.site_addresses?.[0]?.full_address || '주소 정보 없음',
-          construction_period: {
-            start_date: new Date(site?.construction_start_date || new Date()),
-            end_date: new Date(site?.construction_end_date || new Date())
-          },
-        progress_percentage: calculateProgress(
-          site?.construction_start_date || new Date().toISOString(),
-          site?.construction_end_date || new Date().toISOString()
-        ),
-        participant_count: 0, // TODO: Get actual count
-        is_active: site?.is_active ?? false
-        }
-      }).filter((result): result is SiteSearchResult => result !== null)
 
-      return results
-    } catch (err) {
-      console.error('Error searching sites:', err)
-      throw err
-    }
-  }, [supabase])
+        if (filters.workerName) {
+          // This would require a join with user assignments
+          // For now, we'll skip this filter
+        }
+
+        if (filters.dateRange) {
+          query = query
+            .gte('construction_start_date', filters.dateRange.startDate.toISOString())
+            .lte('construction_end_date', filters.dateRange.endDate.toISOString())
+        }
+
+        const { data, error } = await query.limit(50)
+
+        if (error) throw error
+
+        // Format results with defensive access
+        const results: SiteSearchResult[] = (data || [])
+          .map(site => {
+            // Defensive check for invalid site objects
+            if (!site || typeof site !== 'object') {
+              console.warn('[SiteContext] Invalid site object in search results:', site)
+              return null
+            }
+
+            const startDate = site?.construction_start_date || null
+            const endDate = site?.construction_end_date || null
+
+            return {
+              id: site?.id || '',
+              name: site?.name || '이름 없음',
+              address: site?.site_addresses?.[0]?.full_address || '주소 정보 없음',
+              construction_period: {
+                start_date: startDate,
+                end_date: endDate,
+              },
+              last_work_date: endDate || startDate || null,
+              customer_company_name: null,
+              progress_percentage: calculateProgress(
+                startDate || new Date().toISOString(),
+                endDate || new Date().toISOString()
+              ),
+              participant_count: 0, // TODO: Get actual count
+              is_active: site?.is_active ?? false,
+            }
+          })
+          .filter((result): result is SiteSearchResult => result !== null)
+
+        return results
+      } catch (err) {
+        console.error('Error searching sites:', err)
+        throw err
+      }
+    },
+    [supabase]
+  )
 
   // Calculate construction progress
   const calculateProgress = (startDate: string, endDate: string): number => {
@@ -392,14 +412,10 @@ export function SiteProvider({ children }: { children: ReactNode }) {
     refreshCurrentSite,
     switchSite,
     searchSites,
-    clearCache
+    clearCache,
   }
 
-  return (
-    <SiteContext.Provider value={value}>
-      {children}
-    </SiteContext.Provider>
-  )
+  return <SiteContext.Provider value={value}>{children}</SiteContext.Provider>
 }
 
 // Custom hooks

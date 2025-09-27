@@ -1,7 +1,7 @@
-import { createClient } from "@/lib/supabase/server"
-import { getAuthForClient } from "@/lib/auth/ultra-simple"
 'use server'
 
+import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 // 현장관리자는 본인 급여만 조회 가능 - 작업자와 동일한 급여 조회 API 사용
 // getTeamSalaryData 함수는 제거됨
@@ -12,7 +12,9 @@ interface TeamSalaryParams {
   year: string
 }
 
-export async function exportTeamSalaryReport(params: TeamSalaryParams & { format: 'pdf' | 'excel' }) {
+export async function exportTeamSalaryReport(
+  params: TeamSalaryParams & { format: 'pdf' | 'excel' }
+) {
   try {
     const supabase = createClient()
 
@@ -38,8 +40,8 @@ export async function exportTeamSalaryReport(params: TeamSalaryParams & { format
       success: true,
       data: {
         url: `/api/reports/salary/${params.siteId}/${params.year}/${params.month}.${params.format}`,
-        filename: `급여보고서_${params.year}-${params.month}.${params.format}`
-      }
+        filename: `급여보고서_${params.year}-${params.month}.${params.format}`,
+      },
     }
   } catch (error: unknown) {
     console.error('급여 보고서 생성 오류:', error)

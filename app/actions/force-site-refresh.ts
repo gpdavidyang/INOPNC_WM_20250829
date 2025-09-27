@@ -1,19 +1,19 @@
-import { createClient } from "@/lib/supabase/server"
-import { getAuthForClient } from '@/lib/auth/ultra-simple'
 'use server'
 
+import { createClient } from '@/lib/supabase/server'
+import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
 // 관리자나 현장관리자가 자신의 현장 정보를 강제로 새로고침하는 함수
 export async function forceSiteRefresh() {
   const supabase = createClient()
-  
+
   try {
     console.log('🔧 [FORCE-REFRESH] Starting force site refresh...')
-    
+
     // 현재 사용자 확인
     const auth = await getAuthForClient(supabase)
     console.log('🔧 [FORCE-REFRESH] User check:', { user: auth?.userId })
-    
+
     if (!auth) {
       return { success: false, error: 'Authentication required' }
     }
@@ -35,7 +35,8 @@ export async function forceSiteRefresh() {
     // 모든 site_assignments 조회 (활성/비활성 모두)
     const { data: allAssignments, error: assignError } = await supabase
       .from('site_assignments')
-      .select(`
+      .select(
+        `
         *,
         sites (
           id,
@@ -55,11 +56,15 @@ export async function forceSiteRefresh() {
           start_date,
           end_date
         )
-      `)
+      `
+      )
       .eq('user_id', auth.userId)
       .order('assigned_date', { ascending: false })
 
-    console.log('🔧 [FORCE-REFRESH] All assignments:', { count: allAssignments?.length || 0, error: assignError })
+    console.log('🔧 [FORCE-REFRESH] All assignments:', {
+      count: allAssignments?.length || 0,
+      error: assignError,
+    })
 
     if (assignError) {
       return { success: false, error: `Assignment query error: ${assignError.message}` }
@@ -67,9 +72,9 @@ export async function forceSiteRefresh() {
 
     // 활성 배정 찾기
     const activeAssignment = allAssignments?.find((a: unknown) => a.is_active) || null
-    console.log('🔧 [FORCE-REFRESH] Active assignment:', { 
-      found: !!activeAssignment, 
-      siteName: activeAssignment?.sites?.name 
+    console.log('🔧 [FORCE-REFRESH] Active assignment:', {
+      found: !!activeAssignment,
+      siteName: activeAssignment?.sites?.name,
     })
 
     if (activeAssignment && activeAssignment.sites) {
@@ -93,7 +98,7 @@ export async function forceSiteRefresh() {
         safety_manager_phone: site.safety_manager_phone,
         accommodation_name: site.accommodation_name,
         accommodation_address: site.accommodation_address,
-        is_active: activeAssignment.is_active
+        is_active: activeAssignment.is_active,
       }
 
       console.log('🔧 [FORCE-REFRESH] Site data created:', siteData.site_name)
@@ -119,9 +124,9 @@ export async function forceSiteRefresh() {
       // 기존 활성 배정 비활성화
       await supabase
         .from('site_assignments')
-        .update({ 
-          is_active: false, 
-          unassigned_date: new Date().toISOString().split('T')[0] 
+        .update({
+          is_active: false,
+          unassigned_date: new Date().toISOString().split('T')[0],
         })
         .eq('user_id', auth.userId)
         .eq('is_active', true)
@@ -134,7 +139,7 @@ export async function forceSiteRefresh() {
           site_id: testSite.id,
           assigned_date: new Date().toISOString().split('T')[0],
           is_active: true,
-          role: profile.role === 'site_manager' ? 'site_manager' : 'worker'
+          role: profile.role === 'site_manager' ? 'site_manager' : 'worker',
         })
         .select()
         .single()
@@ -165,7 +170,7 @@ export async function forceSiteRefresh() {
         safety_manager_phone: testSite.safety_manager_phone,
         accommodation_name: testSite.accommodation_name,
         accommodation_address: testSite.accommodation_address,
-        is_active: newAssignment.is_active
+        is_active: newAssignment.is_active,
       }
 
       return { success: true, data: siteData, profile, autoAssigned: true }
@@ -173,13 +178,12 @@ export async function forceSiteRefresh() {
 
     // 배정이 없고 자동 배정 대상도 아님
     console.log('🔧 [FORCE-REFRESH] No assignment found and not eligible for auto-assignment')
-    return { 
-      success: true, 
-      data: null, 
+    return {
+      success: true,
+      data: null,
       profile,
-      message: 'No active site assignment found. Contact admin for site assignment.' 
+      message: 'No active site assignment found. Contact admin for site assignment.',
     }
-
   } catch (error) {
     console.error('🔧 [FORCE-REFRESH] Error:', error)
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' }

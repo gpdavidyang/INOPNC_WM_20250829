@@ -419,18 +419,6 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           <h2 className="work-form-main-title">작업일지 작성</h2>
         </div>
 
-        <div className="worklog-upgrade-banner" role="status">
-          <div className="banner-text">
-            <p className="banner-title">새로운 작업일지 화면(베타)을 이용해 보세요</p>
-            <p className="banner-description">
-              필터, 캘린더, 상세 뷰를 한 곳에서 확인할 수 있습니다.
-            </p>
-          </div>
-          <Link href="/mobile/worklogs" className="banner-link" prefetch={false}>
-            열어보기
-          </Link>
-        </div>
-
         {/* 선택 현장 */}
         <div className="form-section">
           <div className="section-header">

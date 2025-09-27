@@ -1,12 +1,8 @@
-import { createClient } from "@/lib/supabase/server"
 'use server'
 
-import type { 
-  SearchOptions, 
-  SearchResult, 
-  AppliedFilter,
-  SearchOperator 
-} from '@/lib/search/types'
+import { createClient } from '@/lib/supabase/server'
+
+import type { SearchOptions, SearchResult, AppliedFilter, SearchOperator } from '@/lib/search/types'
 import type { DailyReport, Site } from '@/types'
 
 export async function searchDailyReports(
@@ -14,9 +10,7 @@ export async function searchDailyReports(
 ): Promise<{ success: boolean; data?: SearchResult<DailyReport>; error?: string }> {
   try {
     const supabase = createClient()
-    let query = supabase
-      .from('daily_reports')
-      .select(`
+    let query = supabase.from('daily_reports').select(`
         *,
         profiles!daily_reports_created_by_fkey(
           id,
@@ -43,10 +37,10 @@ export async function searchDailyReports(
 
     // Apply specific filters
     const appliedFilters: AppliedFilter[] = []
-    
+
     for (const filter of options.filters) {
       const { field, operator, value, values } = filter
-      
+
       if (value === '' && (!values || values.length === 0)) {
         continue
       }
@@ -61,7 +55,7 @@ export async function searchDailyReports(
               operator,
               value,
               label: getFieldLabel(field),
-              displayValue: `"${value}" 포함`
+              displayValue: `"${value}" 포함`,
             })
           }
           break
@@ -74,7 +68,7 @@ export async function searchDailyReports(
               operator,
               value,
               label: getFieldLabel(field),
-              displayValue: getDisplayValue(field, value)
+              displayValue: getDisplayValue(field, value),
             })
           }
           break
@@ -87,7 +81,7 @@ export async function searchDailyReports(
               operator,
               value,
               label: getFieldLabel(field),
-              displayValue: `"${value}"로 시작`
+              displayValue: `"${value}"로 시작`,
             })
           }
           break
@@ -100,7 +94,7 @@ export async function searchDailyReports(
               operator,
               value,
               label: getFieldLabel(field),
-              displayValue: `"${value}"로 끝남`
+              displayValue: `"${value}"로 끝남`,
             })
           }
           break
@@ -113,7 +107,7 @@ export async function searchDailyReports(
               operator,
               value,
               label: getFieldLabel(field),
-              displayValue: `${formatValue(field, value)} 이상`
+              displayValue: `${formatValue(field, value)} 이상`,
             })
           }
           break
@@ -126,7 +120,7 @@ export async function searchDailyReports(
               operator,
               value,
               label: getFieldLabel(field),
-              displayValue: `${formatValue(field, value)} 이하`
+              displayValue: `${formatValue(field, value)} 이하`,
             })
           }
           break
@@ -140,7 +134,7 @@ export async function searchDailyReports(
               value,
               values,
               label: getFieldLabel(field),
-              displayValue: `${formatValue(field, values[0])} ~ ${formatValue(field, values[1])}`
+              displayValue: `${formatValue(field, values[0])} ~ ${formatValue(field, values[1])}`,
             })
           }
           break
@@ -149,8 +143,8 @@ export async function searchDailyReports(
 
     // Apply sorting
     if (options.sortBy) {
-      query = query.order(options.sortBy, { 
-        ascending: options.sortOrder === 'asc' 
+      query = query.order(options.sortBy, {
+        ascending: options.sortOrder === 'asc',
       })
     }
 
@@ -162,7 +156,7 @@ export async function searchDailyReports(
     // Apply pagination
     const limit = options.limit || 50
     const offset = options.offset || 0
-    
+
     if (limit) {
       query = query.range(offset, offset + limit - 1)
     }
@@ -180,14 +174,14 @@ export async function searchDailyReports(
         items: data as DailyReport[],
         total: count || 0,
         hasMore,
-        filters: appliedFilters
-      }
+        filters: appliedFilters,
+      },
     }
   } catch (error) {
     logError(error, 'searchDailyReports')
     return {
       success: false,
-      error: error instanceof AppError ? error.message : '검색 중 오류가 발생했습니다.'
+      error: error instanceof AppError ? error.message : '검색 중 오류가 발생했습니다.',
     }
   }
 }
@@ -205,7 +199,7 @@ export async function getQuickFilterResults(
     const searchOptions: SearchOptions = {
       filters: quickFilter.filters,
       sortBy: 'work_date',
-      sortOrder: 'desc'
+      sortOrder: 'desc',
     }
 
     return await searchDailyReports(searchOptions)
@@ -213,7 +207,7 @@ export async function getQuickFilterResults(
     logError(error, 'getQuickFilterResults')
     return {
       success: false,
-      error: error instanceof AppError ? error.message : '빠른 필터 검색 중 오류가 발생했습니다.'
+      error: error instanceof AppError ? error.message : '빠른 필터 검색 중 오류가 발생했습니다.',
     }
   }
 }
@@ -232,7 +226,7 @@ function getFieldLabel(field: string): string {
     issues: '특이사항',
     created_at: '작성일',
     submitted_at: '제출일',
-    approved_at: '승인일'
+    approved_at: '승인일',
   }
   return labels[field] || field
 }
@@ -257,7 +251,7 @@ function getDisplayValue(field: string, value: unknown): string {
       draft: '임시저장',
       submitted: '제출됨',
       approved: '승인됨',
-      rejected: '반려됨'
+      rejected: '반려됨',
     },
     process_type: {
       토공사: '토공사',
@@ -268,8 +262,8 @@ function getDisplayValue(field: string, value: unknown): string {
       방수공사: '방수공사',
       타일공사: '타일공사',
       도장공사: '도장공사',
-      기타: '기타'
-    }
+      기타: '기타',
+    },
   }
 
   if (selectValues[field] && selectValues[field][value]) {

@@ -1,17 +1,10 @@
+'use server'
+
 import { revalidatePath } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/server'
-import {
-  requireServerActionAuth,
-  assertOrgAccess,
-  type SimpleAuth,
-} from '@/lib/auth/ultra-simple'
-import {
-  AppError,
-  ErrorType,
-  logError,
-  validateSupabaseResponse,
-} from '@/lib/error-handling'
+import { requireServerActionAuth, assertOrgAccess, type SimpleAuth } from '@/lib/auth/ultra-simple'
+import { AppError, ErrorType, logError, validateSupabaseResponse } from '@/lib/error-handling'
 import {
   notifyDailyReportApproved,
   notifyDailyReportRejected,
@@ -20,7 +13,6 @@ import {
 import type { DailyReport, DailyReportStatus } from '@/types'
 import type { AdditionalPhotoData } from '@/types/daily-reports'
 import type { Database } from '@/types/database'
-;('use server')
 
 // ==========================================
 // HELPER FUNCTIONS
@@ -58,11 +50,7 @@ async function createHeadquartersRequest(
 
 type SupabaseServerClient = SupabaseClient<Database>
 
-async function ensureSiteAccess(
-  supabase: SupabaseServerClient,
-  auth: SimpleAuth,
-  siteId?: string
-) {
+async function ensureSiteAccess(supabase: SupabaseServerClient, auth: SimpleAuth, siteId?: string) {
   if (!siteId || !auth.isRestricted) {
     return
   }
@@ -267,7 +255,9 @@ export async function updateDailyReport(id: string, data: Partial<DailyReport>) 
     const auth = await requireServerActionAuth(supabase)
     const existingReport = await fetchReportWithAccess(supabase, auth, id)
 
-    const isManager = auth.role ? ['admin', 'system_admin', 'site_manager'].includes(auth.role) : false
+    const isManager = auth.role
+      ? ['admin', 'system_admin', 'site_manager'].includes(auth.role)
+      : false
 
     if (auth.isRestricted && existingReport.created_by !== auth.userId) {
       throw new AppError('해당 작업일지를 수정할 권한이 없습니다.', ErrorType.AUTHORIZATION, 403)
@@ -918,7 +908,9 @@ export async function deleteAdditionalPhoto(photoId: string) {
 
     // Check permission - user must be owner or admin/manager
     const isOwner = photo.uploaded_by === auth.userId
-    const isManager = auth.role ? ['admin', 'system_admin', 'site_manager'].includes(auth.role) : false
+    const isManager = auth.role
+      ? ['admin', 'system_admin', 'site_manager'].includes(auth.role)
+      : false
 
     if (!isOwner && !isManager) {
       throw new AppError('사진을 삭제할 권한이 없습니다.', ErrorType.AUTHORIZATION, 403)

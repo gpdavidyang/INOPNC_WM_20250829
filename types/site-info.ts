@@ -19,10 +19,10 @@ export interface AccommodationAddress {
 }
 
 export interface ProcessInfo {
-  member_name: string      // 부재명: 슬라브, 기둥, 거더
-  work_process: string     // 작업공정: 철근, 거푸집, 콘크리트
-  work_section: string     // 작업구간: 3층 A구역
-  drawing_id?: string      // 관련 도면 ID
+  member_name: string // 부재명: 슬라브, 기둥, 거더
+  work_process: string // 작업공정: 철근, 거푸집, 콘크리트
+  work_section: string // 작업구간: 3층 A구역
+  drawing_id?: string // 관련 도면 ID
 }
 
 export interface ManagerContact {
@@ -46,6 +46,10 @@ export interface SiteInfo {
   id: string
   name: string
   address: SiteAddress
+  customer_company?: {
+    id: string
+    company_name?: string | null
+  }
   accommodation?: AccommodationAddress
   process: ProcessInfo
   managers: ManagerContact[]
@@ -59,14 +63,16 @@ export interface SiteInfo {
 }
 
 export interface SiteSearchFilters {
-  siteName?: string        // 현장명 검색
-  region?: {              // 지역 검색
+  siteName?: string // 현장명 검색
+  region?: {
+    // 지역 검색
     province: string
     city?: string
     district?: string
   }
-  workerName?: string     // 작업자명 검색
-  dateRange?: {          // 기간 검색
+  workerName?: string // 작업자명 검색
+  dateRange?: {
+    // 기간 검색
     startDate: Date
     endDate: Date
   }
@@ -76,13 +82,15 @@ export interface SiteSearchResult {
   id: string
   name: string
   address: string
-  construction_period: {
-    start_date: Date
-    end_date: Date
+  construction_period?: {
+    start_date?: string | null
+    end_date?: string | null
   }
-  progress_percentage: number
-  participant_count: number
-  distance?: number        // 현재 위치로부터의 거리
+  last_work_date?: string | null
+  customer_company_name?: string | null
+  progress_percentage?: number
+  participant_count?: number
+  distance?: number // 현재 위치로부터의 거리
   is_active: boolean
 }
 
