@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Download, Paperclip, Search, X } from 'lucide-react'
+import { Download, Search, X } from 'lucide-react'
 import {
   createMaterialRequest as createNpcMaterialRequest,
   recordInventoryTransaction,
@@ -443,6 +443,8 @@ export default function SiteInfoPage() {
   const [requestUrgency, setRequestUrgency] = useState<'normal' | 'urgent' | 'emergency'>('normal')
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false)
 
+  const todayDisplay = useMemo(() => todayISO(), [])
+
   const npcLogSummary = useMemo(() => {
     return npcTransactions.reduce(
       (acc, tx) => {
@@ -693,13 +695,13 @@ export default function SiteInfoPage() {
   }
 
   const handleOpenOtherDocuments = () => {
-    handleAttachmentOpen(null)
     closeSiteBottomSheet()
+    window.location.href = '/mobile/documents'
   }
 
-  const handleOpenWorklogDetail = () => {
+  const handleOpenWorklogList = () => {
     closeSiteBottomSheet()
-    window.location.href = '/mobile/worklogs'
+    window.location.href = '/mobile/worklog'
   }
 
   const handleSiteSelection = async (siteId: string) => {
@@ -978,6 +980,9 @@ export default function SiteInfoPage() {
   }, [searchQuery, siteResults.length])
 
   const accommodationAddress = currentSite?.accommodation?.full_address?.trim() ?? ''
+  const workerCount = Number.isFinite(siteLaborStats.totalManDays)
+    ? Math.max(0, Math.round(siteLaborStats.totalManDays))
+    : 0
 
   useEffect(() => {
     if (!showSiteBottomSheet) {
@@ -1028,7 +1033,7 @@ export default function SiteInfoPage() {
         .site-header {
           display: flex;
           align-items: center;
-          justify-content: space-between;
+          justify-content: flex-start;
           margin-bottom: 24px;
         }
 
@@ -1036,31 +1041,6 @@ export default function SiteInfoPage() {
           font-size: 24px;
           font-weight: 700;
           margin: 0;
-        }
-
-        .site-actions {
-          display: flex;
-          gap: 8px;
-        }
-
-        .btn-attachment {
-          background: var(--card);
-          border: 1px solid var(--border);
-          border-radius: 8px;
-          padding: 8px 16px;
-          color: var(--text);
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s ease;
-        }
-
-        .btn-attachment:hover {
-          background: rgba(26, 37, 79, 0.9);
-          color: #fff;
         }
 
         .site-info-card,
@@ -1606,19 +1586,21 @@ export default function SiteInfoPage() {
         }
 
         :global([data-theme='dark'] .site-info-bottomsheet-close) {
-          color: #cbd5f5;
+          background: rgba(30, 41, 59, 0.55);
+          border-color: rgba(148, 163, 184, 0.35);
+          color: #e2e8f0;
         }
 
-        :global([data-theme='dark'] .site-info-sheet-section) {
+        :global([data-theme='dark'] .site-info-sheet-summary) {
           background: rgba(30, 41, 59, 0.6);
           border-color: rgba(148, 163, 184, 0.2);
         }
 
-        :global([data-theme='dark'] .site-info-sheet-label) {
+        :global([data-theme='dark'] .site-info-sheet-summary-label) {
           color: #94a3b8;
         }
 
-        :global([data-theme='dark'] .site-info-sheet-value) {
+        :global([data-theme='dark'] .site-info-sheet-summary-value) {
           color: #e2e8f0;
         }
 
@@ -1630,10 +1612,24 @@ export default function SiteInfoPage() {
           color: #a5b4fc;
         }
 
-        :global([data-theme='dark'] .site-info-sheet-contact button),
-        :global([data-theme='dark'] .site-info-sheet-address-actions button),
-        :global([data-theme='dark'] .site-info-sheet-actions button) {
-          border-color: rgba(148, 163, 184, 0.25);
+        :global([data-theme='dark'] .site-info-sheet-contact-call) {
+          border-color: rgba(148, 163, 184, 0.35);
+          background: rgba(30, 41, 59, 0.55);
+          color: #e2e8f0;
+        }
+
+        :global([data-theme='dark'] .site-info-sheet-address-value) {
+          color: #f1f5f9;
+        }
+
+        :global([data-theme='dark'] .site-info-sheet-address-actions button) {
+          border-color: rgba(148, 163, 184, 0.35);
+          background: rgba(30, 41, 59, 0.55);
+          color: #e2e8f0;
+        }
+
+        :global([data-theme='dark'] .site-info-sheet-actions button.ghost) {
+          border-color: rgba(148, 163, 184, 0.35);
           background: rgba(30, 41, 59, 0.55);
           color: #e2e8f0;
         }
@@ -1929,16 +1925,16 @@ export default function SiteInfoPage() {
 
         .site-info-bottomsheet-content {
           position: relative;
-          width: min(680px, 100%);
+          width: min(640px, 100%);
           background: var(--card);
-          border-radius: 24px 24px 0 0;
-          padding: 24px 20px 28px;
+          border-radius: 28px 28px 0 0;
+          padding: 28px 24px 32px;
           box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.18);
           max-height: 90vh;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 24px;
         }
 
         .site-info-bottomsheet-header {
@@ -1949,156 +1945,201 @@ export default function SiteInfoPage() {
         }
 
         .site-info-bottomsheet-title {
-          font-size: 18px;
-          font-weight: 700;
+          font-size: 20px;
+          font-weight: 800;
           margin: 0;
-          color: #1a254f;
+          color: #0f172a;
         }
 
         .site-info-bottomsheet-close {
-          border: none;
-          background: transparent;
-          color: #6b7280;
-          font-size: 15px;
-          font-weight: 600;
+          border: 1px solid #d8ddef;
+          background: #ffffff;
+          color: #1a254f;
+          font-size: 14px;
+          font-weight: 700;
+          padding: 6px 18px;
+          border-radius: 14px;
           cursor: pointer;
+          line-height: 1.2;
+          transition: all 0.2s ease;
+        }
+
+        .site-info-bottomsheet-close:hover {
+          background: #f5f7fb;
+        }
+
+        .site-info-sheet-summary {
+          background: #f5f7fb;
+          border: 1px solid #e4e8f4;
+          border-radius: 18px;
+          padding: 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .site-info-sheet-summary-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          font-size: 15px;
+        }
+
+        .site-info-sheet-summary-label {
+          color: #6b7280;
+          font-weight: 600;
+        }
+
+        .site-info-sheet-summary-value {
+          color: #111c44;
+          font-weight: 700;
+          text-align: right;
         }
 
         .site-info-sheet-section {
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          padding: 16px;
-          border: 1px solid var(--border);
-          border-radius: 16px;
-          background: var(--surface, #f8f9fb);
-        }
-
-        .site-info-sheet-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          font-size: 14px;
-        }
-
-        .site-info-sheet-label {
-          font-weight: 600;
-          color: #6b7280;
-          flex-shrink: 0;
-          width: 70px;
-        }
-
-        .site-info-sheet-value {
-          flex: 1;
-          text-align: right;
-          color: #1f2937;
-          font-weight: 600;
-        }
-
-        .site-info-sheet-contacts {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
+          gap: 16px;
         }
 
         .site-info-sheet-contact {
           display: flex;
           align-items: center;
+          justify-content: space-between;
           gap: 12px;
         }
 
-        .site-info-sheet-contact-label {
-          width: 50px;
-          font-weight: 600;
-          color: #6b7280;
-        }
-
-        .site-info-sheet-contact-info {
-          flex: 1;
+        .site-info-sheet-contact-meta {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 4px;
+        }
+
+        .site-info-sheet-contact-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #6b7280;
         }
 
         .site-info-sheet-contact-name {
-          font-weight: 600;
-          color: #1f2937;
+          font-size: 15px;
+          font-weight: 700;
+          color: #111827;
+        }
+
+        .site-info-sheet-contact-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
 
         .site-info-sheet-contact-phone {
-          font-size: 13px;
-          color: #6b7280;
+          font-size: 14px;
+          font-weight: 600;
+          color: #1f2937;
         }
 
-        .site-info-sheet-contact button {
-          border: 1px solid #d1d5db;
-          background: #f9fafb;
-          color: #1f2937;
+        .site-info-sheet-contact-call {
+          border: 1px solid #d8ddef;
+          background: #f5f7fb;
+          color: #1a254f;
           border-radius: 12px;
-          padding: 6px 12px;
-          font-weight: 600;
+          padding: 6px 14px;
+          font-weight: 700;
           cursor: pointer;
         }
 
-        .site-info-sheet-contact button:disabled {
-          opacity: 0.5;
+        .site-info-sheet-contact-call:disabled {
+          opacity: 0.4;
           cursor: not-allowed;
         }
 
-        .site-info-sheet-address {
+        .site-info-sheet-address-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .site-info-sheet-address-meta {
+          flex: 1;
           display: flex;
           flex-direction: column;
           gap: 6px;
         }
 
-        .site-info-sheet-address-value {
-          font-size: 14px;
+        .site-info-sheet-address-label {
+          font-size: 13px;
           font-weight: 600;
-          color: #1f2937;
-          text-align: left;
+          color: #6b7280;
+        }
+
+        .site-info-sheet-address-value {
+          font-size: 15px;
+          font-weight: 600;
+          color: #111827;
+          line-height: 1.4;
+          word-break: keep-all;
         }
 
         .site-info-sheet-address-actions {
           display: flex;
+          flex-direction: column;
           gap: 8px;
         }
 
         .site-info-sheet-address-actions button {
+          min-width: 72px;
+          border: 1px solid #d8ddef;
+          background: #ffffff;
+          color: #1a254f;
+          font-weight: 700;
+          padding: 7px 14px;
           border-radius: 12px;
-          border: 1px solid #d1d5db;
-          background: #f3f4f6;
-          color: #1f2937;
-          font-weight: 600;
-          padding: 6px 12px;
           cursor: pointer;
         }
 
         .site-info-sheet-address-actions button:disabled {
-          opacity: 0.5;
+          opacity: 0.4;
           cursor: not-allowed;
         }
 
         .site-info-sheet-actions {
           display: flex;
           gap: 12px;
+          margin-top: 4px;
         }
 
         .site-info-sheet-actions button {
           flex: 1;
           border-radius: 14px;
-          height: 48px;
-          border: 1px solid #d1d5db;
-          background: #f9fafb;
-          color: #1f2937;
-          font-weight: 600;
+          height: 52px;
+          font-size: 15px;
+          font-weight: 700;
           cursor: pointer;
+        }
+
+        .site-info-sheet-actions button.ghost {
+          border: 1px solid #d8ddef;
+          background: #f5f7fb;
+          color: #1a254f;
         }
 
         .site-info-sheet-actions button.primary {
           border: none;
           background: #1a254f;
           color: #fff;
+        }
+
+        @media (max-width: 480px) {
+          .site-info-bottomsheet-content {
+            padding: 24px 18px 28px;
+          }
+
+          .site-info-sheet-address-actions {
+            flex-direction: row;
+          }
         }
 
         .site-summary-toggle:hover {
@@ -2345,6 +2386,28 @@ export default function SiteInfoPage() {
           border-bottom: 1px solid rgba(226, 232, 240, 0.7);
         }
 
+        .npc-request-modal {
+          max-width: 460px;
+        }
+
+        .npc-request-header {
+          align-items: flex-start;
+          gap: 14px;
+        }
+
+        .npc-request-headline {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .npc-request-subtitle {
+          margin: 0;
+          font-size: 13px;
+          color: #6b7280;
+          letter-spacing: -0.01em;
+        }
+
         .npc-modal-header h3 {
           margin: 0;
           font-size: 18px;
@@ -2375,6 +2438,27 @@ export default function SiteInfoPage() {
           flex-direction: column;
           gap: 16px;
           overflow-y: auto;
+        }
+
+        .npc-request-body {
+          gap: 14px;
+        }
+
+        .npc-request-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        @media (max-width: 420px) {
+          .npc-request-grid {
+            grid-template-columns: 1fr;
+          }
+          .npc-request-input,
+          .npc-request-trigger {
+            max-width: 100%;
+            min-width: 100%;
+          }
         }
 
         .npc-modal-field {
@@ -2409,6 +2493,18 @@ export default function SiteInfoPage() {
           transition:
             border-color 0.2s ease,
             box-shadow 0.2s ease;
+        }
+
+        .npc-request-input {
+          max-width: 180px;
+        }
+
+        .npc-request-trigger {
+          min-width: 160px;
+        }
+
+        .npc-request-textarea {
+          min-height: 88px;
         }
 
         .modal-select {
@@ -2487,6 +2583,10 @@ export default function SiteInfoPage() {
           padding-top: 8px;
         }
 
+        .npc-request-actions {
+          justify-content: flex-end;
+        }
+
         .modal-secondary-button,
         .modal-primary-button {
           min-width: 110px;
@@ -2516,6 +2616,27 @@ export default function SiteInfoPage() {
 
         .modal-primary-button:hover {
           background: rgba(0, 104, 254, 0.85);
+        }
+
+        .npc-request-submit {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 140px;
+          height: 44px;
+          background: #1a254f;
+          border-color: #1a254f;
+          color: #fff;
+          font-size: 15px;
+          font-weight: 600;
+          border-radius: 12px;
+          padding: 0 18px;
+          transition: background 0.2s ease;
+        }
+
+        .npc-request-submit:hover {
+          background: #131a3b;
+          border-color: #131a3b;
         }
 
         .modal-secondary-button:disabled,
@@ -2567,6 +2688,59 @@ export default function SiteInfoPage() {
           display: flex;
           flex-direction: column;
           gap: 16px;
+        }
+
+        .npc-record-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        @media (max-width: 480px) {
+          .npc-record-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+
+        @media (max-width: 380px) {
+          .npc-record-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        .npc-record-input {
+          max-width: 160px;
+        }
+
+        .npc-record-trigger {
+          min-width: 140px;
+        }
+
+        .npc-record-date {
+          min-width: 140px;
+        }
+
+        .npc-record-actions {
+          justify-content: flex-end;
+        }
+
+        .npc-record-submit {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-width: 132px;
+          height: 44px;
+          border-radius: 12px;
+          font-weight: 600;
+          background: #1a254f;
+          border: 1px solid #1a254f;
+          color: #fff;
+          transition: background 0.2s ease;
+        }
+
+        .npc-record-submit:hover {
+          background: #131a3b;
+          border-color: #131a3b;
         }
 
         .npc-log-list {
@@ -2748,6 +2922,43 @@ export default function SiteInfoPage() {
         :global([data-theme='dark'] .modal-select-item[data-state='checked']) {
           background: rgba(59, 130, 246, 0.2) !important;
           color: #93c5fd !important;
+        }
+
+        :global([data-theme='dark'] .npc-request-modal) {
+          background: #111827;
+        }
+
+        :global([data-theme='dark'] .npc-request-subtitle) {
+          color: #94a3b8;
+        }
+
+        :global([data-theme='dark'] .npc-request-input) {
+          background: rgba(30, 41, 59, 0.65);
+        }
+
+        :global([data-theme='dark'] .npc-request-submit) {
+          background: #0f172a;
+          border-color: #0f172a;
+        }
+
+        :global([data-theme='dark'] .npc-request-submit:hover) {
+          background: #111c35;
+          border-color: #111c35;
+        }
+
+        :global([data-theme='dark'] .npc-record-grid .modal-input),
+        :global([data-theme='dark'] .npc-record-grid .modal-select) {
+          background: rgba(30, 41, 59, 0.65);
+        }
+
+        :global([data-theme='dark'] .npc-record-submit) {
+          background: #0f172a;
+          border-color: #0f172a;
+        }
+
+        :global([data-theme='dark'] .npc-record-submit:hover) {
+          background: #111c35;
+          border-color: #111c35;
         }
 
         :global([data-theme='dark'] .npc-modal.npc-log-modal) {
@@ -2987,11 +3198,6 @@ export default function SiteInfoPage() {
 
       <div className="site-header">
         <h1 className="site-title">현장정보</h1>
-        <div className="site-actions">
-          <button className="btn-attachment" onClick={() => handleAttachmentOpen(null)}>
-            <Paperclip size={16} /> 첨부파일
-          </button>
-        </div>
       </div>
 
       {errorMessage && (
@@ -3406,64 +3612,66 @@ export default function SiteInfoPage() {
               </button>
             </div>
 
-            <div className="site-info-sheet-section" role="group" aria-label="현장 기본 정보">
-              <div className="site-info-sheet-row">
-                <span className="site-info-sheet-label">소속</span>
-                <span className="site-info-sheet-value">
-                  {currentSite.customer_company?.company_name?.trim() || '미지정'}
+            <div className="site-info-sheet-summary" role="group" aria-label="현장 요약">
+              <div className="site-info-sheet-summary-row">
+                <span className="site-info-sheet-summary-label">소속</span>
+                <span className="site-info-sheet-summary-value">
+                  {currentSite.customer_company?.company_name?.trim() || '미배정'}
                 </span>
               </div>
-              <div className="site-info-sheet-row">
-                <span className="site-info-sheet-label">기간</span>
-                <span className="site-info-sheet-value">
-                  {formatDateDisplay(currentSite.construction_period?.start_date)} ~{' '}
-                  {formatDateDisplay(currentSite.construction_period?.end_date)}
-                </span>
+              <div className="site-info-sheet-summary-row">
+                <span className="site-info-sheet-summary-label">현장명</span>
+                <span className="site-info-sheet-summary-value">{currentSite.name}</span>
               </div>
-              <div className="site-info-sheet-row">
-                <span className="site-info-sheet-label">누적공수</span>
-                <span className="site-info-sheet-value">
-                  {siteLaborStats.totalManDays.toLocaleString()} 공수
-                </span>
+              <div className="site-info-sheet-summary-row">
+                <span className="site-info-sheet-summary-label">작업일</span>
+                <span className="site-info-sheet-summary-value">{todayDisplay}</span>
               </div>
-              <div className="site-info-sheet-row">
-                <span className="site-info-sheet-label">누적시간</span>
-                <span className="site-info-sheet-value">
-                  {siteLaborStats.totalHours.toLocaleString()} 시간
+              <div className="site-info-sheet-summary-row">
+                <span className="site-info-sheet-summary-label">출력인원</span>
+                <span className="site-info-sheet-summary-value">
+                  {workerCount.toLocaleString()}명
                 </span>
               </div>
             </div>
 
-            <div className="site-info-sheet-section" role="group" aria-label="담당자 정보">
-              <div className="site-info-sheet-contacts">
-                {contactItems.map(item => (
-                  <div className="site-info-sheet-contact" key={item.label}>
-                    <span className="site-info-sheet-contact-label">{item.label}</span>
-                    <div className="site-info-sheet-contact-info">
-                      <span className="site-info-sheet-contact-name">
-                        {item.contact?.name || '-'}
-                      </span>
-                      <span className="site-info-sheet-contact-phone">
-                        {item.contact?.phone || '-'}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleCallContact(item.contact?.phone)}
-                      disabled={!item.contact?.phone}
+            {contactItems.length > 0 && (
+              <div className="site-info-sheet-section" role="group" aria-label="담당자 정보">
+                {contactItems.map(item => {
+                  const phone = item.contact?.phone?.trim() || ''
+                  return (
+                    <div
+                      className="site-info-sheet-contact"
+                      key={`${item.label}-${item.contact?.name ?? 'unknown'}`}
                     >
-                      전화
-                    </button>
-                  </div>
-                ))}
+                      <div className="site-info-sheet-contact-meta">
+                        <span className="site-info-sheet-contact-label">{item.label}</span>
+                        <span className="site-info-sheet-contact-name">
+                          {item.contact?.name || '-'}
+                        </span>
+                      </div>
+                      <div className="site-info-sheet-contact-actions">
+                        <span className="site-info-sheet-contact-phone">{phone || '-'}</span>
+                        <button
+                          type="button"
+                          className="site-info-sheet-contact-call"
+                          onClick={() => handleCallContact(phone)}
+                          disabled={!phone}
+                        >
+                          전화
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
+            )}
 
             <div className="site-info-sheet-section" role="group" aria-label="주소 정보">
-              <div className="site-info-sheet-address">
-                <div className="site-info-sheet-row">
-                  <span className="site-info-sheet-label">주소</span>
-                  <span className="site-info-sheet-value site-info-sheet-address-value">
+              <div className="site-info-sheet-address-row">
+                <div className="site-info-sheet-address-meta">
+                  <span className="site-info-sheet-address-label">주소</span>
+                  <span className="site-info-sheet-address-value">
                     {currentSite.address.full_address || '-'}
                   </span>
                 </div>
@@ -3473,21 +3681,24 @@ export default function SiteInfoPage() {
                     onClick={() =>
                       copyToClipboard(currentSite.address.full_address, '현장 주소를 복사했습니다.')
                     }
+                    disabled={!currentSite.address.full_address}
                   >
                     복사
                   </button>
                   <button
                     type="button"
                     onClick={() => openMapForAddress(currentSite.address.full_address)}
+                    disabled={!currentSite.address.full_address}
                   >
                     T맵
                   </button>
                 </div>
               </div>
-              <div className="site-info-sheet-address">
-                <div className="site-info-sheet-row">
-                  <span className="site-info-sheet-label">숙소</span>
-                  <span className="site-info-sheet-value site-info-sheet-address-value">
+
+              <div className="site-info-sheet-address-row">
+                <div className="site-info-sheet-address-meta">
+                  <span className="site-info-sheet-address-label">숙소</span>
+                  <span className="site-info-sheet-address-value">
                     {accommodationAddress || '미지정'}
                   </span>
                 </div>
@@ -3513,11 +3724,11 @@ export default function SiteInfoPage() {
             </div>
 
             <div className="site-info-sheet-actions" role="group" aria-label="현장 관련 작업">
-              <button type="button" onClick={handleOpenOtherDocuments}>
+              <button type="button" className="ghost" onClick={handleOpenOtherDocuments}>
                 기타서류업로드
               </button>
-              <button type="button" className="primary" onClick={handleOpenWorklogDetail}>
-                작업일지상세
+              <button type="button" className="primary" onClick={handleOpenWorklogList}>
+                작업일지목록
               </button>
             </div>
           </div>
@@ -3536,7 +3747,7 @@ export default function SiteInfoPage() {
         >
           <div className="npc-modal" onClick={event => event.stopPropagation()}>
             <div className="npc-modal-header">
-              <h3>NPC-1000 입고·사용 기록</h3>
+              <h3>입고/사용 기록</h3>
               <button
                 type="button"
                 className="npc-modal-close"
@@ -3552,51 +3763,64 @@ export default function SiteInfoPage() {
                 <span className="modal-value">{currentSite?.name ?? '-'}</span>
               </div>
 
-              <div className="npc-modal-field">
-                <label htmlFor="npc-transaction-type" className="modal-label">
-                  거래 유형
-                </label>
-                <select
-                  id="npc-transaction-type"
-                  className="modal-select"
-                  value={recordTransactionType}
-                  onChange={event =>
-                    setRecordTransactionType(event.target.value === 'out' ? 'out' : 'in')
-                  }
-                >
-                  <option value="in">입고</option>
-                  <option value="out">사용</option>
-                </select>
-              </div>
+              <div className="npc-record-grid">
+                <div className="npc-modal-field">
+                  <label htmlFor="npc-record-transaction" className="modal-label">
+                    유형
+                  </label>
+                  <CustomSelect
+                    value={recordTransactionType}
+                    onValueChange={value =>
+                      setRecordTransactionType(value === 'out' ? 'out' : 'in')
+                    }
+                  >
+                    <CustomSelectTrigger
+                      id="npc-record-transaction"
+                      className="modal-select-trigger npc-record-trigger"
+                      aria-label="입고 또는 사용"
+                    >
+                      <CustomSelectValue />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent className="modal-select-content" align="start">
+                      <CustomSelectItem className="modal-select-item" value="in">
+                        입고
+                      </CustomSelectItem>
+                      <CustomSelectItem className="modal-select-item" value="out">
+                        사용
+                      </CustomSelectItem>
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
 
-              <div className="npc-modal-field">
-                <label htmlFor="npc-record-quantity" className="modal-label">
-                  수량 (말)
-                </label>
-                <input
-                  id="npc-record-quantity"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="modal-input"
-                  value={recordQuantity}
-                  onChange={event => setRecordQuantity(event.target.value)}
-                  placeholder="0"
-                  inputMode="decimal"
-                />
-              </div>
+                <div className="npc-modal-field">
+                  <label htmlFor="npc-record-quantity" className="modal-label">
+                    수량 (말)
+                  </label>
+                  <input
+                    id="npc-record-quantity"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="modal-input npc-record-input"
+                    value={recordQuantity}
+                    onChange={event => setRecordQuantity(event.target.value)}
+                    placeholder="0"
+                    inputMode="decimal"
+                  />
+                </div>
 
-              <div className="npc-modal-field">
-                <label htmlFor="npc-record-date" className="modal-label">
-                  기록 일자
-                </label>
-                <input
-                  id="npc-record-date"
-                  type="date"
-                  className="modal-input"
-                  value={recordDate}
-                  onChange={event => setRecordDate(event.target.value)}
-                />
+                <div className="npc-modal-field">
+                  <label htmlFor="npc-record-date" className="modal-label">
+                    일자
+                  </label>
+                  <input
+                    id="npc-record-date"
+                    type="date"
+                    className="modal-input npc-record-date"
+                    value={recordDate}
+                    onChange={event => setRecordDate(event.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="npc-modal-field">
@@ -3613,21 +3837,9 @@ export default function SiteInfoPage() {
                 />
               </div>
 
-              <div className="npc-modal-actions">
-                <button
-                  type="button"
-                  className="modal-secondary-button"
-                  onClick={() => setShowNpcRecordSheet(false)}
-                  disabled={isSubmittingRecord}
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="modal-primary-button"
-                  disabled={isSubmittingRecord}
-                >
-                  {isSubmittingRecord ? '저장 중...' : '기록 저장'}
+              <div className="npc-modal-actions npc-record-actions">
+                <button type="submit" className="npc-record-submit" disabled={isSubmittingRecord}>
+                  {isSubmittingRecord ? '저장 중...' : '저장'}
                 </button>
               </div>
             </form>
@@ -3646,9 +3858,12 @@ export default function SiteInfoPage() {
             }
           }}
         >
-          <div className="npc-modal" onClick={event => event.stopPropagation()}>
-            <div className="npc-modal-header">
-              <h3>NPC-1000 자재 요청</h3>
+          <div className="npc-modal npc-request-modal" onClick={event => event.stopPropagation()}>
+            <div className="npc-modal-header npc-request-header">
+              <div className="npc-request-headline">
+                <h3>자재 요청</h3>
+                <p className="npc-request-subtitle">필요 수량과 긴급도를 입력해주세요.</p>
+              </div>
               <button
                 type="button"
                 className="npc-modal-close"
@@ -3658,89 +3873,79 @@ export default function SiteInfoPage() {
                 <X size={18} />
               </button>
             </div>
-            <form className="npc-modal-body" onSubmit={handleNpcRequestSubmit}>
+            <form className="npc-modal-body npc-request-body" onSubmit={handleNpcRequestSubmit}>
               <div className="npc-modal-field" role="group" aria-label="선택된 현장">
                 <span className="modal-label">현장</span>
                 <span className="modal-value">{currentSite?.name ?? '-'}</span>
               </div>
 
-              <div className="npc-modal-field">
-                <label htmlFor="npc-request-quantity" className="modal-label">
-                  요청 수량 (말)
-                </label>
-                <input
-                  id="npc-request-quantity"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="modal-input"
-                  value={requestQuantity}
-                  onChange={event => setRequestQuantity(event.target.value)}
-                  placeholder="0"
-                  inputMode="decimal"
-                />
-              </div>
+              <div className="npc-request-grid">
+                <div className="npc-modal-field">
+                  <label htmlFor="npc-request-quantity" className="modal-label">
+                    수량 (말)
+                  </label>
+                  <input
+                    id="npc-request-quantity"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    className="modal-input npc-request-input"
+                    value={requestQuantity}
+                    onChange={event => setRequestQuantity(event.target.value)}
+                    placeholder="0"
+                    inputMode="decimal"
+                  />
+                </div>
 
-              <div className="npc-modal-field">
-                <label id="npc-request-urgency-label" className="modal-label">
-                  긴급도
-                </label>
-                <CustomSelect
-                  value={requestUrgency}
-                  onValueChange={(value: 'normal' | 'urgent' | 'emergency') =>
-                    setRequestUrgency(value)
-                  }
-                >
-                  <CustomSelectTrigger
-                    id="npc-request-urgency"
-                    className="modal-select-trigger"
-                    aria-labelledby="npc-request-urgency-label"
+                <div className="npc-modal-field">
+                  <label id="npc-request-urgency-label" className="modal-label">
+                    긴급도
+                  </label>
+                  <CustomSelect
+                    value={requestUrgency}
+                    onValueChange={(value: 'normal' | 'urgent' | 'emergency') =>
+                      setRequestUrgency(value)
+                    }
                   >
-                    <CustomSelectValue placeholder="긴급도를 선택하세요" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent className="modal-select-content" align="start">
-                    <CustomSelectItem className="modal-select-item" value="normal">
-                      일반
-                    </CustomSelectItem>
-                    <CustomSelectItem className="modal-select-item" value="urgent">
-                      긴급
-                    </CustomSelectItem>
-                    <CustomSelectItem className="modal-select-item" value="emergency">
-                      최우선
-                    </CustomSelectItem>
-                  </CustomSelectContent>
-                </CustomSelect>
+                    <CustomSelectTrigger
+                      id="npc-request-urgency"
+                      className="modal-select-trigger npc-request-trigger"
+                      aria-labelledby="npc-request-urgency-label"
+                    >
+                      <CustomSelectValue placeholder="선택" />
+                    </CustomSelectTrigger>
+                    <CustomSelectContent className="modal-select-content" align="start">
+                      <CustomSelectItem className="modal-select-item" value="normal">
+                        일반
+                      </CustomSelectItem>
+                      <CustomSelectItem className="modal-select-item" value="urgent">
+                        긴급
+                      </CustomSelectItem>
+                      <CustomSelectItem className="modal-select-item" value="emergency">
+                        최우선
+                      </CustomSelectItem>
+                    </CustomSelectContent>
+                  </CustomSelect>
+                </div>
               </div>
 
               <div className="npc-modal-field">
                 <label htmlFor="npc-request-notes" className="modal-label">
-                  요청 내용
+                  요청 메모
                 </label>
                 <textarea
                   id="npc-request-notes"
-                  className="modal-textarea"
-                  rows={4}
+                  className="modal-textarea npc-request-textarea"
+                  rows={3}
                   value={requestNotes}
                   onChange={event => setRequestNotes(event.target.value)}
                   placeholder="필요 수량과 사유를 입력해주세요."
                 />
               </div>
 
-              <div className="npc-modal-actions">
-                <button
-                  type="button"
-                  className="modal-secondary-button"
-                  onClick={() => setShowNpcRequestSheet(false)}
-                  disabled={isSubmittingRequest}
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="modal-primary-button"
-                  disabled={isSubmittingRequest}
-                >
-                  {isSubmittingRequest ? '요청 중...' : '요청 등록'}
+              <div className="npc-modal-actions npc-request-actions">
+                <button type="submit" className="npc-request-submit" disabled={isSubmittingRequest}>
+                  {isSubmittingRequest ? '요청 중...' : '요청 제출'}
                 </button>
               </div>
             </form>
