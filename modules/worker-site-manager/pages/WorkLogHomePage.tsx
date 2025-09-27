@@ -2,21 +2,26 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
-import { WorkLogCard } from '@/modules/mobile/components/work-log/WorkLogCard'
 import { WorkLogModal } from '@/modules/mobile/components/work-log/WorkLogModal'
-import { WorkLogSearch } from '@/modules/mobile/components/work-log/WorkLogSearch'
 import { useWorkLogs } from '@/modules/mobile/hooks/use-work-logs'
 import { WorkLog, WorkLogTabStatus } from '@/modules/mobile/types/work-log.types'
 import { UncompletedBottomSheet } from '@/modules/mobile/components/work-log/UncompletedBottomSheet'
-import { TabSystem, TabPanel } from '@/modules/mobile/components/ui/TabSystem'
-import { dismissAlert } from '@/modules/mobile/utils/work-log-utils'
-import { Plus, FileText, CheckCircle } from 'lucide-react'
+import { dismissAlert, formatDate } from '@/modules/mobile/utils/work-log-utils'
+import { Plus, Search as SearchIcon, ChevronDown } from 'lucide-react'
+import {
+  CustomSelect,
+  CustomSelectTrigger,
+  CustomSelectValue,
+  CustomSelectContent,
+  CustomSelectItem,
+} from '@/components/ui/custom-select'
 
-interface SummaryItem {
-  label: string
-  value: string
-  status: 'completed' | 'missing'
-  description: string
+const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
+const formatDateWithWeekday = (date: string) => {
+  const formatted = formatDate(date)
+  const weekday = WEEKDAY_LABELS[new Date(date).getDay()]
+  return `${formatted}(${weekday})`
 }
 
 export const WorkLogHomePage: React.FC = () => {
@@ -24,8 +29,6 @@ export const WorkLogHomePage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingWorkLog, setEditingWorkLog] = useState<WorkLog | null>(null)
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal')
 
   const {
     draftWorkLogs,
@@ -35,6 +38,8 @@ export const WorkLogHomePage: React.FC = () => {
     error,
     searchQuery,
     setSearchQuery,
+    filter,
+    setFilter,
     createWorkLog,
     updateWorkLog,
     deleteWorkLog,
@@ -43,154 +48,146 @@ export const WorkLogHomePage: React.FC = () => {
 
   // v3 목록/상세(레퍼런스) 관련 구현은 요구 범위 외로 제외
 
-  // 폰트 크기 초기화 및 토글
-  useEffect(() => {
-    const savedFontSize =
-      (localStorage.getItem('inopnc_font_size') as 'normal' | 'large') || 'normal'
-    setFontSize(savedFontSize)
-
-    const mainContainer = document.querySelector('main.container')
-    if (mainContainer) {
-      mainContainer.classList.remove('fs-100', 'fs-150')
-      mainContainer.classList.add(savedFontSize === 'normal' ? 'fs-100' : 'fs-150')
-    }
-  }, [])
-
-  const toggleFontSize = useCallback(() => {
-    const newSize = fontSize === 'normal' ? 'large' : 'normal'
-    setFontSize(newSize)
-
-    const mainContainer = document.querySelector('main.container')
-    if (mainContainer) {
-      mainContainer.classList.remove('fs-100', 'fs-150')
-      mainContainer.classList.add(newSize === 'normal' ? 'fs-100' : 'fs-150')
-    }
-
-    localStorage.setItem('inopnc_font_size', newSize)
-  }, [fontSize])
-
   const draftCount = draftWorkLogs.length
   const approvedCount = approvedWorkLogs.length
-  const npcMissingCount = useMemo(
-    () => draftWorkLogs.filter(log => !log.npcUsage || !log.npcUsage.amount).length,
-    [draftWorkLogs]
+
+  const PERIOD_OPTIONS = useMemo(
+    () => [
+      { id: 'all', label: '전체 기간', months: null as number | null },
+      { id: '3m', label: '최근 3개월', months: 3 },
+      { id: '6m', label: '최근 6개월', months: 6 },
+      { id: '12m', label: '최근 12개월', months: 12 },
+    ],
+    []
   )
 
-  const monthLabel = useMemo(() => {
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth() + 1
-    return `${year}년 ${month.toString().padStart(2, '0')}월`
-  }, [currentDate])
+  const siteOptions = useMemo(() => {
+    const map = new Map<string, string>([['all', '전체 현장']])
+    ;[...draftWorkLogs, ...approvedWorkLogs].forEach(log => {
+      if (log.siteId && log.siteName && !map.has(log.siteId)) {
+        map.set(log.siteId, log.siteName)
+      }
+    })
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }))
+  }, [draftWorkLogs, approvedWorkLogs])
+
+  const [selectedSite, setSelectedSite] = useState('all')
+  const [selectedPeriod, setSelectedPeriod] = useState('3m')
+  const [visibleCounts, setVisibleCounts] = useState<{ draft: number; approved: number }>({
+    draft: 10,
+    approved: 10,
+  })
 
   const [visibleUncompleted, setVisibleUncompleted] = useState(uncompletedByMonth)
   useEffect(() => {
     setVisibleUncompleted(uncompletedByMonth)
   }, [uncompletedByMonth])
 
-  const totalUncompletedCount = useMemo(
-    () => visibleUncompleted.reduce((sum, item) => sum + item.count, 0),
-    [visibleUncompleted]
-  )
-
   const [isUncompletedSheetOpen, setUncompletedSheetOpen] = useState(false)
   useEffect(() => {
     setUncompletedSheetOpen(visibleUncompleted.length > 0)
   }, [visibleUncompleted])
-
-  const handleChangeMonth = useCallback((direction: number) => {
-    setCurrentDate(prev => {
-      const next = new Date(prev)
-      next.setMonth(prev.getMonth() + direction)
-      return next
-    })
-  }, [])
 
   const handleDismissMonth = useCallback((month: string) => {
     dismissAlert(month)
     setVisibleUncompleted(prev => prev.filter(item => item.month !== month))
   }, [])
 
-  const handleNavigateToMonth = useCallback((month: string) => {
+  const handleNavigateToMonth = useCallback((_month: string) => {
     setActiveTab('draft')
-    const [year, monthStr] = month.split('-')
-    setCurrentDate(new Date(Number(year), Number(monthStr) - 1, 1))
     setUncompletedSheetOpen(false)
   }, [])
 
-  const summaryItems: SummaryItem[] = useMemo(
-    () => [
-      {
-        label: '임시저장',
-        value: `${draftCount}건`,
-        status: draftCount > 0 ? 'completed' : 'missing',
-        description:
-          draftCount > 0 ? '작성 중인 작업일지를 검토하세요.' : '임시저장된 작업일지가 없습니다.',
-      },
-      {
-        label: '작성완료',
-        value: `${approvedCount}건`,
-        status: approvedCount > 0 ? 'completed' : 'missing',
-        description:
-          approvedCount > 0
-            ? '최근 완료된 작업일지를 확인하세요.'
-            : '아직 제출된 작업일지가 없습니다.',
-      },
-      {
-        label: 'NPC-1000 입력',
-        value:
-          npcMissingCount > 0 ? `${npcMissingCount}건 미입력` : '모든 임시저장에 입력되었습니다.',
-        status: npcMissingCount > 0 ? 'missing' : 'completed',
-        description:
-          npcMissingCount > 0
-            ? '자재 사용량이 입력되지 않은 작업일지가 있습니다.'
-            : '자재 사용량이 모두 입력되었습니다.',
-      },
-      {
-        label: '미작성 알림',
-        value: totalUncompletedCount > 0 ? `${totalUncompletedCount}건` : '정상',
-        status: totalUncompletedCount > 0 ? 'missing' : 'completed',
-        description:
-          totalUncompletedCount > 0
-            ? '월별 미작성 작업일지를 확인해 주세요.'
-            : '미작성 작업일지가 없습니다.',
-      },
-    ],
-    [draftCount, approvedCount, npcMissingCount, totalUncompletedCount]
-  )
-
-  const [monthlyStats, setMonthlyStats] = useState({
-    totalWorkDays: 0,
-    totalHours: 0,
-    averageProgress: 0,
-    completedTasks: 0,
-  })
+  const filterStatus = filter.status
+  const filterSiteId = filter.siteId
+  const filterDateFrom = filter.dateFrom
+  const filterDateTo = filter.dateTo
 
   useEffect(() => {
-    if (!draftWorkLogs.length) {
-      setMonthlyStats({ totalWorkDays: 0, totalHours: 0, averageProgress: 0, completedTasks: 0 })
+    if (filterStatus !== activeTab) {
+      setFilter(prev => ({ ...prev, status: activeTab }))
+    }
+  }, [activeTab, filterStatus, setFilter])
+
+  useEffect(() => {
+    if (!siteOptions.some(option => option.value === selectedSite)) {
+      setSelectedSite('all')
       return
     }
 
-    const year = currentDate.getFullYear()
-    const month = currentDate.getMonth()
+    if (selectedSite === 'all') {
+      if (filterSiteId !== undefined) {
+        setFilter(prev => ({ ...prev, siteId: undefined }))
+      }
+    } else {
+      if (filterSiteId !== selectedSite) {
+        setFilter(prev => ({ ...prev, siteId: selectedSite }))
+      }
+    }
+  }, [selectedSite, siteOptions, filterSiteId, setFilter])
 
-    const monthlyWorkLogs = draftWorkLogs.filter(log => {
-      const logDate = new Date(log.date)
-      return logDate.getFullYear() === year && logDate.getMonth() === month
-    })
+  useEffect(() => {
+    const option = PERIOD_OPTIONS.find(item => item.id === selectedPeriod)
+    if (!option) return
 
-    const totalWorkDays = monthlyWorkLogs.length
-    const totalHours = monthlyWorkLogs.reduce((sum, log) => sum + (log.totalHours || 0), 0)
-    const averageProgress = monthlyWorkLogs.length
-      ? Math.round(
-          monthlyWorkLogs.reduce((sum, log) => sum + (log.progress || 0), 0) /
-            monthlyWorkLogs.length
-        )
-      : 0
-    const completedTasks = monthlyWorkLogs.filter(log => log.progress >= 100).length
+    if (option.months === null) {
+      if (filterDateFrom !== undefined || filterDateTo !== undefined) {
+        setFilter(prev => ({ ...prev, dateFrom: undefined, dateTo: undefined }))
+      }
+      return
+    }
 
-    setMonthlyStats({ totalWorkDays, totalHours, averageProgress, completedTasks })
-  }, [draftWorkLogs, currentDate])
+    const end = new Date()
+    const start = new Date()
+    start.setMonth(start.getMonth() - (option.months - 1))
+
+    const format = (date: Date) => date.toISOString().split('T')[0]
+
+    const nextDateFrom = format(start)
+    const nextDateTo = format(end)
+
+    if (filterDateFrom !== nextDateFrom || filterDateTo !== nextDateTo) {
+      setFilter(prev => ({ ...prev, dateFrom: nextDateFrom, dateTo: nextDateTo }))
+    }
+  }, [PERIOD_OPTIONS, selectedPeriod, filterDateFrom, filterDateTo, setFilter])
+
+  useEffect(() => {
+    if (!siteOptions.length) return
+
+    if (filterSiteId && siteOptions.some(option => option.value === filterSiteId)) {
+      if (selectedSite !== filterSiteId) {
+        setSelectedSite(filterSiteId)
+      }
+    } else if (!filterSiteId && selectedSite !== 'all') {
+      setSelectedSite('all')
+    }
+  }, [filterSiteId, selectedSite, siteOptions])
+
+  useEffect(() => {
+    // If date range is not set, do not auto-switch the period to 'all'.
+    // This avoids a feedback loop with the effect that sets filter dates from selectedPeriod.
+    if (!filterDateFrom || !filterDateTo) {
+      return
+    }
+
+    const fromDate = new Date(filterDateFrom)
+    const toDate = new Date(filterDateTo)
+    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+      return
+    }
+
+    const diffMonths =
+      (toDate.getFullYear() - fromDate.getFullYear()) * 12 +
+      (toDate.getMonth() - fromDate.getMonth()) +
+      1
+
+    const matchingOption = PERIOD_OPTIONS.find(option => option.months === diffMonths)
+    const nextPeriod = matchingOption ? matchingOption.id : 'all'
+
+    if (selectedPeriod !== nextPeriod) {
+      setSelectedPeriod(nextPeriod)
+    }
+  }, [PERIOD_OPTIONS, filterDateFrom, filterDateTo, selectedPeriod])
 
   const handleCreateWorkLog = useCallback(() => {
     setEditingWorkLog(null)
@@ -281,6 +278,34 @@ export const WorkLogHomePage: React.FC = () => {
     [deleteWorkLog]
   )
 
+  useEffect(() => {
+    setVisibleCounts(prev => {
+      let nextDraft = prev.draft
+      let nextApproved = prev.approved
+
+      if (draftWorkLogs.length > 0 && prev.draft > draftWorkLogs.length) {
+        nextDraft = draftWorkLogs.length
+      }
+
+      if (approvedWorkLogs.length > 0 && prev.approved > approvedWorkLogs.length) {
+        nextApproved = approvedWorkLogs.length
+      }
+
+      if (nextDraft === prev.draft && nextApproved === prev.approved) {
+        return prev
+      }
+
+      return { draft: nextDraft, approved: nextApproved }
+    })
+  }, [draftWorkLogs.length, approvedWorkLogs.length])
+
+  useEffect(() => {
+    setVisibleCounts(prev => ({
+      ...prev,
+      [activeTab]: 10,
+    }))
+  }, [activeTab])
+
   const renderWorkLogList = (logs: WorkLog[], tab: WorkLogTabStatus) => {
     if (loading) {
       return (
@@ -318,17 +343,105 @@ export const WorkLogHomePage: React.FC = () => {
       )
     }
 
-    return logs.map(workLog => (
-      <WorkLogCard
-        key={workLog.id}
-        workLog={workLog}
-        onEdit={tab === 'draft' ? () => handleEditWorkLog(workLog) : undefined}
-        onSubmit={tab === 'draft' ? () => handleSubmitWorkLog(workLog.id) : undefined}
-        onDelete={tab === 'draft' ? () => handleDeleteWorkLog(workLog.id) : undefined}
-        onView={() => handleViewWorkLog(workLog)}
-      />
-    ))
+    const visibleCount = visibleCounts[tab]
+    const displayedLogs = logs.slice(0, visibleCount)
+    const hasMore = logs.length > visibleCount
+
+    return (
+      <>
+        <div className="task-diary-list">
+          {displayedLogs.map(workLog => {
+            const subtitle =
+              workLog.workProcesses.length > 0
+                ? workLog.workProcesses.join(', ')
+                : workLog.notes || '작업 내용 미입력'
+
+            const formattedDate = formatDateWithWeekday(workLog.date)
+
+            const handleRowClick = () => {
+              if (workLog.status === 'draft') {
+                handleEditWorkLog(workLog)
+              } else {
+                handleViewWorkLog(workLog)
+              }
+            }
+
+            return (
+              <button
+                key={workLog.id}
+                type="button"
+                className="task-diary-list-item"
+                onClick={handleRowClick}
+              >
+                <div className="task-diary-info">
+                  <div className="task-diary-site">{workLog.siteName}</div>
+                  <div className="task-diary-work">{subtitle}</div>
+                </div>
+                <div className="task-diary-right">
+                  <span className={`status-badge ${workLog.status}`}>
+                    {workLog.status === 'draft' ? '임시저장' : '작성완료'}
+                  </span>
+                  <span className="task-diary-date">{formattedDate}</span>
+                </div>
+              </button>
+            )
+          })}
+        </div>
+        {hasMore && (
+          <div className="more-button-container">
+            <button
+              type="button"
+              className="more-btn"
+              onClick={() =>
+                setVisibleCounts(prev => ({
+                  ...prev,
+                  [tab]: prev[tab] + 10,
+                }))
+              }
+            >
+              더보기
+            </button>
+          </div>
+        )}
+      </>
+    )
   }
+
+  // Monthly summary cards (좌측 시안의 하단 요약 블록)
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const sourceLogs = activeTab === 'draft' ? draftWorkLogs : approvedWorkLogs
+  const monthlyLogs = useMemo(
+    () =>
+      sourceLogs.filter(log => {
+        const d = new Date(log.date)
+        if (Number.isNaN(d.getTime())) return false
+        return d >= monthStart && d <= monthEnd
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sourceLogs, activeTab]
+  )
+
+  const monthlyStats = useMemo(() => {
+    const uniqueSites = new Set<string>()
+    const uniqueDates = new Set<string>()
+    let totalHours = 0
+
+    monthlyLogs.forEach(log => {
+      if (log.siteId) uniqueSites.add(log.siteId)
+      if (log.date) uniqueDates.add(log.date)
+      totalHours += Number(log.totalHours || 0)
+    })
+
+    const totalManDays = Math.round(totalHours / 8)
+
+    return {
+      siteCount: uniqueSites.size,
+      manDays: totalManDays,
+      attendanceDays: uniqueDates.size,
+    }
+  }, [monthlyLogs])
 
   return (
     <MobileLayoutShell>
@@ -369,6 +482,382 @@ export const WorkLogHomePage: React.FC = () => {
             max-width: 100%;
           }
 
+          .worklog-tab-navigation {
+            display: flex;
+            gap: 0;
+            border: 1px solid #e6ecf4;
+            border-radius: 12px;
+            background: #ffffff;
+            overflow: hidden;
+            box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+            margin-top: 12px;
+          }
+
+          .worklog-tab {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 12px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #99a4be;
+            background: transparent;
+            border: none;
+            position: relative;
+            transition:
+              color 0.2s ease,
+              background 0.2s ease;
+            cursor: pointer;
+          }
+
+          .worklog-tab.active {
+            color: #31a3fa;
+            background: rgba(49, 163, 250, 0.08);
+          }
+
+          .worklog-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: #31a3fa;
+            border-radius: 999px;
+          }
+
+          .worklog-tab .tab-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 24px;
+            height: 24px;
+            padding: 0 8px;
+            font-size: 12px;
+            font-weight: 700;
+            color: #31a3fa;
+            background: rgba(49, 163, 250, 0.15);
+            border-radius: 999px;
+          }
+
+          .worklog-search-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 18px;
+          }
+          /* Hide inline labels to match left (spec) style */
+          .filter-label {
+            display: none;
+          }
+
+          /* CustomSelect trigger style alignment */
+          .custom-select-trigger {
+            height: 40px;
+            border-radius: 10px;
+            background: #ffffff;
+            border-color: #d1d5db;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+          }
+
+          /* Work list container per spec */
+          .work-form-container {
+            background: var(--card);
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0 16px;
+            box-shadow: 0 2px 10px rgba(2, 6, 23, 0.04);
+            margin-top: 16px;
+          }
+
+          .worklog-search-section .search-input-wrapper {
+            position: relative;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 18px;
+            height: 44px;
+            border-radius: 999px;
+            border: 1px solid #e6ecf4;
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
+          }
+
+          .worklog-search-section .search-icon {
+            color: #99a4be;
+          }
+
+          .worklog-search-section .search-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a254f;
+            outline: none;
+          }
+
+          .worklog-search-section .search-input::placeholder {
+            color: #9ca3af;
+            font-weight: 500;
+          }
+
+          .worklog-search-section .clear-search {
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: rgba(153, 164, 190, 0.15);
+            color: #6b7280;
+            border-radius: 999px;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+          }
+
+          .worklog-search-section .search-cancel {
+            background: none;
+            border: none;
+            color: #99a4be;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 8px 12px;
+            transition: background 0.2s ease;
+            border-radius: 10px;
+          }
+
+          .worklog-search-section .search-cancel:hover {
+            background: rgba(153, 164, 190, 0.12);
+            color: #1a254f;
+          }
+
+          .filter-row {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+
+          .filter-select {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          }
+
+          .filter-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #667085;
+          }
+
+          .select-box {
+            position: relative;
+            display: flex;
+            align-items: center;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
+            background: #ffffff;
+            height: 44px;
+            padding: 0 14px;
+          }
+
+          .select-box select {
+            appearance: none;
+            border: none;
+            background: transparent;
+            width: 100%;
+            height: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            outline: none;
+            padding-right: 24px;
+          }
+
+          .select-box .select-icon {
+            position: absolute;
+            right: 14px;
+            color: #99a4be;
+          }
+
+          .worklog-list-section {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .task-diary-list {
+            display: flex;
+            flex-direction: column;
+          }
+
+          .task-diary-list-item {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 0;
+            border: none;
+            border-bottom: 1px solid #e6ecf4;
+            background: transparent;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            text-align: left;
+          }
+
+          .task-diary-list-item:last-child {
+            border-bottom: none;
+          }
+
+          .task-diary-list-item:hover {
+            background: #f8faff;
+          }
+
+          .task-diary-info {
+            min-width: 0;
+            flex: 1;
+            padding-right: 18px;
+          }
+
+          .task-diary-site {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a254f;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .task-diary-work {
+            font-size: 13px;
+            color: #667085;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+
+          .task-diary-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+          }
+
+          .status-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid transparent;
+          }
+
+          .status-badge.draft {
+            background: rgba(49, 163, 250, 0.05);
+            color: #31a3fa;
+            border-color: #31a3fa;
+          }
+
+          .status-badge.approved {
+            background: rgba(153, 164, 190, 0.15);
+            color: #99a4be;
+            border-color: #99a4be;
+          }
+
+          .task-diary-date {
+            font-size: 12px;
+            color: #99a4be;
+          }
+
+          .more-button-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 8px;
+          }
+
+          .more-btn {
+            padding: 10px 28px;
+            border-radius: 10px;
+            border: 1px solid #e6ecf4;
+            background: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a254f;
+            box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
+            cursor: pointer;
+            transition:
+              transform 0.2s ease,
+              box-shadow 0.2s ease,
+              background 0.2s ease;
+          }
+
+          .more-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 24px rgba(16, 24, 40, 0.12);
+            background: #f8faff;
+          }
+
+          /* Summary cards (월간 요약) */
+          .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 16px;
+          }
+
+          .summary-card {
+            background: var(--card);
+            border: 1px solid #e6ecf4;
+            border-radius: 12px;
+            padding: 14px 12px;
+            text-align: center;
+            box-shadow: 0 6px 16px rgba(16, 24, 40, 0.06);
+          }
+
+          .summary-value {
+            color: #1a254f;
+            font-weight: 800;
+            font-size: 18px;
+            line-height: 24px;
+          }
+
+          .summary-label {
+            margin-top: 4px;
+            color: #667085;
+            font-size: 12px;
+          }
+
+          @media (max-width: 480px) {
+            .filter-row {
+              grid-template-columns: 1fr;
+            }
+
+            .worklog-tab {
+              font-size: 16px;
+            }
+
+            .task-diary-right {
+              min-width: auto;
+              align-items: flex-start;
+            }
+
+            .task-diary-list-item {
+              padding: 16px 0;
+              align-items: flex-start;
+            }
+          }
+
           @media (min-width: 640px) {
             .worklog-body {
               padding: 24px;
@@ -385,126 +874,114 @@ export const WorkLogHomePage: React.FC = () => {
         `}</style>
 
         <div className="main-container worklog-body">
-          <header className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold text-[#1A254F]">작업일지</h1>
-              <p className="mt-1 text-sm text-[#667085]">
-                현장의 작업일지를 임시저장하고 제출 상태까지 관리할 수 있습니다.
-              </p>
-            </div>
+          {/* Title removed per spec */}
+
+          <nav className="worklog-tab-navigation">
             <button
               type="button"
-              onClick={toggleFontSize}
-              className="rounded-full border border-[#d0d5dd] px-3 py-1 text-xs font-semibold text-[#1A254F] transition-colors hover:bg-[#f4f6fb]"
+              className={`worklog-tab ${activeTab === 'draft' ? 'active' : ''}`}
+              onClick={() => setActiveTab('draft')}
             >
-              {fontSize === 'normal' ? '큰글씨' : '작은글씨'}
+              <span className="tab-label">임시저장</span>
+              <span className="tab-count">{draftCount}</span>
             </button>
-          </header>
-
-          {/* Summary Section */}
-          <section className="mt-4 grid gap-3 rounded-2xl border border-[#e6eaf2] bg-white p-4 shadow-[var(--shadow)] md:grid-cols-2 lg:grid-cols-4">
-            {summaryItems.map(item => (
-              <div key={item.label} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-[#1A254F]">{item.label}</span>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      item.status === 'completed'
-                        ? 'bg-[#f0fdf4] text-[#16a34a]'
-                        : 'bg-[#fef2f2] text-[#dc2626]'
-                    }`}
-                  >
-                    {item.value}
-                  </span>
-                </div>
-                <p className="text-xs text-[#667085]">{item.description}</p>
-              </div>
-            ))}
-          </section>
-
-          <section className="mt-4 rounded-2xl border border-[#e6eaf2] bg-white p-4 shadow-[var(--shadow)]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-[#1A254F]">월간 통계</h3>
-              <div className="flex items-center gap-2 text-xs text-[#667085]">
-                <button
-                  type="button"
-                  onClick={() => handleChangeMonth(-1)}
-                  className="rounded-full border border-[#d0d5dd] px-2 py-1 transition-colors hover:bg-[#f4f6fb]"
-                >
-                  이전
-                </button>
-                <span className="font-semibold text-[#1A254F]">{monthLabel}</span>
-                <button
-                  type="button"
-                  onClick={() => handleChangeMonth(1)}
-                  className="rounded-full border border-[#d0d5dd] px-2 py-1 transition-colors hover:bg-[#f4f6fb]"
-                >
-                  다음
-                </button>
-              </div>
-            </div>
-            <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl bg-[#f8f9fb] p-3">
-                <p className="text-xs text-[#667085]">출근일수</p>
-                <p className="mt-1 text-lg font-semibold text-[#1A254F]">
-                  {monthlyStats.totalWorkDays}일
-                </p>
-              </div>
-              <div className="rounded-xl bg-[#f8f9fb] p-3">
-                <p className="text-xs text-[#667085]">총 공수</p>
-                <p className="mt-1 text-lg font-semibold text-[#1A254F]">
-                  {monthlyStats.totalHours}시간
-                </p>
-              </div>
-              <div className="rounded-xl bg-[#f8f9fb] p-3">
-                <p className="text-xs text-[#667085]">평균 진행률</p>
-                <p className="mt-1 text-lg font-semibold text-[#1A254F]">
-                  {monthlyStats.averageProgress}%
-                </p>
-              </div>
-              <div className="rounded-xl bg-[#f8f9fb] p-3">
-                <p className="text-xs text-[#667085]">완료 작업</p>
-                <p className="mt-1 text-lg font-semibold text-[#1A254F]">
-                  {monthlyStats.completedTasks}건
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* Search */}
-          <div className="mt-5">
-            <WorkLogSearch
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="현장명 검색"
-              showCancel
-            />
-          </div>
-
-          {/* 요구사항: 2개 탭(임시저장/작성완료) 기반 목록 */}
-          <div className="mt-6">
-            <TabSystem
-              tabs={[
-                { id: 'draft', label: '임시저장', icon: <FileText size={16} />, count: draftCount },
-                {
-                  id: 'approved',
-                  label: '작성완료',
-                  icon: <CheckCircle size={16} />,
-                  count: approvedCount,
-                },
-              ]}
-              activeTab={activeTab}
-              onTabChange={tabId => setActiveTab(tabId as WorkLogTabStatus)}
-              className="rounded-2xl border border-[#e6eaf2] bg-white p-3 shadow-[var(--shadow)]"
+            <button
+              type="button"
+              className={`worklog-tab ${activeTab === 'approved' ? 'active' : ''}`}
+              onClick={() => setActiveTab('approved')}
             >
-              <TabPanel data-panel="draft" className="space-y-3">
-                {renderWorkLogList(draftWorkLogs, 'draft')}
-              </TabPanel>
-              <TabPanel data-panel="approved" className="space-y-3">
-                {renderWorkLogList(approvedWorkLogs, 'approved')}
-              </TabPanel>
-            </TabSystem>
-          </div>
+              <span className="tab-label">작성완료</span>
+              <span className="tab-count">{approvedCount}</span>
+            </button>
+          </nav>
+
+          <section className="worklog-search-section">
+            <div className="search-input-wrapper">
+              <SearchIcon className="search-icon" width={18} height={18} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={event => setSearchQuery(event.target.value)}
+                placeholder="작업일지 검색"
+                className="search-input"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  className="clear-search"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="검색어 지우기"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <button type="button" className="search-cancel" onClick={() => setSearchQuery('')}>
+              취소
+            </button>
+          </section>
+
+          <section className="filter-row">
+            {/* Site Select - CustomSelect */}
+            <div className="filter-select">
+              <CustomSelect value={selectedSite} onValueChange={setSelectedSite}>
+                <CustomSelectTrigger className="custom-select-trigger">
+                  <CustomSelectValue>
+                    {siteOptions.find(o => o.value === selectedSite)?.label || '전체 현장'}
+                  </CustomSelectValue>
+                </CustomSelectTrigger>
+                <CustomSelectContent align="start">
+                  {siteOptions.map(option => (
+                    <CustomSelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </CustomSelectItem>
+                  ))}
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+
+            {/* Period Select - only 3,6,12 months per spec */}
+            <div className="filter-select">
+              <CustomSelect value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                <CustomSelectTrigger className="custom-select-trigger">
+                  <CustomSelectValue>
+                    {{
+                      '3m': '최근 3개월',
+                      '6m': '최근 6개월',
+                      '12m': '최근 12개월',
+                    }[selectedPeriod] || '최근 3개월'}
+                  </CustomSelectValue>
+                </CustomSelectTrigger>
+                <CustomSelectContent align="start">
+                  <CustomSelectItem value="3m">최근 3개월</CustomSelectItem>
+                  <CustomSelectItem value="6m">최근 6개월</CustomSelectItem>
+                  <CustomSelectItem value="12m">최근 12개월</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
+            </div>
+          </section>
+
+          <section className="worklog-list-section work-form-container">
+            {activeTab === 'draft'
+              ? renderWorkLogList(draftWorkLogs, 'draft')
+              : renderWorkLogList(approvedWorkLogs, 'approved')}
+          </section>
+
+          {/* Monthly summary cards */}
+          <section className="summary-cards" aria-label="월간 요약">
+            <div className="summary-card">
+              <div className="summary-value">{monthlyStats.siteCount}</div>
+              <div className="summary-label">총 현장(월)</div>
+            </div>
+            <div className="summary-card">
+              <div className="summary-value">{monthlyStats.manDays}</div>
+              <div className="summary-label">총 공수(월)</div>
+            </div>
+            <div className="summary-card">
+              <div className="summary-value">{monthlyStats.attendanceDays}</div>
+              <div className="summary-label">총 출근(월)</div>
+            </div>
+          </section>
         </div>
 
         {/* Floating Action Button */}
