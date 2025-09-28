@@ -19,6 +19,7 @@ export default function PayrollPreviewPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [result, setResult] = useState<any | null>(null)
+  const [all, setAll] = useState<any[]>([])
 
   useEffect(() => {
     ;(async () => {
@@ -56,6 +57,21 @@ export default function PayrollPreviewPage() {
     }
   }
 
+  const fetchAllPreview = async () => {
+    if (!yearMonth) return
+    const [y, m] = yearMonth.split('-')
+    try {
+      const res = await fetch(
+        `/api/admin/payroll/summary/workers?year=${Number(y)}&month=${Number(m)}`
+      )
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '전체 미리보기 실패')
+      setAll(json.data || [])
+    } catch (e) {
+      setAll([])
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -85,6 +101,13 @@ export default function PayrollPreviewPage() {
           className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm disabled:bg-gray-400"
         >
           {loading ? '계산 중...' : '미리보기'}
+        </button>
+        <button
+          type="button"
+          onClick={fetchAllPreview}
+          className="px-3 py-2 bg-white text-gray-900 rounded-md text-sm border shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+        >
+          전체 미리보기
         </button>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -123,6 +146,72 @@ export default function PayrollPreviewPage() {
                 </ul>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {all.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="font-semibold">전체 미리보기 결과 ({yearMonth})</h3>
+          <div className="overflow-x-auto border rounded-md">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="px-3 py-2">이름</th>
+                  <th className="px-3 py-2">고용형태</th>
+                  <th className="px-3 py-2 text-right">일당</th>
+                  <th className="px-3 py-2 text-right">총공수</th>
+                  <th className="px-3 py-2 text-right">총급여</th>
+                  <th className="px-3 py-2 text-right">실수령</th>
+                  <th className="px-3 py-2">액션</th>
+                </tr>
+              </thead>
+              <tbody>
+                {all.map((w: any) => (
+                  <tr key={w.worker_id} className="border-t">
+                    <td className="px-3 py-2">{w.name}</td>
+                    <td className="px-3 py-2">{w.employment_type || '-'}</td>
+                    <td className="px-3 py-2 text-right">
+                      {w.daily_rate ? `₩${w.daily_rate.toLocaleString()}` : '-'}
+                    </td>
+                    <td className="px-3 py-2 text-right">{w.total_labor_hours}</td>
+                    <td className="px-3 py-2 text-right">₩{w.total_gross_pay.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right">₩{w.net_pay.toLocaleString()}</td>
+                    <td className="px-3 py-2 flex items-center gap-2">
+                      <button
+                        className="px-2 py-1 text-xs rounded-md bg-emerald-600 text-white"
+                        onClick={() =>
+                          window.open(
+                            `/payslip/${w.worker_id}/${yearMonth.split('-')[0]}/${yearMonth.split('-')[1]}`,
+                            '_blank'
+                          )
+                        }
+                      >
+                        HTML 보기
+                      </button>
+                      <button
+                        className="px-2 py-1 text-xs rounded-md bg-blue-600 text-white"
+                        onClick={async () => {
+                          const [y, m] = yearMonth.split('-')
+                          await fetch('/api/admin/payroll/snapshots/publish', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              year: Number(y),
+                              month: Number(m),
+                              userId: w.worker_id,
+                            }),
+                          })
+                          alert('발행 요청을 보냈습니다')
+                        }}
+                      >
+                        발행
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

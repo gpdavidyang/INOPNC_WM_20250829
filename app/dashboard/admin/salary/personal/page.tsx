@@ -33,6 +33,8 @@ export default function PersonalRatesPage() {
   const [customRates, setCustomRates] = useState<{ [k: string]: number }>({})
   const [replaceActive, setReplaceActive] = useState<boolean>(true)
   const [workers, setWorkers] = useState<Array<{ id: string; full_name: string; role: string }>>([])
+  const [showAllActive, setShowAllActive] = useState(false)
+  const [allActive, setAllActive] = useState<PersonalRate[]>([])
 
   const load = async () => {
     setLoading(true)
@@ -41,7 +43,20 @@ export default function PersonalRatesPage() {
       const res = await fetch('/api/admin/payroll/rates/personal')
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '목록 조회 실패')
-      setItems(json.data || [])
+      const rows = (json.data || []) as PersonalRate[]
+      setItems(rows)
+      // 전체 활성 집계(작업자별 최신 is_active)
+      const map = new Map<string, PersonalRate>()
+      for (const r of rows) {
+        const prev = map.get(r.worker_id)
+        if (!prev) map.set(r.worker_id, r)
+        else {
+          const p = new Date(prev.updated_at || prev.effective_date).getTime()
+          const n = new Date(r.updated_at || r.effective_date).getTime()
+          if (n >= p && r.is_active) map.set(r.worker_id, r)
+        }
+      }
+      setAllActive(Array.from(map.values()))
     } catch (e: any) {
       setError(e?.message || '목록 조회 실패')
     } finally {
@@ -144,6 +159,16 @@ export default function PersonalRatesPage() {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <label className="inline-flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={showAllActive}
+            onChange={e => setShowAllActive(e.target.checked)}
+          />
+          전체 활성 개인세율 보기
+        </label>
+      </div>
       <div className="grid gap-3 md:grid-cols-3">
         <div className="space-y-2">
           <label className="block text-sm">작업자</label>
@@ -241,13 +266,62 @@ export default function PersonalRatesPage() {
         </button>
       </div>
 
-      <div className="mt-4">
-        <h3 className="font-semibold mb-2">개인세율 목록</h3>
-        {loading ? (
-          <p className="text-sm text-gray-600">불러오는 중...</p>
-        ) : error ? (
-          <p className="text-sm text-red-600">{error}</p>
-        ) : (
+      {!showAllActive && (
+        <div className="mt-4">
+          <h3 className="font-semibold mb-2">개인세율 목록</h3>
+          {loading ? (
+            <p className="text-sm text-gray-600">불러오는 중...</p>
+          ) : error ? (
+            <p className="text-sm text-red-600">{error}</p>
+          ) : (
+            <div className="overflow-x-auto border rounded-md">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50 text-left">
+                    <th className="px-3 py-2">사용자</th>
+                    <th className="px-3 py-2">형태</th>
+                    <th className="px-3 py-2 text-right">일당</th>
+                    <th className="px-3 py-2">적용일</th>
+                    <th className="px-3 py-2">활성</th>
+                    <th className="px-3 py-2">커스텀세율</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((it, idx) => (
+                    <tr key={`${it.worker_id}-${idx}`} className="border-t">
+                      <td className="px-3 py-2">{it.profile?.full_name || it.worker_id}</td>
+                      <td className="px-3 py-2">{it.employment_type}</td>
+                      <td className="px-3 py-2 text-right">
+                        ₩{Number(it.daily_rate || 0).toLocaleString()}
+                      </td>
+                      <td className="px-3 py-2">{it.effective_date}</td>
+                      <td className="px-3 py-2">{it.is_active ? 'Y' : 'N'}</td>
+                      <td className="px-3 py-2">
+                        {it.custom_tax_rates
+                          ? Object.entries(it.custom_tax_rates)
+                              .map(([k, v]) => `${k}:${v}%`)
+                              .join(', ')
+                          : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                  {items.length === 0 && (
+                    <tr>
+                      <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
+                        데이터가 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {showAllActive && (
+        <div className="mt-4">
+          <h3 className="font-semibold mb-2">전체 활성 개인세율</h3>
           <div className="overflow-x-auto border rounded-md">
             <table className="min-w-full text-sm">
               <thead>
@@ -256,12 +330,12 @@ export default function PersonalRatesPage() {
                   <th className="px-3 py-2">형태</th>
                   <th className="px-3 py-2 text-right">일당</th>
                   <th className="px-3 py-2">적용일</th>
-                  <th className="px-3 py-2">활성</th>
                   <th className="px-3 py-2">커스텀세율</th>
+                  <th className="px-3 py-2">작업</th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((it, idx) => (
+                {allActive.map((it, idx) => (
                   <tr key={`${it.worker_id}-${idx}`} className="border-t">
                     <td className="px-3 py-2">{it.profile?.full_name || it.worker_id}</td>
                     <td className="px-3 py-2">{it.employment_type}</td>
@@ -269,7 +343,6 @@ export default function PersonalRatesPage() {
                       ₩{Number(it.daily_rate || 0).toLocaleString()}
                     </td>
                     <td className="px-3 py-2">{it.effective_date}</td>
-                    <td className="px-3 py-2">{it.is_active ? 'Y' : 'N'}</td>
                     <td className="px-3 py-2">
                       {it.custom_tax_rates
                         ? Object.entries(it.custom_tax_rates)
@@ -277,9 +350,40 @@ export default function PersonalRatesPage() {
                             .join(', ')
                         : '-'}
                     </td>
+                    <td className="px-3 py-2">
+                      <button
+                        className="px-2 py-1 text-xs rounded-md bg-blue-600 text-white"
+                        onClick={async () => {
+                          const newRate = prompt('새 일당(원) 입력', String(it.daily_rate || 0))
+                          if (!newRate) return
+                          const payload = {
+                            worker_id: it.worker_id,
+                            employment_type: it.employment_type,
+                            daily_rate: Number(newRate) || 0,
+                            effective_date: new Date().toISOString().split('T')[0],
+                            is_active: true,
+                            custom_tax_rates: it.custom_tax_rates || null,
+                            replaceActive: true,
+                          }
+                          const res = await fetch('/api/admin/payroll/rates/personal', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload),
+                          })
+                          const json = await res.json()
+                          if (!res.ok || json?.success === false) {
+                            alert(json?.error || '저장 실패')
+                          } else {
+                            await load()
+                          }
+                        }}
+                      >
+                        일당 변경
+                      </button>
+                    </td>
                   </tr>
                 ))}
-                {items.length === 0 && (
+                {allActive.length === 0 && (
                   <tr>
                     <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
                       데이터가 없습니다.
@@ -289,8 +393,8 @@ export default function PersonalRatesPage() {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="mt-6">
         <h3 className="font-semibold mb-2">이력 (선택 사용자)</h3>

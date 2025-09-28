@@ -41,12 +41,10 @@ export default function SnapshotList() {
   }, [supabase])
 
   const fetchList = async () => {
-    if (!selectedWorker) return
     setLoading(true)
     setError('')
     try {
       const params = new URLSearchParams()
-      params.set('workerId', selectedWorker)
       if (status !== 'all') params.set('status', status)
       if (yearMonth) {
         const [y, m] = yearMonth.split('-')
@@ -55,7 +53,14 @@ export default function SnapshotList() {
           params.set('month', String(Number(m)))
         }
       }
-      const res = await fetch(`/api/salary/snapshot/list?${params.toString()}`)
+      let url = ''
+      if (selectedWorker) {
+        params.set('workerId', selectedWorker)
+        url = `/api/salary/snapshot/list?${params.toString()}`
+      } else {
+        url = `/api/admin/payroll/snapshots/list?${params.toString()}`
+      }
+      const res = await fetch(url)
       const json = await res.json()
       if (!json?.success) throw new Error(json?.error || '목록 조회 실패')
       setItems(json.data as Snapshot[])
@@ -201,6 +206,7 @@ export default function SnapshotList() {
           onChange={e => setSelectedWorker(e.target.value)}
           aria-label="작업자 선택"
         >
+          <option value="">전체</option>
           {workers.map(w => (
             <option key={w.id} value={w.id}>
               {w.full_name}
