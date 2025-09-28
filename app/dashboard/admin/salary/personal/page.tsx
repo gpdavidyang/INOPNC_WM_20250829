@@ -18,6 +18,7 @@ type PersonalRate = {
 export default function PersonalRatesPage() {
   const supabase = useMemo(() => createClient(), [])
   const [items, setItems] = useState<PersonalRate[]>([])
+  const [history, setHistory] = useState<PersonalRate[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -48,6 +49,23 @@ export default function PersonalRatesPage() {
     }
   }
 
+  const loadHistory = async (id: string) => {
+    if (!id) {
+      setHistory([])
+      return
+    }
+    try {
+      const res = await fetch(
+        `/api/admin/payroll/rates/personal/history?workerId=${encodeURIComponent(id)}`
+      )
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '이력 조회 실패')
+      setHistory(json.data || [])
+    } catch (e) {
+      setHistory([])
+    }
+  }
+
   useEffect(() => {
     load()
     ;(async () => {
@@ -60,6 +78,10 @@ export default function PersonalRatesPage() {
       setWorkers(Array.isArray(data) ? (data as any) : [])
     })()
   }, [supabase])
+
+  useEffect(() => {
+    loadHistory(workerId)
+  }, [workerId])
 
   const onSave = async () => {
     if (!workerId) return
@@ -83,6 +105,40 @@ export default function PersonalRatesPage() {
       await load()
     } catch (e: any) {
       alert(e?.message || '저장 실패')
+    }
+  }
+
+  const activate = async (rec: PersonalRate) => {
+    if (!rec.id || !rec.worker_id) return
+    try {
+      const res = await fetch('/api/admin/payroll/rates/personal/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'activate', id: rec.id, worker_id: rec.worker_id }),
+      })
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '활성화 실패')
+      await load()
+      await loadHistory(workerId)
+    } catch (e: any) {
+      alert(e?.message || '활성화 실패')
+    }
+  }
+
+  const cloneTo = async (rec: PersonalRate, date: string) => {
+    if (!rec.id) return
+    try {
+      const res = await fetch('/api/admin/payroll/rates/personal/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clone', fromId: rec.id, effective_date: date }),
+      })
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '복제 실패')
+      await load()
+      await loadHistory(workerId)
+    } catch (e: any) {
+      alert(e?.message || '복제 실패')
     }
   }
 
@@ -233,6 +289,65 @@ export default function PersonalRatesPage() {
               </tbody>
             </table>
           </div>
+        )}
+      </div>
+
+      <div className="mt-6">
+        <h3 className="font-semibold mb-2">이력 (선택 사용자)</h3>
+        {workerId ? (
+          <div className="overflow-x-auto border rounded-md">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-left">
+                  <th className="px-3 py-2">적용일</th>
+                  <th className="px-3 py-2">형태</th>
+                  <th className="px-3 py-2 text-right">일당</th>
+                  <th className="px-3 py-2">활성</th>
+                  <th className="px-3 py-2">작업</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.map((h, idx) => (
+                  <tr key={h.id || idx} className="border-t">
+                    <td className="px-3 py-2">{h.effective_date}</td>
+                    <td className="px-3 py-2">{h.employment_type}</td>
+                    <td className="px-3 py-2 text-right">
+                      ₩{Number(h.daily_rate || 0).toLocaleString()}
+                    </td>
+                    <td className="px-3 py-2">{h.is_active ? 'Y' : 'N'}</td>
+                    <td className="px-3 py-2 flex items-center gap-2">
+                      {!h.is_active && (
+                        <button
+                          className="px-2 py-1 text-xs rounded-md bg-blue-600 text-white"
+                          onClick={() => activate(h)}
+                        >
+                          활성화
+                        </button>
+                      )}
+                      <button
+                        className="px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-900 border"
+                        onClick={() => {
+                          const d = prompt('복제 적용일 (YYYY-MM-DD)')
+                          if (d) cloneTo(h, d)
+                        }}
+                      >
+                        복제
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {history.length === 0 && (
+                  <tr>
+                    <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
+                      이력이 없습니다.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600">상단에서 사용자를 선택하면 이력이 표시됩니다.</p>
         )}
       </div>
     </div>
