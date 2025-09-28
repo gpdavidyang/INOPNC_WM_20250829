@@ -25,6 +25,56 @@ const formatDateWithWeekday = (date: string) => {
 }
 
 export const WorkLogHomePage: React.FC = () => {
+  const getPartnerAbbr = (raw?: string | null): string => {
+    if (!raw) return ''
+    let s = String(raw)
+      .trim()
+      .replace(/^\s*(주식회사|\(주\)|㈜|유한회사|\(유\))\s*/g, '') // 법인 접두 제거
+      .replace(/[\s\-_.·'"\[\]\(\){}<>]/g, '') // 공백/특수문자 제거
+
+    // 법인/업종 접미 제거 (여러 번 등장해도 안전하게 제거)
+    const suffixes = [
+      '종합건설',
+      '엔지니어링',
+      '건설',
+      '산업개발',
+      '산업',
+      '개발',
+      '기술',
+      '테크',
+      '그룹',
+      '홀딩스',
+      '코퍼레이션',
+      '주식회사',
+      '유한회사',
+      '㈜',
+      '(주)',
+      '(유)',
+    ]
+
+    let removed = true
+    while (removed && s.length > 0) {
+      removed = false
+      for (const suf of suffixes) {
+        if (s.endsWith(suf)) {
+          s = s.slice(0, s.length - suf.length)
+          removed = true
+        }
+      }
+    }
+
+    if (!s) return ''
+    const units = Array.from(s)
+    let abbr = units.slice(0, 2).join('')
+
+    // 약어 길이 2자 강제 유지
+    if (abbr.length === 1) abbr = abbr + abbr
+    if (abbr.length === 0) return ''
+
+    // 영문은 대문자로
+    if (/^[A-Za-z]+$/.test(abbr)) return abbr.toUpperCase()
+    return abbr
+  }
   const [activeTab, setActiveTab] = useState<WorkLogTabStatus>('draft')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingWorkLog, setEditingWorkLog] = useState<WorkLog | null>(null)
@@ -72,7 +122,7 @@ export const WorkLogHomePage: React.FC = () => {
   }, [draftWorkLogs, approvedWorkLogs])
 
   const [selectedSite, setSelectedSite] = useState('all')
-  const [selectedPeriod, setSelectedPeriod] = useState('3m')
+  const [selectedPeriod, setSelectedPeriod] = useState('all')
   const [visibleCounts, setVisibleCounts] = useState<{ draft: number; approved: number }>({
     draft: 10,
     approved: 10,
@@ -351,10 +401,16 @@ export const WorkLogHomePage: React.FC = () => {
       <>
         <div className="task-diary-list">
           {displayedLogs.map(workLog => {
+            const main = [workLog.memberTypes?.[0], workLog.workProcesses?.[0]]
+              .filter(Boolean)
+              .join(' ')
             const subtitle =
-              workLog.workProcesses.length > 0
+              main ||
+              (workLog.workProcesses && workLog.workProcesses.length > 0
                 ? workLog.workProcesses.join(', ')
-                : workLog.notes || '작업 내용 미입력'
+                : '') ||
+              workLog.notes ||
+              '작업 내용 미입력'
 
             const formattedDate = formatDateWithWeekday(workLog.date)
 
@@ -374,7 +430,12 @@ export const WorkLogHomePage: React.FC = () => {
                 onClick={handleRowClick}
               >
                 <div className="task-diary-info">
-                  <div className="task-diary-site">{workLog.siteName}</div>
+                  <div className="task-diary-site">
+                    {(() => {
+                      const abbr = getPartnerAbbr(workLog.partnerCompanyName)
+                      return abbr ? `[${abbr}] ${workLog.siteName}` : workLog.siteName
+                    })()}
+                  </div>
                   <div className="task-diary-work">{subtitle}</div>
                 </div>
                 <div className="task-diary-right">
@@ -490,7 +551,7 @@ export const WorkLogHomePage: React.FC = () => {
             background: #ffffff;
             overflow: hidden;
             box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
-            margin-top: 12px;
+            margin-top: 6px; /* 상단 헤더와 간격 축소 */
           }
 
           .worklog-tab {
@@ -558,10 +619,22 @@ export const WorkLogHomePage: React.FC = () => {
             height: 40px;
             border-radius: 10px;
             background: #ffffff;
-            border-color: #d1d5db;
+            border-color: #e5e7eb; /* 리스트 카드와 동일한 라인 컬러 */
             font-size: 16px;
             font-weight: 600;
             color: #1f2937;
+            box-shadow: none;
+          }
+
+          /* 드롭다운 패널도 동일한 모서리 반경 적용 */
+          .custom-select-content {
+            border-radius: 10px !important;
+          }
+
+          .custom-select-trigger:focus,
+          .custom-select-trigger[data-state='open'] {
+            border-color: #31a3fa;
+            box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
           }
 
           /* Work list container per spec */
@@ -579,7 +652,7 @@ export const WorkLogHomePage: React.FC = () => {
             flex: 1;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 10px;
             padding: 0 18px;
             height: 44px;
             border-radius: 999px;
@@ -588,8 +661,11 @@ export const WorkLogHomePage: React.FC = () => {
             box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
           }
 
+          /* 전역 .search-icon(absolute) 규칙을 무력화하여 겹침 방지 */
           .worklog-search-section .search-icon {
+            position: static !important;
             color: #99a4be;
+            flex-shrink: 0;
           }
 
           .worklog-search-section .search-input {
@@ -839,8 +915,9 @@ export const WorkLogHomePage: React.FC = () => {
           }
 
           @media (max-width: 480px) {
+            /* 고정 1행 2열 유지 */
             .filter-row {
-              grid-template-columns: 1fr;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
             .worklog-tab {
@@ -930,7 +1007,7 @@ export const WorkLogHomePage: React.FC = () => {
                     {siteOptions.find(o => o.value === selectedSite)?.label || '전체 현장'}
                   </CustomSelectValue>
                 </CustomSelectTrigger>
-                <CustomSelectContent align="start">
+                <CustomSelectContent align="start" className="custom-select-content">
                   {siteOptions.map(option => (
                     <CustomSelectItem key={option.value} value={option.value}>
                       {option.label}
@@ -940,19 +1017,21 @@ export const WorkLogHomePage: React.FC = () => {
               </CustomSelect>
             </div>
 
-            {/* Period Select - only 3,6,12 months per spec */}
+            {/* Period Select - 전체 기간 포함 */}
             <div className="filter-select">
               <CustomSelect value={selectedPeriod} onValueChange={setSelectedPeriod}>
                 <CustomSelectTrigger className="custom-select-trigger">
                   <CustomSelectValue>
                     {{
+                      all: '전체 기간',
                       '3m': '최근 3개월',
                       '6m': '최근 6개월',
                       '12m': '최근 12개월',
-                    }[selectedPeriod] || '최근 3개월'}
+                    }[selectedPeriod] || '전체 기간'}
                   </CustomSelectValue>
                 </CustomSelectTrigger>
-                <CustomSelectContent align="start">
+                <CustomSelectContent align="start" className="custom-select-content">
+                  <CustomSelectItem value="all">전체 기간</CustomSelectItem>
                   <CustomSelectItem value="3m">최근 3개월</CustomSelectItem>
                   <CustomSelectItem value="6m">최근 6개월</CustomSelectItem>
                   <CustomSelectItem value="12m">최근 12개월</CustomSelectItem>

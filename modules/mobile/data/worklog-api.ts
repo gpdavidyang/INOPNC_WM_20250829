@@ -142,6 +142,7 @@ function mapReportToDetail(report: ApiDailyReport): WorklogDetail {
     id: report.id,
     siteId: report.site_id ?? '',
     siteName: report.sites?.name ?? '현장 미지정',
+    siteAddress: report.sites?.address ?? '',
     workDate: report.work_date,
     memberTypes,
     processes,

@@ -3,10 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { 
-  Menu, Bell, Sun, Moon, User, ChevronDown, 
-  Settings, LogOut, Search
-} from 'lucide-react'
+import { Menu, Bell, Sun, Moon, User, ChevronDown, Settings, LogOut, Search } from 'lucide-react'
 import { useTheme } from '@/hooks/use-theme'
 import { useFontSize } from '@/hooks/use-font-size'
 import { useTouchMode } from '@/hooks/use-touch-mode'
@@ -28,7 +25,13 @@ interface AdminHeaderProps {
   isSidebarCollapsed?: boolean
 }
 
-export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, isSidebarOpen, isSidebarCollapsed }: AdminHeaderProps) {
+export default function AdminHeader({
+  profile,
+  onMenuClick,
+  onDesktopMenuClick,
+  isSidebarOpen,
+  isSidebarCollapsed,
+}: AdminHeaderProps) {
   const { isLargeFont, toggleFontSize } = useFontSize()
   const { touchMode } = useTouchMode()
   const { theme, setTheme } = useTheme()
@@ -84,8 +87,17 @@ export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, 
             {/* Logo/Title */}
             <div className="flex items-center">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">A</span>
+                <div className="brand-logos">
+                  <img
+                    className="brand-logo logo-light"
+                    src="/images/inopnc-logo-n.png"
+                    alt="INOPNC 로고"
+                  />
+                  <img
+                    className="brand-logo logo-dark"
+                    src="/images/inopnc-logo-w.png"
+                    alt="INOPNC 로고"
+                  />
                 </div>
                 <div>
                   <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -153,7 +165,9 @@ export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, 
               className="hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
               aria-label="글자 크기"
             >
-              <span className={`font-medium ${isLargeFont ? 'text-lg' : 'text-sm'} text-gray-600 dark:text-gray-400`}>
+              <span
+                className={`font-medium ${isLargeFont ? 'text-lg' : 'text-sm'} text-gray-600 dark:text-gray-400`}
+              >
                 가
               </span>
             </button>
@@ -176,18 +190,13 @@ export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, 
               {/* Profile Dropdown Menu */}
               {isProfileOpen && (
                 <>
-                  <div
-                    className="fixed inset-0 z-30"
-                    onClick={() => setIsProfileOpen(false)}
-                  />
+                  <div className="fixed inset-0 z-30" onClick={() => setIsProfileOpen(false)} />
                   <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-40">
                     <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {profile?.name || '관리자'}
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {profile?.email}
-                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{profile?.email}</p>
                     </div>
                     <Link
                       href="/dashboard/admin/account"
@@ -213,10 +222,7 @@ export default function AdminHeader({ profile, onMenuClick, onDesktopMenuClick, 
       </header>
 
       {/* Search Modal */}
-      <GlobalSearchModal 
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
+      <GlobalSearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </>
   )
 }

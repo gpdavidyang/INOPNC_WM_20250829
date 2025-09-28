@@ -902,11 +902,15 @@ const AttendanceContent: React.FC = () => {
   // Removed monthly salary summary fetch (UI section removed)
 
   // Calculate recent salary history (last 3 months)
-  const calculateRecentSalaryHistory = (records: AttendanceRecord[], targetYearMonth: string) => {
+  const calculateRecentSalaryHistory = (
+    records: AttendanceRecord[],
+    targetYearMonth: string,
+    months: number = 3
+  ) => {
     const history = []
     const baseDate = parseISO(`${targetYearMonth}-01`)
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < months; i++) {
       const targetDate = addMonths(baseDate, -i)
       const month = targetDate.getMonth()
       const year = targetDate.getFullYear()
@@ -966,9 +970,15 @@ const AttendanceContent: React.FC = () => {
     () => calculateMonthlySalary(salaryAttendanceData, salarySelectedYearMonth),
     [salaryAttendanceData, salarySelectedYearMonth]
   )
+  const [showAllSalaryHistory, setShowAllSalaryHistory] = useState(false)
   const recentSalaryHistory = useMemo(
-    () => calculateRecentSalaryHistory(salaryAttendanceData, salarySelectedYearMonth),
-    [salaryAttendanceData, salarySelectedYearMonth]
+    () =>
+      calculateRecentSalaryHistory(
+        salaryAttendanceData,
+        salarySelectedYearMonth,
+        showAllSalaryHistory ? 12 : 3
+      ),
+    [salaryAttendanceData, salarySelectedYearMonth, showAllSalaryHistory]
   )
 
   const salaryTaxInfo = useMemo(() => {
@@ -985,6 +995,26 @@ const AttendanceContent: React.FC = () => {
   }, [currentSalaryData.totalSalary])
 
   // charts removed – related helper functions deleted
+
+  const openPayslip = useCallback(
+    (y: number, m: number) => {
+      if (!userId) return
+      const href = `/payslip/${userId}/${y}/${m}`
+      const isStandalone =
+        typeof window !== 'undefined' &&
+        (window.matchMedia?.('(display-mode: standalone)').matches ||
+          // iOS Safari PWA flag
+          (navigator as any)?.standalone === true)
+
+      if (isStandalone) {
+        // PWA 환경에서는 동일 창 내 라우팅이 UX적으로 안전
+        window.location.assign(href)
+      } else {
+        window.open(href, '_blank', 'noopener,noreferrer')
+      }
+    },
+    [userId]
+  )
 
   return (
     <MobileLayoutShell>
@@ -1232,22 +1262,16 @@ const AttendanceContent: React.FC = () => {
                         role="button"
                         tabIndex={0}
                         onClick={() => {
-                          if (!userId) return
                           const y = (salaryRecord as any).yearNumber
                           const m = (salaryRecord as any).monthNumber
-                          if (y && m) {
-                            window.open(`/payslip/${userId}/${y}/${m}`, '_blank')
-                          }
+                          if (y && m) openPayslip(y, m)
                         }}
                         onKeyDown={e => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
-                            if (!userId) return
                             const y = (salaryRecord as any).yearNumber
                             const m = (salaryRecord as any).monthNumber
-                            if (y && m) {
-                              window.open(`/payslip/${userId}/${y}/${m}`, '_blank')
-                            }
+                            if (y && m) openPayslip(y, m)
                           }
                         }}
                         className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900/40 cursor-pointer"
@@ -1270,6 +1294,32 @@ const AttendanceContent: React.FC = () => {
                       </div>
                     ))}
                   </Stack>
+                  <div className="mt-3 space-y-2">
+                    {!showAllSalaryHistory ? (
+                      <button
+                        type="button"
+                        className="btn btn--outline w-full"
+                        onClick={() => setShowAllSalaryHistory(true)}
+                      >
+                        더보기
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn btn--outline w-full"
+                        onClick={() => setShowAllSalaryHistory(false)}
+                      >
+                        접기
+                      </button>
+                    )}
+                    <a
+                      href="/mobile/attendance/history"
+                      className="btn btn--outline w-full"
+                      role="button"
+                    >
+                      전체 급여 내역
+                    </a>
+                  </div>
                 </div>
 
                 {/* '급여 추이', '급여 구성', '급여 비교' 섹션 제거 */}

@@ -481,6 +481,30 @@
   margin-bottom: 12px;
 }
 
+/* Detail header (spec aligned) */
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.detail-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.close-pill {
+  border: 1px solid var(--line, #e6ecf4);
+  background: var(--card);
+  color: #1f2937;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
 .diary-viewer-title {
   font-size: 18px;
   font-weight: 700;
@@ -511,6 +535,109 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
+}
+
+/* Info table */
+.info-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line, #e6ecf4);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.info-label {
+  padding: 10px 12px;
+  color: #6b7280;
+  font-size: 14px;
+  background: rgba(241, 245, 249, 0.7);
+}
+
+.info-value {
+  padding: 10px 12px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+/* Tabs */
+.detail-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.detail-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line, #e6ecf4);
+  background: var(--card);
+  color: #475569;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.detail-tab.active {
+  border-color: var(--tag-blue, #31a3fa);
+  color: var(--tag-blue, #31a3fa);
+  background: rgba(49, 163, 250, 0.08);
+}
+
+.detail-tab .tab-count {
+  background: rgba(49, 163, 250, 0.12);
+  color: var(--tag-blue, #31a3fa);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Zoom toolbar */
+.zoom-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line, #e6ecf4);
+  background: var(--card);
+  border-radius: 8px;
+  color: #334155;
+}
+
+.zoom-level {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  min-width: 48px;
+  text-align: center;
+}
+
+/* Gallery scale override */
+.attachment-gallery {
+  --scale: var(--thumb-scale, 1);
+}
+
+.attachment-gallery .attachment-preview {
+  transform: scale(var(--scale));
+  transform-origin: center top;
 }
 
 .diary-info-list {

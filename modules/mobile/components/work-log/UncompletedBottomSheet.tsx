@@ -131,7 +131,7 @@ export const SimplifiedBottomSheet: React.FC<SimplifiedBottomSheetProps> = ({
             }}
             className="w-full h-12 bg-[#0068FE] hover:bg-blue-600 text-white rounded-xl font-medium active:scale-95 transition-all duration-200 shadow-lg"
           >
-            작업일지 작성하러 가기
+            열기
           </button>
         </div>
       </div>
@@ -204,16 +204,19 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    미작성 작업일지
+                    임시저장 작업일지
                   </h3>
                 </div>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300 pl-13">
-                작성되지 않은 작업일지가{' '}
+                임시저장 중인 작업일지가{' '}
                 <span className="font-semibold text-amber-600 dark:text-amber-400">
                   {totalCount}개
                 </span>{' '}
                 있습니다.
+              </p>
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 pl-13">
+                무시를 누르면 선택한 월의 알림이 오늘 하루 동안 표시되지 않습니다.
               </p>
             </div>
             <button
@@ -243,32 +246,34 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
               ? `${item.month.split('-')[0]}년 ${item.month.split('-')[1]}월`
               : item.month
             return (
-            <div
-              key={index}
-              className="flex items-center justify-between p-3 mb-2 bg-gray-50 dark:bg-gray-700 rounded-lg"
-            >
-              <div>
-                <span className="font-medium text-gray-900 dark:text-white">{displayMonth}</span>
-                <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                  {item.count}개 미작성
-                </span>
+              <div
+                key={index}
+                className="flex items-center justify-between p-3 mb-2 bg-gray-50 dark:bg-gray-700 rounded-lg"
+              >
+                <div>
+                  <span className="font-medium text-gray-900 dark:text-white">{displayMonth}</span>
+                  <span className="ml-2 text-sm text-gray-500 dark:text-gray-400">
+                    {item.count}개 임시저장
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onNavigate(item.month)}
+                    className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                  >
+                    열기
+                  </button>
+                  <button
+                    onClick={() => onDismiss(item.month)}
+                    className="px-3 py-1 text-sm bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                    title="오늘 하루 동안 숨김"
+                  >
+                    무시
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => onNavigate(item.month)}
-                  className="px-3 py-1 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                >
-                  작성하기
-                </button>
-                <button
-                  onClick={() => onDismiss(item.month)}
-                  className="px-3 py-1 text-sm bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
-                >
-                  무시
-                </button>
-              </div>
-            </div>
-          )})}
+            )
+          })}
         </div>
 
         {/* 닫기 버튼 */}

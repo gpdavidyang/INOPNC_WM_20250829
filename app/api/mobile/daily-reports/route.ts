@@ -164,20 +164,53 @@ async function enrichReportsWithDetails(reports: any[]) {
 
     const profileIds = Array.from(new Set([...authorIds, ...workerProfileIds]))
 
-    const [sitesResult, profilesResult] = await Promise.all([
+    const [sitesResult, profilesResult, sitePartnersResult] = await Promise.all([
       siteIds.length
         ? serviceClient.from('sites').select('id, name, address, status').in('id', siteIds)
         : Promise.resolve({ data: [] }),
       profileIds.length
         ? serviceClient.from('profiles').select('id, full_name, role').in('id', profileIds)
         : Promise.resolve({ data: [] }),
+      siteIds.length
+        ? serviceClient
+            .from('site_partners')
+            .select('site_id, assigned_date, created_at, partner_companies(company_name)')
+            .in('site_id', siteIds)
+        : Promise.resolve({ data: [] }),
     ])
 
     const siteMap = new Map<string, any>((sitesResult.data ?? []).map(site => [site.id, site]))
 
-    const profileMap = new Map<string, any>(
-      (profilesResult.data ?? []).map(profile => [profile.id, profile])
-    )
+    const profileMap = new Map<string, any>((profilesResult.data ?? []).map(p => [p.id, p]))
+
+    const partnerMap = new Map<string, string>()
+    ;(sitePartnersResult.data ?? []).forEach((row: any) => {
+      const siteId = row?.site_id
+      const name = row?.partner_companies?.company_name
+      if (!siteId || !name) return
+
+      // 최신 매핑 우선: assigned_date > created_at > 기존 값 유지
+      const current = partnerMap.get(siteId)
+
+      const toDateVal = (v: any) => {
+        if (!v) return 0
+        const t = new Date(v as string).getTime()
+        return Number.isFinite(t) ? t : 0
+      }
+
+      const existingRow = (sitePartnersResult.data as any[]).find(
+        r => r?.site_id === siteId && r?.partner_companies?.company_name === current
+      )
+
+      const existingScore = existingRow
+        ? Math.max(toDateVal(existingRow.assigned_date), toDateVal(existingRow.created_at))
+        : -1
+      const nextScore = Math.max(toDateVal(row.assigned_date), toDateVal(row.created_at))
+
+      if (!current || nextScore >= existingScore) {
+        partnerMap.set(siteId, name)
+      }
+    })
 
     return reports.map(report => {
       const enriched = { ...report }
@@ -203,6 +236,12 @@ async function enrichReportsWithDetails(reports: any[]) {
             profiles: profile,
           }
         })
+      }
+
+      // Attach partner company name if available
+      const partnerName = partnerMap.get(report?.site_id)
+      if (partnerName) {
+        enriched.partner_company_name = partnerName
       }
 
       return enriched

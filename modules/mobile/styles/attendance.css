@@ -242,7 +242,7 @@
   font-weight: 600;
   color: #1a254f;
   padding: 12px 0;
-  font-size: 16px;
+  font-size: clamp(12px, 3.2vw, 16px);
   border-bottom: 1px solid #e6ecf4;
   background: #fff;
 }
@@ -258,7 +258,8 @@
 }
 
 .cal-cell {
-  min-height: 74px;
+  /* Ensure enough height on small screens while keeping desktop compact */
+  min-height: clamp(78px, 11.5vw, 96px);
   background: #fff;
   display: flex;
   flex-direction: column;
@@ -293,9 +294,9 @@
 
 .date {
   font-weight: 600;
-  font-size: 16px;
+  font-size: clamp(14px, 3.8vw, 16px);
   color: #1a254f;
-  margin-bottom: 6px;
+  margin-bottom: 4px; /* tighten to free space for site name */
 }
 
 .date.sun {
@@ -303,7 +304,8 @@
 }
 
 .site-name {
-  font-size: 11px;
+  /* Always reserve space so it doesn't get visually hidden */
+  font-size: clamp(10px, 3vw, 12px);
   font-weight: 600;
   color: #1a254f;
   width: 100%;
@@ -312,13 +314,26 @@
   overflow: hidden;
   text-overflow: ellipsis;
   line-height: 1.25;
+  min-height: 1.2em; /* reserve one line for label */
 }
 
 .work-hours {
-  font-size: 12px;
+  font-size: clamp(10px, 3vw, 12px);
   font-weight: 600;
   color: #0068fe;
   line-height: 1.25;
+}
+
+/* Extra safety for very narrow devices */
+@media (max-width: 360px) {
+  .cal-cell {
+    min-height: 86px;
+    padding: 8px 4px 12px;
+  }
+
+  .date {
+    margin-bottom: 2px;
+  }
 }
 
 [data-theme='dark'] .cal-cell {

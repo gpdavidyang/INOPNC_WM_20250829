@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { payslipGeneratorKorean } from '@/lib/services/payslip-generator-korean'
 
 export default function PayslipPage() {
@@ -15,58 +14,123 @@ export default function PayslipPage() {
   useEffect(() => {
     async function generatePayslip() {
       try {
-        const supabase = createClient()
+        // 유틸: 타임아웃 포함 fetch
+        const fetchWithTimeout = async (input: RequestInfo, init?: RequestInit, ms = 12000) => {
+          const ac = new AbortController()
+          const id = setTimeout(() => ac.abort(), ms)
+          try {
+            const res = await fetch(input, { ...(init || {}), signal: ac.signal })
+            return res
+          } finally {
+            clearTimeout(id)
+          }
+        }
 
-        // 1. 사용자 정보
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('id, full_name, email, role, employment_type')
-          .eq('id', userId)
-          .single()
-        if (profileError || !profile) throw new Error('사용자 정보를 찾을 수 없습니다.')
+        // 1) 사용자 정보 (서버 API)
+        const meRes = await fetchWithTimeout('/api/auth/me', { cache: 'no-store' })
+        if (!meRes.ok) throw new Error('로그인 정보를 불러올 수 없습니다.')
+        const meJson = await meRes.json()
+        const profile = meJson?.profile || null
+        if (!profile || profile.id !== userId) {
+          // 관리자가 타 사용자 열람하는 경우: 최소 필드만 구성
+          // 이름이 없으면 ID 앞자리 사용
+        }
 
-        // 2. 월 급여 요약(서버 API)
         const y = Number(year)
         const m = Number(month)
-        const res = await fetch(
-          `/api/salary/monthly?year=${y}&month=${m}&workerId=${encodeURIComponent(userId)}`
-        )
-        const json = await res.json()
-        if (!json?.success) throw new Error(json?.error || '급여 정보를 계산할 수 없습니다.')
+        const ymStart = `${y}-${String(m).padStart(2, '0')}-01`
+        const ymEnd = new Date(y, m, 0).toISOString().split('T')[0]
 
-        // 3. 월 내 최근 근무 사이트 1건 조회
-        const { data: recentWork } = await supabase
-          .from('work_records')
-          .select('site_id, sites (name)')
-          .or(`user_id.eq.${userId},profile_id.eq.${userId}`)
-          .gte('work_date', `${y}-${String(m).padStart(2, '0')}-01`)
-          .lte('work_date', `${y}-${String(m).padStart(2, '0')}-31`)
-          .order('work_date', { ascending: false })
-          .limit(1)
-          .maybeSingle()
+        // 2) 스냅샷 우선 조회 → 실패 시 월 계산 API 폴백
+        let salaryPayload: any | null = null
+        let metaSource: 'snapshot' | 'calculated' = 'calculated'
+        let metaStatus: 'issued' | 'approved' | 'paid' | undefined
+        let metaIssuedAt: string | null | undefined
+        let metaApprovedAt: string | null | undefined
+        let metaPaidAt: string | null | undefined
+        try {
+          const snapRes = await fetchWithTimeout(
+            `/api/salary/snapshot?year=${y}&month=${m}&workerId=${encodeURIComponent(userId)}`,
+            { cache: 'no-store' }
+          )
+          if (snapRes.ok) {
+            const snapJson = await snapRes.json()
+            if (snapJson?.success && snapJson?.data?.salary) {
+              const snap = snapJson.data
+              salaryPayload = snap.salary
+              metaSource = 'snapshot'
+              metaStatus = snap?.status || undefined
+              metaIssuedAt = snap?.issued_at || null
+              metaApprovedAt = snap?.approved_at || null
+              metaPaidAt = snap?.paid_at || null
+            }
+          }
+        } catch {
+          // ignore and fallback
+        }
 
-        const siteName = recentWork?.sites?.name || '미지정'
+        if (!salaryPayload) {
+          const res = await fetchWithTimeout(
+            `/api/salary/monthly?year=${y}&month=${m}&workerId=${encodeURIComponent(userId)}`,
+            { cache: 'no-store' }
+          )
+          const json = await res.json()
+          if (!json?.success) throw new Error(json?.error || '급여 정보를 계산할 수 없습니다.')
+          salaryPayload = json.data.salary
+          if (json?.data?.source === 'snapshot') metaSource = 'snapshot'
+        }
 
-        // 4. HTML 생성
+        // 3) 대표 현장명 (서버 API, 실패 시 미지정)
+        let siteId = ''
+        let siteName = '미지정'
+        try {
+          const sitesRes = await fetchWithTimeout(
+            `/api/users/${encodeURIComponent(userId)}/sites?activeOnly=true&limit=1`,
+            { cache: 'no-store' },
+            8000
+          )
+          if (sitesRes.ok) {
+            const sitesJson = await sitesRes.json()
+            const first = Array.isArray(sitesJson?.data) ? sitesJson.data[0] : null
+            if (first) {
+              siteId = first.id || first.site_id || ''
+              siteName = first.name || first.site_name || siteName
+            }
+          }
+        } catch (e) {
+          console.debug('Payslip: site info fetch failed', e)
+        }
+
+        // 4) HTML 생성
         const payslipData = {
           employee: {
-            id: profile.id,
-            name: profile.full_name || '',
-            email: profile.email || '',
-            role: profile.role || 'worker',
-            department: profile.employment_type || '일용직',
-            employeeNumber: `W-${profile.id.slice(0, 6)}`,
+            id: userId,
+            name: profile?.full_name || profile?.name || '',
+            email: profile?.email || '',
+            role: profile?.role || 'worker',
+            department: profile?.employment_type || '일용직',
+            employeeNumber: `W-${String(userId).slice(0, 6)}`,
           },
           company: {
             name: 'INOPNC',
             address: '서울특별시 강남구 테헤란로 123',
             phone: '02-1234-5678',
             registrationNumber: '123-45-67890',
+            logoLight: '/images/inopnc-logo-n.png',
+            logoDark: '/images/inopnc-logo-w.png',
+            logoPrint: '/images/inopnc-logo-g.png',
           },
-          site: { id: recentWork?.site_id || '', name: siteName },
-          salary: json.data.salary,
+          site: { id: siteId, name: siteName },
+          salary: salaryPayload,
           paymentDate: new Date(`${y}-${String(m).padStart(2, '0')}-25`),
           paymentMethod: '계좌이체',
+          meta: {
+            source: metaSource,
+            status: metaStatus,
+            issuedAt: metaIssuedAt || undefined,
+            approvedAt: metaApprovedAt || undefined,
+            paidAt: metaPaidAt || undefined,
+          },
         }
 
         const html = payslipGeneratorKorean.generateHTML(payslipData)
@@ -100,10 +164,21 @@ export default function PayslipPage() {
           <h1 className="text-2xl font-bold text-gray-800 mb-2">오류 발생</h1>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={() => window.close()}
+            onClick={() => {
+              // 창 닫기가 불가하면 뒤로가기
+              const closed = window.close()
+              setTimeout(() => {
+                try {
+                  if (window.history.length > 1) window.history.back()
+                } catch (e) {
+                  console.debug('Payslip: history back failed', e)
+                }
+              }, 100)
+              return closed
+            }}
             className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
           >
-            닫기
+            닫기/뒤로가기
           </button>
         </div>
       </div>

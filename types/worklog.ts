@@ -128,6 +128,7 @@ export interface WorklogSummary {
 }
 
 export interface WorklogDetail extends WorklogSummary {
+  siteAddress?: string
   location: {
     block: string
     dong: string
