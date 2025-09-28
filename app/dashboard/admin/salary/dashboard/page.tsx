@@ -18,6 +18,21 @@ export default function PayrollDashboardPage() {
     deductions: 0,
     net: 0,
   })
+  const [trendMonths, setTrendMonths] = useState<3 | 6 | 12>(3)
+  const [trend, setTrend] = useState<
+    Array<{ month: string; count: number; gross: number; deductions: number; net: number }>
+  >([])
+  const [workers, setWorkers] = useState<
+    Array<{
+      worker_id: string
+      name: string
+      employment_type: string | null
+      daily_rate: number | null
+      total_labor_hours: number
+      total_gross_pay: number
+      net_pay: number
+    }>
+  >([])
 
   const fetchSummary = async () => {
     if (!yearMonth) return
@@ -43,6 +58,39 @@ export default function PayrollDashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [yearMonth, status])
 
+  const fetchTrend = async (months: 3 | 6 | 12) => {
+    try {
+      const res = await fetch(`/api/admin/payroll/summary/trend?months=${months}`)
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '추이 조회 실패')
+      setTrend(json.data || [])
+    } catch (e) {
+      setTrend([])
+    }
+  }
+
+  const fetchWorkers = async () => {
+    const [y, m] = yearMonth.split('-')
+    try {
+      const res = await fetch(
+        `/api/admin/payroll/summary/workers?year=${Number(y)}&month=${Number(m)}`
+      )
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '인력별 조회 실패')
+      setWorkers(json.data || [])
+    } catch (e) {
+      setWorkers([])
+    }
+  }
+
+  useEffect(() => {
+    fetchTrend(trendMonths)
+  }, [trendMonths])
+
+  useEffect(() => {
+    fetchWorkers()
+  }, [yearMonth])
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
@@ -60,9 +108,9 @@ export default function PayrollDashboardPage() {
           aria-label="상태"
         >
           <option value="all">전체</option>
-          <option value="issued">issued</option>
-          <option value="approved">approved</option>
-          <option value="paid">paid</option>
+          <option value="issued">발행</option>
+          <option value="approved">승인</option>
+          <option value="paid">지급</option>
         </select>
         <button
           type="button"
@@ -91,6 +139,111 @@ export default function PayrollDashboardPage() {
         <div className="rounded-lg border p-4 bg-white">
           <div className="text-xs text-gray-500">실수령</div>
           <div className="text-2xl font-semibold">₩{data.net.toLocaleString()}</div>
+        </div>
+      </div>
+
+      {/* 추이: 최근 3/6/12개월 총급여지급액 그래프/표 */}
+      <div className="mt-6 space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold">최근 추이</span>
+          {[3, 6, 12].map(v => (
+            <button
+              key={v}
+              className={`px-2 py-1 text-xs rounded border ${trendMonths === v ? 'bg-blue-600 text-white' : 'bg-white text-gray-900'}`}
+              onClick={() => setTrendMonths(v as 3 | 6 | 12)}
+            >
+              {v}개월
+            </button>
+          ))}
+        </div>
+        <div className="w-full border rounded-md p-3 bg-white">
+          <div className="flex items-end gap-2 h-32">
+            {trend.map(t => {
+              const max = Math.max(1, ...trend.map(x => x.gross))
+              const h = Math.round((t.gross / max) * 100)
+              return (
+                <div key={t.month} className="flex flex-col items-center justify-end gap-1">
+                  <div
+                    className="w-6 bg-blue-500"
+                    style={{ height: `${h}%` }}
+                    title={`₩${t.gross.toLocaleString()}`}
+                  />
+                  <div className="text-[10px] text-gray-600">{t.month.slice(5)}</div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        <div className="overflow-x-auto border rounded-md">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left">
+                <th className="px-3 py-2">월</th>
+                <th className="px-3 py-2 text-right">인원</th>
+                <th className="px-3 py-2 text-right">총급여</th>
+                <th className="px-3 py-2 text-right">공제</th>
+                <th className="px-3 py-2 text-right">실수령</th>
+              </tr>
+            </thead>
+            <tbody>
+              {trend.map(t => (
+                <tr key={t.month} className="border-t">
+                  <td className="px-3 py-2">{t.month}</td>
+                  <td className="px-3 py-2 text-right">{t.count}</td>
+                  <td className="px-3 py-2 text-right">₩{t.gross.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">₩{t.deductions.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">₩{t.net.toLocaleString()}</td>
+                </tr>
+              ))}
+              {trend.length === 0 && (
+                <tr>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
+                    데이터가 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 인력별 표 */}
+      <div className="mt-6 space-y-3">
+        <div className="text-sm font-semibold">인력별 상세 ({yearMonth})</div>
+        <div className="overflow-x-auto border rounded-md">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 text-left">
+                <th className="px-3 py-2">이름</th>
+                <th className="px-3 py-2">고용형태</th>
+                <th className="px-3 py-2 text-right">일당</th>
+                <th className="px-3 py-2 text-right">총공수</th>
+                <th className="px-3 py-2 text-right">총급여</th>
+                <th className="px-3 py-2 text-right">실수령</th>
+              </tr>
+            </thead>
+            <tbody>
+              {workers.map(w => (
+                <tr key={w.worker_id} className="border-t">
+                  <td className="px-3 py-2">{w.name}</td>
+                  <td className="px-3 py-2">{w.employment_type || '-'}</td>
+                  <td className="px-3 py-2 text-right">
+                    {w.daily_rate ? `₩${w.daily_rate.toLocaleString()}` : '-'}
+                  </td>
+                  <td className="px-3 py-2 text-right">{w.total_labor_hours}</td>
+                  <td className="px-3 py-2 text-right">₩{w.total_gross_pay.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">₩{w.net_pay.toLocaleString()}</td>
+                </tr>
+              ))}
+              {workers.length === 0 && (
+                <tr>
+                  <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
+                    데이터가 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
