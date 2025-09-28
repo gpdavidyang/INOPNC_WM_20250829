@@ -139,7 +139,15 @@ export default function RulesPage() {
               {items.map((r, idx) => (
                 <tr key={`${r.id || idx}`} className="border-t">
                   <td className="px-3 py-2">{r.rule_name}</td>
-                  <td className="px-3 py-2">{r.rule_type}</td>
+                  <td className="px-3 py-2">
+                    {r.rule_type === 'hourly_rate'
+                      ? '시급'
+                      : r.rule_type === 'daily_rate'
+                        ? '일급'
+                        : r.rule_type === 'overtime_multiplier'
+                          ? '연장배수'
+                          : '보너스'}
+                  </td>
                   <td className="px-3 py-2 text-right">{r.base_amount}</td>
                   <td className="px-3 py-2 text-right">{r.multiplier ?? '-'}</td>
                   <td className="px-3 py-2">{r.is_active ? 'Y' : 'N'}</td>

@@ -50,6 +50,41 @@ export async function GET(request: NextRequest) {
       void e
     }
 
+    // Fallback: if no DB snapshots found, aggregate by on-the-fly monthly calculation for active workers
+    if (count === 0 && gross === 0 && deductions === 0 && net === 0) {
+      try {
+        const { salaryCalculationService } = await import(
+          '@/lib/services/salary-calculation.service'
+        )
+        const { data: profiles } = await service
+          .from('profiles')
+          .select('id, role, status')
+          .in('role', ['worker', 'site_manager'])
+          .neq('status', 'inactive')
+          .limit(200)
+        const ymMonth = month
+        for (const p of profiles || []) {
+          try {
+            const monthly = await salaryCalculationService.calculateMonthlySalary(
+              p.id as string,
+              year,
+              ymMonth,
+              undefined,
+              true
+            )
+            count += 1
+            gross += Number(monthly.total_gross_pay || 0)
+            deductions += Number(monthly.total_deductions || 0)
+            net += Number(monthly.net_pay || 0)
+          } catch (e) {
+            void e
+          }
+        }
+      } catch (e) {
+        void e
+      }
+    }
+
     return NextResponse.json({ success: true, data: { count, gross, deductions, net } })
   } catch (e: any) {
     console.error('GET /admin/payroll/summary error:', e)
