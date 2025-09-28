@@ -1,23 +1,18 @@
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
 
-;
-
 // GET /api/users/[id]/sites - 특정 사용자의 현장 목록 조회
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
       return authResult
     }
 
-    const supabase = createClient();
+    const supabase = createClient()
     const { data: requesterProfile } = await supabase
       .from('profiles')
       .select('role')
@@ -29,66 +24,111 @@ export async function GET(
     const isSelf = authResult.userId === params.id
 
     if (!isAdmin && !isSelf) {
-      return NextResponse.json({ success: false, error: 'Insufficient permissions' }, { status: 403 })
+      return NextResponse.json(
+        { success: false, error: 'Insufficient permissions' },
+        { status: 403 }
+      )
     }
-    const searchParams = request.nextUrl.searchParams;
-    
-    const activeOnly = searchParams.get('activeOnly') !== 'false';
-    const search = searchParams.get('search') || null;
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const searchParams = request.nextUrl.searchParams
 
-    // get_user_sites 함수 호출
-    const { data, error } = await supabase.rpc('get_user_sites', {
-      p_user_id: params.id,
-      p_active_only: activeOnly,
-      p_search: search,
-      p_limit: limit,
-      p_offset: offset
-    } as unknown);
+    const activeOnly = searchParams.get('activeOnly') !== 'false'
+    const search = searchParams.get('search') || null
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const offset = parseInt(searchParams.get('offset') || '0')
 
-    if (error) throw error;
+    // 1) 우선 RPC 사용
+    let rpcFailed = false
+    try {
+      const { data, error } = await supabase.rpc('get_user_sites', {
+        p_user_id: params.id,
+        p_active_only: activeOnly,
+        p_search: search,
+        p_limit: limit,
+        p_offset: offset,
+      } as unknown)
 
-    // 전체 카운트 조회
-    const { count } = await supabase
-      .from('site_assignments')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', params.id)
-      .eq('is_active', activeOnly);
+      if (!error && Array.isArray(data)) {
+        // 전체 카운트 조회
+        const { count } = await supabase
+          .from('site_assignments')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', params.id)
+          .eq('is_active', activeOnly)
 
-    const total = count || 0;
-
-    return NextResponse.json({
-      success: true,
-      data: data || [],
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total
+        const total = count || 0
+        return NextResponse.json({
+          success: true,
+          data: data || [],
+          pagination: { total, limit, offset, hasMore: offset + limit < total },
+        })
       }
-    });
+      rpcFailed = true
+    } catch {
+      rpcFailed = true
+    }
+
+    // 2) Fallback: site_assignments + sites 조인으로 대체
+    try {
+      let query = supabase
+        .from('site_assignments')
+        .select(
+          'site_id, is_active, assigned_date, unassigned_date, sites:sites(id, name, address)'
+        )
+        .eq('user_id', params.id)
+        .order('assigned_date', { ascending: false })
+
+      if (activeOnly) query = query.eq('is_active', true)
+      if (search) query = query.ilike('sites.name', `%${search}%`)
+
+      // 페이지네이션
+      const from = offset
+      const to = offset + limit - 1
+      const { data: fallData, error: fallError } = await query.range(from, to)
+      if (fallError) throw fallError
+
+      const { count } = await supabase
+        .from('site_assignments')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', params.id)
+        .eq('is_active', activeOnly)
+
+      const total = count || 0
+      const shaped = (fallData || []).map((r: any) => ({
+        id: r?.sites?.id || r.site_id,
+        name: r?.sites?.name || '현장 미지정',
+        address: r?.sites?.address || null,
+        is_active: r?.is_active ?? true,
+        assigned_date: r?.assigned_date || null,
+      }))
+
+      return NextResponse.json({
+        success: true,
+        data: shaped,
+        pagination: { total, limit, offset, hasMore: offset + limit < total },
+        fallback: rpcFailed ? 'join' : undefined,
+      })
+    } catch (fallbackError: any) {
+      console.error('Fallback user sites error:', fallbackError)
+      return NextResponse.json(
+        { success: false, error: 'Failed to list user sites' },
+        { status: 500 }
+      )
+    }
   } catch (error: unknown) {
-    console.error('Error fetching user sites:', error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    console.error('Error fetching user sites:', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
 
 // POST /api/users/[id]/sites - 사용자에게 현장 배정
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
       return authResult
     }
 
-    const supabase = createClient();
+    const supabase = createClient()
     const { data: requesterProfile } = await supabase
       .from('profiles')
       .select('role')
@@ -99,20 +139,12 @@ export async function POST(
     if (!['admin', 'system_admin'].includes(requesterRole)) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
     }
-    const body = await request.json();
-    
-    const {
-      siteId,
-      role = 'worker',
-      assignmentType = 'permanent',
-      notes = null
-    } = body;
+    const body = await request.json()
+
+    const { siteId, role = 'worker', assignmentType = 'permanent', notes = null } = body
 
     if (!siteId) {
-      return NextResponse.json(
-        { success: false, error: 'Site ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Site ID is required' }, { status: 400 })
     }
 
     // 현재 사용자 정보 가져오기 (승인자로 기록)
@@ -123,13 +155,13 @@ export async function POST(
       .eq('site_id', siteId)
       .eq('user_id', params.id)
       .eq('is_active', true)
-      .single();
+      .single()
 
     if (existing) {
       return NextResponse.json(
         { success: false, error: 'User is already assigned to this site' },
         { status: 400 }
-      );
+      )
     }
 
     // 새 배정 생성
@@ -144,38 +176,32 @@ export async function POST(
         approved_by: authResult.userId || null,
         approved_at: new Date().toISOString(),
         is_active: true,
-        assigned_date: new Date().toISOString().split('T')[0]
+        assigned_date: new Date().toISOString().split('T')[0],
       })
       .select()
-      .single();
+      .single()
 
-    if (error) throw error;
+    if (error) throw error
 
     return NextResponse.json({
       success: true,
-      data
-    });
+      data,
+    })
   } catch (error: unknown) {
-    console.error('Error assigning site to user:', error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    console.error('Error assigning site to user:', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
 
 // PATCH /api/users/[id]/sites - 사용자의 현장 배정 정보 수정
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
       return authResult
     }
 
-    const supabase = createClient();
+    const supabase = createClient()
     const { data: requesterProfile } = await supabase
       .from('profiles')
       .select('role')
@@ -186,35 +212,26 @@ export async function PATCH(
     if (!['admin', 'system_admin'].includes(requesterRole)) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
     }
-    const body = await request.json();
-    
-    const {
-      siteId,
-      role,
-      assignmentType,
-      notes,
-      isActive
-    } = body;
+    const body = await request.json()
+
+    const { siteId, role, assignmentType, notes, isActive } = body
 
     if (!siteId) {
-      return NextResponse.json(
-        { success: false, error: 'Site ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Site ID is required' }, { status: 400 })
     }
 
-    const updateData: unknown = {};
-    if (role !== undefined) updateData.role = role;
-    if (assignmentType !== undefined) updateData.assignment_type = assignmentType;
-    if (notes !== undefined) updateData.notes = notes;
-    if (isActive !== undefined) updateData.is_active = isActive;
-    
+    const updateData: unknown = {}
+    if (role !== undefined) updateData.role = role
+    if (assignmentType !== undefined) updateData.assignment_type = assignmentType
+    if (notes !== undefined) updateData.notes = notes
+    if (isActive !== undefined) updateData.is_active = isActive
+
     // 비활성화 시 unassigned_date 설정
     if (isActive === false) {
-      updateData.unassigned_date = new Date().toISOString().split('T')[0];
+      updateData.unassigned_date = new Date().toISOString().split('T')[0]
     }
 
-    updateData.updated_at = new Date().toISOString();
+    updateData.updated_at = new Date().toISOString()
 
     const { data, error } = await supabase
       .from('site_assignments')
@@ -223,35 +240,29 @@ export async function PATCH(
       .eq('site_id', siteId)
       .eq('is_active', true)
       .select()
-      .single();
+      .single()
 
-    if (error) throw error;
+    if (error) throw error
 
     return NextResponse.json({
       success: true,
-      data
-    });
+      data,
+    })
   } catch (error: unknown) {
-    console.error('Error updating user site assignment:', error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    console.error('Error updating user site assignment:', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }
 
 // DELETE /api/users/[id]/sites - 사용자의 현장 배정 해제
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
       return authResult
     }
 
-    const supabase = createClient();
+    const supabase = createClient()
     const { data: requesterProfile } = await supabase
       .from('profiles')
       .select('role')
@@ -262,14 +273,11 @@ export async function DELETE(
     if (!['admin', 'system_admin'].includes(requesterRole)) {
       return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
     }
-    const searchParams = request.nextUrl.searchParams;
-    const siteId = searchParams.get('siteId');
+    const searchParams = request.nextUrl.searchParams
+    const siteId = searchParams.get('siteId')
 
     if (!siteId) {
-      return NextResponse.json(
-        { success: false, error: 'Site ID is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Site ID is required' }, { status: 400 })
     }
 
     // 소프트 삭제: is_active를 false로 설정하고 unassigned_date 기록
@@ -278,25 +286,22 @@ export async function DELETE(
       .update({
         is_active: false,
         unassigned_date: new Date().toISOString().split('T')[0],
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       })
       .eq('user_id', params.id)
       .eq('site_id', siteId)
       .eq('is_active', true)
       .select()
-      .single();
+      .single()
 
-    if (error) throw error;
+    if (error) throw error
 
     return NextResponse.json({
       success: true,
-      data
-    });
+      data,
+    })
   } catch (error: unknown) {
-    console.error('Error removing site from user:', error);
-    return NextResponse.json(
-      { success: false, error: error.message },
-      { status: 500 }
-    );
+    console.error('Error removing site from user:', error)
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 })
   }
 }

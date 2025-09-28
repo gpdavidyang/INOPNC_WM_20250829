@@ -41,44 +41,23 @@ export default function PayslipPage() {
         const ymStart = `${y}-${String(m).padStart(2, '0')}-01`
         const ymEnd = new Date(y, m, 0).toISOString().split('T')[0]
 
-        // 2) 스냅샷 우선 조회 → 실패 시 월 계산 API 폴백
-        let salaryPayload: any | null = null
-        let metaSource: 'snapshot' | 'calculated' = 'calculated'
-        let metaStatus: 'issued' | 'approved' | 'paid' | undefined
-        let metaIssuedAt: string | null | undefined
-        let metaApprovedAt: string | null | undefined
-        let metaPaidAt: string | null | undefined
-        try {
-          const snapRes = await fetchWithTimeout(
-            `/api/salary/snapshot?year=${y}&month=${m}&workerId=${encodeURIComponent(userId)}`,
-            { cache: 'no-store' }
-          )
-          if (snapRes.ok) {
-            const snapJson = await snapRes.json()
-            if (snapJson?.success && snapJson?.data?.salary) {
-              const snap = snapJson.data
-              salaryPayload = snap.salary
-              metaSource = 'snapshot'
-              metaStatus = snap?.status || undefined
-              metaIssuedAt = snap?.issued_at || null
-              metaApprovedAt = snap?.approved_at || null
-              metaPaidAt = snap?.paid_at || null
-            }
-          }
-        } catch {
-          // ignore and fallback
-        }
-
-        if (!salaryPayload) {
-          const res = await fetchWithTimeout(
-            `/api/salary/monthly?year=${y}&month=${m}&workerId=${encodeURIComponent(userId)}`,
-            { cache: 'no-store' }
-          )
-          const json = await res.json()
-          if (!json?.success) throw new Error(json?.error || '급여 정보를 계산할 수 없습니다.')
-          salaryPayload = json.data.salary
-          if (json?.data?.source === 'snapshot') metaSource = 'snapshot'
-        }
+        // 2) 서버가 스냅샷 우선 → 계산 폴백 처리: 한 번만 호출 (404 콘솔 제거)
+        const res = await fetchWithTimeout(
+          `/api/salary/monthly?year=${y}&month=${m}&workerId=${encodeURIComponent(userId)}`,
+          { cache: 'no-store' }
+        )
+        const json = await res.json()
+        if (!json?.success) throw new Error(json?.error || '급여 정보를 계산할 수 없습니다.')
+        const salaryPayload = json.data.salary
+        const metaSource: 'snapshot' | 'calculated' =
+          json?.data?.source === 'snapshot' ? 'snapshot' : 'calculated'
+        const metaStatus: 'issued' | 'approved' | 'paid' | undefined = json?.data?.snapshot?.status
+        const metaIssuedAt: string | null | undefined = json?.data?.snapshot?.issued_at
+        const metaApprovedAt: string | null | undefined = json?.data?.snapshot?.approved_at
+        const metaPaidAt: string | null | undefined = json?.data?.snapshot?.paid_at
+        const rateSource: 'custom' | 'employment_type_default' | null =
+          json?.data?.rateSource || null
+        const appliedRates = json?.data?.rates || null
 
         // 3) 대표 현장명 (서버 API, 실패 시 미지정)
         let siteId = ''
@@ -130,6 +109,8 @@ export default function PayslipPage() {
             issuedAt: metaIssuedAt || undefined,
             approvedAt: metaApprovedAt || undefined,
             paidAt: metaPaidAt || undefined,
+            rateSource: rateSource || undefined,
+            rates: appliedRates || undefined,
           },
         }
 

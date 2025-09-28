@@ -1,8 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import Image from 'next/image'
 import clsx from 'clsx'
-import { X, DownloadCloud, ExternalLink, Minus, Plus } from 'lucide-react'
+import { X, DownloadCloud, ExternalLink } from 'lucide-react'
 import '@/modules/mobile/styles/worklogs.css'
 import { WorklogDetail, WorklogAttachment } from '@/types/worklog'
 import { AttachmentTabs, TabKey } from './AttachmentTabs'
@@ -100,7 +101,14 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
           <div key={item.id} className="attachment-card">
             <div className="attachment-card-title">{item.name}</div>
             {item.previewUrl ? (
-              <img className="attachment-preview" src={item.previewUrl} alt={item.name} />
+              <Image
+                className="attachment-preview"
+                src={item.previewUrl}
+                alt={item.name}
+                width={400}
+                height={300}
+                unoptimized
+              />
             ) : (
               <div className="attachment-preview" aria-hidden="true" />
             )}
@@ -198,35 +206,46 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
 
           {/* 첨부 탭 + 줌 컨트롤 */}
           <section aria-label="첨부">
-            <AttachmentTabs active={activeTab} counts={counts} onChange={setActiveTab} />
+            <AttachmentTabs
+              active={activeTab}
+              counts={counts}
+              onChange={setActiveTab}
+              idBase="attachments"
+            />
             <div className="zoom-toolbar">
               <button type="button" className="zoom-btn" onClick={decZoom} aria-label="작게">
-                <Minus size={14} />
+                –
               </button>
               <span className="zoom-level">{zoom}%</span>
               <button type="button" className="zoom-btn" onClick={incZoom} aria-label="크게">
-                <Plus size={14} />
+                +
               </button>
             </div>
             {/* 갤러리 */}
-            {activeTab === 'drawings' && loadingMarkups ? (
-              <div className="list-footer" aria-live="polite">
-                불러오는 중...
-              </div>
-            ) : (
-              <AttachmentGallery
-                items={currentItems}
-                zoom={zoom}
-                onOpen={item => {
-                  if (activeTab === 'drawings' && item.id.startsWith('markup-')) {
-                    const realId = item.id.replace('markup-', '')
-                    onOpenMarkupDoc?.(realId, worklog)
-                    return
-                  }
-                  onOpenDocument?.(item)
-                }}
-              />
-            )}
+            <div
+              role="tabpanel"
+              id={`attachments-panel-${activeTab}`}
+              aria-labelledby={`attachments-tab-${activeTab}`}
+            >
+              {activeTab === 'drawings' && loadingMarkups ? (
+                <div className="list-footer" aria-live="polite">
+                  불러오는 중...
+                </div>
+              ) : (
+                <AttachmentGallery
+                  items={currentItems}
+                  zoom={zoom}
+                  onOpen={item => {
+                    if (activeTab === 'drawings' && item.id.startsWith('markup-')) {
+                      const realId = item.id.replace('markup-', '')
+                      onOpenMarkupDoc?.(realId, worklog)
+                      return
+                    }
+                    onOpenDocument?.(item)
+                  }}
+                />
+              )}
+            </div>
           </section>
         </div>
 

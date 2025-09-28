@@ -161,6 +161,39 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [userProfile, setUserProfile] = useState<any>(authProfile || initialProfile || null)
   const [profileLoading, setProfileLoading] = useState(false)
 
+  // Prefill from localStorage (draft redirect)
+  useEffect(() => {
+    try {
+      const raw = typeof window !== 'undefined' ? localStorage.getItem('worklog_prefill') : null
+      if (!raw) return
+      const data = JSON.parse(raw)
+      if (data?.siteId) setSelectedSite(String(data.siteId))
+      if (data?.workDate) setWorkDate(String(data.workDate))
+      if (data?.department) setDepartment(String(data.department))
+      if (data?.location)
+        setLocation({
+          block: String(data.location.block || ''),
+          dong: String(data.location.dong || ''),
+          unit: String(data.location.unit || ''),
+        })
+      if (Array.isArray(data?.memberTypes)) setMemberTypes(data.memberTypes)
+      if (Array.isArray(data?.workProcesses)) setWorkContents(data.workProcesses)
+      if (Array.isArray(data?.workTypes)) setWorkTypes(data.workTypes)
+      if (typeof data?.mainManpower === 'number') setMainManpower(data.mainManpower)
+      if (Array.isArray(data?.materials)) setMaterials(data.materials)
+      if (Array.isArray(data?.additionalManpower)) setAdditionalManpower(data.additionalManpower)
+      // one-time use
+      localStorage.removeItem('worklog_prefill')
+      // scroll to form
+      setTimeout(() => {
+        const el = document.querySelector('.work-form-container')
+        if (el?.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    } catch (e) {
+      void e
+    }
+  }, [])
+
   // Set today's date on mount
   useEffect(() => {
     const today = new Date().toISOString().split('T')[0]

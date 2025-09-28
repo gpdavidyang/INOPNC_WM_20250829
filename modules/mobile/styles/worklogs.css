@@ -458,8 +458,8 @@
   height: 88vh;
   max-height: 720px;
   background: var(--card);
-  border-radius: 24px 24px 0 0;
-  box-shadow: 0 -20px 40px rgba(15, 23, 42, 0.32);
+  border-radius: 10px 10px 0 0; /* spec: 10px */
+  box-shadow: 0 -12px 28px rgba(15, 23, 42, 0.22);
   padding: 18px;
   display: flex;
   flex-direction: column;
@@ -470,7 +470,7 @@
     margin: auto;
     width: min(960px, 92vw);
     height: 88vh;
-    border-radius: 16px;
+    border-radius: 10px; /* spec: 10px */
   }
 }
 
@@ -486,11 +486,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .detail-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--text);
 }
@@ -503,6 +503,13 @@
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
+}
+.close-pill:hover {
+  background: rgba(226, 232, 240, 0.45);
+}
+.close-pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.2);
 }
 
 .diary-viewer-title {
@@ -542,6 +549,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 8px;
 }
 
 .info-row {
@@ -558,32 +566,33 @@
   padding: 10px 12px;
   color: #6b7280;
   font-size: 14px;
-  background: rgba(241, 245, 249, 0.7);
+  font-weight: 600;
 }
 
 .info-value {
   padding: 10px 12px;
   color: #1f2937;
   font-weight: 600;
+  background: rgba(249, 250, 251, 0.85);
 }
 
 /* Tabs */
 .detail-tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .detail-tab {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 10px 14px;
   border: 1px solid var(--line, #e6ecf4);
   background: var(--card);
-  color: #475569;
+  color: #667085;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -591,6 +600,7 @@
   border-color: var(--tag-blue, #31a3fa);
   color: var(--tag-blue, #31a3fa);
   background: rgba(49, 163, 250, 0.08);
+  box-shadow: inset 0 0 0 0.5px var(--tag-blue, #31a3fa);
 }
 
 .detail-tab .tab-count {
@@ -598,6 +608,8 @@
   color: var(--tag-blue, #31a3fa);
   border-radius: 999px;
   padding: 2px 8px;
+  min-width: 22px;
+  text-align: center;
   font-size: 12px;
   font-weight: 700;
 }
@@ -607,7 +619,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .zoom-btn {
@@ -620,6 +632,8 @@
   background: var(--card);
   border-radius: 8px;
   color: #334155;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .zoom-level {
@@ -675,12 +689,26 @@
   flex-direction: column;
   gap: 8px;
   background: rgba(248, 250, 252, 0.8);
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .attachment-card-title {
   font-size: 13px;
   font-weight: 600;
   color: #1f2937;
+}
+
+.attachment-card:focus-visible {
+  outline: none;
+  border-color: var(--tag-blue, #31a3fa);
+  box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.2);
+}
+
+.attachment-card:hover {
+  border-color: rgba(49, 163, 250, 0.35);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
 }
 
 .attachment-preview {
@@ -700,7 +728,7 @@
 
 .viewer-action-btn {
   padding: 10px 18px;
-  border-radius: 12px;
+  border-radius: 10px; /* spec alignment */
   border: none;
   font-size: 14px;
   font-weight: 600;
@@ -711,6 +739,7 @@
 .viewer-action-btn.secondary {
   background: rgba(226, 232, 240, 0.6);
   color: #334155;
+  border: 1px solid var(--line, #e6ecf4);
 }
 
 .viewer-action-btn.primary {
@@ -778,6 +807,26 @@
 [data-theme='dark'] .attachment-card {
   background: rgba(30, 41, 59, 0.85);
   border-color: rgba(71, 85, 105, 0.9);
+}
+
+[data-theme='dark'] .info-label {
+  color: #a8b0c2;
+}
+[data-theme='dark'] .info-value {
+  background: rgba(30, 41, 59, 0.65);
+  color: #e5e7eb;
+}
+[data-theme='dark'] .detail-tab {
+  color: #a8b0c2;
+}
+[data-theme='dark'] .detail-tab.active {
+  color: #31a3fa;
+  box-shadow: inset 0 0 0 0.5px #31a3fa;
+}
+[data-theme='dark'] .close-pill {
+  background: #0f172a;
+  color: #e5e7eb;
+  border-color: #334155;
 }
 
 [data-theme='dark'] .viewer-action-btn.secondary {

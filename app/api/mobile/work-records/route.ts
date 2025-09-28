@@ -46,6 +46,10 @@ export async function GET(request: NextRequest) {
       .order('check_in_time', { ascending: true })
       .limit(limit)
 
+    // Return only the authenticated user's records (user_id or profile_id)
+    const targetUserId = authResult.userId
+    query = query.or(`user_id.eq.${targetUserId},profile_id.eq.${targetUserId}`)
+
     if (startDate) {
       query = query.gte('work_date', startDate)
     }

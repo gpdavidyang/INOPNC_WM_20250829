@@ -163,6 +163,15 @@ const nextConfig = {
       },
     ];
   },
+  redirects: async () => {
+    return [
+      {
+        source: '/mobile/worklogs',
+        destination: '/mobile/worklog',
+        permanent: true,
+      },
+    ]
+  },
 }
 
 export default nextConfig

@@ -3,6 +3,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { MobileLayout as MobileLayoutShell } from '@/modules/mobile/components/layout/MobileLayout'
 import { WorkLogModal } from '@/modules/mobile/components/work-log/WorkLogModal'
+import { useRouter } from 'next/navigation'
+import { DiaryDetailViewer } from '@/modules/mobile/components/worklogs'
+import type { WorklogDetail, WorklogAttachment } from '@/types/worklog'
 import { useWorkLogs } from '@/modules/mobile/hooks/use-work-logs'
 import { WorkLog, WorkLogTabStatus } from '@/modules/mobile/types/work-log.types'
 import { UncompletedBottomSheet } from '@/modules/mobile/components/work-log/UncompletedBottomSheet'
@@ -25,6 +28,7 @@ const formatDateWithWeekday = (date: string) => {
 }
 
 export const WorkLogHomePage: React.FC = () => {
+  const router = useRouter()
   const getPartnerAbbr = (raw?: string | null): string => {
     if (!raw) return ''
     let s = String(raw)
@@ -79,6 +83,8 @@ export const WorkLogHomePage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingWorkLog, setEditingWorkLog] = useState<WorkLog | null>(null)
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'view'>('create')
+  const [isDetailOpen, setDetailOpen] = useState(false)
+  const [detailData, setDetailData] = useState<WorklogDetail | null>(null)
 
   const {
     draftWorkLogs,
@@ -252,9 +258,93 @@ export const WorkLogHomePage: React.FC = () => {
   }, [])
 
   const handleViewWorkLog = useCallback((workLog: WorkLog) => {
-    setEditingWorkLog(workLog)
-    setModalMode('view')
-    setIsModalOpen(true)
+    // Draft → 홈 화면으로 이동(작성폼 프리필)
+    if (workLog.status === 'draft') {
+      try {
+        const prefill = {
+          siteId: workLog.siteId,
+          workDate: workLog.date,
+          department: '',
+          location: workLog.location || { block: '', dong: '', unit: '' },
+          memberTypes: workLog.memberTypes || [],
+          workProcesses: workLog.workProcesses || [],
+          workTypes: workLog.workTypes || [],
+          mainManpower: Number(workLog.totalHours || 0) / 8,
+          materials: [],
+          additionalManpower: [],
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('worklog_prefill', JSON.stringify(prefill))
+        }
+      } catch (e) {
+        void e
+      }
+      router.push('/mobile')
+      return
+    }
+    // 새 상세 뷰어로 표시 (시안 일치)
+    const mapFile = (
+      file: any,
+      type: 'photo' | 'drawing' | 'document',
+      category: WorklogAttachment['category']
+    ): WorklogAttachment => ({
+      id: String(file?.id ?? file?.url ?? Math.random()),
+      name: String(file?.name ?? '파일'),
+      type,
+      category,
+      previewUrl: file?.url,
+      fileUrl: file?.url,
+    })
+
+    const photos = (workLog.attachments?.photos || []).map(f => mapFile(f, 'photo', 'other'))
+    const drawings = (workLog.attachments?.drawings || []).map(f =>
+      mapFile(f, 'document', 'markup')
+    )
+    const completionDocs = (workLog.attachments?.confirmations || []).map(f =>
+      mapFile(f, 'document', 'completion')
+    )
+
+    const manpower = Number(workLog.totalHours || 0) / 8
+    const detail: WorklogDetail = {
+      id: workLog.id,
+      siteId: workLog.siteId,
+      siteName: workLog.siteName,
+      workDate: workLog.date,
+      memberTypes: workLog.memberTypes as any,
+      processes: workLog.workProcesses as any,
+      workTypes: workLog.workTypes as any,
+      manpower: isNaN(manpower) ? 0 : manpower,
+      status: workLog.status === 'approved' ? 'approved' : 'draft',
+      attachmentCounts: {
+        photos: photos.length,
+        drawings: drawings.length,
+        completionDocs: completionDocs.length,
+        others: 0,
+      },
+      createdBy: {
+        id: workLog.createdBy || 'unknown',
+        name: workLog.author || '작성자',
+      },
+      updatedAt: workLog.updatedAt || workLog.createdAt || new Date().toISOString(),
+      siteAddress: undefined,
+      location: {
+        block: workLog.location?.block || '',
+        dong: workLog.location?.dong || '',
+        unit: workLog.location?.unit || '',
+      },
+      notes: workLog.notes,
+      safetyNotes: undefined,
+      additionalManpower: [],
+      attachments: {
+        photos,
+        drawings,
+        completionDocs,
+        others: [],
+      },
+    }
+
+    setDetailData(detail)
+    setDetailOpen(true)
   }, [])
 
   const handleCloseModal = useCallback(() => {
@@ -415,11 +505,8 @@ export const WorkLogHomePage: React.FC = () => {
             const formattedDate = formatDateWithWeekday(workLog.date)
 
             const handleRowClick = () => {
-              if (workLog.status === 'draft') {
-                handleEditWorkLog(workLog)
-              } else {
-                handleViewWorkLog(workLog)
-              }
+              // 상태와 무관하게 새 상세 뷰어로 열기
+              handleViewWorkLog(workLog)
             }
 
             return (
@@ -1079,6 +1166,30 @@ export const WorkLogHomePage: React.FC = () => {
           onSave={handleSaveWorkLog}
           workLog={editingWorkLog ?? undefined}
           mode={modalMode}
+        />
+
+        {/* New Detail Viewer (시안 기반) */}
+        <DiaryDetailViewer
+          open={isDetailOpen && Boolean(detailData)}
+          worklog={detailData}
+          onClose={() => setDetailOpen(false)}
+          onDownload={() => {}}
+          onOpenDocument={() => {}}
+          onOpenMarkup={wl => {
+            const params = new URLSearchParams()
+            params.set('mode', 'browse')
+            params.set('siteId', wl.siteId)
+            params.set('worklogId', wl.id)
+            window.location.href = `/mobile/markup-tool?${params.toString()}`
+          }}
+          onOpenMarkupDoc={(docId, wl) => {
+            const params = new URLSearchParams()
+            params.set('mode', 'start')
+            params.set('siteId', wl.siteId)
+            params.set('worklogId', wl.id)
+            params.set('docId', docId)
+            window.location.href = `/mobile/markup-tool?${params.toString()}`
+          }}
         />
 
         {/* 풀스크린 상세(레퍼런스)는 범위 외로 비표시 */}

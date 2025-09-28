@@ -163,6 +163,72 @@ export default function SalarySnapshotTool() {
             <div className="text-right font-semibold">
               ₩{result.data.salary.net_pay.toLocaleString()}
             </div>
+
+            {/* 세율 출처/퍼센트 */}
+            <div className="col-span-2 mt-2 border-t pt-2">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">세율 출처</span>
+                <span className="inline-flex items-center gap-2">
+                  <span
+                    className={
+                      'px-2 py-0.5 rounded-md text-xs ' +
+                      (result.data.rateSource === 'custom'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-gray-100 text-gray-700 border border-gray-200')
+                    }
+                    title={(() => {
+                      const r = result.data.rates || {}
+                      const parts = [] as string[]
+                      if (r.income_tax !== undefined) parts.push(`소득세 ${r.income_tax}%`)
+                      if (r.local_tax !== undefined) parts.push(`지방세 ${r.local_tax}%`)
+                      if (r.national_pension !== undefined)
+                        parts.push(`국민 ${r.national_pension}%`)
+                      if (r.health_insurance !== undefined)
+                        parts.push(`건강 ${r.health_insurance}%`)
+                      if (r.employment_insurance !== undefined)
+                        parts.push(`고용 ${r.employment_insurance}%`)
+                      return parts.join(' · ') || '세율 정보 없음'
+                    })()}
+                  >
+                    {result.data.rateSource === 'custom' ? '개인설정' : '기본'}
+                  </span>
+                </span>
+              </div>
+              {result.data.rates && (
+                <div className="grid grid-cols-2 gap-2 mt-2 text-gray-700">
+                  {result.data.rates.income_tax !== undefined && (
+                    <>
+                      <div>소득세</div>
+                      <div className="text-right">{result.data.rates.income_tax}%</div>
+                    </>
+                  )}
+                  {result.data.rates.local_tax !== undefined && (
+                    <>
+                      <div>지방세</div>
+                      <div className="text-right">{result.data.rates.local_tax}%</div>
+                    </>
+                  )}
+                  {result.data.rates.national_pension !== undefined && (
+                    <>
+                      <div>국민연금</div>
+                      <div className="text-right">{result.data.rates.national_pension}%</div>
+                    </>
+                  )}
+                  {result.data.rates.health_insurance !== undefined && (
+                    <>
+                      <div>건강보험</div>
+                      <div className="text-right">{result.data.rates.health_insurance}%</div>
+                    </>
+                  )}
+                  {result.data.rates.employment_insurance !== undefined && (
+                    <>
+                      <div>고용보험</div>
+                      <div className="text-right">{result.data.rates.employment_insurance}%</div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
