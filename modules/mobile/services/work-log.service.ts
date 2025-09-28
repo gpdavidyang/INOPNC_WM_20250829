@@ -91,7 +91,11 @@ export class WorkLogService {
       }
 
       return workLogs
-    } catch (error) {
+    } catch (error: any) {
+      // Ignore AbortError noise (navigation/filter switches cancel in-flight requests)
+      if (error?.name === 'AbortError') {
+        return []
+      }
       console.error('WorkLogService.getWorkLogs error:', error)
       throw error instanceof Error
         ? error

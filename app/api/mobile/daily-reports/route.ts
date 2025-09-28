@@ -100,7 +100,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      query = query.eq('status', status)
+      if (status === 'approved') {
+        // Treat 'approved' tab as inclusive of legacy/alternate states
+        query = query.in('status', ['approved', 'submitted', 'completed'])
+      } else {
+        query = query.eq('status', status)
+      }
     }
 
     // 더 이상 조직 기반 필터를 적용하지 않는다. 모든 현장 데이터를 허용
