@@ -88,7 +88,8 @@ export class PayslipGeneratorKorean {
     }
 
     const deductionRate = S.gross > 0 ? ((S.deductions / S.gross) * 100).toFixed(1) : '0.0'
-    const perDay = S.workDays > 0 ? S.base / S.workDays : 0
+    // 일당 = 기본급 / 총공수 (엔진에서 기본급=일당×총공수로 산출)
+    const perDay = S.totalLaborHours > 0 ? S.base / S.totalLaborHours : 0
     const baseHourly = perDay > 0 ? perDay / 8 : 0
     const overtimeHourly = baseHourly > 0 ? baseHourly * 1.5 : 0
     const totalBaseHours = S.workDays * 8
@@ -824,8 +825,8 @@ export class PayslipGeneratorKorean {
               <span class="info-value">${S.workDays}일</span>
             </div>
             <div class="info-item">
-              <span class="info-label">공수:</span>
-              <span class="info-value">${(S.totalLaborHours / 8).toFixed(2)}공수</span>
+              <span class="info-label">총공수:</span>
+              <span class="info-value">${S.totalLaborHours.toFixed(2)}공수</span>
             </div>
             <div class="info-item">
               <span class="info-label">일당:</span>
@@ -851,7 +852,7 @@ export class PayslipGeneratorKorean {
             <tbody>
               <tr>
                 <td>기본급</td>
-                <td class="text-center">${perDay.toLocaleString()}원 × ${S.workDays}일</td>
+                <td class="text-center">${perDay.toLocaleString()}원 × ${S.totalLaborHours.toFixed(2)}공수</td>
                 <td class="text-right amount">${S.base.toLocaleString()}</td>
               </tr>
               ${

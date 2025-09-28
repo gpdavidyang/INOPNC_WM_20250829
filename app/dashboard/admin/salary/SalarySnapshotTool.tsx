@@ -15,6 +15,8 @@ export default function SalarySnapshotTool() {
   const supabase = useMemo(() => createClient(), [])
   const [workers, setWorkers] = useState<Worker[]>([])
   const [selectedWorker, setSelectedWorker] = useState<string>('')
+  const [bulkMode, setBulkMode] = useState(false)
+  const [selectedWorkers, setSelectedWorkers] = useState<string[]>([])
   const [yearMonth, setYearMonth] = useState<string>(formatYearMonth(new Date()))
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<any | null>(null)
@@ -55,6 +57,29 @@ export default function SalarySnapshotTool() {
       setResult({ type: 'publish', message: '스냅샷이 저장되었습니다.', data: json.data })
     } catch (e: any) {
       setError(e?.message || '스냅샷 발행 실패')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBulkPublish = async () => {
+    if (!yearMonth || selectedWorkers.length === 0) return
+    const [yStr, mStr] = yearMonth.split('-')
+    const year = Number(yStr)
+    const month = Number(mStr)
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/admin/payroll/snapshots/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year, month, userIds: selectedWorkers }),
+      })
+      const json = await res.json()
+      if (!json?.success) throw new Error(json?.error || '일괄 발행 실패')
+      setResult({ type: 'publish-bulk', message: `일괄 발행 완료 (${json.inserted}건)` })
+    } catch (e: any) {
+      setError(e?.message || '일괄 발행 실패')
     } finally {
       setLoading(false)
     }
@@ -120,6 +145,10 @@ export default function SalarySnapshotTool() {
         >
           스냅샷 발행
         </button>
+        <label className="ml-2 text-sm inline-flex items-center gap-2">
+          <input type="checkbox" checked={bulkMode} onChange={e => setBulkMode(e.target.checked)} />
+          일괄 발행 모드
+        </label>
         <button
           type="button"
           onClick={handleFetchSummary}
@@ -136,6 +165,39 @@ export default function SalarySnapshotTool() {
           HTML 보기
         </button>
       </div>
+
+      {bulkMode && (
+        <div className="mt-2 flex items-start gap-3">
+          <select
+            multiple
+            size={8}
+            className="min-w-[240px] rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+            value={selectedWorkers}
+            onChange={e => {
+              const options = Array.from(e.target.selectedOptions)
+              setSelectedWorkers(options.map(o => o.value))
+            }}
+            aria-label="일괄 발행 사용자"
+          >
+            {workers.map(w => (
+              <option key={w.id} value={w.id}>
+                {w.full_name} ({w.role})
+              </option>
+            ))}
+          </select>
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={handleBulkPublish}
+              disabled={loading || selectedWorkers.length === 0}
+              className="px-3 py-2 bg-blue-600 text-white rounded-md text-sm disabled:bg-gray-400"
+            >
+              {loading ? '처리 중...' : `선택 ${selectedWorkers.length}명 발행`}
+            </button>
+            <p className="text-xs text-gray-600">Ctrl/Cmd 클릭으로 다중 선택</p>
+          </div>
+        </div>
+      )}
 
       {loading && <p className="text-sm text-gray-600">처리 중...</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
