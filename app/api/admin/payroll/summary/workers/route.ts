@@ -14,11 +14,20 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const year = Number(searchParams.get('year'))
     const month = Number(searchParams.get('month'))
+    const siteId = searchParams.get('siteId') || undefined
+    const employmentType =
+      (searchParams.get('employmentType') as
+        | 'freelancer'
+        | 'daily_worker'
+        | 'regular_employee'
+        | null) || undefined
     if (!year || !month)
       return NextResponse.json({ success: false, error: 'year, month required' }, { status: 400 })
 
     const service = createServiceRoleClient()
-    const ymLabel = `${year}-${String(month).padStart(2, '0')}`
+    const month_label = `${year}-${String(month).padStart(2, '0')}`
+    const period_start = `${month_label}-01`
+    const period_end = new Date(year, month, 0).toISOString().split('T')[0]
     const out: Array<{
       worker_id: string
       name: string
@@ -49,22 +58,58 @@ export async function GET(request: NextRequest) {
     if (workerIds.size) {
       const { data } = await service
         .from('profiles')
-        .select('id, full_name, employment_type')
+        .select('id, full_name')
         .in('id', Array.from(workerIds))
       profiles = data || []
     }
     const nameMap = new Map<string, any>(profiles.map(p => [p.id, p]))
+
+    // If site filter is set, find workers who worked at site within the month
+    let siteFilteredIds: Set<string> | undefined = undefined
+    if (siteId) {
+      const { data: wr } = await service
+        .from('work_records')
+        .select('user_id, profile_id')
+        .eq('site_id', siteId)
+        .gte('work_date', period_start)
+        .lte('work_date', period_end)
+      const s = new Set<string>()
+      for (const r of wr || []) {
+        const uid = (r as any).user_id || (r as any).profile_id
+        if (uid) s.add(uid)
+      }
+      siteFilteredIds = s
+    }
 
     // If no snapshots, compute on the fly for active workers (limited)
     if (workerIds.size === 0) {
       const { salaryCalculationService } = await import('@/lib/services/salary-calculation.service')
       const { data: active } = await service
         .from('profiles')
-        .select('id, full_name, employment_type, role, status')
+        .select('id, full_name, role, status')
         .in('role', ['worker', 'site_manager'])
         .neq('status', 'inactive')
         .limit(200)
-      for (const p of active || []) {
+      // Optional prefilter by site
+      let list = (active || []) as any[]
+      if (siteFilteredIds) list = list.filter(p => siteFilteredIds!.has(p.id as string))
+
+      // Optional employment type prefilter using worker_salary_settings (active as of period_start)
+      if (employmentType) {
+        const { data: wsets } = await service
+          .from('worker_salary_settings')
+          .select('worker_id, employment_type, is_active, effective_date')
+          .eq('is_active', true)
+          .lte('effective_date', period_start)
+        const allow = new Set<string>(
+          (wsets || [])
+            .filter((r: any) => r.employment_type === employmentType)
+            .map((r: any) => r.worker_id)
+        )
+        list = list.filter(p => allow.has(p.id as string))
+      }
+
+      for (const p of list) {
         try {
           const monthly = await salaryCalculationService.calculateMonthlySalary(
             p.id as string,
@@ -96,6 +141,13 @@ export async function GET(request: NextRequest) {
       const snap = quickMap.get(id)
       const prof = nameMap.get(id)
       const salary = snap?.salary || {}
+      // Apply filters
+      if (employmentType) {
+        const et = snap?.employment_type || null
+        if (et !== employmentType) continue
+      }
+      if (siteFilteredIds && !siteFilteredIds.has(id)) continue
+
       out.push({
         worker_id: id,
         name: prof?.full_name || id,

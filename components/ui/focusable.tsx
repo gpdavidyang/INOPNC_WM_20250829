@@ -1,5 +1,7 @@
 'use client'
 
+import React, { forwardRef, type HTMLAttributes, type KeyboardEvent } from 'react'
+import { cn } from '@/lib/utils'
 
 interface FocusableComponentProps extends HTMLAttributes<HTMLDivElement> {
   onActivate?: () => void
@@ -8,7 +10,10 @@ interface FocusableComponentProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export const FocusableComponent = forwardRef<HTMLDivElement, FocusableComponentProps>(
-  ({ children, onActivate, disabled, as: Component = 'div', className, onKeyDown, ...props }, ref) => {
+  (
+    { children, onActivate, disabled, as: Component = 'div', className, onKeyDown, ...props },
+    ref
+  ) => {
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
       // Call original onKeyDown if provided
       onKeyDown?.(e)

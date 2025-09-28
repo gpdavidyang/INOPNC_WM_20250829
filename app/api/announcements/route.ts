@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const siteId = searchParams.get('siteId')
     const priority = searchParams.get('priority')
+    const search = (searchParams.get('search') || '').trim()
 
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
@@ -146,15 +147,17 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ success: true, announcements: [] })
       }
 
-      const siteFilters = accessibleSiteIds
-        .map(site => `target_sites.cs.{${site}}`)
-        .join(',')
+      const siteFilters = accessibleSiteIds.map(site => `target_sites.cs.{${site}}`).join(',')
 
       query = query.or(['target_sites.is.null', siteFilters].filter(Boolean).join(','))
     }
 
     if (priority) {
       query = query.eq('priority', priority)
+    }
+
+    if (search) {
+      query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
     }
 
     query = query.order('created_at', { ascending: false })

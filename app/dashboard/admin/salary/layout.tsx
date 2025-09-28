@@ -19,7 +19,7 @@ export default function SalaryLayout({ children }: { children: React.ReactNode }
     <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="mb-2">
         <h1 className="text-2xl font-semibold">급여 관리</h1>
-        <p className="text-sm text-gray-600 mt-1">계산 미리보기, 개인·기본 세율, 스냅샷 관리</p>
+        <p className="text-sm text-gray-600 mt-1">월 선택 → 전체 인원 한눈에 확인하고 일괄 처리</p>
       </div>
       <nav className="flex gap-2 border-b">
         {tabs.map(t => {

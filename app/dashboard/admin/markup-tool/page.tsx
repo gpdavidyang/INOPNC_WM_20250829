@@ -1,22 +1,92 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
+import { getMarkupDocuments } from '@/app/actions/admin/markup'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 export const metadata: Metadata = {
-  title: '도면 마크업 도구 (준비 중)',
+  title: '도면 마크업 도구',
 }
 
 export default async function AdminMarkupToolPage() {
   await requireAdminProfile()
+  const result = await getMarkupDocuments(1, 10)
+  const docs = result.success && result.data ? (result.data as any).documents : []
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <AdminPlaceholder
-        title="도면 마크업 도구"
-        description="실시간 마크업 도구는 경량화 작업 이후 복원될 예정입니다."
-      >
-        <p>모듈 리팩토링이 완료되면 저장 및 공유 기능과 함께 다시 제공할 계획입니다.</p>
-      </AdminPlaceholder>
+    <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>도면 마크업 도구</CardTitle>
+          <CardDescription>마크업 문서 편집/관리는 문서 목록에서 시작하세요.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link href="/dashboard/admin/documents/markup" className="underline text-blue-600">
+            마크업 문서 목록으로 이동
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>최근 마크업 문서</CardTitle>
+          <CardDescription>최신 10개</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>생성일</TableHead>
+                  <TableHead>제목</TableHead>
+                  <TableHead>현장</TableHead>
+                  <TableHead>작성자</TableHead>
+                  <TableHead>보기</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {docs.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-sm text-muted-foreground py-8"
+                    >
+                      표시할 문서가 없습니다.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  docs.map((d: any) => (
+                    <TableRow key={d.id}>
+                      <TableCell>{new Date(d.created_at).toLocaleString('ko-KR')}</TableCell>
+                      <TableCell className="font-medium text-foreground">
+                        {d.title || '-'}
+                      </TableCell>
+                      <TableCell>{d.site?.name || '-'}</TableCell>
+                      <TableCell>{d.creator?.full_name || d.creator?.email || '-'}</TableCell>
+                      <TableCell>
+                        <Link
+                          href={`/dashboard/admin/documents/markup/${d.id}`}
+                          className="underline text-blue-600"
+                        >
+                          열기
+                        </Link>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
