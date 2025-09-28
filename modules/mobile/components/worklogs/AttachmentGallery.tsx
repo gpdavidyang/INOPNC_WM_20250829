@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import Image from 'next/image'
 import { DownloadCloud, ExternalLink } from 'lucide-react'
 import { WorklogAttachment } from '@/types/worklog'
 
@@ -20,10 +21,28 @@ export const AttachmentGallery: React.FC<AttachmentGalleryProps> = ({ items, zoo
   return (
     <div className="attachment-gallery" style={{ ['--thumb-scale' as any]: String(scale) }}>
       {items.map(item => (
-        <div key={item.id} className="attachment-card">
+        <div
+          key={item.id}
+          className="attachment-card"
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              onOpen?.(item)
+            }
+          }}
+          aria-label={`${item.name} 열기`}
+        >
           <div className="attachment-card-title">{item.name}</div>
           {item.previewUrl ? (
-            <img className="attachment-preview" src={item.previewUrl} alt={item.name} />
+            <Image
+              className="attachment-preview"
+              src={item.previewUrl}
+              alt={item.name}
+              width={400}
+              height={300}
+              unoptimized
+            />
           ) : (
             <div className="attachment-preview" aria-hidden="true" />
           )}

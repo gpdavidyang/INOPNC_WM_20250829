@@ -902,97 +902,44 @@ const AttendanceContent: React.FC = () => {
   // Removed monthly salary summary fetch (UI section removed)
 
   // Calculate recent salary history (last 3 months)
-  const calculateRecentSalaryHistory = (
-    records: AttendanceRecord[],
-    targetYearMonth: string,
-    months: number = 3
-  ) => {
-    const history = []
-    const baseDate = parseISO(`${targetYearMonth}-01`)
-
-    for (let i = 0; i < months; i++) {
-      const targetDate = addMonths(baseDate, -i)
-      const month = targetDate.getMonth()
-      const year = targetDate.getFullYear()
-
-      // Filter attendance for target month
-      const monthlyAttendance = records.filter(record => {
-        const recordDate = new Date(record.date)
-        return recordDate.getMonth() === month && recordDate.getFullYear() === year
-      })
-
-      // Calculate salary for this month
-      const hourlyRate = 25000
-      const overtimeRate = hourlyRate * 1.5
-      const dailyMealAllowance = 10000
-
-      let totalRegularHours = 0
-      let totalOvertimeHours = 0
-      let workingDays = 0
-
-      monthlyAttendance.forEach(record => {
-        if (
-          record.status === 'present' ||
-          record.status === 'late' ||
-          record.status === 'in-progress'
-        ) {
-          workingDays++
-          const regularHours = Math.min(record.workHours, 8)
-          const overtimeHours = Math.max(record.workHours - 8, 0)
-
-          totalRegularHours += regularHours
-          totalOvertimeHours += overtimeHours
-        }
-      })
-
-      const baseSalary = totalRegularHours * hourlyRate
-      const overtimePay = totalOvertimeHours * overtimeRate
-      const mealAllowance = workingDays * dailyMealAllowance
-      const totalSalary = baseSalary + overtimePay + mealAllowance
-
-      history.push({
-        month: targetDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' }),
-        yearNumber: year,
-        monthNumber: month + 1,
-        paidDate: new Date(year, month + 1, 0).toISOString().split('T')[0],
-        totalSalary,
-        baseSalary,
-        overtimePay,
-        mealAllowance,
-      })
-    }
-
-    return history
-  }
-
-  // Get current month salary data
-  const currentSalaryData = useMemo(
-    () => calculateMonthlySalary(salaryAttendanceData, salarySelectedYearMonth),
-    [salaryAttendanceData, salarySelectedYearMonth]
-  )
+  // API 기반 월 급여 데이터
+  const [apiMonthly, setApiMonthly] = useState<any | null>(null)
   const [showAllSalaryHistory, setShowAllSalaryHistory] = useState(false)
-  const recentSalaryHistory = useMemo(
-    () =>
-      calculateRecentSalaryHistory(
-        salaryAttendanceData,
-        salarySelectedYearMonth,
-        showAllSalaryHistory ? 12 : 3
-      ),
-    [salaryAttendanceData, salarySelectedYearMonth, showAllSalaryHistory]
-  )
+  const [recentSalaryHistory, setRecentSalaryHistory] = useState<any[]>([])
 
-  const salaryTaxInfo = useMemo(() => {
-    const gross = currentSalaryData.totalSalary
-    const incomeTax = Math.round(gross * 0.033)
-    const localTax = Math.round(gross * 0.003)
-    const netPay = Math.max(gross - incomeTax - localTax, 0)
+  // 현재 선택 월 API 호출
+  useEffect(() => {
+    const [y, m] = salarySelectedYearMonth.split('-')
+    const year = Number(y)
+    const month = Number(m)
+    if (!year || !month) return
+    fetch(`/api/salary/monthly?year=${year}&month=${month}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => setApiMonthly(j?.data || null))
+      .catch(() => setApiMonthly(null))
+  }, [salarySelectedYearMonth])
 
-    return {
-      incomeTax,
-      localTax,
-      netPay,
-    }
-  }, [currentSalaryData.totalSalary])
+  // 최근 N개월 내역 API 호출
+  useEffect(() => {
+    const months = showAllSalaryHistory ? 12 : 3
+    const base = parseISO(`${salarySelectedYearMonth}-01`)
+    const tasks = Array.from({ length: months }, (_, i) => {
+      const d = addMonths(base, -i)
+      const y = d.getFullYear()
+      const m = d.getMonth() + 1
+      return fetch(`/api/salary/monthly?year=${y}&month=${m}`, { cache: 'no-store' })
+        .then(r => r.json())
+        .then(j => ({
+          label: d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' }),
+          yearNumber: y,
+          monthNumber: m,
+          paidDate: new Date(y, m, 0).toISOString().split('T')[0],
+          salary: j?.data?.salary || null,
+        }))
+        .catch(() => null)
+    })
+    Promise.all(tasks).then(arr => setRecentSalaryHistory(arr.filter(Boolean) as any[]))
+  }, [salarySelectedYearMonth, showAllSalaryHistory])
 
   // charts removed – related helper functions deleted
 
@@ -1024,7 +971,7 @@ const AttendanceContent: React.FC = () => {
             type="button"
             className={clsx('line-tab', activeTab === 'work' && 'active')}
             onClick={() => setActiveTab('work')}
-            aria-selected={activeTab === 'work'}
+            aria-pressed={activeTab === 'work'}
           >
             출력현황
           </button>
@@ -1032,7 +979,7 @@ const AttendanceContent: React.FC = () => {
             type="button"
             className={clsx('line-tab', activeTab === 'salary' && 'active')}
             onClick={() => setActiveTab('salary')}
-            aria-selected={activeTab === 'salary'}
+            aria-pressed={activeTab === 'salary'}
           >
             급여현황
           </button>
@@ -1189,19 +1136,15 @@ const AttendanceContent: React.FC = () => {
 
             <section className="stat-grid">
               <div className="stat stat-sites">
-                <div className="num">{salaryStats.siteCount}</div>
+                <div className="num">{apiMonthly?.siteCount ?? 0}</div>
                 <div className="label">현장수</div>
               </div>
               <div className="stat stat-hours">
-                <div className="num">
-                  {Number.isInteger(salaryStats.totalManDays)
-                    ? salaryStats.totalManDays
-                    : salaryStats.totalManDays.toFixed(1)}
-                </div>
+                <div className="num">{apiMonthly?.totalManDays ?? 0}</div>
                 <div className="label">공수</div>
               </div>
               <div className="stat stat-workdays">
-                <div className="num">{salaryStats.workDays}</div>
+                <div className="num">{apiMonthly?.workDays ?? 0}</div>
                 <div className="label">근무일</div>
               </div>
             </section>
@@ -1211,41 +1154,30 @@ const AttendanceContent: React.FC = () => {
                 <div className="pay-summary-row">
                   <span className="t-body">기본급</span>
                   <span className="t-body font-medium">
-                    ₩{currentSalaryData.baseSalary.toLocaleString()}
+                    ₩{(apiMonthly?.salary?.base_pay ?? 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="pay-summary-row">
-                  <span className="t-body">출근(일)</span>
-                  <span className="t-body font-medium">{salaryStats.workDays}일</span>
-                </div>
-                <div className="pay-summary-row">
-                  <span className="t-body">휴무</span>
-                  <span className="t-body font-medium">{salaryStats.restDays}일</span>
-                </div>
-                <div className="pay-summary-row">
-                  <span className="t-body">실제 공수</span>
+                  <span className="t-body">총지급액</span>
                   <span className="t-body font-medium">
-                    {Number.isInteger(salaryStats.totalManDays)
-                      ? `${salaryStats.totalManDays}공수`
-                      : `${salaryStats.totalManDays.toFixed(1)}공수`}
+                    ₩{(apiMonthly?.salary?.total_gross_pay ?? 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="pay-summary-row">
-                  <span className="t-body">소득세 (3.3%)</span>
+                  <span className="t-body">총 공제</span>
                   <span className="t-body font-medium text-[#dc2626]">
-                    -₩{salaryTaxInfo.incomeTax.toLocaleString()}
-                  </span>
-                </div>
-                <div className="pay-summary-row">
-                  <span className="t-body">지방소득세 (0.3%)</span>
-                  <span className="t-body font-medium text-[#dc2626]">
-                    -₩{salaryTaxInfo.localTax.toLocaleString()}
+                    -₩
+                    {(
+                      apiMonthly?.salary?.total_deductions ??
+                      apiMonthly?.salary?.tax_deduction ??
+                      0
+                    ).toLocaleString()}
                   </span>
                 </div>
                 <div className="pay-summary-row border-t pt-2">
                   <span className="t-body font-bold">실수령액</span>
                   <span className="t-body font-bold text-primary">
-                    ₩{salaryTaxInfo.netPay.toLocaleString()}
+                    ₩{(apiMonthly?.salary?.net_pay ?? 0).toLocaleString()}
                   </span>
                 </div>
               </CardContent>
@@ -1256,28 +1188,28 @@ const AttendanceContent: React.FC = () => {
                 <div>
                   <h3 className="t-h3 mb-3">최근 급여 내역</h3>
                   <Stack gap="sm">
-                    {recentSalaryHistory.map((salaryRecord, index) => (
+                    {recentSalaryHistory.map((salaryRecord: any, index) => (
                       <div
                         key={index}
                         role="button"
                         tabIndex={0}
                         onClick={() => {
-                          const y = (salaryRecord as any).yearNumber
-                          const m = (salaryRecord as any).monthNumber
+                          const y = salaryRecord.yearNumber
+                          const m = salaryRecord.monthNumber
                           if (y && m) openPayslip(y, m)
                         }}
                         onKeyDown={e => {
                           if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault()
-                            const y = (salaryRecord as any).yearNumber
-                            const m = (salaryRecord as any).monthNumber
+                            const y = salaryRecord.yearNumber
+                            const m = salaryRecord.monthNumber
                             if (y && m) openPayslip(y, m)
                           }
                         }}
                         className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900/40 cursor-pointer"
                       >
                         <Row justify="between" className="items-center">
-                          <span className="t-body font-medium">{salaryRecord.month}</span>
+                          <span className="t-body font-medium">{salaryRecord.label}</span>
                           <span className="inline-flex items-center gap-3">
                             <span className="t-cap text-muted-foreground">
                               지급일: {salaryRecord.paidDate}
@@ -1288,7 +1220,7 @@ const AttendanceContent: React.FC = () => {
                         <Row justify="between" className="mt-1">
                           <span className="t-cap text-muted-foreground">총급여</span>
                           <span className="t-body font-semibold">
-                            ₩{salaryRecord.totalSalary.toLocaleString()}
+                            ₩{(salaryRecord?.salary?.net_pay ?? 0).toLocaleString()}
                           </span>
                         </Row>
                       </div>

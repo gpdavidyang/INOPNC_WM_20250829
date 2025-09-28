@@ -10,6 +10,7 @@ export interface AttachmentTabsProps {
   counts: { photos: number; drawings: number; completionDocs: number; others: number }
   onChange: (key: TabKey) => void
   className?: string
+  idBase?: string
 }
 
 const labels: Record<TabKey, string> = {
@@ -24,16 +25,37 @@ export const AttachmentTabs: React.FC<AttachmentTabsProps> = ({
   counts,
   onChange,
   className,
+  idBase = 'attachments',
 }) => {
   const order: TabKey[] = ['photos', 'drawings', 'completionDocs', 'others']
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const idx = order.indexOf(active)
+    if (e.key === 'ArrowRight') {
+      e.preventDefault()
+      onChange(order[(idx + 1) % order.length])
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault()
+      onChange(order[(idx - 1 + order.length) % order.length])
+    }
+  }
+
   return (
-    <div className={clsx('detail-tabs', className)} role="tablist" aria-label="첨부 구분">
+    <div
+      className={clsx('detail-tabs', className)}
+      role="tablist"
+      aria-label="첨부 구분"
+      onKeyDown={handleKeyDown}
+    >
       {order.map(key => (
         <button
           key={key}
+          id={`${idBase}-tab-${key}`}
           type="button"
           role="tab"
           aria-selected={active === key}
+          aria-controls={`${idBase}-panel-${key}`}
+          tabIndex={active === key ? 0 : -1}
           className={clsx('detail-tab', active === key && 'active')}
           onClick={() => onChange(key)}
         >
