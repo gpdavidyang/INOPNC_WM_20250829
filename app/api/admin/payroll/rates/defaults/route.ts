@@ -21,8 +21,22 @@ export async function GET(request: NextRequest) {
       .order('employment_type', { ascending: true })
 
     if (error) {
-      // 테이블이 없는 환경일 수 있으므로 가드 세율 반환
+      // 테이블이 없는 환경일 수 있으므로 가드 세율 반환 (3가지로 분리)
       const guard = [
+        {
+          employment_type: 'freelancer',
+          income_tax_rate: 3.3,
+          pension_rate: 0,
+          health_insurance_rate: 0,
+          employment_insurance_rate: 0,
+        },
+        {
+          employment_type: 'daily_worker',
+          income_tax_rate: 3.3,
+          pension_rate: 0,
+          health_insurance_rate: 0,
+          employment_insurance_rate: 0,
+        },
         {
           employment_type: 'regular_employee',
           income_tax_rate: 8,
@@ -30,18 +44,28 @@ export async function GET(request: NextRequest) {
           health_insurance_rate: 3.43,
           employment_insurance_rate: 0.9,
         },
-        {
-          employment_type: 'daily_worker/freelancer',
-          income_tax_rate: 3.3,
-          pension_rate: 0,
-          health_insurance_rate: 0,
-          employment_insurance_rate: 0,
-        },
       ]
       return NextResponse.json({ success: true, data: guard })
     }
 
-    return NextResponse.json({ success: true, data: data || [] })
+    // 스키마에 'daily_worker/freelancer' 같이 합쳐진 행이 있으면 분리하여 반환
+    const normalized = (data || []).flatMap((it: any) => {
+      if (it.employment_type === 'daily_worker/freelancer') {
+        const base = {
+          income_tax_rate: it.income_tax_rate,
+          pension_rate: 0,
+          health_insurance_rate: 0,
+          employment_insurance_rate: 0,
+        }
+        return [
+          { employment_type: 'freelancer', ...base },
+          { employment_type: 'daily_worker', ...base },
+        ]
+      }
+      return [it]
+    })
+
+    return NextResponse.json({ success: true, data: normalized })
   } catch (e: any) {
     console.error('GET /admin/payroll/rates/defaults error:', e)
     return NextResponse.json(

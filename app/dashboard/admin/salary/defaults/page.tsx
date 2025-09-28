@@ -66,53 +66,64 @@ export default function DefaultRatesPage() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((it, idx) => (
-                  <tr key={`${it.employment_type}-${idx}`} className="border-t">
-                    <td className="px-3 py-2">{it.employment_type}</td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                        value={it.income_tax_rate}
-                        onChange={e =>
-                          onChange(idx, 'income_tax_rate', Number(e.target.value) || 0)
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                        value={it.pension_rate}
-                        onChange={e => onChange(idx, 'pension_rate', Number(e.target.value) || 0)}
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                        value={it.health_insurance_rate}
-                        onChange={e =>
-                          onChange(idx, 'health_insurance_rate', Number(e.target.value) || 0)
-                        }
-                      />
-                    </td>
-                    <td className="px-3 py-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
-                        value={it.employment_insurance_rate}
-                        onChange={e =>
-                          onChange(idx, 'employment_insurance_rate', Number(e.target.value) || 0)
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
+                {[...items]
+                  .sort((a, b) => {
+                    const order = ['freelancer', 'daily_worker', 'regular_employee']
+                    return order.indexOf(a.employment_type) - order.indexOf(b.employment_type)
+                  })
+                  .map((it, idx) => (
+                    <tr key={`${it.employment_type}-${idx}`} className="border-t">
+                      <td className="px-3 py-2">
+                        {it.employment_type === 'freelancer'
+                          ? '프리랜서'
+                          : it.employment_type === 'daily_worker'
+                            ? '일용직'
+                            : '상용직'}
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+                          value={it.income_tax_rate}
+                          onChange={e =>
+                            onChange(idx, 'income_tax_rate', Number(e.target.value) || 0)
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+                          value={it.pension_rate}
+                          onChange={e => onChange(idx, 'pension_rate', Number(e.target.value) || 0)}
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+                          value={it.health_insurance_rate}
+                          onChange={e =>
+                            onChange(idx, 'health_insurance_rate', Number(e.target.value) || 0)
+                          }
+                        />
+                      </td>
+                      <td className="px-3 py-2">
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="h-8 w-24 rounded-md bg-white text-gray-900 border border-gray-300 px-2 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+                          value={it.employment_insurance_rate}
+                          onChange={e =>
+                            onChange(idx, 'employment_insurance_rate', Number(e.target.value) || 0)
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))}
                 {items.length === 0 && (
                   <tr>
                     <td className="px-3 py-6 text-center text-gray-500" colSpan={5}>
