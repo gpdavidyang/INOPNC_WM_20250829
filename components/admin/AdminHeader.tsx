@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Menu, Bell, Sun, Moon, User, ChevronDown, Settings, LogOut, Search } from 'lucide-react'
@@ -88,16 +89,26 @@ export default function AdminHeader({
             <div className="flex items-center">
               <div className="flex items-center gap-3">
                 <div className="brand-logos">
-                  <img
-                    className="brand-logo logo-light"
-                    src="/images/inopnc-logo-n.png"
-                    alt="INOPNC 로고"
-                  />
-                  <img
-                    className="brand-logo logo-dark"
-                    src="/images/inopnc-logo-w.png"
-                    alt="INOPNC 로고"
-                  />
+                  <span className="brand-logo logo-light">
+                    <Image
+                      src="/images/inopnc-logo-n.png"
+                      alt="INOPNC 로고"
+                      width={120}
+                      height={24}
+                      unoptimized
+                      style={{ height: '100%', width: 'auto' }}
+                    />
+                  </span>
+                  <span className="brand-logo logo-dark">
+                    <Image
+                      src="/images/inopnc-logo-w.png"
+                      alt="INOPNC 로고"
+                      width={120}
+                      height={24}
+                      unoptimized
+                      style={{ height: '100%', width: 'auto' }}
+                    />
+                  </span>
                 </div>
                 <div>
                   <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
