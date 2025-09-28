@@ -94,7 +94,7 @@ export default function SalarySnapshotTool() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <select
-          className="border rounded-md px-3 py-2 text-sm"
+          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
           value={selectedWorker}
           onChange={e => setSelectedWorker(e.target.value)}
           aria-label="작업자 선택"
@@ -107,7 +107,7 @@ export default function SalarySnapshotTool() {
         </select>
         <input
           type="month"
-          className="border rounded-md px-3 py-2 text-sm"
+          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
           value={yearMonth}
           onChange={e => setYearMonth(e.target.value)}
           aria-label="년월 선택"
@@ -123,7 +123,7 @@ export default function SalarySnapshotTool() {
         <button
           type="button"
           onClick={handleFetchSummary}
-          className="px-3 py-2 bg-gray-100 text-gray-900 rounded-md text-sm border"
+          className="px-3 py-2 rounded-md text-sm border bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
           disabled={loading}
         >
           월 요약 조회
@@ -147,7 +147,7 @@ export default function SalarySnapshotTool() {
           <div className="grid grid-cols-2 gap-2">
             <div>현장수</div>
             <div className="text-right font-medium">{result.data.siteCount}</div>
-            <div>공수</div>
+            <div>총공수</div>
             <div className="text-right font-medium">{result.data.totalManDays}</div>
             <div>근무일</div>
             <div className="text-right font-medium">{result.data.workDays}</div>
