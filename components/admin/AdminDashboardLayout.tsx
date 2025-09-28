@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useRef, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -282,8 +283,26 @@ function Sidebar({
         {/* Mini Logo */}
         <div className="p-3 border-b border-gray-200 flex justify-center">
           <div className="brand-logos">
-            <img className="brand-logo logo-light" src="/images/inopnc-logo-n.png" alt="INOPNC" />
-            <img className="brand-logo logo-dark" src="/images/inopnc-logo-w.png" alt="INOPNC" />
+            <span className="brand-logo logo-light">
+              <Image
+                src="/images/inopnc-logo-n.png"
+                alt="INOPNC"
+                width={120}
+                height={24}
+                unoptimized
+                style={{ height: '100%', width: 'auto' }}
+              />
+            </span>
+            <span className="brand-logo logo-dark">
+              <Image
+                src="/images/inopnc-logo-w.png"
+                alt="INOPNC"
+                width={120}
+                height={24}
+                unoptimized
+                style={{ height: '100%', width: 'auto' }}
+              />
+            </span>
           </div>
         </div>
 
@@ -350,8 +369,26 @@ function Sidebar({
       >
         <div className="flex items-center mb-4">
           <div className="brand-logos mr-3">
-            <img className="brand-logo logo-light" src="/images/inopnc-logo-n.png" alt="INOPNC" />
-            <img className="brand-logo logo-dark" src="/images/inopnc-logo-w.png" alt="INOPNC" />
+            <span className="brand-logo logo-light">
+              <Image
+                src="/images/inopnc-logo-n.png"
+                alt="INOPNC"
+                width={120}
+                height={24}
+                unoptimized
+                style={{ height: '100%', width: 'auto' }}
+              />
+            </span>
+            <span className="brand-logo logo-dark">
+              <Image
+                src="/images/inopnc-logo-w.png"
+                alt="INOPNC"
+                width={120}
+                height={24}
+                unoptimized
+                style={{ height: '100%', width: 'auto' }}
+              />
+            </span>
           </div>
           <div>
             <h2
