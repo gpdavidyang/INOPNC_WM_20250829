@@ -104,7 +104,7 @@ export default function SnapshotList() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
         <select
-          className="border rounded-md px-3 py-2 text-sm"
+          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
           value={selectedWorker}
           onChange={e => setSelectedWorker(e.target.value)}
           aria-label="작업자 선택"
@@ -116,7 +116,7 @@ export default function SnapshotList() {
           ))}
         </select>
         <select
-          className="border rounded-md px-3 py-2 text-sm"
+          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
           value={status}
           onChange={e => setStatus(e.target.value as any)}
           aria-label="상태 필터"
@@ -128,13 +128,13 @@ export default function SnapshotList() {
         </select>
         <input
           type="month"
-          className="border rounded-md px-3 py-2 text-sm"
+          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
           value={yearMonth}
           onChange={e => setYearMonth(e.target.value)}
           aria-label="년월 필터"
         />
         <button
-          className="px-3 py-2 text-sm border rounded-md"
+          className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
           type="button"
           onClick={fetchList}
           disabled={loading}
