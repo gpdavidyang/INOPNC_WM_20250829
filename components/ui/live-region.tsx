@@ -1,6 +1,7 @@
 'use client'
 
 import React, { forwardRef, ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 
 export interface LiveRegionProps {
   children: ReactNode
@@ -14,17 +15,20 @@ export interface LiveRegionProps {
 }
 
 export const LiveRegion = forwardRef<HTMLDivElement, LiveRegionProps>(
-  ({ 
-    children, 
-    role = 'status',
-    'aria-live': ariaLive = 'polite',
-    'aria-atomic': ariaAtomic = true,
-    'aria-relevant': ariaRelevant = 'additions text',
-    className,
-    id,
-    hidden = false,
-    ...props 
-  }, ref) => {
+  (
+    {
+      children,
+      role = 'status',
+      'aria-live': ariaLive = 'polite',
+      'aria-atomic': ariaAtomic = true,
+      'aria-relevant': ariaRelevant = 'additions text',
+      className,
+      id,
+      hidden = false,
+      ...props
+    },
+    ref
+  ) => {
     return (
       <div
         ref={ref}
@@ -33,10 +37,7 @@ export const LiveRegion = forwardRef<HTMLDivElement, LiveRegionProps>(
         aria-live={ariaLive}
         aria-atomic={ariaAtomic}
         aria-relevant={ariaRelevant}
-        className={cn(
-          hidden && 'sr-only',
-          className
-        )}
+        className={cn(hidden && 'sr-only', className)}
         {...props}
       >
         {children}
@@ -50,17 +51,13 @@ LiveRegion.displayName = 'LiveRegion'
 // Pre-configured live region for common use cases
 
 export const StatusRegion = forwardRef<HTMLDivElement, Omit<LiveRegionProps, 'role' | 'aria-live'>>(
-  (props, ref) => (
-    <LiveRegion ref={ref} role="status" aria-live="polite" {...props} />
-  )
+  (props, ref) => <LiveRegion ref={ref} role="status" aria-live="polite" {...props} />
 )
 
 StatusRegion.displayName = 'StatusRegion'
 
 export const AlertRegion = forwardRef<HTMLDivElement, Omit<LiveRegionProps, 'role' | 'aria-live'>>(
-  (props, ref) => (
-    <LiveRegion ref={ref} role="alert" aria-live="assertive" {...props} />
-  )
+  (props, ref) => <LiveRegion ref={ref} role="alert" aria-live="assertive" {...props} />
 )
 
 AlertRegion.displayName = 'AlertRegion'

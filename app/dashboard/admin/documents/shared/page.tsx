@@ -1,22 +1,187 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { AdminPlaceholder } from '@/components/admin/AdminPlaceholder'
+import { createClient } from '@/lib/supabase/server'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 
 export const metadata: Metadata = {
-  title: '공유 문서 (준비 중)',
+  title: '공유 문서',
 }
 
-export default async function AdminSharedDocumentsPage() {
+export default async function AdminSharedDocumentsPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>
+}) {
   await requireAdminProfile()
+  const supabase = createClient()
+
+  const page = Math.max(1, Number((searchParams?.page as string) || '1') || 1)
+  const limitRaw = Number((searchParams?.limit as string) || '20') || 20
+  const limit = Math.min(50, Math.max(10, limitRaw))
+  const search = ((searchParams?.search as string) || '').trim()
+  const site_id = ((searchParams?.site_id as string) || '').trim()
+  const status = ((searchParams?.status as string) || '').trim()
+
+  let query = supabase
+    .from('unified_document_system')
+    .select(
+      `
+      id,
+      title,
+      status,
+      category_type,
+      created_at,
+      site:sites(id,name),
+      uploader:profiles!unified_document_system_uploaded_by_fkey(full_name,email)
+    `,
+      { count: 'exact' }
+    )
+    .eq('category_type', 'shared')
+    .eq('is_archived', false)
+    .order('created_at', { ascending: false })
+
+  if (search) query = query.ilike('title', `%${search}%`)
+  if (site_id) query = query.eq('site_id', site_id)
+  if (status) query = query.eq('status', status)
+
+  const offset = (page - 1) * limit
+  query = query.range(offset, offset + limit - 1)
+
+  const { data, count } = await query
+  const docs = Array.isArray(data) ? data : []
+  const total = count || 0
+  const pages = Math.max(1, Math.ceil(total / limit))
+
+  const buildQuery = (nextPage: number) => {
+    const params = new URLSearchParams()
+    if (search) params.set('search', search)
+    if (site_id) params.set('site_id', site_id)
+    if (status) params.set('status', status)
+    params.set('limit', String(limit))
+    params.set('page', String(nextPage))
+    const qs = params.toString()
+    return qs ? `?${qs}` : ''
+  }
+
+  const statusBadge = (s?: string) => (
+    <Badge variant={s === 'approved' ? 'default' : 'outline'}>{s || '-'}</Badge>
+  )
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <AdminPlaceholder
-        title="공유 문서 관리"
-        description="조직 간 공유 문서 기능은 재정비 중입니다."
-      >
-        <p>Phase 2에서 문서 공유 권한 및 감사 로그 요구사항을 정리한 뒤 UI를 복원합니다.</p>
-      </AdminPlaceholder>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-foreground">공유 문서</h1>
+        <p className="text-sm text-muted-foreground">조직 간 공유된 문서 목록</p>
+      </div>
+
+      <div className="mb-6 rounded-lg border bg-card p-4 shadow-sm">
+        <form
+          method="GET"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3 items-end"
+        >
+          <input type="hidden" name="page" value="1" />
+          <div className="lg:col-span-2">
+            <label className="block text-sm text-muted-foreground mb-1">검색어</label>
+            <Input name="search" defaultValue={search} placeholder="문서명" />
+          </div>
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">현장 ID</label>
+            <Input name="site_id" defaultValue={site_id} placeholder="site_id" />
+          </div>
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">상태</label>
+            <Input name="status" defaultValue={status} placeholder="uploaded/approved 등" />
+          </div>
+          <div>
+            <label className="block text-sm text-muted-foreground mb-1">페이지 크기</label>
+            <select
+              name="limit"
+              defaultValue={String(limit)}
+              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="10">10</option>
+              <option value="20">20</option>
+              <option value="50">50</option>
+            </select>
+          </div>
+          <div className="lg:col-span-2 flex gap-2">
+            <Button type="submit" variant="outline">
+              적용
+            </Button>
+            <Link
+              href="/dashboard/admin/documents/shared"
+              className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+            >
+              초기화
+            </Link>
+          </div>
+        </form>
+      </div>
+
+      <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>등록일</TableHead>
+              <TableHead>문서명</TableHead>
+              <TableHead>현장</TableHead>
+              <TableHead>상태</TableHead>
+              <TableHead>업로더</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {docs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
+                  표시할 문서가 없습니다.
+                </TableCell>
+              </TableRow>
+            ) : (
+              docs.map((d: any) => (
+                <TableRow key={d.id}>
+                  <TableCell>{new Date(d.created_at).toLocaleDateString('ko-KR')}</TableCell>
+                  <TableCell className="font-medium text-foreground">{d.title || '-'}</TableCell>
+                  <TableCell>{d.site?.name || '-'}</TableCell>
+                  <TableCell>{statusBadge(d.status)}</TableCell>
+                  <TableCell>{d.uploader?.full_name || d.uploader?.email || '-'}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {total}건 중 {(page - 1) * limit + Math.min(1, total)}–{Math.min(page * limit, total)}{' '}
+            표시
+          </div>
+          <div className="flex gap-2">
+            <Link
+              href={buildQuery(Math.max(1, page - 1))}
+              className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              이전
+            </Link>
+            <Link
+              href={buildQuery(Math.min(pages, page + 1))}
+              className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page >= pages ? 'pointer-events-none opacity-50' : ''}`}
+            >
+              다음
+            </Link>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -15,7 +15,7 @@ export default function SalarySnapshotTool() {
   const supabase = useMemo(() => createClient(), [])
   const [workers, setWorkers] = useState<Worker[]>([])
   const [selectedWorker, setSelectedWorker] = useState<string>('')
-  const [bulkMode, setBulkMode] = useState(false)
+  const [bulkMode, setBulkMode] = useState(true)
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([])
   const [yearMonth, setYearMonth] = useState<string>(formatYearMonth(new Date()))
   const [loading, setLoading] = useState(false)

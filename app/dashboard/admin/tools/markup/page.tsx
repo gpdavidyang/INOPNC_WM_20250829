@@ -15,7 +15,7 @@ export default async function AdminMarkupToolPage() {
         title="문서 마크업 도구"
         description="브라우저 마크업 에디터는 현재 재작성 중입니다."
       >
-        <p>파일 주석 도구 및 저장 기능은 Phase 2 일정에서 제공할 예정입니다.</p>
+        <p>파일 주석 도구 및 저장 기능은 곧 제공될 예정입니다.</p>
       </AdminPlaceholder>
     </div>
   )

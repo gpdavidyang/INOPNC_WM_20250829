@@ -23,6 +23,12 @@ export default function SnapshotList() {
   const [status, setStatus] = useState<'all' | 'issued' | 'approved' | 'paid'>('all')
   const [yearMonth, setYearMonth] = useState<string>('')
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
+  const [employmentType, setEmploymentType] = useState<
+    '' | 'freelancer' | 'daily_worker' | 'regular_employee'
+  >('')
+  const [siteId, setSiteId] = useState<string>('')
+  const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [workerSites, setWorkerSites] = useState<Record<string, string[]>>({})
 
   useEffect(() => {
     const load = async () => {
@@ -53,6 +59,8 @@ export default function SnapshotList() {
           params.set('month', String(Number(m)))
         }
       }
+      if (employmentType) params.set('employmentType', employmentType)
+      if (siteId) params.set('siteId', siteId)
       let url = ''
       if (selectedWorker) {
         params.set('workerId', selectedWorker)
@@ -84,9 +92,9 @@ export default function SnapshotList() {
 
   const onSelectAll = () => {
     setSelectedKeys(prev => {
-      if (prev.size === items.length) return new Set()
+      if (prev.size === filtered.length) return new Set()
       const next = new Set<string>()
-      items.forEach(s => next.add(makeKey(s)))
+      filtered.forEach(s => next.add(makeKey(s)))
       return next
     })
   }
@@ -197,6 +205,55 @@ export default function SnapshotList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedWorker])
 
+  // Load site map for month for site filter
+  useEffect(() => {
+    ;(async () => {
+      try {
+        if (!yearMonth) return
+        const [y, m] = yearMonth.split('-')
+        const start = `${y}-${m}-01`
+        const end = new Date(Number(y), Number(m), 0).toISOString().split('T')[0]
+        const { data: wr } = await supabase
+          .from('work_records')
+          .select('user_id, profile_id, site_id')
+          .gte('work_date', start)
+          .lte('work_date', end)
+        const map: Record<string, Set<string>> = {}
+        const siteSet: Set<string> = new Set()
+        for (const r of wr || []) {
+          const uid = (r as any).user_id || (r as any).profile_id
+          const sid = (r as any).site_id
+          if (!uid || !sid) continue
+          if (!map[uid]) map[uid] = new Set()
+          map[uid].add(sid)
+          siteSet.add(sid)
+        }
+        const ids = Array.from(siteSet)
+        if (ids.length) {
+          const { data: sites } = await supabase.from('sites').select('id, name').in('id', ids)
+          const options = (sites || []).map((s: any) => ({ id: s.id, name: s.name }))
+          options.sort((a, b) => a.name.localeCompare(b.name))
+          setSiteOptions(options)
+        } else {
+          setSiteOptions([])
+        }
+        const obj: Record<string, string[]> = {}
+        for (const k of Object.keys(map)) obj[k] = Array.from(map[k])
+        setWorkerSites(obj)
+      } catch {
+        setSiteOptions([])
+        setWorkerSites({})
+      }
+    })()
+  }, [items, yearMonth, supabase])
+
+  const filtered = useMemo(() => {
+    let list = items
+    if (employmentType) list = list.filter(s => (s as any).employment_type === employmentType)
+    if (siteId) list = list.filter(s => (workerSites[s.worker_id] || []).includes(siteId))
+    return list
+  }, [items, employmentType, siteId, workerSites])
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-3">
@@ -231,6 +288,30 @@ export default function SnapshotList() {
           onChange={e => setYearMonth(e.target.value)}
           aria-label="년월 필터"
         />
+        <select
+          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+          value={employmentType}
+          onChange={e => setEmploymentType(e.target.value as any)}
+          aria-label="고용형태"
+        >
+          <option value="">전체 형태</option>
+          <option value="freelancer">프리랜서</option>
+          <option value="daily_worker">일용직</option>
+          <option value="regular_employee">상용직</option>
+        </select>
+        <select
+          className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
+          value={siteId}
+          onChange={e => setSiteId(e.target.value)}
+          aria-label="현장"
+        >
+          <option value="">전체 현장</option>
+          {siteOptions.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
         <button
           className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
           type="button"
@@ -288,7 +369,7 @@ export default function SnapshotList() {
             </tr>
           </thead>
           <tbody>
-            {items.map((s, idx) => (
+            {filtered.map((s, idx) => (
               <tr key={`${s.worker_id}-${s.year}-${s.month}-${idx}`} className="border-t">
                 <td className="px-3 py-2">
                   <input
@@ -351,7 +432,7 @@ export default function SnapshotList() {
                 </td>
               </tr>
             ))}
-            {items.length === 0 && !loading && (
+            {filtered.length === 0 && !loading && (
               <tr>
                 <td className="px-3 py-6 text-center text-gray-500" colSpan={6}>
                   스냅샷이 없습니다.

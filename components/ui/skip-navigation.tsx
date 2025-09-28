@@ -1,9 +1,11 @@
 'use client'
 
+import { cn } from '@/lib/utils'
+import { useFontSize, getTypographyClass } from '@/contexts/FontSizeContext'
 
 export function SkipNavigation() {
   const { isLargeFont } = useFontSize()
-  
+
   return (
     <div className="sr-only focus-within:not-sr-only">
       <a
