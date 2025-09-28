@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from 'react'
 import clsx from 'clsx'
-import { X, DownloadCloud, ExternalLink } from 'lucide-react'
+import { X, DownloadCloud, ExternalLink, Minus, Plus } from 'lucide-react'
 import '@/modules/mobile/styles/worklogs.css'
 import { WorklogDetail, WorklogAttachment } from '@/types/worklog'
+import { AttachmentTabs, TabKey } from './AttachmentTabs'
+import AttachmentGallery from './AttachmentGallery'
 
 export interface DiaryDetailViewerProps {
   open: boolean
@@ -46,6 +48,8 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     }>
   >([])
   const [loadingMarkups, setLoadingMarkups] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabKey>('photos')
+  const [zoom, setZoom] = useState<number>(100)
 
   useEffect(() => {
     const load = async () => {
@@ -123,6 +127,49 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     )
   }
 
+  const infoRows: Array<{ label: string; value: string }> = [
+    { label: '현장명', value: worklog.siteName },
+    { label: '주소', value: worklog.siteAddress || '미등록' },
+    { label: '부재명', value: worklog.memberTypes.join(', ') || '미지정' },
+    { label: '작업공정', value: worklog.processes.join(', ') || '미지정' },
+    { label: '작업유형', value: worklog.workTypes.join(', ') || '미지정' },
+    {
+      label: '블럭/동/층',
+      value:
+        worklog.location.block || worklog.location.dong || worklog.location.unit
+          ? `${worklog.location.block} ${worklog.location.dong} ${worklog.location.unit}`.trim()
+          : '미입력',
+    },
+  ]
+
+  const counts = worklog.attachmentCounts
+
+  const drawingsWithMarkups: WorklogAttachment[] = (() => {
+    const base = worklog.attachments.drawings
+    if (!linkedMarkups.length) return base
+    const mapped = linkedMarkups.map(doc => ({
+      id: `markup-${doc.id}`,
+      name: doc.title,
+      type: 'document' as const,
+      category: 'markup' as const,
+      previewUrl: doc.previewUrl || doc.blueprintUrl,
+      fileUrl: doc.blueprintUrl || '#',
+    }))
+    return [...mapped, ...base]
+  })()
+
+  const currentItems: WorklogAttachment[] =
+    activeTab === 'photos'
+      ? worklog.attachments.photos
+      : activeTab === 'drawings'
+        ? drawingsWithMarkups
+        : activeTab === 'completionDocs'
+          ? worklog.attachments.completionDocs
+          : worklog.attachments.others
+
+  const decZoom = () => setZoom(z => Math.max(75, z - 25))
+  const incZoom = () => setZoom(z => Math.min(150, z + 25))
+
   return (
     <div
       className={clsx('diary-viewer-overlay', className)}
@@ -131,139 +178,60 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
       aria-modal="true"
     >
       <div className="diary-viewer-panel">
-        <header className="diary-viewer-header">
-          <div>
-            <h2 className="diary-viewer-title">{worklog.siteName}</h2>
-            <p style={{ marginTop: 4, color: '#64748b', fontSize: 13 }}>
-              {worklog.workDate} · {worklog.processes.join(', ') || '공정 정보 없음'}
-            </p>
-          </div>
-
-          <button className="diary-viewer-close" onClick={onClose} aria-label="상세 보기 닫기">
-            <X size={18} aria-hidden="true" />
+        <header className="detail-header">
+          <h2 className="detail-title">작업일지 상세</h2>
+          <button type="button" className="close-pill" onClick={onClose}>
+            닫기
           </button>
         </header>
 
         <div className="diary-viewer-body">
-          <section className="diary-info-list" aria-label="기본 정보">
-            <div className="diary-info-item">
-              <span>현장</span>
-              <strong>{worklog.siteName}</strong>
-            </div>
-            <div className="diary-info-item">
-              <span>작업공정</span>
-              <strong>{worklog.processes.join(', ') || '미지정'}</strong>
-            </div>
-            <div className="diary-info-item">
-              <span>작업유형</span>
-              <strong>{worklog.workTypes.join(', ') || '미지정'}</strong>
-            </div>
-            <div className="diary-info-item">
-              <span>공수</span>
-              <strong>{worklog.manpower.toFixed(1)} 인/일</strong>
-            </div>
-            <div className="diary-info-item">
-              <span>작성자</span>
-              <strong>{worklog.createdBy.name}</strong>
-            </div>
-            <div className="diary-info-item">
-              <span>위치</span>
-              <strong>
-                {worklog.location.block || worklog.location.dong || worklog.location.unit
-                  ? `${worklog.location.block} ${worklog.location.dong} ${worklog.location.unit}`.trim()
-                  : '미입력'}
-              </strong>
-            </div>
-            {worklog.notes ? (
-              <div
-                className="diary-info-item"
-                style={{ alignItems: 'flex-start', flexDirection: 'column' }}
-              >
-                <span style={{ color: '#64748b' }}>특이사항</span>
-                <strong style={{ marginTop: 6, fontWeight: 500 }}>{worklog.notes}</strong>
+          {/* 정보 테이블 */}
+          <section className="info-table" aria-label="기본 정보">
+            {infoRows.map(row => (
+              <div key={row.label} className="info-row">
+                <div className="info-label">{row.label}</div>
+                <div className="info-value">{row.value}</div>
               </div>
-            ) : null}
+            ))}
           </section>
 
-          {/* 링크된 마킹 문서 */}
-          <section
-            aria-label="진행도면(마킹)"
-            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-          >
-            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>진행도면(마킹)</h3>
-            {loadingMarkups ? (
+          {/* 첨부 탭 + 줌 컨트롤 */}
+          <section aria-label="첨부">
+            <AttachmentTabs active={activeTab} counts={counts} onChange={setActiveTab} />
+            <div className="zoom-toolbar">
+              <button type="button" className="zoom-btn" onClick={decZoom} aria-label="작게">
+                <Minus size={14} />
+              </button>
+              <span className="zoom-level">{zoom}%</span>
+              <button type="button" className="zoom-btn" onClick={incZoom} aria-label="크게">
+                <Plus size={14} />
+              </button>
+            </div>
+            {/* 갤러리 */}
+            {activeTab === 'drawings' && loadingMarkups ? (
               <div className="list-footer" aria-live="polite">
                 불러오는 중...
               </div>
-            ) : linkedMarkups.length === 0 ? (
-              <p style={{ color: '#94a3b8', fontSize: 13 }}>연결된 마킹 문서가 없습니다.</p>
             ) : (
-              <div className="attachment-gallery">
-                {linkedMarkups.map(doc => (
-                  <div key={doc.id} className="attachment-card">
-                    <div className="attachment-card-title">{doc.title}</div>
-                    {doc.previewUrl || doc.blueprintUrl ? (
-                      <img
-                        className="attachment-preview"
-                        src={doc.previewUrl || doc.blueprintUrl}
-                        alt={doc.title}
-                      />
-                    ) : (
-                      <div className="attachment-preview" aria-hidden="true" />
-                    )}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      {onOpenMarkupDoc ? (
-                        <button
-                          className="viewer-action-btn primary"
-                          onClick={() => onOpenMarkupDoc(doc.id, worklog)}
-                        >
-                          열기
-                        </button>
-                      ) : (
-                        <a
-                          className="viewer-action-btn primary"
-                          href={`/mobile/markup-tool?mode=start&siteId=${encodeURIComponent(worklog.siteId)}&docId=${encodeURIComponent(doc.id)}&worklogId=${encodeURIComponent(worklog.id)}`}
-                        >
-                          열기
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          <section
-            aria-label="첨부 문서 목록"
-            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-          >
-            {(Object.keys(worklog.attachments) as Array<keyof WorklogDetail['attachments']>).map(
-              groupKey => (
-                <article key={groupKey}>
-                  <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>
-                    {ATTACHMENT_LABELS[groupKey]}
-                  </h3>
-                  {renderAttachmentGroup(worklog.attachments[groupKey])}
-                </article>
-              )
+              <AttachmentGallery
+                items={currentItems}
+                zoom={zoom}
+                onOpen={item => {
+                  if (activeTab === 'drawings' && item.id.startsWith('markup-')) {
+                    const realId = item.id.replace('markup-', '')
+                    onOpenMarkupDoc?.(realId, worklog)
+                    return
+                  }
+                  onOpenDocument?.(item)
+                }}
+              />
             )}
           </section>
         </div>
 
         <footer className="diary-viewer-footer">
-          <button type="button" className="viewer-action-btn secondary" onClick={onClose}>
-            닫기
-          </button>
-          {onOpenMarkup && worklog && (
-            <button
-              type="button"
-              className="viewer-action-btn primary"
-              onClick={() => onOpenMarkup(worklog)}
-            >
-              마킹 열기
-            </button>
-          )}
+          {/* 상단에 닫기 존재: 푸터는 다운로드 정도만 유지 */}
           <button
             type="button"
             className="viewer-action-btn secondary"

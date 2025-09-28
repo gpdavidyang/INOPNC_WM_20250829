@@ -87,6 +87,7 @@ export interface WorkLog {
   date: string
   siteId: string
   siteName: string
+  partnerCompanyName?: string
   title?: string
   author?: string
   status: WorkLogStatus

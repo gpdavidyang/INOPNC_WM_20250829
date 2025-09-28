@@ -281,7 +281,10 @@ function Sidebar({
       <div className="flex flex-col h-full bg-white shadow-xl w-16">
         {/* Mini Logo */}
         <div className="p-3 border-b border-gray-200 flex justify-center">
-          <Shield className="h-8 w-8 text-red-600" />
+          <div className="brand-logos">
+            <img className="brand-logo logo-light" src="/images/inopnc-logo-n.png" alt="INOPNC" />
+            <img className="brand-logo logo-dark" src="/images/inopnc-logo-w.png" alt="INOPNC" />
+          </div>
         </div>
 
         {/* Mini Navigation - Icons only */}
@@ -346,7 +349,10 @@ function Sidebar({
         } border-b border-gray-200`}
       >
         <div className="flex items-center mb-4">
-          <Shield className="h-8 w-8 text-red-600 mr-3" />
+          <div className="brand-logos mr-3">
+            <img className="brand-logo logo-light" src="/images/inopnc-logo-n.png" alt="INOPNC" />
+            <img className="brand-logo logo-dark" src="/images/inopnc-logo-w.png" alt="INOPNC" />
+          </div>
           <div>
             <h2
               className={`${getTypographyClass('header', 'sm', isLargeFont)} font-bold text-gray-900`}

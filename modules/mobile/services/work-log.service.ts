@@ -364,6 +364,7 @@ function mapReportToWorkLog(item: any): WorkLog {
     date: item?.work_date,
     siteId: item?.site_id,
     siteName,
+    partnerCompanyName: item?.partner_company_name || item?.partnerCompanyName || undefined,
     title: item?.title || siteName || item?.work_description,
     author: authorName,
     status,

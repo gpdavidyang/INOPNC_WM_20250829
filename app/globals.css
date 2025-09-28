@@ -111,6 +111,53 @@
   }
 }
 
+/* Brand logo utilities (shared across app, admin, and payslip) */
+.brand-logos {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.brand-logo {
+  display: inline-block;
+  height: 24px;
+  object-fit: contain;
+  margin: 0 8px;
+}
+.logo-dark {
+  display: none;
+}
+.logo-print {
+  display: none;
+}
+[data-theme='dark'] .logo-light {
+  display: none;
+}
+[data-theme='dark'] .logo-dark {
+  display: inline-block;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .logo-light {
+    display: none;
+  }
+  :root:not([data-theme]) .logo-dark {
+    display: inline-block;
+  }
+}
+@media print {
+  .logo-light,
+  .logo-dark {
+    display: none !important;
+  }
+  .logo-print {
+    display: inline-block !important;
+  }
+  .brand-logo {
+    height: 22px;
+    margin: 0 6px;
+  }
+}
+
 /* ========================================
    MOBILE OPTIMIZATION LAYER
    From HTML mockup - iOS/Android optimization

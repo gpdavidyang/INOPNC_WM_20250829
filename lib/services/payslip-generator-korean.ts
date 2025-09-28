@@ -4,6 +4,8 @@
  */
 
 import type { MonthlySalary } from './salary-calculation.service'
+import { format } from 'date-fns'
+import { ko } from 'date-fns/locale'
 
 export interface PayslipData {
   employee: {
@@ -19,6 +21,7 @@ export interface PayslipData {
     address?: string
     phone?: string
     registrationNumber?: string
+    logoUrl?: string
   }
   site: {
     id: string
@@ -28,6 +31,13 @@ export interface PayslipData {
   salary: MonthlySalary
   paymentDate: Date
   paymentMethod?: string
+  meta?: {
+    source?: 'snapshot' | 'calculated'
+    status?: 'issued' | 'approved' | 'paid'
+    issuedAt?: string | null
+    approvedAt?: string | null
+    paidAt?: string | null
+  }
 }
 
 export class PayslipGeneratorKorean {
@@ -53,9 +63,72 @@ export class PayslipGeneratorKorean {
     const paymentDateText = format(data.paymentDate, 'yyyy년 MM월 dd일', { locale: ko })
     const todayText = format(new Date(), 'yyyy년 MM월 dd일', { locale: ko })
 
+    const num = (v: any): number => {
+      const n = typeof v === 'string' ? Number(v) : v
+      return typeof n === 'number' && isFinite(n) ? n : 0
+    }
+
+    const S = {
+      gross: num((data as any)?.salary?.total_gross_pay),
+      deductions: num((data as any)?.salary?.total_deductions),
+      net: num((data as any)?.salary?.net_pay),
+      tax: num((data as any)?.salary?.tax_deduction),
+      pension: num((data as any)?.salary?.national_pension),
+      health: num((data as any)?.salary?.health_insurance),
+      emp: num((data as any)?.salary?.employment_insurance),
+      base: num((data as any)?.salary?.base_pay),
+      overtime: num((data as any)?.salary?.overtime_pay),
+      workDays: num((data as any)?.salary?.work_days),
+      totalOvertimeHours: num((data as any)?.salary?.total_overtime_hours),
+      totalLaborHours: num((data as any)?.salary?.total_labor_hours),
+    }
+
+    if (S.net === 0 && (S.gross > 0 || S.deductions > 0)) {
+      S.net = Math.max(S.gross - S.deductions, 0)
+    }
+
+    const deductionRate = S.gross > 0 ? ((S.deductions / S.gross) * 100).toFixed(1) : '0.0'
+    const perDay = S.workDays > 0 ? S.base / S.workDays : 0
+    const baseHourly = perDay > 0 ? perDay / 8 : 0
+    const overtimeHourly = baseHourly > 0 ? baseHourly * 1.5 : 0
+    const totalBaseHours = S.workDays * 8
+
     // 급여방식별 텍스트
     const employmentType = data.employee.department || '일용직'
     const taxRateText = this.getTaxRateText(employmentType, data.salary)
+
+    const isSnapshot = data.meta?.source === 'snapshot'
+    const statusLabel = (() => {
+      if (!isSnapshot) return '예상치(계산)'
+      switch (data.meta?.status) {
+        case 'paid':
+          return '스냅샷(지급완료)'
+        case 'approved':
+          return '스냅샷(승인됨)'
+        case 'issued':
+        default:
+          return '스냅샷(발행본)'
+      }
+    })()
+
+    const issuedAtText = data.meta?.issuedAt
+      ? format(new Date(data.meta.issuedAt), 'yyyy-MM-dd HH:mm')
+      : null
+    const approvedAtText = data.meta?.approvedAt
+      ? format(new Date(data.meta.approvedAt), 'yyyy-MM-dd HH:mm')
+      : null
+    const paidAtText = data.meta?.paidAt
+      ? format(new Date(data.meta.paidAt), 'yyyy-MM-dd HH:mm')
+      : null
+    const badgeTitle = isSnapshot
+      ? [
+          issuedAtText && `발행: ${issuedAtText}`,
+          approvedAtText && `승인: ${approvedAtText}`,
+          paidAtText && `지급: ${paidAtText}`,
+        ]
+          .filter(Boolean)
+          .join(' · ') || '스냅샷'
+      : '예상치(계산)'
 
     return `
 <!DOCTYPE html>
@@ -65,6 +138,19 @@ export class PayslipGeneratorKorean {
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>급여명세서 - ${data.employee.name}</title>
+  <style>
+    /* Set data-theme from localStorage or prefers-color-scheme (fallback) */
+    :root { }
+  </style>
+  <script>
+    try {
+      (function(){
+        var t = localStorage.getItem('theme');
+        if(!t){ t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
+        document.documentElement.setAttribute('data-theme', t);
+      })();
+    } catch(e) {}
+  </script>
   <style>
     @page {
       size: A4;
@@ -180,6 +266,36 @@ export class PayslipGeneratorKorean {
       padding-bottom: 8px;
       position: relative;
     }
+    .brand-logos { text-align: center; margin: 6px 0 10px; }
+    .brand-logo { display: inline-block; height: 30px; margin: 0 10px; object-fit: contain; }
+    .logo-dark { display: none; }
+    .logo-print { display: none; }
+    [data-theme='dark'] .logo-light { display: none; }
+    [data-theme='dark'] .logo-dark { display: inline-block; }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme]) .logo-light { display: none; }
+      :root:not([data-theme]) .logo-dark { display: inline-block; }
+    }
+    @media print {
+      .logo-light, .logo-dark { display: none !important; }
+      .logo-print { display: inline-block !important; }
+      .brand-logo { height: 24px; margin-bottom: 8px; }
+    }
+    .snapshot-badge {
+      position: static;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: ${isSnapshot ? '#ecfeff' : '#fff7ed'};
+      color: ${isSnapshot ? '#0369a1' : '#9a3412'};
+      border: 1px solid ${isSnapshot ? '#67e8f9' : '#fdba74'};
+      margin: 6px auto 4px;
+    }
+    
     
     .header h1 {
       font-size: 18px;
@@ -657,10 +773,32 @@ export class PayslipGeneratorKorean {
     </div>
     
     <div class="header">
-      <div class="company">${data.company.name}</div>
+      
+      ${(() => {
+        const light = (data.company as any).logoLight || (data.company as any).logoUrl
+        const dark = (data.company as any).logoDark
+        const pr = (data.company as any).logoPrint
+        if (!light && !dark && !pr) return ''
+        const parts: string[] = []
+        if (light)
+          parts.push(
+            `<img class=\"brand-logo logo-light\" src=\"${light}\" alt=\"${data.company.name} 로고\" />`
+          )
+        if (dark)
+          parts.push(
+            `<img class=\"brand-logo logo-dark\" src=\"${dark}\" alt=\"${data.company.name} 로고\" />`
+          )
+        if (pr)
+          parts.push(
+            `<img class=\"brand-logo logo-print\" src=\"${pr}\" alt=\"${data.company.name} 로고\" />`
+          )
+        return `<div class=\"brand-logos\">${parts.join('')}</div>`
+      })()}
       <h1>급여명세서</h1>
+      <div class="snapshot-badge" aria-label="문서 출처" title="${badgeTitle}">${statusLabel}</div>
       <div class="period">${periodText}</div>
     </div>
+    
     
     <div class="two-columns">
       <div class="section">
@@ -693,19 +831,19 @@ export class PayslipGeneratorKorean {
           <div class="info-grid">
             <div class="info-item">
               <span class="info-label">근무일수:</span>
-              <span class="info-value">${data.salary.work_days}일</span>
+              <span class="info-value">${S.workDays}일</span>
             </div>
             <div class="info-item">
               <span class="info-label">노동시간:</span>
-              <span class="info-value">${data.salary.total_labor_hours.toFixed(2)}시간</span>
+              <span class="info-value">${S.totalLaborHours.toFixed(2)}시간</span>
             </div>
             <div class="info-item">
               <span class="info-label">공수:</span>
-              <span class="info-value">${(data.salary.total_labor_hours / 8).toFixed(2)}공수</span>
+              <span class="info-value">${(S.totalLaborHours / 8).toFixed(2)}공수</span>
             </div>
             <div class="info-item">
               <span class="info-label">일당:</span>
-              <span class="info-value">${(data.salary.base_pay / data.salary.work_days).toLocaleString()}원</span>
+              <span class="info-value">${perDay.toLocaleString()}원</span>
             </div>
           </div>
         </div>
@@ -719,24 +857,24 @@ export class PayslipGeneratorKorean {
         <div class="compact-grid">
           <div class="info-item">
             <span class="info-label">기본시급:</span>
-            <span class="info-value">${((data.salary.base_pay / data.salary.work_days) / 8).toLocaleString()}원/시간</span>
+            <span class="info-value">${baseHourly.toLocaleString()}원/시간</span>
           </div>
           <div class="info-item">
             <span class="info-label">연장시급:</span>
-            <span class="info-value">${(((data.salary.base_pay / data.salary.work_days) / 8) * 1.5).toLocaleString()}원/시간</span>
+            <span class="info-value">${overtimeHourly.toLocaleString()}원/시간</span>
           </div>
           <div class="info-item">
             <span class="info-label">정규시간:</span>
-            <span class="info-value">${(data.salary.work_days * 8).toFixed(0)}시간</span>
+            <span class="info-value">${totalBaseHours.toFixed(0)}시간</span>
           </div>
           <div class="info-item">
             <span class="info-label">연장시간:</span>
-            <span class="info-value">${data.salary.total_overtime_hours.toFixed(2)}시간</span>
+            <span class="info-value">${S.totalOvertimeHours.toFixed(2)}시간</span>
           </div>
         </div>
         <div class="tax-info">
-          <strong>💡 계산공식:</strong> 기본급 = 일당(${(data.salary.base_pay / data.salary.work_days).toLocaleString()}원) × 근무일수(${data.salary.work_days}일)
-          ${data.salary.overtime_pay > 0 ? `<br>연장수당 = 기본시급 × 1.5배 × 연장시간(${data.salary.total_overtime_hours.toFixed(2)}시간)` : ''}
+          <strong>💡 계산공식:</strong> 기본급 = 일당(${perDay.toLocaleString()}원) × 근무일수(${S.workDays}일)
+          ${S.overtime > 0 ? `<br>연장수당 = 기본시급 × 1.5배 × 연장시간(${S.totalOvertimeHours.toFixed(2)}시간)` : ''}
         </div>
       </div>
     </div>
@@ -759,13 +897,17 @@ export class PayslipGeneratorKorean {
                 <td class="text-center">${(data.salary.base_pay / data.salary.work_days).toLocaleString()}원 × ${data.salary.work_days}일</td>
                 <td class="text-right amount">${data.salary.base_pay.toLocaleString()}</td>
               </tr>
-              ${data.salary.overtime_pay > 0 ? `
+              ${
+                data.salary.overtime_pay > 0
+                  ? `
               <tr>
                 <td>연장수당</td>
-                <td class="text-center">${((((data.salary.base_pay / data.salary.work_days) / 8) * 1.5)).toLocaleString()}원 × ${data.salary.total_overtime_hours.toFixed(1)}h</td>
+                <td class="text-center">${((data.salary.base_pay / data.salary.work_days / 8) * 1.5).toLocaleString()}원 × ${data.salary.total_overtime_hours.toFixed(1)}h</td>
                 <td class="text-right amount">${data.salary.overtime_pay.toLocaleString()}</td>
               </tr>
-              ` : ''}
+              `
+                  : ''
+              }
               <tr style="border-top: 2px solid #e5e7eb;">
                 <td><strong>총 지급액</strong></td>
                 <td class="text-center">${data.salary.base_pay.toLocaleString()} + ${data.salary.overtime_pay.toLocaleString()}</td>
@@ -790,34 +932,46 @@ export class PayslipGeneratorKorean {
             <tbody>
               <tr>
                 <td>소득세</td>
-                <td class="text-center">${data.salary.total_gross_pay.toLocaleString()} × ${employmentType === '프리랜서' ? '3.3%' : employmentType === '일용직' ? '2.97%' : '8%'}</td>
-                <td class="text-right deduction">${data.salary.tax_deduction.toLocaleString()}</td>
+                <td class="text-center">${S.gross.toLocaleString()} × ${employmentType === '프리랜서' ? '3.3%' : employmentType === '일용직' ? '2.97%' : '8%'}</td>
+                <td class="text-right deduction">${S.tax.toLocaleString()}</td>
               </tr>
-              ${data.salary.national_pension > 0 ? `
+              ${
+                data.salary.national_pension > 0
+                  ? `
               <tr>
                 <td>국민연금</td>
-                <td class="text-center">${data.salary.total_gross_pay.toLocaleString()} × 4.5%</td>
-                <td class="text-right deduction">${data.salary.national_pension.toLocaleString()}</td>
+                <td class="text-center">${S.gross.toLocaleString()} × 4.5%</td>
+                <td class="text-right deduction">${S.pension.toLocaleString()}</td>
               </tr>
-              ` : ''}
-              ${data.salary.health_insurance > 0 ? `
+              `
+                  : ''
+              }
+              ${
+                data.salary.health_insurance > 0
+                  ? `
               <tr>
                 <td>건강보험</td>
-                <td class="text-center">${data.salary.total_gross_pay.toLocaleString()} × 3.43%</td>
-                <td class="text-right deduction">${data.salary.health_insurance.toLocaleString()}</td>
+                <td class="text-center">${S.gross.toLocaleString()} × 3.43%</td>
+                <td class="text-right deduction">${S.health.toLocaleString()}</td>
               </tr>
-              ` : ''}
-              ${data.salary.employment_insurance > 0 ? `
+              `
+                  : ''
+              }
+              ${
+                data.salary.employment_insurance > 0
+                  ? `
               <tr>
                 <td>고용보험</td>
-                <td class="text-center">${data.salary.total_gross_pay.toLocaleString()} × 0.9%</td>
-                <td class="text-right deduction">${data.salary.employment_insurance.toLocaleString()}</td>
+                <td class="text-center">${S.gross.toLocaleString()} × 0.9%</td>
+                <td class="text-right deduction">${S.emp.toLocaleString()}</td>
               </tr>
-              ` : ''}
+              `
+                  : ''
+              }
               <tr style="border-top: 2px solid #e5e7eb;">
                 <td><strong>총 공제액</strong></td>
-                <td class="text-center">${data.salary.tax_deduction.toLocaleString()} + ${data.salary.national_pension.toLocaleString()} + ${data.salary.health_insurance.toLocaleString()} + ${data.salary.employment_insurance.toLocaleString()}</td>
-                <td class="text-right deduction"><strong>${data.salary.total_deductions.toLocaleString()}</strong></td>
+                <td class="text-center">${S.tax.toLocaleString()} + ${S.pension.toLocaleString()} + ${S.health.toLocaleString()} + ${S.emp.toLocaleString()}</td>
+                <td class="text-right deduction"><strong>${S.deductions.toLocaleString()}</strong></td>
               </tr>
             </tbody>
           </table>
@@ -829,13 +983,13 @@ export class PayslipGeneratorKorean {
     </div>
     
     <!-- Final Calculation Summary -->
-    <div class="calculation-summary">
-      <strong>💰 최종 계산 요약</strong><br>
-      <div class="compact-grid" style="margin-top: 6px;">
-        <div>• 총 지급액: <strong>${data.salary.total_gross_pay.toLocaleString()}원</strong></div>
-        <div>• 총 공제액: <strong>${data.salary.total_deductions.toLocaleString()}원</strong></div>
-        <div>• 실 지급액: <strong style="color: #dc2626;">${data.salary.net_pay.toLocaleString()}원</strong></div>
-        <div>• 공제율: <strong>${((data.salary.total_deductions / data.salary.total_gross_pay) * 100).toFixed(1)}%</strong></div>
+        <div class="calculation-summary">
+          <strong>💰 최종 계산 요약</strong><br>
+          <div class="compact-grid" style="margin-top: 6px;">
+        <div>• 총 지급액: <strong>${S.gross.toLocaleString()}원</strong></div>
+        <div>• 총 공제액: <strong>${S.deductions.toLocaleString()}원</strong></div>
+        <div>• 실 지급액: <strong style="color: #dc2626;">${S.net.toLocaleString()}원</strong></div>
+        <div>• 공제율: <strong>${deductionRate}%</strong></div>
       </div>
     </div>
     
@@ -844,12 +998,12 @@ export class PayslipGeneratorKorean {
         <div>실지급액</div>
         <div style="font-size: 10px; opacity: 0.9; margin-top: 2px;">
           총지급액 - 총공제액<br>
-          ${data.salary.total_gross_pay.toLocaleString()} - ${data.salary.total_deductions.toLocaleString()}
+          ${S.gross.toLocaleString()} - ${S.deductions.toLocaleString()}
         </div>
       </div>
       <div>
-        <div class="net-pay-amount">${data.salary.net_pay.toLocaleString()}원</div>
-        <div class="net-pay-korean">(${this.numberToKorean(data.salary.net_pay)})</div>
+        <div class="net-pay-amount">${S.net.toLocaleString()}원</div>
+        <div class="net-pay-korean">(${this.numberToKorean(S.net)})</div>
       </div>
     </div>
     
@@ -875,7 +1029,7 @@ export class PayslipGeneratorKorean {
    * 세율 텍스트 생성
    */
   private getTaxRateText(employmentType: string, salary: MonthlySalary): string {
-    switch(employmentType) {
+    switch (employmentType) {
       case '프리랜서':
         return '3.3% (간이세율)'
       case '일용직':
@@ -893,19 +1047,19 @@ export class PayslipGeneratorKorean {
   private numberToKorean(num: number): string {
     const units = ['', '만', '억', '조']
     const nums = ['영', '일', '이', '삼', '사', '오', '육', '칠', '팔', '구']
-    
+
     if (num === 0) return '영원'
-    
+
     let result = ''
     let unitIndex = 0
-    
+
     while (num > 0) {
       const part = num % 10000
       if (part > 0) {
         let partStr = ''
         let temp = part
         let digit = 0
-        
+
         while (temp > 0) {
           const n = temp % 10
           if (n > 0) {
@@ -915,13 +1069,13 @@ export class PayslipGeneratorKorean {
           temp = Math.floor(temp / 10)
           digit++
         }
-        
+
         result = partStr + units[unitIndex] + ' ' + result
       }
       num = Math.floor(num / 10000)
       unitIndex++
     }
-    
+
     return result.trim() + '원'
   }
 

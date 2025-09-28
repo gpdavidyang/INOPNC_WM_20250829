@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/copy-brand-assets.mjs && next dev",
     "dev:turbo": "next dev --turbo",
-    "dev:fast": "NEXT_TELEMETRY_DISABLED=1 next dev --port 3000",
+    "dev:fast": "node scripts/copy-brand-assets.mjs && NEXT_TELEMETRY_DISABLED=1 next dev --port 3000",
+    "prebuild": "node scripts/copy-brand-assets.mjs",
     "build": "NEXT_BUILD_MODE=true NEXT_PUBLIC_DISABLE_FETCH_LOGS=true NEXT_PUBLIC_DISABLE_CONSOLE_LOGS=true next build",
     "build:vercel": "NEXT_BUILD_MODE=true NEXT_PUBLIC_DISABLE_FETCH_LOGS=true NEXT_PUBLIC_DISABLE_CONSOLE_LOGS=true next build",
     "start": "next start",
