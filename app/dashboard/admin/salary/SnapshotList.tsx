@@ -22,6 +22,7 @@ export default function SnapshotList() {
   const [error, setError] = useState<string>('')
   const [status, setStatus] = useState<'all' | 'issued' | 'approved' | 'paid'>('all')
   const [yearMonth, setYearMonth] = useState<string>('')
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const load = async () => {
@@ -63,6 +64,97 @@ export default function SnapshotList() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const makeKey = (s: Snapshot) => `${s.worker_id}-${s.year}-${s.month}`
+  const toggleSelect = (s: Snapshot) => {
+    setSelectedKeys(prev => {
+      const next = new Set(prev)
+      const k = makeKey(s)
+      if (next.has(k)) next.delete(k)
+      else next.add(k)
+      return next
+    })
+  }
+
+  const onSelectAll = () => {
+    setSelectedKeys(prev => {
+      if (prev.size === items.length) return new Set()
+      const next = new Set<string>()
+      items.forEach(s => next.add(makeKey(s)))
+      return next
+    })
+  }
+
+  const bulkApprove = async () => {
+    const entries = items
+      .filter(s => selectedKeys.has(makeKey(s)))
+      .map(s => ({ userId: s.worker_id, year: s.year, month: s.month }))
+    if (entries.length === 0) return
+    try {
+      const res = await fetch('/api/admin/payroll/snapshots/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries }),
+      })
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '일괄 승인 실패')
+      await fetchList()
+      setSelectedKeys(new Set())
+    } catch (e: any) {
+      alert(e?.message || '일괄 승인 실패')
+    }
+  }
+
+  const bulkPay = async () => {
+    const entries = items
+      .filter(s => selectedKeys.has(makeKey(s)))
+      .map(s => ({ userId: s.worker_id, year: s.year, month: s.month }))
+    if (entries.length === 0) return
+    try {
+      const res = await fetch('/api/admin/payroll/snapshots/pay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entries }),
+      })
+      const json = await res.json()
+      if (!res.ok || json?.success === false) throw new Error(json?.error || '일괄 지급 실패')
+      await fetchList()
+      setSelectedKeys(new Set())
+    } catch (e: any) {
+      alert(e?.message || '일괄 지급 실패')
+    }
+  }
+
+  const exportCSV = () => {
+    const headers = [
+      'worker_id',
+      'year',
+      'month',
+      'month_label',
+      'status',
+      'gross',
+      'deductions',
+      'net',
+    ]
+    const rows = items.map(s => [
+      s.worker_id,
+      s.year,
+      s.month,
+      s.month_label,
+      s.status || 'issued',
+      s.salary?.total_gross_pay ?? '',
+      s.salary?.total_deductions ?? '',
+      s.salary?.net_pay ?? '',
+    ])
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'salary_snapshots.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const handleApprove = async (s: Snapshot) => {
@@ -141,6 +233,29 @@ export default function SnapshotList() {
         >
           새로고침
         </button>
+        <button
+          className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+          type="button"
+          onClick={exportCSV}
+        >
+          CSV 내보내기
+        </button>
+        <button
+          className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50"
+          type="button"
+          onClick={bulkApprove}
+          disabled={selectedKeys.size === 0}
+        >
+          선택 승인
+        </button>
+        <button
+          className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50"
+          type="button"
+          onClick={bulkPay}
+          disabled={selectedKeys.size === 0}
+        >
+          선택 지급
+        </button>
       </div>
 
       {loading && <p className="text-sm text-gray-600">불러오는 중...</p>}
@@ -150,6 +265,14 @@ export default function SnapshotList() {
         <table className="min-w-full text-sm">
           <thead>
             <tr className="bg-gray-50 text-left">
+              <th className="px-3 py-2">
+                <input
+                  type="checkbox"
+                  aria-label="전체 선택"
+                  checked={selectedKeys.size === items.length && items.length > 0}
+                  onChange={onSelectAll}
+                />
+              </th>
               <th className="px-3 py-2">월</th>
               <th className="px-3 py-2">상태</th>
               <th className="px-3 py-2 text-right">총액</th>
@@ -161,6 +284,14 @@ export default function SnapshotList() {
           <tbody>
             {items.map((s, idx) => (
               <tr key={`${s.worker_id}-${s.year}-${s.month}-${idx}`} className="border-t">
+                <td className="px-3 py-2">
+                  <input
+                    type="checkbox"
+                    aria-label="선택"
+                    checked={selectedKeys.has(makeKey(s))}
+                    onChange={() => toggleSelect(s)}
+                  />
+                </td>
                 <td className="px-3 py-2">
                   {s.month_label || `${s.year}-${String(s.month).padStart(2, '0')}`}
                 </td>

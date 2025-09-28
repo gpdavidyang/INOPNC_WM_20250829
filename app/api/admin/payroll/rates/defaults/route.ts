@@ -50,3 +50,50 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
+    if (auth.role !== 'admin' && auth.role !== 'system_admin') {
+      return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
+    }
+    const body = await request.json()
+    const items: Array<{
+      employment_type: string
+      income_tax_rate: number
+      pension_rate: number
+      health_insurance_rate: number
+      employment_insurance_rate: number
+    }> = Array.isArray(body?.items) ? body.items : []
+    if (!items.length) {
+      return NextResponse.json({ success: false, error: 'items required' }, { status: 400 })
+    }
+
+    const service = createServiceRoleClient()
+    for (const it of items) {
+      try {
+        await service.from('employment_tax_rates').upsert(
+          {
+            employment_type: it.employment_type,
+            income_tax_rate: it.income_tax_rate,
+            pension_rate: it.pension_rate,
+            health_insurance_rate: it.health_insurance_rate,
+            employment_insurance_rate: it.employment_insurance_rate,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'employment_type' as any }
+        )
+      } catch (e) {
+        // table 없으면 무시
+      }
+    }
+    return NextResponse.json({ success: true })
+  } catch (e: any) {
+    console.error('POST /admin/payroll/rates/defaults error:', e)
+    return NextResponse.json(
+      { success: false, error: e?.message || 'Internal error' },
+      { status: 500 }
+    )
+  }
+}
