@@ -214,9 +214,9 @@ export default function SnapshotList() {
           aria-label="상태 필터"
         >
           <option value="all">전체</option>
-          <option value="issued">issued</option>
-          <option value="approved">approved</option>
-          <option value="paid">paid</option>
+          <option value="issued">발행</option>
+          <option value="approved">승인</option>
+          <option value="paid">지급</option>
         </select>
         <input
           type="month"
@@ -305,7 +305,7 @@ export default function SnapshotList() {
                           : 'bg-amber-50 text-amber-700'
                     }`}
                   >
-                    {s.status || 'issued'}
+                    {s.status === 'approved' ? '승인' : s.status === 'paid' ? '지급' : '발행'}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-right">
