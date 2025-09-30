@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -682,10 +683,17 @@ export default function SiteDetailTabs({
                   href={p.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="block rounded overflow-hidden border"
+                  className="block relative rounded overflow-hidden border h-28"
                   title={p.title || 'photo'}
                 >
-                  <img src={p.url} alt={p.title || 'photo'} className="w-full h-28 object-cover" />
+                  <Image
+                    src={p.url}
+                    alt={p.title || 'photo'}
+                    fill
+                    sizes="(min-width: 1024px) 16vw, (min-width: 768px) 25vw, 50vw"
+                    className="object-cover"
+                    unoptimized
+                  />
                 </a>
               ))}
             </div>
