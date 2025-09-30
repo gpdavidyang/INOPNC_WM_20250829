@@ -118,6 +118,20 @@ export default async function RootLayout({
           html { font-family: var(--font-noto-sans-kr), system-ui, -apple-system, sans-serif; }
           .font-poppins { font-family: var(--font-poppins), system-ui, sans-serif; }
         `}</style>
+        {/* No-flash theme initializer: apply saved or system theme before hydration */}
+        <script
+          // This runs on the client before React hydration to avoid theme flicker
+          dangerouslySetInnerHTML={{
+            __html: `(() => { try {
+              var k = 'inopnc_theme';
+              var t = localStorage.getItem(k);
+              if (!t) {
+                t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+              }
+              document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {} })();`,
+          }}
+        />
       </head>
       <body className={bodyClasses}>
         <Providers>{children}</Providers>

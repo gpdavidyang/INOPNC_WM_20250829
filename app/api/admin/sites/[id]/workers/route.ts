@@ -69,7 +69,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       `
       )
       .eq('site_id', siteId)
-      .or('is_active.is.true,is_active.is.null')
+      .eq('is_active', true)
       .order('created_at', { ascending: false })
 
     // Log for debugging if needed

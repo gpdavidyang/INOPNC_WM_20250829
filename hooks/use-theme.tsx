@@ -4,41 +4,58 @@ import { useState, useEffect } from 'react'
 
 type Theme = 'light' | 'dark' | 'system'
 
+// Unified theme hook: uses data-theme attribute and 'inopnc_theme' storage key.
+// Also toggles the .dark class for Tailwind compatibility.
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>('light')
+  const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
-    // Load theme from localStorage or system preference
-    const stored = localStorage.getItem('theme') as Theme
-    if (stored) {
-      setTheme(stored)
-      document.documentElement.classList.toggle('dark', stored === 'dark')
-    } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      const defaultTheme = prefersDark ? 'dark' : 'light'
-      setTheme(defaultTheme)
-      document.documentElement.classList.toggle('dark', defaultTheme === 'dark')
+    try {
+      const stored = (localStorage.getItem('inopnc_theme') as Theme | null) || null
+      let resolved: 'light' | 'dark'
+      if (stored === 'dark' || stored === 'light') {
+        resolved = stored
+      } else {
+        const prefersDark =
+          window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        resolved = prefersDark ? 'dark' : 'light'
+      }
+      document.documentElement.setAttribute('data-theme', resolved)
+      // Keep Tailwind class-based dark variant compatible
+      document.documentElement.classList.toggle('dark', resolved === 'dark')
+      setTheme(resolved)
+    } catch (_) {
+      // Safe fallback
+      document.documentElement.setAttribute('data-theme', 'light')
+      document.documentElement.classList.remove('dark')
+      setTheme('light')
     }
   }, [])
 
   const updateTheme = (newTheme: Theme) => {
-    setTheme(newTheme)
-    localStorage.setItem('theme', newTheme)
-    
-    if (newTheme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      document.documentElement.classList.toggle('dark', prefersDark)
-    } else {
-      document.documentElement.classList.toggle('dark', newTheme === 'dark')
+    try {
+      let resolved: 'light' | 'dark'
+      if (newTheme === 'system') {
+        const prefersDark =
+          window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        resolved = prefersDark ? 'dark' : 'light'
+      } else {
+        resolved = newTheme
+      }
+      document.documentElement.setAttribute('data-theme', resolved)
+      document.documentElement.classList.toggle('dark', resolved === 'dark')
+      localStorage.setItem('inopnc_theme', resolved)
+      setTheme(resolved)
+    } catch (_) {
+      // ignore
     }
   }
 
   return {
     theme,
     setTheme: updateTheme,
-    mounted
+    mounted,
   }
 }

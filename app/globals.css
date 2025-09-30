@@ -954,9 +954,9 @@ select:focus {
     0 0 0 4px rgba(0, 100, 255, 0.1);
 }
 
-/* Large Font Mode CSS - Increased size for better accessibility */
+/* Large Font Mode CSS - subtle, safe scale for mobile */
 .large-font-mode {
-  font-size: 125%;
+  font-size: 112%;
 }
 
 /* Line clamp utility */

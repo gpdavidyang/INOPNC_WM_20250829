@@ -5,6 +5,7 @@ import { QueryProvider } from '@/providers/query-provider'
 import { FontSizeProvider } from '@/contexts/FontSizeContext'
 import { TouchModeProvider } from '@/contexts/TouchModeContext'
 import { ContrastModeProvider } from '@/contexts/ContrastModeContext'
+import { ThemeProvider } from 'next-themes'
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -13,13 +14,21 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <ErrorBoundary>
-      <ContrastModeProvider>
-        <FontSizeProvider>
-          <TouchModeProvider>
-            <QueryProvider>{children}</QueryProvider>
-          </TouchModeProvider>
-        </FontSizeProvider>
-      </ContrastModeProvider>
+      <ThemeProvider
+        attribute="data-theme"
+        defaultTheme="system"
+        enableSystem
+        storageKey="inopnc_theme"
+        disableTransitionOnChange
+      >
+        <ContrastModeProvider>
+          <FontSizeProvider>
+            <TouchModeProvider>
+              <QueryProvider>{children}</QueryProvider>
+            </TouchModeProvider>
+          </FontSizeProvider>
+        </ContrastModeProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   )
 }

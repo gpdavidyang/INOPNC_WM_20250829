@@ -568,33 +568,83 @@ export async function getSiteAssignments(siteId: string): Promise<AdminActionRes
 
       await ensureSiteAccessible(supabase, auth, siteId)
 
-      const { data: assignments, error } = await supabase
+      // 1) Fetch raw assignments
+      const { data: assigns, error: aErr } = await supabase
         .from('site_assignments')
-        .select(
-          `
-          *,
-          profile:profiles(
-            id,
-            full_name,
-            email,
-            role,
-            organization:organizations(id, name)
-          )
-        `
-        )
+        .select('*')
         .eq('site_id', siteId)
-        .or('is_active.is.true,is_active.is.null')
+        .eq('is_active', true)
 
-      if (error) {
+      if (aErr) {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Error fetching site assignments:', error)
+          console.error('Error fetching site assignments:', aErr)
         }
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
+      const assignments = assigns || []
+      if (assignments.length === 0) {
+        return { success: true, data: [] }
+      }
+
+      // 2) Fetch related profiles
+      const userIds = Array.from(new Set(assignments.map((a: any) => a.user_id).filter(Boolean)))
+      let profiles: any[] = []
+      if (userIds.length > 0) {
+        const { data: profs, error: pErr } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, role, organization_id')
+          .in('id', userIds)
+        if (pErr) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Error fetching profiles for assignments:', pErr)
+          }
+        } else {
+          profiles = profs || []
+        }
+      }
+
+      // 3) Fetch organizations for profiles
+      const orgIds = Array.from(
+        new Set(profiles.map(p => (p as any).organization_id).filter(Boolean))
+      )
+      let organizations: Record<string, { id: string; name?: string | null }> = {}
+      if (orgIds.length > 0) {
+        const { data: orgs, error: oErr } = await supabase
+          .from('organizations')
+          .select('id, name')
+          .in('id', orgIds)
+        if (!oErr) {
+          for (const o of orgs || []) {
+            organizations[(o as any).id] = { id: (o as any).id, name: (o as any).name }
+          }
+        }
+      }
+
+      const profMap = new Map<string, any>()
+      for (const p of profiles) profMap.set((p as any).id, p)
+
+      const enriched = assignments.map(a => {
+        const p = profMap.get((a as any).user_id)
+        const orgId = p?.organization_id || null
+        const org = orgId ? organizations[orgId] : undefined
+        return {
+          ...a,
+          profile: p
+            ? {
+                id: p.id,
+                full_name: p.full_name,
+                email: p.email,
+                role: p.role,
+                organization: org,
+              }
+            : null,
+        }
+      })
+
       return {
         success: true,
-        data: assignments || [],
+        data: enriched,
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
