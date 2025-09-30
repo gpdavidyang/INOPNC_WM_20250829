@@ -129,6 +129,8 @@ export default async function RootLayout({
                 t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
               }
               document.documentElement.setAttribute('data-theme', t);
+              if (t === 'dark') document.documentElement.classList.add('dark');
+              else document.documentElement.classList.remove('dark');
             } catch (e) {} })();`,
           }}
         />

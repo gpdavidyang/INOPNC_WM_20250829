@@ -128,6 +128,7 @@ export async function getCurrentUserSite() {
           work_section,
           component_name,
           manager_name,
+          manager_phone,
           construction_manager_phone,
           safety_manager_name,
           safety_manager_phone,
@@ -167,7 +168,7 @@ export async function getCurrentUserSite() {
     }
 
     // Convert to the expected format
-    const site = assignment.sites
+    const site = assignment.sites as any
     const siteData: unknown = {
       site_id: site.id,
       site_name: site.name,
@@ -182,7 +183,9 @@ export async function getCurrentUserSite() {
       work_section: site.work_section,
       component_name: site.component_name,
       manager_name: site.manager_name,
-      construction_manager_phone: site.construction_manager_phone,
+      manager_phone: site.manager_phone || site.construction_manager_phone,
+      // Backward compat for consumers expecting construction_manager_phone
+      construction_manager_phone: site.manager_phone || site.construction_manager_phone,
       safety_manager_name: site.safety_manager_name,
       safety_manager_phone: site.safety_manager_phone,
       accommodation_name: site.accommodation_name,

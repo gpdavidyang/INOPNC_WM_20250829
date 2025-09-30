@@ -737,6 +737,197 @@ export default function SiteInfoPage() {
     setShowAttachmentPopup(true)
   }
 
+  // 진행도면 액션 모달 상태
+  const [progressModal, setProgressModal] = useState<{
+    open: boolean
+    mode: 'choose' | 'empty'
+    item: any | null
+  }>({ open: false, mode: 'choose', item: null })
+  const closeProgressModal = () => setProgressModal(prev => ({ ...prev, open: false }))
+  const openLatestProgressInNewTab = async () => {
+    const item = progressModal.item
+    if (!item) return
+    try {
+      let finalUrl: string = item.url
+      try {
+        const s = await fetch(`/api/files/signed-url?url=${encodeURIComponent(item.url)}`)
+        const sj = await s.json().catch(() => ({}))
+        finalUrl = sj?.url || item.url
+      } catch {
+        /* ignore */
+      }
+      try {
+        const chk = await fetch(`/api/files/check?url=${encodeURIComponent(finalUrl)}`)
+        const cj = await chk.json().catch(() => ({}))
+        if (!cj?.exists) {
+          toast({
+            title: '파일 없음',
+            description: '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
+            variant: 'destructive',
+          })
+          return
+        }
+      } catch {
+        /* ignore */
+      }
+      window.open(finalUrl, '_blank')
+      closeProgressModal()
+    } catch (e) {
+      console.error('[SiteInfo] open latest progress drawing failed', e)
+      toast({ title: '파일을 여는 중 오류가 발생했습니다.', variant: 'destructive' })
+    }
+  }
+  const openLatestProgressInMarkupTool = () => {
+    const item = progressModal.item
+    if (!item || !currentSite?.id) return
+    try {
+      const drawingData = {
+        id: String(item.id),
+        name: String(item.title || '진행도면'),
+        title: String(item.title || '진행도면'),
+        url: String(item.url),
+        size: Number(item.size || 0),
+        type: 'progress',
+        uploadDate: new Date(),
+        isMarked: false,
+        source: 'site_documents',
+        siteId: currentSite.id,
+        siteName: currentSite.name,
+      }
+      localStorage.setItem('selected_drawing', JSON.stringify(drawingData))
+    } catch {
+      /* ignore */
+    }
+    closeProgressModal()
+    window.location.href = '/mobile/markup-tool'
+  }
+  const goToDocumentsForUpload = () => {
+    if (!currentSite?.id) return
+    const qs = new URLSearchParams({
+      tab: 'drawings',
+      siteId: currentSite.id,
+      category: 'progress',
+    })
+    closeProgressModal()
+    window.location.href = `/mobile/documents?${qs.toString()}`
+  }
+
+  // 진행도면: 해당 현장의 최신 progress_drawing으로 연결
+  const handleOpenLatestProgressDrawing = async () => {
+    try {
+      if (!currentSite?.id) {
+        toast({ title: '현장 정보가 없습니다.', variant: 'destructive' })
+        return
+      }
+
+      const params = new URLSearchParams({
+        siteId: currentSite.id,
+        category: 'progress',
+        limit: '1',
+        page: '1',
+      })
+
+      const res = await fetch(`/api/docs/drawings?${params.toString()}`, { cache: 'no-store' })
+      const json = await res.json().catch(() => ({}))
+
+      if (!res.ok || !json?.success) {
+        toast({ title: '진행도면을 불러올 수 없습니다.', variant: 'destructive' })
+        return
+      }
+
+      const item = Array.isArray(json?.data) ? json.data[0] : null
+
+      // Modal UX: 안내/선택을 모달로 처리
+      if (!item) {
+        setProgressModal(prev => ({ ...prev, open: true, mode: 'empty', item: null }))
+        return
+      }
+      setProgressModal({ open: true, mode: 'choose', item })
+      return
+
+      if (!item) {
+        const goUpload = window.confirm(
+          '해당 현장의 진행도면이 등록되어 있지 않습니다.\n문서함으로 이동하여 진행도면을 업로드하시겠습니까?'
+        )
+        if (goUpload) {
+          const qs = new URLSearchParams({
+            tab: 'drawings',
+            siteId: currentSite.id,
+            category: 'progress',
+          })
+          window.location.href = `/mobile/documents?${qs.toString()}`
+        }
+        return
+      }
+
+      // 액션 선택: 보기(새 탭) / 마킹 도구 열기
+      const openView = window.confirm(
+        '최신 진행도면을 새 탭에서 보시겠습니까?\n취소를 누르면 마킹 도구로 이동합니다.'
+      )
+
+      // 보기를 선택한 경우: 서명 URL 생성 후 존재 여부 확인 → 새 탭
+      if (openView) {
+        try {
+          let finalUrl: string = item.url
+          try {
+            const s = await fetch(`/api/files/signed-url?url=${encodeURIComponent(item.url)}`)
+            const sj = await s.json().catch(() => ({}))
+            finalUrl = sj?.url || item.url
+          } catch {
+            /* ignore */
+          }
+
+          try {
+            const chk = await fetch(`/api/files/check?url=${encodeURIComponent(finalUrl)}`)
+            const cj = await chk.json().catch(() => ({}))
+            if (!cj?.exists) {
+              toast({
+                title: '파일 없음',
+                description: '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
+                variant: 'destructive',
+              })
+              return
+            }
+          } catch {
+            /* ignore */
+          }
+
+          window.open(finalUrl, '_blank')
+          return
+        } catch (e) {
+          console.error('[SiteInfo] open latest progress drawing failed', e)
+          toast({ title: '파일을 여는 중 오류가 발생했습니다.', variant: 'destructive' })
+          return
+        }
+      }
+
+      // 마킹 도구 이동: 로컬 브리징 후 이동
+      try {
+        const drawingData = {
+          id: String(item.id),
+          name: String(item.title || '진행도면'),
+          title: String(item.title || '진행도면'),
+          url: String(item.url),
+          size: Number(item.size || 0),
+          type: 'progress',
+          uploadDate: new Date(),
+          isMarked: false,
+          source: 'site_documents',
+          siteId: currentSite.id,
+          siteName: currentSite.name,
+        }
+        localStorage.setItem('selected_drawing', JSON.stringify(drawingData))
+      } catch {
+        /* ignore localStorage errors */
+      }
+
+      window.location.href = '/mobile/markup-tool'
+    } catch (error) {
+      console.error('[SiteInfo] Failed to open latest progress drawing', error)
+      toast({ title: '처리 중 오류가 발생했습니다.', variant: 'destructive' })
+    }
+  }
+
   const copyToClipboard = (value: string, message: string) => {
     if (!value) return
 
@@ -3490,7 +3681,7 @@ export default function SiteInfoPage() {
                   <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() => handleAttachmentOpen('drawings')}
+                    onClick={handleOpenLatestProgressDrawing}
                   >
                     진행도면
                   </button>
@@ -3818,6 +4009,155 @@ export default function SiteInfoPage() {
                 작업일지목록
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {progressModal.open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1400,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(17,24,39,0.45)',
+            padding: '16px',
+          }}
+          onClick={closeProgressModal}
+        >
+          <div
+            style={{
+              width: 'min(420px, 92%)',
+              background: 'var(--card, #fff)',
+              borderRadius: 16,
+              border: '1px solid rgba(209,213,219,0.6)',
+              boxShadow: '0 24px 60px rgba(2,6,23,0.3)',
+              padding: 16,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            {progressModal.mode === 'choose' ? (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>진행도면 열기</div>
+                <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>
+                  최신 진행도면을 새 탭으로 보거나 마킹 도구로 열 수 있습니다.
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={closeProgressModal}
+                    style={{
+                      height: 40,
+                      padding: '0 12px',
+                      borderRadius: 10,
+                      border: '1px solid #d1d5db',
+                      background: '#f3f4f6',
+                      fontWeight: 600,
+                    }}
+                  >
+                    취소
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openLatestProgressInNewTab}
+                    style={{
+                      height: 40,
+                      padding: '0 12px',
+                      borderRadius: 10,
+                      border: '1px solid #d1d5db',
+                      background: '#fff',
+                      fontWeight: 600,
+                    }}
+                  >
+                    보기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openLatestProgressInMarkupTool}
+                    style={{
+                      height: 40,
+                      padding: '0 12px',
+                      borderRadius: 10,
+                      border: '1px solid #1a254f',
+                      background: '#1a254f',
+                      color: '#fff',
+                      fontWeight: 700,
+                    }}
+                  >
+                    마킹 도구
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>진행도면 없음</div>
+                <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>
+                  해당 현장의 진행도면이 등록되어 있지 않습니다. 문서함에서 업로드하거나 마킹
+                  도구에서 게시할 수 있습니다.
+                </div>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={closeProgressModal}
+                    style={{
+                      height: 40,
+                      padding: '0 12px',
+                      borderRadius: 10,
+                      border: '1px solid #d1d5db',
+                      background: '#f3f4f6',
+                      fontWeight: 600,
+                    }}
+                  >
+                    닫기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      try {
+                        if (currentSite)
+                          localStorage.setItem(
+                            'selected_site',
+                            JSON.stringify({ id: currentSite.id, name: currentSite.name })
+                          )
+                      } catch {
+                        /* ignore */
+                      }
+                      closeProgressModal()
+                      window.location.href = '/mobile/markup-tool?mode=upload'
+                    }}
+                    style={{
+                      height: 40,
+                      padding: '0 12px',
+                      borderRadius: 10,
+                      border: '1px solid #d1d5db',
+                      background: '#fff',
+                      fontWeight: 600,
+                    }}
+                  >
+                    마킹 도구(업로드)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToDocumentsForUpload}
+                    style={{
+                      height: 40,
+                      padding: '0 12px',
+                      borderRadius: 10,
+                      border: '1px solid #1a254f',
+                      background: '#1a254f',
+                      color: '#fff',
+                      fontWeight: 700,
+                    }}
+                  >
+                    문서함 이동
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

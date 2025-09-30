@@ -177,10 +177,17 @@ export const SiteDetailSheet = memo(function SiteDetailSheet({
                 <h3 className="text-sm font-semibold text-muted-foreground">현장 관리자</h3>
                 <div className="mt-2 space-y-1 text-sm">
                   <div className="font-medium text-foreground">{site.manager_name || '미지정'}</div>
-                  {(site.construction_manager_phone || site.accommodation_phone) && (
+                  {((site as any).manager_phone ||
+                    (site as any).construction_manager_phone ||
+                    site.accommodation_phone) && (
                     <div className="text-muted-foreground">
-                      {site.construction_manager_phone || site.accommodation_phone}
+                      {(site as any).manager_phone ||
+                        (site as any).construction_manager_phone ||
+                        site.accommodation_phone}
                     </div>
+                  )}
+                  {(site as any).manager_email && (
+                    <div className="text-muted-foreground">{(site as any).manager_email}</div>
                   )}
                 </div>
               </div>

@@ -1077,7 +1077,7 @@ const AttendanceContent: React.FC = () => {
                       {day.sites.length > 0
                         ? day.sites.length === 1
                           ? day.sites[0]
-                          : `${day.sites[0]} 외 ${day.sites.length - 1}`
+                          : `${day.sites[0]}+${day.sites.length - 1}`
                         : ''}
                     </div>
                     <div className="work-hours">

@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         start_date,
         end_date,
         manager_name,
-        construction_manager_phone,
+        manager_phone,
         created_at,
         updated_at
       `,
@@ -135,7 +135,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
-        sites: sites || [],
+        sites: (sites || []).map((s: any) => ({
+          ...s,
+          manager_phone: s.manager_phone ?? s.construction_manager_phone ?? null,
+        })),
         total: count || 0,
         pages: totalPages || 1,
       },

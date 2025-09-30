@@ -132,6 +132,13 @@
   justify-content: space-between !important;
 }
 
+/* Dark mode: ensure filter fields match dark surfaces */
+[data-theme='dark'] .calendar-filter-trigger {
+  background: rgba(15, 23, 42, 0.9) !important; /* near slate-900 */
+  border-color: var(--attendance-border-dark) !important;
+  color: #e9eef5 !important;
+}
+
 .calendar-filter-trigger:hover {
   border-color: #d6deef !important;
 }

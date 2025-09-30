@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Search, Moon, Sun, Type, Bell, Menu } from 'lucide-react'
+import { Button } from '@/modules/shared/ui'
 import { NotificationModal } from '../notifications/NotificationModal'
 // Drawer is now managed by MobileLayout, not AppBar
 import { SearchPage } from './SearchPage'
@@ -96,7 +97,9 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
 
         <div className="header-right">
           {/* Search */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             className="header-icon-btn"
             id="searchBtn"
             aria-label="검색"
@@ -110,10 +113,12 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
           >
             <Search className="w-5 h-5" />
             <span className="icon-text">검색</span>
-          </button>
+          </Button>
 
           {/* Dark Mode */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             className="header-icon-btn"
             id="darkModeBtn"
             aria-label="다크모드"
@@ -121,10 +126,12 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
           >
             {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             <span className="icon-text">다크모드</span>
-          </button>
+          </Button>
 
           {/* Font Size */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             className="header-icon-btn"
             id="fontSizeBtn"
             aria-label="글씨 크기"
@@ -134,10 +141,12 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
             <span className="icon-text" id="fontSizeText">
               {isLargeFont ? '큰글씨' : '작은글씨'}
             </span>
-          </button>
+          </Button>
 
           {/* Notifications */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             className="header-icon-btn"
             id="notificationBtn"
             aria-label="알림"
@@ -150,10 +159,12 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
                 {notificationCount}
               </span>
             )}
-          </button>
+          </Button>
 
           {/* Menu */}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             className="header-icon-btn"
             id="menuBtn"
             aria-label="메뉴"
@@ -166,7 +177,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
           >
             <Menu className="w-5 h-5" />
             <span className="icon-text">메뉴</span>
-          </button>
+          </Button>
         </div>
       </div>
 

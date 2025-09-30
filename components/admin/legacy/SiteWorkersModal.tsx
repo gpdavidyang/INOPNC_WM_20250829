@@ -49,11 +49,7 @@ interface SiteWorkersModalProps {
   site: Site | null
 }
 
-export default function SiteWorkersModal({
-  isOpen,
-  onClose,
-  site
-}: SiteWorkersModalProps) {
+export default function SiteWorkersModal({ isOpen, onClose, site }: SiteWorkersModalProps) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('workers')
   const [assignments, setAssignments] = useState<SiteAssignment[]>([])
@@ -62,7 +58,9 @@ export default function SiteWorkersModal({
   const [assigning, setAssigning] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedUserId, setSelectedUserId] = useState<string>('')
-  const [selectedRole, setSelectedRole] = useState<'worker' | 'site_manager' | 'supervisor'>('worker')
+  const [selectedRole, setSelectedRole] = useState<'worker' | 'site_manager' | 'supervisor'>(
+    'worker'
+  )
   const [error, setError] = useState<string | null>(null)
 
   // Load site assignments when modal opens
@@ -109,8 +107,9 @@ export default function SiteWorkersModal({
       const result = await getUsers(1, 100) // Get first 100 users for assignment
       if (result.success && result.data) {
         // Filter out users who are already assigned to this site
-        const unassignedUsers = result.data.users.filter(user => 
-          !assignments.some(assignment => assignment.user_id === user.id && assignment.is_active)
+        const unassignedUsers = result.data.users.filter(
+          user =>
+            !assignments.some(assignment => assignment.user_id === user.id && assignment.is_active)
         )
         setAvailableUsers(unassignedUsers)
       }
@@ -127,19 +126,19 @@ export default function SiteWorkersModal({
       const result = await assignUserToSite({
         site_id: site.id,
         user_id: selectedUserId,
-        role: selectedRole
+        role: selectedRole,
       })
 
       if (result.success) {
         // Reload assignments
         await loadSiteAssignments()
         await loadAvailableUsers()
-        
+
         // Reset form
         setSelectedUserId('')
         setSelectedRole('worker')
         setError(null)
-        
+
         // Show success message (you might want to add toast notification here)
       } else {
         setError(result.error || '사용자 배정에 실패했습니다.')
@@ -156,7 +155,7 @@ export default function SiteWorkersModal({
 
     try {
       const result = await removeUserFromSite(site.id, userId)
-      
+
       if (result.success) {
         // Reload assignments
         await loadSiteAssignments()
@@ -172,25 +171,34 @@ export default function SiteWorkersModal({
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
-      case 'site_manager': return 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-      case 'supervisor': return 'bg-green-100 text-green-800 hover:bg-green-200'
-      case 'worker': return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-      default: return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+      case 'site_manager':
+        return 'bg-blue-100 text-blue-800 hover:bg-blue-200'
+      case 'supervisor':
+        return 'bg-green-100 text-green-800 hover:bg-green-200'
+      case 'worker':
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+      default:
+        return 'bg-gray-100 text-gray-800 hover:bg-gray-200'
     }
   }
 
   const getRoleText = (role: string) => {
     switch (role) {
-      case 'site_manager': return '현장관리자'
-      case 'supervisor': return '감독자'
-      case 'worker': return '작업자'
-      default: return role
+      case 'site_manager':
+        return '현장관리자'
+      case 'supervisor':
+        return '감독자'
+      case 'worker':
+        return '작업자'
+      default:
+        return role
     }
   }
 
-  const filteredUsers = availableUsers.filter(user =>
-    user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = availableUsers.filter(
+    user =>
+      user.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   if (!site) return null
@@ -219,13 +227,11 @@ export default function SiteWorkersModal({
                     {site.address}
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    {site.manager_name && (
-                      <span>관리자: {site.manager_name}</span>
-                    )}
-                    {site.construction_manager_phone && (
+                    {site.manager_name && <span>관리자: {site.manager_name}</span>}
+                    {((site as any).manager_phone || site.construction_manager_phone) && (
                       <span className="flex items-center gap-1">
                         <Phone className="h-3 w-3" />
-                        {site.construction_manager_phone}
+                        {(site as any).manager_phone || site.construction_manager_phone}
                       </span>
                     )}
                   </div>
@@ -257,186 +263,189 @@ export default function SiteWorkersModal({
               </TabsList>
 
               <TabsContent value="workers" className="flex-1 overflow-auto mt-4">
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-sm text-muted-foreground">배정 정보를 불러오는 중...</div>
-              </div>
-            ) : assignments.filter(a => a.is_active).length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p>배정된 작업자가 없습니다.</p>
-                <p className="text-sm">작업자 배정 탭에서 새로운 작업자를 추가해보세요.</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {assignments.filter(a => a.is_active).map((assignment) => (
-                  <Card key={assignment.id} className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-3">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback>
-                            {assignment.profile.full_name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-medium">{assignment.profile.full_name}</h4>
-                            <Badge className={getRoleBadgeColor(assignment.role)}>
-                              {getRoleText(assignment.role)}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <div className="flex items-center gap-1">
-                              <Mail className="h-3 w-3" />
-                              {assignment.profile.email}
-                            </div>
-                            {assignment.profile.phone && (
-                              <div className="flex items-center gap-1">
-                                <Phone className="h-3 w-3" />
-                                {assignment.profile.phone}
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-sm text-muted-foreground">배정 정보를 불러오는 중...</div>
+                  </div>
+                ) : assignments.filter(a => a.is_active).length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p>배정된 작업자가 없습니다.</p>
+                    <p className="text-sm">작업자 배정 탭에서 새로운 작업자를 추가해보세요.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {assignments
+                      .filter(a => a.is_active)
+                      .map(assignment => (
+                        <Card key={assignment.id} className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback>
+                                  {assignment.profile.full_name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-medium">{assignment.profile.full_name}</h4>
+                                  <Badge className={getRoleBadgeColor(assignment.role)}>
+                                    {getRoleText(assignment.role)}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Mail className="h-3 w-3" />
+                                    {assignment.profile.email}
+                                  </div>
+                                  {assignment.profile.phone && (
+                                    <div className="flex items-center gap-1">
+                                      <Phone className="h-3 w-3" />
+                                      {assignment.profile.phone}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <Calendar className="h-3 w-3" />
+                                  배정일:{' '}
+                                  {new Date(assignment.assigned_date).toLocaleDateString('ko-KR')}
+                                </div>
                               </div>
-                            )}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleRemoveUser(assignment.user_id)}
+                              className="text-red-600 hover:text-red-700 hover:border-red-200"
+                            >
+                              <UserMinus className="h-4 w-4 mr-2" />
+                              배정 해제
+                            </Button>
                           </div>
-                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            배정일: {new Date(assignment.assigned_date).toLocaleDateString('ko-KR')}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleRemoveUser(assignment.user_id)}
-                        className="text-red-600 hover:text-red-700 hover:border-red-200"
-                      >
-                        <UserMinus className="h-4 w-4 mr-2" />
-                        배정 해제
-                      </Button>
-                    </div>
-                  </Card>
-                ))}
-              </div>
-            )}
+                        </Card>
+                      ))}
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="assign" className="flex-1 overflow-auto mt-4 space-y-4">
-            {/* Assignment Form */}
-            <Card className="p-4 flex-shrink-0">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                <div className="space-y-2">
-                  <Label>사용자 선택</Label>
-                  <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="사용자를 선택하세요" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredUsers.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{user.full_name}</span>
-                            <span className="text-muted-foreground">({user.email})</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>역할</Label>
-                  <Select value={selectedRole} onValueChange={setSelectedRole as any}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="worker">작업자</SelectItem>
-                      <SelectItem value="supervisor">감독자</SelectItem>
-                      <SelectItem value="site_manager">현장관리자</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <Button 
-                  onClick={handleAssignUser} 
-                  disabled={!selectedUserId || assigning}
-                  className="w-full md:w-auto"
-                >
-                  {assigning ? (
-                    <>배정 중...</>
-                  ) : (
-                    <>
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      배정하기
-                    </>
-                  )}
-                </Button>
-              </div>
-            </Card>
-
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="이름 또는 이메일로 검색..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-
-            {/* Available Users List */}
-            <div className="space-y-2">
-              {filteredUsers.length === 0 ? (
-                <div className="text-center py-6 text-muted-foreground">
-                  <UserPlus className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <p>배정 가능한 사용자가 없습니다.</p>
-                  {searchTerm && <p className="text-sm">검색어를 다시 확인해보세요.</p>}
-                </div>
-              ) : (
-                filteredUsers.map((user) => (
-                  <Card key={user.id} className="p-3 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs">
-                            {user.full_name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{user.full_name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {getRoleText(user.role)}
-                            </Badge>
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {user.email}
-                            {user.phone && ` • ${user.phone}`}
-                          </div>
-                          {user.organization && (
-                            <div className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Building2 className="h-3 w-3" />
-                              {user.organization.name}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedUserId(user.id)
-                          setActiveTab('assign')
-                        }}
-                        className="text-xs"
-                      >
-                        선택
-                      </Button>
+                {/* Assignment Form */}
+                <Card className="p-4 flex-shrink-0">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div className="space-y-2">
+                      <Label>사용자 선택</Label>
+                      <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="사용자를 선택하세요" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {filteredUsers.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              <div className="flex items-center gap-2">
+                                <span>{user.full_name}</span>
+                                <span className="text-muted-foreground">({user.email})</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </Card>
-                ))
-              )}
-            </div>
+
+                    <div className="space-y-2">
+                      <Label>역할</Label>
+                      <Select value={selectedRole} onValueChange={setSelectedRole as any}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="worker">작업자</SelectItem>
+                          <SelectItem value="supervisor">감독자</SelectItem>
+                          <SelectItem value="site_manager">현장관리자</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <Button
+                      onClick={handleAssignUser}
+                      disabled={!selectedUserId || assigning}
+                      className="w-full md:w-auto"
+                    >
+                      {assigning ? (
+                        <>배정 중...</>
+                      ) : (
+                        <>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          배정하기
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="이름 또는 이메일로 검색..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+
+                {/* Available Users List */}
+                <div className="space-y-2">
+                  {filteredUsers.length === 0 ? (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <UserPlus className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                      <p>배정 가능한 사용자가 없습니다.</p>
+                      {searchTerm && <p className="text-sm">검색어를 다시 확인해보세요.</p>}
+                    </div>
+                  ) : (
+                    filteredUsers.map(user => (
+                      <Card key={user.id} className="p-3 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="text-xs">
+                                {user.full_name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-sm">{user.full_name}</span>
+                                <Badge variant="outline" className="text-xs">
+                                  {getRoleText(user.role)}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {user.email}
+                                {user.phone && ` • ${user.phone}`}
+                              </div>
+                              {user.organization && (
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Building2 className="h-3 w-3" />
+                                  {user.organization.name}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedUserId(user.id)
+                              setActiveTab('assign')
+                            }}
+                            className="text-xs"
+                          >
+                            선택
+                          </Button>
+                        </div>
+                      </Card>
+                    ))
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </div>

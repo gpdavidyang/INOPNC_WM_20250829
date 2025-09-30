@@ -6,15 +6,11 @@ import type { ManagerContact } from '@/types/site-info'
 
 export const dynamic = 'force-dynamic'
 
-
 /**
  * GET /api/sites/[id]/managers
  * Get all manager contacts for a site
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
@@ -28,38 +24,38 @@ export async function GET(
     // Fetch site with manager information
     const { data: site, error: siteError } = await supabase
       .from('sites')
-      .select(`
+      .select(
+        `
         id,
         name,
+        manager_phone,
         construction_manager_phone,
         safety_manager_phone
-      `)
+      `
+      )
       .eq('id', siteId)
       .single()
 
     if (siteError || !site) {
-      return NextResponse.json(
-        { error: 'Site not found' },
-        { status: 404 }
-      )
+      return NextResponse.json({ error: 'Site not found' }, { status: 404 })
     }
 
     // Create manager contacts array
     const managers: ManagerContact[] = []
-    
-    if (site.construction_manager_phone) {
+
+    if ((site as any).manager_phone || (site as any).construction_manager_phone) {
       managers.push({
         role: 'construction_manager' as const,
         name: '현장 소장',
-        phone: site.construction_manager_phone
+        phone: (site as any).manager_phone || (site as any).construction_manager_phone,
       })
     }
-    
+
     if (site.safety_manager_phone) {
       managers.push({
         role: 'safety_manager' as const,
         name: '안전 관리자',
-        phone: site.safety_manager_phone
+        phone: site.safety_manager_phone,
       })
     }
 
@@ -71,18 +67,15 @@ export async function GET(
     //   .eq('site_id', siteId)
     //   .eq('is_active', true)
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       data: {
         siteId: site.id,
         siteName: site.name,
-        managers
-      }
+        managers,
+      },
     })
   } catch (error) {
     console.error('Error fetching site managers:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

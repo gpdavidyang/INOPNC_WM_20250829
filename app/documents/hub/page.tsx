@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
 
 type TabKey = 'mine' | 'company' | 'drawings' | 'photos'
 
@@ -37,6 +38,19 @@ export default function DocumentHubPage() {
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw-docs.js').catch(() => {})
+    }
+  }, [])
+
+  // URL 쿼리 파라미터로 초기 탭 선택 지원 (?tab=drawings|photos|mine|company)
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search)
+      const tab = (sp.get('tab') || '').trim() as TabKey
+      if (tab === 'mine' || tab === 'company' || tab === 'drawings' || tab === 'photos') {
+        setActive(tab)
+      }
+    } catch {
+      /* no-op */
     }
   }, [])
 
@@ -84,6 +98,7 @@ export default function DocumentHubPage() {
 }
 
 function MyDocsTab() {
+  const { toast } = useToast()
   const [uploaded, setUploaded] = useState<Record<string, File | null>>({})
   const [requiredTypes, setRequiredTypes] = useState<
     Array<{ id: string; code: string; name_ko?: string }>
@@ -178,7 +193,11 @@ function MyDocsTab() {
         }))
       }
     } catch (e: any) {
-      alert(e?.message || '업로드 중 오류')
+      toast({
+        title: '업로드 실패',
+        description: e?.message || '업로드 중 오류',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -213,13 +232,23 @@ function MyDocsTab() {
         a.download = ''
         a.click()
       }
+    } else {
+      toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
     }
   }
   const onShare = async () => {
+    if (selectedFiles.length === 0 && selectedRemoteUrls.length === 0) {
+      toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
+      return
+    }
     try {
       const nav: any = navigator as any
       if (!nav.share) {
-        alert('이 브라우저는 Web Share를 지원하지 않습니다. 저장 후 다른 앱으로 공유하세요.')
+        toast({
+          title: '공유 안내',
+          description: 'Web Share 미지원. 저장 후 다른 앱으로 공유하세요.',
+          variant: 'info',
+        })
         return
       }
 
@@ -234,9 +263,11 @@ function MyDocsTab() {
         const single = selectedFiles[0]
         if (single && nav.canShare({ files: [single] })) {
           if (selectedFiles.length > 1) {
-            alert(
-              `다중 파일 공유 미지원\n\n현재 브라우저에서는 여러 파일 동시 공유가 지원되지 않습니다. 선택한 ${selectedFiles.length}개 중 첫 번째 파일(${single.name})만 공유합니다. 나머지 파일은 저장 후 개별로 공유해 주세요.`
-            )
+            toast({
+              title: '다중 파일 공유 미지원',
+              description: `선택한 ${selectedFiles.length}개 중 첫 번째 파일(${single.name})만 공유됩니다. 나머지는 저장 후 개별 공유해 주세요.`,
+              variant: 'info',
+            })
           }
           await nav.share({ files: [single], title: '내문서함 공유(첫 파일만)' })
           return
@@ -250,10 +281,18 @@ function MyDocsTab() {
         return
       }
 
-      alert('공유할 항목을 선택하거나, 저장 후 다시 시도하세요.')
+      toast({
+        title: '선택 필요',
+        description: '공유할 항목을 선택하거나 저장 후 다시 시도하세요.',
+        variant: 'warning',
+      })
     } catch (e) {
       const msg = e instanceof Error ? e.message : ''
-      alert(msg ? `공유 실패: ${msg}` : '공유 취소 또는 실패')
+      toast({
+        title: '공유 실패',
+        description: msg || '공유 취소 또는 실패',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -318,18 +357,10 @@ function MyDocsTab() {
         })}
       </div>
       <div className="foot equal">
-        <button
-          className="btn"
-          onClick={onSave}
-          disabled={selectedFiles.length === 0 && selectedRemoteUrls.length === 0}
-        >
+        <button className="btn" onClick={onSave}>
           저장하기
         </button>
-        <button
-          className="btn btn-primary"
-          onClick={onShare}
-          disabled={selectedFiles.length === 0 && selectedRemoteUrls.length === 0}
-        >
+        <button className="btn btn-primary" onClick={onShare}>
           공유하기
         </button>
       </div>
@@ -338,6 +369,7 @@ function MyDocsTab() {
 }
 
 function CompanyTab() {
+  const { toast } = useToast()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [docs, setDocs] = useState<Array<{ id: string; title: string; url: string }>>([])
   const [loading, setLoading] = useState(false)
@@ -414,6 +446,10 @@ function CompanyTab() {
   )
 
   const onShare = async () => {
+    if (selectedUrls.length === 0) {
+      toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
+      return
+    }
     try {
       if ((navigator as any).share && selectedUrls.length > 0) {
         let url = selectedUrls[0]
@@ -426,13 +462,21 @@ function CompanyTab() {
         }
         await (navigator as any).share({ url, title: '회사서류 공유' })
       } else {
-        alert('공유를 지원하지 않는 브라우저입니다.')
+        toast({
+          title: '공유 안내',
+          description: '공유를 지원하지 않는 브라우저입니다.',
+          variant: 'info',
+        })
       }
     } catch {
       /* ignore initial load error */
     }
   }
   const onSave = async () => {
+    if (selectedUrls.length === 0) {
+      toast({ title: '선택 필요', description: '먼저 파일을 선택해 주세요.', variant: 'warning' })
+      return
+    }
     for (let url of selectedUrls) {
       try {
         const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
@@ -494,10 +538,10 @@ function CompanyTab() {
       </div>
       {/* 관리자용 버튼 제거됨: 공도면 이전/회사서류 초기화 */}
       <div className="foot equal">
-        <button className="btn" onClick={onSave} disabled={selectedUrls.length === 0}>
+        <button className="btn" onClick={onSave}>
           저장하기
         </button>
-        <button className="btn btn-primary" onClick={onShare} disabled={selectedUrls.length === 0}>
+        <button className="btn btn-primary" onClick={onShare}>
           공유하기
         </button>
       </div>
@@ -506,6 +550,7 @@ function CompanyTab() {
 }
 
 function DrawingsTab() {
+  const { toast } = useToast()
   const [site, setSite] = useState<string>('')
   const [category, setCategory] = useState<'plan' | 'progress' | 'other' | ''>('')
   const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
@@ -526,6 +571,24 @@ function DrawingsTab() {
   const [isRestricted, setIsRestricted] = useState(false)
   const [orgId, setOrgId] = useState<string | null>(null)
   const [authLoaded, setAuthLoaded] = useState(false)
+
+  // URL 프리셋 적용 플래그(한 번만 적용)
+  const presetRef = useRef(false)
+
+  // URL 쿼리 프리셋: ?siteId=...&category=plan|progress|other
+  useEffect(() => {
+    if (presetRef.current) return
+    try {
+      const sp = new URLSearchParams(window.location.search)
+      const siteId = sp.get('siteId') || sp.get('site_id')
+      const cat = (sp.get('category') || '').trim()
+      if (siteId) setSite(siteId)
+      if (cat === 'plan' || cat === 'progress' || cat === 'other') setCategory(cat)
+      presetRef.current = true
+    } catch {
+      /* ignore */
+    }
+  }, [])
 
   const fetchList = async () => {
     setLoading(true)
@@ -583,10 +646,69 @@ function DrawingsTab() {
   }
 
   const onUpload = () => fileInput.current?.click()
+  const openMarkupTool = () => {
+    try {
+      // If exactly one drawing is selected, bridge it to the markup tool
+      if (selected.size === 1) {
+        const id = Array.from(selected)[0]
+        const it = items.find(i => i.id === id)
+        if (it && it.url) {
+          try {
+            const drawingData = {
+              id: String(it.id),
+              name: String(it.title || '도면'),
+              title: String(it.title || '도면'),
+              url: String(it.url),
+              size: 0,
+              type: 'image',
+              uploadDate: new Date(),
+              isMarked: false,
+              source: 'site_documents',
+              siteId: site || undefined,
+              siteName: siteOptions.find(s => s.id === site)?.name,
+            }
+            localStorage.setItem('selected_drawing', JSON.stringify(drawingData))
+          } catch {
+            /* ignore localStorage errors */
+          }
+          // Also pass selected site context when available
+          if (site) {
+            try {
+              const sn = siteOptions.find(s => s.id === site)?.name || ''
+              localStorage.setItem('selected_site', JSON.stringify({ id: site, name: sn }))
+            } catch {
+              /* ignore */
+            }
+          }
+          window.location.href = '/mobile/markup-tool'
+          return
+        }
+      }
+
+      // If no single selection, open tool with context
+      if (site) {
+        try {
+          const sn = siteOptions.find(s => s.id === site)?.name || ''
+          localStorage.setItem('selected_site', JSON.stringify({ id: site, name: sn }))
+        } catch {
+          /* ignore */
+        }
+        window.location.href = '/mobile/markup-tool?mode=browse'
+      } else {
+        const ok = window.confirm(
+          '현장이 선택되지 않았습니다. 업로드 모드로 마킹 도구를 여시겠습니까?'
+        )
+        if (ok) window.location.href = '/mobile/markup-tool?mode=upload'
+      }
+    } catch {
+      // last-resort fallback
+      window.location.href = '/mobile/markup-tool'
+    }
+  }
   const onFiles = async (files: FileList | null) => {
     if (!files) return
     if (!site) {
-      alert('현장을 먼저 선택하세요.')
+      toast({ title: '선택 필요', description: '현장을 먼저 선택하세요.', variant: 'warning' })
       return
     }
     const docType =
@@ -702,7 +824,7 @@ function DrawingsTab() {
           value={category}
           onChange={e => setCategory(e.target.value as any)}
         >
-          <option value="">카테고리</option>
+          <option value="">전체도면</option>
           <option value="plan">공도면</option>
           <option value="progress">진행도면</option>
           <option value="other">기타</option>
@@ -724,6 +846,9 @@ function DrawingsTab() {
         </button>
         <button className="btn" onClick={onUpload}>
           업로드
+        </button>
+        <button className="btn" onClick={openMarkupTool}>
+          마킹 도구
         </button>
         <input
           ref={fileInput}
@@ -829,7 +954,12 @@ function DrawingsTab() {
                         )
                         const cj = await chk.json().catch(() => ({}))
                         if (!cj?.exists) {
-                          alert('파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.')
+                          toast({
+                            title: '파일 없음',
+                            description:
+                              '파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.',
+                            variant: 'destructive',
+                          })
                           return
                         }
                       } catch {
@@ -857,8 +987,15 @@ function DrawingsTab() {
       <div className="foot equal">
         <button
           className="btn"
-          disabled={selected.size === 0}
           onClick={async () => {
+            if (selected.size === 0) {
+              toast({
+                title: '선택 필요',
+                description: '먼저 도면을 선택해 주세요.',
+                variant: 'warning',
+              })
+              return
+            }
             for (const id of Array.from(selected)) {
               const url = items.find(it => it.id === id)?.url
               if (!url) continue
@@ -883,8 +1020,15 @@ function DrawingsTab() {
         </button>
         <button
           className="btn btn-primary"
-          disabled={selected.size === 0}
           onClick={async () => {
+            if (selected.size === 0) {
+              toast({
+                title: '선택 필요',
+                description: '먼저 도면을 선택해 주세요.',
+                variant: 'warning',
+              })
+              return
+            }
             const url = items.find(it => it.id === Array.from(selected)[0])?.url
             if ((navigator as any).share && url) {
               try {
@@ -895,7 +1039,7 @@ function DrawingsTab() {
                 await (navigator as any).share({ url, title: '도면 공유' })
               }
             } else {
-              alert('브라우저 공유 미지원')
+              toast({ title: '공유 안내', description: '브라우저 공유 미지원', variant: 'info' })
             }
           }}
         >
@@ -922,6 +1066,7 @@ function DrawingsTab() {
 }
 
 function PhotosTab() {
+  const { toast } = useToast()
   const [site, setSite] = useState('')
   const [category, setCategory] = useState<'before' | 'after' | 'other' | ''>('')
   const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
@@ -942,11 +1087,15 @@ function PhotosTab() {
     if (!files) return
     const arr = Array.from(files)
     if (arr.length > 30) {
-      alert('최대 30장까지 업로드할 수 있습니다.')
+      toast({
+        title: '업로드 제한',
+        description: '최대 30장까지 업로드할 수 있습니다.',
+        variant: 'warning',
+      })
       return
     }
     if (!site) {
-      alert('현장을 먼저 선택하세요.')
+      toast({ title: '선택 필요', description: '현장을 먼저 선택하세요.', variant: 'warning' })
       return
     }
     const cat = (category || 'other') as 'before' | 'after' | 'other'
@@ -1113,8 +1262,15 @@ function PhotosTab() {
       <div className="foot equal">
         <button
           className="btn"
-          disabled={selected.size === 0}
           onClick={async () => {
+            if (selected.size === 0) {
+              toast({
+                title: '선택 필요',
+                description: '먼저 사진을 선택해 주세요.',
+                variant: 'warning',
+              })
+              return
+            }
             for (const id of Array.from(selected)) {
               const url = items.find(it => it.id === id)?.url
               if (!url) continue
@@ -1139,8 +1295,15 @@ function PhotosTab() {
         </button>
         <button
           className="btn btn-primary"
-          disabled={selected.size === 0}
           onClick={async () => {
+            if (selected.size === 0) {
+              toast({
+                title: '선택 필요',
+                description: '먼저 사진을 선택해 주세요.',
+                variant: 'warning',
+              })
+              return
+            }
             const url = items.find(it => it.id === Array.from(selected)[0])?.url
             if ((navigator as any).share && url) {
               try {
@@ -1151,7 +1314,7 @@ function PhotosTab() {
                 await (navigator as any).share({ url, title: '사진 공유' })
               }
             } else {
-              alert('브라우저 공유 미지원')
+              toast({ title: '공유 안내', description: '브라우저 공유 미지원', variant: 'info' })
             }
           }}
         >

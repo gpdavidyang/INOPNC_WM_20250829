@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Site {
   id: string
   name: string
@@ -9,7 +8,6 @@ interface Site {
   manager_name?: string
   start_date?: string
   end_date?: string
-  construction_manager_name?: string
   safety_manager_name?: string
 }
 
@@ -43,12 +41,12 @@ export default function EnhancedSiteView() {
   const fetchEnhancedSites = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch sites with statistics
       const [sitesRes, reportsRes, docsRes] = await Promise.all([
         fetch('/api/sites'),
         fetch('/api/admin/daily-reports'),
-        fetch('/api/admin/documents/integrated')
+        fetch('/api/admin/documents/integrated'),
       ])
 
       const sitesData = await sitesRes.json()
@@ -58,22 +56,22 @@ export default function EnhancedSiteView() {
       if (sitesData.success) {
         const sites = sitesData.data.filter((site: Site) => site.id !== 'all')
         const reports = reportsData.success ? reportsData.data : []
-        
+
         // Enhance sites with statistics
         const enhancedSites = sites.map((site: Site) => {
           const siteReports = reports.filter((r: unknown) => r.site_id === site.id)
           const siteDocs = docsData.data?.filter((d: unknown) => d.site_id === site.id) || []
-          
+
           return {
             ...site,
             daily_reports_count: siteReports.length,
             documents_count: siteDocs.length,
             partners_count: 0, // Will be fetched separately
             workers_count: 0, // Will be fetched separately
-            recent_activity: siteReports[0]?.created_at
+            recent_activity: siteReports[0]?.created_at,
           }
         })
-        
+
         setSites(enhancedSites)
       }
     } catch (error) {
@@ -97,17 +95,35 @@ export default function EnhancedSiteView() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { text: '진행중', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: CheckCircle },
-      planning: { text: '계획중', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300', icon: Clock },
-      completed: { text: '완료', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: CheckCircle },
-      suspended: { text: '중단', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: AlertCircle }
+      active: {
+        text: '진행중',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+        icon: CheckCircle,
+      },
+      planning: {
+        text: '계획중',
+        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
+        icon: Clock,
+      },
+      completed: {
+        text: '완료',
+        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+        icon: CheckCircle,
+      },
+      suspended: {
+        text: '중단',
+        color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+        icon: AlertCircle,
+      },
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active
     const Icon = config.icon
-    
+
     return (
-      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+      >
         <Icon className="h-3 w-3 mr-1" />
         {config.text}
       </span>
@@ -115,8 +131,9 @@ export default function EnhancedSiteView() {
   }
 
   const filteredSites = sites.filter(site => {
-    const matchesSearch = site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         site.address.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch =
+      site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      site.address.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || site.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -139,7 +156,7 @@ export default function EnhancedSiteView() {
             전체 {filteredSites.length}개 현장
           </p>
         </div>
-        
+
         <div className="flex items-center gap-3 w-full sm:w-auto">
           {/* Search */}
           <div className="relative flex-1 sm:flex-initial">
@@ -148,7 +165,7 @@ export default function EnhancedSiteView() {
               type="text"
               placeholder="현장 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full sm:w-64 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
             />
           </div>
@@ -156,7 +173,7 @@ export default function EnhancedSiteView() {
           {/* Status Filter */}
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={e => setStatusFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
           >
             <option value="all">전체 상태</option>
@@ -205,12 +222,14 @@ export default function EnhancedSiteView() {
         <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
           <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <p className="text-gray-500 dark:text-gray-400">
-            {searchTerm || statusFilter !== 'all' ? '검색 결과가 없습니다' : '등록된 현장이 없습니다'}
+            {searchTerm || statusFilter !== 'all'
+              ? '검색 결과가 없습니다'
+              : '등록된 현장이 없습니다'}
           </p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSites.map((site) => (
+          {filteredSites.map(site => (
             <div
               key={site.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-shadow cursor-pointer"
@@ -229,9 +248,7 @@ export default function EnhancedSiteView() {
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
                         <MapPin className="h-3 w-3 text-gray-400" />
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {site.address}
-                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{site.address}</p>
                       </div>
                     </div>
                   </div>
@@ -284,13 +301,16 @@ export default function EnhancedSiteView() {
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-gray-500 dark:text-gray-400">
                     {site.recent_activity && (
-                      <>최근 활동: {format(new Date(site.recent_activity), 'MM월 dd일', { locale: ko })}</>
+                      <>
+                        최근 활동:{' '}
+                        {format(new Date(site.recent_activity), 'MM월 dd일', { locale: ko })}
+                      </>
                     )}
                   </div>
                   <div className="flex gap-2">
                     <Link
                       href={`/dashboard/admin/sites/${site.id}?from=integrated`}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={e => e.stopPropagation()}
                       className="inline-flex items-center px-3 py-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     >
                       상세보기
@@ -308,7 +328,7 @@ export default function EnhancedSiteView() {
                       <div>
                         <p className="text-gray-500 dark:text-gray-400">건설관리자</p>
                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {site.construction_manager_name || '미등록'}
+                          {site.manager_name || '미등록'}
                         </p>
                       </div>
                       <div>
@@ -322,8 +342,10 @@ export default function EnhancedSiteView() {
                       <div className="text-sm">
                         <p className="text-gray-500 dark:text-gray-400">공사기간</p>
                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {format(new Date(site.start_date), 'yyyy.MM.dd', { locale: ko })} ~ 
-                          {site.end_date ? format(new Date(site.end_date), 'yyyy.MM.dd', { locale: ko }) : '진행중'}
+                          {format(new Date(site.start_date), 'yyyy.MM.dd', { locale: ko })} ~
+                          {site.end_date
+                            ? format(new Date(site.end_date), 'yyyy.MM.dd', { locale: ko })
+                            : '진행중'}
                         </p>
                       </div>
                     )}
@@ -351,7 +373,7 @@ export default function EnhancedSiteView() {
         /* List View */
         <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-md">
           <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredSites.map((site) => (
+            {filteredSites.map(site => (
               <li key={site.id}>
                 <div className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700">
                   <div className="flex items-center justify-between">
@@ -382,18 +404,27 @@ export default function EnhancedSiteView() {
                         </div>
                         <div className="flex items-center space-x-6 mt-2">
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            작업일지: <span className="font-medium text-gray-900 dark:text-gray-100">{site.daily_reports_count || 0}</span>
+                            작업일지:{' '}
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {site.daily_reports_count || 0}
+                            </span>
                           </span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            문서: <span className="font-medium text-gray-900 dark:text-gray-100">{site.documents_count || 0}</span>
+                            문서:{' '}
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {site.documents_count || 0}
+                            </span>
                           </span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            파트너사: <span className="font-medium text-gray-900 dark:text-gray-100">{site.partners_count || 0}</span>
+                            파트너사:{' '}
+                            <span className="font-medium text-gray-900 dark:text-gray-100">
+                              {site.partners_count || 0}
+                            </span>
                           </span>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       <Link
                         href={`/dashboard/admin/sites/${site.id}?from=integrated`}

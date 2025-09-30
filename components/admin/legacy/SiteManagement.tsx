@@ -10,7 +10,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
   const [sites, setSites] = useState<Site[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
@@ -20,13 +20,13 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
   // Filter state
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<SiteStatus | ''>('')
-  
+
   // View state
   const [viewMode, setViewMode] = useState<'card' | 'list'>('list')
-  
+
   // Selection state
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  
+
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -43,15 +43,10 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
     // console.log('Loading sites...')
     setLoading(true)
     setError(null)
-    
+
     try {
-      const result = await getSites(
-        currentPage,
-        pageSize,
-        searchTerm,
-        statusFilter || undefined
-      )
-      
+      const result = await getSites(currentPage, pageSize, searchTerm, statusFilter || undefined)
+
       if (result.success && result.data) {
         // console.log('Sites loaded successfully:', result.data.sites)
         setSites(result.data.sites)
@@ -145,7 +140,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
     if (!confirm(`정말로 "${site.name}" 현장을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) {
       return
     }
-    
+
     try {
       const result = await deleteSites([site.id])
       if (result.success) {
@@ -192,25 +187,36 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
             </div>
           </div>
         </div>
-      )
+      ),
     },
     {
       key: 'status',
       label: '상태',
       render: (value: SiteStatus) => {
         const statusConfig = {
-          active: { text: '활성', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
-          inactive: { text: '비활성', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300' },
-          completed: { text: '완료', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' }
+          active: {
+            text: '활성',
+            color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+          },
+          inactive: {
+            text: '비활성',
+            color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+          },
+          completed: {
+            text: '완료',
+            color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+          },
         }
-        
+
         const config = statusConfig[value] || statusConfig.inactive
         return (
-          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+          <span
+            className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+          >
             {config.text}
           </span>
         )
-      }
+      },
     },
     {
       key: 'start_date',
@@ -220,7 +226,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
           <Calendar className="h-4 w-4 mr-1" />
           {new Date(value).toLocaleDateString('ko-KR')}
         </div>
-      )
+      ),
     },
     {
       key: 'manager_name',
@@ -230,10 +236,10 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
           {value ? (
             <div>
               <div className="font-medium text-gray-900 dark:text-gray-100">{value}</div>
-              {site.construction_manager_phone && (
+              {((site as any).manager_phone || site.construction_manager_phone) && (
                 <div className="text-gray-500 dark:text-gray-400 flex items-center">
                   <Phone className="h-3 w-3 mr-1" />
-                  {site.construction_manager_phone}
+                  {(site as any).manager_phone || site.construction_manager_phone}
                 </div>
               )}
             </div>
@@ -241,13 +247,13 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
             <span className="text-gray-400">미지정</span>
           )}
         </div>
-      )
+      ),
     },
     {
       key: 'created_at',
       label: '생성일',
-      render: (value: string) => new Date(value).toLocaleDateString('ko-KR')
-    }
+      render: (value: string) => new Date(value).toLocaleDateString('ko-KR'),
+    },
   ]
 
   // Define bulk actions
@@ -257,22 +263,22 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
       id: 'activate',
       label: '활성화',
       icon: Users,
-      onClick: handleBulkStatusUpdate('active')
+      onClick: handleBulkStatusUpdate('active'),
     },
     {
       id: 'deactivate',
       label: '비활성화',
       icon: Users,
       variant: 'secondary' as const,
-      onClick: handleBulkStatusUpdate('inactive')
+      onClick: handleBulkStatusUpdate('inactive'),
     },
     {
       id: 'complete',
       label: '완료처리',
       icon: Users,
       variant: 'secondary' as const,
-      onClick: handleBulkStatusUpdate('completed')
-    }
+      onClick: handleBulkStatusUpdate('completed'),
+    },
   ]
 
   // Render card view
@@ -281,7 +287,10 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
       return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, index) => (
-            <div key={index} className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+            <div
+              key={index}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6"
+            >
               <div className="animate-pulse">
                 <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4 mb-2"></div>
                 <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-full mb-4"></div>
@@ -297,14 +306,15 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
       return (
         <div className="text-center py-12">
           <MapPin className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">현장이 없습니다</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+            현장이 없습니다
+          </h3>
           <p className="text-gray-500 dark:text-gray-400 mb-6">새 현장을 추가하여 시작하세요.</p>
           <button
             onClick={handleCreateSite}
             className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            새 현장 추가
+            <Plus className="h-4 w-4 mr-2" />새 현장 추가
           </button>
         </div>
       )
@@ -312,7 +322,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
 
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {sites.map((site) => (
+        {sites.map(site => (
           <div
             key={site.id}
             className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow duration-200"
@@ -321,10 +331,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
             <div className="p-6 pb-4">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1 min-w-0">
-                  <button
-                    onClick={() => handleViewSite(site)}
-                    className="text-left w-full"
-                  >
+                  <button onClick={() => handleViewSite(site)} className="text-left w-full">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-1">
                       {site.name}
                     </h3>
@@ -336,11 +343,11 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                     </p>
                   </div>
                 </div>
-                
+
                 {/* Actions Dropdown */}
                 <div className="relative ml-4">
                   <button
-                    onClick={(e) => {
+                    onClick={e => {
                       e.stopPropagation()
                       // Toggle dropdown logic would go here
                     }}
@@ -357,25 +364,37 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                 <div>
                   {(() => {
                     const statusConfig = {
-                      active: { text: '활성', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
-                      inactive: { text: '비활성', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300' },
-                      completed: { text: '완료', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' }
+                      active: {
+                        text: '활성',
+                        color:
+                          'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+                      },
+                      inactive: {
+                        text: '비활성',
+                        color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+                      },
+                      completed: {
+                        text: '완료',
+                        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+                      },
                     }
-                    
+
                     const config = statusConfig[site.status || 'inactive']
                     return (
-                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+                      <span
+                        className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+                      >
                         {config.text}
                       </span>
                     )
                   })()}
                 </div>
-                
+
                 <div className="flex items-center">
                   <input
                     type="checkbox"
                     checked={selectedIds.includes(site.id)}
-                    onChange={(e) => {
+                    onChange={e => {
                       if (e.target.checked) {
                         setSelectedIds([...selectedIds, site.id])
                       } else {
@@ -393,13 +412,15 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   <Calendar className="h-4 w-4 mr-2" />
                   <span>시작: {new Date(site.start_date).toLocaleDateString('ko-KR')}</span>
                 </div>
-                
+
                 {site.manager_name && (
                   <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                     <Users className="h-4 w-4 mr-2" />
                     <span>{site.manager_name}</span>
-                    {site.construction_manager_phone && (
-                      <span className="ml-2 text-xs">({site.construction_manager_phone})</span>
+                    {((site as any).manager_phone || site.construction_manager_phone) && (
+                      <span className="ml-2 text-xs">
+                        {(site as any).manager_phone || site.construction_manager_phone}
+                      </span>
                     )}
                   </div>
                 )}
@@ -425,7 +446,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                     편집
                   </button>
                 </div>
-                
+
                 <div className="flex space-x-1">
                   <button
                     onClick={() => handleWorkerManagement(site)}
@@ -470,16 +491,16 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   type="text"
                   placeholder="현장명 또는 주소로 검색..."
                   value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
+                  onChange={e => handleSearch(e.target.value)}
                   className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
-            
+
             <div className="flex flex-row gap-2 flex-shrink-0">
               <select
                 value={statusFilter}
-                onChange={(e) => handleStatusFilter(e.target.value as SiteStatus | '')}
+                onChange={e => handleStatusFilter(e.target.value as SiteStatus | '')}
                 className="min-w-[100px] px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               >
                 <option value="">모든 상태</option>
@@ -487,7 +508,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                 <option value="inactive">비활성</option>
                 <option value="completed">완료</option>
               </select>
-              
+
               {/* View Toggle */}
               <div className="flex border border-gray-200 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800">
                 <button
@@ -513,7 +534,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   <List className="h-4 w-4" />
                 </button>
               </div>
-              
+
               <button
                 onClick={handleCreateSite}
                 className="inline-flex items-center whitespace-nowrap px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors flex-shrink-0"
@@ -545,20 +566,20 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   icon: Users,
                   label: '작업자 관리',
                   onClick: handleWorkerManagement,
-                  variant: 'default' as const
+                  variant: 'default' as const,
                 },
                 {
                   icon: FileText,
                   label: '문서 관리',
                   onClick: handleDocumentManagement,
-                  variant: 'default' as const
+                  variant: 'default' as const,
                 },
                 {
                   icon: Activity,
                   label: '통합 보기',
                   onClick: (site: Site) => handleViewIntegrated(site.id),
-                  variant: 'default' as const
-                }
+                  variant: 'default' as const,
+                },
               ]}
               currentPage={currentPage}
               totalPages={totalPages}
@@ -594,11 +615,17 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   <p className="text-sm text-gray-700 dark:text-gray-300">
                     총 <span className="font-medium">{totalCount}</span>개 중{' '}
                     <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span>-
-                    <span className="font-medium">{Math.min(currentPage * pageSize, totalCount)}</span>개 표시
+                    <span className="font-medium">
+                      {Math.min(currentPage * pageSize, totalCount)}
+                    </span>
+                    개 표시
                   </p>
                 </div>
                 <div>
-                  <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
+                  <nav
+                    className="isolate inline-flex -space-x-px rounded-md shadow-sm"
+                    aria-label="Pagination"
+                  >
                     <button
                       onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
                       disabled={currentPage === 1}
@@ -626,10 +653,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                             {page}
                           </button>
                         )
-                      } else if (
-                        page === currentPage - 3 ||
-                        page === currentPage + 3
-                      ) {
+                      } else if (page === currentPage - 3 || page === currentPage + 3) {
                         return (
                           <span
                             key={page}
@@ -673,7 +697,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
               }}
             />
           )}
-          
+
           {showEditModal && editingSite && (
             <SiteCreateEditModal
               isOpen={showEditModal}
@@ -759,9 +783,9 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
     component_name: '',
     manager_name: '',
     safety_manager_name: '',
-    status: 'active'
+    status: 'active',
   })
-  
+
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -787,7 +811,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
         component_name: site.component_name || '',
         manager_name: site.manager_name || '',
         safety_manager_name: site.safety_manager_name || '',
-        status: site.status || 'active'
+        status: site.status || 'active',
       })
     } else {
       // Reset form when creating new site
@@ -807,7 +831,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
         component_name: '',
         manager_name: '',
         safety_manager_name: '',
-        status: 'active'
+        status: 'active',
       })
     }
   }, [site])
@@ -838,10 +862,10 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
           component_name: formData.component_name,
           manager_name: formData.manager_name,
           safety_manager_name: formData.safety_manager_name,
-          status: formData.status
+          status: formData.status,
         }
         result = await updateSite(updateData)
-        
+
         if (result.success) {
           // console.log('Site updated successfully:', result.data)
         }
@@ -883,7 +907,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                   기본 정보
                 </h3>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   현장명 *
@@ -891,7 +915,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
@@ -903,7 +927,9 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 </label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as SiteStatus }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, status: e.target.value as SiteStatus }))
+                  }
                   className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
                   <option value="active">활성</option>
@@ -919,7 +945,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="text"
                   value={formData.address}
-                  onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, address: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
@@ -932,7 +958,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   required
                 />
@@ -945,7 +971,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="date"
                   value={formData.end_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -964,7 +990,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="text"
                   value={formData.manager_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, manager_name: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, manager_name: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -976,7 +1002,9 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="tel"
                   value={formData.construction_manager_phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, construction_manager_phone: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, construction_manager_phone: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -988,7 +1016,9 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="text"
                   value={formData.safety_manager_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, safety_manager_name: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, safety_manager_name: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -1000,7 +1030,9 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="tel"
                   value={formData.safety_manager_phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, safety_manager_phone: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, safety_manager_phone: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
               </div>
@@ -1019,7 +1051,9 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="text"
                   value={formData.accommodation_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, accommodation_name: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, accommodation_name: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   placeholder="숙소 이름"
                 />
@@ -1032,7 +1066,9 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="tel"
                   value={formData.accommodation_phone}
-                  onChange={(e) => setFormData(prev => ({ ...prev, accommodation_phone: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, accommodation_phone: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   placeholder="숙소 전화번호"
                 />
@@ -1045,7 +1081,9 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 <input
                   type="text"
                   value={formData.accommodation_address}
-                  onChange={(e) => setFormData(prev => ({ ...prev, accommodation_address: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, accommodation_address: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   placeholder="숙소 주소"
                 />
@@ -1057,7 +1095,7 @@ function SiteCreateEditModal({ isOpen, onClose, onSuccess, site }: SiteCreateEdi
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 />
