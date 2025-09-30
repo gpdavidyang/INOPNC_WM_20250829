@@ -17,6 +17,8 @@ test-results
 !README.md
 docs
 dy_memo
+!styles/docs
+!styles/docs/**
 
 # Git and CI/CD
 .git
