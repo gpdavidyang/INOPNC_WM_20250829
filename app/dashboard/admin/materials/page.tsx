@@ -11,10 +11,11 @@ import {
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import ShipmentsTable from '@/components/admin/materials/ShipmentsTable'
 import {
-  getMaterials,
   getMaterialRequests,
   getMaterialShipments,
+  getMaterialProductions,
   getNPC1000Summary,
   getNPC1000BySite,
 } from '@/app/actions/admin/materials'
@@ -31,47 +32,51 @@ export default async function AdminMaterialsPage({
   await requireAdminProfile()
 
   const tab = ((searchParams?.tab as string) || 'inventory') as
-    | 'inventory'
-    | 'requests'
-    | 'shipments'
-    | 'npc1000'
+    | 'inventory' // 현장별 재고현황 (NPC-1000)
+    | 'requests' // 입고요청 관리
+    | 'productions' // 생산정보 관리
+    | 'shipments' // 출고배송 관리
   const page = Math.max(1, Number((searchParams?.page as string) || '1') || 1)
-  const limitRaw = Number((searchParams?.limit as string) || '10') || 10
-  const limit = Math.min(50, Math.max(10, limitRaw))
+  // 페이지 크기 고정: 100
+  const limit = 100
   const search = ((searchParams?.search as string) || '').trim()
-  const status = ((searchParams?.status as string) || '').trim()
+  // 상태 개념 미사용(승인/반려 제거)
   const site_id = ((searchParams?.site_id as string) || '').trim()
   const date_from = ((searchParams?.date_from as string) || '').trim() || undefined
   const date_to = ((searchParams?.date_to as string) || '').trim() || undefined
 
-  let inventory: any[] = []
   let requests: any[] = []
   let shipments: any[] = []
+  let productions: any[] = []
   let npcSummary: any | null = null
   let npcSites: any[] = []
   let total = 0
   let pages = 1
 
   if (tab === 'inventory') {
-    const res = await getMaterials(
-      page,
-      limit,
-      search,
-      (status as any) || undefined,
-      site_id || undefined
-    )
-    inventory = res.success && res.data ? (res.data as any).materials : []
+    const [sumRes, siteRes] = await Promise.all([
+      getNPC1000Summary(),
+      getNPC1000BySite(page, limit, search || undefined),
+    ])
+    npcSummary = sumRes.success ? (sumRes.data as any) : null
+    npcSites = siteRes.success && siteRes.data ? (siteRes.data as any).sites : []
+    total = siteRes.success && siteRes.data ? (siteRes.data as any).total : 0
+    pages = siteRes.success && siteRes.data ? (siteRes.data as any).pages : 1
+  } else if (tab === 'requests') {
+    const res = await getMaterialRequests(page, limit, search, undefined, site_id || undefined)
+    requests = res.success && res.data ? (res.data as any).requests : []
     total = res.success && res.data ? (res.data as any).total : 0
     pages = res.success && res.data ? (res.data as any).pages : 1
-  } else if (tab === 'requests') {
-    const res = await getMaterialRequests(
+  } else if (tab === 'productions') {
+    const res = await getMaterialProductions(
       page,
       limit,
-      search,
-      (status as any) || undefined,
-      site_id || undefined
+      site_id || undefined,
+      undefined,
+      date_from,
+      date_to
     )
-    requests = res.success && res.data ? (res.data as any).requests : []
+    productions = res.success && res.data ? (res.data as any).productions : []
     total = res.success && res.data ? (res.data as any).total : 0
     pages = res.success && res.data ? (res.data as any).pages : 1
   } else if (tab === 'shipments') {
@@ -79,7 +84,7 @@ export default async function AdminMaterialsPage({
       page,
       limit,
       site_id || undefined,
-      (status as any) || undefined,
+      undefined,
       date_from,
       date_to
     )
@@ -101,11 +106,10 @@ export default async function AdminMaterialsPage({
     const params = new URLSearchParams()
     params.set('tab', tab)
     if (search) params.set('search', search)
-    if (status) params.set('status', status)
     if (site_id) params.set('site_id', site_id)
     if (date_from) params.set('date_from', date_from)
     if (date_to) params.set('date_to', date_to)
-    params.set('limit', String(limit))
+    // limit 고정(100) → 쿼리 파라미터로 전달하지 않음
     params.set('page', String(page))
     Object.entries(overrides).forEach(([k, v]) => params.set(k, v))
     const qs = params.toString()
@@ -122,10 +126,10 @@ export default async function AdminMaterialsPage({
       {/* Tabs */}
       <div className="mb-4 flex gap-2">
         {[
-          { key: 'inventory', label: '재고' },
-          { key: 'requests', label: '요청' },
-          { key: 'shipments', label: '출고' },
-          { key: 'npc1000', label: 'NPC-1000' },
+          { key: 'inventory', label: '현장별 재고현황' },
+          { key: 'requests', label: '입고요청 관리' },
+          { key: 'productions', label: '생산정보 관리' },
+          { key: 'shipments', label: '출고배송 관리' },
         ].map(t => (
           <Link
             key={t.key}
@@ -152,21 +156,17 @@ export default async function AdminMaterialsPage({
               defaultValue={search}
               placeholder={
                 tab === 'inventory'
-                  ? '자재명/코드'
+                  ? '현장명'
                   : tab === 'requests'
                     ? '요청번호/메모'
-                    : '검색어'
+                    : tab === 'productions'
+                      ? '생산번호/메모'
+                      : '검색어'
               }
             />
           </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">상태</label>
-            <Input name="status" defaultValue={status} placeholder="예: pending/approved" />
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">현장 ID</label>
-            <Input name="site_id" defaultValue={site_id} placeholder="site_id" />
-          </div>
+          {/* 상태 필터 제거 (승인/반려 개념 미사용) */}
+          {/* 현장 ID 필드 제거 */}
           {tab === 'shipments' && (
             <>
               <div>
@@ -179,18 +179,7 @@ export default async function AdminMaterialsPage({
               </div>
             </>
           )}
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">페이지 크기</label>
-            <select
-              name="limit"
-              defaultValue={String(limit)}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
-          </div>
+          {/* 페이지 크기 고정(100) → 선택 필드 제거 */}
           <div className="lg:col-span-2 flex gap-2">
             <Button type="submit" variant="outline">
               적용
@@ -207,150 +196,15 @@ export default async function AdminMaterialsPage({
 
       {/* Tables */}
       {tab === 'inventory' && (
-        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>현장</TableHead>
-                <TableHead>자재</TableHead>
-                <TableHead>코드</TableHead>
-                <TableHead className="text-right">재고</TableHead>
-                <TableHead className="text-right">예약</TableHead>
-                <TableHead className="text-right">가용</TableHead>
-                <TableHead>갱신</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {inventory.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={7}
-                    className="text-center text-sm text-muted-foreground py-10"
-                  >
-                    표시할 재고가 없습니다.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                inventory.map((it: any) => {
-                  const current = Number(it.current_stock || 0)
-                  const reserved = Number(it.reserved_stock || 0)
-                  const available = Math.max(0, current - reserved)
-                  return (
-                    <TableRow key={it.id}>
-                      <TableCell>{it.site?.name || '-'}</TableCell>
-                      <TableCell className="font-medium text-foreground">
-                        {it.material_name || it.materials?.name || 'NPC-1000'}
-                      </TableCell>
-                      <TableCell>{it.material_code || it.materials?.code || '-'}</TableCell>
-                      <TableCell className="text-right">{current.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{reserved.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">{available.toLocaleString()}</TableCell>
-                      <TableCell>
-                        {it.last_updated
-                          ? new Date(it.last_updated).toLocaleDateString('ko-KR')
-                          : '-'}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {tab === 'requests' && (
-        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>요청번호</TableHead>
-                <TableHead>현장</TableHead>
-                <TableHead>요청자</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead>요청일</TableHead>
-                <TableHead>항목수</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {requests.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center text-sm text-muted-foreground py-10"
-                  >
-                    표시할 요청이 없습니다.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                requests.map((rq: any) => (
-                  <TableRow key={rq.id}>
-                    <TableCell className="font-medium text-foreground">
-                      {rq.request_number || rq.id}
-                    </TableCell>
-                    <TableCell>{rq.sites?.name || '-'}</TableCell>
-                    <TableCell>{rq.requester?.full_name || '-'}</TableCell>
-                    <TableCell>{rq.status || '-'}</TableCell>
-                    <TableCell>
-                      {rq.request_date
-                        ? new Date(rq.request_date).toLocaleDateString('ko-KR')
-                        : '-'}
-                    </TableCell>
-                    <TableCell>{(rq.items || rq.material_request_items || []).length}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {tab === 'shipments' && (
-        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>출고번호</TableHead>
-                <TableHead>현장</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead>출고일</TableHead>
-                <TableHead>항목수</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {shipments.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={5}
-                    className="text-center text-sm text-muted-foreground py-10"
-                  >
-                    표시할 출고가 없습니다.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                shipments.map((sp: any) => (
-                  <TableRow key={sp.id}>
-                    <TableCell className="font-medium text-foreground">
-                      {sp.shipment_number || sp.id}
-                    </TableCell>
-                    <TableCell>{sp.sites?.name || '-'}</TableCell>
-                    <TableCell>{sp.status || '-'}</TableCell>
-                    <TableCell>
-                      {sp.shipment_date
-                        ? new Date(sp.shipment_date).toLocaleDateString('ko-KR')
-                        : '-'}
-                    </TableCell>
-                    <TableCell>{(sp.shipment_items || []).length}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {tab === 'npc1000' && (
         <div className="space-y-4">
+          <div className="mb-2 flex justify-end">
+            <a
+              className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+              href={`/api/admin/materials/export?tab=inventory${search ? `&search=${encodeURIComponent(search)}` : ''}`}
+            >
+              엑셀 다운로드
+            </a>
+          </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div className="rounded-lg border p-4 bg-white">
               <div className="text-xs text-gray-500">현장 수</div>
@@ -412,6 +266,123 @@ export default async function AdminMaterialsPage({
           </div>
         </div>
       )}
+
+      {tab === 'requests' && (
+        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+          <div className="mb-2 flex justify-end">
+            <a
+              className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+              href={`/api/admin/materials/export?tab=requests${search ? `&search=${encodeURIComponent(search)}` : ''}`}
+            >
+              엑셀 다운로드
+            </a>
+          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>요청번호</TableHead>
+                <TableHead>현장</TableHead>
+                <TableHead>요청자</TableHead>
+                <TableHead>요청일</TableHead>
+                <TableHead>항목수</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {requests.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={6}
+                    className="text-center text-sm text-muted-foreground py-10"
+                  >
+                    표시할 요청이 없습니다.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                requests.map((rq: any) => (
+                  <TableRow key={rq.id}>
+                    <TableCell className="font-medium text-foreground">
+                      <a
+                        className="underline"
+                        href={`/dashboard/admin/materials/requests/${rq.id}`}
+                      >
+                        {rq.request_number || rq.id}
+                      </a>
+                    </TableCell>
+                    <TableCell>{rq.sites?.name || '-'}</TableCell>
+                    <TableCell>{rq.requester?.full_name || '-'}</TableCell>
+                    <TableCell>
+                      {rq.request_date
+                        ? new Date(rq.request_date).toLocaleDateString('ko-KR')
+                        : '-'}
+                    </TableCell>
+                    <TableCell>{(rq.items || rq.material_request_items || []).length}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {tab === 'productions' && (
+        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>생산번호</TableHead>
+                <TableHead>현장</TableHead>
+                <TableHead className="text-right">수량</TableHead>
+                <TableHead>생산일</TableHead>
+                <TableHead>품질상태</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {productions.length === 0 ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={5}
+                    className="text-center text-sm text-muted-foreground py-10"
+                  >
+                    표시할 생산 정보가 없습니다.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                productions.map((p: any) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium text-foreground">
+                      {p.production_number || p.id}
+                    </TableCell>
+                    <TableCell>{p.sites?.name || '-'}</TableCell>
+                    <TableCell className="text-right">{p.produced_quantity ?? 0}</TableCell>
+                    <TableCell>
+                      {p.production_date
+                        ? new Date(p.production_date).toLocaleDateString('ko-KR')
+                        : '-'}
+                    </TableCell>
+                    <TableCell>{p.quality_status || '-'}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {tab === 'shipments' && (
+        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+          <div className="mb-2 flex justify-end">
+            <a
+              className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+              href={`/api/admin/materials/export?tab=shipments${search ? `&search=${encodeURIComponent(search)}` : ''}`}
+            >
+              엑셀 다운로드
+            </a>
+          </div>
+          <ShipmentsTable shipments={shipments as any} />
+        </div>
+      )}
+
+      {/* NPC-1000 탭은 현장별 재고현황에 통합되어 제거됨 */}
 
       {/* Pagination */}
       <div className="mt-4 flex items-center justify-between">

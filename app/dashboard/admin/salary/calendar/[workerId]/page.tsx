@@ -187,7 +187,7 @@ export default async function AdminWorkerSalaryCalendarPage({
                 <TableRow key={d.date}>
                   <TableCell>{new Date(d.date).toLocaleDateString('ko-KR')}</TableCell>
                   <TableCell className="text-right">{d.hours}</TableCell>
-                  <TableCell className="text-right">{d.labor}</TableCell>
+                  <TableCell className="text-right">{formatManhours(d.labor)}</TableCell>
                   <TableCell className="text-right">₩{d.base_pay.toLocaleString()}</TableCell>
                   <TableCell className="text-right">₩{d.overtime_pay.toLocaleString()}</TableCell>
                   <TableCell className="text-right">₩{d.bonus_pay.toLocaleString()}</TableCell>
@@ -201,4 +201,11 @@ export default async function AdminWorkerSalaryCalendarPage({
       </div>
     </div>
   )
+}
+
+function formatManhours(v: unknown): string {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return '0.0'
+  const floored = Math.floor(n * 10) / 10
+  return floored.toFixed(1)
 }
