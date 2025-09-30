@@ -1,14 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import RequiredDocumentsTable from '@/components/admin/RequiredDocumentsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -44,47 +37,7 @@ export default async function AdminRequiredDocumentsPage() {
       </div>
 
       <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>제출일</TableHead>
-              <TableHead>문서명</TableHead>
-              <TableHead>유형</TableHead>
-              <TableHead>제출자</TableHead>
-              <TableHead>상태</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {docs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
-                  표시할 문서가 없습니다.
-                </TableCell>
-              </TableRow>
-            ) : (
-              docs.map((d: any) => (
-                <TableRow key={d.id}>
-                  <TableCell>
-                    {d.submission_date
-                      ? new Date(d.submission_date).toLocaleDateString('ko-KR')
-                      : '-'}
-                  </TableCell>
-                  <TableCell className="font-medium text-foreground">{d.title || '-'}</TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/dashboard/admin/documents/required/${encodeURIComponent(d.document_type || 'unknown')}`}
-                      className="underline text-blue-600"
-                    >
-                      {d.document_type || 'unknown'}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{d.submitted_by?.full_name || d.submitted_by?.email || '-'}</TableCell>
-                  <TableCell>{d.status || '-'}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <RequiredDocumentsTable docs={docs} />
       </div>
     </div>
   )

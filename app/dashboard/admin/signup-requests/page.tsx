@@ -3,14 +3,7 @@ import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getSignupRequests, getSignupRequestStats } from '@/app/actions/admin/signup-approvals'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import SignupRequestsTable from '@/components/admin/SignupRequestsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -90,43 +83,7 @@ export default async function AdminSignupRequestsPage({
             </form>
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>요청일</TableHead>
-                  <TableHead>이름</TableHead>
-                  <TableHead>이메일</TableHead>
-                  <TableHead>회사</TableHead>
-                  <TableHead>역할</TableHead>
-                  <TableHead>상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!Array.isArray(requests) || requests.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      표시할 요청이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  requests.map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell>
-                        {r.requested_at ? new Date(r.requested_at).toLocaleString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell>{r.full_name || '-'}</TableCell>
-                      <TableCell>{r.email || '-'}</TableCell>
-                      <TableCell>{r.company_name || '-'}</TableCell>
-                      <TableCell>{r.requested_role || '-'}</TableCell>
-                      <TableCell>{r.status || '-'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <SignupRequestsTable requests={Array.isArray(requests) ? requests : []} />
           </div>
         </CardContent>
       </Card>

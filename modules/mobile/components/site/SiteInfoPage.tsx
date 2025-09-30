@@ -772,6 +772,19 @@ export default function SiteInfoPage() {
     window.location.href = '/mobile/worklog'
   }
 
+  // If navigated with #npc-inventory-section, ensure section is focused/visible after mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const hash = window.location.hash
+    if (hash === '#npc-inventory-section') {
+      // Defer to allow content render
+      setTimeout(() => {
+        const el = document.getElementById('npc-inventory-section')
+        el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 50)
+    }
+  }, [])
+
   const handleSiteSelection = async (siteId: string) => {
     if (!siteId) return
     if (siteId === currentSite?.id) {
@@ -3599,7 +3612,12 @@ export default function SiteInfoPage() {
         )}
       </section>
 
-      <section className="npc-card-section" role="region" aria-label="NPC-1000 재고관리">
+      <section
+        id="npc-inventory-section"
+        className="npc-card-section"
+        role="region"
+        aria-label="NPC-1000 재고관리"
+      >
         <div className="npc-card">
           <div className="npc-header">
             <div className="npc-title">NPC-1000 재고관리</div>

@@ -1,14 +1,7 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import MyDocumentsTable from '@/components/admin/MyDocumentsTable'
 
 export const metadata: Metadata = {
   title: '내 문서 관리',
@@ -35,36 +28,7 @@ export default async function AdminMyDocumentsPage() {
       </div>
 
       <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>등록일</TableHead>
-              <TableHead>문서명</TableHead>
-              <TableHead>유형</TableHead>
-              <TableHead>현장</TableHead>
-              <TableHead>상태</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {docs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
-                  표시할 문서가 없습니다.
-                </TableCell>
-              </TableRow>
-            ) : (
-              docs.map((d: any) => (
-                <TableRow key={d.id}>
-                  <TableCell>{new Date(d.created_at).toLocaleDateString('ko-KR')}</TableCell>
-                  <TableCell className="font-medium text-foreground">{d.title || '-'}</TableCell>
-                  <TableCell>{d.category_type || '-'}</TableCell>
-                  <TableCell>{d.site?.name || '-'}</TableCell>
-                  <TableCell>{d.status || '-'}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <MyDocumentsTable docs={docs} />
       </div>
     </div>
   )

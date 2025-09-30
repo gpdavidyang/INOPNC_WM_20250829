@@ -4,14 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getSiteAssignments } from '@/app/actions/admin/sites'
 import { getMaterialRequests } from '@/app/actions/admin/materials'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import SiteDetailTabs from '@/components/admin/sites/SiteDetailTabs'
 
 export const metadata: Metadata = { title: '현장 상세' }
 
@@ -61,206 +54,15 @@ export default async function AdminSiteDetailPage({ params }: SitePageProps) {
           <CardTitle>{site?.name || '-'}</CardTitle>
           <CardDescription>{site?.address || '-'}</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-muted-foreground">
-          <div>
-            <div className="text-xs">상태</div>
-            <div className="text-foreground font-medium">{site?.status || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">기간</div>
-            <div>
-              {site?.start_date ? new Date(site.start_date).toLocaleDateString('ko-KR') : '-'} ~{' '}
-              {site?.end_date ? new Date(site.end_date).toLocaleDateString('ko-KR') : '-'}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs">현장관리자</div>
-            <div>{site?.manager_name || '-'}</div>
-          </div>
-          <div>
-            <div className="text-xs">안전관리자</div>
-            <div>{site?.safety_manager_name || '-'}</div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>최근 문서</CardTitle>
-          <CardDescription>최신 10개</CardDescription>
-        </CardHeader>
         <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>등록일</TableHead>
-                  <TableHead>제목</TableHead>
-                  <TableHead>유형</TableHead>
-                  <TableHead>상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!Array.isArray(docs) || docs.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      표시할 문서가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  docs.map((d: any) => (
-                    <TableRow key={d.id}>
-                      <TableCell>{new Date(d.created_at).toLocaleDateString('ko-KR')}</TableCell>
-                      <TableCell className="font-medium text-foreground">
-                        {d.title || '-'}
-                      </TableCell>
-                      <TableCell>{d.category_type || '-'}</TableCell>
-                      <TableCell>{d.status || '-'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>최근 작업일지</CardTitle>
-          <CardDescription>최신 10개</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>일자</TableHead>
-                  <TableHead>작성자</TableHead>
-                  <TableHead>상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!Array.isArray(reports) || reports.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      표시할 작업일지가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  reports.map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell>
-                        {r.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell>{r.profiles?.full_name || '-'}</TableCell>
-                      <TableCell>{r.status || '-'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>배정 사용자</CardTitle>
-          <CardDescription>활성 배정</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>이름</TableHead>
-                  <TableHead>역할</TableHead>
-                  <TableHead>배정일</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assignments.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="text-center text-sm text-muted-foreground py-10"
-                    >
-                      배정된 사용자가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  assignments.map((a: any) => (
-                    <TableRow key={a.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {a.profile?.full_name || a.user_id}
-                      </TableCell>
-                      <TableCell>{a.role || '-'}</TableCell>
-                      <TableCell>
-                        {a.assigned_date
-                          ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
-                          : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>최근 자재 요청</CardTitle>
-          <CardDescription>최신 5개</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>요청번호</TableHead>
-                  <TableHead>요청자</TableHead>
-                  <TableHead>상태</TableHead>
-                  <TableHead>요청일</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-10"
-                    >
-                      요청 내역이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  requests.map((rq: any) => (
-                    <TableRow key={rq.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {rq.request_number || rq.id}
-                      </TableCell>
-                      <TableCell>{rq.requester?.full_name || '-'}</TableCell>
-                      <TableCell>{rq.status || '-'}</TableCell>
-                      <TableCell>
-                        {rq.request_date
-                          ? new Date(rq.request_date).toLocaleDateString('ko-KR')
-                          : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <SiteDetailTabs
+            siteId={params.id}
+            site={site}
+            initialDocs={Array.isArray(docs) ? docs : []}
+            initialReports={Array.isArray(reports) ? reports : []}
+            initialAssignments={assignments}
+            initialRequests={requests}
+          />
         </CardContent>
       </Card>
     </div>

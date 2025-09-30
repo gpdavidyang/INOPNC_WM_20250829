@@ -1,14 +1,7 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import WorkOptionsTable from '@/components/admin/WorkOptionsTable'
 import WorkOptionsEditor from '@/components/admin/work-options/WorkOptionsEditor'
 
 export const metadata: Metadata = {
@@ -42,39 +35,7 @@ export default async function WorkOptionsPage() {
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>값</TableHead>
-                  <TableHead>라벨</TableHead>
-                  <TableHead>정렬</TableHead>
-                  <TableHead>활성</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {components.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      등록된 옵션이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  components.map((o: any) => (
-                    <TableRow key={o.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {o.option_value}
-                      </TableCell>
-                      <TableCell>{o.option_label}</TableCell>
-                      <TableCell>{o.display_order ?? 0}</TableCell>
-                      <TableCell>{o.is_active ? '활성' : '비활성'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <WorkOptionsTable items={components} />
           </div>
         </CardContent>
       </Card>
@@ -86,39 +47,7 @@ export default async function WorkOptionsPage() {
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>값</TableHead>
-                  <TableHead>라벨</TableHead>
-                  <TableHead>정렬</TableHead>
-                  <TableHead>활성</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {processes.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      등록된 옵션이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  processes.map((o: any) => (
-                    <TableRow key={o.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {o.option_value}
-                      </TableCell>
-                      <TableCell>{o.option_label}</TableCell>
-                      <TableCell>{o.display_order ?? 0}</TableCell>
-                      <TableCell>{o.is_active ? '활성' : '비활성'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <WorkOptionsTable items={processes} />
           </div>
         </CardContent>
       </Card>

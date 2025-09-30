@@ -2,14 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import AnnounceTable from '@/components/admin/AnnounceTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import AnnouncementCreateForm from '@/components/admin/communication/AnnouncementCreateForm'
@@ -91,48 +84,7 @@ export default async function CommunicationManagementPage({
               알림 이력 보기
             </Link>
           </div>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>게시일</TableHead>
-                  <TableHead>제목</TableHead>
-                  <TableHead>대상 역할</TableHead>
-                  <TableHead>상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {announcements.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-10"
-                    >
-                      표시할 공지가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  announcements.map((a: any) => (
-                    <TableRow key={a.id}>
-                      <TableCell>
-                        {a.created_at ? new Date(a.created_at).toLocaleString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell className="font-medium text-foreground">
-                        {a.title || '-'}
-                      </TableCell>
-                      <TableCell
-                        className="truncate max-w-[320px]"
-                        title={(a.target_roles || []).join(', ')}
-                      >
-                        {(a.target_roles || []).join(', ') || '-'}
-                      </TableCell>
-                      <TableCell>{a.is_active ? '활성' : '비활성'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <AnnounceTable announcements={announcements} />
         </CardContent>
       </Card>
     </div>

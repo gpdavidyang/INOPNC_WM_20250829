@@ -2,14 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import PhotoGridReportsTable from '@/components/admin/PhotoGridReportsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { formatBytes } from '@/lib/utils'
@@ -147,63 +140,7 @@ export default async function AdminPhotoGridDocumentsPage({
       </div>
 
       <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>생성일</TableHead>
-              <TableHead>제목</TableHead>
-              <TableHead>현장</TableHead>
-              <TableHead>파일</TableHead>
-              <TableHead>생성자</TableHead>
-              <TableHead>동작</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reports.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">
-                  표시할 문서가 없습니다.
-                </TableCell>
-              </TableRow>
-            ) : (
-              reports.map((r: any) => (
-                <TableRow key={r.id}>
-                  <TableCell>{new Date(r.created_at).toLocaleString('ko-KR')}</TableCell>
-                  <TableCell className="font-medium text-foreground">{r.title || '-'}</TableCell>
-                  <TableCell>{r.daily_report?.site?.name || '-'}</TableCell>
-                  <TableCell title={r.file_name || ''}>
-                    {r.file_size ? formatBytes(r.file_size) : '-'}
-                  </TableCell>
-                  <TableCell>
-                    {r.generated_by_profile?.full_name || r.generated_by_profile?.email || '-'}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      {r.file_url ? (
-                        <a
-                          href={r.file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="underline text-blue-600"
-                        >
-                          다운로드
-                        </a>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                      <Link
-                        href={`/dashboard/admin/tools/photo-grids/preview/${r.id}`}
-                        className="underline text-blue-600"
-                      >
-                        미리보기
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <PhotoGridReportsTable reports={reports} />
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
             {total}건 중 {(page - 1) * limit + Math.min(1, total)}–{Math.min(page * limit, total)}{' '}
