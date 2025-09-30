@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Building2, MapPin, RefreshCw, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -24,7 +25,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type { Site, SiteStatus } from '@/types'
-import { SiteDetailSheet, type SiteAssignmentSummary } from './SiteDetailSheet'
+// Detail view moved to dedicated page: /dashboard/admin/sites/[id]
 
 interface SitesContentProps {
   initialSites: Site[]
@@ -83,9 +84,7 @@ export function SitesContent({
   const [searchInput, setSearchInput] = useState('')
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('all')
 
-  const [selectedSite, setSelectedSite] = useState<Site | null>(null)
-  const [assignments, setAssignments] = useState<SiteAssignmentSummary[]>([])
-  const [detailLoading, setDetailLoading] = useState(false)
+  const router = useRouter()
 
   const activeCount = useMemo(() => sites.filter(site => site.status === 'active').length, [sites])
 
@@ -149,44 +148,12 @@ export function SitesContent({
     fetchSites(1, { search: '', status: 'all' })
   }, [fetchSites])
 
-  const fetchAssignments = useCallback(async (site: Site) => {
-    setDetailLoading(true)
-    setSelectedSite(site)
-    try {
-      const url = `${assignmentsBaseUrl}/${site.id}/assignments`
-      const response = await fetch(url, { cache: 'no-store' })
-      const payload = await response.json()
-
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || '배정 정보를 불러오지 못했습니다.')
-      }
-
-      const normalized: SiteAssignmentSummary[] = (payload.data || []).map((item: any) => ({
-        id: item.id,
-        user_id: item.user_id || item.profile?.id,
-        user_name: item.profile?.full_name || '이름 미등록',
-        user_role: item.profile?.role || item.role || '작업자',
-        user_email: item.profile?.email,
-        user_phone: item.profile?.phone,
-        assigned_at: item.assigned_date || item.assigned_at,
-        is_active: item.is_active,
-      }))
-
-      setAssignments(normalized)
-    } catch (err) {
-      console.error('Failed to load site assignments', err)
-      setAssignments([])
-      setError(err instanceof Error ? err.message : '배정 정보를 불러오지 못했습니다.')
-    } finally {
-      setDetailLoading(false)
-    }
-  }, [])
-
-  const handleCloseDetail = useCallback(() => {
-    setSelectedSite(null)
-    setAssignments([])
-    setDetailLoading(false)
-  }, [])
+  const goToDetail = useCallback(
+    (site: Site) => {
+      router.push(`/dashboard/admin/sites/${site.id}`)
+    },
+    [router]
+  )
 
   return (
     <div className="space-y-6">
@@ -309,7 +276,7 @@ export function SitesContent({
                     <TableRow
                       key={site.id}
                       className="cursor-pointer"
-                      onClick={() => fetchAssignments(site)}
+                      onClick={() => goToDetail(site)}
                     >
                       <TableCell>
                         <div className="font-medium text-foreground">{site.name}</div>
@@ -333,14 +300,12 @@ export function SitesContent({
                       <TableCell>{site.construction_manager_phone || '-'}</TableCell>
                       <TableCell className="text-right">
                         <Button
+                          asChild
                           variant="ghost"
                           size="sm"
-                          onClick={event => {
-                            event.stopPropagation()
-                            fetchAssignments(site)
-                          }}
+                          onClick={event => event.stopPropagation()}
                         >
-                          상세 보기
+                          <a href={`/dashboard/admin/sites/${site.id}`}>상세 보기</a>
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -379,17 +344,7 @@ export function SitesContent({
         </div>
       </section>
 
-      <SiteDetailSheet
-        open={Boolean(selectedSite)}
-        onOpenChange={open => {
-          if (!open) {
-            handleCloseDetail()
-          }
-        }}
-        site={selectedSite}
-        assignments={assignments}
-        loading={detailLoading}
-      />
+      {null}
     </div>
   )
 }

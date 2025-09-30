@@ -2,14 +2,7 @@ import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import NotificationsTable from '@/components/admin/NotificationsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -79,47 +72,7 @@ export default async function NotificationCenterPage({
               </Button>
             </form>
           </div>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>시간</TableHead>
-                  <TableHead>유형</TableHead>
-                  <TableHead>제목</TableHead>
-                  <TableHead>상태</TableHead>
-                  <TableHead>대상</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      표시할 알림이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  logs.map((n: any) => (
-                    <TableRow key={n.id}>
-                      <TableCell>
-                        {n.sent_at ? new Date(n.sent_at).toLocaleString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell>{n.notification_type || '-'}</TableCell>
-                      <TableCell className="truncate max-w-[320px]" title={n.title || n.body || ''}>
-                        {n.title || n.body || '-'}
-                      </TableCell>
-                      <TableCell>{n.status || '-'}</TableCell>
-                      <TableCell className="truncate max-w-[220px]" title={n.user_id || ''}>
-                        {n.user_id || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <NotificationsTable logs={logs} />
         </CardContent>
       </Card>
     </div>

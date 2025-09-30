@@ -522,6 +522,10 @@ function DrawingsTab() {
   const [queue, setQueue] = useState<
     Array<{ file: File; siteId: string; category: 'plan' | 'progress' | 'other' }>
   >([])
+  // Partner UX: restrict by allowed sites and auto-select first
+  const [isRestricted, setIsRestricted] = useState(false)
+  const [orgId, setOrgId] = useState<string | null>(null)
+  const [authLoaded, setAuthLoaded] = useState(false)
 
   const fetchList = async () => {
     setLoading(true)
@@ -617,20 +621,73 @@ function DrawingsTab() {
 
   useEffect(() => {
     fetchList()
-  }, [site, category, page])
+  }, [site, category, page, isRestricted])
+
+  // Load auth to determine partner restriction and fetch allowed sites accordingly
   useEffect(() => {
     ;(async () => {
-      const res = await fetch('/api/mobile/sites/list', { cache: 'no-store' })
-      const json = await res.json().catch(() => ({}))
-      if (res.ok && json?.success)
-        setSiteOptions(
-          (json.data || []).map((s: any) => ({ id: String(s.id), name: String(s.name) }))
-        )
+      try {
+        const meRes = await fetch('/api/auth/me', { cache: 'no-store', credentials: 'include' })
+        const me = await meRes.json().catch(() => ({}))
+        const restricted = Boolean(me?.isRestricted)
+        setIsRestricted(restricted)
+        setOrgId(me?.restrictedOrgId || null)
+
+        // Fetch site options
+        if (restricted && me?.restrictedOrgId) {
+          // Partner-only sites
+          const r = await fetch(
+            `/api/sites/by-partner?partner_company_id=${encodeURIComponent(me.restrictedOrgId)}`,
+            { cache: 'no-store', credentials: 'include' }
+          )
+          const list = await r.json().catch(() => [])
+          const opts: Array<{ id: string; name: string }> = Array.isArray(list)
+            ? list.map((s: any) => ({ id: String(s.id), name: String(s.name || '현장') }))
+            : []
+          setSiteOptions(opts)
+          // Auto-select first allowed site for partner users
+          if (!site && opts.length > 0) setSite(opts[0].id)
+        } else {
+          // All sites for non-restricted users
+          const r = await fetch('/api/mobile/sites/list', { cache: 'no-store' })
+          const j = await r.json().catch(() => ({}))
+          if (r.ok && j?.success) {
+            const opts = (j.data || []).map((s: any) => ({
+              id: String(s.id),
+              name: String(s.name),
+            }))
+            setSiteOptions(opts)
+          }
+        }
+      } finally {
+        setAuthLoaded(true)
+      }
     })()
   }, [])
 
   return (
     <div>
+      {/* Partner UX guidance */}
+      {authLoaded && isRestricted && siteOptions.length === 0 && (
+        <div className="doc-selection-card" style={{ marginBottom: 8 }}>
+          <div className="doc-selection-content">
+            <div className="doc-selection-title">할당된 현장이 없습니다</div>
+            <div style={{ fontSize: 12, color: '#6B7280' }}>
+              관리자에게 파트너사-현장 매핑을 요청해 주세요.
+            </div>
+          </div>
+        </div>
+      )}
+      {authLoaded && isRestricted && !site && siteOptions.length > 0 && (
+        <div className="doc-selection-card" style={{ marginBottom: 8 }}>
+          <div className="doc-selection-content">
+            <div className="doc-selection-title">현장을 먼저 선택하세요</div>
+            <div style={{ fontSize: 12, color: '#6B7280' }}>
+              파트너 사용자는 배정된 현장 선택 후 도면을 조회할 수 있습니다.
+            </div>
+          </div>
+        </div>
+      )}
       <div className="filters">
         <select className="select" value={site} onChange={e => setSite(e.target.value)}>
           <option value="">현장 전체</option>
@@ -754,10 +811,33 @@ function DrawingsTab() {
                     const url = it.url
                     if (!url) return
                     try {
-                      const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
-                      const j = await r.json()
-                      window.open(j?.url || url, '_blank')
+                      // Get signed/final URL
+                      let finalUrl = url
+                      try {
+                        const r = await fetch(
+                          `/api/files/signed-url?url=${encodeURIComponent(url)}`
+                        )
+                        const j = await r.json()
+                        finalUrl = j?.url || url
+                      } catch {
+                        void 0
+                      }
+                      // Check existence to avoid opening 404 tabs
+                      try {
+                        const chk = await fetch(
+                          `/api/files/check?url=${encodeURIComponent(finalUrl)}`
+                        )
+                        const cj = await chk.json().catch(() => ({}))
+                        if (!cj?.exists) {
+                          alert('파일을 찾을 수 없습니다. 관리자에게 재업로드를 요청해 주세요.')
+                          return
+                        }
+                      } catch {
+                        void 0
+                      }
+                      window.open(finalUrl, '_blank')
                     } catch {
+                      // Last resort
                       window.open(url, '_blank')
                     }
                   }}

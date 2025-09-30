@@ -3,14 +3,7 @@ import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getAuditLogs } from '@/app/actions/admin/system'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import AuditLogsTable from '@/components/admin/AuditLogsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -135,51 +128,7 @@ export default async function AuditLogsPage({
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border bg-card overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>시간</TableHead>
-                  <TableHead>작업</TableHead>
-                  <TableHead>테이블</TableHead>
-                  <TableHead>레코드 ID</TableHead>
-                  <TableHead>사용자</TableHead>
-                  <TableHead>IP</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={6}
-                      className="text-center text-sm text-muted-foreground py-10"
-                    >
-                      표시할 감사 로그가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  logs.map((log: any) => (
-                    <TableRow key={log.id}>
-                      <TableCell>{new Date(log.timestamp).toLocaleString('ko-KR')}</TableCell>
-                      <TableCell className="font-medium">{log.action}</TableCell>
-                      <TableCell>{log.table_name}</TableCell>
-                      <TableCell className="truncate max-w-[200px]" title={log.record_id || ''}>
-                        {log.record_id || '-'}
-                      </TableCell>
-                      <TableCell>
-                        {log.user ? (
-                          <span className="truncate max-w-[240px] inline-block">
-                            {log.user.full_name || log.user.email || '-'}
-                          </span>
-                        ) : (
-                          '-'
-                        )}
-                      </TableCell>
-                      <TableCell>{log.ip_address || '-'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <AuditLogsTable logs={logs} />
           </div>
 
           <div className="mt-4 flex items-center justify-between">

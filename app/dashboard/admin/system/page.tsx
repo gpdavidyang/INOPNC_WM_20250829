@@ -2,14 +2,7 @@ import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getSystemStats, getSystemConfigurations } from '@/app/actions/admin/system'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import SystemConfigsTable from '@/components/admin/SystemConfigsTable'
 import { Badge } from '@/components/ui/badge'
 import { formatBytes } from '@/lib/utils'
 
@@ -159,53 +152,7 @@ export default async function SystemManagementPage() {
             읽기 전용으로 일부 설정 항목을 표시합니다.
           </p>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>카테고리</TableHead>
-              <TableHead>키</TableHead>
-              <TableHead>값</TableHead>
-              <TableHead>공개</TableHead>
-              <TableHead>수정일</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {configs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-10">
-                  표시할 설정이 없습니다.
-                </TableCell>
-              </TableRow>
-            ) : (
-              configs.slice(0, 20).map((c: any) => (
-                <TableRow key={`${c.category}:${c.setting_key}`}>
-                  <TableCell className="font-medium">{c.category}</TableCell>
-                  <TableCell>{c.setting_key}</TableCell>
-                  <TableCell
-                    className="max-w-[420px] truncate"
-                    title={
-                      typeof c.setting_value === 'object'
-                        ? JSON.stringify(c.setting_value)
-                        : String(c.setting_value)
-                    }
-                  >
-                    {typeof c.setting_value === 'object'
-                      ? JSON.stringify(c.setting_value)
-                      : String(c.setting_value)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={c.is_public ? 'outline' : 'outline'}>
-                      {c.is_public ? '공개' : '비공개'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(c.updated_at || c.created_at).toLocaleDateString('ko-KR')}
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <SystemConfigsTable configs={configs.slice(0, 20)} />
       </div>
     </div>
   )
