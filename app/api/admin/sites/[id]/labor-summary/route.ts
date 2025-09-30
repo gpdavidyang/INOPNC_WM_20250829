@@ -26,13 +26,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       }
     })()
 
-    const base = supabase
-      .from('work_records')
-      .select('user_id, profile_id, labor_hours')
-      .eq('site_id', siteId)
-
-    let data: any[] | null = null
-    let error: any = null
+    let query = supabase.from('work_records').select('user_id, labor_hours').eq('site_id', siteId)
 
     const usersParamRaw = usersParam
       ?.split(',')
@@ -40,18 +34,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .filter(Boolean)
 
     if (usersParamRaw && usersParamRaw.length > 0) {
-      // Fetch by user_id and profile_id separately, then merge
-      const [{ data: d1, error: e1 }, { data: d2, error: e2 }] = await Promise.all([
-        base.in('user_id', usersParamRaw),
-        base.in('profile_id', usersParamRaw),
-      ])
-      error = e1 || e2 || null
-      data = [...(d1 || []), ...(d2 || [])]
-    } else {
-      const res = await base
-      data = res.data || []
-      error = res.error
+      query = query.in('user_id', usersParamRaw)
     }
+
+    const { data, error } = await query
     if (error) {
       console.error('Labor summary query error:', error)
       return NextResponse.json({ success: false, error: 'Query failed' }, { status: 500 })
@@ -59,7 +45,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const map: Record<string, number> = {}
     for (const r of data || []) {
-      const key = r.user_id || r.profile_id
+      const key = r.user_id
       if (!key) continue
       const v = Number(r.labor_hours) || 0
       map[key] = (map[key] || 0) + v

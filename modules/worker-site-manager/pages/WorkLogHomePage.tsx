@@ -624,7 +624,7 @@ export const WorkLogHomePage: React.FC = () => {
             --shadow: 0 6px 20px rgba(16, 24, 40, 0.06);
           }
 
-          .dark {
+          [data-theme='dark'] {
             --bg: #0f172a;
             --card: #1e293b;
             --text: #f1f5f9;

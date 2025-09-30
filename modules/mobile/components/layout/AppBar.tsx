@@ -7,6 +7,7 @@ import { NotificationModal } from '../notifications/NotificationModal'
 import { SearchPage } from './SearchPage'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/hooks/use-user'
+import { useFontSize } from '@/contexts/FontSizeContext'
 
 interface AppBarProps {
   onMenuClick?: () => void
@@ -15,13 +16,13 @@ interface AppBarProps {
 
 export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
-  const [fontSize, setFontSize] = useState<'normal' | 'large'>('normal')
   const [notificationCount, setNotificationCount] = useState(0)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
   // Drawer state is now managed by MobileLayout
   const [showSearchPage, setShowSearchPage] = useState(false)
   const { user } = useUser()
   const supabase = createClient()
+  const { isLargeFont, toggleFontSize } = useFontSize()
 
   // Fetch notification count function
   const fetchNotificationCount = useCallback(async () => {
@@ -61,20 +62,9 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
   // Initialize theme from localStorage
   useEffect(() => {
     const savedTheme = (localStorage.getItem('inopnc_theme') as 'light' | 'dark') || 'light'
-    const savedFontSize =
-      (localStorage.getItem('inopnc_font_size') as 'normal' | 'large') || 'normal'
-
     setTheme(savedTheme)
-    setFontSize(savedFontSize)
 
     document.documentElement.setAttribute('data-theme', savedTheme)
-
-    // Apply font size class to main content container instead of body
-    const mainContainer = document.querySelector('main.container')
-    if (mainContainer) {
-      mainContainer.classList.remove('fs-100', 'fs-150')
-      mainContainer.classList.add(savedFontSize === 'normal' ? 'fs-100' : 'fs-150')
-    }
   }, [])
 
   // Fetch notification count
@@ -91,19 +81,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
     localStorage.setItem('inopnc_theme', newTheme)
   }
 
-  const toggleFontSize = () => {
-    const newSize = fontSize === 'normal' ? 'large' : 'normal'
-    setFontSize(newSize)
-
-    // Apply font size class to main content container instead of body
-    const mainContainer = document.querySelector('main.container')
-    if (mainContainer) {
-      mainContainer.classList.remove('fs-100', 'fs-150')
-      mainContainer.classList.add(newSize === 'normal' ? 'fs-100' : 'fs-150')
-    }
-
-    localStorage.setItem('inopnc_font_size', newSize)
-  }
+  // Font size toggle is handled by FontSizeContext (applies .large-font-mode)
 
   return (
     <header className="app-header">
@@ -154,7 +132,7 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
           >
             <Type className="w-5 h-5" />
             <span className="icon-text" id="fontSizeText">
-              {fontSize === 'normal' ? '작은글씨' : '큰글씨'}
+              {isLargeFont ? '큰글씨' : '작은글씨'}
             </span>
           </button>
 
