@@ -336,11 +336,7 @@ export function PartnerSitesContent({
                           {formatDate(site.start_date)} ~ {formatDate(site.end_date)}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {(site as any).manager_name ||
-                          (site as any).construction_manager_name ||
-                          '미지정'}
-                      </TableCell>
+                      <TableCell>{(site as any).manager_name || '미지정'}</TableCell>
                       <TableCell>{(site as any).construction_manager_phone || '-'}</TableCell>
                       <TableCell className="text-right">
                         <Button

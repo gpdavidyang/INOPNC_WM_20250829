@@ -242,7 +242,7 @@ export function SitesContent({
         key: 'manager_name',
         header: '관리자',
         sortable: true,
-        render: s => s.manager_name || s.construction_manager_name || '미지정',
+        render: s => s.manager_name || '미지정',
       },
       {
         key: 'construction_manager_phone',
