@@ -65,7 +65,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       `
       )
       .eq('site_id', siteId)
-      .eq('is_active', true)
+      .or('is_active.is.true,is_active.is.null')
 
     if (error) {
       console.error('[partner/sites/:id/assignments] query error:', error)

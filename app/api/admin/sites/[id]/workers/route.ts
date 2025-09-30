@@ -4,10 +4,7 @@ import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
@@ -48,7 +45,9 @@ export async function GET(
         if (profileFetchError) {
           console.error('Profile fetch error:', profileFetchError)
         }
-        console.log(`Access denied for user ${userId}: site_id=${userProfile?.site_id}, target=${params.id}, role=${role}, assignment=${!!siteAccess}`)
+        console.log(
+          `Access denied for user ${userId}: site_id=${userProfile?.site_id}, target=${params.id}, role=${role}, assignment=${!!siteAccess}`
+        )
         return NextResponse.json({ error: 'Site access denied' }, { status: 403 })
       }
     }
@@ -58,7 +57,8 @@ export async function GET(
     // Get workers assigned to this site
     const { data: assignments, error: assignmentsError } = await supabase
       .from('site_assignments')
-      .select(`
+      .select(
+        `
         id,
         user_id,
         site_id,
@@ -66,9 +66,10 @@ export async function GET(
         role,
         is_active,
         created_at
-      `)
+      `
+      )
       .eq('site_id', siteId)
-      .eq('is_active', true)
+      .or('is_active.is.true,is_active.is.null')
       .order('created_at', { ascending: false })
 
     // Log for debugging if needed
@@ -84,38 +85,40 @@ export async function GET(
     // Get worker details from profiles table
     const workerIds = assignments?.map((a: unknown) => a.user_id) || []
     let workers = []
-    
-    
+
     if (workerIds.length > 0) {
       const { data: userDetails, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, email, phone, role, company')
         .in('id', workerIds)
-      
+
       if (process.env.NODE_ENV === 'development' && profilesError) {
         console.error('Error fetching user profiles:', profilesError)
       }
-      
+
       // Remove duplicates and prioritize higher-level roles
       const workerMap = new Map()
-      
+
       assignments?.forEach((assignment: unknown) => {
         const user = userDetails?.find((u: unknown) => u.id === assignment.user_id)
         const finalRole = user?.role || assignment.role || 'worker'
-        
-        
+
         const existingWorker = workerMap.get(assignment.user_id)
-        
+
         // Role priority: admin > site_manager > worker
         const rolePriority = (role: string) => {
-          switch(role) {
-            case 'admin': return 3
-            case 'site_manager': return 2
-            case 'worker': return 1
-            default: return 0
+          switch (role) {
+            case 'admin':
+              return 3
+            case 'site_manager':
+              return 2
+            case 'worker':
+              return 1
+            default:
+              return 0
           }
         }
-        
+
         const worker = {
           id: assignment.user_id,
           full_name: user?.full_name || 'Unknown',
@@ -126,47 +129,48 @@ export async function GET(
           trade: '', // site_assignments doesn't have trade info
           position: '', // site_assignments doesn't have position info
           assigned_at: assignment.assigned_date,
-          assignment_id: assignment.id
+          assignment_id: assignment.id,
         }
-        
+
         // Only add if this is a new user or if they have a higher priority role
         if (!existingWorker || rolePriority(finalRole) > rolePriority(existingWorker.role)) {
           workerMap.set(assignment.user_id, worker)
         }
       })
-      
+
       workers = Array.from(workerMap.values())
     }
-
 
     // Get statistics
     const statistics = {
       total_workers: workers.length,
-      by_role: workers.reduce((acc, worker) => {
-        const role = worker.role || 'unknown'
-        acc[role] = (acc[role] || 0) + 1
-        return acc
-      }, {} as Record<string, number>),
-      by_trade: workers.reduce((acc, worker) => {
-        if (worker.trade) {
-          acc[worker.trade] = (acc[worker.trade] || 0) + 1
-        }
-        return acc
-      }, {} as Record<string, number>)
+      by_role: workers.reduce(
+        (acc, worker) => {
+          const role = worker.role || 'unknown'
+          acc[role] = (acc[role] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>
+      ),
+      by_trade: workers.reduce(
+        (acc, worker) => {
+          if (worker.trade) {
+            acc[worker.trade] = (acc[worker.trade] || 0) + 1
+          }
+          return acc
+        },
+        {} as Record<string, number>
+      ),
     }
 
     return NextResponse.json({
       success: true,
       data: workers,
       statistics,
-      site_id: siteId
+      site_id: siteId,
     })
-
   } catch (error) {
     console.error('API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

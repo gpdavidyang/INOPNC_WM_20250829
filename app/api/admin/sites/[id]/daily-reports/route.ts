@@ -36,6 +36,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .select(
         `
         id,
+        site_id,
         work_date,
         member_name,
         process_type,
@@ -90,9 +91,63 @@ export async function GET(request: Request, { params }: { params: { id: string }
         statsData?.reduce((sum: unknown, r: unknown) => sum + (r.total_workers || 0), 0) || 0,
     }
 
+    // Enrich per report: worker_count, document_count, total_manhours
+    const list = Array.isArray(reports) ? reports : []
+    const enriched = await Promise.all(
+      list.map(async (r: any) => {
+        let worker_count = Number(r.total_workers)
+        if (!Number.isFinite(worker_count)) {
+          const { count } = await supabase
+            .from('daily_report_workers')
+            .select('id', { count: 'exact', head: true })
+            .eq('daily_report_id', r.id)
+          worker_count = count || 0
+        }
+
+        let total_manhours = 0
+        try {
+          const { data: wr } = await supabase
+            .from('work_records')
+            .select('labor_hours')
+            .eq('daily_report_id', r.id)
+          total_manhours = (wr || []).reduce(
+            (s: number, w: any) => s + (Number(w.labor_hours) || 0),
+            0
+          )
+        } catch {
+          total_manhours = 0
+        }
+
+        let document_count = 0
+        try {
+          const day = r.work_date
+          const start = `${day}T00:00:00`
+          const end = `${day}T23:59:59`
+          const { count: dcount } = await supabase
+            .from('documents')
+            .select('id', { count: 'exact', head: true })
+            .eq('site_id', r.site_id)
+            .gte('created_at', start)
+            .lt('created_at', end)
+          const { count: ucount } = await supabase
+            .from('unified_document_system')
+            .select('id', { count: 'exact', head: true })
+            .eq('site_id', r.site_id)
+            .eq('is_archived', false)
+            .gte('created_at', start)
+            .lt('created_at', end)
+          document_count = (dcount || 0) + (ucount || 0)
+        } catch {
+          document_count = document_count || 0
+        }
+
+        return { ...r, worker_count, document_count, total_manhours }
+      })
+    )
+
     return NextResponse.json({
       success: true,
-      data: reports || [],
+      data: enriched,
       statistics,
       filters: {
         site_id: siteId,

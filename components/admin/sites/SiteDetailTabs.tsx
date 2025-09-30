@@ -65,6 +65,7 @@ export default function SiteDetailTabs({
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
   const [recentAssignments, setRecentAssignments] = useState<any[]>(initialAssignments || [])
   const [recentRequests, setRecentRequests] = useState<any[]>(initialRequests || [])
+  const [laborByUser, setLaborByUser] = useState<Record<string, number>>({})
 
   // Load drawings for site (uses server API with fallback to documents)
   useEffect(() => {
@@ -190,8 +191,8 @@ export default function SiteDetailTabs({
           credentials: 'include',
         })
         const json = await res.json().catch(() => ({}))
-        const data = res.ok && json?.success ? json.data || [] : []
-        if (Array.isArray(data)) {
+        if (res.ok && json?.success && Array.isArray(json.data)) {
+          const data = json.data
           setRecentAssignments(data)
           const ids = data.map((a: any) => a.user_id).filter(Boolean)
           if (ids.length > 0) {
@@ -210,8 +211,9 @@ export default function SiteDetailTabs({
             }
           }
         }
+        // If request fails or returns unexpected shape, keep SSR-provided assignments
       } catch {
-        void 0
+        // Swallow errors and preserve initial SSR data
       }
     })()
 
@@ -348,21 +350,29 @@ export default function SiteDetailTabs({
 
           {/* 최근 작업일지 */}
           <section>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-2">최근 작업일지</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">최근 작업일지</h3>
+              <Button asChild variant="ghost" size="sm">
+                <a href={`/dashboard/admin/daily-reports?site_id=${siteId}`}>더 보기</a>
+              </Button>
+            </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>일자</TableHead>
+                    <TableHead>작업일자</TableHead>
                     <TableHead>작성자</TableHead>
                     <TableHead>상태</TableHead>
+                    <TableHead>인원</TableHead>
+                    <TableHead>문서</TableHead>
+                    <TableHead>공수</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {recentReports.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={3}
+                        colSpan={6}
                         className="text-center text-sm text-muted-foreground py-8"
                       >
                         표시할 작업일지가 없습니다.
@@ -371,11 +381,52 @@ export default function SiteDetailTabs({
                   ) : (
                     recentReports.map((r: any) => (
                       <TableRow key={r.id}>
-                        <TableCell>
-                          {r.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-'}
+                        <TableCell className="font-medium text-foreground">
+                          {r.id ? (
+                            <a
+                              href={`/dashboard/admin/daily-reports/${r.id}`}
+                              className="underline text-blue-600"
+                              title="작업일지 상세 보기"
+                            >
+                              {r.work_date
+                                ? new Date(r.work_date).toLocaleDateString('ko-KR')
+                                : '-'}
+                            </a>
+                          ) : r.work_date ? (
+                            new Date(r.work_date).toLocaleDateString('ko-KR')
+                          ) : (
+                            '-'
+                          )}
                         </TableCell>
                         <TableCell>{r.profiles?.full_name || '-'}</TableCell>
-                        <TableCell>{r.status || '-'}</TableCell>
+                        <TableCell>
+                          {((s: string) => {
+                            const m: Record<string, string> = {
+                              draft: '임시저장',
+                              submitted: '제출됨',
+                              approved: '승인',
+                              rejected: '반려',
+                              completed: '완료',
+                            }
+                            return m[s] || s || '-'
+                          })(String(r.status || ''))}
+                        </TableCell>
+                        <TableCell>
+                          {Number.isFinite(Number(r.worker_count))
+                            ? Number(r.worker_count)
+                            : Number.isFinite(Number(r.total_workers))
+                              ? Number(r.total_workers)
+                              : 0}
+                        </TableCell>
+                        <TableCell>
+                          {Number.isFinite(Number(r.document_count)) ? Number(r.document_count) : 0}
+                        </TableCell>
+                        <TableCell>
+                          {Number.isFinite(Number(r.total_manhours))
+                            ? Number(r.total_manhours).toFixed(1)
+                            : '0.0'}{' '}
+                          공수
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
@@ -384,14 +435,20 @@ export default function SiteDetailTabs({
             </div>
           </section>
 
-          {/* 배정 사용자 */}
+          {/* 배정 작업자 */}
           <section>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-2">배정 사용자</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">배정 작업자</h3>
+              <Button asChild variant="ghost" size="sm">
+                <a href={`/dashboard/admin/assignment?site_id=${siteId}`}>더 보기</a>
+              </Button>
+            </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>이름</TableHead>
+                    <TableHead>소속</TableHead>
                     <TableHead>역할</TableHead>
                     <TableHead>공수</TableHead>
                     <TableHead>배정일</TableHead>
@@ -401,7 +458,7 @@ export default function SiteDetailTabs({
                   {recentAssignments.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={4}
+                        colSpan={5}
                         className="text-center text-sm text-muted-foreground py-10"
                       >
                         배정된 사용자가 없습니다.
@@ -411,8 +468,15 @@ export default function SiteDetailTabs({
                     recentAssignments.map((a: any) => (
                       <TableRow key={a.id}>
                         <TableCell className="font-medium text-foreground">
-                          {a.profile?.full_name || a.user_id}
+                          <a
+                            href={`/dashboard/admin/users/${a.user_id}`}
+                            className="underline text-blue-600 hover:underline"
+                            title="사용자 상세 보기"
+                          >
+                            {a.profile?.full_name || a.user_id}
+                          </a>
                         </TableCell>
+                        <TableCell>{a.profile?.organization?.name || '-'}</TableCell>
                         <TableCell>{a.role || '-'}</TableCell>
                         <TableCell>
                           {Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수
@@ -432,7 +496,12 @@ export default function SiteDetailTabs({
 
           {/* 최근 자재 요청 */}
           <section>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-2">최근 자재 요청</h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">최근 자재 요청</h3>
+              <Button asChild variant="ghost" size="sm">
+                <a href={`/dashboard/admin/materials?tab=requests&site_id=${siteId}`}>더 보기</a>
+              </Button>
+            </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
               <Table>
                 <TableHeader>
