@@ -8,11 +8,11 @@ interface DailyReport {
   work_date: string
   member_name: string
   process_type: string
-  component_name?: string  // 부재명
-  work_process?: string     // 작업공정
-  work_section?: string     // 작업구간
+  component_name?: string // 부재명
+  work_process?: string // 작업공정
+  work_section?: string // 작업구간
   total_workers: number
-  total_manhours?: number  // 공수
+  total_manhours?: number // 공수
   npc1000_incoming: number
   npc1000_used: number
   npc1000_remaining: number
@@ -53,12 +53,21 @@ interface FilterState {
   dateFrom: string
   dateTo: string
   search: string
-  component_name: string  // 부재명 필터
-  work_process: string    // 작업공정 필터
-  work_section: string    // 작업구간 필터
+  component_name: string // 부재명 필터
+  work_process: string // 작업공정 필터
+  work_section: string // 작업구간 필터
 }
 
-type SortField = 'work_date' | 'site_name' | 'member_name' | 'total_manhours' | 'status' | 'created_at' | 'component_name' | 'work_process' | 'work_section'
+type SortField =
+  | 'work_date'
+  | 'site_name'
+  | 'member_name'
+  | 'total_manhours'
+  | 'status'
+  | 'created_at'
+  | 'component_name'
+  | 'work_process'
+  | 'work_section'
 type SortDirection = 'asc' | 'desc'
 
 interface SortState {
@@ -68,12 +77,12 @@ interface SortState {
 
 const statusLabels = {
   draft: '임시저장',
-  submitted: '제출됨'
+  submitted: '제출됨',
 }
 
 const statusColors = {
   draft: 'bg-gray-100 text-gray-800',
-  submitted: 'bg-blue-100 text-blue-800'
+  submitted: 'bg-blue-100 text-blue-800',
 }
 
 // Debounce utility function
@@ -114,12 +123,12 @@ export default function DailyReportsManagement() {
     search: '',
     component_name: '',
     work_process: '',
-    work_section: ''
+    work_section: '',
   })
 
   const [sortState, setSortState] = useState<SortState>({
     field: 'work_date',
-    direction: 'desc'
+    direction: 'desc',
   })
 
   useEffect(() => {
@@ -180,7 +189,7 @@ export default function DailyReportsManagement() {
         page: currentPage,
         itemsPerPage,
         sortField: sortState.field,
-        sortDirection: sortState.direction
+        sortDirection: sortState.direction,
       })
 
       if (result.success) {
@@ -216,7 +225,7 @@ export default function DailyReportsManagement() {
       search: '',
       component_name: '',
       work_process: '',
-      work_section: ''
+      work_section: '',
     })
     setCurrentPage(1)
   }
@@ -260,7 +269,7 @@ export default function DailyReportsManagement() {
   const handleSort = (field: SortField) => {
     setSortState(prev => ({
       field,
-      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc'
+      direction: prev.field === field && prev.direction === 'asc' ? 'desc' : 'asc',
     }))
     setCurrentPage(1) // Reset to first page when sorting
   }
@@ -269,7 +278,7 @@ export default function DailyReportsManagement() {
     try {
       // Create URL parameters from current filters
       const params = new URLSearchParams()
-      
+
       if (filters.site) params.append('site', filters.site)
       if (filters.status) params.append('status', filters.status)
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom)
@@ -292,19 +301,19 @@ export default function DailyReportsManagement() {
 
       // Make API request
       const response = await fetch(`/api/admin/daily-reports/export?${params.toString()}`)
-      
+
       if (!response.ok) {
         throw new Error('Excel 파일 생성에 실패했습니다.')
       }
 
       // Get the blob
       const blob = await response.blob()
-      
+
       // Create download link
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      
+
       // Get filename from response header
       const contentDisposition = response.headers.get('Content-Disposition')
       let filename = '작업일지.xlsx'
@@ -314,7 +323,7 @@ export default function DailyReportsManagement() {
           filename = decodeURIComponent(matches[1])
         }
       }
-      
+
       a.download = filename
       document.body.appendChild(a)
       a.click()
@@ -331,11 +340,10 @@ export default function DailyReportsManagement() {
           Excel 다운로드
         `
       }
-
     } catch (error) {
       console.error('Excel download error:', error)
       alert('Excel 파일 다운로드 중 오류가 발생했습니다.')
-      
+
       // Reset button on error
       const btn = document.querySelector('.excel-download-btn') as HTMLButtonElement
       if (btn) {
@@ -354,9 +362,11 @@ export default function DailyReportsManagement() {
     if (sortState.field !== field) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
     }
-    return sortState.direction === 'asc' 
-      ? <ChevronUp className="h-4 w-4 text-blue-600" />
-      : <ChevronDown className="h-4 w-4 text-blue-600" />
+    return sortState.direction === 'asc' ? (
+      <ChevronUp className="h-4 w-4 text-blue-600" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-blue-600" />
+    )
   }
 
   const totalPages = Math.ceil(totalCount / itemsPerPage)
@@ -368,13 +378,15 @@ export default function DailyReportsManagement() {
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
-              <Search className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${filters.search ? 'text-blue-500' : 'text-gray-400'}`} />
+              <Search
+                className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 ${filters.search ? 'text-blue-500' : 'text-gray-400'}`}
+              />
               <input
                 type="text"
                 placeholder="작업자명, 부재명, 작업공정, 작업구간, 현장명, 주소, 담당자명, 특이사항으로 검색하세요..."
                 className={`w-full pl-10 pr-10 py-2 border rounded-lg bg-white text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${filters.search ? 'border-blue-300 bg-blue-50' : 'border-gray-300'}`}
                 value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
+                onChange={e => handleFilterChange('search', e.target.value)}
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
                 {searchLoading && (
@@ -400,12 +412,11 @@ export default function DailyReportsManagement() {
               <Filter className="h-4 w-4" />
               필터
             </button>
-            <button 
+            <button
               onClick={() => router.push('/dashboard/admin/daily-reports/new')}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
-              <Plus className="h-4 w-4" />
-              새 작업일지
+              <Plus className="h-4 w-4" />새 작업일지
             </button>
           </div>
         </div>
@@ -418,7 +429,7 @@ export default function DailyReportsManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">현장</label>
                 <Select
                   value={filters.site || 'all'}
-                  onValueChange={(value) => handleFilterChange('site', value)}
+                  onValueChange={value => handleFilterChange('site', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="현장 선택" />
@@ -426,7 +437,9 @@ export default function DailyReportsManagement() {
                   <SelectContent>
                     <SelectItem value="all">모든 현장</SelectItem>
                     {sites.map(site => (
-                      <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                      <SelectItem key={site.id} value={site.id}>
+                        {site.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -435,7 +448,7 @@ export default function DailyReportsManagement() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">상태</label>
                 <Select
                   value={filters.status || 'all'}
-                  onValueChange={(value) => handleFilterChange('status', value)}
+                  onValueChange={value => handleFilterChange('status', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="상태 선택" />
@@ -453,7 +466,7 @@ export default function DailyReportsManagement() {
                   type="date"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.dateFrom}
-                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                  onChange={e => handleFilterChange('dateFrom', e.target.value)}
                 />
               </div>
               <div>
@@ -462,7 +475,7 @@ export default function DailyReportsManagement() {
                   type="date"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.dateTo}
-                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                  onChange={e => handleFilterChange('dateTo', e.target.value)}
                 />
               </div>
               <div>
@@ -472,7 +485,7 @@ export default function DailyReportsManagement() {
                   placeholder="부재명 입력"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.component_name}
-                  onChange={(e) => handleFilterChange('component_name', e.target.value)}
+                  onChange={e => handleFilterChange('component_name', e.target.value)}
                 />
               </div>
               <div>
@@ -482,7 +495,7 @@ export default function DailyReportsManagement() {
                   placeholder="작업공정 입력"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.work_process}
-                  onChange={(e) => handleFilterChange('work_process', e.target.value)}
+                  onChange={e => handleFilterChange('work_process', e.target.value)}
                 />
               </div>
               <div>
@@ -492,7 +505,7 @@ export default function DailyReportsManagement() {
                   placeholder="작업구간 입력"
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-white text-gray-900 dark:text-gray-900 placeholder-gray-500 dark:placeholder-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.work_section}
-                  onChange={(e) => handleFilterChange('work_section', e.target.value)}
+                  onChange={e => handleFilterChange('work_section', e.target.value)}
                 />
               </div>
             </div>
@@ -528,7 +541,7 @@ export default function DailyReportsManagement() {
             </div>
           )}
         </div>
-        <button 
+        <button
           onClick={handleExcelDownload}
           className="excel-download-btn flex items-center gap-2 px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
@@ -554,16 +567,17 @@ export default function DailyReportsManagement() {
             <table className="w-full min-w-[1800px]">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('work_date')}
                   >
                     <div className="flex items-center gap-1">
-                      작업일 <span className="text-blue-600 text-xs normal-case">(클릭시 상세)</span>
+                      작업일{' '}
+                      <span className="text-blue-600 text-xs normal-case">(클릭시 상세)</span>
                       {getSortIcon('work_date')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('site_name')}
                   >
@@ -572,7 +586,7 @@ export default function DailyReportsManagement() {
                       {getSortIcon('site_name')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('component_name')}
                   >
@@ -581,7 +595,7 @@ export default function DailyReportsManagement() {
                       {getSortIcon('component_name')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('work_process')}
                   >
@@ -590,7 +604,7 @@ export default function DailyReportsManagement() {
                       {getSortIcon('work_process')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('work_section')}
                   >
@@ -599,7 +613,7 @@ export default function DailyReportsManagement() {
                       {getSortIcon('work_section')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('member_name')}
                   >
@@ -608,7 +622,7 @@ export default function DailyReportsManagement() {
                       {getSortIcon('member_name')}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('total_manhours')}
                   >
@@ -623,7 +637,7 @@ export default function DailyReportsManagement() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     특이사항
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('status')}
                   >
@@ -635,7 +649,7 @@ export default function DailyReportsManagement() {
                   <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     문서/상세
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
                     onClick={() => handleSort('created_at')}
                   >
@@ -653,7 +667,7 @@ export default function DailyReportsManagement() {
                 {reports.map((report: unknown) => (
                   <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <div 
+                      <div
                         className="flex items-center cursor-pointer hover:text-blue-600 transition-colors"
                         onClick={() => router.push(`/dashboard/admin/daily-reports/${report.id}`)}
                       >
@@ -679,42 +693,41 @@ export default function DailyReportsManagement() {
                         {(report.sites?.manager_name || report.sites?.safety_manager_name) && (
                           <div className="text-xs text-gray-400 mt-1">
                             {report.sites?.manager_name && `공사: ${report.sites.manager_name}`}
-                            {report.sites?.manager_name && report.sites?.safety_manager_name && ' / '}
-                            {report.sites?.safety_manager_name && `안전: ${report.sites.safety_manager_name}`}
+                            {report.sites?.manager_name &&
+                              report.sites?.safety_manager_name &&
+                              ' / '}
+                            {report.sites?.safety_manager_name &&
+                              `안전: ${report.sites.safety_manager_name}`}
                           </div>
                         )}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">
-                        {report.component_name || '-'}
-                      </div>
+                      <div className="text-sm text-gray-900">{report.component_name || '-'}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">
-                        {report.work_process || '-'}
-                      </div>
+                      <div className="text-sm text-gray-900">{report.work_process || '-'}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-900">
-                        {report.work_section || '-'}
-                      </div>
+                      <div className="text-sm text-gray-900">{report.work_section || '-'}</div>
                     </td>
                     <td className="px-4 py-3">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{report.member_name}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {report.member_name}
+                        </div>
                         <div className="text-xs text-gray-600">{report.process_type}</div>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-center">
                       <div>
                         <div className="text-sm font-medium text-gray-900">
-                          {report.total_manhours ? (report.total_manhours || 0).toFixed(1) : '0'}
+                          {report.total_manhours
+                            ? (Math.floor((report.total_manhours || 0) * 10) / 10).toFixed(1)
+                            : '0.0'}
                         </div>
                         {report.total_workers > 0 && (
-                          <div className="text-xs text-gray-500">
-                            ({report.total_workers}명)
-                          </div>
+                          <div className="text-xs text-gray-500">({report.total_workers}명)</div>
                         )}
                       </div>
                     </td>
@@ -744,7 +757,9 @@ export default function DailyReportsManagement() {
                       )}
                     </td>
                     <td className="px-4 py-3 text-center">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[report.status]}`}>
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[report.status]}`}
+                      >
                         {statusLabels[report.status]}
                       </span>
                     </td>
@@ -769,9 +784,13 @@ export default function DailyReportsManagement() {
                         </div>
                         {report.profiles?.role && (
                           <div className="text-xs text-gray-500">
-                            {report.profiles.role === 'admin' ? '관리자' : 
-                             report.profiles.role === 'site_manager' ? '현장담당' :
-                             report.profiles.role === 'worker' ? '작업자' : report.profiles.role}
+                            {report.profiles.role === 'admin'
+                              ? '관리자'
+                              : report.profiles.role === 'site_manager'
+                                ? '현장담당'
+                                : report.profiles.role === 'worker'
+                                  ? '작업자'
+                                  : report.profiles.role}
                           </div>
                         )}
                         <div className="text-xs text-gray-400">
@@ -789,7 +808,9 @@ export default function DailyReportsManagement() {
                           보기
                         </button>
                         <button
-                          onClick={() => router.push(`/dashboard/admin/daily-reports/${report.id}/edit`)}
+                          onClick={() =>
+                            router.push(`/dashboard/admin/daily-reports/${report.id}/edit`)
+                          }
                           className="px-2 py-1 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded transition-colors font-medium"
                           title="편집"
                         >
@@ -816,7 +837,8 @@ export default function DailyReportsManagement() {
       {totalPages > 1 && (
         <div className="flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount}
+            {(currentPage - 1) * itemsPerPage + 1}-
+            {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount}
           </div>
           <div className="flex gap-2">
             <button
@@ -827,7 +849,7 @@ export default function DailyReportsManagement() {
               <ChevronLeft className="h-4 w-4" />
               이전
             </button>
-            
+
             {/* Page numbers */}
             <div className="flex gap-1">
               {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {

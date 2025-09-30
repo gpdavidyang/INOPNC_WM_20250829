@@ -309,7 +309,9 @@ export async function getMaterials(
 
       // Apply search filter
       if (search.trim()) {
-        query = query.or(`material_name.ilike.%${search}%,material_code.ilike.%${search}%,specification.ilike.%${search}%`)
+        query = query.or(
+          `material_name.ilike.%${search}%,material_code.ilike.%${search}%,specification.ilike.%${search}%`
+        )
       }
 
       // Apply status filter
@@ -358,7 +360,7 @@ export async function getMaterials(
         console.error('Error fetching materials:', error)
         return {
           success: false,
-          error: AdminErrors.DATABASE_ERROR
+          error: AdminErrors.DATABASE_ERROR,
         }
       }
 
@@ -368,14 +370,19 @@ export async function getMaterials(
         : materials
 
       // Transform the data to include stats
-      const transformedMaterials = visibleMaterials.map((material: unknown) => ({
-        ...material,
-        total_requests: material.material_requests?.[0]?.count || 0,
-        recent_transactions: material.material_transactions?.[0]?.count || 0,
-        cost_trend: 'stable' as const, // TODO: Calculate based on transaction history
-        status: material.current_stock === 0 ? 'out_of_stock' :
-                material.current_stock < (material.minimum_stock || 0) ? 'low' : 'normal'
-      })) || []
+      const transformedMaterials =
+        visibleMaterials.map((material: unknown) => ({
+          ...material,
+          total_requests: material.material_requests?.[0]?.count || 0,
+          recent_transactions: material.material_transactions?.[0]?.count || 0,
+          cost_trend: 'stable' as const, // TODO: Calculate based on transaction history
+          status:
+            material.current_stock === 0
+              ? 'out_of_stock'
+              : material.current_stock < (material.minimum_stock || 0)
+                ? 'low'
+                : 'normal',
+        })) || []
 
       const totalPages = Math.ceil((count || 0) / limit)
 
@@ -384,14 +391,14 @@ export async function getMaterials(
         data: {
           materials: transformedMaterials,
           total: count || 0,
-          pages: totalPages
-        }
+          pages: totalPages,
+        },
       }
     } catch (error) {
       console.error('Materials fetch error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -415,7 +422,8 @@ export async function getMaterialRequests(
 
       let query = supabase
         .from('material_requests')
-        .select(`
+        .select(
+          `
           *,
           requester:profiles!material_requests_requested_by_fkey(full_name),
           approver:profiles!material_requests_approved_by_fkey(full_name),
@@ -433,7 +441,9 @@ export async function getMaterialRequests(
             supplier_name,
             notes
           )
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .order('created_at', { ascending: false })
 
       // Apply search filter
@@ -481,7 +491,7 @@ export async function getMaterialRequests(
         console.error('Error fetching material requests:', error)
         return {
           success: false,
-          error: AdminErrors.DATABASE_ERROR
+          error: AdminErrors.DATABASE_ERROR,
         }
       }
 
@@ -490,10 +500,11 @@ export async function getMaterialRequests(
         ? await filterRecordsByOrg(supabase, auth, requests, request => request.site_id)
         : requests
 
-      const transformedRequests = visibleRequests.map((request: unknown) => ({
-        ...request,
-        items: request.material_request_items || []
-      })) || []
+      const transformedRequests =
+        visibleRequests.map((request: unknown) => ({
+          ...request,
+          items: request.material_request_items || [],
+        })) || []
 
       const totalPages = Math.ceil((count || 0) / limit)
 
@@ -502,14 +513,14 @@ export async function getMaterialRequests(
         data: {
           requests: transformedRequests,
           total: count || 0,
-          pages: totalPages
-        }
+          pages: totalPages,
+        },
       }
     } catch (error) {
       console.error('Material requests fetch error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -537,7 +548,9 @@ export async function processMaterialRequestApprovals(
           status,
           approved_by: action === 'approve' ? profile.id : null,
           approved_at: action === 'approve' ? new Date().toISOString() : null,
-          notes: comments ? (comments + (status === 'cancelled' ? ' (관리자 거부)' : ' (관리자 승인)')) : null
+          notes: comments
+            ? comments + (status === 'cancelled' ? ' (관리자 거부)' : ' (관리자 승인)')
+            : null,
         })
         .in('id', requestIds)
 
@@ -549,13 +562,13 @@ export async function processMaterialRequestApprovals(
       const actionText = action === 'approve' ? '승인' : '거부'
       return {
         success: true,
-        message: `${requestIds.length}개 자재 요청이 ${actionText}되었습니다.`
+        message: `${requestIds.length}개 자재 요청이 ${actionText}되었습니다.`,
       }
     } catch (error) {
       console.error('Material request approval processing error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -572,14 +585,16 @@ export async function getNPC1000Summary(): Promise<AdminActionResult<NPC1000Summ
       // Get latest NPC-1000 data from daily reports
       const { data: npcData, error } = await supabase
         .from('daily_reports')
-        .select(`
+        .select(
+          `
           site_id,
           npc1000_incoming,
           npc1000_used,
           npc1000_remaining,
           work_date,
           sites(name, organization_id)
-        `)
+        `
+        )
         .not('npc1000_remaining', 'is', null)
         .not('site_id', 'is', null)
         .order('work_date', { ascending: false })
@@ -590,12 +605,18 @@ export async function getNPC1000Summary(): Promise<AdminActionResult<NPC1000Summ
       }
 
       const accessibleNpcData = npcData
-        ? await filterRecordsByOrg(supabase, auth, npcData, item => item.site_id, item => item.sites?.organization_id ?? undefined)
+        ? await filterRecordsByOrg(
+            supabase,
+            auth,
+            npcData,
+            item => item.site_id,
+            item => item.sites?.organization_id ?? undefined
+          )
         : []
 
       // Calculate summary stats
       const siteData = new Map<string, any>()
-      
+
       // Get latest data per site
       accessibleNpcData.forEach((item: unknown) => {
         if (!siteData.has(item.site_id)) {
@@ -616,18 +637,18 @@ export async function getNPC1000Summary(): Promise<AdminActionResult<NPC1000Summ
         total_used: totalUsed,
         total_remaining: totalRemaining,
         efficiency_rate: Math.round(efficiencyRate * 100) / 100,
-        low_stock_sites: lowStockSites
+        low_stock_sites: lowStockSites,
       }
 
       return {
         success: true,
-        data: summary
+        data: summary,
       }
     } catch (error) {
       console.error('NPC-1000 summary fetch error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -640,23 +661,28 @@ export async function getNPC1000BySite(
   page = 1,
   limit = 10,
   search = ''
-): Promise<AdminActionResult<{ sites: Array<{ 
-  site_id: string; 
-  site_name: string; 
-  latest_date: string;
-  incoming: number; 
-  used: number; 
-  remaining: number;
-  efficiency: number;
-  status: 'normal' | 'low' | 'critical';
-}>; total: number; pages: number }>> {
+): Promise<
+  AdminActionResult<{
+    sites: Array<{
+      site_id: string
+      site_name: string
+      latest_date: string
+      incoming: number
+      used: number
+      remaining: number
+      efficiency: number
+      status: 'normal' | 'low' | 'critical'
+    }>
+    total: number
+    pages: number
+  }>
+> {
   return withAdminAuth(async (supabase, profile) => {
     try {
       const auth = profile.auth
 
       // Get latest NPC-1000 data grouped by site
-      const { data: npcData, error } = await supabase
-        .rpc('get_latest_npc1000_by_site')
+      const { data: npcData, error } = await supabase.rpc('get_latest_npc1000_by_site')
 
       if (error) {
         console.error('Error fetching NPC-1000 by site:', error)
@@ -671,7 +697,7 @@ export async function getNPC1000BySite(
 
       // Apply search filter
       if (search.trim()) {
-        filteredData = filteredData.filter((item: unknown) => 
+        filteredData = filteredData.filter((item: unknown) =>
           item.site_name.toLowerCase().includes(search.toLowerCase())
         )
       }
@@ -680,7 +706,7 @@ export async function getNPC1000BySite(
       const transformedData = filteredData.map((item: unknown) => ({
         ...item,
         efficiency: item.incoming > 0 ? Math.round((item.used / item.incoming) * 10000) / 100 : 0,
-        status: item.remaining < 20 ? 'critical' : item.remaining < 50 ? 'low' : 'normal'
+        status: item.remaining < 20 ? 'critical' : item.remaining < 50 ? 'low' : 'normal',
       }))
 
       // Apply pagination
@@ -694,14 +720,14 @@ export async function getNPC1000BySite(
         data: {
           sites: paginatedData,
           total,
-          pages: totalPages
-        }
+          pages: totalPages,
+        },
       }
     } catch (error) {
       console.error('NPC-1000 by site fetch error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -730,7 +756,7 @@ export async function updateMaterialInventory(
         updates.push({
           id: materialId,
           current_stock: adjustment.quantity,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
 
         transactions.push({
@@ -739,7 +765,7 @@ export async function updateMaterialInventory(
           quantity: adjustment.quantity,
           transaction_date: new Date().toISOString(),
           notes: adjustment.notes || '관리자 재고 조정',
-          created_by: profile.id
+          created_by: profile.id,
         })
       }
 
@@ -770,13 +796,13 @@ export async function updateMaterialInventory(
 
       return {
         success: true,
-        message: `${materialIds.length}개 자재의 재고가 조정되었습니다.`
+        message: `${materialIds.length}개 자재의 재고가 조정되었습니다.`,
       }
     } catch (error) {
       console.error('Material inventory update error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -801,12 +827,15 @@ export async function getMaterialProductions(
 
       let query = supabase
         .from('material_productions')
-        .select(`
+        .select(
+          `
           *,
           sites!site_id(name),
           materials!material_id(name, code),
           approver:profiles!approved_by(name)
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .order('production_date', { ascending: false })
 
       if (siteId) {
@@ -867,12 +896,15 @@ export async function getMaterialProductions(
         data: {
           productions: visibleProductions,
           total: count || 0,
-          pages: totalPages
-        }
+          pages: totalPages,
+        },
       }
     } catch (error) {
       console.error('Productions fetch error:', error)
-      return { success: false, error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR }
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
     }
   })
 }
@@ -895,7 +927,7 @@ export async function createMaterialProduction(
           ...productionData,
           created_by: profile.id,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single()
@@ -908,11 +940,14 @@ export async function createMaterialProduction(
       return {
         success: true,
         data: production,
-        message: '생산 기록이 생성되었습니다.'
+        message: '생산 기록이 생성되었습니다.',
       }
     } catch (error) {
       console.error('Production creation error:', error)
-      return { success: false, error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR }
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
     }
   })
 }
@@ -938,7 +973,7 @@ export async function updateProductionQuality(
           quality_notes: qualityNotes,
           approved_by: profile.id,
           approved_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', productionId)
 
@@ -949,11 +984,14 @@ export async function updateProductionQuality(
 
       return {
         success: true,
-        message: `생산품질이 ${qualityStatus === 'approved' ? '승인' : '거절'}되었습니다.`
+        message: `생산품질이 ${qualityStatus === 'approved' ? '승인' : '거절'}되었습니다.`,
       }
     } catch (error) {
       console.error('Production quality update error:', error)
-      return { success: false, error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR }
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
     }
   })
 }
@@ -977,7 +1015,8 @@ export async function getMaterialShipments(
 
       let query = supabase
         .from('material_shipments')
-        .select(`
+        .select(
+          `
           *,
           sites!site_id(name),
           creator:profiles!created_by(name),
@@ -989,7 +1028,9 @@ export async function getMaterialShipments(
             total_price,
             materials(name, code, unit)
           )
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .order('shipment_date', { ascending: false })
 
       if (siteId) {
@@ -1050,12 +1091,15 @@ export async function getMaterialShipments(
         data: {
           shipments: visibleShipments,
           total: count || 0,
-          pages: totalPages
-        }
+          pages: totalPages,
+        },
       }
     } catch (error) {
       console.error('Shipments fetch error:', error)
-      return { success: false, error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR }
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
     }
   })
 }
@@ -1064,7 +1108,10 @@ export async function getMaterialShipments(
  * Create material shipment
  */
 export async function createMaterialShipment(
-  shipmentData: Omit<MaterialShipment, 'id' | 'created_at' | 'updated_at' | 'created_by' | 'shipment_number'>,
+  shipmentData: Omit<
+    MaterialShipment,
+    'id' | 'created_at' | 'updated_at' | 'created_by' | 'shipment_number'
+  >,
   items: Omit<ShipmentItem, 'id' | 'shipment_id'>[]
 ): Promise<AdminActionResult<MaterialShipment>> {
   return withAdminAuth(async (supabase, profile) => {
@@ -1083,7 +1130,7 @@ export async function createMaterialShipment(
           shipment_number: shipmentNumber,
           created_by: profile.id,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single()
@@ -1095,14 +1142,12 @@ export async function createMaterialShipment(
 
       // Create shipment items
       if (items.length > 0) {
-        const { error: itemsError } = await supabase
-          .from('shipment_items')
-          .insert(
-            items.map(item => ({
-              ...item,
-              shipment_id: shipment.id
-            }))
-          )
+        const { error: itemsError } = await supabase.from('shipment_items').insert(
+          items.map(item => ({
+            ...item,
+            shipment_id: shipment.id,
+          }))
+        )
 
         if (itemsError) {
           console.error('Error creating shipment items:', itemsError)
@@ -1113,11 +1158,14 @@ export async function createMaterialShipment(
       return {
         success: true,
         data: shipment,
-        message: '출고가 생성되었습니다.'
+        message: '출고가 생성되었습니다.',
       }
     } catch (error) {
       console.error('Shipment creation error:', error)
-      return { success: false, error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR }
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
     }
   })
 }
@@ -1139,7 +1187,7 @@ export async function updateShipmentStatus(
 
       const updateData: unknown = {
         status,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       if (trackingNumber) {
@@ -1162,11 +1210,54 @@ export async function updateShipmentStatus(
 
       return {
         success: true,
-        message: `출고 상태가 ${status}로 업데이트되었습니다.`
+        message: `출고 상태가 ${status}로 업데이트되었습니다.`,
       }
     } catch (error) {
       console.error('Shipment status update error:', error)
-      return { success: false, error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR }
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
+    }
+  })
+}
+
+/**
+ * Update shipment delivery method (carrier)
+ */
+export async function updateShipmentDeliveryMethod(
+  shipmentId: string,
+  deliveryMethod: string
+): Promise<AdminActionResult<void>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const auth = profile.auth
+      await ensureShipmentAccess(supabase, auth, [shipmentId])
+
+      const normalized = (() => {
+        const raw = String(deliveryMethod || '').toLowerCase()
+        if (raw === '택배' || raw === 'courier') return 'courier'
+        if (raw === '화물' || raw === 'freight' || raw === 'cargo') return 'freight'
+        return raw || 'other'
+      })()
+
+      const { error } = await supabase
+        .from('material_shipments')
+        .update({ carrier: normalized, updated_at: new Date().toISOString() })
+        .eq('id', shipmentId)
+
+      if (error) {
+        console.error('Error updating shipment delivery method:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('Shipment delivery method update error:', error)
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
     }
   })
 }
@@ -1191,7 +1282,7 @@ export async function processMaterialRequest(
         status: action,
         approved_by: profile.id,
         approved_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       if (action === 'approved' && approvedQuantity !== undefined) {
@@ -1218,11 +1309,14 @@ export async function processMaterialRequest(
 
       return {
         success: true,
-        message: `자재 요청이 ${action === 'approved' ? '승인' : '거절'}되었습니다.`
+        message: `자재 요청이 ${action === 'approved' ? '승인' : '거절'}되었습니다.`,
       }
     } catch (error) {
       console.error('Material request processing error:', error)
-      return { success: false, error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR }
+      return {
+        success: false,
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
+      }
     }
   })
 }

@@ -230,7 +230,7 @@ export default function PayrollDashboardPage() {
                   <td className="px-3 py-2 text-right">
                     {w.daily_rate ? `₩${w.daily_rate.toLocaleString()}` : '-'}
                   </td>
-                  <td className="px-3 py-2 text-right">{w.total_labor_hours}</td>
+                  <td className="px-3 py-2 text-right">{formatManhours(w.total_labor_hours)}</td>
                   <td className="px-3 py-2 text-right">₩{w.total_gross_pay.toLocaleString()}</td>
                   <td className="px-3 py-2 text-right">₩{w.net_pay.toLocaleString()}</td>
                 </tr>
@@ -248,4 +248,11 @@ export default function PayrollDashboardPage() {
       </div>
     </div>
   )
+}
+
+function formatManhours(v: unknown): string {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return '0.0'
+  const floored = Math.floor(n * 10) / 10
+  return floored.toFixed(1)
 }

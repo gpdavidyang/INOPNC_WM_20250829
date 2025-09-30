@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getSiteAssignments } from '@/app/actions/admin/sites'
 import { getMaterialRequests } from '@/app/actions/admin/materials'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,18 +18,26 @@ interface SitePageProps {
 export default async function AdminSiteDetailPage({ params }: SitePageProps) {
   await requireAdminProfile()
   const supabase = createClient()
+  let svc
+  try {
+    svc = createServiceClient()
+  } catch {
+    svc = null
+  }
 
   const { data: site } = await supabase.from('sites').select('*').eq('id', params.id).maybeSingle()
 
-  const { data: docs } = await supabase
+  const { data: docs } = await (svc || supabase)
     .from('unified_document_system')
-    .select('id, title, category_type, status, created_at')
+    .select(
+      'id, title, category_type, sub_category, document_type, status, file_url, mime_type, metadata, created_at'
+    )
     .eq('site_id', params.id)
     .eq('is_archived', false)
     .order('created_at', { ascending: false })
     .limit(10)
 
-  const { data: reports } = await supabase
+  const { data: reports } = await (svc || supabase)
     .from('daily_reports')
     .select('id, work_date, status, profiles:profiles!daily_reports_user_id_fkey(full_name)')
     .eq('site_id', params.id)

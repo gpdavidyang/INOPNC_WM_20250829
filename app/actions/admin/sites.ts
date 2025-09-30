@@ -111,7 +111,8 @@ async function ensureUserAccessible(
     throw new AppError('사용자 정보를 확인할 수 없습니다.', ErrorType.SERVER_ERROR, 500)
   }
 
-  const organizationId = (data as { organization_id?: string | null } | null)?.organization_id ?? undefined
+  const organizationId =
+    (data as { organization_id?: string | null } | null)?.organization_id ?? undefined
   await assertOrgAccess(auth, organizationId)
 
   if (organizationId !== restrictedOrgId) {
@@ -134,9 +135,7 @@ async function filterUsersByOrganization<T extends { id?: string }>(
   }
 
   const restrictedOrgId = requireRestrictedOrgId(auth)
-  const userIds = list
-    .map(user => user.id)
-    .filter((id): id is string => Boolean(id))
+  const userIds = list.map(user => user.id).filter((id): id is string => Boolean(id))
 
   if (userIds.length === 0) {
     return []
@@ -153,7 +152,10 @@ async function filterUsersByOrganization<T extends { id?: string }>(
 
   const orgMap = new Map<string, string | null | undefined>()
   for (const profile of data || []) {
-    orgMap.set((profile as { id: string }).id, (profile as { organization_id?: string | null }).organization_id)
+    orgMap.set(
+      (profile as { id: string }).id,
+      (profile as { organization_id?: string | null }).organization_id
+    )
   }
 
   for (const [, organizationId] of orgMap) {
@@ -198,7 +200,7 @@ export interface SiteAssignmentData {
  */
 export async function getSites(
   page = 1,
-  limit = 10,
+  limit = 50,
   search = '',
   status?: SiteStatus,
   sortColumn = 'created_at',
@@ -211,7 +213,8 @@ export async function getSites(
       // Optimized query - only select needed columns for list view
       let query = supabase
         .from('sites')
-        .select(`
+        .select(
+          `
           id,
           name,
           address,
@@ -223,7 +226,9 @@ export async function getSites(
           created_at,
           updated_at,
           organization_id
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .order(sortColumn, { ascending: sortDirection === 'asc' })
 
       if (auth.isRestricted) {
@@ -253,7 +258,7 @@ export async function getSites(
         }
         return {
           success: false,
-          error: AdminErrors.DATABASE_ERROR
+          error: AdminErrors.DATABASE_ERROR,
         }
       }
 
@@ -268,8 +273,8 @@ export async function getSites(
         data: {
           sites: sanitizedSites,
           total: count || 0,
-          pages: totalPages
-        }
+          pages: totalPages,
+        },
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -277,7 +282,7 @@ export async function getSites(
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -307,9 +312,7 @@ export async function createSite(data: CreateSiteData): Promise<AdminActionResul
         return { success: false, error: startDateError }
       }
 
-      const organizationId = auth.isRestricted
-        ? requireRestrictedOrgId(auth)
-        : data.organization_id
+      const organizationId = auth.isRestricted ? requireRestrictedOrgId(auth) : data.organization_id
 
       const { data: site, error } = await supabase
         .from('sites')
@@ -317,7 +320,7 @@ export async function createSite(data: CreateSiteData): Promise<AdminActionResul
           ...data,
           organization_id: organizationId ?? null,
           status: data.status || 'active',
-          created_by: profile.id
+          created_by: profile.id,
         })
         .select()
         .single()
@@ -335,7 +338,7 @@ export async function createSite(data: CreateSiteData): Promise<AdminActionResul
       return {
         success: true,
         data: site,
-        message: '현장이 성공적으로 생성되었습니다.'
+        message: '현장이 성공적으로 생성되었습니다.',
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -343,7 +346,7 @@ export async function createSite(data: CreateSiteData): Promise<AdminActionResul
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -369,21 +372,24 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         .select('*')
         .eq('id', id)
         .single()
-      
+
       if (fetchError) {
         console.error('[SERVER-UPDATE] Failed to fetch existing site:', fetchError)
         return { success: false, error: AdminErrors.NOT_FOUND }
       }
-      
+
       // console.log('[SERVER-UPDATE] Existing site found:', existingSite.name)
 
       // Clean the update data - remove undefined values
-      const cleanUpdateData = Object.entries(updateData).reduce<Record<string, unknown>>((acc, [key, value]) => {
-        if (value !== undefined) {
-          acc[key] = value
-        }
-        return acc
-      }, {})
+      const cleanUpdateData = Object.entries(updateData).reduce<Record<string, unknown>>(
+        (acc, [key, value]) => {
+          if (value !== undefined) {
+            acc[key] = value
+          }
+          return acc
+        },
+        {}
+      )
 
       if (auth.isRestricted) {
         Object.assign(cleanUpdateData, {
@@ -398,7 +404,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         .from('sites')
         .update({
           ...cleanUpdateData,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', id)
 
@@ -406,21 +412,25 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         console.error('[SERVER-UPDATE] Database update error:', updateError)
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
-      
+
       // Now fetch the updated site separately
       const { data: site, error: fetchUpdatedError } = await supabase
         .from('sites')
         .select('*')
         .eq('id', id)
         .single()
-      
+
       if (fetchUpdatedError) {
         console.error('[SERVER-UPDATE] Failed to fetch updated site:', fetchUpdatedError)
         // Update succeeded but couldn't fetch - still return success
         return {
           success: true,
-          data: { ...existingSite, ...cleanUpdateData, updated_at: new Date().toISOString() } as Site,
-          message: '현장 정보가 성공적으로 업데이트되었습니다.'
+          data: {
+            ...existingSite,
+            ...cleanUpdateData,
+            updated_at: new Date().toISOString(),
+          } as Site,
+          message: '현장 정보가 성공적으로 업데이트되었습니다.',
         }
       }
 
@@ -432,7 +442,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         .select('*')
         .eq('id', id)
         .single()
-      
+
       if (verifyError) {
         console.error('[SERVER-UPDATE] Failed to verify update:', verifyError)
       } else {
@@ -447,13 +457,13 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
       return {
         success: true,
         data: site,
-        message: '현장 정보가 성공적으로 업데이트되었습니다.'
+        message: '현장 정보가 성공적으로 업데이트되었습니다.',
       }
     } catch (error) {
       console.error('[SERVER-UPDATE] Unexpected error:', error)
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -470,19 +480,16 @@ export async function deleteSites(siteIds: string[]): Promise<AdminActionResult<
       await ensureSitesAccessible(supabase, auth, siteIds)
 
       // Direct delete with foreign key constraint handling
-      const { error } = await supabase
-        .from('sites')
-        .delete()
-        .in('id', siteIds)
+      const { error } = await supabase.from('sites').delete().in('id', siteIds)
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
           console.error('Error deleting sites:', error)
         }
         if (error.code === '23503') {
-          return { 
-            success: false, 
-            error: '활성 배정이 있는 현장은 삭제할 수 없습니다.' 
+          return {
+            success: false,
+            error: '활성 배정이 있는 현장은 삭제할 수 없습니다.',
           }
         }
         return { success: false, error: AdminErrors.DATABASE_ERROR }
@@ -490,7 +497,7 @@ export async function deleteSites(siteIds: string[]): Promise<AdminActionResult<
 
       return {
         success: true,
-        message: `${siteIds.length}개 현장이 성공적으로 삭제되었습니다.`
+        message: `${siteIds.length}개 현장이 성공적으로 삭제되었습니다.`,
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -498,7 +505,7 @@ export async function deleteSites(siteIds: string[]): Promise<AdminActionResult<
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -521,7 +528,7 @@ export async function updateSiteStatus(
         .from('sites')
         .update({
           status,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .in('id', siteIds)
 
@@ -532,11 +539,12 @@ export async function updateSiteStatus(
         return { success: false, error: AdminErrors.DATABASE_ERROR }
       }
 
-      const statusText = status === 'active' ? '활성화' : status === 'inactive' ? '비활성화' : '완료'
+      const statusText =
+        status === 'active' ? '활성화' : status === 'inactive' ? '비활성화' : '완료'
 
       return {
         success: true,
-        message: `${siteIds.length}개 현장이 ${statusText}되었습니다.`
+        message: `${siteIds.length}개 현장이 ${statusText}되었습니다.`,
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -544,7 +552,7 @@ export async function updateSiteStatus(
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -562,10 +570,12 @@ export async function getSiteAssignments(siteId: string): Promise<AdminActionRes
 
       const { data: assignments, error } = await supabase
         .from('site_assignments')
-        .select(`
+        .select(
+          `
           *,
           profile:profiles(*)
-        `)
+        `
+        )
         .eq('site_id', siteId)
         .eq('is_active', true)
 
@@ -578,7 +588,7 @@ export async function getSiteAssignments(siteId: string): Promise<AdminActionRes
 
       return {
         success: true,
-        data: assignments || []
+        data: assignments || [],
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -586,7 +596,7 @@ export async function getSiteAssignments(siteId: string): Promise<AdminActionRes
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -622,19 +632,17 @@ export async function assignUserToSite(data: SiteAssignmentData): Promise<AdminA
       if (existing) {
         return {
           success: false,
-          error: '사용자가 이미 해당 현장에 배정되어 있습니다.'
+          error: '사용자가 이미 해당 현장에 배정되어 있습니다.',
         }
       }
 
-      const { error } = await supabase
-        .from('site_assignments')
-        .insert({
-          site_id: data.site_id,
-          user_id: data.user_id,
-          role: data.role,
-          assigned_date: new Date().toISOString(),
-          is_active: true
-        })
+      const { error } = await supabase.from('site_assignments').insert({
+        site_id: data.site_id,
+        user_id: data.user_id,
+        role: data.role,
+        assigned_date: new Date().toISOString(),
+        is_active: true,
+      })
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -645,7 +653,7 @@ export async function assignUserToSite(data: SiteAssignmentData): Promise<AdminA
 
       return {
         success: true,
-        message: '사용자가 현장에 성공적으로 배정되었습니다.'
+        message: '사용자가 현장에 성공적으로 배정되었습니다.',
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -653,7 +661,7 @@ export async function assignUserToSite(data: SiteAssignmentData): Promise<AdminA
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -676,7 +684,7 @@ export async function removeUserFromSite(
         .from('site_assignments')
         .update({
           is_active: false,
-          unassigned_date: new Date().toISOString()
+          unassigned_date: new Date().toISOString(),
         })
         .eq('site_id', siteId)
         .eq('user_id', userId)
@@ -691,7 +699,7 @@ export async function removeUserFromSite(
 
       return {
         success: true,
-        message: '사용자가 현장에서 성공적으로 해제되었습니다.'
+        message: '사용자가 현장에서 성공적으로 해제되었습니다.',
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -699,7 +707,7 @@ export async function removeUserFromSite(
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -722,14 +730,13 @@ export async function searchAvailableUsers(
       await ensureSiteAccessible(supabase, auth, siteId)
 
       // Use the database function for searching available workers
-      const { data: users, error } = await supabase
-        .rpc('get_available_workers_for_site', {
-          p_site_id: siteId,
-          p_search: search.trim() || null,
-          p_role_filter: role || null,
-          p_limit: limit,
-          p_offset: offset
-        })
+      const { data: users, error } = await supabase.rpc('get_available_workers_for_site', {
+        p_site_id: siteId,
+        p_search: search.trim() || null,
+        p_role_filter: role || null,
+        p_limit: limit,
+        p_offset: offset,
+      })
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -744,10 +751,14 @@ export async function searchAvailableUsers(
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active')
         .in('role', ['worker', 'site_manager', 'customer_manager'])
-        .not('id', 'in', `(
+        .not(
+          'id',
+          'in',
+          `(
           SELECT user_id FROM site_assignments 
           WHERE site_id = '${siteId}' AND is_active = true
-        )`)
+        )`
+        )
 
       let totalCount = count || 0
 
@@ -760,10 +771,14 @@ export async function searchAvailableUsers(
           .eq('status', 'active')
           .eq('organization_id', orgFilter)
           .in('role', ['worker', 'site_manager', 'customer_manager'])
-          .not('id', 'in', `(
+          .not(
+            'id',
+            'in',
+            `(
             SELECT user_id FROM site_assignments 
             WHERE site_id = '${siteId}' AND is_active = true
-          )`)
+          )`
+          )
 
         if (!restrictedCountError) {
           totalCount = restrictedCount ?? 0
@@ -776,14 +791,18 @@ export async function searchAvailableUsers(
         }
       }
 
-      const filteredUsers = await filterUsersByOrganization(supabase, auth, users as Profile[] | null)
+      const filteredUsers = await filterUsersByOrganization(
+        supabase,
+        auth,
+        users as Profile[] | null
+      )
 
       return {
         success: true,
         data: {
           users: filteredUsers,
-          total: totalCount
-        }
+          total: totalCount,
+        },
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -791,7 +810,7 @@ export async function searchAvailableUsers(
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })
@@ -816,7 +835,7 @@ export async function updateSiteAssignmentRole(
         .from('site_assignments')
         .update({
           role: newRole,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('site_id', siteId)
         .eq('user_id', userId)
@@ -831,7 +850,7 @@ export async function updateSiteAssignmentRole(
 
       return {
         success: true,
-        message: '사용자 역할이 성공적으로 변경되었습니다.'
+        message: '사용자 역할이 성공적으로 변경되었습니다.',
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
@@ -839,7 +858,7 @@ export async function updateSiteAssignmentRole(
       }
       return {
         success: false,
-        error: resolveAdminError(error)
+        error: resolveAdminError(error),
       }
     }
   })

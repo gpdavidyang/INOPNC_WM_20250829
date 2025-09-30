@@ -430,7 +430,7 @@ export default function PayrollPreviewPage() {
                 <td className="px-3 py-2 text-right">
                   {w.daily_rate ? `₩${w.daily_rate.toLocaleString()}` : '-'}
                 </td>
-                <td className="px-3 py-2 text-right">{w.total_labor_hours}</td>
+                <td className="px-3 py-2 text-right">{formatManhours(w.total_labor_hours)}</td>
                 <td className="px-3 py-2 text-right">₩{w.total_gross_pay.toLocaleString()}</td>
                 <td className="px-3 py-2 text-right font-semibold">
                   ₩{w.net_pay.toLocaleString()}
@@ -469,7 +469,7 @@ export default function PayrollPreviewPage() {
             <h3 className="font-semibold mb-2">결과 요약</h3>
             <ul className="text-sm space-y-1">
               <li>
-                공수: {detail.work_days}일 / 총공수 {detail.total_labor_hours}
+                공수: {detail.work_days}일 / 총공수 {formatManhours(detail.total_labor_hours)}
               </li>
               <li>
                 근무시간: {detail.total_work_hours}h / 연장 {detail.total_overtime_hours}h
@@ -503,4 +503,11 @@ export default function PayrollPreviewPage() {
       )}
     </div>
   )
+}
+
+function formatManhours(v: unknown): string {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return '0.0'
+  const floored = Math.floor(n * 10) / 10
+  return floored.toFixed(1)
 }

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url)
   const page = Number.parseInt(searchParams.get('page') || '1', 10)
-  const limit = Number.parseInt(searchParams.get('limit') || '10', 10)
+  const limit = Number.parseInt(searchParams.get('limit') || '50', 10)
   const search = searchParams.get('search') || ''
   const statusParam = (searchParams.get('status') || '') as SiteStatus | ''
   const sort = searchParams.get('sort') || 'created_at'

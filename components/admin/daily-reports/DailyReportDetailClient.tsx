@@ -165,6 +165,81 @@ export default function DailyReportDetailClient({
         </CardContent>
       </Card>
 
+      {/* 작업 내용 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>작업 내용</CardTitle>
+          <CardDescription>부재명/공정/구간/요약</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-2 gap-3 text-sm text-muted-foreground">
+            <DetailRow label="부재명" value={data?.daily_report?.component_name || '-'} />
+            <DetailRow label="공정" value={data?.daily_report?.process_type || '-'} />
+            <DetailRow label="작업공정" value={data?.daily_report?.work_process || '-'} />
+            <DetailRow label="작업구간" value={data?.daily_report?.work_section || '-'} />
+            <DetailRow
+              label="작업내용"
+              value={
+                data?.daily_report?.work_description ||
+                (Array.isArray(data?.daily_report?.additional_notes?.workContents)
+                  ? data?.daily_report?.additional_notes?.workContents.join(', ')
+                  : '-')
+              }
+            />
+            <DetailRow
+              label="작업유형"
+              value={
+                Array.isArray(data?.daily_report?.additional_notes?.workTypes)
+                  ? data?.daily_report?.additional_notes?.workTypes.join(', ')
+                  : '-'
+              }
+            />
+            <DetailRow
+              label="부재유형"
+              value={
+                Array.isArray(data?.daily_report?.additional_notes?.memberTypes)
+                  ? data?.daily_report?.additional_notes?.memberTypes.join(', ')
+                  : '-'
+              }
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 작업 위치 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>작업 위치</CardTitle>
+          <CardDescription>블럭/동/호(또는 층)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid md:grid-cols-3 gap-3 text-sm text-muted-foreground">
+            <DetailRow label="블럭" value={data?.daily_report?.location_info?.block || '-'} />
+            <DetailRow label="동" value={data?.daily_report?.location_info?.dong || '-'} />
+            <DetailRow label="호수/층" value={data?.daily_report?.location_info?.unit || '-'} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 안전/특이사항 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>안전/특이사항</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground space-y-3">
+          <div>
+            <div className="text-xs">특이사항</div>
+            <div className="text-foreground">{data?.daily_report?.issues || '-'}</div>
+          </div>
+          <div>
+            <div className="text-xs">안전 메모</div>
+            <div className="text-foreground">
+              {data?.daily_report?.additional_notes?.safetyNotes || '-'}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 작업자 배정 */}
       <Card>
         <CardHeader>
@@ -336,6 +411,23 @@ function AttachmentSection({
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function formatManhours(v: unknown): string {
+  const n = Number(v)
+  if (!Number.isFinite(n)) return '0.0'
+  const floored = Math.floor(n * 10) / 10
+  return floored.toFixed(1)
+}
+
+function DetailRow({ label, value }: { label: string; value: any }) {
+  const text = value === undefined || value === null || value === '' ? '-' : String(value)
+  return (
+    <div>
+      <div className="text-xs">{label}</div>
+      <div className="text-foreground font-medium">{text}</div>
     </div>
   )
 }

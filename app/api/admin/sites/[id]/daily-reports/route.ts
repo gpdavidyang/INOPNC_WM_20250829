@@ -1,24 +1,28 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: Request, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
       return authResult
     }
 
-    if (authResult.role !== 'admin') {
+    if (!['admin', 'system_admin', 'site_manager'].includes(authResult.role || '')) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    const supabase = createClient()
+    const supabase = (() => {
+      try {
+        return createServiceClient()
+      } catch {
+        return createClient()
+      }
+    })()
 
     const siteId = params.id
     const { searchParams } = new URL(request.url)
@@ -29,7 +33,8 @@ export async function GET(
     // Build query - simplified to avoid foreign key issues
     let query = supabase
       .from('daily_reports')
-      .select(`
+      .select(
+        `
         id,
         work_date,
         member_name,
@@ -46,7 +51,8 @@ export async function GET(
         created_at,
         updated_at,
         created_by
-      `)
+      `
+      )
       .eq('site_id', siteId)
       .order('work_date', { ascending: false })
       .limit(limit)
@@ -80,7 +86,8 @@ export async function GET(
       total_reports: statsData?.length || 0,
       submitted_reports: statsData?.filter((r: unknown) => r.status === 'submitted').length || 0,
       draft_reports: statsData?.filter((r: unknown) => r.status === 'draft').length || 0,
-      total_workers: statsData?.reduce((sum: unknown, r: unknown) => sum + (r.total_workers || 0), 0) || 0
+      total_workers:
+        statsData?.reduce((sum: unknown, r: unknown) => sum + (r.total_workers || 0), 0) || 0,
     }
 
     return NextResponse.json({
@@ -91,15 +98,11 @@ export async function GET(
         site_id: siteId,
         status: status || 'all',
         date: date || null,
-        limit
-      }
+        limit,
+      },
     })
-
   } catch (error) {
     console.error('API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
