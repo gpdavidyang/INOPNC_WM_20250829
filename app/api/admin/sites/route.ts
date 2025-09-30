@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { getSites } from '@/app/actions/admin/sites'
+import { getSites, createSite } from '@/app/actions/admin/sites'
 import type { SiteStatus } from '@/types'
 
 export const dynamic = 'force-dynamic'
@@ -33,4 +33,21 @@ export async function GET(request: NextRequest) {
   const result = await getSites(pageNumber, limitNumber, search, siteStatus, sort, direction)
 
   return NextResponse.json(result, { status: result.success ? 200 : 500 })
+}
+
+export async function POST(request: NextRequest) {
+  const authResult = await requireApiAuth()
+
+  if (authResult instanceof NextResponse) {
+    return authResult
+  }
+
+  const { role } = authResult
+  if (!role || !['admin', 'system_admin'].includes(role)) {
+    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
+  }
+
+  const data = await request.json().catch(() => ({}))
+  const result = await createSite(data)
+  return NextResponse.json(result, { status: result.success ? 200 : 400 })
 }

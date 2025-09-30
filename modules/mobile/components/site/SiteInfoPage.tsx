@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { TMap } from '@/lib/external-apps'
 import { Download, Search, X } from 'lucide-react'
 import {
   createMaterialRequest as createNpcMaterialRequest,
@@ -749,10 +750,9 @@ export default function SiteInfoPage() {
       })
   }
 
-  const openMapForAddress = (address?: string | null) => {
+  const openMapForAddress = async (address?: string | null) => {
     if (!address) return
-    const url = `https://m.map.naver.com/search2/search.naver?query=${encodeURIComponent(address)}`
-    window.open(url, '_blank', 'noopener,noreferrer')
+    await TMap.search(address)
   }
 
   const closeSiteBottomSheet = () => setShowSiteBottomSheet(false)
@@ -1041,7 +1041,7 @@ export default function SiteInfoPage() {
     )
 
     const items: Array<{ label: string; contact?: ManagerContact }> = [
-      { label: '소장', contact: siteManager },
+      { label: '담당자', contact: siteManager },
       { label: '안전', contact: safetyManager },
     ]
 
