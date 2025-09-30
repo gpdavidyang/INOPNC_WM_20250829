@@ -26,22 +26,32 @@ export async function GET(request: Request, { params }: { params: { id: string }
       }
     })()
 
-    let query = supabase
+    const base = supabase
       .from('work_records')
       .select('user_id, profile_id, labor_hours')
       .eq('site_id', siteId)
 
-    if (usersParam) {
-      const ids = usersParam
-        .split(',')
-        .map(s => s.trim())
-        .filter(Boolean)
-      if (ids.length > 0) {
-        query = query.in('user_id', ids)
-      }
-    }
+    let data: any[] | null = null
+    let error: any = null
 
-    const { data, error } = await query
+    const usersParamRaw = usersParam
+      ?.split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+
+    if (usersParamRaw && usersParamRaw.length > 0) {
+      // Fetch by user_id and profile_id separately, then merge
+      const [{ data: d1, error: e1 }, { data: d2, error: e2 }] = await Promise.all([
+        base.in('user_id', usersParamRaw),
+        base.in('profile_id', usersParamRaw),
+      ])
+      error = e1 || e2 || null
+      data = [...(d1 || []), ...(d2 || [])]
+    } else {
+      const res = await base
+      data = res.data || []
+      error = res.error
+    }
     if (error) {
       console.error('Labor summary query error:', error)
       return NextResponse.json({ success: false, error: 'Query failed' }, { status: 500 })

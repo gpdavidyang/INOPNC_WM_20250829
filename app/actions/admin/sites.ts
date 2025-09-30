@@ -573,11 +573,17 @@ export async function getSiteAssignments(siteId: string): Promise<AdminActionRes
         .select(
           `
           *,
-          profile:profiles(*)
+          profile:profiles(
+            id,
+            full_name,
+            email,
+            role,
+            organization:organizations(id, name)
+          )
         `
         )
         .eq('site_id', siteId)
-        .eq('is_active', true)
+        .or('is_active.is.true,is_active.is.null')
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
