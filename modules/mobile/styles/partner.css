@@ -172,8 +172,9 @@
   border-bottom: 1px solid var(--ph-line);
 }
 .ph-month-cell {
-  min-height: 64px;
-  padding: 6px 4px;
+  /* Reduce inherent padding/gaps to prevent squish on narrow screens */
+  min-height: 60px;
+  padding: 6px 3px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -197,24 +198,31 @@
   color: #475569;
 }
 .ph-month-date {
-  font-size: 12px;
+  /* Slightly smaller default and responsive scaling */
+  font-size: clamp(11px, 3.2vw, 13px);
   font-weight: 600;
   color: var(--ph-ink);
+  line-height: 1.2;
 }
 .ph-month-date.sun {
   color: #ef4444;
 }
 .ph-month-abbr {
-  font-size: 11px;
+  /* Remove fixed height to avoid vertical distortion */
+  font-size: clamp(9px, 2.8vw, 11px);
   color: #6b7280;
-  height: 16px;
-  line-height: 16px;
+  line-height: 1.15;
+  min-height: 1.1em;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .ph-month-man {
-  font-size: 11px;
+  font-size: clamp(10px, 3vw, 12px);
   color: #2563eb;
-  height: 16px;
-  line-height: 16px;
+  line-height: 1.15;
   font-weight: 600;
 }
 
@@ -553,8 +561,8 @@
   color: #ff6b6b;
 }
 .ph-month-cell {
-  min-height: 60px;
-  padding: 8px 4px;
+  min-height: 58px;
+  padding: 6px 3px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -583,20 +591,19 @@
   border-top-color: var(--ph-brand);
 }
 .ph-month-date {
-  font-size: 16px;
+  font-size: clamp(12px, 3.4vw, 15px);
   font-weight: 600;
   color: #1a254f;
-  line-height: 1.4;
-  margin-bottom: 4px;
+  line-height: 1.2;
+  margin-bottom: 2px;
 }
 .ph-month-date.sun {
   color: #ff6b6b;
 }
 .ph-month-abbr {
-  font-size: 10px;
+  font-size: clamp(9px, 2.8vw, 11px);
   color: #6b7280;
-  height: 16px;
-  line-height: 16px;
+  line-height: 1.15;
   margin-bottom: 2px;
   width: 100%;
   text-align: center;
@@ -605,10 +612,9 @@
   text-overflow: ellipsis;
 }
 .ph-month-man {
-  font-size: 12px;
+  font-size: clamp(10px, 3vw, 12px);
   color: #31a3fa;
-  height: 16px;
-  line-height: 16px;
+  line-height: 1.15;
   font-weight: 600;
 }
 
@@ -620,7 +626,7 @@
   padding: 14px 8px;
 }
 .ph-month-title {
-  font-size: 20px;
+  font-size: clamp(16px, 4.6vw, 20px);
   font-weight: 600;
   color: #1a254f;
   line-height: 1.4;
@@ -648,3 +654,19 @@
 }
 
 /* Table + KPI (from above) left as-is */
+
+/* Ultra-narrow devices: tighten spacing further */
+@media (max-width: 380px) {
+  .ph-month-grid {
+    gap: 0;
+    padding: 0 1px;
+  }
+  .ph-month-cell {
+    min-height: 54px;
+    padding: 5px 2px;
+    gap: 1px;
+  }
+  .ph-month-date {
+    margin-bottom: 1px;
+  }
+}

@@ -67,7 +67,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     status: (initial?.status as FormState['status']) || 'active',
     start_date: initial?.start_date ? toDateInput(initial.start_date) : '',
     end_date: initial?.end_date ? toDateInput(initial.end_date) : '',
-    manager_name: String(initial?.manager_name || initial?.construction_manager_name || ''),
+    manager_name: String(initial?.manager_name || ''),
     construction_manager_phone: String(initial?.construction_manager_phone || ''),
     safety_manager_name: String(initial?.safety_manager_name || ''),
     safety_manager_phone: String(initial?.safety_manager_phone || ''),
