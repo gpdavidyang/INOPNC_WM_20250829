@@ -1,11 +1,18 @@
 import { NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/supabase/service-role'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const serviceClient = createServiceRoleClient()
+    let serviceClient
+    try {
+      serviceClient = createServiceRoleClient()
+    } catch {
+      // Fallback to session client if service role is not configured (dev env)
+      serviceClient = createClient()
+    }
 
     const { data, error } = await serviceClient
       .from('sites')

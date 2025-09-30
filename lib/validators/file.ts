@@ -9,10 +9,10 @@ import { SiteDocumentType } from '@/types'
 export const FILE_VALIDATION_CONFIG = {
   // Maximum file size (10MB)
   MAX_SIZE: 10 * 1024 * 1024,
-  
+
   // Minimum file size (1KB to prevent empty files)
   MIN_SIZE: 1024,
-  
+
   // Allowed MIME types
   ALLOWED_MIME_TYPES: [
     'application/pdf',
@@ -20,47 +20,63 @@ export const FILE_VALIDATION_CONFIG = {
     'image/jpg',
     'image/png',
     'image/gif',
-    'image/webp'
+    'image/webp',
   ] as const,
-  
+
   // Allowed file extensions
-  ALLOWED_EXTENSIONS: [
-    'pdf',
-    'jpg', 
-    'jpeg',
-    'png',
-    'gif',
-    'webp'
-  ] as const,
-  
+  ALLOWED_EXTENSIONS: ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'webp'] as const,
+
   // Maximum filename length
   MAX_FILENAME_LENGTH: 255,
-  
+
   // Dangerous patterns to block
   DANGEROUS_PATTERNS: [
-    '.exe', '.bat', '.sh', '.ps1', '.cmd', '.scr', '.vbs',
-    '.js', '.jar', '.app', '.deb', '.dmg', '.pkg', '.msi',
-    '..', './', '../', '\\', '<script', 'javascript:', 'data:'
+    '.exe',
+    '.bat',
+    '.sh',
+    '.ps1',
+    '.cmd',
+    '.scr',
+    '.vbs',
+    '.js',
+    '.jar',
+    '.app',
+    '.deb',
+    '.dmg',
+    '.pkg',
+    '.msi',
+    '..',
+    './',
+    '../',
+    '\\',
+    '<script',
+    'javascript:',
+    'data:',
   ] as const,
-  
+
   // Document type specific validations
   DOCUMENT_TYPE_RULES: {
     ptw: {
       preferredTypes: ['application/pdf'] as const,
       maxSize: 5 * 1024 * 1024, // 5MB for PTW documents
-      description: 'PTW 작업허가서'
+      description: 'PTW 작업허가서',
     },
     blueprint: {
       preferredTypes: ['image/jpeg', 'image/png', 'application/pdf'] as const,
       maxSize: 10 * 1024 * 1024, // 10MB for blueprints
-      description: '공사도면'
+      description: '공사도면',
+    },
+    progress_drawing: {
+      preferredTypes: ['image/jpeg', 'image/png', 'application/pdf'] as const,
+      maxSize: 10 * 1024 * 1024, // 10MB for progress drawings
+      description: '진행도면(마킹 포함)',
     },
     other: {
       preferredTypes: ['application/pdf', 'image/jpeg', 'image/png'] as const,
       maxSize: 10 * 1024 * 1024, // 10MB for other documents
-      description: '기타 문서'
-    }
-  } as const
+      description: '기타 문서',
+    },
+  } as const,
 } as const
 
 // Custom validation error class
@@ -89,15 +105,11 @@ export interface ValidationResult {
 export function validateFileSize(file: File, documentType?: SiteDocumentType): void {
   // Check minimum size
   if (file.size < FILE_VALIDATION_CONFIG.MIN_SIZE) {
-    throw new FileValidationError(
-      '파일이 너무 작습니다. (최소 1KB)',
-      'FILE_TOO_SMALL',
-      'size'
-    )
+    throw new FileValidationError('파일이 너무 작습니다. (최소 1KB)', 'FILE_TOO_SMALL', 'size')
   }
 
   // Check maximum size based on document type
-  const maxSize = documentType 
+  const maxSize = documentType
     ? FILE_VALIDATION_CONFIG.DOCUMENT_TYPE_RULES[documentType].maxSize
     : FILE_VALIDATION_CONFIG.MAX_SIZE
 
@@ -172,11 +184,7 @@ export function validateFileName(fileName: string): void {
 
   // Check for empty filename
   if (!fileName.trim()) {
-    throw new FileValidationError(
-      '파일명이 비어있습니다.',
-      'EMPTY_FILENAME',
-      'filename'
-    )
+    throw new FileValidationError('파일명이 비어있습니다.', 'EMPTY_FILENAME', 'filename')
   }
 
   // Check for dangerous patterns
@@ -249,7 +257,9 @@ export function validateFile(file: File, documentType?: SiteDocumentType): Valid
   // Add warnings for large files
   const maxRecommendedSize = documentType === 'ptw' ? 2 * 1024 * 1024 : 5 * 1024 * 1024
   if (file.size > maxRecommendedSize) {
-    warnings.push(`파일 크기가 큽니다. (${formatFileSize(file.size)}) 업로드 시간이 오래 걸릴 수 있습니다.`)
+    warnings.push(
+      `파일 크기가 큽니다. (${formatFileSize(file.size)}) 업로드 시간이 오래 걸릴 수 있습니다.`
+    )
   }
 
   // Add warnings for non-optimal formats
@@ -260,7 +270,7 @@ export function validateFile(file: File, documentType?: SiteDocumentType): Valid
   return {
     isValid: errors.length === 0,
     errors,
-    warnings
+    warnings,
   }
 }
 
@@ -269,7 +279,7 @@ export function validateFile(file: File, documentType?: SiteDocumentType): Valid
  */
 export function validateFileStrict(file: File, documentType?: SiteDocumentType): void {
   const result = validateFile(file, documentType)
-  
+
   if (!result.isValid) {
     throw result.errors[0]
   }
@@ -286,24 +296,24 @@ export function getFileExtension(fileName: string): string | null {
 
 export function getExpectedMimeTypes(extension: string): string[] {
   const mimeTypeMap: Record<string, string[]> = {
-    'pdf': ['application/pdf'],
-    'jpg': ['image/jpeg'],
-    'jpeg': ['image/jpeg'],
-    'png': ['image/png'],
-    'gif': ['image/gif'],
-    'webp': ['image/webp']
+    pdf: ['application/pdf'],
+    jpg: ['image/jpeg'],
+    jpeg: ['image/jpeg'],
+    png: ['image/png'],
+    gif: ['image/gif'],
+    webp: ['image/webp'],
   }
-  
+
   return mimeTypeMap[extension.toLowerCase()] || []
 }
 
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes'
-  
+
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
+
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
@@ -326,7 +336,7 @@ export function getValidationSummary(result: ValidationResult): string {
     }
     return summary.join('\n')
   }
-  
+
   return result.errors.map(error => `❌ ${error.message}`).join('\n')
 }
 
@@ -334,12 +344,12 @@ export function getValidationSummary(result: ValidationResult): string {
  * Batch validate multiple files
  */
 export function validateFiles(
-  files: File[], 
+  files: File[],
   documentType?: SiteDocumentType
-): { validFiles: File[], invalidFiles: Array<{ file: File, errors: FileValidationError[] }> } {
+): { validFiles: File[]; invalidFiles: Array<{ file: File; errors: FileValidationError[] }> } {
   const validFiles: File[] = []
-  const invalidFiles: Array<{ file: File, errors: FileValidationError[] }> = []
-  
+  const invalidFiles: Array<{ file: File; errors: FileValidationError[] }> = []
+
   for (const file of files) {
     const result = validateFile(file, documentType)
     if (result.isValid) {
@@ -348,6 +358,6 @@ export function validateFiles(
       invalidFiles.push({ file, errors: result.errors })
     }
   }
-  
+
   return { validFiles, invalidFiles }
 }

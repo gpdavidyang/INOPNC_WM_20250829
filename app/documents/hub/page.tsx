@@ -1,0 +1,1153 @@
+'use client'
+
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+
+type TabKey = 'mine' | 'company' | 'drawings' | 'photos'
+
+type RequiredDocKey =
+  | 'pre-employment-checkup'
+  | 'safety-training'
+  | 'vehicle-insurance'
+  | 'vehicle-registration'
+  | 'bank-account-copy'
+  | 'id-card'
+  | 'senior-documents'
+  | 'other'
+
+const REQUIRED_LIST: Array<{ key: RequiredDocKey; title: string }> = [
+  { key: 'pre-employment-checkup', title: '배치전 검진' },
+  { key: 'safety-training', title: '기초안전보건교육' },
+  { key: 'vehicle-insurance', title: '차량보험증' },
+  { key: 'vehicle-registration', title: '차량등록증' },
+  { key: 'bank-account-copy', title: '통장사본' },
+  { key: 'id-card', title: '신분증' },
+  { key: 'senior-documents', title: '고령자 서류' },
+  { key: 'other', title: '기타' },
+]
+
+const COMPANY_LIST: Array<{ key: string; title: string }> = [
+  { key: 'biz_reg', title: '사업자등록증' },
+  { key: 'bankbook', title: '통장사본' },
+  { key: 'npc1000_form', title: 'NPC-1000 공급승인서(양식)' },
+  { key: 'completion_form', title: '작업완료확인서(양식)' },
+]
+
+export default function DocumentHubPage() {
+  const [active, setActive] = useState<TabKey>('mine')
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw-docs.js').catch(() => {})
+    }
+  }, [])
+
+  return (
+    <div style={{ padding: 16 }}>
+      <div className="document-tabs" aria-label="문서함 탭">
+        <div className="tab-row">
+          <button
+            className={`document-tab ${active === 'mine' ? 'active' : ''}`}
+            onClick={() => setActive('mine')}
+          >
+            내문서함
+          </button>
+          <button
+            className={`document-tab ${active === 'company' ? 'active' : ''}`}
+            onClick={() => setActive('company')}
+          >
+            회사서류함
+          </button>
+        </div>
+        <div className="tab-row">
+          <button
+            className={`document-tab ${active === 'drawings' ? 'active' : ''}`}
+            onClick={() => setActive('drawings')}
+          >
+            도면문서함
+          </button>
+          <button
+            className={`document-tab ${active === 'photos' ? 'active' : ''}`}
+            onClick={() => setActive('photos')}
+          >
+            사진함
+          </button>
+        </div>
+      </div>
+
+      <div className="tab-content-wrapper" role="region" aria-live="polite">
+        {active === 'mine' && <MyDocsTab />}
+        {active === 'company' && <CompanyTab />}
+        {active === 'drawings' && <DrawingsTab />}
+        {active === 'photos' && <PhotosTab />}
+      </div>
+    </div>
+  )
+}
+
+function MyDocsTab() {
+  const [uploaded, setUploaded] = useState<Record<string, File | null>>({})
+  const [requiredTypes, setRequiredTypes] = useState<
+    Array<{ id: string; code: string; name_ko?: string }>
+  >([])
+  const [submissions, setSubmissions] = useState<
+    Record<string, { document_id?: string; file_url?: string }>
+  >({})
+  const [loading, setLoading] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  useEffect(() => {
+    ;(async () => {
+      setLoading(true)
+      try {
+        const [typesRes, subsRes] = await Promise.all([
+          fetch('/api/required-document-types', { credentials: 'include' }),
+          fetch('/api/user-document-submissions', { credentials: 'include' }),
+        ])
+        const typesJson = await typesRes.json().catch(() => ({}))
+        const subsJson = await subsRes.json().catch(() => ({}))
+        const list = Array.isArray(typesJson?.required_documents)
+          ? (typesJson.required_documents as Array<any>).map(it => ({
+              id: String(it.id),
+              code: String(it.code || it.document_type || ''),
+            }))
+          : []
+        setRequiredTypes(list)
+
+        const map: Record<string, { document_id?: string; file_url?: string }> = {}
+        if (Array.isArray(subsJson?.data)) {
+          for (const s of subsJson.data) {
+            const docType = s?.requirement?.document_type || s?.requirement?.documentType || ''
+            const key = String(docType)
+            const doc = s?.document
+            if (key) {
+              map[key] = { document_id: doc?.id, file_url: doc?.file_url }
+            }
+          }
+        }
+        setSubmissions(map)
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  const toggle = (k: string) => {
+    setSelected(prev => {
+      const n = new Set(prev)
+      if (n.has(k)) n.delete(k)
+      else n.add(k)
+      return n
+    })
+  }
+  const onPick = (k: string) => {
+    inputRefs.current[k]?.click()
+  }
+  const onFile = async (k: string, f?: File) => {
+    if (!f) return
+    setUploaded(prev => ({ ...prev, [k]: f }))
+    // Find requirementId by code mapping
+    const req = requiredTypes.find(rt => rt.code === k)
+    const requirementId = req?.id
+    try {
+      const form = new FormData()
+      form.append('file', f)
+      form.append('category', 'personal')
+      form.append('documentType', 'personal')
+      if (requirementId) {
+        form.append('isRequired', 'true')
+        form.append('requirementId', requirementId)
+      }
+      const res = await fetch('/api/documents', {
+        method: 'POST',
+        body: form,
+        credentials: 'include',
+      })
+      const json = await res.json()
+      if (!res.ok || json?.error) throw new Error(json?.error || '업로드 실패')
+      const docId = json?.data?.id
+      if (requirementId && docId) {
+        await fetch('/api/user-document-submissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ requirement_id: requirementId, document_id: docId }),
+        })
+        setSubmissions(prev => ({
+          ...prev,
+          [k]: { document_id: String(docId), file_url: json?.data?.url },
+        }))
+      }
+    } catch (e: any) {
+      alert(e?.message || '업로드 중 오류')
+    }
+  }
+
+  const selectedFiles = useMemo(
+    () =>
+      Array.from(selected)
+        .map(k => uploaded[k])
+        .filter(Boolean) as File[],
+    [selected, uploaded]
+  )
+  const selectedRemoteUrls = useMemo(
+    () =>
+      Array.from(selected)
+        .map(k => submissions[k]?.file_url)
+        .filter(Boolean) as string[],
+    [selected, submissions]
+  )
+
+  const onSave = () => {
+    if (selectedFiles.length > 0) {
+      for (const f of selectedFiles) {
+        const a = document.createElement('a')
+        a.href = URL.createObjectURL(f)
+        a.download = f.name
+        a.click()
+        URL.revokeObjectURL(a.href)
+      }
+    } else if (selectedRemoteUrls.length > 0) {
+      for (const url of selectedRemoteUrls) {
+        const a = document.createElement('a')
+        a.href = url
+        a.download = ''
+        a.click()
+      }
+    }
+  }
+  const onShare = async () => {
+    try {
+      const nav: any = navigator as any
+      if (!nav.share) {
+        alert('이 브라우저는 Web Share를 지원하지 않습니다. 저장 후 다른 앱으로 공유하세요.')
+        return
+      }
+
+      // 우선 파일 공유 시도
+      if (selectedFiles.length > 0 && nav.canShare) {
+        // 1) 다중 파일 지원 여부 확인
+        if (nav.canShare({ files: selectedFiles })) {
+          await nav.share({ files: selectedFiles, title: '내문서함 공유' })
+          return
+        }
+        // 2) 단일 파일로 폴백
+        const single = selectedFiles[0]
+        if (single && nav.canShare({ files: [single] })) {
+          if (selectedFiles.length > 1) {
+            alert(
+              `다중 파일 공유 미지원\n\n현재 브라우저에서는 여러 파일 동시 공유가 지원되지 않습니다. 선택한 ${selectedFiles.length}개 중 첫 번째 파일(${single.name})만 공유합니다. 나머지 파일은 저장 후 개별로 공유해 주세요.`
+            )
+          }
+          await nav.share({ files: [single], title: '내문서함 공유(첫 파일만)' })
+          return
+        }
+        // 3) 파일 공유가 불가한 환경 → 링크 공유로 폴백
+      }
+
+      if (selectedRemoteUrls.length > 0) {
+        const text = selectedRemoteUrls.join('\n')
+        await nav.share({ title: '내문서함 공유', text, url: selectedRemoteUrls[0] })
+        return
+      }
+
+      alert('공유할 항목을 선택하거나, 저장 후 다시 시도하세요.')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : ''
+      alert(msg ? `공유 실패: ${msg}` : '공유 취소 또는 실패')
+    }
+  }
+
+  return (
+    <div>
+      <div className="section-title">필수제출서류 8종</div>
+      <div className="document-cards">
+        {REQUIRED_LIST.map(item => {
+          const f = uploaded[item.key]
+          const remote = submissions[item.key]
+          return (
+            <div
+              key={item.key}
+              className={`doc-selection-card ${selected.has(item.key) ? 'active' : ''}`}
+            >
+              <div className="doc-selection-content">
+                <div className="doc-selection-title">{item.title}</div>
+              </div>
+              <div className="doc-actions">
+                <input
+                  ref={el => (inputRefs.current[item.key] = el)}
+                  type="file"
+                  hidden
+                  onChange={e => onFile(item.key, e.target.files?.[0] || undefined)}
+                />
+                <button
+                  className={`upload-btn ${f || remote ? 'uploaded' : ''}`}
+                  onClick={() => onPick(item.key)}
+                >
+                  {f || remote ? '완료' : '업로드'}
+                </button>
+                <button
+                  className="preview-btn"
+                  disabled={!f && !remote}
+                  onClick={async () => {
+                    if (remote?.file_url) {
+                      try {
+                        const r = await fetch(
+                          `/api/files/signed-url?url=${encodeURIComponent(remote.file_url)}`
+                        )
+                        const j = await r.json()
+                        const su = j?.url || remote.file_url
+                        window.open(su, '_blank')
+                      } catch {
+                        window.open(remote.file_url, '_blank')
+                      }
+                    } else if (f) window.open(URL.createObjectURL(f), '_blank')
+                  }}
+                >
+                  보기
+                </button>
+                <button
+                  className={`selection-checkmark ${selected.has(item.key) ? 'active' : ''}`}
+                  aria-pressed={selected.has(item.key)}
+                  onClick={() => toggle(item.key)}
+                >
+                  ✓
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <div className="foot equal">
+        <button
+          className="btn"
+          onClick={onSave}
+          disabled={selectedFiles.length === 0 && selectedRemoteUrls.length === 0}
+        >
+          저장하기
+        </button>
+        <button
+          className="btn btn-primary"
+          onClick={onShare}
+          disabled={selectedFiles.length === 0 && selectedRemoteUrls.length === 0}
+        >
+          공유하기
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CompanyTab() {
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [docs, setDocs] = useState<Array<{ id: string; title: string; url: string }>>([])
+  const [loading, setLoading] = useState(false)
+  const [migrateTried, setMigrateTried] = useState(false)
+  const filteredDocs = useMemo(() => docs.filter(d => !(d.title || '').includes('공도면')), [docs])
+
+  useEffect(() => {
+    ;(async () => {
+      setLoading(true)
+      try {
+        const res = await fetch('/api/documents?type=shared&limit=100', { credentials: 'include' })
+        const json = await res.json()
+        if (res.ok && json?.success) {
+          const list = Array.isArray(json.data)
+            ? json.data.map((d: any) => ({
+                id: String(d.id),
+                title: d.title || d.file_name || '문서',
+                url: String(d.file_url || ''),
+              }))
+            : []
+          setDocs(list)
+        }
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  // 자동 마이그레이션 트리거(관리자만 성공, 일반 사용자 403은 무시)
+  useEffect(() => {
+    ;(async () => {
+      if (migrateTried || loading) return
+      const hasBlueprintKeyword = docs.some(d => (d.title || '').includes('공도면'))
+      if (!hasBlueprintKeyword) return
+      try {
+        const res = await fetch('/api/admin/documents/migrate-blueprints', {
+          method: 'POST',
+          credentials: 'include',
+        })
+        setMigrateTried(true)
+        // 성공 또는 권한 부족이어도 무시 후 목록 리프레시 시도
+        const reload = await fetch('/api/documents?type=shared&limit=100', {
+          credentials: 'include',
+        })
+        const j = await reload.json().catch(() => ({}))
+        if (reload.ok && j?.success) {
+          const list = Array.isArray(j.data)
+            ? j.data.map((d: any) => ({
+                id: String(d.id),
+                title: d.title || d.file_name || '문서',
+                url: String(d.file_url || ''),
+              }))
+            : []
+          setDocs(list)
+        }
+      } catch {
+        setMigrateTried(true)
+      }
+    })()
+  }, [docs, loading, migrateTried])
+
+  const toggle = (id: string) =>
+    setSelected(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  const selectedUrls = useMemo(
+    () =>
+      Array.from(selected)
+        .map(id => docs.find(d => d.id === id)?.url)
+        .filter(Boolean) as string[],
+    [selected, docs]
+  )
+
+  const onShare = async () => {
+    try {
+      if ((navigator as any).share && selectedUrls.length > 0) {
+        let url = selectedUrls[0]
+        try {
+          const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
+          const j = await r.json()
+          url = j?.url || url
+        } catch {
+          /* ignore signing error */
+        }
+        await (navigator as any).share({ url, title: '회사서류 공유' })
+      } else {
+        alert('공유를 지원하지 않는 브라우저입니다.')
+      }
+    } catch {
+      /* ignore initial load error */
+    }
+  }
+  const onSave = async () => {
+    for (let url of selectedUrls) {
+      try {
+        const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
+        const j = await r.json()
+        url = j?.url || url
+      } catch {
+        /* ignore signing error */
+      }
+      const a = document.createElement('a')
+      a.href = url
+      a.download = ''
+      a.click()
+    }
+  }
+
+  return (
+    <div>
+      <div className="document-cards">
+        {loading && <div className="doc-selection-title">불러오는 중...</div>}
+        {!loading && filteredDocs.length === 0 && (
+          <div className="doc-selection-title">회사서류가 없습니다.</div>
+        )}
+        {!loading &&
+          filteredDocs.map(item => (
+            <div
+              key={item.id}
+              className={`doc-selection-card ${selected.has(item.id) ? 'active' : ''}`}
+            >
+              <div className="doc-selection-content">
+                <div className="doc-selection-title">{item.title}</div>
+              </div>
+              <div className="doc-actions">
+                <button
+                  className="preview-btn"
+                  onClick={async () => {
+                    if (!item.url) return
+                    try {
+                      const r = await fetch(
+                        `/api/files/signed-url?url=${encodeURIComponent(item.url)}`
+                      )
+                      const j = await r.json()
+                      window.open(j?.url || item.url, '_blank')
+                    } catch {
+                      window.open(item.url, '_blank')
+                    }
+                  }}
+                >
+                  보기
+                </button>
+                <button
+                  className={`selection-checkmark ${selected.has(item.id) ? 'active' : ''}`}
+                  onClick={() => toggle(item.id)}
+                >
+                  ✓
+                </button>
+              </div>
+            </div>
+          ))}
+      </div>
+      {/* 관리자용 버튼 제거됨: 공도면 이전/회사서류 초기화 */}
+      <div className="foot equal">
+        <button className="btn" onClick={onSave} disabled={selectedUrls.length === 0}>
+          저장하기
+        </button>
+        <button className="btn btn-primary" onClick={onShare} disabled={selectedUrls.length === 0}>
+          공유하기
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function DrawingsTab() {
+  const [site, setSite] = useState<string>('')
+  const [category, setCategory] = useState<'plan' | 'progress' | 'other' | ''>('')
+  const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [items, setItems] = useState<
+    Array<{ id: string; url: string; title?: string; category?: string; createdAt?: string }>
+  >([])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [loading, setLoading] = useState(false)
+  const [q, setQ] = useState('')
+  const [page, setPage] = useState(1)
+  const limit = 24
+  const [totalPages, setTotalPages] = useState(1)
+  const [queue, setQueue] = useState<
+    Array<{ file: File; siteId: string; category: 'plan' | 'progress' | 'other' }>
+  >([])
+
+  const fetchList = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (site) params.set('siteId', site)
+      if (category) params.set('category', category)
+      params.set('limit', String(limit))
+      params.set('page', String(page))
+      if (q.trim()) params.set('q', q.trim())
+      const res = await fetch(`/api/docs/drawings?${params.toString()}`)
+      const json = await res.json()
+      if (res.ok && json?.success) {
+        setItems(
+          (json.data || []).map((d: any) => ({
+            id: String(d.id),
+            url: String(d.url),
+            title: typeof d.title === 'string' ? d.title : undefined,
+            category: typeof d.category === 'string' ? d.category : undefined,
+            createdAt: typeof d.created_at === 'string' ? d.created_at : undefined,
+          }))
+        )
+        if (json.pagination) setTotalPages(json.pagination.totalPages || 1)
+      } else {
+        setItems([])
+      }
+      // Fallback: 회사서류함(공유)에서 '공도면' 포함 문서를 그리드에 보조 노출
+      try {
+        const shared = await fetch(
+          '/api/documents?type=shared&limit=200&search=%EA%B3%B5%EB%8F%84%EB%A9%B4',
+          { credentials: 'include' }
+        )
+        const sj = await shared.json()
+        if (shared.ok && sj?.success && Array.isArray(sj.data)) {
+          const extras = sj.data
+            .filter((d: any) => (d.title || d.file_name || '').includes('공도면'))
+            .map((d: any) => ({
+              id: `shared-${d.id}`,
+              url: String(d.file_url || ''),
+              title: String(d.title || d.file_name || '공도면'),
+            }))
+          setItems(prev => {
+            const ids = new Set(prev.map(p => p.id))
+            const merged = prev.slice()
+            for (const e of extras) if (!ids.has(e.id)) merged.push(e)
+            return merged
+          })
+        }
+      } catch {
+        /* ignore augmentation failure */
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const onUpload = () => fileInput.current?.click()
+  const onFiles = async (files: FileList | null) => {
+    if (!files) return
+    if (!site) {
+      alert('현장을 먼저 선택하세요.')
+      return
+    }
+    const docType =
+      category === 'plan' ? 'blueprint' : category === 'other' ? 'other' : 'progress_drawing'
+    for (const f of Array.from(files)) {
+      try {
+        const form = new FormData()
+        form.append('file', f)
+        form.append('siteId', site)
+        form.append('documentType', docType)
+        const res = await fetch('/api/site-documents/upload', { method: 'POST', body: form })
+        if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || '업로드 실패')
+      } catch {
+        // 오프라인/에러 시 대기열 저장 (IndexedDB)
+        await addToUploadQueue({
+          endpoint: '/api/site-documents/upload',
+          fields: { siteId: site, documentType: docType },
+          file: f,
+        })
+        setQueue(prev => [...prev, { file: f, siteId: site, category: category || 'plan' }])
+      }
+    }
+    fetchList()
+  }
+
+  const toggle = (id: string) =>
+    setSelected(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+
+  useEffect(() => {
+    fetchList()
+  }, [site, category, page])
+  useEffect(() => {
+    ;(async () => {
+      const res = await fetch('/api/mobile/sites/list', { cache: 'no-store' })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.success)
+        setSiteOptions(
+          (json.data || []).map((s: any) => ({ id: String(s.id), name: String(s.name) }))
+        )
+    })()
+  }, [])
+
+  return (
+    <div>
+      <div className="filters">
+        <select className="select" value={site} onChange={e => setSite(e.target.value)}>
+          <option value="">현장 전체</option>
+          {siteOptions.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select"
+          value={category}
+          onChange={e => setCategory(e.target.value as any)}
+        >
+          <option value="">카테고리</option>
+          <option value="plan">공도면</option>
+          <option value="progress">진행도면</option>
+          <option value="other">기타</option>
+        </select>
+        <input
+          className="input"
+          placeholder="검색"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+        />
+        <button
+          className="btn"
+          onClick={() => {
+            setPage(1)
+            fetchList()
+          }}
+        >
+          검색
+        </button>
+        <button className="btn" onClick={onUpload}>
+          업로드
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          hidden
+          multiple
+          onChange={e => onFiles(e.target.files)}
+        />
+      </div>
+      {queue.length > 0 && (
+        <div className="doc-selection-card" style={{ marginBottom: 8 }}>
+          <div className="doc-selection-content">
+            <div className="doc-selection-title">오프라인 대기열 {queue.length}개</div>
+          </div>
+          <div className="doc-actions">
+            <button
+              className="btn"
+              onClick={async () => {
+                const rest: typeof queue = []
+                for (const item of queue) {
+                  try {
+                    const form = new FormData()
+                    form.append('file', item.file)
+                    form.append('siteId', item.siteId)
+                    form.append(
+                      'documentType',
+                      item.category === 'plan'
+                        ? 'blueprint'
+                        : item.category === 'other'
+                          ? 'other'
+                          : 'progress_drawing'
+                    )
+                    const res = await fetch('/api/site-documents/upload', {
+                      method: 'POST',
+                      body: form,
+                    })
+                    if (!res.ok) throw new Error('fail')
+                  } catch {
+                    rest.push(item)
+                  }
+                }
+                setQueue(rest)
+                fetchList()
+                // Background Sync 요청
+                try {
+                  const reg = await navigator.serviceWorker.ready
+                  if ('sync' in reg) await reg.sync.register('docs-upload-sync')
+                  navigator.serviceWorker.controller?.postMessage('process-queue')
+                } catch {
+                  /* ignore sync registration error */
+                }
+              }}
+            >
+              대기열 업로드
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="document-cards">
+        {loading && <div className="doc-selection-title">불러오는 중...</div>}
+        {!loading &&
+          items.map(it => (
+            <div
+              key={it.id}
+              className={`doc-selection-card ${selected.has(it.id) ? 'active' : ''}`}
+            >
+              <div className="doc-selection-content">
+                <div className="doc-selection-title">{it.title || '도면'}</div>
+                {it.category || it.createdAt ? (
+                  <div style={{ fontSize: 12, color: '#6B7280' }}>
+                    {it.category === 'plan'
+                      ? '공도면'
+                      : it.category === 'progress'
+                        ? '진행도면'
+                        : '기타'}
+                    {it.category && it.createdAt ? ' · ' : ''}
+                    {it.createdAt ? new Date(it.createdAt).toLocaleDateString('ko-KR') : ''}
+                  </div>
+                ) : null}
+              </div>
+              <div className="doc-actions">
+                <button
+                  className="preview-btn"
+                  onClick={async () => {
+                    const url = it.url
+                    if (!url) return
+                    try {
+                      const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
+                      const j = await r.json()
+                      window.open(j?.url || url, '_blank')
+                    } catch {
+                      window.open(url, '_blank')
+                    }
+                  }}
+                >
+                  보기
+                </button>
+                <button
+                  className={`selection-checkmark ${selected.has(it.id) ? 'active' : ''}`}
+                  onClick={() => toggle(it.id)}
+                >
+                  ✓
+                </button>
+              </div>
+            </div>
+          ))}
+      </div>
+      <div className="foot equal">
+        <button
+          className="btn"
+          disabled={selected.size === 0}
+          onClick={async () => {
+            for (const id of Array.from(selected)) {
+              const url = items.find(it => it.id === id)?.url
+              if (!url) continue
+              try {
+                const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
+                const j = await r.json()
+                const su = j?.url || url
+                const a = document.createElement('a')
+                a.href = su
+                a.download = ''
+                a.click()
+              } catch {
+                const a = document.createElement('a')
+                a.href = url
+                a.download = ''
+                a.click()
+              }
+            }
+          }}
+        >
+          저장하기
+        </button>
+        <button
+          className="btn btn-primary"
+          disabled={selected.size === 0}
+          onClick={async () => {
+            const url = items.find(it => it.id === Array.from(selected)[0])?.url
+            if ((navigator as any).share && url) {
+              try {
+                const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
+                const j = await r.json()
+                await (navigator as any).share({ url: j?.url || url, title: '도면 공유' })
+              } catch {
+                await (navigator as any).share({ url, title: '도면 공유' })
+              }
+            } else {
+              alert('브라우저 공유 미지원')
+            }
+          }}
+        >
+          공유하기
+        </button>
+      </div>
+      <div className="tab-controls" style={{ justifyContent: 'space-between' }}>
+        <button
+          className="btn"
+          disabled={page <= 1}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+        >
+          이전
+        </button>
+        <div className="doc-selection-title">
+          {page} / {totalPages}
+        </div>
+        <button className="btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+          다음
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PhotosTab() {
+  const [site, setSite] = useState('')
+  const [category, setCategory] = useState<'before' | 'after' | 'other' | ''>('')
+  const [siteOptions, setSiteOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [items, setItems] = useState<Array<{ id: string; url: string }>>([])
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [loading, setLoading] = useState(false)
+  const [q, setQ] = useState('')
+  const [page, setPage] = useState(1)
+  const limit = 24
+  const [totalPages, setTotalPages] = useState(1)
+  const [queue, setQueue] = useState<
+    Array<{ file: File; siteId: string; category: 'before' | 'after' | 'other' }>
+  >([])
+
+  const onUpload = () => inputRef.current?.click()
+  const onFiles = async (files: FileList | null) => {
+    if (!files) return
+    const arr = Array.from(files)
+    if (arr.length > 30) {
+      alert('최대 30장까지 업로드할 수 있습니다.')
+      return
+    }
+    if (!site) {
+      alert('현장을 먼저 선택하세요.')
+      return
+    }
+    const cat = (category || 'other') as 'before' | 'after' | 'other'
+    for (const f of arr) {
+      try {
+        const form = new FormData()
+        form.append('file', f)
+        form.append('siteId', site)
+        form.append('category', cat)
+        const res = await fetch('/api/docs/photos', { method: 'POST', body: form })
+        if (!res.ok) throw new Error((await res.json().catch(() => ({})))?.error || '업로드 실패')
+      } catch {
+        await addToUploadQueue({
+          endpoint: '/api/docs/photos',
+          fields: { siteId: site, category: cat },
+          file: f,
+        })
+        setQueue(prev => [...prev, { file: f, siteId: site, category: cat }])
+      }
+    }
+    fetchList()
+  }
+  const toggle = (id: string) =>
+    setSelected(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+
+  const fetchList = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      if (site) params.set('siteId', site)
+      if (category) params.set('category', category)
+      params.set('limit', String(limit))
+      params.set('page', String(page))
+      if (q.trim()) params.set('q', q.trim())
+      const res = await fetch(`/api/docs/photos?${params.toString()}`)
+      const json = await res.json()
+      if (res.ok && json?.success) {
+        setItems((json.data || []).map((d: any) => ({ id: String(d.id), url: String(d.url) })))
+        if (json.pagination) setTotalPages(json.pagination.totalPages || 1)
+      } else setItems([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchList()
+  }, [site, category, page])
+  useEffect(() => {
+    ;(async () => {
+      const res = await fetch('/api/mobile/sites/list', { cache: 'no-store' })
+      const json = await res.json().catch(() => ({}))
+      if (res.ok && json?.success)
+        setSiteOptions(
+          (json.data || []).map((s: any) => ({ id: String(s.id), name: String(s.name) }))
+        )
+    })()
+  }, [])
+
+  return (
+    <div>
+      <div className="filters">
+        <select className="select" value={site} onChange={e => setSite(e.target.value)}>
+          <option value="">현장 전체</option>
+          {siteOptions.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.name}
+            </option>
+          ))}
+        </select>
+        <select
+          className="select"
+          value={category}
+          onChange={e => setCategory(e.target.value as any)}
+        >
+          <option value="">상태</option>
+          <option value="before">보수 전</option>
+          <option value="after">보수 후</option>
+          <option value="other">기타</option>
+        </select>
+        <input
+          className="input"
+          placeholder="검색"
+          value={q}
+          onChange={e => setQ(e.target.value)}
+        />
+        <button
+          className="btn"
+          onClick={() => {
+            setPage(1)
+            fetchList()
+          }}
+        >
+          검색
+        </button>
+        <button className="btn" onClick={onUpload}>
+          업로드
+        </button>
+        <input
+          ref={inputRef}
+          type="file"
+          hidden
+          accept="image/*"
+          multiple
+          onChange={e => onFiles(e.target.files)}
+        />
+      </div>
+      {queue.length > 0 && (
+        <div className="doc-selection-card" style={{ marginBottom: 8 }}>
+          <div className="doc-selection-content">
+            <div className="doc-selection-title">오프라인 대기열 {queue.length}개</div>
+          </div>
+          <div className="doc-actions">
+            <button
+              className="btn"
+              onClick={async () => {
+                const rest: typeof queue = []
+                for (const item of queue) {
+                  try {
+                    const form = new FormData()
+                    form.append('file', item.file)
+                    form.append('siteId', item.siteId)
+                    form.append('category', item.category)
+                    const res = await fetch('/api/docs/photos', { method: 'POST', body: form })
+                    if (!res.ok) throw new Error('fail')
+                  } catch {
+                    rest.push(item)
+                  }
+                }
+                setQueue(rest)
+                fetchList()
+                try {
+                  const reg = await navigator.serviceWorker.ready
+                  if ('sync' in reg) await reg.sync.register('docs-upload-sync')
+                  navigator.serviceWorker.controller?.postMessage('process-queue')
+                } catch {
+                  /* ignore sync registration error */
+                }
+              }}
+            >
+              대기열 업로드
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="grid-thumbs">
+        {loading && <div className="doc-selection-title">불러오는 중...</div>}
+        {!loading &&
+          items.map(it => (
+            <div
+              key={it.id}
+              className="thumb"
+              onClick={() => toggle(it.id)}
+              style={{ outline: selected.has(it.id) ? '2px solid var(--tag-blue)' : 'none' }}
+            >
+              <img src={it.url} alt={`photo-${it.id}`} />
+            </div>
+          ))}
+      </div>
+      <div className="foot equal">
+        <button
+          className="btn"
+          disabled={selected.size === 0}
+          onClick={async () => {
+            for (const id of Array.from(selected)) {
+              const url = items.find(it => it.id === id)?.url
+              if (!url) continue
+              try {
+                const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
+                const j = await r.json()
+                const su = j?.url || url
+                const a = document.createElement('a')
+                a.href = su
+                a.download = ''
+                a.click()
+              } catch {
+                const a = document.createElement('a')
+                a.href = url
+                a.download = ''
+                a.click()
+              }
+            }
+          }}
+        >
+          저장하기
+        </button>
+        <button
+          className="btn btn-primary"
+          disabled={selected.size === 0}
+          onClick={async () => {
+            const url = items.find(it => it.id === Array.from(selected)[0])?.url
+            if ((navigator as any).share && url) {
+              try {
+                const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(url)}`)
+                const j = await r.json()
+                await (navigator as any).share({ url: j?.url || url, title: '사진 공유' })
+              } catch {
+                await (navigator as any).share({ url, title: '사진 공유' })
+              }
+            } else {
+              alert('브라우저 공유 미지원')
+            }
+          }}
+        >
+          공유하기
+        </button>
+      </div>
+      <div className="tab-controls" style={{ justifyContent: 'space-between' }}>
+        <button
+          className="btn"
+          disabled={page <= 1}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+        >
+          이전
+        </button>
+        <div className="doc-selection-title">
+          {page} / {totalPages}
+        </div>
+        <button className="btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+          다음
+        </button>
+      </div>
+    </div>
+  )
+}
+// IndexedDB helper for upload queue
+async function openQueueDb() {
+  return await new Promise<IDBDatabase>((resolve, reject) => {
+    const req = indexedDB.open('docs-uploads', 1)
+    req.onupgradeneeded = () => {
+      const db = req.result
+      if (!db.objectStoreNames.contains('queue'))
+        db.createObjectStore('queue', { keyPath: 'id', autoIncrement: true })
+    }
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+async function addToUploadQueue(opts: {
+  endpoint: string
+  fields: Record<string, string>
+  file: File
+}) {
+  const db = await openQueueDb()
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('queue', 'readwrite')
+      const store = tx.objectStore('queue')
+      const payload = {
+        endpoint: opts.endpoint,
+        fields: opts.fields,
+        filename: opts.file.name,
+        fileType: opts.file.type,
+        fileData: opts.file,
+        createdAt: Date.now(),
+      }
+      const req = store.add(payload)
+      req.onsuccess = () => resolve()
+      req.onerror = () => reject(req.error)
+    })
+  } finally {
+    db.close()
+  }
+}
+
+async function getQueueCount() {
+  const db = await openQueueDb()
+  try {
+    return await new Promise<number>((resolve, reject) => {
+      const tx = db.transaction('queue', 'readonly')
+      const store = tx.objectStore('queue')
+      const req = store.count()
+      req.onsuccess = () => resolve(req.result || 0)
+      req.onerror = () => reject(req.error)
+    })
+  } finally {
+    db.close()
+  }
+}

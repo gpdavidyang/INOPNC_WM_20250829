@@ -32,6 +32,8 @@ interface SitesContentProps {
   initialPages: number
   pageSize: number
   initialLoadErrored?: boolean
+  fetchBaseUrl?: string // default: /api/admin/sites
+  assignmentsBaseUrl?: string // default: /api/admin/sites
 }
 
 type StatusFilterOption = 'all' | SiteStatus
@@ -65,13 +67,17 @@ export function SitesContent({
   initialPages,
   pageSize,
   initialLoadErrored = false,
+  fetchBaseUrl = '/api/admin/sites',
+  assignmentsBaseUrl = '/api/admin/sites',
 }: SitesContentProps) {
   const [sites, setSites] = useState<Site[]>(initialSites)
   const [total, setTotal] = useState(initialTotal)
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(Math.max(initialPages, 1))
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(initialLoadErrored ? '초기 현장 데이터를 불러오지 못했습니다.' : null)
+  const [error, setError] = useState<string | null>(
+    initialLoadErrored ? '초기 현장 데이터를 불러오지 못했습니다.' : null
+  )
 
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -81,7 +87,7 @@ export function SitesContent({
   const [assignments, setAssignments] = useState<SiteAssignmentSummary[]>([])
   const [detailLoading, setDetailLoading] = useState(false)
 
-  const activeCount = useMemo(() => sites.filter((site) => site.status === 'active').length, [sites])
+  const activeCount = useMemo(() => sites.filter(site => site.status === 'active').length, [sites])
 
   const fetchSites = useCallback(
     async (
@@ -110,7 +116,7 @@ export function SitesContent({
           params.set('status', effectiveStatus)
         }
 
-        const response = await fetch(`/api/admin/sites?${params.toString()}`, { cache: 'no-store' })
+        const response = await fetch(`${fetchBaseUrl}?${params.toString()}`, { cache: 'no-store' })
         const payload = await response.json()
 
         if (!response.ok || !payload?.success) {
@@ -147,7 +153,8 @@ export function SitesContent({
     setDetailLoading(true)
     setSelectedSite(site)
     try {
-      const response = await fetch(`/api/admin/sites/${site.id}/assignments`, { cache: 'no-store' })
+      const url = `${assignmentsBaseUrl}/${site.id}/assignments`
+      const response = await fetch(url, { cache: 'no-store' })
       const payload = await response.json()
 
       if (!response.ok || !payload?.success) {
@@ -186,7 +193,9 @@ export function SitesContent({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">현장 관리</h1>
-          <p className="text-sm text-muted-foreground">진행 중인 현장과 담당자 배정을 관리합니다.</p>
+          <p className="text-sm text-muted-foreground">
+            진행 중인 현장과 담당자 배정을 관리합니다.
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchSites(page)} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -210,7 +219,9 @@ export function SitesContent({
               <p className="text-sm text-muted-foreground">활성 현장 (현재 페이지)</p>
               <p className="text-lg font-medium text-foreground">{activeCount}</p>
             </div>
-            <Badge variant="default" className="h-fit">진행 중</Badge>
+            <Badge variant="default" className="h-fit">
+              진행 중
+            </Badge>
           </CardContent>
         </Card>
         <Card>
@@ -231,8 +242,8 @@ export function SitesContent({
               <Input
                 placeholder="현장명 또는 주소 검색"
                 value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                onKeyDown={(event) => {
+                onChange={event => setSearchInput(event.target.value)}
+                onKeyDown={event => {
                   if (event.key === 'Enter') {
                     handleSearch()
                   }
@@ -246,13 +257,13 @@ export function SitesContent({
             </Button>
             <Select
               value={statusFilter}
-              onValueChange={(value) => fetchSites(1, { status: value as StatusFilterOption })}
+              onValueChange={value => fetchSites(1, { status: value as StatusFilterOption })}
             >
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="상태 필터" />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_OPTIONS.map((option) => (
+                {STATUS_OPTIONS.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -294,27 +305,41 @@ export function SitesContent({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sites.map((site) => (
-                    <TableRow key={site.id} className="cursor-pointer" onClick={() => fetchAssignments(site)}>
+                  {sites.map(site => (
+                    <TableRow
+                      key={site.id}
+                      className="cursor-pointer"
+                      onClick={() => fetchAssignments(site)}
+                    >
                       <TableCell>
                         <div className="font-medium text-foreground">{site.name}</div>
                         <div className="text-xs text-muted-foreground">{site.address}</div>
                       </TableCell>
                       <TableCell>
                         <Badge variant={site.status === 'active' ? 'default' : 'outline'}>
-                          {STATUS_LABELS[(site.status || 'all') as StatusFilterOption] || site.status || '미정'}
+                          {STATUS_LABELS[(site.status || 'all') as StatusFilterOption] ||
+                            site.status ||
+                            '미정'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div>{formatDate(site.start_date)} ~ {formatDate(site.end_date)}</div>
+                        <div>
+                          {formatDate(site.start_date)} ~ {formatDate(site.end_date)}
+                        </div>
                       </TableCell>
-                      <TableCell>{site.manager_name || site.construction_manager_name || '미지정'}</TableCell>
+                      <TableCell>
+                        {site.manager_name || site.construction_manager_name || '미지정'}
+                      </TableCell>
                       <TableCell>{site.construction_manager_phone || '-'}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={(event) => {
-                          event.stopPropagation()
-                          fetchAssignments(site)
-                        }}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={event => {
+                            event.stopPropagation()
+                            fetchAssignments(site)
+                          }}
+                        >
                           상세 보기
                         </Button>
                       </TableCell>
@@ -356,7 +381,7 @@ export function SitesContent({
 
       <SiteDetailSheet
         open={Boolean(selectedSite)}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           if (!open) {
             handleCloseDetail()
           }

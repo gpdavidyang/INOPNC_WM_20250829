@@ -144,10 +144,17 @@ const EMPTY_ATTACHMENTS: AttachmentBuckets = {
 const DEFAULT_SITE_DISPLAY_COUNT = 3
 
 const getCompanyAbbreviation = (companyName?: string | null, fallbackName?: string | null) => {
-  const source = (companyName || fallbackName || '').replace(/\s+/g, '')
-  if (!source) return '미정'
-  const characters = Array.from(source)
-  return characters.slice(0, 2).join('').toUpperCase()
+  // Prefer explicit company name
+  if (companyName && companyName.trim()) return companyName.trim()
+
+  const src = (fallbackName || '').trim()
+  if (!src) return '미정'
+  // If fallback starts with [브랜드], extract the bracket content
+  const m = src.match(/^\[([^\]]+)\]/)
+  if (m && m[1]) return m[1]
+  // Otherwise use first 2 visible characters (Korean-safe)
+  const characters = Array.from(src.replace(/\s+/g, ''))
+  return characters.slice(0, 2).join('')
 }
 
 const getLastWorkDateValue = (site: SiteSearchResult) =>
@@ -401,6 +408,60 @@ async function loadSiteLaborStats(siteId: string): Promise<SiteLaborStats> {
   }
 }
 
+function extractCityFromAddress(address?: string | null): string | null {
+  if (!address) return null
+  const tokens = address.split(/\s+/)
+  for (const token of tokens) {
+    if (/([가-힣]+)(시|군|구)$/.test(token)) return token.replace(/,/g, '')
+  }
+  return tokens[0] || null
+}
+
+function formatWeatherLabel(weather?: string | null): string | null {
+  if (!weather) return null
+  const map: Record<string, string> = {
+    sunny: '맑음',
+    clear: '맑음',
+    cloudy: '흐림',
+    overcast: '흐림',
+    rainy: '비',
+    rain: '비',
+    snow: '눈',
+    windy: '바람',
+    foggy: '안개',
+    storm: '폭풍',
+  }
+  const key = weather.toLowerCase()
+  return map[key] || weather
+}
+
+async function loadTodayReportSummary(
+  siteId: string
+): Promise<{ headcount: number; weather?: string | null }> {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const params = new URLSearchParams({
+      site_id: siteId,
+      start_date: today,
+      end_date: today,
+      limit: '1',
+    })
+    const res = await fetch(`/api/mobile/daily-reports?${params.toString()}`, { cache: 'no-store' })
+    if (!res.ok) return { headcount: 0 }
+    const json = await res.json()
+    const report = Array.isArray(json?.data?.reports) ? json.data.reports[0] : null
+    const headcount =
+      Number(
+        report?.total_workers ||
+          (Array.isArray(report?.worker_assignments) ? report.worker_assignments.length : 0)
+      ) || 0
+    const weather = report?.weather || null
+    return { headcount, weather }
+  } catch {
+    return { headcount: 0 }
+  }
+}
+
 export default function SiteInfoPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isRefreshing, setIsRefreshing] = useState(false)
@@ -415,6 +476,8 @@ export default function SiteInfoPage() {
     totalHours: 0,
     totalManDays: 0,
   })
+  const [todayHeadcount, setTodayHeadcount] = useState(0)
+  const [todayWeather, setTodayWeather] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [siteResults, setSiteResults] = useState<SiteSearchResult[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -543,15 +606,20 @@ export default function SiteInfoPage() {
       setNpcTransactions([])
       setNpcLogError(null)
 
-      const [siteAttachments, npc, laborStats] = await Promise.all([
+      const [siteAttachments, npc, laborStats, todaySummary] = await Promise.all([
         loadSiteAttachments(site.id),
         loadNpcSummary(site.id),
         loadSiteLaborStats(site.id),
+        loadTodayReportSummary(site.id),
       ])
 
       setAttachments(siteAttachments)
       setNpcSummary(npc)
       setSiteLaborStats(laborStats)
+      setTodayHeadcount(todaySummary.headcount)
+      const label = formatWeatherLabel(todaySummary.weather)
+      const city = extractCityFromAddress(site.address.full_address)
+      setTodayWeather(label ? `${city ? city + ' ' : ''}${label}` : city || '')
     } catch (error) {
       if (error instanceof HttpError && error.status === 401) {
         setErrorMessage('세션이 만료되었습니다. 다시 로그인해주세요.')
@@ -980,9 +1048,7 @@ export default function SiteInfoPage() {
   }, [searchQuery, siteResults.length])
 
   const accommodationAddress = currentSite?.accommodation?.full_address?.trim() ?? ''
-  const workerCount = Number.isFinite(siteLaborStats.totalManDays)
-    ? Math.max(0, Math.round(siteLaborStats.totalManDays))
-    : 0
+  const workerCount = todayHeadcount
 
   useEffect(() => {
     if (!showSiteBottomSheet) {
@@ -1130,18 +1196,21 @@ export default function SiteInfoPage() {
           display: flex;
           justify-content: space-between;
           align-items: center;
+          background: transparent;
         }
 
         .info-label {
           font-size: 16px;
           font-weight: 500;
           color: #6b7280;
+          background: transparent;
         }
 
         .info-value {
           font-size: 16px;
           font-weight: 600;
           color: #1a1a1a;
+          background: transparent;
         }
 
         .site-detail-content {
@@ -3196,9 +3265,7 @@ export default function SiteInfoPage() {
         }
       `}</style>
 
-      <div className="site-header">
-        <h1 className="site-title">현장정보</h1>
-      </div>
+      {/* 상단 페이지 제목 제거 요청으로 비노출 */}
 
       {errorMessage && (
         <div
@@ -3230,13 +3297,15 @@ export default function SiteInfoPage() {
             <div className="site-header">
               <h3 className="site-title">현장 정보</h3>
               <div className="site-header-right">
-                <span className="weather-info">실시간 오늘의 날씨</span>
+                <span className="weather-info">{todayWeather || '실시간 오늘의 날씨'}</span>
                 <button
                   type="button"
                   className={`site-status${showDetail ? ' active' : ''}`}
                   onClick={() => setShowDetail(prev => !prev)}
+                  aria-expanded={showDetail}
+                  aria-controls="site-detail-panel"
                 >
-                  {showDetail ? '상세' : '상세'}
+                  {showDetail ? '접기' : '상세'}
                 </button>
               </div>
             </div>
@@ -3255,22 +3324,24 @@ export default function SiteInfoPage() {
                 </span>
               </div>
               <div className="site-info-item">
-                <span className="info-label">작업기간</span>
-                <span className="info-value">
-                  {formatDateDisplay(currentSite.construction_period?.start_date)} ~{' '}
-                  {formatDateDisplay(currentSite.construction_period?.end_date)}
-                </span>
+                <span className="info-label">작업일</span>
+                <span className="info-value">{formatDateDisplay(todayDisplay)}</span>
               </div>
               <div className="site-info-item">
-                <span className="info-label">투입공수</span>
-                <span className="info-value">
-                  {formatQuantityValue(siteLaborStats.totalManDays)} 공수
-                </span>
+                <span className="info-label">출력인원</span>
+                <span className="info-value">{todayHeadcount}명</span>
               </div>
             </div>
 
+            {/* 통계 카드 제거 요청에 따라 미노출 */}
+
             {showDetail && (
-              <div className="site-detail-content" role="region" aria-label="현장 상세 정보">
+              <div
+                id="site-detail-panel"
+                className="site-detail-content"
+                role="region"
+                aria-label="현장 상세 정보"
+              >
                 <div className="site-detail-header">
                   <h4 className="detail-title">상세정보</h4>
                   <div className="detail-date-section">
@@ -3522,9 +3593,7 @@ export default function SiteInfoPage() {
               className="site-summary-toggle"
               onClick={() => setShowAllSites(prev => !prev)}
             >
-              {showAllSites
-                ? '접기'
-                : `더보기 (${siteResults.length - DEFAULT_SITE_DISPLAY_COUNT})`}
+              {showAllSites ? '접기' : '더보기'}
             </button>
           </div>
         )}

@@ -49,57 +49,82 @@ export class WorkLogService {
     sort?: WorkLogSort,
     signal?: AbortSignal
   ): Promise<WorkLog[]> {
+    const params = new URLSearchParams({ page: '1', limit: '200' })
+
+    if (filter?.siteId) {
+      params.set('site_id', filter.siteId)
+    }
+    if (filter?.dateFrom) {
+      params.set('start_date', filter.dateFrom)
+    }
+    if (filter?.dateTo) {
+      params.set('end_date', filter.dateTo)
+    }
+    if (filter?.status) {
+      const statusValue = filter.status === 'approved' ? 'approved' : 'draft'
+      params.set('status', statusValue)
+    }
+
+    // 1) Try mobile list (site_manager/worker scope)
     try {
-      const params = new URLSearchParams({ page: '1', limit: '200' })
-
-      if (filter?.siteId) {
-        params.set('site_id', filter.siteId)
-      }
-      if (filter?.dateFrom) {
-        params.set('start_date', filter.dateFrom)
-      }
-      if (filter?.dateTo) {
-        params.set('end_date', filter.dateTo)
-      }
-      if (filter?.status) {
-        const statusValue = filter.status === 'approved' ? 'approved' : 'draft'
-        params.set('status', statusValue)
-      }
-
       const response = await fetch(`/api/mobile/daily-reports?${params.toString()}`, {
         credentials: 'include',
         cache: 'no-store',
         signal,
       })
-
-      if (!response.ok) {
-        throw new Error('작업일지를 불러오는 중 오류가 발생했습니다.')
+      if (response.ok) {
+        const payload = await response.json()
+        const reports = Array.isArray(payload?.data?.reports) ? payload.data.reports : []
+        const workLogs = this.transformToWorkLogs(reports)
+        return sort ? this.sortWorkLogs(workLogs, sort) : workLogs
       }
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return []
+      // fallthrough to partner path
+    }
 
+    // 2) Fallback to partner list for partner/customer_manager scope
+    try {
+      const response = await fetch(`/api/partner/daily-reports?${params.toString()}`, {
+        credentials: 'include',
+        cache: 'no-store',
+        signal,
+      })
+      if (!response.ok) return []
       const payload = await response.json()
-
-      if (payload?.success === false) {
-        throw new Error(payload?.error || '작업일지를 불러오는 중 오류가 발생했습니다.')
-      }
-
-      const reports = Array.isArray(payload?.data?.reports) ? payload.data.reports : []
-
-      const workLogs = this.transformToWorkLogs(reports)
-
-      if (sort) {
-        return this.sortWorkLogs(workLogs, sort)
-      }
-
-      return workLogs
-    } catch (error: any) {
-      // Ignore AbortError noise (navigation/filter switches cancel in-flight requests)
-      if (error?.name === 'AbortError') {
-        return []
-      }
-      console.error('WorkLogService.getWorkLogs error:', error)
-      throw error instanceof Error
-        ? error
-        : new Error('작업일지를 불러오는 중 오류가 발생했습니다.')
+      const list = Array.isArray(payload?.data?.reports) ? payload.data.reports : []
+      const workLogs = list.map((it: any) => ({
+        id: String(it?.id),
+        date: String(it?.workDate || it?.work_date || ''),
+        siteId: String(it?.siteId || it?.site_id || ''),
+        siteName: String(it?.siteName || it?.site_name || '현장'),
+        partnerCompanyName: undefined,
+        title: String(it?.siteName || it?.work_description || '작업일지'),
+        author: '작성자',
+        status: ['approved', 'submitted', 'completed'].includes(
+          String(it?.status || '').toLowerCase()
+        )
+          ? ('approved' as const)
+          : ('draft' as const),
+        memberTypes: [],
+        workProcesses: [],
+        workTypes: [],
+        location: { block: '', dong: '', unit: '' },
+        workers: [],
+        totalHours: 0,
+        npcUsage: undefined,
+        attachments: { photos: [], drawings: [], confirmations: [] },
+        progress: 0,
+        notes: undefined,
+        createdAt: undefined,
+        updatedAt: undefined,
+        createdBy: undefined,
+      }))
+      return sort ? this.sortWorkLogs(workLogs, sort) : workLogs
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return []
+      console.error('WorkLogService.getWorkLogs partner fallback error:', e)
+      return []
     }
   }
 

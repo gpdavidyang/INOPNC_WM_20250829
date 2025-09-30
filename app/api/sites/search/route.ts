@@ -34,6 +34,38 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate')
     const limit = parseInt(searchParams.get('limit') || '50', 10)
 
+    // Determine partner access if applicable
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, partner_company_id, organization_id')
+      .eq('id', authResult.userId)
+      .single()
+
+    const isPartner = ['customer_manager', 'partner'].includes(profile?.role || '')
+    let allowedSiteIds: string[] | null = null
+
+    if (isPartner) {
+      const partnerCompanyId: string | null =
+        (profile as any)?.partner_company_id || profile?.organization_id || null
+      if (partnerCompanyId) {
+        const { data: mappings, error: mapErr } = await supabase
+          .from('partner_site_mappings')
+          .select('site_id')
+          .eq('partner_company_id', partnerCompanyId)
+        if (!mapErr) {
+          allowedSiteIds = (mappings || []).map((m: any) => m.site_id).filter(Boolean)
+        }
+        const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
+        if ((mapErr || (allowedSiteIds?.length || 0) === 0) && legacyFallbackEnabled) {
+          const { data: legacyRows } = await supabase
+            .from('site_partners')
+            .select('site_id')
+            .eq('partner_company_id', partnerCompanyId)
+          allowedSiteIds = (legacyRows || []).map((r: any) => r.site_id).filter(Boolean)
+        }
+      }
+    }
+
     // Start building query
     let query = supabase
       .from('sites')
@@ -48,6 +80,13 @@ export async function GET(request: NextRequest) {
       `
       )
       .eq('status', 'active')
+
+    if (isPartner) {
+      if (!allowedSiteIds || allowedSiteIds.length === 0) {
+        return NextResponse.json({ data: [], total: 0 })
+      }
+      query = query.in('id', allowedSiteIds)
+    }
 
     // Apply site name filter (case-insensitive)
     if (siteName) {

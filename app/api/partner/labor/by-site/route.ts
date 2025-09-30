@@ -33,6 +33,9 @@ export async function GET(request: NextRequest) {
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
     const period = searchParams.get('period') || 'monthly'
+    const overrideDate = searchParams.get('date')
+    const overrideStart = searchParams.get('start_date')
+    const overrideEnd = searchParams.get('end_date')
 
     let startDate: string
     let endDate: string
@@ -57,6 +60,15 @@ export async function GET(request: NextRequest) {
         endDate = now.toISOString().split('T')[0]
         break
       }
+    }
+
+    // Optional override via explicit date parameters for day-level queries
+    if (overrideStart && overrideEnd) {
+      startDate = overrideStart
+      endDate = overrideEnd
+    } else if (overrideDate) {
+      startDate = overrideDate
+      endDate = overrideDate
     }
 
     const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'

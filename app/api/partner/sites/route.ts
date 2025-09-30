@@ -1,502 +1,147 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import type { SiteStatus } from '@/types'
 
-// Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
 
-interface NormalizedParticipation {
-  source: 'partner_site_mappings' | 'site_partners'
-  mappingId: string
-  site: {
-    id: string
-    name: string
-    address?: string | null
-    status?: string | null
-    startDate?: string | null
-    endDate?: string | null
-  }
-  partnerCompany: {
-    id: string
-    companyName?: string | null
-    companyType?: string | null
-    tradeType?: string[] | null
-  }
-  startDate?: string | null
-  endDate?: string | null
-  isActive?: boolean | null
-  notes?: string | null
-  contractStatus: string
-  contractValue?: number | null
-}
-
-export async function GET(request: Request) {
+/**
+ * GET /api/partner/sites
+ * Query params: page, limit, search, status
+ * Returns sites assigned to the logged-in partner company, with pagination.
+ * Response shape mirrors /api/admin/sites for reuse in UI components.
+ */
+export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireApiAuth()
-    if (authResult instanceof NextResponse) {
-      return authResult
-    }
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
 
     const supabase = createClient()
-    console.log('Auth debug:', {
-      user: authResult.userId,
-      email: authResult.email,
-      role: authResult.role,
-    })
 
-    // Get user profile to check if they're associated with a partner company
+    // Ensure user is a partner role with org mapping
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('role, organization_id')
-      .eq('id', authResult.userId)
+      .select('id, role, partner_company_id, organization_id')
+      .eq('id', auth.userId)
       .single()
 
     if (profileError || !profile) {
-      console.error('Profile fetch error:', profileError)
-      return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: 'Profile not found' }, { status: 404 })
+    }
+
+    if (!['customer_manager', 'partner'].includes(profile.role || '')) {
+      return NextResponse.json(
+        { success: false, error: 'Partner access required' },
+        { status: 403 }
+      )
+    }
+
+    const partnerCompanyId: string | null =
+      (profile as any).partner_company_id || profile.organization_id || null
+    if (!partnerCompanyId) {
+      return NextResponse.json({ success: true, data: { sites: [], total: 0, pages: 0 } })
     }
 
     const { searchParams } = new URL(request.url)
-    const period = searchParams.get('period') || 'all'
-    const status = searchParams.get('status')
+    const page = Number.parseInt(searchParams.get('page') || '1', 10)
+    const limit = Number.parseInt(searchParams.get('limit') || '10', 10)
+    const search = (searchParams.get('search') || '').trim()
+    const statusParam = (searchParams.get('status') || '') as SiteStatus | ''
+    const sort = searchParams.get('sort') || 'created_at'
+    const direction = (searchParams.get('direction') || 'desc') as 'asc' | 'desc'
 
-    // Get sites where this user's partner company is assigned
-    if (!profile.organization_id) {
-      return NextResponse.json({
-        success: true,
-        data: {
-          participations: [],
-        },
-        statistics: {
-          total_sites: 0,
-          active_sites: 0,
-          completed_sites: 0,
-        },
-        filters: {
-          period,
-          status,
-        },
+    const pageNumber = Number.isFinite(page) && page > 0 ? page : 1
+    const limitNumber = Number.isFinite(limit) && limit > 0 ? limit : 10
+    const siteStatus =
+      statusParam && statusParam !== 'all' ? (statusParam as SiteStatus) : undefined
+
+    // 1) Fetch allowed site IDs via partner_site_mappings; fallback to site_partners when enabled
+    const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
+
+    const allowedSiteIds = new Set<string>()
+
+    const { data: mappings, error: mappingError } = await supabase
+      .from('partner_site_mappings')
+      .select('site_id, is_active')
+      .eq('partner_company_id', partnerCompanyId)
+
+    if (!mappingError) {
+      ;(mappings || []).forEach(row => {
+        if (row?.site_id) {
+          // Prefer active mappings; but allow any mapping to fetch the site; filtering by status happens below
+          allowedSiteIds.add(row.site_id)
+        }
       })
     }
 
-    const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
+    if ((mappingError || allowedSiteIds.size === 0) && legacyFallbackEnabled) {
+      const { data: legacyRows, error: legacyError } = await supabase
+        .from('site_partners')
+        .select('site_id')
+        .eq('partner_company_id', partnerCompanyId)
 
-    // Apply period filter boundaries
-    const now = new Date()
-    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const recent3Months = new Date(now.getFullYear(), now.getMonth() - 3, 1)
-    const recent6Months = new Date(now.getFullYear(), now.getMonth() - 6, 1)
-    const recent12Months = new Date(now.getFullYear(), now.getMonth() - 12, 1)
-    const recent24Months = new Date(now.getFullYear(), now.getMonth() - 24, 1)
+      if (!legacyError) {
+        ;(legacyRows || []).forEach(row => {
+          if (row?.site_id) allowedSiteIds.add(row.site_id)
+        })
+      }
+    }
 
-    let mappingQuery = supabase
-      .from('partner_site_mappings')
+    if (allowedSiteIds.size === 0) {
+      return NextResponse.json({ success: true, data: { sites: [], total: 0, pages: 0 } })
+    }
+
+    // 2) Query sites with filters and pagination
+    let query = supabase
+      .from('sites')
       .select(
         `
         id,
-        site_id,
-        partner_company_id,
+        name,
+        address,
+        status,
         start_date,
         end_date,
-        is_active,
-        notes,
-        sites:sites!inner(
-          id,
-          name,
-          address,
-          status as site_status,
-          start_date,
-          end_date,
-          created_at
-        ),
-        partner_companies:partner_companies!inner(
-          id,
-          company_name,
-          company_type,
-          trade_type
-        )
-      `
+        manager_name,
+        construction_manager_phone,
+        created_at,
+        updated_at
+      `,
+        { count: 'exact' }
       )
-      .eq('partner_company_id', profile.organization_id)
+      .in('id', Array.from(allowedSiteIds))
+      .order(sort, { ascending: direction === 'asc' })
 
-    switch (period) {
-      case 'current_month': {
-        mappingQuery = mappingQuery.gte('start_date', currentMonth.toISOString().split('T')[0])
-        break
-      }
-      case 'recent_3': {
-        mappingQuery = mappingQuery.gte('start_date', recent3Months.toISOString().split('T')[0])
-        break
-      }
-      case 'recent_6': {
-        mappingQuery = mappingQuery.gte('start_date', recent6Months.toISOString().split('T')[0])
-        break
-      }
-      case 'recent_12': {
-        mappingQuery = mappingQuery.gte('start_date', recent12Months.toISOString().split('T')[0])
-        break
-      }
-      case 'recent_24': {
-        mappingQuery = mappingQuery.gte('start_date', recent24Months.toISOString().split('T')[0])
-        break
-      }
-      case 'all':
-      default:
-        break
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,address.ilike.%${search}%`)
     }
 
-    mappingQuery = mappingQuery.order('start_date', { ascending: false })
-
-    const { data: mappingRows, error: mappingError } = await mappingQuery
-
-    if (mappingError) {
-      console.error('Participations query error (partner_site_mappings):', mappingError)
-      if (!legacyFallbackEnabled) {
-        return NextResponse.json(
-          { error: 'Failed to fetch site participations', details: mappingError.message },
-          { status: 500 }
-        )
-      }
+    if (siteStatus) {
+      query = query.eq('status', siteStatus)
     }
 
-    const requestedStatus = status && status !== 'all' ? status : null
-    const legacyInactiveStatuses = new Set(['terminated', 'inactive', 'suspended', 'cancelled'])
-    const participationMap = new Map<string, NormalizedParticipation>()
+    const offset = (pageNumber - 1) * limitNumber
+    query = query.range(offset, offset + limitNumber - 1)
 
-    const addParticipation = (record: NormalizedParticipation) => {
-      if (!record.site.id) return
-      if (!participationMap.has(record.site.id)) {
-        participationMap.set(record.site.id, record)
-      }
+    const { data: sites, error: sitesError, count } = await query
+
+    if (sitesError) {
+      console.error('[partner/sites] sites query error:', sitesError)
+      return NextResponse.json({ success: false, error: 'Failed to fetch sites' }, { status: 500 })
     }
 
-    mappingRows
-      ?.filter(row => row?.sites?.id)
-      .forEach(row => {
-        const meta = parseContractNotes(row.notes)
-        const derivedStatus =
-          meta.contract_status ?? deriveContractStatus(row.is_active, row.end_date)
-        if (requestedStatus && derivedStatus !== requestedStatus) {
-          return
-        }
-
-        addParticipation({
-          source: 'partner_site_mappings',
-          mappingId: row.id,
-          site: {
-            id: row.sites?.id || '',
-            name: row.sites?.name || '알 수 없는 현장',
-            address: row.sites?.address ?? '',
-            status: row.sites?.site_status ?? null,
-            startDate: row.sites?.start_date ?? null,
-            endDate: row.sites?.end_date ?? null,
-          },
-          partnerCompany: {
-            id: row.partner_companies?.id || '',
-            companyName: row.partner_companies?.company_name || '',
-            companyType: row.partner_companies?.company_type || '',
-            tradeType: row.partner_companies?.trade_type || [],
-          },
-          startDate: row.start_date ?? null,
-          endDate: row.end_date ?? null,
-          isActive: row.is_active ?? null,
-          notes: row.notes ?? null,
-          contractStatus: derivedStatus,
-          contractValue: meta.contract_value ?? null,
-        })
-      })
-
-    if ((mappingError || participationMap.size === 0) && legacyFallbackEnabled) {
-      let fallbackQuery = supabase
-        .from('site_partners')
-        .select(
-          `
-          id,
-          site_id,
-          partner_company_id,
-          assigned_date,
-          contract_status,
-          contract_value,
-          notes,
-          sites:sites!inner(
-            id,
-            name,
-            address,
-            status as site_status,
-            start_date,
-            end_date,
-            created_at
-          ),
-          partner_companies:partner_companies!inner(
-            id,
-            company_name,
-            company_type,
-            trade_type
-          )
-        `
-        )
-        .eq('partner_company_id', profile.organization_id)
-
-      switch (period) {
-        case 'current_month': {
-          fallbackQuery = fallbackQuery.gte(
-            'assigned_date',
-            currentMonth.toISOString().split('T')[0]
-          )
-          break
-        }
-        case 'recent_3': {
-          fallbackQuery = fallbackQuery.gte(
-            'assigned_date',
-            recent3Months.toISOString().split('T')[0]
-          )
-          break
-        }
-        case 'recent_6': {
-          fallbackQuery = fallbackQuery.gte(
-            'assigned_date',
-            recent6Months.toISOString().split('T')[0]
-          )
-          break
-        }
-        case 'recent_12': {
-          fallbackQuery = fallbackQuery.gte(
-            'assigned_date',
-            recent12Months.toISOString().split('T')[0]
-          )
-          break
-        }
-        case 'recent_24': {
-          fallbackQuery = fallbackQuery.gte(
-            'assigned_date',
-            recent24Months.toISOString().split('T')[0]
-          )
-          break
-        }
-        case 'all':
-        default:
-          break
-      }
-
-      fallbackQuery = fallbackQuery.order('assigned_date', { ascending: false })
-
-      const { data: legacyRows, error: legacyError } = await fallbackQuery
-
-      if (legacyError) {
-        console.error('Participations legacy fallback error (site_partners):', legacyError)
-        if (participationMap.size === 0) {
-          return NextResponse.json(
-            { error: 'Failed to fetch site participations', details: legacyError.message },
-            { status: 500 }
-          )
-        }
-      } else {
-        legacyRows
-          ?.filter(row => row?.sites?.id)
-          .forEach(row => {
-            const legacyStatus = row.contract_status || 'unknown'
-            if (requestedStatus && legacyStatus !== requestedStatus) {
-              return
-            }
-            if (!requestedStatus && legacyInactiveStatuses.has(legacyStatus)) {
-              return
-            }
-
-            const meta = parseContractNotes(row.notes)
-
-            addParticipation({
-              source: 'site_partners',
-              mappingId: row.id,
-              site: {
-                id: row.sites?.id || '',
-                name: row.sites?.name || '알 수 없는 현장',
-                address: row.sites?.address ?? '',
-                status: row.sites?.site_status ?? null,
-                startDate: row.sites?.start_date ?? null,
-                endDate: row.sites?.end_date ?? null,
-              },
-              partnerCompany: {
-                id: row.partner_companies?.id || '',
-                companyName: row.partner_companies?.company_name || '',
-                companyType: row.partner_companies?.company_type || '',
-                tradeType: row.partner_companies?.trade_type || [],
-              },
-              startDate: row.assigned_date ?? null,
-              endDate: row.sites?.end_date ?? null,
-              isActive: row.contract_status === 'active',
-              notes: row.notes ?? null,
-              contractStatus: meta.contract_status ?? legacyStatus,
-              contractValue: meta.contract_value ?? row.contract_value ?? null,
-            })
-          })
-      }
-    }
-
-    const normalizedParticipations = Array.from(participationMap.values())
-
-    const transformedParticipations = normalizedParticipations.map(entry => ({
-      id: entry.site.id,
-      site_partner_id: entry.mappingId,
-      name: entry.site.name,
-      address: entry.site.address || '',
-      role: determineRole(
-        entry.partnerCompany.companyType || '',
-        entry.partnerCompany.tradeType ?? []
-      ),
-      work: determineWorkDescription(entry.partnerCompany.tradeType ?? [], entry.site.name),
-      period: formatPeriod(entry.startDate, entry.endDate ?? entry.site.endDate ?? null),
-      status: mapContractStatus(entry.contractStatus, entry.site.status ?? null),
-      startDate: entry.startDate || '',
-      endDate: entry.endDate ?? entry.site.endDate ?? null,
-      contractValue: entry.contractValue ?? null,
-      contractStatus: entry.contractStatus,
-      siteStatus: entry.site.status || 'unknown',
-      companyType: entry.partnerCompany.companyType || '',
-      tradeType: entry.partnerCompany.tradeType ?? [],
-      notes: entry.notes && entry.notes.trim().startsWith('{') ? null : entry.notes || null,
-    }))
-
-    // Calculate statistics
-    const totalSites = transformedParticipations.length
-    const activeSites = transformedParticipations.filter(
-      (p: unknown) =>
-        p.contractStatus === 'active' &&
-        (p.siteStatus === 'active' || p.siteStatus === 'in_progress')
-    ).length
-    const completedSites = transformedParticipations.filter(
-      (p: unknown) => p.contractStatus === 'completed' || p.siteStatus === 'completed'
-    ).length
+    const totalPages = Math.ceil((count || 0) / limitNumber)
 
     return NextResponse.json({
       success: true,
       data: {
-        participations: transformedParticipations,
-      },
-      statistics: {
-        total_sites: totalSites,
-        active_sites: activeSites,
-        completed_sites: completedSites,
-      },
-      filters: {
-        period,
-        status,
+        sites: sites || [],
+        total: count || 0,
+        pages: totalPages || 1,
       },
     })
   } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('[partner/sites] error:', error)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
-}
-
-// Helper functions
-function determineRole(companyType: string, tradeTypes: string[] | null): string {
-  if (companyType === 'general_contractor') return '현장관리자'
-  if (companyType === 'consultant') return '감독관'
-  if (tradeTypes && tradeTypes.length > 0) {
-    const majorTrades = ['구조', '건축', '토목', '기계', '전기']
-    const hasMajorTrade = tradeTypes.some(trade => majorTrades.some(major => trade.includes(major)))
-    return hasMajorTrade ? '현장관리자' : '작업자'
-  }
-  return '작업자'
-}
-
-function determineWorkDescription(tradeTypes: string[] | null, siteName: string): string {
-  if (!tradeTypes || tradeTypes.length === 0) {
-    return '건설 작업'
-  }
-
-  const primaryTrade = tradeTypes[0]
-  const floor = Math.floor(Math.random() * 5) + 1
-
-  const tradeDescriptions: { [key: string]: string } = {
-    구조: `구조체 시공 • ${floor}층`,
-    건축: `건축 마감 • ${floor}층`,
-    토목: `토목 공사 • 지하 ${floor}층`,
-    기계: `기계설비 설치 • ${floor}층`,
-    전기: `전기설비 공사 • ${floor}층`,
-    배관: `배관 설치 • ${floor}층`,
-    철골: `철골 조립 • 지상 ${floor}층`,
-    콘크리트: `콘크리트 타설 • ${floor}층`,
-  }
-
-  for (const [key, description] of Object.entries(tradeDescriptions)) {
-    if (primaryTrade.includes(key)) {
-      return description
-    }
-  }
-
-  return `${primaryTrade} • ${floor}층`
-}
-
-function formatPeriod(startDate?: string | null, endDate?: string | null): string {
-  const format = (value: string) => new Date(value).toISOString().split('T')[0]
-
-  if (!startDate && !endDate) {
-    return '-'
-  }
-
-  if (!startDate && endDate) {
-    return `~ ${format(endDate)}`
-  }
-
-  const start = format(startDate as string)
-  if (!endDate) {
-    return start
-  }
-
-  return `${start} ~ ${format(endDate)}`
-}
-
-function mapContractStatus(contractStatus: string, siteStatus: string | null): string {
-  if (contractStatus === 'completed' || siteStatus === 'completed') return '완료'
-  if (contractStatus === 'terminated' || contractStatus === 'suspended') return '중지'
-  if (contractStatus === 'active' && (siteStatus === 'active' || siteStatus === 'in_progress'))
-    return '진행중'
-  return contractStatus || '대기중'
-}
-
-function deriveContractStatus(isActive?: boolean | null, endDate?: string | null): string {
-  if (endDate) {
-    return 'completed'
-  }
-  if (isActive === false) {
-    return 'terminated'
-  }
-  if (isActive === true) {
-    return 'active'
-  }
-  return 'unknown'
-}
-
-function parseContractNotes(value?: string | null): {
-  contract_status?: string
-  contract_value?: number | null
-} {
-  if (!value) {
-    return {}
-  }
-
-  const trimmed = value.trim()
-  if (!trimmed.startsWith('{') || !trimmed.endsWith('}')) {
-    return {}
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed)
-    if (parsed && typeof parsed === 'object') {
-      const candidate = 'meta' in parsed ? parsed.meta : parsed
-      const result: { contract_status?: string; contract_value?: number | null } = {}
-      if (typeof candidate.contract_status === 'string') {
-        result.contract_status = candidate.contract_status
-      }
-      if (typeof candidate.contract_value === 'number' || candidate.contract_value === null) {
-        result.contract_value = candidate.contract_value
-      }
-      return result
-    }
-  } catch (error) {
-    console.warn('Failed to parse contract metadata from notes:', { value, error })
-  }
-
-  return {}
 }

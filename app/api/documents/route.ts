@@ -1,7 +1,9 @@
 import { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { Buffer } from 'node:buffer'
 
 // 정적 생성 오류 해결을 위한 dynamic 설정
 export const dynamic = 'force-dynamic'
@@ -163,7 +165,7 @@ export async function POST(request: NextRequest) {
     // Get user's site information
     const { data: profile } = await supabase
       .from('profiles')
-      .select('site_id')
+      .select('site_id, role')
       .eq('id', userId)
       .single()
 
@@ -171,11 +173,34 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData()
     const file = formData.get('file') as File
-    const category = formData.get('category') as string
-    const uploadedBy = formData.get('uploadedBy') as string
-    const documentType = formData.get('documentType') as string
+    const category = (formData.get('category') as string) || ''
+    const uploadedBy = (formData.get('uploadedBy') as string) || ''
+    const documentTypeRaw = (formData.get('documentType') as string) || ''
     const isRequired = formData.get('isRequired') === 'true'
     const requirementId = formData.get('requirementId') as string
+
+    // Map canonical slugs to DB-allowed document_type values (check constraint compliance)
+    const CANONICAL_TO_LABEL: Record<string, string> = {
+      biz_reg: '사업자등록증',
+      bankbook: '통장사본',
+      npc1000_form: 'NPC-1000 승인확인서(양식)',
+      completion_form: '작업완료확인서(양식)',
+    }
+    const ALLOWED_DB_TYPES = new Set([
+      'personal',
+      'shared',
+      'blueprint',
+      'report',
+      'certificate',
+      'other',
+    ])
+    const mappedRaw = documentTypeRaw || 'other'
+    // For company category, store as 'shared' to satisfy DB constraint
+    let documentType = category === 'company' ? 'shared' : mappedRaw
+    if (!ALLOWED_DB_TYPES.has(documentType)) {
+      documentType = category === 'company' ? 'shared' : 'other'
+    }
+    const isPublicFlag = formData.get('isPublic') === 'true' || category === 'company'
 
     console.log('📋 Form data received:', {
       fileName: file?.name,
@@ -202,25 +227,26 @@ export async function POST(request: NextRequest) {
     // 파일 타입 검증
     const allowedTypes = [
       'application/pdf',
+      'application/x-pdf',
       'image/jpeg',
+      'image/jpg',
+      'image/pjpeg',
       'image/png',
       'image/gif',
+      'image/webp',
+      'image/heic',
+      'image/heif',
+      'image/tiff',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/octet-stream',
     ]
 
-    if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 })
+    if (file.type && !allowedTypes.includes(file.type)) {
+      return NextResponse.json({ error: `Invalid file type: ${file.type}` }, { status: 400 })
     }
-
-    // 파일을 Buffer로 변환 - Vercel compatibility fix
-    console.log('🔄 Converting file to buffer...')
-    const bytes = await file.arrayBuffer()
-    // Use Uint8Array directly for better Vercel compatibility
-    const buffer = new Uint8Array(bytes)
-    console.log('✅ File converted to buffer, size:', buffer.length)
 
     // 안전한 파일명 생성 (한글 포함)
     let fileName = generateSafeFileName(file.name)
@@ -229,16 +255,37 @@ export async function POST(request: NextRequest) {
     console.log('📁 Safe filename:', fileName)
     console.log('📁 Uploading to path:', filePath)
     console.log('📁 User ID for path:', userId)
-    console.log('📁 Buffer type:', buffer.constructor.name)
-    console.log('📁 Buffer size:', buffer.byteLength || buffer.length)
 
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('documents')
-      .upload(filePath, buffer, {
-        contentType: file.type,
+    // Determine whether to use service client (admin/system_admin)
+    const isAdmin = ['admin', 'system_admin'].includes((profile?.role as string) || '')
+    let adminClient = null as ReturnType<typeof createServiceClient> | null
+    if (isAdmin) {
+      try {
+        adminClient = createServiceClient()
+      } catch (e) {
+        console.warn('⚠️ Service role not available; falling back to user client for upload.', e)
+        adminClient = null
+      }
+    }
+    const storageClient = adminClient || supabase
+    const dbClient = adminClient || supabase
+
+    // 안정적 업로드: Node 환경에서는 Buffer 사용이 가장 호환성이 좋음
+    const contentType = file.type || 'application/octet-stream'
+    let uploadData: any | null = null
+    let uploadError: any | null = null
+    try {
+      const ab = await file.arrayBuffer()
+      const buf = Buffer.from(ab)
+      const result = await storageClient.storage.from('documents').upload(filePath, buf, {
+        contentType,
         upsert: false,
-        duplex: 'half', // Add duplex mode for better streaming support
       })
+      uploadData = result.data
+      uploadError = result.error
+    } catch (e) {
+      uploadError = e
+    }
 
     if (uploadError) {
       console.error('❌ Supabase Storage upload error:', {
@@ -246,7 +293,7 @@ export async function POST(request: NextRequest) {
         message: uploadError.message,
         statusCode: (uploadError as unknown).statusCode,
         filePath: filePath,
-        fileSize: buffer.length,
+        fileSize: file.size,
         fileType: file.type,
       })
 
@@ -259,12 +306,13 @@ export async function POST(request: NextRequest) {
         console.log('🔄 Retrying with unique filename:', uniqueFileName)
         console.log('🔄 Retry path:', uniqueFilePath)
 
-        const { data: retryData, error: retryError } = await supabase.storage
+        const ab2 = await file.arrayBuffer()
+        const buf2 = Buffer.from(ab2)
+        const { data: retryData, error: retryError } = await storageClient.storage
           .from('documents')
-          .upload(uniqueFilePath, buffer, {
-            contentType: file.type,
+          .upload(uniqueFilePath, buf2, {
+            contentType,
             upsert: false,
-            duplex: 'half', // Add duplex mode for better streaming support
           })
 
         if (retryError) {
@@ -294,10 +342,12 @@ export async function POST(request: NextRequest) {
     }
 
     // 파일 URL 생성
-    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath)
+    const { data: urlData } = storageClient.storage.from('documents').getPublicUrl(filePath)
 
     // 데이터베이스에 문서 정보 저장
-    const { data: documentData, error: dbError } = await supabase
+    const companySlugNote =
+      category === 'company' && documentTypeRaw ? `company_slug:${documentTypeRaw}; ` : ''
+    const { data: documentData, error: dbError } = await dbClient
       .from('documents')
       .insert([
         {
@@ -306,12 +356,14 @@ export async function POST(request: NextRequest) {
           file_url: urlData.publicUrl,
           file_size: file.size,
           mime_type: file.type,
-          document_type: documentType || 'other',
+          document_type: documentType,
           folder_path: filePath,
           owner_id: userId,
           site_id: profile?.site_id || null,
-          is_public: formData.get('isPublic') === 'true' || false,
-          description: (formData.get('description') as string) || `업로드된 파일: ${file.name}`,
+          is_public: isPublicFlag,
+          description:
+            (formData.get('description') as string) ||
+            `${companySlugNote}업로드된 파일: ${file.name}`,
         },
       ])
       .select()
@@ -339,7 +391,7 @@ export async function POST(request: NextRequest) {
         description: (formData.get('description') as string) || `업로드된 파일: ${file.name}`,
       })
       // 업로드된 파일 삭제
-      await supabase.storage.from('documents').remove([filePath])
+      await storageClient.storage.from('documents').remove([filePath])
       return NextResponse.json(
         {
           error: 'Failed to save document info',
@@ -455,11 +507,32 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    if (document.owner_id !== authResult.userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    // Determine admin from auth payload; if missing, fetch from profiles
+    let isAdmin = ['admin', 'system_admin'].includes((authResult as any).role || '')
+    if (!isAdmin) {
+      const { data: me } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authResult.userId)
+        .single()
+      isAdmin = ['admin', 'system_admin'].includes((me?.role as string) || '')
     }
 
-    const { error: deleteError } = await supabase.from('documents').delete().eq('id', documentId)
+    if (!isAdmin && document.owner_id !== authResult.userId) {
+      return NextResponse.json({ error: 'Forbidden: not owner' }, { status: 403 })
+    }
+
+    let adminClient = null as ReturnType<typeof createServiceClient> | null
+    if (isAdmin) {
+      try {
+        adminClient = createServiceClient()
+      } catch (e) {
+        console.warn('⚠️ Service role not available; falling back to user client for delete.', e)
+        adminClient = null
+      }
+    }
+    const dbClient = adminClient || supabase
+    const { error: deleteError } = await dbClient.from('documents').delete().eq('id', documentId)
 
     if (deleteError) {
       console.error('Error deleting document:', deleteError)
@@ -469,7 +542,8 @@ export async function DELETE(request: NextRequest) {
     if (document.file_url) {
       const parts = document.file_url.split('/storage/v1/object/public/documents/')
       if (parts.length > 1) {
-        await supabase.storage.from('documents').remove([parts[1]])
+        const storageClient = adminClient || supabase
+        await storageClient.storage.from('documents').remove([parts[1]])
       }
     }
 

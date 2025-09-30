@@ -124,6 +124,20 @@
   object-fit: contain;
   margin: 0 8px;
 }
+/* Admin header-specific logo size tweak */
+.admin-header .brand-logo {
+  height: 18px;
+  margin: 0 6px;
+}
+.admin-header .brand-logo img {
+  max-height: 100%;
+}
+/* Next Image warning fix: when height is constrained via CSS,
+   make the other dimension auto to preserve aspect ratio */
+.brand-logo img {
+  width: auto;
+  height: auto;
+}
 .logo-dark {
   display: none;
 }
@@ -155,6 +169,10 @@
   .brand-logo {
     height: 22px;
     margin: 0 6px;
+  }
+  .brand-logo img {
+    width: auto;
+    height: auto;
   }
 }
 

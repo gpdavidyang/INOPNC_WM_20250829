@@ -31,11 +31,58 @@ export async function GET(_request: NextRequest) {
       console.error('[sites/current] assignment error:', assignmentError)
       return NextResponse.json({ error: 'Assignment fetch failed' }, { status: 500 })
     }
-    if (!assignment?.site_id) {
-      return NextResponse.json({ error: 'No site assignment found' }, { status: 404 })
+
+    let siteId: string | null = assignment?.site_id || null
+
+    // 파트너 사용자(customer_manager/partner)인 경우 배정이 없어도 파트너 매핑으로 대표 현장 결정
+    if (!siteId) {
+      const { data: me, error: meError } = await supabase
+        .from('profiles')
+        .select('role, partner_company_id, organization_id')
+        .eq('id', auth.userId)
+        .single()
+
+      if (meError) {
+        console.error('[sites/current] profile fetch error:', meError)
+        return NextResponse.json({ error: 'Profile fetch failed' }, { status: 500 })
+      }
+
+      const role = me?.role || ''
+      if (['customer_manager', 'partner'].includes(role)) {
+        const partnerCompanyId: string | null =
+          (me as any)?.partner_company_id || me?.organization_id || null
+        if (partnerCompanyId) {
+          // 우선 partner_site_mappings 조회 (활성 우선)
+          const { data: mappings, error: mapErr } = await supabase
+            .from('partner_site_mappings')
+            .select('site_id, start_date, end_date, is_active')
+            .eq('partner_company_id', partnerCompanyId)
+            .order('start_date', { ascending: false })
+            .limit(1)
+
+          if (!mapErr && mappings && mappings.length > 0) {
+            siteId = mappings[0].site_id
+          } else {
+            const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
+            if (legacyFallbackEnabled) {
+              const { data: legacyRows } = await supabase
+                .from('site_partners')
+                .select('site_id, assigned_date')
+                .eq('partner_company_id', partnerCompanyId)
+                .order('assigned_date', { ascending: false })
+                .limit(1)
+              if (legacyRows && legacyRows.length > 0) {
+                siteId = legacyRows[0].site_id
+              }
+            }
+          }
+        }
+      }
     }
 
-    const siteId = assignment.site_id as string
+    if (!siteId) {
+      return NextResponse.json({ error: 'No site found for user' }, { status: 404 })
+    }
 
     // 2) 현장 상세 정보 조회 (단일 쿼리, 조인 없음)
     const baseColumns =
@@ -44,7 +91,11 @@ export async function GET(_request: NextRequest) {
     const preferColumns = `${baseColumns}, customer_company_id, organization_id`
 
     const fetchSite = async (columns: string) =>
-      supabase.from('sites').select(columns).eq('id', siteId).maybeSingle()
+      supabase
+        .from('sites')
+        .select(columns)
+        .eq('id', siteId as string)
+        .maybeSingle()
 
     let { data: site, error: siteError } = await fetchSite(preferColumns)
 

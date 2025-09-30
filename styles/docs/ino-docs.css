@@ -1,0 +1,216 @@
+/* Scoped styles for Document Hub based on dy_memo/new_image_html_v3.0/inopnc-page/public/raw/doc.html */
+.doc-container {
+  --bg: #f6f9ff;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --line: #e6ecf4;
+  --card: #ffffff;
+  --ink: #1a1a1a;
+  --muted-ink: #6b7280;
+  --tag-blue: #31a3fa;
+  --tag-blue-20: rgba(49, 163, 250, 0.2);
+  color: var(--ink);
+}
+
+.doc-container .document-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.doc-container .tab-row {
+  display: flex;
+  gap: 4px;
+}
+.doc-container .document-tab {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  color: #1a254f;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+}
+.doc-container .document-tab.active {
+  background: var(--tag-blue-20);
+  color: var(--tag-blue);
+  border-color: var(--tag-blue);
+}
+
+.doc-container .tab-content-wrapper {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 60vh;
+  position: relative;
+  overflow: hidden;
+}
+.doc-container .tab-controls {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin: 8px 0 16px;
+}
+.doc-container .tab-close-btn {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+}
+
+.doc-container .document-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  width: 100%;
+}
+.doc-container .doc-selection-card {
+  background: #fff;
+  border: 1px solid #e6ecf4;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 60px;
+  box-sizing: border-box;
+}
+.doc-container .doc-selection-card.active {
+  border: 1px solid var(--tag-blue);
+  box-shadow:
+    0 0 0 1px var(--tag-blue),
+    0 4px 12px rgba(49, 163, 250, 0.3);
+}
+.doc-container .doc-selection-content {
+  flex: 1;
+  min-width: 0;
+}
+.doc-container .doc-selection-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a254f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.doc-container .doc-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-container .upload-btn,
+.doc-container .preview-btn,
+.doc-container .download-btn {
+  padding: 6px 10px;
+  border: 1px solid #e6ecf4;
+  border-radius: 8px;
+  background: #fff;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.doc-container .upload-btn.uploaded {
+  background: var(--tag-blue);
+  border-color: var(--tag-blue);
+  color: #fff;
+}
+
+.doc-container .selection-checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e6ecf4;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.doc-container .selection-checkmark.active {
+  background: var(--tag-blue);
+  border-color: var(--tag-blue);
+  color: #fff;
+}
+
+.doc-container .foot {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+.doc-container .foot.equal .btn,
+.doc-container .foot.equal .btn-primary {
+  flex: 1 1 0%;
+  text-align: center;
+}
+.doc-container .btn {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #e6ecf4;
+  background: #fff;
+  color: #1a254f;
+  font-weight: 600;
+  cursor: pointer;
+}
+.doc-container .btn-primary {
+  background: #1a254f;
+  color: #fff;
+  border-color: #1a254f;
+}
+.doc-container .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.doc-container .filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.doc-container .select,
+.doc-container .input {
+  height: 36px;
+  border: 1px solid #e6ecf4;
+  border-radius: 8px;
+  padding: 6px 10px;
+  background: #fff;
+  color: #1a254f;
+}
+
+.doc-container .grid-thumbs {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+.doc-container .thumb {
+  height: 120px;
+  border: 1px solid #e6ecf4;
+  border-radius: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.doc-container .thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.doc-container .section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #6b7280;
+  margin-bottom: 8px;
+}

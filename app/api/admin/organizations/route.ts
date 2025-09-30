@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { ADMIN_ORGANIZATIONS_STUB } from '@/lib/admin/stub-data'
+// Note: stub fallback removed — real data only
 
 // Force dynamic rendering for this API route
 export const dynamic = 'force-dynamic'
-
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,23 +27,16 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching organizations:', error)
-      return NextResponse.json(
-        { error: 'Failed to fetch organizations' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Failed to fetch organizations' }, { status: 500 })
     }
 
-    return NextResponse.json({
-      success: true,
-      organizations: organizations || [],
-    })
+    return NextResponse.json({ success: true, organizations: organizations || [] })
   } catch (error) {
     console.error('Organizations API error:', error)
-    return NextResponse.json({
-      success: true,
-      organizations: ADMIN_ORGANIZATIONS_STUB,
-      source: 'stub',
-    })
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch organizations' },
+      { status: 500 }
+    )
   }
 }
 
@@ -64,6 +56,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { name, type, address, contact_email, contact_phone } = body
 
+    // Validate
+    if (!name || typeof name !== 'string') {
+      return NextResponse.json({ error: 'Organization name is required' }, { status: 400 })
+    }
+
     // Create new organization
     const { data: organization, error } = await supabase
       .from('organizations')
@@ -72,17 +69,14 @@ export async function POST(request: NextRequest) {
         type,
         address,
         contact_email,
-        contact_phone
+        contact_phone,
       })
       .select()
       .single()
 
     if (error) {
       console.error('Error creating organization:', error)
-      return NextResponse.json(
-        { error: 'Failed to create organization' },
-        { status: 500 }
-      )
+      return NextResponse.json({ error: 'Failed to create organization' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, organization })

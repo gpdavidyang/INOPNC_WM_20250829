@@ -12,8 +12,8 @@ const UI_TRACKS: Record<string, string> = {
   worker: '/mobile',
   site_manager: '/mobile',
   production_manager: '/mobile/production', // 생산관리 UI
-  customer_manager: '/partner/dashboard',
-  partner: '/partner/dashboard',
+  customer_manager: '/mobile/partner',
+  partner: '/mobile/partner',
   admin: '/dashboard/admin',
   system_admin: '/dashboard/admin',
 }
@@ -40,9 +40,7 @@ export async function getAuthForClient(
   return fetchSimpleAuth(supabase)
 }
 
-async function fetchSimpleAuth(
-  supabase: SupabaseClient<Database>
-): Promise<SimpleAuth | null> {
+async function fetchSimpleAuth(supabase: SupabaseClient<Database>): Promise<SimpleAuth | null> {
   const {
     data: { user },
   } = await supabase.auth.getUser()

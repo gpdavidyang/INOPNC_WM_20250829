@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useMemo, useRef, useEffect } from 'react'
-import Image from 'next/image'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -136,6 +135,12 @@ const menuCategories = [
         href: '/dashboard/admin/documents',
       },
       {
+        id: 'documents-company',
+        label: '회사서류 관리',
+        icon: FileText,
+        href: '/dashboard/admin/documents/company',
+      },
+      {
         id: 'document-requirements',
         label: '필수서류 설정',
         icon: Settings,
@@ -212,6 +217,12 @@ const systemCategory = {
       icon: FileText,
       href: '/dashboard/admin/audit-logs',
     },
+    {
+      id: 'documents-maint',
+      label: '문서 유지보수',
+      icon: FileText,
+      href: '/dashboard/admin/documents/maintenance',
+    },
   ],
 }
 
@@ -280,31 +291,7 @@ function Sidebar({
   if (isCollapsed) {
     return (
       <div className="flex flex-col h-full bg-white shadow-xl w-16">
-        {/* Mini Logo */}
-        <div className="p-3 border-b border-gray-200 flex justify-center">
-          <div className="brand-logos">
-            <span className="brand-logo logo-light">
-              <Image
-                src="/images/inopnc-logo-n.png"
-                alt="INOPNC"
-                width={120}
-                height={24}
-                unoptimized
-                style={{ height: '100%', width: 'auto' }}
-              />
-            </span>
-            <span className="brand-logo logo-dark">
-              <Image
-                src="/images/inopnc-logo-w.png"
-                alt="INOPNC"
-                width={120}
-                height={24}
-                unoptimized
-                style={{ height: '100%', width: 'auto' }}
-              />
-            </span>
-          </div>
-        </div>
+        {/* Mini Logo removed from collapsed sidebar */}
 
         {/* Mini Navigation - Icons only */}
         <div className="flex-1 overflow-y-auto py-3">
@@ -368,28 +355,7 @@ function Sidebar({
         } border-b border-gray-200`}
       >
         <div className="flex items-center mb-4">
-          <div className="brand-logos mr-3">
-            <span className="brand-logo logo-light">
-              <Image
-                src="/images/inopnc-logo-n.png"
-                alt="INOPNC"
-                width={120}
-                height={24}
-                unoptimized
-                style={{ height: '100%', width: 'auto' }}
-              />
-            </span>
-            <span className="brand-logo logo-dark">
-              <Image
-                src="/images/inopnc-logo-w.png"
-                alt="INOPNC"
-                width={120}
-                height={24}
-                unoptimized
-                style={{ height: '100%', width: 'auto' }}
-              />
-            </span>
-          </div>
+          {/* Sidebar logo removed */}
           <div>
             <h2
               className={`${getTypographyClass('header', 'sm', isLargeFont)} font-bold text-gray-900`}
@@ -525,25 +491,32 @@ export default function AdminDashboardLayout({
   const pathname = usePathname()
   // Remove mobile sidebar state - desktop only
   // const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
-    // Load collapsed state from localStorage
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('admin-sidebar-collapsed')
-      // Default to collapsed on mobile, expanded on desktop
-      if (saved === null) {
-        const isMobile = window.innerWidth < 768
-        return isMobile
-      }
-      return saved === 'true'
-    }
-    return false
-  })
+  // Initialize with a stable SSR-safe default to avoid hydration mismatch.
+  // Read localStorage and viewport only after mount.
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(false)
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [profile, setProfile] = useState<Profile | null>(propProfile || null)
   const userMenuRef = useRef<HTMLDivElement>(null)
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
+
+  // Hydrate initial sidebar state on mount (client-only)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('admin-sidebar-collapsed')
+      if (saved !== null) {
+        setIsSidebarCollapsed(saved === 'true')
+        return
+      }
+      // Default to collapsed on mobile, expanded on desktop
+      const isMobile = typeof window !== 'undefined' ? window.innerWidth < 768 : false
+      setIsSidebarCollapsed(isMobile)
+    } catch (e) {
+      // Fallback to default (expanded) if any error occurs
+      setIsSidebarCollapsed(false)
+    }
+  }, [])
 
   // Save sidebar collapsed state to localStorage
   useEffect(() => {
