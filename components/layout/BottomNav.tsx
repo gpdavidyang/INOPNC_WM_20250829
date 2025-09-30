@@ -66,22 +66,19 @@ export function BottomNav() {
     }
     return pathname?.startsWith(href)
   }
-  
+
   return (
     <div className="bottom-nav-wrap">
       <nav className="bottom-nav">
         <ul className="nav-list">
-          {navItems.map((item) => {
+          {navItems.map(item => {
             const active = isActive(item.href)
-            
+
             return (
               <li key={item.id} className="nav-item">
                 <Link
                   href={item.href}
-                  className={cn(
-                    "nav-link",
-                    active && "active"
-                  )}
+                  className={cn('nav-link', active && 'active')}
                   aria-current={active ? 'page' : undefined}
                 >
                   <div className="nav-ico">
@@ -91,21 +88,23 @@ export function BottomNav() {
                       width={22}
                       height={22}
                       className={cn(
-                        "nav-svg",
-                        "transition-all duration-200",
-                        active ? "opacity-100" : "opacity-60"
+                        'nav-svg',
+                        'transition-all duration-200',
+                        active ? 'opacity-100' : 'opacity-60'
                       )}
                       style={{
-                        filter: active 
-                          ? 'brightness(1) contrast(1.2)' 
-                          : 'brightness(0.8) contrast(0.9)'
+                        filter: active
+                          ? 'brightness(1) contrast(1.2)'
+                          : 'brightness(0.8) contrast(0.9)',
                       }}
                     />
                   </div>
-                  <span className={cn(
-                    "nav-label",
-                    active ? "text-[var(--brand)]" : "text-[var(--muted)]"
-                  )}>
+                  <span
+                    className={cn(
+                      'nav-label',
+                      active ? 'text-[var(--brand)]' : 'text-[var(--muted)]'
+                    )}
+                  >
                     {item.label}
                   </span>
                 </Link>
@@ -173,7 +172,8 @@ const bottomNavStyles = `
   }
   
   .nav-link.active {
-    color: var(--brand);
+    /* Use token that adapts to theme */
+    color: var(--nav-text-active);
   }
   
   .nav-ico {

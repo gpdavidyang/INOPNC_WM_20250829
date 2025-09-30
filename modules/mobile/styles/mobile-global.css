@@ -525,12 +525,14 @@ textarea {
 }
 
 .nav-link.active {
-  color: #1a254f;
+  /* Use design token for active color (light/dark aware) */
+  color: var(--nav-text-active);
 }
 
 .nav-link.active .nav-svg,
 .nav-link.active .nav-label {
-  color: #1a254f !important;
+  /* Ensure icon/label follow the active color with high specificity */
+  color: var(--nav-text-active) !important;
 }
 
 /* 통합 전환 */

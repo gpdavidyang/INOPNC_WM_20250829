@@ -170,6 +170,9 @@ export interface CreateSiteData {
   address: string
   description?: string
   construction_manager_phone?: string
+  manager_phone?: string
+  construction_manager_email?: string
+  manager_email?: string
   safety_manager_phone?: string
   accommodation_name?: string
   accommodation_address?: string
@@ -222,7 +225,7 @@ export async function getSites(
           start_date,
           end_date,
           manager_name,
-          construction_manager_phone,
+          manager_phone,
           created_at,
           updated_at,
           organization_id

@@ -33,7 +33,8 @@ type FormState = {
   start_date: string
   end_date: string
   manager_name: string
-  construction_manager_phone: string
+  manager_phone: string
+  manager_email: string
   safety_manager_name: string
   safety_manager_phone: string
   accommodation_name: string
@@ -68,7 +69,12 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     start_date: initial?.start_date ? toDateInput(initial.start_date) : '',
     end_date: initial?.end_date ? toDateInput(initial.end_date) : '',
     manager_name: String(initial?.manager_name || ''),
-    construction_manager_phone: String(initial?.construction_manager_phone || ''),
+    manager_phone: String(
+      (initial as any)?.manager_phone || (initial as any)?.construction_manager_phone || ''
+    ),
+    manager_email: String(
+      (initial as any)?.manager_email || (initial as any)?.construction_manager_email || ''
+    ),
     safety_manager_name: String(initial?.safety_manager_name || ''),
     safety_manager_phone: String(initial?.safety_manager_phone || ''),
     accommodation_name: String(initial?.accommodation_name || ''),
@@ -98,7 +104,8 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
         description: form.description.trim() || null,
         end_date: form.end_date.trim() || null,
         manager_name: form.manager_name.trim() || null,
-        construction_manager_phone: form.construction_manager_phone.trim() || null,
+        manager_phone: form.manager_phone.trim() || null,
+        manager_email: form.manager_email.trim() || null,
         safety_manager_name: form.safety_manager_name.trim() || null,
         safety_manager_phone: form.safety_manager_phone.trim() || null,
         accommodation_name: form.accommodation_name.trim() || null,
@@ -235,9 +242,19 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
           <Input
             id="site-manager-phone"
             inputMode="tel"
-            value={form.construction_manager_phone}
-            onChange={e => handleChange('construction_manager_phone', e.target.value)}
+            value={form.manager_phone}
+            onChange={e => handleChange('manager_phone', e.target.value)}
             placeholder="010-0000-0000"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="site-manager-email">현장관리자 이메일</Label>
+          <Input
+            id="site-manager-email"
+            type="email"
+            value={form.manager_email}
+            onChange={e => handleChange('manager_email', e.target.value)}
+            placeholder="manager@example.com"
           />
         </div>
         <div className="space-y-2">

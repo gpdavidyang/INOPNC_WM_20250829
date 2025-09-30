@@ -9,17 +9,26 @@ import { ThemeProvider } from 'next-themes'
 
 interface ProvidersProps {
   children: React.ReactNode
+  forcedTheme?: 'light' | 'dark'
+  enableSystem?: boolean
+  defaultTheme?: 'light' | 'dark' | 'system'
 }
 
-export function Providers({ children }: ProvidersProps) {
+export function Providers({
+  children,
+  forcedTheme,
+  enableSystem = true,
+  defaultTheme = 'system',
+}: ProvidersProps) {
   return (
     <ErrorBoundary>
       <ThemeProvider
         attribute="data-theme"
-        defaultTheme="system"
-        enableSystem
+        defaultTheme={defaultTheme}
+        enableSystem={enableSystem}
         storageKey="inopnc_theme"
         disableTransitionOnChange
+        forcedTheme={forcedTheme}
       >
         <ContrastModeProvider>
           <FontSizeProvider>

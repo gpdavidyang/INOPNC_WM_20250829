@@ -1,5 +1,6 @@
 'use client'
 
+import { useFontSize } from '@/contexts/FontSizeContext'
 
 export function FontSizeToggle() {
   const { isLargeFont, toggleFontSize } = useFontSize()
@@ -19,7 +20,7 @@ export function FontSizeToggle() {
       title={isLargeFont ? '일반 글꼴로 변경 (현재: 큰 글꼴)' : '큰 글꼴로 변경 (현재: 일반 글꼴)'}
       aria-label={isLargeFont ? '일반 글꼴로 변경' : '큰 글꼴로 변경'}
     >
-      <span 
+      <span
         className={`transition-all duration-200 ${isLargeFont ? 'text-sm scale-110' : 'text-xs'}`}
         aria-hidden="true"
       >

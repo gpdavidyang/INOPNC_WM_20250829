@@ -187,6 +187,18 @@
   color: #1a254f;
 }
 
+/* Dark mode overrides for document hub controls */
+[data-theme='dark'] .doc-container .select,
+[data-theme='dark'] .doc-container .input {
+  background: #0b1324;
+  border-color: rgba(230, 236, 244, 0.12);
+  color: #e6ecf4;
+}
+[data-theme='dark'] .doc-container .thumb {
+  background: #0b1324;
+  border-color: rgba(230, 236, 244, 0.12);
+}
+
 .doc-container .grid-thumbs {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

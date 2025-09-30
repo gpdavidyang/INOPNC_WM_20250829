@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import AdminDashboardLayout from '@/components/admin/AdminDashboardLayout'
+import { Providers } from '@/components/providers'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,5 +38,17 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect('/dashboard')
   }
 
-  return <AdminDashboardLayout profile={profile}>{children}</AdminDashboardLayout>
+  return (
+    <>
+      {/* Prevent theme flash: force light on admin routes before hydration */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `(() => { try { document.documentElement.setAttribute('data-theme','light'); document.documentElement.classList.remove('dark'); } catch(e){} })();`,
+        }}
+      />
+      <Providers forcedTheme="light" enableSystem={false} defaultTheme="light">
+        <AdminDashboardLayout profile={profile}>{children}</AdminDashboardLayout>
+      </Providers>
+    </>
+  )
 }

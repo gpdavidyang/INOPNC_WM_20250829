@@ -51,7 +51,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ title = 'INOPNC' }) 
       <div className="max-w-4xl mx-auto h-full flex items-center justify-between px-3">
         {/* 왼쪽 영역 */}
         <div className="flex items-center gap-3">
-          <button className="icon-btn p-2" aria-label="메뉴">
+          <Button aria-label="메뉴" variant="ghost" size="sm" className="icon-btn p-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -60,7 +60,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ title = 'INOPNC' }) 
                 d="M4 6h16M4 12h16M4 18h16"
               />
             </svg>
-          </button>
+          </Button>
 
           <a href="/home" className="flex items-center">
             <img
@@ -75,27 +75,45 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ title = 'INOPNC' }) 
         {/* 오른쪽 액션들 */}
         <div className="flex items-center gap-2">
           {/* 글씨 크기 스위치 */}
-          <div className="flex bg-gray-100 rounded-lg p-1" role="group" aria-label="글씨 크기">
-            <button
-              className={`px-2 py-1 text-xs rounded transition-colors ${
-                fontSize === 'normal' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+          <div
+            className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1"
+            role="group"
+            aria-label="글씨 크기"
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`px-2 py-1 text-xs rounded ${
+                fontSize === 'normal'
+                  ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
+                  : 'text-gray-600 dark:text-gray-300'
               }`}
               onClick={() => toggleFontSize('normal')}
             >
               일반
-            </button>
-            <button
-              className={`px-2 py-1 text-xs rounded transition-colors ${
-                fontSize === 'large' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`px-2 py-1 text-xs rounded ${
+                fontSize === 'large'
+                  ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100'
+                  : 'text-gray-600 dark:text-gray-300'
               }`}
               onClick={() => toggleFontSize('large')}
             >
               확대
-            </button>
+            </Button>
           </div>
 
           {/* 다크모드 토글 */}
-          <button className="icon-btn p-2" aria-label="다크모드" onClick={toggleDarkMode}>
+          <Button
+            className="icon-btn p-2"
+            aria-label="다크모드"
+            variant="ghost"
+            size="sm"
+            onClick={toggleDarkMode}
+          >
             {isDarkMode ? (
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -115,10 +133,10 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ title = 'INOPNC' }) 
                 />
               </svg>
             )}
-          </button>
+          </Button>
 
           {/* 검색 버튼 */}
-          <button className="icon-btn p-2" aria-label="검색">
+          <Button className="icon-btn p-2" aria-label="검색" variant="ghost" size="sm">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -127,10 +145,10 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ title = 'INOPNC' }) 
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-          </button>
+          </Button>
 
           {/* 알림 버튼 */}
-          <button className="icon-btn p-2 relative" aria-label="알림">
+          <Button className="icon-btn p-2 relative" aria-label="알림" variant="ghost" size="sm">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -144,7 +162,7 @@ export const MobileHeader: React.FC<MobileHeaderProps> = ({ title = 'INOPNC' }) 
                 {notificationCount}
               </span>
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </header>

@@ -138,9 +138,10 @@ export interface Site {
   name: string
   address: string
   description?: string | null
-  construction_manager_name?: string | null // 건설관리자 이름
-  construction_manager_phone?: string | null // 건설관리자 연락처
-  construction_manager_email?: string | null // 건설관리자 이메일
+  manager_phone?: string | null // 현장 담당자 연락처 (통일)
+  manager_email?: string | null // 현장 담당자 이메일 (통일)
+  construction_manager_phone?: string | null // [legacy] 호환용
+  construction_manager_email?: string | null // [legacy] 호환용
   safety_manager_phone?: string | null
   accommodation_name?: string | null
   accommodation_address?: string | null
@@ -186,7 +187,8 @@ export interface CurrentUserSite {
   work_section?: string | null
   component_name?: string | null
   manager_name?: string | null
-  construction_manager_phone?: string | null
+  manager_phone?: string | null
+  construction_manager_phone?: string | null // [legacy] 호환용
   safety_manager_name?: string | null
   safety_manager_phone?: string | null
   accommodation_name?: string | null

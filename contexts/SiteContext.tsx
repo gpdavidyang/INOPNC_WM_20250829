@@ -124,7 +124,8 @@ export function SiteProvider({ children }: { children: ReactNode }) {
             construction_start_date,
             construction_end_date,
             is_active,
-            construction_manager_name,
+            manager_name,
+            manager_phone,
             construction_manager_phone,
             assistant_manager_name,
             assistant_manager_phone,
@@ -199,11 +200,11 @@ export function SiteProvider({ children }: { children: ReactNode }) {
 
       // Create manager contacts array
       const managers = []
-      if (site.construction_manager_name && site.construction_manager_phone) {
+      if (site.manager_name && ((site as any).manager_phone || site.construction_manager_phone)) {
         managers.push({
           role: 'construction_manager' as const,
-          name: site.construction_manager_name,
-          phone: site.construction_manager_phone,
+          name: site.manager_name,
+          phone: (site as any).manager_phone || site.construction_manager_phone,
         })
       }
       if (site.assistant_manager_name && site.assistant_manager_phone) {

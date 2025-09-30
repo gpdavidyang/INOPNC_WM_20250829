@@ -245,10 +245,10 @@ export function SitesContent({
         render: s => s.manager_name || '미지정',
       },
       {
-        key: 'construction_manager_phone',
+        key: 'manager_phone',
         header: '연락처',
         sortable: false,
-        render: s => s.construction_manager_phone || '-',
+        render: s => (s as any).manager_phone || (s as any).construction_manager_phone || '-',
       },
       {
         key: 'daily_reports_count',

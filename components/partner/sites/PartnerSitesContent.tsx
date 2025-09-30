@@ -337,7 +337,11 @@ export function PartnerSitesContent({
                         </div>
                       </TableCell>
                       <TableCell>{(site as any).manager_name || '미지정'}</TableCell>
-                      <TableCell>{(site as any).construction_manager_phone || '-'}</TableCell>
+                      <TableCell>
+                        {(site as any).manager_phone ||
+                          (site as any).construction_manager_phone ||
+                          '-'}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"

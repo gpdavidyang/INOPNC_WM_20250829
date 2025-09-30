@@ -48,7 +48,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const { data: site, error } = await service
       .from('sites')
       .select(
-        'id, name, address, status, start_date, end_date, construction_manager_phone, safety_manager_phone'
+        'id, name, address, status, start_date, end_date, manager_phone, construction_manager_phone, safety_manager_phone'
       )
       .eq('id', siteId)
       .maybeSingle()
@@ -109,9 +109,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         start_date: site.start_date || null,
         end_date: site.end_date || null,
         managers: [
-          site.construction_manager_phone && {
+          ((site as any).manager_phone || (site as any).construction_manager_phone) && {
             role: '현장 소장',
-            phone: site.construction_manager_phone,
+            phone: (site as any).manager_phone || (site as any).construction_manager_phone,
           },
           site.safety_manager_phone && { role: '안전 관리자', phone: site.safety_manager_phone },
         ].filter(Boolean),

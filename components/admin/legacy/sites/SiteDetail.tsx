@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Site {
   id: string
   name: string
@@ -9,7 +8,7 @@ interface Site {
   status: string
   start_date?: string
   end_date?: string
-  construction_manager_name?: string
+  manager_name?: string
   construction_manager_phone?: string
   safety_manager_name?: string
   safety_manager_phone?: string
@@ -86,24 +85,24 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
       } else {
         // Set worker count
         setWorkerCount(assignmentsData?.length || 0)
-        
+
         // Fetch profile data separately to avoid FK issues
         const enrichedAssignments = await Promise.all(
-          (assignmentsData || []).map(async (assignment) => {
+          (assignmentsData || []).map(async assignment => {
             try {
               const { data: profile } = await supabase
                 .from('profiles')
                 .select('full_name, email, phone')
                 .eq('id', assignment.user_id)
                 .single()
-              
+
               return {
                 ...assignment,
                 profile: profile || {
                   full_name: 'Unknown User',
                   email: 'unknown@example.com',
-                  phone: null
-                }
+                  phone: null,
+                },
               }
             } catch (err) {
               return {
@@ -111,8 +110,8 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
                 profile: {
                   full_name: 'Unknown User',
                   email: 'unknown@example.com',
-                  phone: null
-                }
+                  phone: null,
+                },
               }
             }
           })
@@ -130,7 +129,8 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
         // Get recent reports for display
         supabase
           .from('daily_reports')
-          .select(`
+          .select(
+            `
             id,
             member_name,
             process_type,
@@ -139,10 +139,11 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
             total_workers,
             issues,
             created_at
-          `)
+          `
+          )
           .eq('site_id', siteId)
           .order('work_date', { ascending: false })
-          .limit(10)
+          .limit(10),
       ])
 
       // Set report count
@@ -160,7 +161,6 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
       } else {
         setDailyReports(reportsDataResult.data || [])
       }
-
     } catch (error) {
       console.error('Error fetching site details:', error)
       // Mock data for development
@@ -172,13 +172,13 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
         status: 'active',
         start_date: '2024-01-01',
         end_date: '2024-12-31',
-        construction_manager_name: '김건설',
+        manager_name: '김건설',
         construction_manager_phone: '010-1234-5678',
         safety_manager_name: '이안전',
         safety_manager_phone: '010-9876-5432',
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
       })
-      
+
       const mockAssignments = [
         {
           id: '1',
@@ -187,8 +187,8 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
           profile: {
             full_name: '김현장',
             email: 'manager@site.com',
-            phone: '010-1111-2222'
-          }
+            phone: '010-1111-2222',
+          },
         },
         {
           id: '2',
@@ -197,8 +197,8 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
           profile: {
             full_name: '박작업',
             email: 'worker@site.com',
-            phone: '010-3333-4444'
-          }
+            phone: '010-3333-4444',
+          },
         },
         {
           id: '3',
@@ -207,13 +207,13 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
           profile: {
             full_name: '최작업',
             email: 'worker2@site.com',
-            phone: '010-5555-6666'
-          }
-        }
+            phone: '010-5555-6666',
+          },
+        },
       ]
       setAssignments(mockAssignments)
       setWorkerCount(mockAssignments.length)
-      
+
       const mockReports = [
         {
           id: '1',
@@ -223,8 +223,8 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
           status: 'completed',
           total_workers: 5,
           issues: '특이사항 없음',
-          created_at: new Date().toISOString()
-        }
+          created_at: new Date().toISOString(),
+        },
       ]
       setDailyReports(mockReports)
       setReportCount(44) // Mock count to match the list view
@@ -238,24 +238,42 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
       site_manager: '현장관리자',
       worker: '작업자',
       customer_manager: '파트너사',
-      admin: '관리자'
+      admin: '관리자',
     }
     return roleLabels[role as keyof typeof roleLabels] || role
   }
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { text: '진행중', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300', icon: CheckCircle },
-      planning: { text: '계획중', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300', icon: Clock },
-      completed: { text: '완료', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300', icon: CheckCircle },
-      suspended: { text: '중단', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300', icon: AlertCircle }
+      active: {
+        text: '진행중',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+        icon: CheckCircle,
+      },
+      planning: {
+        text: '계획중',
+        color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
+        icon: Clock,
+      },
+      completed: {
+        text: '완료',
+        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+        icon: CheckCircle,
+      },
+      suspended: {
+        text: '중단',
+        color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+        icon: AlertCircle,
+      },
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active
     const Icon = config.icon
-    
+
     return (
-      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+      >
         <Icon className="h-3 w-3 mr-1" />
         {config.text}
       </span>
@@ -299,9 +317,7 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
               </h2>
               <div className="flex items-center gap-2 mt-1">
                 {getStatusBadge(site.status)}
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  ID: {site.id}
-                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">ID: {site.id}</span>
               </div>
             </div>
           </div>
@@ -330,8 +346,8 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
             {[
               { key: 'info', label: '현장정보', icon: Building2 },
               { key: 'workers', label: '작업자', icon: Users },
-              { key: 'reports', label: '작업일지', icon: FileText }
-            ].map((tab) => (
+              { key: 'reports', label: '작업일지', icon: FileText },
+            ].map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as unknown)}
@@ -354,13 +370,19 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
             <div className="space-y-6">
               {/* 요약 통계 */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">현장 현황</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  현장 현황
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">배정 작업자</p>
-                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{workerCount}</p>
+                        <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                          배정 작업자
+                        </p>
+                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                          {workerCount}
+                        </p>
                       </div>
                       <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
                     </div>
@@ -368,8 +390,12 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
                   <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-green-600 dark:text-green-400 font-medium">작업일지</p>
-                        <p className="text-2xl font-bold text-green-900 dark:text-green-100">{reportCount}</p>
+                        <p className="text-sm text-green-600 dark:text-green-400 font-medium">
+                          작업일지
+                        </p>
+                        <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                          {reportCount}
+                        </p>
                       </div>
                       <FileText className="h-8 w-8 text-green-600 dark:text-green-400" />
                     </div>
@@ -377,8 +403,12 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
                   <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">현장 상태</p>
-                        <p className="text-sm font-bold text-purple-900 dark:text-purple-100 mt-1">{getStatusBadge(site.status)}</p>
+                        <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">
+                          현장 상태
+                        </p>
+                        <p className="text-sm font-bold text-purple-900 dark:text-purple-100 mt-1">
+                          {getStatusBadge(site.status)}
+                        </p>
                       </div>
                       <Building2 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
                     </div>
@@ -388,7 +418,9 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
 
               {/* 기본 정보 */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">기본 정보</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  기본 정보
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-gray-400 mt-0.5" />
@@ -405,7 +437,7 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
                     <div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">공사기간</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {site.start_date ? format(new Date(site.start_date), 'yyyy.MM.dd') : '-'} ~ 
+                        {site.start_date ? format(new Date(site.start_date), 'yyyy.MM.dd') : '-'} ~
                         {site.end_date ? format(new Date(site.end_date), 'yyyy.MM.dd') : '-'}
                       </p>
                     </div>
@@ -424,18 +456,22 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
 
               {/* 관리자 정보 */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">관리자 정보</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  관리자 정보
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* 건설관리자 */}
                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <User className="h-5 w-5 text-blue-600" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">건설관리자</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        건설관리자
+                      </span>
                     </div>
-                    {site.construction_manager_name ? (
+                    {site.manager_name ? (
                       <div className="space-y-2">
                         <p className="font-medium text-gray-900 dark:text-gray-100">
-                          {site.construction_manager_name}
+                          {site.manager_name}
                         </p>
                         {site.construction_manager_phone && (
                           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
@@ -453,7 +489,9 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
                   <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Shield className="h-5 w-5 text-green-600" />
-                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">안전관리자</span>
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        안전관리자
+                      </span>
                     </div>
                     {site.safety_manager_name ? (
                       <div className="space-y-2">
@@ -487,8 +525,11 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
                 </p>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {assignments.map((assignment) => (
-                    <div key={assignment.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  {assignments.map(assignment => (
+                    <div
+                      key={assignment.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium text-gray-900 dark:text-gray-100">
                           {assignment.profile.full_name}
@@ -527,8 +568,11 @@ export default function SiteDetail({ siteId, onClose, onEdit }: SiteDetailProps)
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {dailyReports.map((report) => (
-                    <div key={report.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                  {dailyReports.map(report => (
+                    <div
+                      key={report.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
                       <div className="flex items-center justify-between">
                         <div>
                           <h4 className="font-medium text-gray-900 dark:text-gray-100">

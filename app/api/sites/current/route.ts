@@ -93,7 +93,9 @@ export async function GET(_request: NextRequest) {
       'accommodation_address',
       // manager/safety names and phones
       'manager_name',
+      'manager_phone',
       'construction_manager_phone',
+      'manager_email',
       'safety_manager_name',
       'safety_manager_phone',
       // dates/status
@@ -166,11 +168,15 @@ export async function GET(_request: NextRequest) {
       phone: string
     }>
     // Include if either name or phone exists; prefer DB-provided names
-    if ((site as any).manager_name || (site as any).construction_manager_phone) {
+    if (
+      (site as any).manager_name ||
+      (site as any).manager_phone ||
+      (site as any).construction_manager_phone
+    ) {
       managers.push({
         role: 'construction_manager',
         name: (site as any).manager_name || '미지정',
-        phone: (site as any).construction_manager_phone || '',
+        phone: (site as any).manager_phone || (site as any).construction_manager_phone || '',
       })
     }
     if ((site as any).safety_manager_name || (site as any).safety_manager_phone) {
