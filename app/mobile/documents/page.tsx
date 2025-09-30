@@ -1,7 +1,9 @@
-import { DocumentsPageV2 } from '@/modules/mobile/pages/documents-page-v2'
+'use client'
 
 export const dynamic = 'force-dynamic'
 
+import DocumentHubPage from '@/app/documents/hub/page'
+
 export default function MobileDocumentsPage() {
-  return <DocumentsPageV2 />
+  return <DocumentHubPage />
 }

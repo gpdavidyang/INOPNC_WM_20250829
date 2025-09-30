@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { ADMIN_ORGANIZATION_RELATIONS, ADMIN_ORGANIZATIONS_STUB } from '@/lib/admin/stub-data'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,25 +31,44 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Not Found' }, { status: 404 })
     }
 
-    return NextResponse.json({
-      success: true,
-      organization,
-      related: ADMIN_ORGANIZATION_RELATIONS[params.id] ?? { members: [], sites: [] },
-    })
-  } catch (error) {
-    console.error('Organization detail API error:', error)
-    const fallback = ADMIN_ORGANIZATIONS_STUB.find((org) => org.id === params.id)
+    // Related sites
+    const [{ data: sitesData }, { data: membersData }] = await Promise.all([
+      supabase
+        .from('sites')
+        .select('id, name, status')
+        .eq('organization_id', params.id)
+        .order('name', { ascending: true }),
+      supabase
+        .from('profiles')
+        .select('id, full_name, email, role')
+        .eq('organization_id', params.id)
+        .order('full_name', { ascending: true }),
+    ])
 
-    if (!fallback) {
-      return NextResponse.json({ error: 'Not Found' }, { status: 404 })
+    const related = {
+      members: (membersData || []).map((m: any) => ({
+        id: m.id,
+        name: m.full_name || '-',
+        role: m.role || '-',
+        email: m.email || '',
+      })),
+      sites: (sitesData || []).map((s: any) => ({
+        id: s.id,
+        name: s.name,
+        status: s.status || 'inactive',
+      })),
     }
 
-    return NextResponse.json({
-      success: true,
-      organization: fallback,
-      related: ADMIN_ORGANIZATION_RELATIONS[params.id] ?? { members: [], sites: [] },
-      source: 'stub',
-    })
+    const organizationWithCounts = {
+      ...organization,
+      member_count: related.members.length,
+      site_count: related.sites.length,
+    }
+
+    return NextResponse.json({ success: true, organization: organizationWithCounts, related })
+  } catch (error) {
+    console.error('Organization detail API error:', error)
+    return NextResponse.json({ error: 'Failed to fetch organization' }, { status: 500 })
   }
 }
 
@@ -78,47 +96,28 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       ...(description !== undefined ? { description } : {}),
     }))(body as Record<string, string | undefined>)
 
-    let updatedOrganization = null
+    if (Object.keys(allowedFields).length === 0) {
+      return NextResponse.json({ error: 'No updatable fields provided' }, { status: 400 })
+    }
 
-    if (Object.keys(allowedFields).length > 0) {
-      const { data: updateResult, error: updateError } = await supabase
-        .from('organizations')
-        .update(allowedFields)
-        .eq('id', params.id)
-        .select()
-        .maybeSingle()
+    const { data: updatedOrganization, error: updateError } = await supabase
+      .from('organizations')
+      .update(allowedFields)
+      .eq('id', params.id)
+      .select()
+      .maybeSingle()
 
-      if (updateError) {
-        throw updateError
-      }
-
-      updatedOrganization = updateResult
+    if (updateError) {
+      throw updateError
     }
 
     if (!updatedOrganization) {
-      return NextResponse.json({
-        success: true,
-        organization: {
-          ...(ADMIN_ORGANIZATIONS_STUB.find((item) => item.id === params.id) ?? { id: params.id }),
-          ...allowedFields,
-        },
-        source: 'stub',
-      })
+      return NextResponse.json({ error: 'Not Found' }, { status: 404 })
     }
 
     return NextResponse.json({ success: true, organization: updatedOrganization })
   } catch (error) {
     console.error('Organization update error:', error)
-
-    const fallback = ADMIN_ORGANIZATIONS_STUB.find((item) => item.id === params.id)
-
-    return NextResponse.json({
-      success: true,
-      organization: {
-        ...(fallback ?? { id: params.id }),
-        ...body,
-      },
-      source: 'stub',
-    })
+    return NextResponse.json({ error: 'Failed to update organization' }, { status: 500 })
   }
 }

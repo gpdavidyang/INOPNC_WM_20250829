@@ -7,13 +7,13 @@ import { LoadingPage } from '@/modules/shared/ui'
 
 interface MobileAuthGuardProps {
   children: React.ReactNode
-  requiredRoles?: ('worker' | 'site_manager' | 'customer_manager')[]
+  requiredRoles?: ('worker' | 'site_manager' | 'customer_manager' | 'partner')[]
   fallbackPath?: string
 }
 
 export const MobileAuthGuard: React.FC<MobileAuthGuardProps> = ({
   children,
-  requiredRoles = ['worker', 'site_manager', 'customer_manager'],
+  requiredRoles = ['worker', 'site_manager', 'customer_manager', 'partner'],
   fallbackPath = '/auth/login',
 }) => {
   const router = useRouter()

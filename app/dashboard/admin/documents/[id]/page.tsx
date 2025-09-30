@@ -1,7 +1,10 @@
 import type { Metadata } from 'next'
+import { revalidatePath } from 'next/cache'
+import { cookies } from 'next/headers'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -61,8 +64,64 @@ export default async function AdminUnifiedDocumentDetailPage({
     accessLogs = []
   }
 
+  // Server actions for approve/reject using v2 API (keeps history logging consistent)
+  async function approve() {
+    'use server'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
+    const cookieHeader = cookies()
+      .getAll()
+      .map(({ name, value }) => `${name}=${value}`)
+      .join('; ')
+    await fetch(`${baseUrl}/api/unified-documents/v2`, {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      },
+      body: JSON.stringify({ action: 'approve', documentIds: [id] }),
+    })
+    revalidatePath(`/dashboard/admin/documents/${id}`)
+  }
+
+  async function reject() {
+    'use server'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
+    const cookieHeader = cookies()
+      .getAll()
+      .map(({ name, value }) => `${name}=${value}`)
+      .join('; ')
+    await fetch(`${baseUrl}/api/unified-documents/v2`, {
+      method: 'PATCH',
+      headers: {
+        'content-type': 'application/json',
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
+      },
+      body: JSON.stringify({ action: 'reject', documentIds: [id] }),
+    })
+    revalidatePath(`/dashboard/admin/documents/${id}`)
+  }
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>문서 승인/반려</CardTitle>
+          <CardDescription>관리자 권한으로 상태를 변경할 수 있습니다.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={approve} className="inline-block mr-2">
+            <Button type="submit" variant="outline" disabled={base?.status === 'approved'}>
+              승인
+            </Button>
+          </form>
+          <form action={reject} className="inline-block">
+            <Button type="submit" variant="outline" disabled={base?.status === 'rejected'}>
+              반려
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>{base?.title || '-'}</CardTitle>

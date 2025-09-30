@@ -137,7 +137,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
         'id, file_name, file_url, file_size, mime_type, document_type, created_at, is_primary_blueprint, site_id'
       )
       .eq('site_id', siteId)
-      .eq('document_type', 'blueprint')
+      .in('document_type', ['blueprint', 'progress_drawing'])
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -200,18 +200,22 @@ export async function GET(request: Request, { params }: { params: { id: string }
 
     const transformedSiteDocs = (siteDocuments || []).map((doc: any) => ({
       id: doc.id,
-      type: mapDocumentType('drawing', 'blueprint'),
+      type: mapDocumentType(
+        'drawing',
+        doc.document_type === 'blueprint' ? 'blueprint' : 'progress'
+      ),
       name: doc.file_name,
       title: doc.file_name,
-      description: '현장 문서(blueprint)',
+      description:
+        doc.document_type === 'blueprint' ? '현장 문서(blueprint)' : '현장 문서(progress)',
       uploadDate: new Date(doc.created_at).toLocaleDateString('ko-KR'),
       uploader: '관리자',
       fileSize: doc.file_size,
       mimeType: doc.mime_type,
       fileUrl: doc.file_url,
       categoryType: 'drawing',
-      subType: 'blueprint',
-      icon: getDocumentIcon('drawing', 'blueprint'),
+      subType: doc.document_type === 'blueprint' ? 'blueprint' : 'progress',
+      icon: getDocumentIcon('drawing', doc.document_type === 'blueprint' ? 'blueprint' : null),
       is_primary_blueprint: !!doc.is_primary_blueprint,
     }))
 

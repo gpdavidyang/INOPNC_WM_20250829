@@ -9,8 +9,8 @@ function getRoleBasedRoute(role: string): string {
   const roleRoutes: Record<string, string> = {
     system_admin: '/dashboard/admin',
     admin: '/dashboard/admin',
-    customer_manager: '/partner/dashboard',
-    partner: '/partner/dashboard',
+    customer_manager: '/mobile/partner',
+    partner: '/mobile/partner',
     site_manager: '/mobile',
     worker: '/mobile',
   }

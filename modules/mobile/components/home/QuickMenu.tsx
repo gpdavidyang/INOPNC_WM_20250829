@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 
-const quickMenuItems = [
+const quickMenuItemsBase = [
   {
     href: '/mobile/attendance',
     icon: '/icons/pay_output.png',
@@ -38,8 +38,33 @@ const quickMenuItems = [
 ]
 
 export const QuickMenu: React.FC = () => {
+  // Partner roles route to partner output
+  const [outputHref, setOutputHref] = React.useState('/mobile/attendance')
+  React.useEffect(() => {
+    let alive = true
+    fetch('/api/auth/me', { cache: 'no-store' })
+      .then(r => r.json().catch(() => null))
+      .then(j => {
+        if (!alive) return
+        const role = j?.profile?.role
+        if (role === 'partner' || role === 'customer_manager') {
+          setOutputHref('/mobile/partner/output')
+        }
+      })
+      .catch(() => void 0)
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const quickMenuItems = React.useMemo(() => {
+    const arr = [...quickMenuItemsBase]
+    arr[0] = { ...arr[0], href: outputHref }
+    return arr
+  }, [outputHref])
+
   return (
-    <section className="section" id="home-quick" style={{ marginTop: '-30px' }}>
+    <section className="section" id="home-quick">
       <div className="section-header">
         <img
           src="/icons/Flash_new.png"

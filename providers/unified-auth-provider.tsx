@@ -11,7 +11,7 @@ interface UnifiedProfile {
   id: string
   full_name?: string
   email: string
-  role?: 'worker' | 'site_manager' | 'customer_manager' | 'admin' | 'system_admin'
+  role?: 'worker' | 'site_manager' | 'customer_manager' | 'partner' | 'admin' | 'system_admin'
   site_id?: string
   phone?: string
   organization_id?: string
@@ -274,7 +274,8 @@ export function UnifiedAuthProvider({
 
   // Role-based access computed properties
   const canAccessMobile = !!(
-    profile?.role && ['worker', 'site_manager', 'customer_manager'].includes(profile.role)
+    profile?.role &&
+    ['worker', 'site_manager', 'customer_manager', 'partner'].includes(profile.role)
   )
   const canAccessAdmin = !!(profile?.role && ['admin', 'system_admin'].includes(profile.role))
   const isWorker = profile?.role === 'worker'

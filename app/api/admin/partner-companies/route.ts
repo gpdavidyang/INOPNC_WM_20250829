@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { ADMIN_PARTNER_COMPANIES_STUB } from '@/lib/admin/stub-data'
+import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,24 +17,42 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
   }
 
+  const supabase = createClient()
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
 
-  let filtered = ADMIN_PARTNER_COMPANIES_STUB
+  try {
+    let query = supabase
+      .from('partner_companies')
+      .select('id, company_name, company_type, status, contact_name, contact_phone')
+      .order('company_name', { ascending: true })
 
-  if (status && status !== 'all') {
-    filtered = filtered.filter((company) => company.status === status)
+    if (status && status !== 'all') {
+      query = query.eq('status', status)
+    }
+
+    if (role === 'customer_manager' && restrictedOrgId) {
+      query = query.eq('id', restrictedOrgId)
+    }
+
+    const { data, error } = await query
+    if (error) {
+      console.error('partner_companies fetch error:', error)
+      return NextResponse.json(
+        { success: false, error: 'Failed to load partner companies' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        partner_companies: data || [],
+        total: data?.length || 0,
+      },
+    })
+  } catch (e) {
+    console.error('partner_companies handler error:', e)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
-
-  if (role === 'customer_manager' && restrictedOrgId) {
-    filtered = filtered.filter((company) => company.id === restrictedOrgId)
-  }
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      partner_companies: filtered,
-      total: filtered.length,
-    },
-  })
 }

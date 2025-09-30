@@ -4,15 +4,18 @@ import React from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Home, Calculator, ClipboardList, Map, Folder } from 'lucide-react'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 
 export const BottomNav: React.FC = () => {
   const pathname = usePathname()
+  const { profile } = useUnifiedAuth()
+  const isPartner = profile?.role === 'customer_manager' || profile?.role === 'partner'
 
   const navItems = [
     {
       route: 'home',
       label: '홈',
-      href: '/mobile',
+      href: isPartner ? '/mobile/partner' : '/mobile',
       icon: Home,
     },
     {

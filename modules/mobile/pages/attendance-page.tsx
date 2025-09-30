@@ -352,8 +352,13 @@ const AttendanceContent: React.FC = () => {
     }
   }, [userId, profile?.site_id, profile?.role, profile?.organization_id, supabase])
 
-  // Fetch full site list via service-role API
+  // Fetch full site list via service-role API (partners: skip, partner 전용 목록 사용)
   useEffect(() => {
+    // 파트너/고객관리자 역할은 전체 현장 목록을 불러오지 않음
+    if (profile?.role === 'customer_manager' || profile?.role === 'partner') {
+      setAllSites([])
+      return
+    }
     const controller = new AbortController()
 
     const fetchAllSites = async () => {
@@ -392,7 +397,7 @@ const AttendanceContent: React.FC = () => {
     fetchAllSites()
 
     return () => controller.abort()
-  }, [])
+  }, [profile?.role])
 
   // Derive site filter options from loaded records
   useEffect(() => {

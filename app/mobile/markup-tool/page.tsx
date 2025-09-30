@@ -101,25 +101,62 @@ export default function MarkupToolPage() {
     }
   }, [mode])
 
-  const handleSave = async (document: any) => {
+  const handleSave = async (document: any, publish = false) => {
     try {
       // 1) 서버 저장
       const payload = {
         title: document.title || (drawingFile?.name ?? '무제 도면'),
         description: document.description || '',
-        original_blueprint_url: document.original_blueprint_url || drawingFile?.url,
-        original_blueprint_filename: drawingFile?.name || 'blueprint.png',
         markup_data: Array.isArray(document.markup_data) ? document.markup_data : [],
         preview_image_url: document.preview_image_url || undefined,
       }
 
-      const res = await fetch('/api/markup-documents', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      const json = await res.json()
-      if (!res.ok || json?.error) throw new Error(json?.error || '마킹 문서 저장 실패')
+      let savedId: string | undefined
+
+      if (drawingFile?.id) {
+        // 새로운 통합 API: 도면 ID 기반 저장/게시
+        let previewUrl = payload.preview_image_url
+        if (publish && !previewUrl) {
+          // 게시 시 프리뷰 자동 생성 시도
+          previewUrl = await generatePreviewAndUpload(drawingFile)
+        }
+        const body = {
+          drawingId: drawingFile.id,
+          title: payload.title,
+          description: payload.description,
+          markupData: payload.markup_data,
+          preview_image_url: previewUrl,
+          published: Boolean(publish),
+        }
+        const res = await fetch('/api/docs/drawings/markups/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        const json = await res.json()
+        if (!res.ok || json?.success === false) throw new Error(json?.error || '마킹 저장 실패')
+        savedId = json?.data?.markup?.id
+        toast.success(publish ? '마킹 저장 및 진행도면 게시 완료' : '마킹 저장 완료')
+      } else {
+        // Fallback: 기존 API
+        const fallback = {
+          title: payload.title,
+          description: payload.description,
+          original_blueprint_url: document.original_blueprint_url || drawingFile?.url,
+          original_blueprint_filename: drawingFile?.name || 'blueprint.png',
+          markup_data: payload.markup_data,
+          preview_image_url: payload.preview_image_url,
+        }
+        const res = await fetch('/api/markup-documents', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(fallback),
+        })
+        const json = await res.json()
+        if (!res.ok || json?.error) throw new Error(json?.error || '마킹 문서 저장 실패')
+        savedId = json?.data?.id
+        toast.success('마킹 저장 완료')
+      }
 
       // 2-1) 작업일지 링크(있다면)
       if (linkWorklogId && json?.data?.id) {
@@ -136,15 +173,13 @@ export default function MarkupToolPage() {
 
       // 2) 로컬 fallback 업데이트
       const recentMarkup = {
-        id: json.data?.id || document.id || `local-${Date.now()}`,
+        id: savedId || document.id || `local-${Date.now()}`,
         title: payload.title,
-        blueprintUrl: payload.original_blueprint_url,
+        blueprintUrl: document.original_blueprint_url || drawingFile?.url,
         updatedAt: new Date().toISOString(),
         markupCount: payload.markup_data?.length || 0,
       }
       localStorage.setItem('recent_markup', JSON.stringify(recentMarkup))
-
-      toast.success('마킹이 저장되었습니다.')
 
       // 저장 후 뒤로 가기
       try {
@@ -165,6 +200,53 @@ export default function MarkupToolPage() {
       toast.error(error instanceof Error ? error.message : '저장에 실패했습니다.')
     }
   }
+
+  // 원본 도면으로 간단 미리보기 생성 후 업로드
+  const generatePreviewAndUpload = async (file: DrawingFile): Promise<string | undefined> => {
+    try {
+      const img = await loadImage(file.url)
+      // 캔버스 크기 결정(가로 1024 기준 비율 유지)
+      const maxW = 1024
+      const scale = Math.min(1, maxW / img.width)
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w
+      canvas.height = h
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0, w, h)
+      // 간단한 워터마크/레이블
+      ctx.fillStyle = 'rgba(0,0,0,0.4)'
+      ctx.fillRect(0, h - 28, w, 28)
+      ctx.fillStyle = '#fff'
+      ctx.font = 'bold 14px sans-serif'
+      const text = `Markup Preview • ${new Date().toLocaleString('ko-KR')}`
+      ctx.fillText(text, 12, h - 10)
+
+      const blob = await new Promise<Blob | null>(resolve =>
+        canvas.toBlob(resolve, 'image/png', 0.92)
+      )
+      if (!blob) return undefined
+
+      const fd = new FormData()
+      fd.append('file', new File([blob], (file.name || 'preview') + '.png', { type: 'image/png' }))
+      const res = await fetch('/api/uploads/preview', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok || json?.success === false) return undefined
+      return json.url as string
+    } catch {
+      return undefined
+    }
+  }
+
+  const loadImage = (src: string) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => resolve(img)
+      img.onerror = () => reject(new Error('이미지를 불러올 수 없습니다.'))
+      img.src = src
+    })
 
   const handleClose = () => {
     router.back()
@@ -332,14 +414,16 @@ export default function MarkupToolPage() {
             <FolderOpen size={20} />
           </button>
           <button
-            onClick={() => {
-              // 저장 트리거
-              const saveEvent = new CustomEvent('markupSave')
-              window.dispatchEvent(saveEvent)
-            }}
+            onClick={() => handleSave(markupDocument, false)}
             className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium"
           >
             저장
+          </button>
+          <button
+            onClick={() => handleSave(markupDocument, true)}
+            className="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
+          >
+            게시
           </button>
         </div>
       </header>

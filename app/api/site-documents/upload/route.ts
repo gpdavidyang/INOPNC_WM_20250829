@@ -3,7 +3,6 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
-
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
@@ -22,39 +21,52 @@ export async function POST(request: NextRequest) {
     const documentType = formData.get('documentType') as string
 
     if (!file || !siteId || !documentType) {
-      return NextResponse.json({ 
-        error: '필수 필드가 누락되었습니다.' 
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: '필수 필드가 누락되었습니다.',
+        },
+        { status: 400 }
+      )
     }
 
     // Validate document type
-    if (!['ptw', 'blueprint', 'other'].includes(documentType)) {
-      return NextResponse.json({ 
-        error: '유효하지 않은 문서 타입입니다.' 
-      }, { status: 400 })
+    if (!['ptw', 'blueprint', 'progress_drawing', 'other'].includes(documentType)) {
+      return NextResponse.json(
+        {
+          error: '유효하지 않은 문서 타입입니다.',
+        },
+        { status: 400 }
+      )
     }
 
     // Validate file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ 
-        error: '파일 크기는 10MB를 초과할 수 없습니다.' 
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: '파일 크기는 10MB를 초과할 수 없습니다.',
+        },
+        { status: 400 }
+      )
     }
 
     // Validate file type
     const allowedTypes = [
       'application/pdf',
       'image/jpeg',
-      'image/jpg', 
+      'image/jpg',
       'image/png',
       'image/gif',
-      'image/webp'
+      'image/webp',
     ]
-    
+
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ 
-        error: '지원되지 않는 파일 형식입니다. PDF, JPG, PNG, GIF, WebP 파일만 업로드 가능합니다.' 
-      }, { status: 400 })
+      return NextResponse.json(
+        {
+          error:
+            '지원되지 않는 파일 형식입니다. PDF, JPG, PNG, GIF, WebP 파일만 업로드 가능합니다.',
+        },
+        { status: 400 }
+      )
     }
 
     // Verify site exists and user has access
@@ -65,9 +77,12 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (siteError || !site) {
-      return NextResponse.json({ 
-        error: '현장을 찾을 수 없거나 접근 권한이 없습니다.' 
-      }, { status: 403 })
+      return NextResponse.json(
+        {
+          error: '현장을 찾을 수 없거나 접근 권한이 없습니다.',
+        },
+        { status: 403 }
+      )
     }
 
     // Create unique file name (sanitized to avoid Korean characters)
@@ -82,20 +97,23 @@ export async function POST(request: NextRequest) {
       .from('documents')
       .upload(storagePath, file, {
         contentType: file.type,
-        duplex: 'half'
+        duplex: 'half',
       })
 
     if (uploadError) {
       console.error('Upload error:', uploadError)
-      return NextResponse.json({ 
-        error: '파일 업로드에 실패했습니다.' 
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: '파일 업로드에 실패했습니다.',
+        },
+        { status: 500 }
+      )
     }
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('documents')
-      .getPublicUrl(uploadData.path)
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from('documents').getPublicUrl(uploadData.path)
 
     // Create database record
     const { data: documentRecord, error: dbError } = await supabase
@@ -110,7 +128,7 @@ export async function POST(request: NextRequest) {
         uploaded_by: authResult.userId,
         is_active: true,
         version: 1,
-        notes: `Uploaded via admin interface on ${new Date().toLocaleDateString('ko-KR')}`
+        notes: `Uploaded via admin interface on ${new Date().toLocaleDateString('ko-KR')}`,
       })
       .select()
       .single()
@@ -119,10 +137,13 @@ export async function POST(request: NextRequest) {
       console.error('Database error:', dbError)
       // Clean up uploaded file if database insert fails
       await supabase.storage.from('documents').remove([uploadData.path])
-      
-      return NextResponse.json({ 
-        error: '문서 정보 저장에 실패했습니다.' 
-      }, { status: 500 })
+
+      return NextResponse.json(
+        {
+          error: '문서 정보 저장에 실패했습니다.',
+        },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
@@ -133,14 +154,16 @@ export async function POST(request: NextRequest) {
         fileName: file.name,
         fileUrl: publicUrl,
         documentType,
-        siteId
-      }
+        siteId,
+      },
     })
-
   } catch (error) {
     console.error('Upload API error:', error)
-    return NextResponse.json({ 
-      error: '서버 오류가 발생했습니다.' 
-    }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: '서버 오류가 발생했습니다.',
+      },
+      { status: 500 }
+    )
   }
 }

@@ -1,6 +1,6 @@
 // 사용자 역할
 // - worker: 작업자 (모바일 UI)
-// - site_manager: 현장관리자 (모바일 UI)  
+// - site_manager: 현장관리자 (모바일 UI)
 // - customer_manager: 고객사 관리자 (모바일 UI)
 // - admin: 본사관리자/시스템관리자 (데스크탑 UI) - 전체 시스템 접근 권한
 // - system_admin: (deprecated - admin으로 통합)
@@ -42,18 +42,18 @@ export interface Profile {
 }
 
 // 건설 공정 타입 (사용자 요구사항에 맞춤)
-export type ConstructionProcessType = 
-  | 'crack'            // 균열
-  | 'surface'          // 면
-  | 'finishing'        // 마감
-  | 'other'            // 기타
+export type ConstructionProcessType =
+  | 'crack' // 균열
+  | 'surface' // 면
+  | 'finishing' // 마감
+  | 'other' // 기타
 
 // 부재 타입 (사용자 요구사항에 맞춤)
-export type ComponentType = 
-  | 'slab'             // 슬라브
-  | 'girder'           // 거더
-  | 'column'           // 기둥
-  | 'other'            // 기타
+export type ComponentType =
+  | 'slab' // 슬라브
+  | 'girder' // 거더
+  | 'column' // 기둥
+  | 'other' // 기타
 
 // 작업 옵션 설정 타입
 export interface WorkOptionSetting {
@@ -71,14 +71,14 @@ export interface WorkOptionSetting {
 // 건설 사진 데이터
 export interface ConstructionPhoto {
   id: string
-  component_name: string       // 부재명 (예: "기둥-1", "보-A동", "슬라브-3층")
+  component_name: string // 부재명 (예: "기둥-1", "보-A동", "슬라브-3층")
   component_type: ComponentType
   process_type: ConstructionProcessType
   stage: 'before' | 'after'
   file_url: string
   thumbnail_url?: string
   description?: string
-  coordinates?: { x: number, y: number }
+  coordinates?: { x: number; y: number }
   timestamp: string
   file_size?: number
   file_name?: string
@@ -342,21 +342,29 @@ export interface AttendanceRecord {
 }
 
 // 문서 타입
-export type DocumentType = 'personal' | 'shared' | 'blueprint' | 'required' | 'progress_payment' | 'report' | 'certificate' | 'other'
+export type DocumentType =
+  | 'personal'
+  | 'shared'
+  | 'blueprint'
+  | 'required'
+  | 'progress_payment'
+  | 'report'
+  | 'certificate'
+  | 'other'
 
 // 필수 문서 제출 상태
 export type RequiredDocumentStatus = 'pending' | 'submitted' | 'approved' | 'rejected'
 
 // 필수 문서 타입
-export type RequiredDocumentType = 
-  | 'identity_verification'    // 신분증명서
-  | 'health_certificate'       // 건강진단서
-  | 'safety_education'         // 안전교육증명서
-  | 'insurance_certificate'    // 보험증서
-  | 'employment_contract'      // 고용계약서
-  | 'bank_account'            // 통장사본
-  | 'emergency_contact'       // 비상연락처
-  | 'other'                   // 기타
+export type RequiredDocumentType =
+  | 'identity_verification' // 신분증명서
+  | 'health_certificate' // 건강진단서
+  | 'safety_education' // 안전교육증명서
+  | 'insurance_certificate' // 보험증서
+  | 'employment_contract' // 고용계약서
+  | 'bank_account' // 통장사본
+  | 'emergency_contact' // 비상연락처
+  | 'other' // 기타
 
 // 사용자 필수 문서 제출 현황
 export interface UserRequiredDocument {
@@ -379,7 +387,7 @@ export interface UserRequiredDocument {
 }
 
 // 사이트 문서 타입 (새로운 site_documents 테이블용)
-export type SiteDocumentType = 'ptw' | 'blueprint' | 'other'
+export type SiteDocumentType = 'ptw' | 'blueprint' | 'progress_drawing' | 'other'
 
 // 문서
 export interface Document {
@@ -657,40 +665,40 @@ export type PhotoGridGenerationMethod = 'canvas' | 'html'
 export interface PhotoGridReport {
   id: string
   daily_report_id: string
-  
+
   // 파일 정보
   title: string
   file_name: string
   file_url: string
   file_size?: number | null
   mime_type?: string | null
-  
+
   // 사진 메타데이터
   total_photo_groups: number
   total_before_photos: number
   total_after_photos: number
   component_types?: string[] | null
   process_types?: string[] | null
-  
+
   // PDF 생성 정보
   generated_by?: string | null
   generation_method?: PhotoGridGenerationMethod | null
   pdf_options?: any | null // PDF 생성 옵션 JSON
-  
+
   // 상태 관리
   status: PhotoGridReportStatus
   version: number
   notes?: string | null
-  
+
   // 다운로드 추적
   download_count: number
   last_downloaded_at?: string | null
   last_downloaded_by?: string | null
-  
+
   // 타임스탬프
   created_at: string
   updated_at: string
-  
+
   // 조인된 데이터
   daily_report?: DailyReport | null
   generated_by_profile?: Profile | null
@@ -806,7 +814,12 @@ export interface QuickAction {
 export type EmailNotificationStatus = 'pending' | 'sent' | 'failed' | 'scheduled'
 
 // 이메일 알림 타입
-export type EmailNotificationType = 'welcome' | 'password_reset' | 'account_update' | 'document_reminder' | 'system_notification'
+export type EmailNotificationType =
+  | 'welcome'
+  | 'password_reset'
+  | 'account_update'
+  | 'document_reminder'
+  | 'system_notification'
 
 // 이메일 알림 우선순위
 export type EmailNotificationPriority = 'low' | 'normal' | 'high' | 'urgent'

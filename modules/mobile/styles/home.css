@@ -16,17 +16,8 @@
   padding-top: 0px;
 }
 
-/* First section (빠른메뉴) should be right under header */
-.section:first-child,
-#home-quick {
-  margin-top: -20px !important; /* Force negative margin to pull up */
-  padding-top: 0 !important;
-}
-
-/* Override any conflicting styles */
-.container > #home-quick:first-child {
-  margin-top: -15px !important;
-}
+/* Ensure first section respects header spacing (no negative pull-up) */
+/* Removed negative margins that caused overlap with fixed header */
 
 .section-header {
   display: flex;

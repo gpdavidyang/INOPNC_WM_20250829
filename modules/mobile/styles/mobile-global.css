@@ -1616,7 +1616,8 @@ body.fs-150 .expandable.expanded::after {
 
 /* Main container padding to account for fixed header and bottom nav */
 .mobile-container {
-  padding-top: 80px; /* Match actual header height */
+  /* Account for fixed header + iOS safe area */
+  padding-top: calc(80px + env(safe-area-inset-top, 0px));
   padding-bottom: 72px; /* Match bottom nav height */
   flex: 1 1 auto;
   min-height: 0;

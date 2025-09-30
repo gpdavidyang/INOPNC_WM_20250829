@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [email, setEmail] = useState('')
+  const [devHelp, setDevHelp] = useState<string | null>(null)
 
   // Load saved credentials on component mount
   useEffect(() => {
@@ -54,7 +55,18 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
         console.error('Login error:', error)
-        setError(error.message || '로그인에 실패했습니다.')
+        const msg = error.message || ''
+        if (msg.toLowerCase().includes('invalid login credentials')) {
+          setError('계정이 존재하지 않거나 비밀번호가 일치하지 않습니다.')
+          if (
+            process.env.NODE_ENV !== 'production' &&
+            email.toLowerCase() === 'partner@inopnc.com'
+          ) {
+            setDevHelp('개발 환경에서 파트너 테스트 계정을 생성할 수 있습니다.')
+          }
+        } else {
+          setError(msg || '로그인에 실패했습니다.')
+        }
         setIsLoading(false)
         return
       }
@@ -465,6 +477,45 @@ export default function LoginPage() {
             </div>
 
             {error && <div className="error-message">{error}</div>}
+            {devHelp && process.env.NODE_ENV !== 'production' && (
+              <div
+                className="error-message"
+                style={{ backgroundColor: '#f8fafc', color: '#111827', borderColor: '#cbd5e1' }}
+              >
+                <div style={{ marginBottom: 8 }}>{devHelp}</div>
+                <button
+                  type="button"
+                  className="login-button"
+                  onClick={async () => {
+                    try {
+                      setIsLoading(true)
+                      const res = await fetch('/api/admin/create-partner-user', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          email: 'partner@inopnc.com',
+                          password: 'password123',
+                        }),
+                      })
+                      const payload = await res.json().catch(() => ({}))
+                      if (!res.ok || payload?.error) {
+                        setError(payload?.error || '테스트 계정 생성에 실패했습니다.')
+                      } else {
+                        setError(null)
+                        setDevHelp('테스트 계정이 준비되었습니다. 다시 시도해주세요.')
+                        setEmail('partner@inopnc.com')
+                      }
+                    } catch (e) {
+                      setError('테스트 계정 생성 중 오류가 발생했습니다.')
+                    } finally {
+                      setIsLoading(false)
+                    }
+                  }}
+                >
+                  파트너 테스트 계정 생성
+                </button>
+              </div>
+            )}
 
             <button type="submit" className="login-button" disabled={isLoading}>
               {isLoading ? '로그인 중...' : '로그인'}

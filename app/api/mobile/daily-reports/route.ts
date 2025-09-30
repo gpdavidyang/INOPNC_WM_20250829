@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
     const supabase = createClient()
     const serviceClient = createServiceRoleClient()
 
-    // Check if user is site_manager or admin
+    // Check role
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, organization_id, site_id')
+      .select('role, organization_id, site_id, partner_company_id')
       .eq('id', authResult.userId)
       .single()
 
@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
       'admin',
       'system_admin',
       'customer_manager',
+      'partner',
     ])
 
     if (!profile || (role && !allowedRoles.has(role))) {
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = (page - 1) * limit
 
-    // Build query
+    // Build base query
     let query = serviceClient.from('daily_reports').select(`
         *,
         sites(
@@ -85,6 +86,58 @@ export async function GET(request: NextRequest) {
           uploaded_at
         )
       `)
+
+    // Partner/customer_manager: restrict to allowed site ids
+    if (role === 'partner' || role === 'customer_manager') {
+      const allowedSiteIds = new Set<string>()
+      const legacyFallbackEnabled = process.env.ENABLE_SITE_PARTNERS_FALLBACK === 'true'
+
+      if (profile?.partner_company_id) {
+        const { data: mappingRows, error: mappingError } = await supabase
+          .from('partner_site_mappings')
+          .select('site_id, is_active')
+          .eq('partner_company_id', profile.partner_company_id)
+
+        if (!mappingError) {
+          ;(mappingRows || []).forEach(row => {
+            if (row?.site_id && row.is_active) allowedSiteIds.add(row.site_id)
+          })
+        }
+
+        if ((mappingError || allowedSiteIds.size === 0) && legacyFallbackEnabled) {
+          const { data: legacyRows } = await supabase
+            .from('site_partners')
+            .select('site_id, contract_status')
+            .eq('partner_company_id', profile.partner_company_id)
+
+          ;(legacyRows || []).forEach(row => {
+            if (row?.site_id && row.contract_status !== 'terminated')
+              allowedSiteIds.add(row.site_id)
+          })
+        }
+      }
+
+      if (allowedSiteIds.size === 0) {
+        return NextResponse.json({
+          success: true,
+          data: {
+            reports: [],
+            totalCount: 0,
+            totalPages: 0,
+            currentPage: page,
+            hasNextPage: false,
+            hasPreviousPage: false,
+          },
+        })
+      }
+
+      const allowedIds = Array.from(allowedSiteIds)
+      // If client requested a specific site, ensure it's allowed
+      if (siteId && !allowedSiteIds.has(siteId)) {
+        return NextResponse.json({ error: 'Not authorized for this site' }, { status: 403 })
+      }
+      query = query.in('site_id', allowedIds)
+    }
 
     // Apply filters
     if (siteId) {

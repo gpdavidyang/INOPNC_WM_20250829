@@ -18,6 +18,7 @@ import {
   CustomSelectContent,
   CustomSelectItem,
 } from '@/components/ui/custom-select'
+import { useUnifiedAuth } from '@/hooks/use-unified-auth'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -28,6 +29,8 @@ const formatDateWithWeekday = (date: string) => {
 }
 
 export const WorkLogHomePage: React.FC = () => {
+  const { profile } = useUnifiedAuth()
+  const readOnly = profile?.role === 'partner' || profile?.role === 'customer_manager'
   const router = useRouter()
   const getPartnerAbbr = (raw?: string | null): string => {
     if (!raw) return ''
@@ -246,10 +249,11 @@ export const WorkLogHomePage: React.FC = () => {
   }, [PERIOD_OPTIONS, filterDateFrom, filterDateTo, selectedPeriod])
 
   const handleCreateWorkLog = useCallback(() => {
+    if (readOnly) return
     setEditingWorkLog(null)
     setModalMode('create')
     setIsModalOpen(true)
-  }, [])
+  }, [readOnly])
 
   const handleEditWorkLog = useCallback((workLog: WorkLog) => {
     setEditingWorkLog(workLog)
@@ -470,14 +474,18 @@ export const WorkLogHomePage: React.FC = () => {
             📄
           </div>
           <p className="text-base font-semibold text-[#1A254F]">
-            {tab === 'draft'
-              ? '임시저장된 작업일지가 없습니다.'
-              : '작성완료된 작업일지가 없습니다.'}
+            {readOnly
+              ? '표시할 작업일지가 없습니다.'
+              : tab === 'draft'
+                ? '임시저장된 작업일지가 없습니다.'
+                : '작성완료된 작업일지가 없습니다.'}
           </p>
           <p className="mt-2 text-sm text-[#667085]">
-            {tab === 'draft'
-              ? '새로운 작업일지를 작성해보세요.'
-              : '임시저장을 작성완료로 전환해보세요.'}
+            {readOnly
+              ? '파트너 전용 조회 화면입니다.'
+              : tab === 'draft'
+                ? '새로운 작업일지를 작성해보세요.'
+                : '임시저장을 작성완료로 전환해보세요.'}
           </p>
         </div>
       )
@@ -505,7 +513,17 @@ export const WorkLogHomePage: React.FC = () => {
             const formattedDate = formatDateWithWeekday(workLog.date)
 
             const handleRowClick = () => {
-              // 상태와 무관하게 새 상세 뷰어로 열기
+              if (readOnly) {
+                // 파트너/고객담당자: 페이지형 상세로 이동
+                try {
+                  const seed = encodeURIComponent(btoa(JSON.stringify(workLog)))
+                  router.push(`/mobile/worklog/${workLog.id}?seed=${seed}`)
+                } catch {
+                  router.push(`/mobile/worklog/${workLog.id}`)
+                }
+                return
+              }
+              // 그 외: 바텀시트 상세
               handleViewWorkLog(workLog)
             }
 
@@ -706,11 +724,22 @@ export const WorkLogHomePage: React.FC = () => {
             height: 40px;
             border-radius: 10px;
             background: #ffffff;
-            border-color: #e5e7eb; /* 리스트 카드와 동일한 라인 컬러 */
+            border-color: transparent; /* 요청: 테두리 무색 처리 */
+            border-width: 1px;
             font-size: 16px;
             font-weight: 600;
             color: #1f2937;
             box-shadow: none;
+          }
+          /* 포커스/오픈 시에도 테두리와 포커스링 제거 */
+          .custom-select-trigger:focus,
+          .custom-select-trigger[data-state='open'] {
+            border-color: transparent !important;
+            box-shadow: none !important;
+          }
+          /* 요청: 트리거의 하단 화살표 제거 */
+          .custom-select-trigger svg {
+            display: none !important;
           }
 
           /* 드롭다운 패널도 동일한 모서리 반경 적용 */
@@ -753,6 +782,8 @@ export const WorkLogHomePage: React.FC = () => {
             position: static !important;
             color: #99a4be;
             flex-shrink: 0;
+            transform: translateY(1px); /* 살짝 위로 보이던 정렬 보정 */
+            display: block; /* baseline 영향 제거로 완전 중앙 정렬 */
           }
 
           .worklog-search-section .search-input {
@@ -1151,13 +1182,15 @@ export const WorkLogHomePage: React.FC = () => {
         </div>
 
         {/* Floating Action Button */}
-        <button
-          onClick={handleCreateWorkLog}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#0068FE] text-white shadow-lg transition-transform duration-200 hover:bg-blue-600 active:scale-95"
-          aria-label="작업일지 작성"
-        >
-          <Plus className="h-6 w-6" />
-        </button>
+        {!readOnly && (
+          <button
+            onClick={handleCreateWorkLog}
+            className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-[#0068FE] text-white shadow-lg transition-transform duration-200 hover:bg-blue-600 active:scale-95"
+            aria-label="작업일지 작성"
+          >
+            <Plus className="h-6 w-6" />
+          </button>
+        )}
 
         {/* Modals */}
         <WorkLogModal
