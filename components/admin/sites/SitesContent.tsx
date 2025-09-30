@@ -286,10 +286,15 @@ export function SitesContent({
             진행 중인 현장과 담당자 배정을 관리합니다.
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => fetchSites(page)} disabled={loading}>
-          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          새로고침
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm">
+            <a href="/dashboard/admin/sites/new">현장 등록</a>
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => fetchSites(page)} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            새로고침
+          </Button>
+        </div>
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">

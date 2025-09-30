@@ -85,8 +85,23 @@ export async function GET(_request: NextRequest) {
     }
 
     // 2) 현장 상세 정보 조회 (단일 쿼리, 조인 없음)
-    const baseColumns =
-      'id, name, address, accommodation_name, accommodation_address, construction_manager_phone, safety_manager_phone, start_date, end_date, status'
+    const baseColumns = [
+      'id',
+      'name',
+      'address',
+      'accommodation_name',
+      'accommodation_address',
+      // manager/safety names and phones
+      'manager_name',
+      'construction_manager_name',
+      'construction_manager_phone',
+      'safety_manager_name',
+      'safety_manager_phone',
+      // dates/status
+      'start_date',
+      'end_date',
+      'status',
+    ].join(', ')
 
     const preferColumns = `${baseColumns}, customer_company_id, organization_id`
 
@@ -151,18 +166,23 @@ export async function GET(_request: NextRequest) {
       name: string
       phone: string
     }>
-    if (site.construction_manager_phone) {
+    // Include if either name or phone exists; prefer DB-provided names
+    if (
+      (site as any).manager_name ||
+      (site as any).construction_manager_name ||
+      (site as any).construction_manager_phone
+    ) {
       managers.push({
         role: 'construction_manager',
-        name: '현장 소장',
-        phone: site.construction_manager_phone,
+        name: (site as any).manager_name || (site as any).construction_manager_name || '미지정',
+        phone: (site as any).construction_manager_phone || '',
       })
     }
-    if (site.safety_manager_phone) {
+    if ((site as any).safety_manager_name || (site as any).safety_manager_phone) {
       managers.push({
         role: 'safety_manager',
-        name: '안전 관리자',
-        phone: site.safety_manager_phone,
+        name: (site as any).safety_manager_name || '미지정',
+        phone: (site as any).safety_manager_phone || '',
       })
     }
 

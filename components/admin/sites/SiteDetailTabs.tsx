@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
+import SiteForm from '@/components/admin/sites/SiteForm'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -244,6 +245,7 @@ export default function SiteDetailTabs({
           <TabsTrigger value="documents">문서</TabsTrigger>
           <TabsTrigger value="drawings">도면</TabsTrigger>
           <TabsTrigger value="photos">사진</TabsTrigger>
+          <TabsTrigger value="edit">정보 수정</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-6">
@@ -698,6 +700,20 @@ export default function SiteDetailTabs({
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Edit Tab */}
+        <TabsContent value="edit" className="mt-4">
+          <div className="rounded-lg border bg-card p-4 shadow-sm">
+            <SiteForm
+              mode="edit"
+              siteId={siteId}
+              initial={site}
+              onSuccess={() => {
+                if (typeof window !== 'undefined') window.location.reload()
+              }}
+            />
+          </div>
         </TabsContent>
       </Tabs>
     </div>
