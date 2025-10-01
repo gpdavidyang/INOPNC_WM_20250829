@@ -207,7 +207,7 @@ export const WorkLogHomePageV2: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenSiteFilter}
-              className="flex h-11 items-center justify-between rounded-lg border border-[#D1D5DB] bg-white dark:bg-[#11151b] dark:border-[#3a4048] px-4 text-left text-[#1A254F] dark:text-gray-100"
+              className="flex h-11 items-center justify-between rounded-lg border border-transparent bg-transparent dark:bg-transparent px-4 text-left text-[#1A254F] dark:text-gray-100"
             >
               <span className="font-medium">{siteFilterLabel}</span>
               <svg
@@ -228,7 +228,7 @@ export const WorkLogHomePageV2: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenPeriodFilter}
-              className="flex h-11 items-center justify-between rounded-lg border border-[#D1D5DB] bg-white dark:bg-[#11151b] dark:border-[#3a4048] px-4 text-left text-[#1A254F] dark:text-gray-100"
+              className="flex h-11 items-center justify-between rounded-lg border border-transparent bg-transparent dark:bg-transparent px-4 text-left text-[#1A254F] dark:text-gray-100"
             >
               <span className="font-medium">{periodFilterLabel}</span>
               <svg
