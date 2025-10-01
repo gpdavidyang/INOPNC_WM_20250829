@@ -574,11 +574,13 @@
   color: #1f2937;
   font-weight: 600;
   background: rgba(249, 250, 251, 0.85);
+  text-align: right;
 }
 
 /* Tabs */
 .detail-tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 10px;
 }
@@ -594,6 +596,8 @@
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
+  width: 100%;
+  justify-content: center;
 }
 
 .detail-tab.active {
@@ -673,6 +677,31 @@
 
 .diary-info-item strong {
   color: #1f2937;
+}
+
+/* App-router 상세 페이지(TaskDetailPageClient) 기본정보 정렬 */
+.diary-detail-section .detail-item {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line, #e6ecf4);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.diary-detail-section .detail-label {
+  padding: 10px 12px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+}
+.diary-detail-section .detail-value {
+  padding: 10px 12px;
+  color: #1f2937;
+  font-weight: 600;
+  background: rgba(249, 250, 251, 0.85);
+  text-align: right;
+  display: block;
 }
 
 .attachment-gallery {
