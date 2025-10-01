@@ -23,6 +23,14 @@ export interface SaveWorklogPayload {
     dong?: string
     unit?: string
   }
+  // 추가 작업 세트 (선택 사항)
+  tasks?: Array<{
+    memberTypes: string[]
+    workProcesses?: string[] // 호환 위해 유지
+    processes?: string[]
+    workTypes: string[]
+    location: { block: string; dong: string; unit: string }
+  }>
   main_manpower: number
   additional_manpower: Array<{
     name: string

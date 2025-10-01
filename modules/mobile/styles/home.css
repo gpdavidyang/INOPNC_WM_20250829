@@ -34,6 +34,11 @@
   justify-content: space-between !important;
 }
 
+/* Right-align actions for each added task set */
+.work-section-item .section-header {
+  justify-content: space-between !important;
+}
+
 /* 빠른메뉴 section header specifically */
 #home-quick .section-header {
   justify-content: flex-start !important;
