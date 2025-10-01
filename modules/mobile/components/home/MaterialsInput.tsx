@@ -29,7 +29,7 @@ export const MaterialsInput: React.FC<MaterialsInputProps> = ({ materials, onCha
   }
 
   return (
-    <div className="form-section">
+    <div className="form-section materials-section">
       <div className="section-header">
         <h3 className="section-title">자재 사용 내역</h3>
         <button className="add-btn" type="button" onClick={handleAdd}>

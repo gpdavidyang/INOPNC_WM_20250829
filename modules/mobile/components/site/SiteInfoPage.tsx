@@ -1291,6 +1291,16 @@ export default function SiteInfoPage() {
           --hover: rgba(16, 24, 40, 0.04);
         }
 
+        /* Dark mode variable mapping for this page */
+        :global([data-theme='dark']) .site-container {
+          --bg: #0f172a;
+          --card: #11151b;
+          --text: #e9eef5;
+          --muted: #a8b0bb;
+          --border: #3a4048;
+          --hover: rgba(30, 41, 59, 0.5);
+        }
+
         .site-container {
           min-height: 100vh;
           background: var(--bg);
@@ -1777,7 +1787,7 @@ export default function SiteInfoPage() {
         }
 
         :global([data-theme='dark'] .participation-stat .label) {
-          color: #94a3b8;
+          color: #cbd5e1;
         }
 
         :global([data-theme='dark'] .participation-stat .value) {
@@ -1813,19 +1823,19 @@ export default function SiteInfoPage() {
         }
 
         :global([data-theme='dark'] .site-summary-title) {
-          color: #bfdbfe;
+          color: #f8fafc !important;
         }
 
         :global([data-theme='dark'] .site-summary-tag) {
-          color: #bfdbfe;
+          color: #bfdbfe !important;
         }
 
         :global([data-theme='dark'] .site-summary-name) {
-          color: #e2e8f0;
+          color: #ffffff !important;
         }
 
         :global([data-theme='dark'] .site-summary-date) {
-          color: #cbd5f5;
+          color: #e2e8f0 !important;
         }
 
         :global([data-theme='dark'] .site-summary-status) {
@@ -1950,6 +1960,9 @@ export default function SiteInfoPage() {
           font-size: 20px;
           color: #1a254f;
         }
+        :global([data-theme='dark']) .site-container .site-search-card .card-header .q {
+          color: #f8fafc;
+        }
 
         .participation-stats {
           display: grid;
@@ -1971,10 +1984,17 @@ export default function SiteInfoPage() {
           border: 1px solid #e5e7eb;
           min-height: 52px;
         }
+        :global([data-theme='dark']) .site-container .participation-stat {
+          background: #0f172a;
+          border-color: var(--border);
+        }
 
         .participation-stat .label {
           font-size: 12px;
           color: #6b7280;
+        }
+        :global([data-theme='dark']) .site-container .participation-stat .label {
+          color: #e2e8f0;
         }
 
         .participation-stat .value {
@@ -1982,6 +2002,9 @@ export default function SiteInfoPage() {
           font-weight: 700;
           color: #1a254f;
           line-height: 1.2;
+        }
+        :global([data-theme='dark']) .site-container .participation-stat .value {
+          color: #f8fafc;
         }
 
         .card-header .work-date {
@@ -2014,6 +2037,10 @@ export default function SiteInfoPage() {
           padding: 0;
           min-height: 48px;
         }
+        :global([data-theme='dark']) .site-container .search-input-wrapper {
+          background: #0f172a;
+          border: 1px solid var(--border);
+        }
 
         .search-icon {
           position: absolute;
@@ -2022,6 +2049,9 @@ export default function SiteInfoPage() {
           transform: translateY(-50%);
           color: #1a254f;
           pointer-events: none;
+        }
+        :global([data-theme='dark']) .site-container .search-icon {
+          color: #f8fafc;
         }
 
         .search-input-new {
@@ -2039,6 +2069,12 @@ export default function SiteInfoPage() {
             Roboto,
             sans-serif;
           color: #333;
+        }
+        :global([data-theme='dark']) .site-container .search-input-new {
+          color: #ffffff;
+        }
+        :global([data-theme='dark']) .site-container .search-input-new::placeholder {
+          color: #e2e8f0;
         }
 
         .clear-btn {
@@ -2088,6 +2124,10 @@ export default function SiteInfoPage() {
             border-color 0.2s ease,
             box-shadow 0.2s ease;
         }
+        :global([data-theme='dark']) .site-container .site-summary-item {
+          background: var(--card);
+          border-color: var(--border);
+        }
 
         .site-summary-item:hover {
           border-color: #cbd5f5;
@@ -2097,6 +2137,10 @@ export default function SiteInfoPage() {
         .site-summary-item.selected {
           border-color: #1a56db;
           box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.12);
+        }
+        :global([data-theme='dark']) .site-container .site-summary-item.selected {
+          border-color: #2f6bff;
+          box-shadow: 0 0 0 2px rgba(47, 107, 255, 0.25);
         }
 
         .site-summary-header {
@@ -2508,12 +2552,20 @@ export default function SiteInfoPage() {
           border: 1.5px solid transparent;
           background: #f8f9fb;
         }
+        /* Dark mode KPI base */
+        :global([data-theme='dark']) .site-container .npc-kpi-item {
+          background: #11151b;
+          border-color: var(--border);
+        }
 
         .npc-kpi-value {
           font-size: 22px;
           font-weight: 700;
           margin: 0;
           line-height: 1.1;
+        }
+        :global([data-theme='dark']) .site-container .npc-kpi-value {
+          color: #f1f5f9;
         }
 
         .npc-kpi-label {
@@ -2522,44 +2574,77 @@ export default function SiteInfoPage() {
           margin: 0;
           letter-spacing: -0.01em;
         }
+        :global([data-theme='dark']) .site-container .npc-kpi-label {
+          color: #cbd5e1;
+        }
 
         .npc-kpi-item--incoming {
           background: #f7f9ff;
           border-color: #ccd4e6;
         }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--incoming {
+          background: rgba(30, 41, 59, 0.6);
+          border-color: rgba(148, 163, 184, 0.35);
+        }
 
         .npc-kpi-item--incoming .npc-kpi-value {
           color: #667085;
         }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--incoming .npc-kpi-value {
+          color: #e2e8f0;
+        }
 
         .npc-kpi-item--incoming .npc-kpi-label {
           color: #98a2b3;
+        }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--incoming .npc-kpi-label {
+          color: #cbd5e1;
         }
 
         .npc-kpi-item--usage {
           background: #f1f8ff;
           border-color: #3b82f6;
         }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--usage {
+          background: rgba(30, 41, 59, 0.6);
+          border-color: #2563eb;
+        }
 
         .npc-kpi-item--usage .npc-kpi-value {
           color: #0d8af5;
         }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--usage .npc-kpi-value {
+          color: #93c5fd;
+        }
 
         .npc-kpi-item--usage .npc-kpi-label {
           color: #3b82f6;
+        }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--usage .npc-kpi-label {
+          color: #60a5fa;
         }
 
         .npc-kpi-item--stock {
           background: #f5f6fb;
           border-color: #1f2b5c;
         }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--stock {
+          background: rgba(30, 41, 59, 0.6);
+          border-color: #475569;
+        }
 
         .npc-kpi-item--stock .npc-kpi-value {
           color: #1f2b5c;
         }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--stock .npc-kpi-value {
+          color: #e2e8f0;
+        }
 
         .npc-kpi-item--stock .npc-kpi-label {
           color: #1f2b5c;
+        }
+        :global([data-theme='dark']) .site-container .npc-kpi-item--stock .npc-kpi-label {
+          color: #cbd5e1;
         }
 
         .npc-buttons {
@@ -3467,6 +3552,100 @@ export default function SiteInfoPage() {
             white-space: normal;
           }
         }
+
+        /* Progress Modal */
+        .progress-modal-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 1400;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(17, 24, 39, 0.45);
+          padding: 16px;
+          animation: fadeIn 0.2s ease-out;
+        }
+        .progress-modal {
+          width: min(420px, 92%);
+          background: var(--card);
+          border-radius: 16px;
+          border: 1px solid rgba(209, 213, 219, 0.6);
+          box-shadow: 0 24px 60px rgba(2, 6, 23, 0.25);
+          padding: 16px;
+          animation: modalPop 0.24s ease-out;
+        }
+        .progress-modal-title {
+          font-weight: 700;
+          font-size: 18px;
+          margin-bottom: 8px;
+        }
+        .progress-modal-desc {
+          font-size: 14px;
+          color: #6b7280;
+          margin-bottom: 16px;
+        }
+        .progress-modal-actions {
+          display: flex;
+          gap: 8px;
+          justify-content: flex-end;
+        }
+        .modal-btn {
+          height: 40px;
+          padding: 0 12px;
+          border-radius: 10px;
+          border: 1px solid #d1d5db;
+          background: #fff;
+          font-weight: 600;
+        }
+        .modal-btn-ghost {
+          background: #f3f4f6;
+        }
+        .modal-btn-primary {
+          border-color: #1a254f;
+          background: #1a254f;
+          color: #fff;
+          font-weight: 700;
+        }
+
+        @keyframes modalPop {
+          from {
+            transform: translateY(8px);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+
+        :global([data-theme='dark'] .progress-modal) {
+          background: #111827;
+          border-color: rgba(148, 163, 184, 0.22);
+          box-shadow: 0 24px 60px rgba(2, 6, 23, 0.6);
+        }
+        :global([data-theme='dark'] .progress-modal-desc) {
+          color: #94a3b8;
+        }
+        :global([data-theme='dark'] .modal-btn) {
+          border-color: rgba(148, 163, 184, 0.3);
+          background: #0b1220;
+          color: #e2e8f0;
+        }
+        :global([data-theme='dark'] .modal-btn-ghost) {
+          background: rgba(30, 41, 59, 0.6);
+        }
+        :global([data-theme='dark'] .modal-btn-primary) {
+          background: #0f172a;
+          border-color: #0f172a;
+        }
       `}</style>
 
       {/* 상단 페이지 제목 제거 요청으로 비노출 */}
@@ -4017,76 +4196,31 @@ export default function SiteInfoPage() {
         <div
           role="dialog"
           aria-modal="true"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1400,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(17,24,39,0.45)',
-            padding: '16px',
-          }}
+          className="progress-modal-overlay"
           onClick={closeProgressModal}
         >
-          <div
-            style={{
-              width: 'min(420px, 92%)',
-              background: 'var(--card, #fff)',
-              borderRadius: 16,
-              border: '1px solid rgba(209,213,219,0.6)',
-              boxShadow: '0 24px 60px rgba(2,6,23,0.3)',
-              padding: 16,
-            }}
-            onClick={e => e.stopPropagation()}
-          >
+          <div className="progress-modal" onClick={e => e.stopPropagation()}>
             {progressModal.mode === 'choose' ? (
               <>
-                <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>진행도면 열기</div>
-                <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>
+                <div className="progress-modal-title">진행도면 열기</div>
+                <div className="progress-modal-desc">
                   최신 진행도면을 새 탭으로 보거나 마킹 도구로 열 수 있습니다.
                 </div>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <div className="progress-modal-actions">
                   <button
                     type="button"
+                    className="modal-btn modal-btn-ghost"
                     onClick={closeProgressModal}
-                    style={{
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid #d1d5db',
-                      background: '#f3f4f6',
-                      fontWeight: 600,
-                    }}
                   >
                     취소
                   </button>
-                  <button
-                    type="button"
-                    onClick={openLatestProgressInNewTab}
-                    style={{
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid #d1d5db',
-                      background: '#fff',
-                      fontWeight: 600,
-                    }}
-                  >
+                  <button type="button" className="modal-btn" onClick={openLatestProgressInNewTab}>
                     보기
                   </button>
                   <button
                     type="button"
+                    className="modal-btn modal-btn-primary"
                     onClick={openLatestProgressInMarkupTool}
-                    style={{
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid #1a254f',
-                      background: '#1a254f',
-                      color: '#fff',
-                      fontWeight: 700,
-                    }}
                   >
                     마킹 도구
                   </button>
@@ -4094,28 +4228,22 @@ export default function SiteInfoPage() {
               </>
             ) : (
               <>
-                <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 8 }}>진행도면 없음</div>
-                <div style={{ fontSize: 14, color: '#6b7280', marginBottom: 16 }}>
+                <div className="progress-modal-title">진행도면 없음</div>
+                <div className="progress-modal-desc">
                   해당 현장의 진행도면이 등록되어 있지 않습니다. 문서함에서 업로드하거나 마킹
                   도구에서 게시할 수 있습니다.
                 </div>
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <div className="progress-modal-actions">
                   <button
                     type="button"
+                    className="modal-btn modal-btn-ghost"
                     onClick={closeProgressModal}
-                    style={{
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid #d1d5db',
-                      background: '#f3f4f6',
-                      fontWeight: 600,
-                    }}
                   >
                     닫기
                   </button>
                   <button
                     type="button"
+                    className="modal-btn"
                     onClick={() => {
                       try {
                         if (currentSite)
@@ -4129,29 +4257,13 @@ export default function SiteInfoPage() {
                       closeProgressModal()
                       window.location.href = '/mobile/markup-tool?mode=upload'
                     }}
-                    style={{
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid #d1d5db',
-                      background: '#fff',
-                      fontWeight: 600,
-                    }}
                   >
                     마킹 도구(업로드)
                   </button>
                   <button
                     type="button"
+                    className="modal-btn modal-btn-primary"
                     onClick={goToDocumentsForUpload}
-                    style={{
-                      height: 40,
-                      padding: '0 12px',
-                      borderRadius: 10,
-                      border: '1px solid #1a254f',
-                      background: '#1a254f',
-                      color: '#fff',
-                      fontWeight: 700,
-                    }}
                   >
                     문서함 이동
                   </button>

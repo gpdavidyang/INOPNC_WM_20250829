@@ -265,7 +265,8 @@
   font-size: 13px;
 }
 .ph-kpi-line .label {
-  color: #6b7280;
+  /* Increase contrast on light background for readability */
+  color: #475467; /* slate-600 */
 }
 .ph-kpi-line .value {
   font-weight: 600;
@@ -526,20 +527,20 @@
   background: none !important;
 }
 .line-tabs .line-tab:hover {
-  color: #31a3fa !important;
+  color: var(--hover-color) !important;
 }
 .line-tabs .line-tab.active {
-  color: #31a3fa !important;
+  color: var(--hover-color) !important;
 }
 .line-tabs .line-tab::after {
   height: 2px !important;
   background: transparent;
 }
 .line-tabs .line-tab.active::after {
-  background: #31a3fa !important;
+  background: var(--hover-color) !important;
 }
 [data-theme='dark'] .line-tabs .line-tab.active::after {
-  background: #31a3fa !important;
+  background: var(--hover-color) !important;
 }
 
 /* Month grid refinements */

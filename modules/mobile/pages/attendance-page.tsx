@@ -970,8 +970,11 @@ const AttendanceContent: React.FC = () => {
 
   return (
     <MobileLayoutShell>
-      <div className="attendance-page w-full max-w-[480px] mx-auto px-4 pt-3 pb-6 space-y-4">
-        <nav className="line-tabs">
+      <div className="attendance-page w-full max-w-[480px] mx-auto px-4 pt-0 pb-6 space-y-4">
+        <nav
+          className="line-tabs"
+          style={{ width: 'calc(100% + 32px)', marginLeft: '-16px', marginRight: '-16px' }}
+        >
           <button
             type="button"
             className={clsx('line-tab', activeTab === 'work' && 'active')}
@@ -1088,20 +1091,18 @@ const AttendanceContent: React.FC = () => {
               </div>
             </section>
 
-            <section className="monthly-stats-section">
-              <div className="stat-grid">
-                <div className="stat stat-sites">
-                  <div className="num">{monthlyStats.siteCount}</div>
-                  <div className="label">현장수</div>
-                </div>
-                <div className="stat stat-hours">
-                  <div className="num">{monthlyStats.totalManDays}</div>
-                  <div className="label">공수</div>
-                </div>
-                <div className="stat stat-workdays">
-                  <div className="num">{monthlyStats.workDays}</div>
-                  <div className="label">근무일</div>
-                </div>
+            <section className="stat-grid">
+              <div className="stat stat-sites">
+                <div className="num">{monthlyStats.siteCount}</div>
+                <div className="label">현장수</div>
+              </div>
+              <div className="stat stat-hours">
+                <div className="num">{monthlyStats.totalManDays}</div>
+                <div className="label">공수</div>
+              </div>
+              <div className="stat stat-workdays">
+                <div className="num">{monthlyStats.workDays}</div>
+                <div className="label">근무일</div>
               </div>
             </section>
           </section>
@@ -1211,20 +1212,23 @@ const AttendanceContent: React.FC = () => {
                             if (y && m) openPayslip(y, m)
                           }
                         }}
-                        className="p-3 bg-gray-50 rounded-lg dark:bg-slate-900/40 cursor-pointer"
+                        className="card hover-lift p-3 cursor-pointer transition-colors"
                       >
-                        <Row justify="between" className="items-center">
-                          <span className="t-body font-medium">{salaryRecord.label}</span>
+                        <Row justify="between" className="items-center recent-salary-item">
+                          <span className="t-body font-medium text-[var(--text)] dark:text-[var(--text)]">
+                            {salaryRecord.label}
+                          </span>
                           <span className="inline-flex items-center gap-3">
-                            <span className="t-cap text-muted-foreground">
-                              지급일: {salaryRecord.paidDate}
+                            <span className="t-cap text-muted-foreground label">지급일:</span>
+                            <span className="t-cap text-muted-foreground value">
+                              {salaryRecord.paidDate}
                             </span>
-                            <span className="t-ctl text-[#0068FE]">보기</span>
+                            <span className="t-ctl text-[var(--nav-text-active)]">보기</span>
                           </span>
                         </Row>
                         <Row justify="between" className="mt-1">
-                          <span className="t-cap text-muted-foreground">총급여</span>
-                          <span className="t-body font-semibold">
+                          <span className="t-cap text-muted-foreground label">총급여</span>
+                          <span className="t-body font-semibold text-gray-900 dark:text-white">
                             ₩{(salaryRecord?.salary?.net_pay ?? 0).toLocaleString()}
                           </span>
                         </Row>

@@ -311,7 +311,22 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
         {/* 현장 미선택 상태 */}
         {!selectedSite && (
           <div className="empty-state">
-            <div className="empty-icon">🏗️</div>
+            <div className="empty-icon" aria-hidden="true">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M3 21h18" />
+                <path d="M6 21V8l6-3 6 3v13" />
+                <path d="M9 21v-6h6v6" />
+              </svg>
+            </div>
             <p className="empty-text">현장을 먼저 선택해주세요</p>
           </div>
         )}
@@ -370,7 +385,21 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
             {recentMarkup && (
               <div className="recent-markup" onClick={handleRecentMarkupOpen}>
                 <div className="recent-header">
-                  <span className="recent-icon">🎨</span>
+                  <span className="recent-icon" aria-hidden="true">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="12" cy="12" r="9" />
+                      <path d="M12 7v5l3 3" />
+                    </svg>
+                  </span>
                   <span className="recent-label">최근 마킹</span>
                   <span className="recent-count">{recentMarkup.markupCount}개 마킹</span>
                 </div>
@@ -384,7 +413,21 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
             {/* 공도면이 없는 경우 */}
             {!primaryBlueprint && (
               <div className="no-blueprint">
-                <div className="no-blueprint-icon">📋</div>
+                <div className="no-blueprint-icon" aria-hidden="true">
+                  <svg
+                    width="40"
+                    height="40"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M6 2h7l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
+                    <path d="M13 2v6h6" />
+                  </svg>
+                </div>
                 <p className="no-blueprint-title">공도면이 등록되어 있지 않습니다</p>
                 <p className="no-blueprint-desc">
                   본사 관리자가 해당 현장 공도면 등록 후,
@@ -404,7 +447,20 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
                     rel="noopener noreferrer"
                     className="kakao-link"
                   >
-                    <span className="kakao-icon">💬</span>
+                    <span className="kakao-icon" aria-hidden="true">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M21 15a4 4 0 0 1-4 4H8l-4 3V6a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4v9z" />
+                      </svg>
+                    </span>
                     카카오톡 오픈채팅 문의
                   </a>
                 </div>
@@ -416,14 +472,42 @@ export const DrawingQuickAction: React.FC<DrawingQuickActionProps> = ({
                       router.push('/mobile/markup-tool?mode=upload&source=photo&saveOnly=1')
                     }
                   >
-                    <span className="upload-icon">📷</span>
+                    <span className="upload-icon" aria-hidden="true">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </span>
                     촬영본 업로드(저장)
                   </button>
                   <button
                     className="upload-btn"
                     onClick={() => router.push('/mobile/markup-tool?mode=upload&source=photo')}
                   >
-                    <span className="upload-icon">✏️</span>
+                    <span className="upload-icon" aria-hidden="true">
+                      <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+                      </svg>
+                    </span>
                     사진으로 마킹하기
                   </button>
                   <button

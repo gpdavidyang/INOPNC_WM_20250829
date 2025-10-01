@@ -134,6 +134,13 @@ export interface WorklogDetail extends WorklogSummary {
     dong: string
     unit: string
   }
+  // 확장: 작업 세트 묶음
+  tasks?: Array<{
+    memberTypes: string[]
+    processes: string[]
+    workTypes: string[]
+    location: { block: string; dong: string; unit: string }
+  }>
   notes?: string
   safetyNotes?: string
   additionalManpower: Array<{

@@ -78,6 +78,13 @@ body {
   /* Allow vertical scrolling while preventing horizontal */
 }
 
+/* Apply large-font mode on mobile by overriding px-based body size */
+.large-font-mode body {
+  /* Keep header/nav unaffected via their own resets below */
+  font-size: 18px !important; /* ~20% larger for readability */
+  line-height: 1.7;
+}
+
 /* Font Size Switch Classes */
 body.fs-100 {
   font-size: 15px;
@@ -224,7 +231,7 @@ textarea {
 
 .header-icon-btn .icon-text {
   font-size: 10px !important;
-  font-weight: 400;
+  font-weight: 300;
   line-height: 1;
   letter-spacing: -0.3px;
   color: #6b7280;
@@ -253,7 +260,7 @@ textarea {
 } */
 
 .icon-btn:hover {
-  color: #1a254f;
+  color: var(--hover-color);
   background: rgba(26, 37, 79, 0.08);
 }
 
@@ -262,8 +269,8 @@ textarea {
 }
 
 [data-theme='dark'] .icon-btn:hover {
-  color: #3182ce;
-  background: rgba(49, 130, 206, 0.1);
+  color: var(--hover-color);
+  background: rgba(26, 37, 79, 0.1);
 }
 
 /* Remove background on header icon hover */
@@ -553,7 +560,7 @@ textarea {
 .nav-link:is(:hover, :active, :focus-visible) .nav-label,
 .nav-link.pressed .nav-svg,
 .nav-link.pressed .nav-label {
-  color: #3182ce !important;
+  color: var(--hover-color) !important;
 }
 
 .nav-ico {

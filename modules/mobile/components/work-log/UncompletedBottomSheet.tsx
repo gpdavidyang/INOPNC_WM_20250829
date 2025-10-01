@@ -198,24 +198,19 @@ export const UncompletedBottomSheet: React.FC<UncompletedBottomSheetProps> = ({
         <div className="px-6 pb-4">
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-                  <span className="text-amber-600 dark:text-amber-400 text-lg">⚠️</span>
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    임시저장 작업일지
-                  </h3>
-                </div>
+              <div className="mb-2">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                  임시저장 작업일지
+                </h3>
               </div>
-              <p className="text-sm text-gray-600 dark:text-gray-300 pl-13">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 임시저장 중인 작업일지가{' '}
                 <span className="font-semibold text-amber-600 dark:text-amber-400">
                   {totalCount}개
                 </span>{' '}
                 있습니다.
               </p>
-              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400 pl-13">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 무시를 누르면 선택한 월의 알림이 오늘 하루 동안 표시되지 않습니다.
               </p>
             </div>

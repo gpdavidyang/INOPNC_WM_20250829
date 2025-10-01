@@ -165,7 +165,21 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
               >
                 {beforeFiles.length === 0 ? (
                   <div className="upload-placeholder">
-                    <div className="upload-icon">📷</div>
+                    <div className="upload-icon" aria-hidden="true">
+                      <svg
+                        width="36"
+                        height="36"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </div>
                     <p className="upload-text">사진을 추가하세요</p>
                   </div>
                 ) : (
@@ -223,7 +237,21 @@ export const PhotoUploadCard: React.FC<PhotoUploadCardProps> = ({ className = ''
               >
                 {afterFiles.length === 0 ? (
                   <div className="upload-placeholder">
-                    <div className="upload-icon">📷</div>
+                    <div className="upload-icon" aria-hidden="true">
+                      <svg
+                        width="36"
+                        height="36"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z" />
+                        <circle cx="12" cy="13" r="4" />
+                      </svg>
+                    </div>
                     <p className="upload-text">사진을 추가하세요</p>
                   </div>
                 ) : (

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
 import { useFileUpload } from '@/modules/mobile/hooks/useFileUpload'
 
 interface FileUploadSectionProps {
@@ -19,6 +20,7 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
   onClose,
 }) => {
   const [showUpload, setShowUpload] = useState(false)
+  const { toast } = useToast()
 
   const {
     uploadedFiles,
@@ -65,7 +67,11 @@ export const FileUploadSection: React.FC<FileUploadSectionProps> = ({
 
   const handleSaveUploads = () => {
     if (completedFiles.length > 0) {
-      alert(`${completedFiles.length}개의 파일이 ${documentTitle}에 업로드되었습니다.`)
+      toast({
+        title: '업로드 완료',
+        description: `${completedFiles.length}개 파일이 업로드되었습니다.`,
+        variant: 'success',
+      })
       onUploadComplete?.(completedFiles)
       handleCloseUpload()
     }

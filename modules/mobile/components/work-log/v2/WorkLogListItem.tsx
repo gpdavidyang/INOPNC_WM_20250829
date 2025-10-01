@@ -19,13 +19,13 @@ export const WorkLogListItem: React.FC<WorkLogListItemProps> = ({ workLog, onSel
   return (
     <article
       onClick={handleClick}
-      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#E6ECF4] bg-white px-4 py-4 text-sm text-[#1A254F] shadow-[0_6px_18px_rgba(16,24,40,0.04)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(16,24,40,0.08)]"
+      className="flex cursor-pointer items-center justify-between rounded-xl border border-[#E6ECF4] dark:border-[#3a4048] bg-white dark:bg-[#11151b] px-4 py-4 text-sm text-[#1A254F] dark:text-gray-100 shadow-[0_6px_18px_rgba(16,24,40,0.04)] transition-transform hover:-translate-y-0.5 hover:shadow-[0_10px_24px_rgba(16,24,40,0.08)]"
       role={onSelect ? 'button' : undefined}
       tabIndex={onSelect ? 0 : -1}
     >
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold">{workLog.siteName}</p>
-        <p className="truncate text-xs text-[#667085]">
+        <p className="truncate text-xs text-[#667085] dark:text-gray-400">
           {workLog.workProcesses.length > 0
             ? workLog.workProcesses.join(', ')
             : workLog.notes || '작업 내용 미입력'}
@@ -35,13 +35,15 @@ export const WorkLogListItem: React.FC<WorkLogListItemProps> = ({ workLog, onSel
         <span
           className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
             workLog.status === 'draft'
-              ? 'bg-[#F4F8FF] text-[#31A3FA]'
-              : 'bg-[#F0FDF4] text-[#16A34A]'
+              ? 'bg-[#F4F8FF] text-[#31A3FA] dark:bg-[#1e3a8a]/30 dark:text-[#63b3ed]'
+              : 'bg-[#F0FDF4] text-[#16A34A] dark:bg-emerald-900/30 dark:text-emerald-400'
           }`}
         >
           {workLog.status === 'draft' ? '임시저장' : '작성완료'}
         </span>
-        <span className="text-xs text-[#667085]">{formatDate(workLog.date)}</span>
+        <span className="text-xs text-[#667085] dark:text-gray-400">
+          {formatDate(workLog.date)}
+        </span>
       </div>
     </article>
   )

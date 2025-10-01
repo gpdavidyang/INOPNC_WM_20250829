@@ -150,6 +150,35 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
     },
   ]
 
+  // 작업 세트 묶음 표시 (있을 경우)
+  const renderTasks = () => {
+    const tasks = (worklog as any).tasks as
+      | Array<{
+          memberTypes: string[]
+          processes: string[]
+          workTypes: string[]
+          location: { block: string; dong: string; unit: string }
+        }>
+      | undefined
+    if (!Array.isArray(tasks) || tasks.length === 0) return null
+    return (
+      <section className="info-table" aria-label="작업 항목">
+        {tasks.map((t, i) => (
+          <div key={i} className="info-row">
+            <div className="info-label">작업 {i + 1}</div>
+            <div className="info-value">
+              부재명: {(t.memberTypes || []).join(', ') || '-'} / 공정:{' '}
+              {(t.processes || []).join(', ') || '-'} / 유형:{' '}
+              {(t.workTypes || []).join(', ') || '-'} / 위치:{' '}
+              {`${t.location?.block || ''} ${t.location?.dong || ''} ${t.location?.unit || ''}`.trim() ||
+                '-'}
+            </div>
+          </div>
+        ))}
+      </section>
+    )
+  }
+
   const counts = worklog.attachmentCounts
 
   const drawingsWithMarkups: WorklogAttachment[] = (() => {
@@ -203,6 +232,8 @@ export const DiaryDetailViewer: React.FC<DiaryDetailViewerProps> = ({
               </div>
             ))}
           </section>
+
+          {renderTasks()}
 
           {/* 첨부 탭 + 줌 컨트롤 */}
           <section aria-label="첨부">

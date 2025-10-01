@@ -55,7 +55,7 @@ export default function DocumentHubPage() {
   }, [])
 
   return (
-    <div style={{ padding: 16 }}>
+    <div className="doc-hub" style={{ padding: 16 }}>
       <div className="document-tabs" aria-label="문서함 탭">
         <div className="tab-row">
           <button
@@ -93,6 +93,159 @@ export default function DocumentHubPage() {
         {active === 'drawings' && <DrawingsTab />}
         {active === 'photos' && <PhotosTab />}
       </div>
+      <style jsx>{`
+        .doc-hub {
+          color: var(--text);
+          background: var(--bg, #ffffff);
+          min-height: 100vh;
+        }
+        .document-tabs {
+          display: grid;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .tab-row {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 8px;
+        }
+        .document-tab {
+          border: 1px solid var(--line, #e5e7eb);
+          background: var(--card, #ffffff);
+          color: var(--text, #1f2937);
+          border-radius: 10px;
+          padding: 10px 12px;
+          font-weight: 700;
+        }
+        .document-tab.active {
+          border-color: #2f6bff;
+          color: #2f6bff;
+          background: color-mix(in srgb, #2f6bff 8%, transparent);
+        }
+        .tab-content-wrapper {
+          color: var(--text);
+        }
+        /* Cards */
+        .doc-selection-card {
+          border: 1px solid var(--line, #e5e7eb);
+          background: var(--card, #ffffff);
+          border-radius: 12px;
+          padding: 12px;
+          margin-bottom: 8px;
+        }
+        .doc-selection-title {
+          color: var(--text);
+          font-weight: 600;
+        }
+        .doc-actions .btn,
+        .foot .btn {
+          border: 1px solid var(--line, #e5e7eb);
+          background: var(--card, #fff);
+          color: var(--text, #1f2937);
+        }
+        .preview-btn,
+        .selection-checkmark {
+          border: 1px solid var(--line, #e5e7eb);
+          background: var(--card, #fff);
+          color: var(--text, #1f2937);
+          border-radius: 10px;
+          padding: 8px 10px;
+        }
+        .selection-checkmark.active {
+          border-color: #2f6bff;
+          color: #2f6bff;
+        }
+        .btn-primary {
+          background: #1a254f;
+          color: #fff;
+          border: 1px solid #1a254f;
+        }
+        /* Filters in drawings/photos */
+        .filters .select,
+        .filters .input {
+          border: 1px solid var(--line, #e5e7eb);
+          background: var(--card, #fff);
+          color: var(--text, #1f2937);
+          border-radius: 10px;
+          padding: 8px 10px;
+        }
+        .grid-thumbs .thumb {
+          background: var(--card, #fff);
+          border: 1px solid var(--line, #e5e7eb);
+          border-radius: 10px;
+          overflow: hidden;
+        }
+
+        /* Dark mode overrides */
+        :global([data-theme='dark']) .doc-hub,
+        :global(html.dark) .doc-hub {
+          color: var(--text);
+          background: var(--bg, #0f172a) !important;
+        }
+        :global([data-theme='dark']) .doc-hub .document-tab,
+        :global(html.dark) .doc-hub .document-tab {
+          border-color: var(--line, #3a4048) !important;
+          background: var(--card, #11151b) !important;
+          color: #e9eef5 !important;
+        }
+        :global([data-theme='dark']) .doc-hub .document-tab.active,
+        :global(html.dark) .doc-hub .document-tab.active {
+          border-color: #2f6bff !important;
+          color: #93c5fd !important;
+          background: rgba(47, 107, 255, 0.15) !important;
+        }
+        :global([data-theme='dark']) .doc-hub .doc-selection-card,
+        :global(html.dark) .doc-hub .doc-selection-card {
+          border-color: var(--line, #3a4048) !important;
+          background: var(--card, #11151b) !important;
+        }
+        :global([data-theme='dark']) .doc-hub .doc-selection-title,
+        :global(html.dark) .doc-hub .doc-selection-title {
+          color: #f8fafc;
+        }
+        :global([data-theme='dark']) .doc-hub .preview-btn,
+        :global([data-theme='dark']) .doc-hub .selection-checkmark,
+        :global(html.dark) .doc-hub .preview-btn,
+        :global(html.dark) .doc-hub .selection-checkmark {
+          border-color: var(--line, #3a4048) !important;
+          background: var(--card, #11151b) !important;
+          color: #e9eef5 !important;
+        }
+        :global([data-theme='dark']) .doc-hub .selection-checkmark.active,
+        :global(html.dark) .doc-hub .selection-checkmark.active {
+          border-color: #2f6bff;
+          color: #93c5fd;
+        }
+        :global([data-theme='dark']) .doc-hub .doc-actions .btn,
+        :global([data-theme='dark']) .doc-hub .foot .btn,
+        :global(html.dark) .doc-hub .doc-actions .btn,
+        :global(html.dark) .doc-hub .foot .btn {
+          border-color: var(--line, #3a4048) !important;
+          background: var(--card, #11151b) !important;
+          color: #e9eef5 !important;
+        }
+        :global([data-theme='dark']) .doc-hub .btn-primary,
+        :global(html.dark) .doc-hub .btn-primary {
+          background: #0f3460 !important;
+          border-color: #0f3460 !important;
+        }
+        :global([data-theme='dark']) .doc-hub .filters .select,
+        :global([data-theme='dark']) .doc-hub .filters .input,
+        :global(html.dark) .doc-hub .filters .select,
+        :global(html.dark) .doc-hub .filters .input {
+          border-color: var(--line, #3a4048) !important;
+          background: var(--card, #11151b) !important;
+          color: #f8fafc !important;
+        }
+        :global([data-theme='dark']) .doc-hub .grid-thumbs .thumb,
+        :global(html.dark) .doc-hub .grid-thumbs .thumb {
+          background: var(--card, #11151b) !important;
+          border-color: var(--line, #3a4048) !important;
+        }
+        :global(html.dark) .doc-hub .tab-content-wrapper {
+          color: #e9eef5;
+        }
+      `}</style>
     </div>
   )
 }

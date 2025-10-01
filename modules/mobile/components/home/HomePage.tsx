@@ -129,6 +129,14 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   const [memberTypes, setMemberTypes] = useState<string[]>([])
   const [workContents, setWorkContents] = useState<string[]>([])
   const [workTypes, setWorkTypes] = useState<string[]>([])
+  const [tasks, setTasks] = useState<
+    Array<{
+      memberTypes: string[]
+      processes: string[]
+      workTypes: string[]
+      location: WorkLogLocation
+    }>
+  >([])
   const [mainManpower, setMainManpower] = useState(1)
   const [workSections, setWorkSections] = useState<WorkSection[]>([])
   const [additionalManpower, setAdditionalManpower] = useState<AdditionalManpower[]>([])
@@ -391,7 +399,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
     try {
       setActionStatus(null)
-      await createWorklogMutation.mutateAsync(buildPayload('draft'))
+      await createWorklogMutation.mutateAsync({ ...buildPayload('draft'), tasks })
       toast.success('임시저장되었습니다.')
       setActionStatus({ type: 'success', message: '임시저장을 완료했습니다.' })
     } catch (error) {
@@ -423,7 +431,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
 
     try {
       setActionStatus(null)
-      await createWorklogMutation.mutateAsync(buildPayload('submitted'))
+      await createWorklogMutation.mutateAsync({ ...buildPayload('submitted'), tasks })
       toast.success('작업일지가 저장되었습니다.')
       setActionStatus({ type: 'success', message: '작업일지를 저장했습니다.' })
     } catch (error) {
@@ -437,7 +445,7 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
   }
 
   return (
-    <main className="container fs-100" style={{ paddingTop: '60px' }}>
+    <main className="container fs-100">
       {/* Auth Debug Info - Only in development */}
       {/* 빠른메뉴 */}
       <QuickMenu />
@@ -588,11 +596,42 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         </div>
 
         {/* 작업 내용 기록 */}
-        <div className="form-section">
+        <div className="form-section work-content-section">
           <div className="section-header">
             <h3 className="section-title">
               작업 내용 기록 <span className="required">*</span>
             </h3>
+            <button
+              className="add-btn"
+              onClick={() => {
+                // 간단 유효성 검사 후 작업 세트에 추가
+                const m = normalizeSelections(memberTypes, MEMBER_TYPE_VALUES)
+                const p = normalizeSelections(workContents, WORK_PROCESS_VALUES)
+                const w = normalizeSelections(workTypes, WORK_TYPE_VALUES)
+                if (
+                  m.length === 0 ||
+                  p.length === 0 ||
+                  w.length === 0 ||
+                  !location.block ||
+                  !location.dong ||
+                  !location.unit
+                ) {
+                  toast.error('부재명/작업공정/작업유형/블럭·동·층을 먼저 입력하세요.')
+                  return
+                }
+                setTasks(prev => [
+                  ...prev,
+                  { memberTypes: m, processes: p, workTypes: w, location },
+                ])
+                // 입력 초기화 (요구안 동작)
+                setMemberTypes([])
+                setWorkContents([])
+                setWorkTypes([])
+                setLocation({ block: '', dong: '', unit: '' })
+              }}
+            >
+              추가
+            </button>
           </div>
 
           {/* 부재명 멀티 선택 */}
@@ -632,9 +671,35 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             className="mb-3"
           />
 
-          {/* 블럭/동/호수 */}
+          {/* 블럭/동/층 */}
           <LocationInput location={location} onChange={setLocation} className="mt-3" />
         </div>
+
+        {/* 추가된 작업 세트 */}
+        {tasks.length > 0 && (
+          <div className="form-section">
+            <div className="section-header">
+              <h3 className="section-title">추가된 작업 세트</h3>
+            </div>
+            <ul className="added-tasks-list">
+              {tasks.map((t, i) => (
+                <li key={i} className="added-task-item">
+                  <span className="task-summary">
+                    #{i + 1} 부재:{t.memberTypes.join(', ') || '-'} / 공정:
+                    {t.processes.join(', ') || '-'} / 유형:{t.workTypes.join(', ') || '-'} / 위치:
+                    {`${t.location.block} ${t.location.dong} ${t.location.unit}`.trim()}
+                  </span>
+                  <button
+                    className="delete-tag-btn"
+                    onClick={() => setTasks(tasks.filter((_, idx) => idx !== i))}
+                  >
+                    삭제
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* 공수(일) */}
         <div className="form-section manpower-section">
