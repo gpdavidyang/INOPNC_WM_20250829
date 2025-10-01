@@ -1674,8 +1674,8 @@ html.dark .doc-hub {
 }
 [data-theme='dark'] .doc-hub .document-tab,
 html.dark .doc-hub .document-tab {
-  border-color: #3a4048 !important;
-  background: #11151b !important;
+  border-color: #374151 !important;
+  background: #1e293b !important;
   color: #e9eef5 !important;
 }
 [data-theme='dark'] .doc-hub .document-tab.active,
@@ -1686,8 +1686,8 @@ html.dark .doc-hub .document-tab.active {
 }
 [data-theme='dark'] .doc-hub .doc-selection-card,
 html.dark .doc-hub .doc-selection-card {
-  border-color: #3a4048 !important;
-  background: #11151b !important;
+  border-color: #374151 !important;
+  background: #1e293b !important;
   color: #e9eef5 !important;
 }
 [data-theme='dark'] .doc-hub .doc-selection-title,
@@ -1702,8 +1702,8 @@ html.dark .doc-hub .section-title {
 html.dark .doc-hub .preview-btn,
 html.dark .doc-hub .selection-checkmark,
 html.dark .doc-hub .upload-btn {
-  border-color: #3a4048 !important;
-  background: #11151b !important;
+  border-color: #374151 !important;
+  background: #1e293b !important;
   color: #e9eef5 !important;
 }
 [data-theme='dark'] .doc-hub .upload-btn.uploaded,
@@ -1721,8 +1721,8 @@ html.dark .doc-hub .selection-checkmark.active {
 [data-theme='dark'] .doc-hub .foot .btn,
 html.dark .doc-hub .doc-actions .btn,
 html.dark .doc-hub .foot .btn {
-  border-color: #3a4048 !important;
-  background: #11151b !important;
+  border-color: #374151 !important;
+  background: #1e293b !important;
   color: #e9eef5 !important;
 }
 [data-theme='dark'] .doc-hub .btn-primary,
@@ -1734,14 +1734,14 @@ html.dark .doc-hub .btn-primary {
 [data-theme='dark'] .doc-hub .filters .input,
 html.dark .doc-hub .filters .select,
 html.dark .doc-hub .filters .input {
-  border-color: #3a4048 !important;
-  background: #11151b !important;
+  border-color: #374151 !important;
+  background: #1e293b !important;
   color: #f8fafc !important;
 }
 [data-theme='dark'] .doc-hub .grid-thumbs .thumb,
 html.dark .doc-hub .grid-thumbs .thumb {
-  background: #11151b !important;
-  border-color: #3a4048 !important;
+  background: #1e293b !important;
+  border-color: #374151 !important;
 }
 
 /* AGGRESSIVE: Override ALL media queries completely */

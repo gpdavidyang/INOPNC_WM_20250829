@@ -28,10 +28,10 @@ html.dark {
   --brand: #e9eef5;
   --accent: #2f6bff;
   --muted: #9ca3af;
-  --border: #334155;
+  --border: #374151;
   --border-strong: #475569;
-  --surface: #1f2937;
-  --surface-soft: #111928;
+  --surface: #1e293b; /* section background */
+  --surface-soft: #223047; /* hover background */
   --background: #0f172a;
   --shadow-soft: 0 6px 16px rgba(15, 23, 42, 0.45);
   --shadow-active: 0 4px 14px rgba(37, 99, 235, 0.45);
