@@ -16,6 +16,7 @@ interface AppBarProps {
 }
 
 export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) => {
+  // Centralized theme control (syncs data-theme + .dark class)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
   const [notificationCount, setNotificationCount] = useState(0)
   const [showNotificationModal, setShowNotificationModal] = useState(false)
@@ -64,8 +65,8 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
   useEffect(() => {
     const savedTheme = (localStorage.getItem('inopnc_theme') as 'light' | 'dark') || 'light'
     setTheme(savedTheme)
-
     document.documentElement.setAttribute('data-theme', savedTheme)
+    document.documentElement.classList.toggle('dark', savedTheme === 'dark')
   }, [])
 
   // Fetch notification count
@@ -78,8 +79,13 @@ export const AppBar: React.FC<AppBarProps> = ({ onMenuClick, onSearchClick }) =>
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark'
     setTheme(newTheme)
-    document.documentElement.setAttribute('data-theme', newTheme)
-    localStorage.setItem('inopnc_theme', newTheme)
+    try {
+      document.documentElement.setAttribute('data-theme', newTheme)
+      document.documentElement.classList.toggle('dark', newTheme === 'dark')
+      localStorage.setItem('inopnc_theme', newTheme)
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   // Font size toggle is handled by FontSizeContext (applies .large-font-mode)

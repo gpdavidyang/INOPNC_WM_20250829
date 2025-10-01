@@ -368,16 +368,33 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
         notes: material.notes,
       }))
 
+    // 기본 입력이 비어있을 경우, 첫 번째 작업 세트를 대표값으로 사용
+    const firstTask = tasks[0]
+    const repMemberTypes =
+      normalizedMemberTypes.length > 0 ? normalizedMemberTypes : firstTask?.memberTypes || []
+    const repProcesses =
+      normalizedWorkProcesses.length > 0 ? normalizedWorkProcesses : firstTask?.processes || []
+    const repWorkTypes =
+      normalizedWorkTypes.length > 0 ? normalizedWorkTypes : firstTask?.workTypes || []
+    const repLocation =
+      location.block || location.dong || location.unit
+        ? location
+        : firstTask?.location || { block: '', dong: '', unit: '' }
+
+    const workDesc = (normalizedWorkProcesses.length ? normalizedWorkProcesses : repProcesses).join(
+      ', '
+    )
+
     return {
       site_id: selectedSite,
       work_date: workDate,
       status,
-      work_description: normalizedWorkProcesses.join(', '),
+      work_description: workDesc,
       total_workers: totalWorkers,
-      member_types: normalizedMemberTypes,
-      processes: normalizedWorkProcesses,
-      work_types: normalizedWorkTypes,
-      location: location,
+      member_types: repMemberTypes,
+      processes: repProcesses,
+      work_types: repWorkTypes,
+      location: repLocation,
       main_manpower: mainManpower,
       additional_manpower: additionalManpower.map(worker => ({
         name: worker.workerName,
@@ -604,30 +621,16 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
             <button
               className="add-btn"
               onClick={() => {
-                // 간단 유효성 검사 후 작업 세트에 추가
-                const m = normalizeSelections(memberTypes, MEMBER_TYPE_VALUES)
-                const p = normalizeSelections(workContents, WORK_PROCESS_VALUES)
-                const w = normalizeSelections(workTypes, WORK_TYPE_VALUES)
-                if (
-                  m.length === 0 ||
-                  p.length === 0 ||
-                  w.length === 0 ||
-                  !location.block ||
-                  !location.dong ||
-                  !location.unit
-                ) {
-                  toast.error('부재명/작업공정/작업유형/블럭·동·층을 먼저 입력하세요.')
-                  return
-                }
+                // 요구사항: [추가] 클릭 시 즉시 빈 작업 세트 입력 섹션이 추가되어야 함
                 setTasks(prev => [
                   ...prev,
-                  { memberTypes: m, processes: p, workTypes: w, location },
+                  {
+                    memberTypes: [],
+                    processes: [],
+                    workTypes: [],
+                    location: { block: '', dong: '', unit: '' },
+                  },
                 ])
-                // 입력 초기화 (요구안 동작)
-                setMemberTypes([])
-                setWorkContents([])
-                setWorkTypes([])
-                setLocation({ block: '', dong: '', unit: '' })
               }}
             >
               추가
@@ -675,29 +678,76 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
           <LocationInput location={location} onChange={setLocation} className="mt-3" />
         </div>
 
-        {/* 추가된 작업 세트 */}
+        {/* 추가된 작업 세트 - 편집 가능한 입력 섹션 */}
         {tasks.length > 0 && (
           <div className="form-section">
             <div className="section-header">
               <h3 className="section-title">추가된 작업 세트</h3>
             </div>
-            <ul className="added-tasks-list">
+            <div className="space-y-3">
               {tasks.map((t, i) => (
-                <li key={i} className="added-task-item">
-                  <span className="task-summary">
-                    #{i + 1} 부재:{t.memberTypes.join(', ') || '-'} / 공정:
-                    {t.processes.join(', ') || '-'} / 유형:{t.workTypes.join(', ') || '-'} / 위치:
-                    {`${t.location.block} ${t.location.dong} ${t.location.unit}`.trim()}
-                  </span>
-                  <button
-                    className="delete-tag-btn"
-                    onClick={() => setTasks(tasks.filter((_, idx) => idx !== i))}
-                  >
-                    삭제
-                  </button>
-                </li>
+                <div key={i} className="work-section-item">
+                  <div className="section-header">
+                    <h4 className="section-subtitle">작업 세트 #{i + 1}</h4>
+                    <button
+                      className="delete-tag-btn"
+                      onClick={() => setTasks(prev => prev.filter((_, idx) => idx !== i))}
+                    >
+                      삭제
+                    </button>
+                  </div>
+
+                  <MultiSelectButtons
+                    label="부재명"
+                    options={MEMBER_TYPE_OPTIONS}
+                    selectedValues={t.memberTypes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, memberTypes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="부재명을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <MultiSelectButtons
+                    label="작업공정"
+                    options={WORK_PROCESS_OPTIONS}
+                    selectedValues={t.processes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, processes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="작업공정을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <MultiSelectButtons
+                    label="작업유형"
+                    options={WORK_TYPE_OPTIONS}
+                    selectedValues={t.workTypes}
+                    onChange={vals =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, workTypes: vals } : row))
+                      )
+                    }
+                    customInputPlaceholder="작업유형을 직접 입력하세요"
+                    className="mb-3"
+                  />
+
+                  <LocationInput
+                    location={t.location}
+                    onChange={loc =>
+                      setTasks(prev =>
+                        prev.map((row, idx) => (idx === i ? { ...row, location: loc } : row))
+                      )
+                    }
+                    className="mt-3"
+                  />
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
 

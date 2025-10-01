@@ -99,6 +99,11 @@ export default function DocumentHubPage() {
           background: var(--bg, #ffffff);
           min-height: 100vh;
         }
+        .section-title {
+          font-weight: 800;
+          margin: 8px 0 10px;
+          color: var(--text);
+        }
         .document-tabs {
           display: grid;
           gap: 8px;
@@ -126,6 +131,12 @@ export default function DocumentHubPage() {
           color: var(--text);
         }
         /* Cards */
+        .document-cards {
+          border: 1px solid var(--line, #e5e7eb);
+          background: var(--card, #ffffff);
+          border-radius: 12px;
+          padding: 8px;
+        }
         .doc-selection-card {
           border: 1px solid var(--line, #e5e7eb);
           background: var(--card, #ffffff);
@@ -136,6 +147,19 @@ export default function DocumentHubPage() {
         .doc-selection-title {
           color: var(--text);
           font-weight: 600;
+        }
+        .upload-btn {
+          border: 1px solid var(--line, #e5e7eb);
+          background: var(--card, #fff);
+          color: var(--text, #1f2937);
+          border-radius: 10px;
+          padding: 8px 12px;
+          font-weight: 700;
+        }
+        .upload-btn.uploaded {
+          border-color: #16a34a;
+          color: #16a34a;
+          background: color-mix(in srgb, #16a34a 10%, transparent);
         }
         .doc-actions .btn,
         .foot .btn {
@@ -179,13 +203,13 @@ export default function DocumentHubPage() {
         /* Dark mode overrides */
         :global([data-theme='dark']) .doc-hub,
         :global(html.dark) .doc-hub {
-          color: var(--text);
-          background: var(--bg, #0f172a) !important;
+          color: #e9eef5 !important;
+          background: #0f172a !important;
         }
         :global([data-theme='dark']) .doc-hub .document-tab,
         :global(html.dark) .doc-hub .document-tab {
-          border-color: var(--line, #3a4048) !important;
-          background: var(--card, #11151b) !important;
+          border-color: #3a4048 !important;
+          background: #11151b !important;
           color: #e9eef5 !important;
         }
         :global([data-theme='dark']) .doc-hub .document-tab.active,
@@ -194,22 +218,32 @@ export default function DocumentHubPage() {
           color: #93c5fd !important;
           background: rgba(47, 107, 255, 0.15) !important;
         }
+        :global([data-theme='dark']) .doc-hub .document-cards,
         :global([data-theme='dark']) .doc-hub .doc-selection-card,
         :global(html.dark) .doc-hub .doc-selection-card {
-          border-color: var(--line, #3a4048) !important;
-          background: var(--card, #11151b) !important;
+          border-color: #3a4048 !important;
+          background: #11151b !important;
         }
+        :global([data-theme='dark']) .doc-hub .section-title,
         :global([data-theme='dark']) .doc-hub .doc-selection-title,
         :global(html.dark) .doc-hub .doc-selection-title {
           color: #f8fafc;
         }
         :global([data-theme='dark']) .doc-hub .preview-btn,
         :global([data-theme='dark']) .doc-hub .selection-checkmark,
+        :global([data-theme='dark']) .doc-hub .upload-btn,
         :global(html.dark) .doc-hub .preview-btn,
-        :global(html.dark) .doc-hub .selection-checkmark {
-          border-color: var(--line, #3a4048) !important;
-          background: var(--card, #11151b) !important;
+        :global(html.dark) .doc-hub .selection-checkmark,
+        :global(html.dark) .doc-hub .upload-btn {
+          border-color: #3a4048 !important;
+          background: #11151b !important;
           color: #e9eef5 !important;
+        }
+        :global([data-theme='dark']) .doc-hub .upload-btn.uploaded,
+        :global(html.dark) .doc-hub .upload-btn.uploaded {
+          border-color: #22c55e !important;
+          color: #86efac !important;
+          background: rgba(34, 197, 94, 0.15) !important;
         }
         :global([data-theme='dark']) .doc-hub .selection-checkmark.active,
         :global(html.dark) .doc-hub .selection-checkmark.active {
@@ -220,8 +254,8 @@ export default function DocumentHubPage() {
         :global([data-theme='dark']) .doc-hub .foot .btn,
         :global(html.dark) .doc-hub .doc-actions .btn,
         :global(html.dark) .doc-hub .foot .btn {
-          border-color: var(--line, #3a4048) !important;
-          background: var(--card, #11151b) !important;
+          border-color: #3a4048 !important;
+          background: #11151b !important;
           color: #e9eef5 !important;
         }
         :global([data-theme='dark']) .doc-hub .btn-primary,
@@ -233,14 +267,14 @@ export default function DocumentHubPage() {
         :global([data-theme='dark']) .doc-hub .filters .input,
         :global(html.dark) .doc-hub .filters .select,
         :global(html.dark) .doc-hub .filters .input {
-          border-color: var(--line, #3a4048) !important;
-          background: var(--card, #11151b) !important;
+          border-color: #3a4048 !important;
+          background: #11151b !important;
           color: #f8fafc !important;
         }
         :global([data-theme='dark']) .doc-hub .grid-thumbs .thumb,
         :global(html.dark) .doc-hub .grid-thumbs .thumb {
-          background: var(--card, #11151b) !important;
-          border-color: var(--line, #3a4048) !important;
+          background: #11151b !important;
+          border-color: #3a4048 !important;
         }
         :global(html.dark) .doc-hub .tab-content-wrapper {
           color: #e9eef5;

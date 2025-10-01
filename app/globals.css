@@ -62,7 +62,9 @@
 }
 
 /* Dark theme extensions */
-[data-theme='dark'] {
+/* Support html.dark as well as data-theme */
+[data-theme='dark'],
+html.dark {
   --bg: #0f172a;
   --card: #0f172a;
   --border: #3a4048;
@@ -1662,6 +1664,84 @@ body.force-desktop-ui * {
   /* Ensure nothing can hide desktop content */
   visibility: visible !important;
   opacity: 1 !important;
+}
+
+/* Documents Hub – explicit dark-mode overrides (scoped by class) */
+[data-theme='dark'] .doc-hub,
+html.dark .doc-hub {
+  color: #e9eef5 !important;
+  background: #0f172a !important;
+}
+[data-theme='dark'] .doc-hub .document-tab,
+html.dark .doc-hub .document-tab {
+  border-color: #3a4048 !important;
+  background: #11151b !important;
+  color: #e9eef5 !important;
+}
+[data-theme='dark'] .doc-hub .document-tab.active,
+html.dark .doc-hub .document-tab.active {
+  border-color: #2f6bff !important;
+  color: #93c5fd !important;
+  background: rgba(47, 107, 255, 0.15) !important;
+}
+[data-theme='dark'] .doc-hub .doc-selection-card,
+html.dark .doc-hub .doc-selection-card {
+  border-color: #3a4048 !important;
+  background: #11151b !important;
+  color: #e9eef5 !important;
+}
+[data-theme='dark'] .doc-hub .doc-selection-title,
+html.dark .doc-hub .doc-selection-title,
+[data-theme='dark'] .doc-hub .section-title,
+html.dark .doc-hub .section-title {
+  color: #f8fafc !important;
+}
+[data-theme='dark'] .doc-hub .preview-btn,
+[data-theme='dark'] .doc-hub .selection-checkmark,
+[data-theme='dark'] .doc-hub .upload-btn,
+html.dark .doc-hub .preview-btn,
+html.dark .doc-hub .selection-checkmark,
+html.dark .doc-hub .upload-btn {
+  border-color: #3a4048 !important;
+  background: #11151b !important;
+  color: #e9eef5 !important;
+}
+[data-theme='dark'] .doc-hub .upload-btn.uploaded,
+html.dark .doc-hub .upload-btn.uploaded {
+  border-color: #22c55e !important;
+  color: #86efac !important;
+  background: rgba(34, 197, 94, 0.15) !important;
+}
+[data-theme='dark'] .doc-hub .selection-checkmark.active,
+html.dark .doc-hub .selection-checkmark.active {
+  border-color: #2f6bff !important;
+  color: #93c5fd !important;
+}
+[data-theme='dark'] .doc-hub .doc-actions .btn,
+[data-theme='dark'] .doc-hub .foot .btn,
+html.dark .doc-hub .doc-actions .btn,
+html.dark .doc-hub .foot .btn {
+  border-color: #3a4048 !important;
+  background: #11151b !important;
+  color: #e9eef5 !important;
+}
+[data-theme='dark'] .doc-hub .btn-primary,
+html.dark .doc-hub .btn-primary {
+  background: #0f3460 !important;
+  border-color: #0f3460 !important;
+}
+[data-theme='dark'] .doc-hub .filters .select,
+[data-theme='dark'] .doc-hub .filters .input,
+html.dark .doc-hub .filters .select,
+html.dark .doc-hub .filters .input {
+  border-color: #3a4048 !important;
+  background: #11151b !important;
+  color: #f8fafc !important;
+}
+[data-theme='dark'] .doc-hub .grid-thumbs .thumb,
+html.dark .doc-hub .grid-thumbs .thumb {
+  background: #11151b !important;
+  border-color: #3a4048 !important;
 }
 
 /* AGGRESSIVE: Override ALL media queries completely */
