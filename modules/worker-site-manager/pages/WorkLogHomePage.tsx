@@ -683,8 +683,8 @@ export const WorkLogHomePage: React.FC = () => {
           .custom-select-trigger {
             height: 40px;
             border-radius: 10px;
-            background: var(--card);
-            border-color: var(--border);
+            background: transparent; /* 뒤 배경과 동일하게 보이도록 */
+            border-color: transparent; /* 테두리 제거 */
             border-width: 1px;
             font-size: 16px;
             font-weight: 600;
@@ -696,6 +696,7 @@ export const WorkLogHomePage: React.FC = () => {
           .custom-select-trigger[data-state='open'] {
             border-color: transparent !important;
             box-shadow: none !important;
+            background: transparent !important;
           }
           /* 요청: 트리거의 하단 화살표 제거 */
           .custom-select-trigger svg {
@@ -707,10 +708,18 @@ export const WorkLogHomePage: React.FC = () => {
             border-radius: 10px !important;
           }
 
+          /* 포커스 상태에서도 일체감 유지 (보더/쉐도우 제거) */
           .custom-select-trigger:focus,
           .custom-select-trigger[data-state='open'] {
-            border-color: #31a3fa;
-            box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
+            border-color: transparent;
+            box-shadow: none;
+          }
+
+          /* 다크모드에서도 동일한 효과 유지 */
+          [data-theme='dark'] .custom-select-trigger {
+            background: transparent;
+            border-color: transparent;
+            color: var(--text);
           }
 
           /* Work list container per spec */
@@ -809,16 +818,16 @@ export const WorkLogHomePage: React.FC = () => {
           .filter-label {
             font-size: 12px;
             font-weight: 600;
-            color: #667085;
+            color: var(--muted);
           }
 
           .select-box {
             position: relative;
             display: flex;
             align-items: center;
-            border: 1px solid #d1d5db;
+            border: 1px solid var(--border);
             border-radius: 10px;
-            background: #ffffff;
+            background: var(--card);
             height: 44px;
             padding: 0 14px;
           }
@@ -831,7 +840,7 @@ export const WorkLogHomePage: React.FC = () => {
             height: 100%;
             font-size: 16px;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--text);
             outline: none;
             padding-right: 24px;
           }
@@ -839,7 +848,7 @@ export const WorkLogHomePage: React.FC = () => {
           .select-box .select-icon {
             position: absolute;
             right: 14px;
-            color: #99a4be;
+            color: var(--muted);
           }
 
           .worklog-list-section {
@@ -954,7 +963,8 @@ export const WorkLogHomePage: React.FC = () => {
           .more-button-container {
             display: flex;
             justify-content: center;
-            margin-top: 8px;
+            margin-top: 12px; /* 리스트 하단 라인과 여백 확보 */
+            margin-bottom: 16px; /* 다음 섹션 상단 라인과 간격 확보 */
           }
 
           .more-btn {
@@ -989,7 +999,7 @@ export const WorkLogHomePage: React.FC = () => {
 
           .summary-card {
             background: var(--card);
-            border: 1px solid #e6ecf4;
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 14px 12px;
             text-align: center;
@@ -997,7 +1007,7 @@ export const WorkLogHomePage: React.FC = () => {
           }
 
           .summary-value {
-            color: #1a254f;
+            color: var(--text);
             font-weight: 800;
             font-size: 18px;
             line-height: 24px;
@@ -1005,7 +1015,7 @@ export const WorkLogHomePage: React.FC = () => {
 
           .summary-label {
             margin-top: 4px;
-            color: #667085;
+            color: var(--muted);
             font-size: 12px;
           }
 
