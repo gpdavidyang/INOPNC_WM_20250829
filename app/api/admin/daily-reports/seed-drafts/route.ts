@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     const memberTypePool = ['슬라브', '거더', '벽체', '기둥', '기초']
     const processPool = ['균열', '면', '마감', '콘크리트']
-    const workTypePool = ['지하', '지상', '옥상', '외부']
+    const workTypePool = ['지하', '지상', '지붕', '외부']
 
     let totalInserted = 0
     const perSite: Record<string, number> = {}

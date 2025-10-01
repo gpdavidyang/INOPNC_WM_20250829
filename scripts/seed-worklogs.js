@@ -63,7 +63,7 @@ async function main() {
   const memberTypePool = ['슬라브', '거더', '벽체', '기둥', '기초']
   const processPoolApproved = ['균열 보수', '면 보수', '마감 보수', '콘크리트 보수']
   const processPoolDraft = ['균열', '면', '마감', '콘크리트']
-  const workTypePool = ['지하', '지상', '옥상', '외부']
+  const workTypePool = ['지하', '지상', '지붕', '외부']
 
   let approvedInserted = 0
   let draftsInserted = 0

@@ -200,6 +200,12 @@
   margin-bottom: 16px;
 }
 
+/* Ensure specific sections keep right-aligned header actions on Home page */
+.manpower-section .section-header,
+.materials-section .section-header {
+  justify-content: space-between !important;
+}
+
 .section-title {
   font-size: 18px;
   font-weight: 900; /* Increased from 800 for elderly users */
@@ -221,12 +227,12 @@
 }
 
 .author-info {
-  padding: 4px 8px;
-  background: #33e6f6;
-  color: #000;
-  border-radius: 9999px;
-  font-size: 11px;
-  font-weight: 800; /* Increased from 600 for elderly users */
+  /* Match .form-note ("필수입력값 작성 후 저장") style */
+  font-size: 14px;
+  font-weight: 600;
+  color: #00bcd4;
+  text-align: right;
+  margin-left: auto;
 }
 
 .required {
@@ -357,13 +363,14 @@ textarea.form-input {
 
 /* Member Type Buttons */
 .button-group {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
 }
 
 .option-btn {
-  padding: 10px 16px;
+  padding: 10px 12px;
   border: 1px solid #e6ecf4;
   border-radius: 12px;
   background: #f8fafc;
@@ -372,6 +379,11 @@ textarea.form-input {
   font-weight: 800; /* Increased from 600 for elderly users */
   cursor: pointer;
   transition: all 0.2s;
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .option-btn:hover {
@@ -533,14 +545,14 @@ textarea.form-input {
 }
 
 .form-actions .btn-temp-save {
-  background: #fef3c7;
-  color: #d97706;
-  border: 1px solid #f59e0b;
+  background: #ffffff;
+  color: #374151;
+  border: 1px solid #e5e7eb;
 }
 
 .form-actions .btn-temp-save:hover {
-  background: #fbbf24;
-  color: white;
+  background: #f9fafb;
+  color: #111827;
 }
 
 .form-actions .btn-primary {
@@ -597,6 +609,16 @@ textarea.form-input {
 }
 
 [data-theme='dark'] .form-actions .btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .form-actions .btn-temp-save {
+  background: rgba(255, 255, 255, 0.05);
+  color: #e5e7eb;
+  border-color: var(--line);
+}
+
+[data-theme='dark'] .form-actions .btn-temp-save:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 

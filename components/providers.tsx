@@ -6,6 +6,7 @@ import { FontSizeProvider } from '@/contexts/FontSizeContext'
 import { TouchModeProvider } from '@/contexts/TouchModeContext'
 import { ContrastModeProvider } from '@/contexts/ContrastModeContext'
 import { ThemeProvider } from 'next-themes'
+import { ConfirmDialog } from '@/components/ui/use-confirm'
 
 interface ProvidersProps {
   children: React.ReactNode
@@ -33,7 +34,11 @@ export function Providers({
         <ContrastModeProvider>
           <FontSizeProvider>
             <TouchModeProvider>
-              <QueryProvider>{children}</QueryProvider>
+              <QueryProvider>
+                {children}
+                {/* Global confirm dialog portal */}
+                <ConfirmDialog />
+              </QueryProvider>
             </TouchModeProvider>
           </FontSizeProvider>
         </ContrastModeProvider>

@@ -29,7 +29,7 @@ export type WorkProcess = '균열' | '면' | '마감' | '기타'
 /**
  * 작업유형 타입
  */
-export type WorkType = '지하' | '지상' | '기타'
+export type WorkType = '지하' | '지상' | '지붕' | '기타'
 
 /**
  * 파일 첨부 타입
@@ -59,7 +59,17 @@ export interface WorkerHours {
 export interface WorkLocation {
   block: string // 블럭
   dong: string // 동
-  unit: string // 호수
+  unit: string // 층 (DB는 unit 필드 사용)
+}
+
+/**
+ * 작업 세트(작업내용 기록 + 작업구간) 묶음
+ */
+export interface WorkTaskGroup {
+  memberTypes: MemberType[]
+  workProcesses: WorkProcess[]
+  workTypes: WorkType[]
+  location: WorkLocation
 }
 
 /**
@@ -97,6 +107,8 @@ export interface WorkLog {
   workProcesses: WorkProcess[] // 작업공정 (다중선택)
   workTypes: WorkType[] // 작업유형 (다중선택)
   location: WorkLocation // 작업 위치
+  // 확장: 묶음 단위의 작업 세트(선택사항). 저장 시 work_content.tasks에 함께 기록.
+  tasks?: WorkTaskGroup[]
 
   // 공수 정보
   workers: WorkerHours[]

@@ -19,6 +19,7 @@ import {
   CustomSelectItem,
 } from '@/components/ui/custom-select'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
+import '@/modules/mobile/styles/attendance.css'
 
 const WEEKDAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -337,6 +338,8 @@ export const WorkLogHomePage: React.FC = () => {
         unit: workLog.location?.unit || '',
       },
       notes: workLog.notes,
+      // 확장: 작업 세트 묶음을 전달(상세뷰에서 사용)
+      tasks: (workLog as any).tasks || undefined,
       safetyNotes: undefined,
       additionalManpower: [],
       attachments: {
@@ -374,6 +377,7 @@ export const WorkLogHomePage: React.FC = () => {
         npcUsage: formData.npcUsage,
         progress: formData.progress ?? 0,
         notes: formData.notes,
+        tasks: (formData as any).tasks || undefined,
         attachments,
         status: formData.status,
       }
@@ -644,69 +648,25 @@ export const WorkLogHomePage: React.FC = () => {
 
           .worklog-body {
             background: var(--bg);
-            padding: 20px 16px;
+            padding: 0 16px 20px; /* 헤더와 간격 제거: 상단 0, 좌우 16 유지 */
             max-width: 100%;
           }
 
-          .worklog-tab-navigation {
-            display: flex;
-            gap: 0;
-            border: 1px solid #e6ecf4;
-            border-radius: 12px;
-            background: #ffffff;
-            overflow: hidden;
-            box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
-            margin-top: 6px; /* 상단 헤더와 간격 축소 */
+          /* 탭을 좌우 풀블리드로 확장 (컨텐츠 좌우 패딩 상쇄) */
+          .worklog-body > .line-tabs {
+            width: calc(100% + 32px);
+            margin-left: -16px;
+            margin-right: -16px;
+            border-top: 1px solid #e5eaf3; /* 상단 헤더와 탭 사이 구분선 */
           }
 
-          .worklog-tab {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 10px 12px;
-            font-size: 18px;
-            font-weight: 600;
-            color: #99a4be;
-            background: transparent;
-            border: none;
-            position: relative;
-            transition:
-              color 0.2s ease,
-              background 0.2s ease;
-            cursor: pointer;
+          [data-theme='dark'] .worklog-body > .line-tabs {
+            border-top-color: #3a4048;
           }
 
-          .worklog-tab.active {
-            color: #31a3fa;
-            background: rgba(49, 163, 250, 0.08);
-          }
+          /* (reverted) Keep worklog summary cards local styling */
 
-          .worklog-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 10%;
-            right: 10%;
-            height: 2px;
-            background: #31a3fa;
-            border-radius: 999px;
-          }
-
-          .worklog-tab .tab-count {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 24px;
-            height: 24px;
-            padding: 0 8px;
-            font-size: 12px;
-            font-weight: 700;
-            color: #31a3fa;
-            background: rgba(49, 163, 250, 0.15);
-            border-radius: 999px;
-          }
+          /* Tabs now use global line-tabs/line-tab styles for full-width white bar */
 
           .worklog-search-section {
             display: flex;
@@ -1038,9 +998,7 @@ export const WorkLogHomePage: React.FC = () => {
               grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
-            .worklog-tab {
-              font-size: 16px;
-            }
+            /* removed custom tab sizing; uses global .line-tab */
 
             .task-diary-right {
               min-width: auto;
@@ -1071,22 +1029,24 @@ export const WorkLogHomePage: React.FC = () => {
         <div className="main-container worklog-body">
           {/* Title removed per spec */}
 
-          <nav className="worklog-tab-navigation">
+          <nav className="line-tabs" role="tablist" aria-label="작업일지 상태 탭">
             <button
               type="button"
-              className={`worklog-tab ${activeTab === 'draft' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'draft'}
+              className={`line-tab ${activeTab === 'draft' ? 'active' : ''}`}
               onClick={() => setActiveTab('draft')}
             >
-              <span className="tab-label">임시저장</span>
-              <span className="tab-count">{draftCount}</span>
+              임시저장 ({draftCount})
             </button>
             <button
               type="button"
-              className={`worklog-tab ${activeTab === 'approved' ? 'active' : ''}`}
+              role="tab"
+              aria-selected={activeTab === 'approved'}
+              className={`line-tab ${activeTab === 'approved' ? 'active' : ''}`}
               onClick={() => setActiveTab('approved')}
             >
-              <span className="tab-label">작성완료</span>
-              <span className="tab-count">{approvedCount}</span>
+              작성완료 ({approvedCount})
             </button>
           </nav>
 
@@ -1164,19 +1124,19 @@ export const WorkLogHomePage: React.FC = () => {
               : renderWorkLogList(approvedWorkLogs, 'approved')}
           </section>
 
-          {/* Monthly summary cards */}
-          <section className="summary-cards" aria-label="월간 요약">
-            <div className="summary-card">
-              <div className="summary-value">{monthlyStats.siteCount}</div>
-              <div className="summary-label">총 현장(월)</div>
+          {/* Monthly summary cards - unified with salary/output stat style */}
+          <section className="stat-grid" aria-label="월간 요약">
+            <div className="stat stat-sites">
+              <div className="num">{monthlyStats.siteCount}</div>
+              <div className="label">현장수</div>
             </div>
-            <div className="summary-card">
-              <div className="summary-value">{monthlyStats.manDays}</div>
-              <div className="summary-label">총 공수(월)</div>
+            <div className="stat stat-hours">
+              <div className="num">{monthlyStats.manDays}</div>
+              <div className="label">공수</div>
             </div>
-            <div className="summary-card">
-              <div className="summary-value">{monthlyStats.attendanceDays}</div>
-              <div className="summary-label">총 출근(월)</div>
+            <div className="stat stat-workdays">
+              <div className="num">{monthlyStats.attendanceDays}</div>
+              <div className="label">근무일</div>
             </div>
           </section>
         </div>

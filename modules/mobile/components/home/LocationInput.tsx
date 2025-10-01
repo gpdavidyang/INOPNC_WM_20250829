@@ -12,7 +12,7 @@ interface LocationInputProps {
 export const LocationInput: React.FC<LocationInputProps> = ({
   location,
   onChange,
-  className = ''
+  className = '',
 }) => {
   const handleBlockChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.toUpperCase().slice(0, 2)
@@ -31,7 +31,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
 
   return (
     <div className={`location-input-container ${className}`}>
-      <label className="form-label">블럭 / 동 / 호수</label>
+      <label className="form-label">블럭 / 동 / 층</label>
       <div className="location-input-grid">
         <div className="form-group">
           <input
@@ -59,7 +59,7 @@ export const LocationInput: React.FC<LocationInputProps> = ({
           <input
             type="text"
             className="form-input location-field"
-            placeholder="호수"
+            placeholder="층"
             value={location.unit}
             onChange={handleUnitChange}
             maxLength={4}

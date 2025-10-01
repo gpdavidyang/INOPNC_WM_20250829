@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUnifiedAuth } from '@/hooks/use-unified-auth'
@@ -11,6 +13,8 @@ interface DrawerProps {
 }
 
 export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
   const router = useRouter()
   const { profile, loading: profileLoading, user, refreshProfile, signOut } = useUnifiedAuth()
   const supabase = createClient()
@@ -114,9 +118,14 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
   }, [isOpen])
 
   const handleLogout = async () => {
-    if (!confirm('정말 로그아웃하시겠습니까?')) {
-      return
-    }
+    const ok = await confirm({
+      title: '로그아웃',
+      description: '정말 로그아웃하시겠습니까?',
+      confirmText: '로그아웃',
+      cancelText: '취소',
+      variant: 'destructive',
+    })
+    if (!ok) return
 
     try {
       console.log('[DRAWER] Starting logout process...')
@@ -192,20 +201,28 @@ export const Drawer: React.FC<DrawerProps> = ({ isOpen, onClose }) => {
 
   const handlePasswordSave = async () => {
     if (!passwordForm.current || !passwordForm.new || !passwordForm.confirm) {
-      alert('모든 필드를 입력해주세요.')
+      toast({ title: '입력 필요', description: '모든 필드를 입력해주세요.', variant: 'warning' })
       return
     }
     if (passwordForm.new !== passwordForm.confirm) {
-      alert('새 비밀번호가 일치하지 않습니다.')
+      toast({
+        title: '비밀번호 불일치',
+        description: '새 비밀번호가 일치하지 않습니다.',
+        variant: 'destructive',
+      })
       return
     }
     if (passwordForm.new.length < 6) {
-      alert('비밀번호는 최소 6자 이상이어야 합니다.')
+      toast({
+        title: '형식 오류',
+        description: '비밀번호는 최소 6자 이상이어야 합니다.',
+        variant: 'warning',
+      })
       return
     }
 
     // TODO: 실제 비밀번호 변경 로직 구현
-    alert('비밀번호가 변경되었습니다.')
+    toast({ title: '완료', description: '비밀번호가 변경되었습니다.', variant: 'success' })
     handlePasswordCancel()
   }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useToast } from '@/components/ui/use-toast'
 import { Modal } from '@/modules/mobile/components/common/Modal'
 
 interface DocumentPreviewModalProps {
@@ -20,6 +21,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 }) => {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const { toast } = useToast()
 
   // 문서 미리보기 데이터 로딩 시뮬레이션
   useEffect(() => {
@@ -45,7 +47,11 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
   const handleDownload = () => {
     console.log('Download document:', document.id)
     // 실제 구현에서는 파일 다운로드 로직 구현
-    alert(`${document.title} 다운로드를 시작합니다.`)
+    toast({
+      title: '다운로드',
+      description: `${document.title} 다운로드를 시작합니다.`,
+      variant: 'success',
+    })
   }
 
   const handleShare = () => {
@@ -60,7 +66,11 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
     } else {
       // 웹 공유 API를 지원하지 않는 경우 클립보드 복사
       navigator.clipboard?.writeText(window.location.href)
-      alert('링크가 클립보드에 복사되었습니다.')
+      toast({
+        title: '복사 완료',
+        description: '링크가 클립보드에 복사되었습니다.',
+        variant: 'success',
+      })
     }
   }
 

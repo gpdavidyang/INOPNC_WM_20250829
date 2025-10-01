@@ -46,7 +46,7 @@ async function fillDrafts() {
   console.log('[fix-and-seed] Filling missing fields for draft daily_reports...')
   const memberTypePool = ['슬라브', '거더', '벽체', '기둥', '기초']
   const processPool = ['균열', '면', '마감', '콘크리트']
-  const sectionPool = ['지하 1층', '지하 2층', '1층', '2층', '옥상', '외부']
+  const sectionPool = ['지하 1층', '지하 2층', '1층', '2층', '지붕', '외부']
 
   // Fetch drafts with missing work_content or work_description
   const { data: drafts, error } = await supabase
@@ -130,7 +130,7 @@ async function seedApprovedPerSite() {
   console.log('[fix-and-seed] Seeding submitted (approved) reports (2–5 per site)...')
   const memberTypePool = ['슬라브', '거더', '벽체', '기둥', '기초']
   const processPool = ['균열 보수', '면 보수', '마감 보수', '콘크리트 보수']
-  const sectionPool = ['지하 1층', '지하 2층', '1층', '2층', '옥상', '외부']
+  const sectionPool = ['지하 1층', '지하 2층', '1층', '2층', '지붕', '외부']
 
   const { data: anyProfile } = await supabase.from('profiles').select('id').limit(1).maybeSingle()
   const createdBy = anyProfile?.id || null
@@ -226,7 +226,7 @@ async function promoteDraftsToSubmitted() {
   console.log('[fix-and-seed] Promoting existing drafts to submitted (2–5 per site)...')
   const memberTypePool = ['슬라브', '거더', '벽체', '기둥', '기초']
   const processPool = ['균열', '면', '마감', '콘크리트']
-  const sectionPool = ['지하 1층', '지하 2층', '1층', '2층', '옥상', '외부']
+  const sectionPool = ['지하 1층', '지하 2층', '1층', '2층', '지붕', '외부']
 
   const { data: sites, error: sitesError } = await supabase
     .from('sites')

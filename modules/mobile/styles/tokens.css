@@ -4,23 +4,24 @@
 :root {
   /* Typography */
   --font: 'Noto Sans KR', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  
+
   /* Colors - Light Theme */
   --bg: #f5f7fb;
   --card: #ffffff;
   --text: #101828;
   --muted: #667085;
   --line: #e6eaf2;
-  
+
   /* Brand Colors */
-  --brand: #1A254F;
-  --num: #0068FE;
-  --ink: #1A254F;
+  --brand: #1a254f;
+  --hover-color: #1a254f; /* Unified hover color (navy) */
+  --num: #0068fe;
+  --ink: #1a254f;
   --ok: #2563eb;
   --ok-bg: #e6efff;
   --ok-ink: #0b3fcc;
   --warn: #9aa3b2;
-  
+
   /* Layout */
   --header-h: 56px;
   --nav-h: 64px;
@@ -28,16 +29,16 @@
   --nav-border: #e5e7eb;
   --nav-text: #6b7280;
   --nav-text-active: #2563eb;
-  
+
   /* Viewport Units */
   --vh: 1vh;
   --dvh: 100dvh;
   --svh: 100svh;
-  
+
   /* Design System */
   --radius: 16px;
   --shadow: 0 6px 20px rgba(16, 24, 40, 0.06);
-  
+
   /* Typography Scale */
   --label-fz: 16px;
   --label-fw: 800;
@@ -46,36 +47,37 @@
 }
 
 /* Dark Theme Support */
-[data-theme="dark"] {
+[data-theme='dark'] {
   --bg: #0f172a;
-  --surface: #11151B;
+  --surface: #11151b;
   --card: #0f172a;
-  --overlay: #0f172aCC;
-  --line: #4A5568;
-  --line-soft: #3A4048;
-  --text: #E9EEF5;
-  --text-muted: #A8B0BB;
-  --icon: #B9C2CE;
-  --muted: #94A3B8;
-  
-  --accent: #2F6BFF;
-  --accent-weak: #1E4EDC;
-  --accent-ghost: #2F6BFF1A;
-  
-  --success: #22C55E;
-  --warn: #F59E0B;
-  --danger: #EF4444;
-  
+  --overlay: #0f172acc;
+  --line: #4a5568;
+  --line-soft: #3a4048;
+  --text: #e9eef5;
+  --text-muted: #a8b0bb;
+  --icon: #b9c2ce;
+  --muted: #94a3b8;
+
+  --accent: #2f6bff;
+  --hover-color: #1a254f; /* Keep navy hover in dark for consistency */
+  --accent-weak: #1e4edc;
+  --accent-ghost: #2f6bff1a;
+
+  --success: #22c55e;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+
   --shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
   --radius: 8px;
-  
-  --nav-bg: #11151B;
-  --nav-border: #3A4048;
-  --nav-text: #A8B0BB;
-  --nav-text-active: #2F6BFF;
-  
+
+  --nav-bg: #11151b;
+  --nav-border: #3a4048;
+  --nav-text: #a8b0bb;
+  --nav-text-active: #2f6bff;
+
   --soft: #0f172a;
-  --ink: #E6E9F1;
+  --ink: #e6e9f1;
   --ok: #5b8cff;
   --ok-bg: #223358;
   --ok-ink: #8fb3ff;

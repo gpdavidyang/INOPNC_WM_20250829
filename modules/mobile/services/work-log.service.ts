@@ -25,6 +25,13 @@ export interface CreateWorkLogData {
   }
   progress: number
   notes?: string
+  // 확장: 작업 세트 묶음(옵션). work_content.tasks로 저장
+  tasks?: Array<{
+    memberTypes: string[]
+    workProcesses: string[]
+    workTypes: string[]
+    location: { block: string; dong: string; unit: string }
+  }>
   attachments: {
     photos: AttachedFile[]
     drawings: AttachedFile[]
@@ -143,6 +150,7 @@ export class WorkLogService {
             memberTypes: data.memberTypes,
             workProcesses: data.workProcesses,
             workTypes: data.workTypes,
+            tasks: data.tasks || [],
           },
           location_info: data.location,
           additional_notes: data.notes,
@@ -221,11 +229,12 @@ export class WorkLogService {
 
       if (data.date) updateData.work_date = data.date
       if (data.siteId) updateData.site_id = data.siteId
-      if (data.memberTypes || data.workProcesses || data.workTypes) {
+      if (data.memberTypes || data.workProcesses || data.workTypes || data.tasks) {
         updateData.work_content = {
           memberTypes: data.memberTypes,
           workProcesses: data.workProcesses,
           workTypes: data.workTypes,
+          tasks: data.tasks || [],
         }
       }
       if (data.location) updateData.location_info = data.location
@@ -400,6 +409,7 @@ function mapReportToWorkLog(item: any): WorkLog {
     memberTypes: workContent.memberTypes,
     workProcesses: workContent.workProcesses,
     workTypes: workContent.workTypes,
+    tasks: workContent.tasks || undefined,
     location,
     workers,
     totalHours,
@@ -417,6 +427,12 @@ function parseWorkContent(raw: unknown): {
   memberTypes: string[]
   workProcesses: string[]
   workTypes: string[]
+  tasks?: Array<{
+    memberTypes: string[]
+    workProcesses: string[]
+    workTypes: string[]
+    location: { block: string; dong: string; unit: string }
+  }>
 } {
   if (!raw) {
     return { memberTypes: [], workProcesses: [], workTypes: [] }
@@ -429,6 +445,7 @@ function parseWorkContent(raw: unknown): {
         memberTypes: Array.isArray(parsed?.memberTypes) ? parsed.memberTypes : [],
         workProcesses: Array.isArray(parsed?.workProcesses) ? parsed.workProcesses : [],
         workTypes: Array.isArray(parsed?.workTypes) ? parsed.workTypes : [],
+        tasks: Array.isArray(parsed?.tasks) ? parsed.tasks : undefined,
       }
     } catch (error) {
       console.warn('Failed to parse work_content JSON:', error)
@@ -440,6 +457,7 @@ function parseWorkContent(raw: unknown): {
     memberTypes: Array.isArray((raw as any)?.memberTypes) ? (raw as any).memberTypes : [],
     workProcesses: Array.isArray((raw as any)?.workProcesses) ? (raw as any).workProcesses : [],
     workTypes: Array.isArray((raw as any)?.workTypes) ? (raw as any).workTypes : [],
+    tasks: Array.isArray((raw as any)?.tasks) ? (raw as any).tasks : undefined,
   }
 }
 

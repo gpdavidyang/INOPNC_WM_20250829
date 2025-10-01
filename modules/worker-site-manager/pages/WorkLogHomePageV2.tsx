@@ -173,11 +173,11 @@ export const WorkLogHomePageV2: React.FC = () => {
 
   return (
     <MobileLayoutShell>
-      <div className="min-h-screen bg-[#F6F9FF]">
-        <header className="sticky top-0 z-20 border-b border-[#E6ECF4] bg-white px-4 py-4">
-          <div className="flex flex-col gap-1 text-[#1A254F]">
+      <div className="min-h-screen bg-[#F6F9FF] dark:bg-[#0f172a]">
+        <header className="sticky top-0 z-20 border-b border-[#E6ECF4] bg-white dark:bg-[#11151b] dark:border-[#3a4048] px-4 py-4">
+          <div className="flex flex-col gap-1 text-[#1A254F] dark:text-[var(--text)]">
             <h1 className="text-lg font-semibold">작업일지</h1>
-            <p className="text-xs text-[#667085]">
+            <p className="text-xs text-[#667085] dark:text-gray-400">
               V2 레이아웃 실험 화면입니다. 구조가 확정되면 기존 페이지와 교체됩니다.
             </p>
           </div>
@@ -189,12 +189,14 @@ export const WorkLogHomePageV2: React.FC = () => {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex flex-1 items-center justify-center gap-2 rounded-full border px-4 py-2 transition-colors ${
                   activeTab === tab.id
-                    ? 'border-[#31A3FA] bg-[#E7F4FF] text-[#1A254F]'
-                    : 'border-transparent bg-transparent text-[#99A4BE] hover:bg-[#F0F4FF]'
+                    ? 'border-[#31A3FA] bg-[#E7F4FF] text-[#1A254F] dark:border-[#2f6bff] dark:bg-[#0b3a7a]/30 dark:text-gray-100'
+                    : 'border-transparent bg-transparent text-[#99A4BE] hover:bg-[#F0F4FF] dark:text-gray-400 dark:hover:bg-slate-800/40'
                 }`}
               >
                 <span>{tab.label}</span>
-                <span className="text-xs text-[#31A3FA]">{tabCounts[tab.id]}</span>
+                <span className="text-xs text-[#31A3FA] dark:text-[#63b3ed]">
+                  {tabCounts[tab.id]}
+                </span>
               </button>
             ))}
           </div>
@@ -205,7 +207,7 @@ export const WorkLogHomePageV2: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenSiteFilter}
-              className="flex h-11 items-center justify-between rounded-lg border border-[#D1D5DB] bg-white px-4 text-left text-[#1A254F]"
+              className="flex h-11 items-center justify-between rounded-lg border border-[#D1D5DB] bg-white dark:bg-[#11151b] dark:border-[#3a4048] px-4 text-left text-[#1A254F] dark:text-gray-100"
             >
               <span className="font-medium">{siteFilterLabel}</span>
               <svg
@@ -218,7 +220,7 @@ export const WorkLogHomePageV2: React.FC = () => {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-[#99A4BE]"
+                className="text-[#99A4BE] dark:text-gray-400"
               >
                 <path d="m6 9 6 6 6-6" />
               </svg>
@@ -226,7 +228,7 @@ export const WorkLogHomePageV2: React.FC = () => {
             <button
               type="button"
               onClick={handleOpenPeriodFilter}
-              className="flex h-11 items-center justify-between rounded-lg border border-[#D1D5DB] bg-white px-4 text-left text-[#1A254F]"
+              className="flex h-11 items-center justify-between rounded-lg border border-[#D1D5DB] bg-white dark:bg-[#11151b] dark:border-[#3a4048] px-4 text-left text-[#1A254F] dark:text-gray-100"
             >
               <span className="font-medium">{periodFilterLabel}</span>
               <svg
@@ -239,7 +241,7 @@ export const WorkLogHomePageV2: React.FC = () => {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-[#99A4BE]"
+                className="text-[#99A4BE] dark:text-gray-400"
               >
                 <path d="m6 9 6 6 6-6" />
               </svg>
@@ -247,7 +249,7 @@ export const WorkLogHomePageV2: React.FC = () => {
           </section>
 
           <section className="relative flex items-center gap-2">
-            <div className="relative flex flex-1 items-center gap-2 rounded-full border border-[#E6ECF4] bg-white px-4 py-2">
+            <div className="relative flex flex-1 items-center gap-2 rounded-full border border-[#E6ECF4] dark:border-[#3a4048] bg-white dark:bg-[#11151b] px-4 py-2">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="16"
@@ -258,7 +260,7 @@ export const WorkLogHomePageV2: React.FC = () => {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="text-[#99A4BE]"
+                className="text-[#99A4BE] dark:text-gray-400"
               >
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
@@ -297,13 +299,13 @@ export const WorkLogHomePageV2: React.FC = () => {
                   }
                 }}
                 placeholder="작업일지 검색"
-                className="h-6 flex-1 border-none bg-transparent text-sm text-[#1A254F] placeholder:text-[#9CA3AF] focus:outline-none"
+                className="h-6 flex-1 border-none bg-transparent text-sm text-[#1A254F] dark:text-gray-100 placeholder:text-[#9CA3AF] dark:placeholder:text-gray-500 focus:outline-none"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="rounded-full bg-[#F3F4F6] p-1 text-[#6B7280] transition-colors hover:bg-[#E5E7EB]"
+                  className="rounded-full bg-[#F3F4F6] dark:bg-slate-800 p-1 text-[#6B7280] dark:text-gray-300 transition-colors hover:bg-[#E5E7EB] dark:hover:bg-slate-700"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -322,8 +324,8 @@ export const WorkLogHomePageV2: React.FC = () => {
                 </button>
               )}
               {showSuggestions && recentSearches.length > 0 && (
-                <div className="absolute left-0 right-0 top-[calc(100%+8px)] rounded-2xl border border-[#E6ECF4] bg-white p-3 shadow-[0_16px_40px_rgba(16,24,40,0.12)]">
-                  <div className="mb-2 flex items-center justify-between text-xs font-semibold text-[#1A254F]">
+                <div className="absolute left-0 right-0 top-[calc(100%+8px)] rounded-2xl border border-[#E6ECF4] dark:border-[#3a4048] bg-white dark:bg-[#11151b] p-3 shadow-[0_16px_40px_rgba(16,24,40,0.12)]">
+                  <div className="mb-2 flex items-center justify-between text-xs font-semibold text-[#1A254F] dark:text-gray-100">
                     <span>최근 검색어</span>
                     <button
                       type="button"
@@ -331,7 +333,7 @@ export const WorkLogHomePageV2: React.FC = () => {
                         clearRecentSearches()
                         setShowSuggestions(false)
                       }}
-                      className="text-[10px] font-medium text-[#99A4BE] hover:text-[#1A254F]"
+                      className="text-[10px] font-medium text-[#99A4BE] dark:text-gray-400 hover:text-[#1A254F] dark:hover:text-gray-200"
                     >
                       전체삭제
                     </button>
@@ -343,7 +345,7 @@ export const WorkLogHomePageV2: React.FC = () => {
                         type="button"
                         onMouseDown={event => event.preventDefault()}
                         onClick={() => handleSuggestionSelect(keyword)}
-                        className="w-full rounded-xl px-3 py-2 text-left text-xs text-[#1A254F] transition-colors hover:bg-[#F4F6FB]"
+                        className="w-full rounded-xl px-3 py-2 text-left text-xs text-[#1A254F] dark:text-gray-100 transition-colors hover:bg-[#F4F6FB] dark:hover:bg-slate-800/60"
                       >
                         {keyword}
                       </button>
@@ -361,7 +363,7 @@ export const WorkLogHomePageV2: React.FC = () => {
                   handleClearFilters()
                 }
               }}
-              className="h-10 rounded-full px-4 text-sm font-medium text-[#99A4BE] transition-colors hover:bg-[#F3F4F6]"
+              className="h-10 rounded-full px-4 text-sm font-medium text-[#99A4BE] dark:text-gray-400 transition-colors hover:bg-[#F3F4F6] dark:hover:bg-slate-800/50"
             >
               {isSearchActive ? '취소' : '초기화'}
             </button>
@@ -369,19 +371,19 @@ export const WorkLogHomePageV2: React.FC = () => {
 
           <section className="space-y-3">
             {loading && (
-              <div className="rounded-xl border border-dashed border-[#D1D5DB] bg-white px-4 py-6 text-center text-sm text-[#667085]">
+              <div className="rounded-xl border border-dashed border-[#D1D5DB] dark:border-[#3a4048] bg-white dark:bg-[#11151b] px-4 py-6 text-center text-sm text-[#667085] dark:text-gray-400">
                 작업일지를 불러오는 중...
               </div>
             )}
 
             {error && !loading && (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div className="rounded-xl border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
                 {error}
               </div>
             )}
 
             {!loading && !error && currentLogs.length === 0 && (
-              <div className="rounded-xl border border-[#E6ECF4] bg-white px-4 py-6 text-center text-sm text-[#667085]">
+              <div className="rounded-xl border border-[#E6ECF4] dark:border-[#3a4048] bg-white dark:bg-[#11151b] px-4 py-6 text-center text-sm text-[#667085] dark:text-gray-400">
                 {activeTab === 'draft'
                   ? '임시저장된 작업일지가 없습니다.'
                   : '작성완료된 작업일지가 없습니다.'}
@@ -403,8 +405,8 @@ export const WorkLogHomePageV2: React.FC = () => {
               onClick={() => setSiteSheetOpen(false)}
               aria-hidden="true"
             />
-            <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-6 shadow-2xl">
-              <div className="mb-4 flex items-center justify-between text-sm font-semibold text-[#1A254F]">
+            <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white dark:bg-[#11151b] p-6 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between text-sm font-semibold text-[#1A254F] dark:text-gray-100">
                 <span>현장 선택</span>
                 <button
                   type="button"
@@ -428,13 +430,13 @@ export const WorkLogHomePageV2: React.FC = () => {
                       setSiteFilterLabel(site.name)
                       setSiteSheetOpen(false)
                     }}
-                    className="flex w-full items-center justify-between rounded-xl border border-[#E6ECF4] px-4 py-3 text-left text-sm text-[#1A254F] transition-colors hover:bg-[#F0F4FF]"
+                    className="flex w-full items-center justify-between rounded-xl border border-[#E6ECF4] dark:border-[#3a4048] px-4 py-3 text-left text-sm text-[#1A254F] dark:text-gray-100 transition-colors hover:bg-[#F0F4FF] dark:hover:bg-slate-800/60"
                   >
                     <span className="truncate">{site.name}</span>
                   </button>
                 ))}
                 {siteOptions.length === 0 && (
-                  <p className="rounded-xl border border-dashed border-[#D1D5DB] px-4 py-6 text-center text-xs text-[#99A4BE]">
+                  <p className="rounded-xl border border-dashed border-[#D1D5DB] dark:border-[#3a4048] px-4 py-6 text-center text-xs text-[#99A4BE] dark:text-gray-500">
                     선택 가능한 현장이 없습니다.
                   </p>
                 )}
@@ -450,8 +452,8 @@ export const WorkLogHomePageV2: React.FC = () => {
               onClick={() => setPeriodSheetOpen(false)}
               aria-hidden="true"
             />
-            <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-6 shadow-2xl">
-              <div className="mb-4 flex items-center justify-between text-sm font-semibold text-[#1A254F]">
+            <div className="absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white dark:bg-[#11151b] p-6 shadow-2xl">
+              <div className="mb-4 flex items-center justify-between text-sm font-semibold text-[#1A254F] dark:text-gray-100">
                 <span>기간 선택</span>
                 <button
                   type="button"
@@ -473,7 +475,7 @@ export const WorkLogHomePageV2: React.FC = () => {
                       applyPeriodFilter(option.months)
                       setPeriodSheetOpen(false)
                     }}
-                    className="flex w-full items-center justify-between rounded-xl border border-[#E6ECF4] px-4 py-3 text-left text-sm text-[#1A254F] transition-colors hover:bg-[#F0F4FF]"
+                    className="flex w-full items-center justify-between rounded-xl border border-[#E6ECF4] dark:border-[#3a4048] px-4 py-3 text-left text-sm text-[#1A254F] dark:text-gray-100 transition-colors hover:bg-[#F0F4FF] dark:hover:bg-slate-800/60"
                   >
                     <span>{option.label}</span>
                   </button>

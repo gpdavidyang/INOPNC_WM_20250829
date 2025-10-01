@@ -158,16 +158,13 @@ export class PayslipGeneratorKorean {
   <meta name="apple-mobile-web-app-capable" content="yes">
   <title>급여명세서 - ${data.employee.name}</title>
   <style>
-    /* Set data-theme from localStorage or prefers-color-scheme (fallback) */
-    :root { }
+    /* Force light rendering for payslip regardless of app theme */
+    :root { color-scheme: light; }
   </style>
   <script>
     try {
-      (function(){
-        var t = localStorage.getItem('theme');
-        if(!t){ t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; }
-        document.documentElement.setAttribute('data-theme', t);
-      })();
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.documentElement.classList && document.documentElement.classList.remove('dark');
     } catch(e) {}
   </script>
   <style>
@@ -192,9 +189,11 @@ export class PayslipGeneratorKorean {
     body {
       font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
       line-height: 1.3;
-      color: #333;
-      background: #f8fafc;
+      color: #111827; /* stronger base text */
+      background: #ffffff; /* pure white for maximum contrast */
       font-size: 12px;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
       min-height: 100vh;
       height: auto;
       overflow: auto;
@@ -209,7 +208,7 @@ export class PayslipGeneratorKorean {
       max-width: 100%;
       margin: 0 auto;
       padding: 10px;
-      background: white;
+      background: #ffffff;
       min-height: 100vh;
       height: auto;
       overflow: visible;
@@ -319,7 +318,7 @@ export class PayslipGeneratorKorean {
     
     .header .period {
       font-size: 12px;
-      color: #64748b;
+      color: #475569; /* slate-600 for better readability */
     }
     
     .header .company {
@@ -328,7 +327,7 @@ export class PayslipGeneratorKorean {
       right: 0;
       font-size: 11px;
       font-weight: bold;
-      color: #64748b;
+      color: #475569; /* slate-600 */
     }
     
     .two-columns {
@@ -372,7 +371,7 @@ export class PayslipGeneratorKorean {
     
     .section { margin-bottom: 8px; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
     
-    .section-title { background: #f3f4f6; padding: 4px 8px; font-weight: 700; font-size: 11px; color: #1f2937; border-bottom: 1px solid #e5e7eb; }
+    .section-title { background: #f3f4f6; padding: 4px 8px; font-weight: 700; font-size: 11px; color: #0f172a; border-bottom: 1px solid #e5e7eb; }
     
     .section-content { padding: 8px; }
     
@@ -432,15 +431,15 @@ export class PayslipGeneratorKorean {
       }
     }
     
-    .info-item { display: flex; align-items: center; font-size: 12px; padding: 6px 0; border-bottom: 1px solid #f3f4f6; }
+    .info-item { display: flex; align-items: center; font-size: 12px; padding: 6px 0; border-bottom: 1px solid #e5e7eb; }
     
     .info-item:last-child {
       border-bottom: none;
     }
     
     .info-label {
-      font-weight: 600;
-      color: #6b7280;
+      font-weight: 700;
+      color: #0f172a; /* slate-900 */
       margin-right: 6px;
       min-width: 60px;
       flex-shrink: 0;
@@ -448,8 +447,8 @@ export class PayslipGeneratorKorean {
     }
     
     .info-value {
-      color: #111827;
-      font-weight: 500;
+      color: #0f172a;
+      font-weight: 600;
       word-break: break-word;
       flex: 1;
       font-size: 11px;
@@ -464,32 +463,32 @@ export class PayslipGeneratorKorean {
     
     @media (max-width: 767px) {
       body {
-        font-size: 11px;
+        font-size: 12px;
       }
       
       table {
-        font-size: 9px;
+        font-size: 10px;
       }
       
       th {
         padding: 4px 3px;
-        font-size: 9px;
-        line-height: 1.2;
+        font-size: 10px;
+        line-height: 1.25;
       }
       
       td {
         padding: 4px 3px;
-        line-height: 1.2;
-        font-size: 9px;
+        line-height: 1.25;
+        font-size: 10px;
       }
       
       .info-label {
-        font-size: 9px;
-        min-width: 50px;
+        font-size: 11px;
+        min-width: 54px;
       }
       
       .info-value {
-        font-size: 10px;
+        font-size: 12px;
       }
     }
     
@@ -512,8 +511,8 @@ export class PayslipGeneratorKorean {
       background: #f9fafb;
       padding: 5px 4px;
       text-align: left;
-      font-weight: 600;
-      color: #4b5563;
+      font-weight: 700;
+      color: #111827; /* stronger header text */
       border-bottom: 1px solid #e5e7eb;
       font-size: 10px;
       border-right: 1px solid #e5e7eb;
@@ -529,6 +528,7 @@ export class PayslipGeneratorKorean {
       border-right: 1px solid #f3f4f6;
       vertical-align: top;
       font-size: 10px;
+      color: #111827; /* strong cell text for readability */
     }
     
     td:last-child {
@@ -584,7 +584,7 @@ export class PayslipGeneratorKorean {
       padding-top: 8px;
       border-top: 1px solid #e5e7eb;
       font-size: 8px;
-      color: #6b7280;
+      color: #475569; /* slate-600 */
       display: flex;
       justify-content: space-between;
       align-items: center;

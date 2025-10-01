@@ -8,8 +8,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   border-bottom: 2px solid var(--attendance-border);
-  border-radius: 14px 14px 0 0;
-  overflow: hidden;
+  border-top: 1px solid var(--attendance-border);
   background: #fff;
 }
 
@@ -38,7 +37,7 @@
 }
 
 .line-tab:hover {
-  color: #31a3fa;
+  color: var(--hover-color);
 }
 
 .line-tab.active {
@@ -51,6 +50,7 @@
 
 [data-theme='dark'] .line-tabs {
   border-bottom-color: var(--attendance-border-dark);
+  border-top-color: var(--attendance-border-dark);
   background: rgba(15, 23, 42, 0.9);
 }
 
@@ -190,7 +190,7 @@
 }
 
 .cal-nav-button:hover {
-  color: #31a3fa;
+  color: var(--hover-color);
 }
 
 .cal-nav-icon {
@@ -250,7 +250,7 @@
   color: #1a254f;
   padding: 12px 0;
   font-size: clamp(12px, 3.2vw, 16px);
-  border-bottom: 1px solid #e6ecf4;
+  border-bottom: none; /* Use cal-cell border-top as the single separator */
   background: #fff;
 }
 
@@ -398,6 +398,8 @@
   margin-top: 12px;
 }
 
+/* (removed) full-bleed override to match salary stat layout */
+
 .stat {
   padding: 16px 0;
   border-radius: 14px;
@@ -453,6 +455,15 @@
   color: #e9eef5;
 }
 
+/* Dark mode: brighten stat numbers/labels for better contrast */
+[data-theme='dark'] .stat .num {
+  color: #f3f4f6; /* gray-100 */
+}
+
+[data-theme='dark'] .stat .label {
+  color: #e5e7eb; /* gray-200 */
+}
+
 [data-theme='dark'] .date.sun {
   color: #ff6b6b;
 }
@@ -504,6 +515,27 @@
 
 .pay-summary-row + .pay-summary-row {
   margin-top: 10px;
+}
+
+/* Improve label/readability in salary cards (light mode) */
+.t-cap.text-muted-foreground {
+  color: #475467 !important; /* slate-600 for better contrast */
+}
+
+/* Dark mode override: ensure bright labels in salary lists */
+[data-theme='dark'] .t-cap.text-muted-foreground,
+html.dark .t-cap.text-muted-foreground {
+  color: #ffffff !important;
+}
+
+/* Recent salary list – fine-grained label/value tones in dark mode */
+[data-theme='dark'] .recent-salary-item .t-cap.text-muted-foreground.label,
+html.dark .recent-salary-item .t-cap.text-muted-foreground.label {
+  color: #e2e8f0 !important; /* label a bit dimmer */
+}
+[data-theme='dark'] .recent-salary-item .t-cap.text-muted-foreground.value,
+html.dark .recent-salary-item .t-cap.text-muted-foreground.value {
+  color: #ffffff !important; /* value pure white */
 }
 
 .pay-preview {

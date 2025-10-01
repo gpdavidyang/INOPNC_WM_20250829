@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
 import { Modal } from '@/modules/mobile/components/common/Modal'
 
 interface DocumentShareModalProps {
@@ -20,6 +21,7 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
   selectedDocuments,
   documents,
 }) => {
+  const { toast } = useToast()
   const selectedDocumentInfo = useMemo(
     () => documents.filter(doc => selectedDocuments.includes(doc.id)),
     [documents, selectedDocuments]
@@ -83,17 +85,21 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
 
   const ensureShareUrl = () => {
     if (!hasSharableDocuments) {
-      alert('업로드된 문서만 공유할 수 있습니다.')
+      toast({
+        title: '공유 제한',
+        description: '업로드된 문서만 공유할 수 있습니다.',
+        variant: 'warning',
+      })
       return null
     }
 
     if (shareError) {
-      alert(shareError)
+      toast({ title: '공유 링크 생성 실패', description: shareError, variant: 'destructive' })
       return null
     }
 
     if (!shareUrl) {
-      alert('공유 링크를 준비 중입니다. 잠시만 기다려주세요.')
+      toast({ title: '링크 준비 중', description: '공유 링크를 준비 중입니다.', variant: 'info' })
       return null
     }
 
@@ -141,8 +147,16 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
 
     navigator.clipboard
       ?.writeText(shareText)
-      .then(() => alert('카카오톡 공유 기능을 사용할 수 없어 링크를 복사했습니다.'))
-      .catch(() => alert('카카오톡 공유 기능을 사용할 수 없습니다. 링크 복사에 실패했습니다.'))
+      .then(() =>
+        toast({ title: '복사 완료', description: '링크를 복사했습니다.', variant: 'success' })
+      )
+      .catch(() =>
+        toast({
+          title: '복사 실패',
+          description: '링크 복사에 실패했습니다.',
+          variant: 'destructive',
+        })
+      )
   }
 
   const handleCopyLink = () => {
@@ -151,8 +165,16 @@ export const DocumentShareModal: React.FC<DocumentShareModalProps> = ({
 
     navigator.clipboard
       ?.writeText(url)
-      .then(() => alert('공유 링크를 복사했습니다.'))
-      .catch(() => alert('공유 링크 복사에 실패했습니다.'))
+      .then(() =>
+        toast({ title: '복사 완료', description: '공유 링크를 복사했습니다.', variant: 'success' })
+      )
+      .catch(() =>
+        toast({
+          title: '복사 실패',
+          description: '공유 링크 복사에 실패했습니다.',
+          variant: 'destructive',
+        })
+      )
   }
 
   return (

@@ -738,6 +738,7 @@
   font-size: 32px;
   margin-bottom: 8px;
   opacity: 0.5;
+  color: var(--muted);
 }
 
 .upload-text {
