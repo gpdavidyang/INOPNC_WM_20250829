@@ -629,11 +629,11 @@ export const WorkLogHomePage: React.FC = () => {
           }
 
           [data-theme='dark'] {
-            --bg: #0f172a;
-            --card: #1e293b;
-            --text: #f1f5f9;
-            --muted: #94a3b8;
-            --border: #334155;
+            --bg: #0f172a; /* slate-900 */
+            --card: #1e293b; /* slate-800 */
+            --text: #e2e8f0; /* slate-200 */
+            --muted: #94a3b8; /* slate-400 */
+            --border: #334155; /* slate-700 */
           }
 
           .worklog-page {
@@ -683,12 +683,12 @@ export const WorkLogHomePage: React.FC = () => {
           .custom-select-trigger {
             height: 40px;
             border-radius: 10px;
-            background: #ffffff;
-            border-color: transparent; /* 요청: 테두리 무색 처리 */
+            background: var(--card);
+            border-color: var(--border);
             border-width: 1px;
             font-size: 16px;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--text);
             box-shadow: none;
           }
           /* 포커스/오픈 시에도 테두리와 포커스링 제거 */
@@ -716,7 +716,7 @@ export const WorkLogHomePage: React.FC = () => {
           /* Work list container per spec */
           .work-form-container {
             background: var(--card);
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--border);
             border-radius: 10px;
             padding: 0 16px;
             box-shadow: 0 2px 10px rgba(2, 6, 23, 0.04);
@@ -732,15 +732,15 @@ export const WorkLogHomePage: React.FC = () => {
             padding: 0 18px;
             height: 44px;
             border-radius: 999px;
-            border: 1px solid #e6ecf4;
-            background: #ffffff;
+            border: 1px solid var(--border);
+            background: var(--card);
             box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
           }
 
           /* 전역 .search-icon(absolute) 규칙을 무력화하여 겹침 방지 */
           .worklog-search-section .search-icon {
             position: static !important;
-            color: #99a4be;
+            color: var(--muted);
             flex-shrink: 0;
             transform: translateY(1px); /* 살짝 위로 보이던 정렬 보정 */
             display: block; /* baseline 영향 제거로 완전 중앙 정렬 */
@@ -752,12 +752,12 @@ export const WorkLogHomePage: React.FC = () => {
             background: transparent;
             font-size: 16px;
             font-weight: 600;
-            color: #1a254f;
+            color: var(--text);
             outline: none;
           }
 
           .worklog-search-section .search-input::placeholder {
-            color: #9ca3af;
+            color: var(--muted);
             font-weight: 500;
           }
 
@@ -768,8 +768,8 @@ export const WorkLogHomePage: React.FC = () => {
             align-items: center;
             justify-content: center;
             border: none;
-            background: rgba(153, 164, 190, 0.15);
-            color: #6b7280;
+            background: rgba(148, 163, 184, 0.18);
+            color: var(--muted);
             border-radius: 999px;
             cursor: pointer;
             font-size: 16px;
@@ -779,7 +779,7 @@ export const WorkLogHomePage: React.FC = () => {
           .worklog-search-section .search-cancel {
             background: none;
             border: none;
-            color: #99a4be;
+            color: var(--muted);
             font-size: 16px;
             font-weight: 500;
             cursor: pointer;
@@ -790,7 +790,7 @@ export const WorkLogHomePage: React.FC = () => {
 
           .worklog-search-section .search-cancel:hover {
             background: rgba(153, 164, 190, 0.12);
-            color: #1a254f;
+            color: var(--text);
           }
 
           .filter-row {
@@ -861,7 +861,7 @@ export const WorkLogHomePage: React.FC = () => {
             justify-content: space-between;
             padding: 18px 0;
             border: none;
-            border-bottom: 1px solid #e6ecf4;
+            border-bottom: 1px solid var(--border);
             background: transparent;
             cursor: pointer;
             transition: background 0.2s ease;
@@ -873,7 +873,10 @@ export const WorkLogHomePage: React.FC = () => {
           }
 
           .task-diary-list-item:hover {
-            background: #f8faff;
+            background: rgba(2, 6, 23, 0.03);
+          }
+          [data-theme='dark'] .task-diary-list-item:hover {
+            background: rgba(255, 255, 255, 0.04);
           }
 
           .task-diary-info {
@@ -885,7 +888,7 @@ export const WorkLogHomePage: React.FC = () => {
           .task-diary-site {
             font-size: 16px;
             font-weight: 600;
-            color: #1a254f;
+            color: var(--text);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -893,7 +896,7 @@ export const WorkLogHomePage: React.FC = () => {
 
           .task-diary-work {
             font-size: 13px;
-            color: #667085;
+            color: var(--muted);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -918,7 +921,7 @@ export const WorkLogHomePage: React.FC = () => {
           }
 
           .status-badge.draft {
-            background: rgba(49, 163, 250, 0.05);
+            background: rgba(49, 163, 250, 0.08);
             color: #31a3fa;
             border-color: #31a3fa;
           }
@@ -928,10 +931,24 @@ export const WorkLogHomePage: React.FC = () => {
             color: #99a4be;
             border-color: #99a4be;
           }
+          [data-theme='dark'] .status-badge.approved {
+            background: rgba(148, 163, 184, 0.22);
+            color: #cbd5e1;
+            border-color: #64748b;
+          }
 
           .task-diary-date {
             font-size: 12px;
-            color: #99a4be;
+            color: var(--muted);
+          }
+
+          /* Dark-specific shadow and control tweaks */
+          [data-theme='dark'] .worklog-search-section .search-input-wrapper {
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+          }
+          [data-theme='dark'] .worklog-search-section .clear-search {
+            background: rgba(148, 163, 184, 0.28);
+            color: #e2e8f0;
           }
 
           .more-button-container {
@@ -943,11 +960,11 @@ export const WorkLogHomePage: React.FC = () => {
           .more-btn {
             padding: 10px 28px;
             border-radius: 10px;
-            border: 1px solid #e6ecf4;
-            background: #ffffff;
+            border: 1px solid var(--border);
+            background: var(--card);
             font-size: 14px;
             font-weight: 600;
-            color: #1a254f;
+            color: var(--text);
             box-shadow: 0 6px 18px rgba(16, 24, 40, 0.08);
             cursor: pointer;
             transition:
