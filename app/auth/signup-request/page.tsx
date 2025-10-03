@@ -23,6 +23,10 @@ export default function SignupRequestPage() {
   const [partnerCompanies, setPartnerCompanies] = useState<PartnerCompany[]>([])
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
   const [loadingCompanies, setLoadingCompanies] = useState(false)
+  // Email split states
+  const [emailUser, setEmailUser] = useState('')
+  const [emailDomainSelect, setEmailDomainSelect] = useState('') // '', 'custom', 'gmail.com', ...
+  const [emailDomainCustom, setEmailDomainCustom] = useState('')
   const [companyFilter, setCompanyFilter] = useState<'active' | 'all'>('active')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -63,13 +67,22 @@ export default function SignupRequestPage() {
       setError('이용약관 및 개인정보처리방침에 동의해주세요.')
       return
     }
-    if (!selectedCompanyId) {
-      setError('소속(파트너사)을 선택해주세요.')
-      return
-    }
-
     const selectedCompany = partnerCompanies.find(p => p.id === selectedCompanyId)
     const companyName = selectedCompany?.company_name || ''
+    // Compose email from split fields
+    const userPart = (emailUser || '').trim()
+    const domainPart = (
+      emailDomainSelect === 'custom' ? emailDomainCustom : emailDomainSelect || ''
+    ).trim()
+    const emailComposed = userPart && domainPart ? `${userPart}@${domainPart}` : ''
+
+    // Validate email composition
+    const userOk = /^[A-Za-z0-9._%+-]+$/.test(userPart)
+    const domainOk = /^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(domainPart)
+    if (!userOk || !domainOk) {
+      setError('이메일 형식을 확인해주세요.')
+      return
+    }
 
     setLoading(true)
     setError(null)
@@ -82,7 +95,7 @@ export default function SignupRequestPage() {
           fullName: formData.fullName,
           jobTitle: formData.jobTitle,
           phone: formData.phone,
-          email: formData.email,
+          email: emailComposed,
           partnerCompanyId: selectedCompanyId,
         }),
       })
@@ -290,8 +303,28 @@ export default function SignupRequestPage() {
         }
         .terms {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           gap: 8px;
+        }
+        .terms-checkbox {
+          width: 18px;
+          height: 18px;
+          cursor: pointer;
+          appearance: auto;
+          -webkit-appearance: checkbox;
+          -moz-appearance: checkbox;
+          background: #ffffff;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          accent-color: #31a3fa;
+        }
+        .terms-checkbox:hover {
+          border-color: #31a3fa;
+        }
+        .terms-checkbox:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
+          border-color: #31a3fa;
         }
         .footer {
           text-align: center;
@@ -301,28 +334,62 @@ export default function SignupRequestPage() {
         }
         .footer a {
           color: #1a254f;
-          font-weight: 600;
           text-decoration: none;
         }
-        .filter-row {
+        .footer-login {
+          color: #0f1a3a !important;
+          font-weight: 900 !important;
+        }
+        .footer-login:visited {
+          color: #0f1a3a !important;
+        }
+        .footer-login:hover {
+          color: #1a254f !important;
+          text-decoration: underline !important;
+        }
+        .email-wrapper {
           display: flex;
-          gap: 8px;
-          margin-bottom: 8px;
+          flex-wrap: nowrap;
           align-items: center;
+          gap: 8px;
+          width: 100%;
+          overflow: hidden;
         }
-        .filter-btn {
-          border: 1px solid #d1d5db;
-          background: #fff;
+        .email-user {
+          flex: 1 1 0;
+          min-width: 0;
+        }
+        .email-at {
+          flex: 0 0 auto;
+          color: #6b7280;
+          font-size: 16px;
+          font-weight: 500;
+        }
+        .domain-container {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex: 1 1 0;
+          min-width: 0;
+        }
+        .domain-input {
+          flex: 1 1 0;
+          min-width: 0;
+          width: 100%;
+        }
+        .domain-trigger {
+          flex: 1 1 0;
+          min-width: 0;
+          width: 100%;
+          overflow: hidden;
+        }
+        /* Filter toggle removed */
+        .terms-label {
+          font-size: 14px;
           color: #374151;
-          border-radius: 8px;
-          padding: 6px 10px;
-          font-size: 12px;
-          cursor: pointer;
-        }
-        .filter-btn.active {
-          background: #eef6ff;
-          border-color: #31a3fa;
-          color: #1a254f;
+          display: inline-flex;
+          align-items: center;
+          height: 18px;
         }
         .status-badge {
           margin-left: 8px;
@@ -375,7 +442,6 @@ export default function SignupRequestPage() {
             <form onSubmit={handleSubmit}>
               {/* 이름 */}
               <div className="form-group">
-                <label className="label">이름</label>
                 <input
                   type="text"
                   required
@@ -388,24 +454,6 @@ export default function SignupRequestPage() {
 
               {/* 소속(파트너사) */}
               <div className="form-group">
-                <label className="label">소속(파트너사)</label>
-                <div className="filter-row">
-                  <span style={{ fontSize: 12, color: '#6B7280' }}>표시:</span>
-                  <button
-                    type="button"
-                    className={`filter-btn ${companyFilter === 'active' ? 'active' : ''}`}
-                    onClick={() => setCompanyFilter('active')}
-                  >
-                    활성만
-                  </button>
-                  <button
-                    type="button"
-                    className={`filter-btn ${companyFilter === 'all' ? 'active' : ''}`}
-                    onClick={() => setCompanyFilter('all')}
-                  >
-                    전체
-                  </button>
-                </div>
                 <CustomSelect
                   value={selectedCompanyId}
                   onValueChange={val => setSelectedCompanyId(val)}
@@ -413,41 +461,37 @@ export default function SignupRequestPage() {
                 >
                   <CustomSelectTrigger className="h-[45px] rounded-[8px] bg-white border border-[#D1D5DB] px-4 text-[16px] font-medium text-[#6B7280]">
                     <CustomSelectValue
-                      placeholder={loadingCompanies ? '불러오는 중...' : '파트너사를 선택하세요'}
+                      placeholder={
+                        loadingCompanies ? '불러오는 중...' : '소속(회사명)을 선택하세요'
+                      }
                     />
                   </CustomSelectTrigger>
                   <CustomSelectContent sideOffset={6}>
-                    {partnerCompanies.filter(p =>
-                      companyFilter === 'all' ? true : (p.status || 'active') === 'active'
-                    ).length === 0 ? (
+                    {partnerCompanies.length === 0 ? (
                       <CustomSelectItem value="__no_options__" disabled>
                         등록된 파트너사가 없습니다
                       </CustomSelectItem>
                     ) : (
-                      partnerCompanies
-                        .filter(p =>
-                          companyFilter === 'all' ? true : (p.status || 'active') === 'active'
-                        )
-                        .map(p => (
-                          <CustomSelectItem key={p.id} value={p.id}>
-                            <span>{p.company_name}</span>
-                            <span
-                              className={`status-badge ${
-                                (p.status || 'active') === 'active'
-                                  ? 'status-active'
-                                  : (p.status || '').toLowerCase() === 'pending'
-                                    ? 'status-pending'
-                                    : 'status-disabled'
-                              }`}
-                            >
-                              {(p.status || 'active') === 'active'
-                                ? 'active'
+                      partnerCompanies.map(p => (
+                        <CustomSelectItem key={p.id} value={p.id}>
+                          <span>{p.company_name}</span>
+                          <span
+                            className={`status-badge ${
+                              (p.status || 'active') === 'active'
+                                ? 'status-active'
                                 : (p.status || '').toLowerCase() === 'pending'
-                                  ? 'pending'
-                                  : p.status || 'disabled'}
-                            </span>
-                          </CustomSelectItem>
-                        ))
+                                  ? 'status-pending'
+                                  : 'status-disabled'
+                            }`}
+                          >
+                            {(p.status || 'active') === 'active'
+                              ? 'active'
+                              : (p.status || '').toLowerCase() === 'pending'
+                                ? 'pending'
+                                : p.status || 'disabled'}
+                          </span>
+                        </CustomSelectItem>
+                      ))
                     )}
                   </CustomSelectContent>
                 </CustomSelect>
@@ -455,7 +499,6 @@ export default function SignupRequestPage() {
 
               {/* 직함 */}
               <div className="form-group">
-                <label className="label">직함</label>
                 <input
                   type="text"
                   required
@@ -468,28 +511,59 @@ export default function SignupRequestPage() {
 
               {/* 핸드폰 번호 */}
               <div className="form-group">
-                <label className="label">핸드폰 번호</label>
                 <input
                   type="tel"
                   required
                   value={formData.phone}
                   onChange={e => handleInputChange('phone', e.target.value)}
                   className="input"
-                  placeholder="010-0000-0000"
+                  placeholder="핸드폰 번호 000-0000-0000"
                 />
               </div>
 
               {/* 이메일 */}
               <div className="form-group">
-                <label className="label">이메일</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={e => handleInputChange('email', e.target.value)}
-                  className="input"
-                  placeholder="example@company.com"
-                />
+                <div className="email-wrapper">
+                  <input
+                    type="text"
+                    required
+                    value={emailUser}
+                    onChange={e => setEmailUser(e.target.value)}
+                    className="input email-user"
+                    placeholder="이메일 아이디"
+                    pattern="[A-Za-z0-9._%+-]+"
+                    title="영문, 숫자, . _ % + - 만 입력"
+                  />
+                  <span className="email-at">@</span>
+                  <div className="domain-container">
+                    {emailDomainSelect === 'custom' ? (
+                      <input
+                        type="text"
+                        required
+                        value={emailDomainCustom}
+                        onChange={e => setEmailDomainCustom(e.target.value)}
+                        className="input domain-input"
+                        placeholder="도메인 직접입력 (예: example.com)"
+                        pattern="[A-Za-z0-9.-]+\.[A-Za-z]{2,}"
+                        title="예: gmail.com, company.co.kr"
+                      />
+                    ) : (
+                      <CustomSelect value={emailDomainSelect} onValueChange={setEmailDomainSelect}>
+                        <CustomSelectTrigger className="h-[45px] rounded-[8px] bg-white border border-[#D1D5DB] px-4 text-[16px] font-medium text-[#6B7280] w-full domain-trigger">
+                          <CustomSelectValue placeholder="도메인 선택" />
+                        </CustomSelectTrigger>
+                        <CustomSelectContent sideOffset={6}>
+                          <CustomSelectItem value="custom">직접입력</CustomSelectItem>
+                          <CustomSelectItem value="gmail.com">gmail.com</CustomSelectItem>
+                          <CustomSelectItem value="naver.com">naver.com</CustomSelectItem>
+                          <CustomSelectItem value="daum.net">daum.net</CustomSelectItem>
+                          <CustomSelectItem value="hanmail.net">hanmail.net</CustomSelectItem>
+                          <CustomSelectItem value="yahoo.com">yahoo.com</CustomSelectItem>
+                        </CustomSelectContent>
+                      </CustomSelect>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* 이용약관 동의 */}
@@ -499,9 +573,9 @@ export default function SignupRequestPage() {
                   id="terms"
                   checked={termsAccepted}
                   onChange={e => setTermsAccepted(e.target.checked)}
-                  style={{ width: 18, height: 18 }}
+                  className="terms-checkbox"
                 />
-                <label htmlFor="terms" style={{ fontSize: 14, color: '#374151' }}>
+                <label htmlFor="terms" className="terms-label">
                   이용약관 및 개인정보처리방침에 동의합니다
                 </label>
               </div>
@@ -513,7 +587,9 @@ export default function SignupRequestPage() {
 
             <div className="footer">
               <span>이미 계정이 있으신가요? </span>
-              <Link href="/auth/login">로그인</Link>
+              <Link href="/auth/login" className="footer-login">
+                로그인
+              </Link>
             </div>
           </div>
         </div>
