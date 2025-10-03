@@ -12,7 +12,10 @@ export async function getSignupRequests(search?: string) {
 
   if (search && search.trim()) {
     const s = search.trim()
-    query = query.or(`full_name.ilike.%${s}%,email.ilike.%${s}%,company_name.ilike.%${s}%`)
+    // Support legacy company_name and current company column
+    query = query.or(
+      `full_name.ilike.%${s}%,email.ilike.%${s}%,company.ilike.%${s}%,company_name.ilike.%${s}%`
+    )
   }
 
   const { data: requests, error } = await query

@@ -1,11 +1,12 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export async function GET(request: NextRequest) {
   // Use the server client for proper cookie handling
-  const supabase = createClient()
+  // Use service role to bypass RLS for public listing
+  const supabase = createServiceRoleClient()
 
   try {
     // Partner companies are public data, no auth required for GET
@@ -22,7 +23,6 @@ export async function GET(request: NextRequest) {
         contact_person
       `
       )
-      .eq('status', 'active')
       .order('company_name', { ascending: true })
 
     if (error) {

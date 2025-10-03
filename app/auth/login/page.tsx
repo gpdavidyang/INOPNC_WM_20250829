@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
@@ -13,12 +13,30 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [email, setEmail] = useState('')
   const [devHelp, setDevHelp] = useState<string | null>(null)
+  // Logo fallback state to ensure reliable rendering in production
+  const INLINE_SVG_PLACEHOLDER =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      '<svg width="114" height="38" viewBox="0 0 114 38" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect width="114" height="38" fill="#1A254F"/>' +
+        '<text x="57" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FFFFFF">INOPNC</text>' +
+        '</svg>'
+    )
+  const [logoSrc, setLogoSrc] = useState<string>('/images/inopnc-logo-n.png')
+  const [logoStage, setLogoStage] = useState<'primary' | 'backup' | 'inline'>('primary')
 
-  // Load saved credentials on component mount
+  // Find ID modal state (UI only)
+  const [isFindIdOpen, setIsFindIdOpen] = useState(false)
+  const [isFindIdResultOpen, setIsFindIdResultOpen] = useState(false)
+  const [findIdResultMessage, setFindIdResultMessage] = useState<string>('')
+  const [findIdName, setFindIdName] = useState('')
+  const [findIdPhone, setFindIdPhone] = useState('')
+  const [findIdEmail, setFindIdEmail] = useState('')
+
+  // Load saved email on mount when rememberMe was set
   useEffect(() => {
     const savedRemember = localStorage.getItem('rememberMe')
     const savedEmail = localStorage.getItem('savedEmail')
-
     if (savedRemember === 'true' && savedEmail) {
       setRememberMe(true)
       setEmail(savedEmail)
@@ -41,7 +59,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // 자동로그인 설정 처리
+      // 자동로그인(이메일 저장) 처리
       if (rememberMe) {
         localStorage.setItem('rememberMe', 'true')
         localStorage.setItem('savedEmail', email)
@@ -50,7 +68,7 @@ export default function LoginPage() {
         localStorage.removeItem('savedEmail')
       }
 
-      // 1) 클라이언트에서 Supabase 로그인 수행 (세션 획득)
+      // 1) Supabase 로그인 (세션 획득)
       const supabase = createClient(undefined, true)
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) {
@@ -71,7 +89,7 @@ export default function LoginPage() {
         return
       }
 
-      // 2) 서버 세션 동기화 (쿠키 세팅 보장)
+      // 2) 서버 세션 동기화 (쿠키 세팅)
       const access_token = data.session?.access_token
       const refresh_token = data.session?.refresh_token
       if (!access_token || !refresh_token) {
@@ -95,7 +113,7 @@ export default function LoginPage() {
         return
       }
 
-      // 3) 사용자의 UI 트랙 조회 후 이동
+      // 3) 역할 기반 UI 트랙으로 이동
       const meRes = await fetch('/api/auth/me', { cache: 'no-store' })
       let redirectPath = '/mobile'
       if (meRes.ok) {
@@ -104,24 +122,71 @@ export default function LoginPage() {
       }
 
       window.location.replace(redirectPath)
-    } catch (error) {
-      console.error('Login exception:', error)
+    } catch (err) {
+      console.error('Login exception:', err)
       setError('로그인에 실패했습니다.')
       setIsLoading(false)
     }
   }
 
+  // Simple Find ID handlers (UI only)
+  const openFindId = () => {
+    setFindIdName('')
+    setFindIdPhone('')
+    setFindIdEmail('')
+    setIsFindIdResultOpen(false)
+    setFindIdResultMessage('')
+    setIsFindIdOpen(true)
+  }
+  const closeFindId = () => setIsFindIdOpen(false)
+  const closeFindIdResult = () => setIsFindIdResultOpen(false)
+  const submitFindId = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      const res = await fetch('/api/auth/find-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: findIdName,
+          phone: findIdPhone,
+          email: findIdEmail || undefined,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      setIsFindIdOpen(false)
+      if (res.ok && data?.success && data?.email) {
+        setFindIdResultMessage(`아이디를 찾았습니다: ${data.email}`)
+      } else {
+        setFindIdResultMessage(data?.message || data?.error || '일치하는 계정을 찾을 수 없습니다.')
+      }
+      setIsFindIdResultOpen(true)
+    } catch (err) {
+      setIsFindIdOpen(false)
+      setFindIdResultMessage('조회 중 오류가 발생했습니다.')
+      setIsFindIdResultOpen(true)
+    }
+  }
+
+  // Phone formatting helper (numeric + hyphen)
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11)
+    if (digits.length >= 7) return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+    if (digits.length >= 3) return `${digits.slice(0, 3)}-${digits.slice(3)}`
+    return digits
+  }
+
   return (
     <>
       <style jsx>{`
-        /* 로그인 페이지 전용 스타일 */
+        /* 로그인 페이지 - 레거시 디자인 반영 */
         .login-container {
           min-height: 100vh;
+          width: 100%;
           display: flex;
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          padding: 16px;
+          padding: 0 20px;
           background: #ffffff;
           font-family:
             'Noto Sans KR',
@@ -137,7 +202,7 @@ export default function LoginPage() {
         .login-content {
           width: 100%;
           max-width: 400px;
-          padding: 32px 24px;
+          padding: 0 25px;
           box-sizing: border-box;
         }
 
@@ -145,53 +210,58 @@ export default function LoginPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          margin-bottom: 24px;
+          gap: 16px;
+          margin: 0 auto 20px auto;
+          width: 100%;
+          text-align: center;
         }
 
         .login-logo {
-          height: 30px;
+          height: 38px;
           width: auto;
           object-fit: contain;
+          display: flex;
+          align-items: center;
         }
 
         .login-title {
-          font-size: 20px;
+          font-size: 24px;
           font-weight: 600;
           color: #1a254f;
           margin: 0;
           line-height: 1.2;
+          height: 35px;
+          display: flex;
+          align-items: center;
         }
 
         .form-group {
-          margin-bottom: 16px;
+          margin: 16px 0;
         }
 
         .form-input {
           width: 100%;
           height: 45px;
-          padding: 0 16px;
-          border: 1px solid #e6ecf4;
-          border-radius: 10px;
+          padding: 0 20px;
+          padding-right: 45px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
           background: #ffffff;
-          color: #1a1a1a;
-          font-size: 14px;
+          color: #6b7280;
+          font-size: 16px;
+          font-weight: 500;
           transition: all 0.2s ease;
           box-sizing: border-box;
         }
 
         .form-input:focus {
           outline: none;
-          border-color: #0068fe;
-          box-shadow: 0 0 0 3px rgba(0, 104, 254, 0.1);
+          border-color: #31a3fa;
+          box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
         }
 
         .form-input::placeholder {
           color: #6b7280;
-        }
-
-        .form-input.password-input {
-          padding-right: 45px;
         }
 
         .input-wrapper {
@@ -203,26 +273,24 @@ export default function LoginPage() {
           right: 12px;
           top: 50%;
           transform: translateY(-50%);
-          width: 18px;
-          height: 18px;
-          color: #6b7280;
-          cursor: pointer;
-          transition: color 0.2s ease;
           background: none;
           border: none;
-          padding: 0;
+          cursor: pointer;
+          padding: 4px;
           display: flex;
           align-items: center;
           justify-content: center;
+          color: #6b7280;
+          transition: color 0.2s ease;
         }
 
         .password-toggle:hover {
-          color: #0068fe;
+          color: #374151;
         }
 
-        .password-toggle:disabled {
-          cursor: not-allowed;
-          opacity: 0.5;
+        .password-toggle svg {
+          width: 20px;
+          height: 20px;
         }
 
         .form-options {
@@ -232,48 +300,98 @@ export default function LoginPage() {
           margin: 20px 0;
         }
 
-        .checkbox-wrapper {
+        .checkbox {
           display: flex;
           align-items: center;
           gap: 8px;
           cursor: pointer;
         }
-
         .checkbox-input {
+          /* Match input field style */
           width: 18px;
           height: 18px;
-          accent-color: #0068fe;
+          cursor: pointer;
+          appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          background: #ffffff;
+          border: 1px solid #d1d5db;
+          border-radius: 4px;
+          position: relative;
+          display: inline-block;
+          vertical-align: middle;
+          transition: all 0.2s ease;
+        }
+        .checkbox-input:hover {
+          border-color: #31a3fa;
+        }
+        .checkbox-input:focus {
+          outline: none;
+          border-color: #31a3fa;
+          box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
+        }
+        .checkbox-input:checked {
+          background-color: #31a3fa;
+          border-color: #31a3fa;
+        }
+        .checkbox-input:checked::after {
+          content: '';
+          position: absolute;
+          top: 2px;
+          left: 6px;
+          width: 4px;
+          height: 8px;
+          border: solid #ffffff;
+          border-width: 0 2px 2px 0;
+          transform: rotate(45deg);
+        }
+        .checkbox-input:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .checkbox label {
+          font-size: 16px;
+          color: #6b7280;
           cursor: pointer;
         }
 
-        .checkbox-label {
-          font-size: 14px;
-          color: #1a1a1a;
-          cursor: pointer;
-          user-select: none;
+        .forgot-links {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          justify-content: flex-end;
         }
-
         .forgot-password {
-          font-size: 14px;
+          font-size: 16px;
           color: #6b7280;
           text-decoration: none;
           transition: color 0.2s ease;
+          font-weight: 500;
         }
-
         .forgot-password:hover {
-          color: #0068fe;
+          color: #31a3fa;
+        }
+        .separator {
+          color: #d1d5db;
+          font-size: 16px;
+        }
+        /* Unify inline label/link typography */
+        .checkbox span {
+          font-size: 16px;
+          color: #6b7280;
+          font-weight: 500;
         }
 
         .login-button {
           width: 100%;
           height: 45px;
-          padding: 0 16px;
+          padding: 8px 16px;
           background: #1a254f;
           color: #ffffff;
           border: none;
-          border-radius: 10px;
-          font-size: 14px;
-          font-weight: 500;
+          border-radius: 8px;
+          font-size: 16px;
+          font-weight: 600;
           cursor: pointer;
           transition: all 0.2s ease;
           margin-bottom: 20px;
@@ -281,16 +399,13 @@ export default function LoginPage() {
           align-items: center;
           justify-content: center;
         }
-
         .login-button:hover:not(:disabled) {
-          background: #0f1a3a;
           transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(26, 37, 79, 0.3);
         }
-
         .login-button:disabled {
-          cursor: not-allowed;
           opacity: 0.7;
-          transform: none;
+          cursor: not-allowed;
         }
 
         .signup-link {
@@ -298,21 +413,24 @@ export default function LoginPage() {
           font-size: 14px;
           color: #6b7280;
         }
-
         .signup-link a {
-          color: #1a254f;
           text-decoration: none;
-          font-weight: 500;
-          transition: color 0.2s ease;
         }
-
-        .signup-link a:hover {
-          color: #0068fe;
-          text-decoration: underline;
+        .signup-cta {
+          color: #0f1a3a !important;
+          font-weight: 900 !important;
+          text-decoration: none !important;
+        }
+        .signup-cta:visited {
+          color: #0f1a3a !important;
+        }
+        .signup-cta:hover {
+          color: #1a254f !important;
+          text-decoration: underline !important;
         }
 
         .error-message {
-          background-color: #fef2f2;
+          background: #fef2f2;
           border: 1px solid #fecaca;
           color: #dc2626;
           padding: 12px 16px;
@@ -321,81 +439,161 @@ export default function LoginPage() {
           margin-bottom: 16px;
         }
 
-        /* 반응형 디자인 */
+        /* Modal */
+        .modal {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          backdrop-filter: blur(4px);
+          z-index: 1001;
+        }
+        .modal.show {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .modal-content {
+          width: min(480px, 92vw);
+          max-height: 80vh;
+          overflow: auto;
+          background: #fff;
+          border-radius: 8px;
+          padding: 18px;
+          margin: 0 18px;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+        }
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding: 0 0 16px 0;
+          border-bottom: 1px solid #d1d5db;
+          margin-bottom: 16px;
+        }
+        .modal-header h2 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 600;
+          color: #1a254f;
+          text-align: left;
+        }
+        .close-btn {
+          background: #f3f4f6;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          color: #374151;
+          font-size: 16px;
+          font-weight: 600;
+          padding: 8px 16px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          height: 45px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .close-btn:hover {
+          background: #31a3fa;
+          border-color: #31a3fa;
+          color: #fff;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(49, 163, 250, 0.3);
+        }
+        .modal-body .form-group {
+          margin-bottom: 16px;
+        }
+        .modal-body .form-group label {
+          display: block;
+          margin-bottom: 8px;
+          font-size: 16px;
+          font-weight: 400;
+          color: #1a1a1a;
+        }
+        .modal-body .form-group input {
+          width: 100%;
+          height: 45px;
+          border-radius: 8px;
+          border: 1px solid #d1d5db;
+          background: #fff;
+          color: #6b7280;
+          padding: 0 14px;
+          font-size: 16px;
+          font-weight: 600;
+          outline: none;
+          transition: all 0.2s ease;
+          box-sizing: border-box;
+        }
+        .modal-button {
+          width: 100%;
+          height: 45px;
+          border-radius: 8px;
+          border: none;
+          background: #1a254f;
+          color: #fff;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          margin-top: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .modal-button:hover {
+          background: #2a366a;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(49, 163, 250, 0.3);
+        }
+
+        /* Responsive */
         @media (max-width: 480px) {
-          .login-container {
-            padding: 12px;
-          }
-
           .login-content {
-            padding: 20px 16px;
-            max-width: 100%;
-            width: calc(100% - 24px);
+            padding: 0 20px;
           }
-
           .login-header {
-            gap: 6px;
-            margin-bottom: 20px;
+            margin: 16px auto;
           }
-
           .login-title {
-            font-size: 18px;
+            font-size: 24px;
+            line-height: 35px;
+            height: 35px;
           }
-
-          .login-logo {
-            height: 28px;
-            width: auto;
-          }
-
           .form-group {
-            margin-bottom: 14px;
-          }
-
-          .form-input {
-            height: 45px;
-            padding: 0 12px;
-            font-size: 14px;
-            box-sizing: border-box;
-          }
-
-          .form-input.password-input {
-            padding-right: 40px;
-          }
-
-          .password-toggle {
-            right: 10px;
-            width: 16px;
-            height: 16px;
-          }
-
-          .form-options {
             margin: 16px 0;
           }
-
+          .form-input {
+            height: 45px;
+            padding: 0 20px;
+            padding-right: 35px;
+            font-size: 16px;
+          }
+          .form-options {
+            margin: 20px 0;
+          }
           .login-button {
             height: 45px;
-            font-size: 14px;
-            margin-bottom: 16px;
+            font-size: 16px;
+            margin-bottom: 20px;
           }
         }
 
-        /* 접근성 */
+        /* A11y */
         @media (prefers-reduced-motion: reduce) {
           .login-button,
-          .form-input {
+          .form-input,
+          .login-content {
             transition: none;
           }
-
           .login-button:hover {
             transform: none;
           }
         }
 
-        /* 포커스 표시 */
         .form-input:focus-visible,
         .login-button:focus-visible,
-        .checkbox-wrapper:focus-visible {
-          outline: 2px solid #0068fe;
+        .checkbox:focus-visible {
+          outline: 2px solid #31a3fa;
           outline-offset: 2px;
         }
       `}</style>
@@ -404,12 +602,22 @@ export default function LoginPage() {
         <div className="login-content">
           <div className="login-header">
             <Image
-              src="/INOPNC_logo.png"
+              src={logoSrc}
               alt="INOPNC 로고"
-              width={30}
-              height={30}
+              width={114}
+              height={38}
               priority
               className="login-logo"
+              sizes="114px"
+              onError={() => {
+                if (logoStage === 'primary') {
+                  setLogoSrc('/images/logo_g.png')
+                  setLogoStage('backup')
+                } else if (logoStage === 'backup') {
+                  setLogoSrc(INLINE_SVG_PLACEHOLDER)
+                  setLogoStage('inline')
+                }
+              }}
             />
             <h1 className="login-title">로그인</h1>
           </div>
@@ -438,7 +646,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
-                  className="form-input password-input"
+                  className="form-input"
                   placeholder="비밀번호를 입력하세요"
                   required
                   autoComplete="current-password"
@@ -451,13 +659,13 @@ export default function LoginPage() {
                   aria-label="비밀번호 표시/숨기기"
                   disabled={isLoading}
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? <EyeOff /> : <Eye />}
                 </button>
               </div>
             </div>
 
             <div className="form-options">
-              <div className="checkbox-wrapper">
+              <label className="checkbox" htmlFor="rememberMe">
                 <input
                   type="checkbox"
                   id="rememberMe"
@@ -467,16 +675,22 @@ export default function LoginPage() {
                   onChange={e => setRememberMe(e.target.checked)}
                   disabled={isLoading}
                 />
-                <label htmlFor="rememberMe" className="checkbox-label">
-                  자동로그인
-                </label>
+                <span>자동로그인</span>
+              </label>
+
+              <div className="forgot-links">
+                <button type="button" className="forgot-password" onClick={openFindId}>
+                  아이디찾기
+                </button>
+                <span className="separator">|</span>
+                <Link href="/auth/reset-password" className="forgot-password">
+                  비밀번호찾기
+                </Link>
               </div>
-              <Link href="/auth/reset-password" className="forgot-password">
-                비밀번호를 잊어버렸나요?
-              </Link>
             </div>
 
             {error && <div className="error-message">{error}</div>}
+
             {devHelp && process.env.NODE_ENV !== 'production' && (
               <div
                 className="error-message"
@@ -523,7 +737,100 @@ export default function LoginPage() {
           </form>
 
           <div className="signup-link">
-            계정이 없으신가요? <Link href="/auth/signup-request">회원가입</Link>
+            계정이 없으신가요?{' '}
+            <Link href="/auth/signup-request">
+              <span className="signup-cta">회원가입</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* 아이디찾기 모달 */}
+      <div
+        className={`modal ${isFindIdOpen ? 'show' : ''}`}
+        onClick={e => {
+          if (e.target === e.currentTarget) closeFindId()
+        }}
+      >
+        <div
+          className="modal-content"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="findIdTitle"
+        >
+          <div className="modal-header">
+            <h2 id="findIdTitle">아이디 찾기</h2>
+            <button className="close-btn" onClick={closeFindId}>
+              닫기
+            </button>
+          </div>
+          <div className="modal-body">
+            <form onSubmit={submitFindId}>
+              <div className="form-group">
+                <label htmlFor="findIdName">이름</label>
+                <input
+                  id="findIdName"
+                  className="form-input"
+                  value={findIdName}
+                  onChange={e => setFindIdName(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="findIdPhone">휴대폰 번호</label>
+                <input
+                  id="findIdPhone"
+                  className="form-input"
+                  placeholder="010-1234-5678"
+                  value={findIdPhone}
+                  onChange={e => setFindIdPhone(formatPhone(e.target.value))}
+                  required
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="findIdEmail">이메일</label>
+                <input
+                  id="findIdEmail"
+                  type="email"
+                  className="form-input"
+                  placeholder="example@email.com"
+                  value={findIdEmail}
+                  onChange={e => setFindIdEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <button type="submit" className="modal-button">
+                아이디 찾기
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* 아이디찾기 결과 모달 */}
+      <div
+        className={`modal ${isFindIdResultOpen ? 'show' : ''}`}
+        onClick={e => {
+          if (e.target === e.currentTarget) closeFindIdResult()
+        }}
+      >
+        <div
+          className="modal-content"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="findIdResultTitle"
+        >
+          <div className="modal-header">
+            <h2 id="findIdResultTitle">아이디 찾기 결과</h2>
+            <button className="close-btn" onClick={closeFindIdResult}>
+              닫기
+            </button>
+          </div>
+          <div className="modal-body">
+            <div style={{ textAlign: 'center', padding: '20px 0' }}>{findIdResultMessage}</div>
+            <button type="button" className="modal-button" onClick={closeFindIdResult}>
+              로그인하러 가기
+            </button>
           </div>
         </div>
       </div>
