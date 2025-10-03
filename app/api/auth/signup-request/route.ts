@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json().catch(() => ({}))
     const { fullName, jobTitle, phone, email, partnerCompanyId } = body || {}
 
-    if (!fullName || !jobTitle || !phone || !email || !partnerCompanyId) {
+    if (!fullName || !jobTitle || !phone || !email) {
       return NextResponse.json({ error: '필수 항목을 모두 입력해주세요.' }, { status: 400 })
     }
 
@@ -22,15 +22,21 @@ export async function POST(req: NextRequest) {
       auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    // Resolve partner company name by id
-    const { data: company, error: companyErr } = await admin
-      .from('partner_companies')
-      .select('company_name')
-      .eq('id', partnerCompanyId)
-      .single()
+    // Resolve partner company name by id (optional)
+    let companyName: string | '' = ''
+    if (partnerCompanyId) {
+      const { data: company, error: companyErr } = await admin
+        .from('partner_companies')
+        .select('company_name')
+        .eq('id', partnerCompanyId)
+        .single()
 
-    if (companyErr || !company) {
-      return NextResponse.json({ error: '파트너사 정보를 찾을 수 없습니다.' }, { status: 400 })
+      if (company && !companyErr) {
+        companyName = company.company_name
+      } else {
+        // If invalid partnerCompanyId provided, return a friendly error
+        return NextResponse.json({ error: '파트너사 정보를 찾을 수 없습니다.' }, { status: 400 })
+      }
     }
 
     // Prevent duplicate requests for the same email
@@ -46,7 +52,7 @@ export async function POST(req: NextRequest) {
 
     const { error: insertErr } = await admin.from('signup_requests').insert({
       full_name: fullName,
-      company: company.company_name,
+      company: companyName,
       job_title: jobTitle,
       phone,
       email,
