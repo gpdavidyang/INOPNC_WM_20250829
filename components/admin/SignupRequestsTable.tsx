@@ -37,8 +37,8 @@ export default function SignupRequestsTable({ requests }: { requests: any[] }) {
           key: 'company',
           header: '회사',
           sortable: true,
-          accessor: (r: any) => r?.company_name || '',
-          render: (r: any) => r?.company_name || '-',
+          accessor: (r: any) => r?.company || r?.company_name || '',
+          render: (r: any) => r?.company || r?.company_name || '-',
         },
         {
           key: 'requested_role',

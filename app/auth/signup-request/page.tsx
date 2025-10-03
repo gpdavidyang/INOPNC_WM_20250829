@@ -1,23 +1,61 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { submitSignupRequest } from '@/app/auth/actions'
+import {
+  CustomSelect,
+  CustomSelectTrigger,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+
+type PartnerCompany = { id: string; company_name: string; status?: string }
 
 export default function SignupRequestPage() {
-  const router = useRouter()
   const [formData, setFormData] = useState({
     fullName: '',
     company: '',
     jobTitle: '',
     phone: '',
-    email: ''
+    email: '',
   })
+  const [partnerCompanies, setPartnerCompanies] = useState<PartnerCompany[]>([])
+  const [selectedCompanyId, setSelectedCompanyId] = useState<string>('')
+  const [loadingCompanies, setLoadingCompanies] = useState(false)
+  const [companyFilter, setCompanyFilter] = useState<'active' | 'all'>('active')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [termsAccepted, setTermsAccepted] = useState(false)
+
+  // Logo fallbacks
+  const inlineSvg =
+    'data:image/svg+xml;utf8,' +
+    encodeURIComponent(
+      '<svg width="114" height="38" viewBox="0 0 114 38" xmlns="http://www.w3.org/2000/svg">' +
+        '<rect width="114" height="38" fill="#1A254F"/>' +
+        '<text x="57" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FFFFFF">INOPNC</text>' +
+        '</svg>'
+    )
+
+  useEffect(() => {
+    const loadPartners = async () => {
+      setLoadingCompanies(true)
+      try {
+        const res = await fetch('/api/partner-companies', { cache: 'no-store' })
+        const json = await res.json().catch(() => ({}))
+        if (!res.ok || !json?.success) throw new Error(json?.error || '파트너사 목록 로드 실패')
+        setPartnerCompanies(json.data || [])
+      } catch (e) {
+        console.error('파트너사 조회 실패:', e)
+        setError('파트너사 목록을 불러오지 못했습니다.')
+      } finally {
+        setLoadingCompanies(false)
+      }
+    }
+    loadPartners()
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,19 +63,37 @@ export default function SignupRequestPage() {
       setError('이용약관 및 개인정보처리방침에 동의해주세요.')
       return
     }
+    if (!selectedCompanyId) {
+      setError('소속(파트너사)을 선택해주세요.')
+      return
+    }
+
+    const selectedCompany = partnerCompanies.find(p => p.id === selectedCompanyId)
+    const companyName = selectedCompany?.company_name || ''
 
     setLoading(true)
     setError(null)
 
     try {
-      const result = await requestSignupApproval(formData)
-      if (result?.error) {
-        setError(result.error)
-      } else if (result?.success) {
+      const res = await fetch('/api/auth/signup-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          jobTitle: formData.jobTitle,
+          phone: formData.phone,
+          email: formData.email,
+          partnerCompanyId: selectedCompanyId,
+        }),
+      })
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok || payload?.error) {
+        setError(payload?.error || '승인 요청 중 오류가 발생했습니다.')
+      } else {
         setSubmitted(true)
       }
-    } catch (error: unknown) {
-      console.error('Signup request error:', error)
+    } catch (err) {
+      console.error('Signup request error:', err)
       setError('승인 요청 중 오류가 발생했습니다.')
     } finally {
       setLoading(false)
@@ -50,170 +106,418 @@ export default function SignupRequestPage() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-        <div className="w-full max-w-md">
-          {/* 로고 및 타이틀 */}
-          <div className="text-center mb-8">
-            <div className="mx-auto w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-              <span className="text-white text-2xl font-bold">IN</span>
+      <>
+        <style jsx>{`
+          .container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            padding: 0 20px;
+          }
+          .content {
+            width: 100%;
+            max-width: 400px;
+          }
+          .header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin: 0 auto 20px;
+          }
+          .logo {
+            height: 38px;
+            width: auto;
+          }
+          .title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a254f;
+            margin: 0;
+          }
+          .card {
+            background: #fff;
+            border: 1px solid #eef2f7;
+            border-radius: 8px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+            padding: 18px;
+            text-align: center;
+          }
+          .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 16px;
+            background: #1a254f;
+            color: #fff;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+          }
+        `}</style>
+        <div className="container">
+          <div className="content">
+            <div className="header">
+              <img
+                src="/images/inopnc-logo-n.png"
+                alt="INOPNC 로고"
+                width={114}
+                height={38}
+                className="logo"
+                data-stage="primary"
+                onError={(e: any) => {
+                  const img = e.currentTarget as HTMLImageElement & { dataset: { stage?: string } }
+                  if (img.dataset.stage === 'primary') {
+                    img.src = '/images/logo_g.png'
+                    img.dataset.stage = 'backup'
+                  } else if (img.dataset.stage === 'backup') {
+                    img.src = inlineSvg
+                    img.dataset.stage = 'inline'
+                  }
+                }}
+              />
+              <h1 className="title">회원가입</h1>
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">INOPNC</h1>
-            <p className="text-gray-600 mt-2">회원가입</p>
-          </div>
-
-          {/* 승인 완료 메시지 */}
-          <div className="bg-white rounded-lg shadow-xl p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="card">
+              <h2 style={{ fontSize: 20, fontWeight: 600, color: '#111827', marginBottom: 8 }}>
+                승인요청 완료
+              </h2>
+              <p style={{ color: '#6B7280', marginBottom: 16 }}>
+                회원가입 승인요청이 성공적으로 제출되었습니다.
+                <br />
+                관리자 승인 후 이메일로 안내드리겠습니다.
+              </p>
+              <Link href="/auth/login" className="btn">
+                로그인 화면으로
+              </Link>
             </div>
-            <h2 className="text-2xl font-semibold text-gray-900 mb-4">승인요청 완료</h2>
-            <p className="text-gray-600 mb-6">
-              회원가입 승인요청이 성공적으로 제출되었습니다.<br/>
-              관리자 승인 후 이메일로 안내드리겠습니다.
-            </p>
-            <Link 
-              href="/auth/login"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              로그인 화면으로
-            </Link>
           </div>
         </div>
-      </div>
+      </>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-8">
-      <div className="w-full max-w-md">
-        {/* 로고 및 타이틀 */}
-        <div className="text-center mb-8">
-          <div className="mx-auto w-20 h-20 bg-blue-600 rounded-full flex items-center justify-center mb-4">
-            <span className="text-white text-2xl font-bold">IN</span>
+    <>
+      <style jsx>{`
+        .container {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #ffffff;
+          padding: 0 20px;
+        }
+        .content {
+          width: 100%;
+          max-width: 400px;
+        }
+        .header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          margin: 0 auto 20px;
+        }
+        .logo {
+          height: 38px;
+          width: auto;
+        }
+        .title {
+          font-size: 24px;
+          font-weight: 700;
+          color: #1a254f;
+          margin: 0;
+        }
+        .card {
+          background: #fff;
+          border: 1px solid #eef2f7;
+          border-radius: 8px;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+          padding: 18px;
+        }
+        .form-group {
+          margin-bottom: 18px;
+        }
+        .label {
+          display: block;
+          font-size: 14px;
+          color: #374151;
+          margin-bottom: 8px;
+        }
+        .input {
+          width: 100%;
+          height: 45px;
+          padding: 0 14px;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          background: #fff;
+          color: #6b7280;
+          font-size: 16px;
+          font-weight: 500;
+        }
+        .input:focus {
+          outline: none;
+          border-color: #31a3fa;
+          box-shadow: 0 0 0 3px rgba(49, 163, 250, 0.1);
+        }
+        .error {
+          background: #fef2f2;
+          border: 1px solid #fecaca;
+          color: #dc2626;
+          padding: 12px 16px;
+          border-radius: 8px;
+          font-size: 14px;
+          margin-bottom: 8px;
+        }
+        .submit {
+          width: 100%;
+          height: 45px;
+          border: none;
+          border-radius: 8px;
+          background: #1a254f;
+          color: #fff;
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          margin-top: 12px;
+        }
+        .submit:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .terms {
+          display: flex;
+          align-items: flex-start;
+          gap: 8px;
+        }
+        .footer {
+          text-align: center;
+          margin-top: 12px;
+          color: #6b7280;
+          font-size: 14px;
+        }
+        .footer a {
+          color: #1a254f;
+          font-weight: 600;
+          text-decoration: none;
+        }
+        .filter-row {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 8px;
+          align-items: center;
+        }
+        .filter-btn {
+          border: 1px solid #d1d5db;
+          background: #fff;
+          color: #374151;
+          border-radius: 8px;
+          padding: 6px 10px;
+          font-size: 12px;
+          cursor: pointer;
+        }
+        .filter-btn.active {
+          background: #eef6ff;
+          border-color: #31a3fa;
+          color: #1a254f;
+        }
+        .status-badge {
+          margin-left: 8px;
+          padding: 2px 6px;
+          border-radius: 9999px;
+          font-size: 11px;
+          font-weight: 600;
+          display: inline-block;
+        }
+        .status-active {
+          background: #dcfce7;
+          color: #166534;
+        }
+        .status-pending {
+          background: #fef9c3;
+          color: #854d0e;
+        }
+        .status-disabled {
+          background: #e5e7eb;
+          color: #374151;
+        }
+      `}</style>
+
+      <div className="container">
+        <div className="content">
+          <div className="header">
+            <img
+              src="/images/inopnc-logo-n.png"
+              alt="INOPNC 로고"
+              width={114}
+              height={38}
+              className="logo"
+              data-stage="primary"
+              onError={(e: any) => {
+                const img = e.currentTarget as HTMLImageElement & { dataset: { stage?: string } }
+                if (img.dataset.stage === 'primary') {
+                  img.src = '/images/logo_g.png'
+                  img.dataset.stage = 'backup'
+                } else if (img.dataset.stage === 'backup') {
+                  img.src = inlineSvg
+                  img.dataset.stage = 'inline'
+                }
+              }}
+            />
+            <h1 className="title">회원가입</h1>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">INOPNC</h1>
-          <p className="text-gray-600 mt-2">회원가입</p>
-        </div>
 
-        {/* 회원가입 승인요청 폼 */}
-        <div className="bg-white rounded-lg shadow-xl p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* 이름 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                이름
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="이름을 입력하세요"
-              />
-            </div>
-
-            {/* 소속(회사명) */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                소속(회사명)
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.company}
-                onChange={(e) => handleInputChange('company', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="회사명을 입력하세요"
-              />
-            </div>
-
-            {/* 직함 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                직함
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.jobTitle}
-                onChange={(e) => handleInputChange('jobTitle', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="직함을 입력하세요"
-              />
-            </div>
-
-            {/* 핸드폰 번호 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                핸드폰 번호
-              </label>
-              <input
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="010-0000-0000"
-              />
-            </div>
-
-            {/* 이메일 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                이메일
-              </label>
-              <input
-                type="email"
-                required
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="example@company.com"
-              />
-            </div>
-
-            {/* 이용약관 동의 */}
-            <div className="flex items-start space-x-2">
-              <input
-                type="checkbox"
-                id="terms"
-                checked={termsAccepted}
-                onChange={(e) => setTermsAccepted(e.target.checked)}
-                className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="terms" className="text-sm text-gray-700">
-                이용약관 및 개인정보처리방침에 동의합니다
-              </label>
-            </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md text-sm">
-                {error}
+          <div className="card">
+            {error && <div className="error">{error}</div>}
+            <form onSubmit={handleSubmit}>
+              {/* 이름 */}
+              <div className="form-group">
+                <label className="label">이름</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.fullName}
+                  onChange={e => handleInputChange('fullName', e.target.value)}
+                  className="input"
+                  placeholder="이름을 입력하세요"
+                />
               </div>
-            )}
 
-            {/* 승인요청 버튼 */}
-            <button
-              type="submit"
-              disabled={loading || !termsAccepted}
-              className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '승인요청 중...' : '승인요청'}
-            </button>
-          </form>
+              {/* 소속(파트너사) */}
+              <div className="form-group">
+                <label className="label">소속(파트너사)</label>
+                <div className="filter-row">
+                  <span style={{ fontSize: 12, color: '#6B7280' }}>표시:</span>
+                  <button
+                    type="button"
+                    className={`filter-btn ${companyFilter === 'active' ? 'active' : ''}`}
+                    onClick={() => setCompanyFilter('active')}
+                  >
+                    활성만
+                  </button>
+                  <button
+                    type="button"
+                    className={`filter-btn ${companyFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setCompanyFilter('all')}
+                  >
+                    전체
+                  </button>
+                </div>
+                <CustomSelect
+                  value={selectedCompanyId}
+                  onValueChange={val => setSelectedCompanyId(val)}
+                  disabled={loadingCompanies}
+                >
+                  <CustomSelectTrigger className="h-[45px] rounded-[8px] bg-white border border-[#D1D5DB] px-4 text-[16px] font-medium text-[#6B7280]">
+                    <CustomSelectValue
+                      placeholder={loadingCompanies ? '불러오는 중...' : '파트너사를 선택하세요'}
+                    />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent sideOffset={6}>
+                    {partnerCompanies.filter(p =>
+                      companyFilter === 'all' ? true : (p.status || 'active') === 'active'
+                    ).length === 0 ? (
+                      <CustomSelectItem value="__no_options__" disabled>
+                        등록된 파트너사가 없습니다
+                      </CustomSelectItem>
+                    ) : (
+                      partnerCompanies
+                        .filter(p =>
+                          companyFilter === 'all' ? true : (p.status || 'active') === 'active'
+                        )
+                        .map(p => (
+                          <CustomSelectItem key={p.id} value={p.id}>
+                            <span>{p.company_name}</span>
+                            <span
+                              className={`status-badge ${
+                                (p.status || 'active') === 'active'
+                                  ? 'status-active'
+                                  : (p.status || '').toLowerCase() === 'pending'
+                                    ? 'status-pending'
+                                    : 'status-disabled'
+                              }`}
+                            >
+                              {(p.status || 'active') === 'active'
+                                ? 'active'
+                                : (p.status || '').toLowerCase() === 'pending'
+                                  ? 'pending'
+                                  : p.status || 'disabled'}
+                            </span>
+                          </CustomSelectItem>
+                        ))
+                    )}
+                  </CustomSelectContent>
+                </CustomSelect>
+              </div>
 
-          {/* 로그인 링크 */}
-          <div className="mt-6 text-center">
-            <span className="text-sm text-gray-600">이미 계정이 있으신가요? </span>
-            <Link href="/auth/login" className="text-sm font-medium text-blue-600 hover:text-blue-500">
-              로그인
-            </Link>
+              {/* 직함 */}
+              <div className="form-group">
+                <label className="label">직함</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.jobTitle}
+                  onChange={e => handleInputChange('jobTitle', e.target.value)}
+                  className="input"
+                  placeholder="직함을 입력하세요"
+                />
+              </div>
+
+              {/* 핸드폰 번호 */}
+              <div className="form-group">
+                <label className="label">핸드폰 번호</label>
+                <input
+                  type="tel"
+                  required
+                  value={formData.phone}
+                  onChange={e => handleInputChange('phone', e.target.value)}
+                  className="input"
+                  placeholder="010-0000-0000"
+                />
+              </div>
+
+              {/* 이메일 */}
+              <div className="form-group">
+                <label className="label">이메일</label>
+                <input
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={e => handleInputChange('email', e.target.value)}
+                  className="input"
+                  placeholder="example@company.com"
+                />
+              </div>
+
+              {/* 이용약관 동의 */}
+              <div className="terms form-group">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={termsAccepted}
+                  onChange={e => setTermsAccepted(e.target.checked)}
+                  style={{ width: 18, height: 18 }}
+                />
+                <label htmlFor="terms" style={{ fontSize: 14, color: '#374151' }}>
+                  이용약관 및 개인정보처리방침에 동의합니다
+                </label>
+              </div>
+
+              <button type="submit" className="submit" disabled={loading || !termsAccepted}>
+                {loading ? '승인요청 중...' : '승인요청'}
+              </button>
+            </form>
+
+            <div className="footer">
+              <span>이미 계정이 있으신가요? </span>
+              <Link href="/auth/login">로그인</Link>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }
