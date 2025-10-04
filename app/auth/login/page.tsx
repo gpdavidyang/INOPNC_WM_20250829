@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import LogoImage from '@/components/LogoImage'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -12,17 +13,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [email, setEmail] = useState('')
   const [devHelp, setDevHelp] = useState<string | null>(null)
-  // Logo fallback state to ensure reliable rendering in production
-  const INLINE_SVG_PLACEHOLDER =
-    'data:image/svg+xml;utf8,' +
-    encodeURIComponent(
-      '<svg width="114" height="38" viewBox="0 0 114 38" xmlns="http://www.w3.org/2000/svg">' +
-        '<rect width="114" height="38" fill="#1A254F"/>' +
-        '<text x="57" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FFFFFF">INOPNC</text>' +
-        '</svg>'
-    )
-  const [logoSrc, setLogoSrc] = useState<string>('/images/inopnc-logo-n.png')
-  const [logoStage, setLogoStage] = useState<'primary' | 'backup' | 'inline'>('primary')
+  // Logo handled by client component
 
   // Find ID modal state (UI only)
   const [isFindIdOpen, setIsFindIdOpen] = useState(false)
@@ -600,24 +591,7 @@ export default function LoginPage() {
       <div className="login-container">
         <div className="login-content">
           <div className="login-header">
-            <img
-              src={logoSrc}
-              alt="INOPNC 로고"
-              width={114}
-              height={38}
-              className="login-logo"
-              decoding="async"
-              loading="eager"
-              onError={() => {
-                if (logoStage === 'primary') {
-                  setLogoSrc('/images/logo_g.png')
-                  setLogoStage('backup')
-                } else if (logoStage === 'backup') {
-                  setLogoSrc(INLINE_SVG_PLACEHOLDER)
-                  setLogoStage('inline')
-                }
-              }}
-            />
+            <LogoImage srcPrimary="/INOPNC_logo.png" className="login-logo" />
             <h1 className="login-title">로그인</h1>
           </div>
 

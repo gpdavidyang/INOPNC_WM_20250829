@@ -38,7 +38,7 @@ export default function ResetPasswordPage() {
       <div className="reset-container">
         <div className="reset-content">
           <div className="reset-header">
-            <LogoImage className="reset-logo" />
+            <LogoImage srcPrimary="/INOPNC_logo.png" className="reset-logo" />
             <h1 className="reset-title">비밀번호 재설정</h1>
           </div>
 

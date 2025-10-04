@@ -18,7 +18,12 @@ export default function UpdatePasswordPage() {
         {/* 로고 */}
         <div className="text-center mb-8">
           <div className="mx-auto w-20 h-20 mb-6 flex items-center justify-center bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/20">
-            <LogoImage width={48} height={48} className="object-contain" />
+            <LogoImage
+              srcPrimary="/INOPNC_logo.png"
+              width={48}
+              height={48}
+              className="object-contain"
+            />
           </div>
         </div>
 

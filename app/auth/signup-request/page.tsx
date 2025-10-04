@@ -174,7 +174,7 @@ export default function SignupRequestPage() {
         <div className="container">
           <div className="content">
             <div className="header">
-              <LogoImage className="logo" />
+              <LogoImage srcPrimary="/INOPNC_logo.png" className="logo" />
               <h1 className="title">회원가입</h1>
             </div>
             <div className="card">
@@ -401,7 +401,7 @@ export default function SignupRequestPage() {
       <div className="container">
         <div className="content">
           <div className="header">
-            <LogoImage className="logo" />
+            <LogoImage srcPrimary="/INOPNC_logo.png" className="logo" />
             <h1 className="title">회원가입</h1>
           </div>
 
