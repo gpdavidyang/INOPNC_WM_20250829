@@ -179,6 +179,10 @@ const nextConfig = {
         source: '/images/inopnc_logo_horizon.png',
         destination: '/images/Inopnc_logo_horizon.png',
       },
+      {
+        source: '/images/inopnc-logo-n.png',
+        destination: '/images/Inopnc_logo_horizon.png',
+      },
     ]
   },
 }
