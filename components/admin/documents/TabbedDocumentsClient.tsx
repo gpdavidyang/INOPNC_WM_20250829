@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/ui/strings'
 import Link from 'next/link'
 import {
   Dialog,
@@ -259,7 +260,7 @@ export default function TabbedDocumentsClient({
               </div>
               <div className="lg:col-span-2 flex gap-2">
                 <Button type="submit" variant="outline">
-                  적용
+                  {t('common.apply')}
                 </Button>
                 <Button
                   type="button"
@@ -272,7 +273,7 @@ export default function TabbedDocumentsClient({
                     void load()
                   }}
                 >
-                  초기화
+                  {t('common.reset')}
                 </Button>
                 <Link
                   href={`/dashboard/admin/documents/${active === 'photo_grid' ? 'photo-grid' : active === 'required' ? 'required' : active}`}
@@ -404,14 +405,14 @@ export default function TabbedDocumentsClient({
                   disabled={page <= 1}
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                 >
-                  이전
+                  {t('common.prev')}
                 </Button>
                 <Button
                   variant="outline"
                   disabled={page >= pages}
                   onClick={() => setPage(p => Math.min(pages, p + 1))}
                 >
-                  다음
+                  {t('common.next')}
                 </Button>
               </div>
             </div>

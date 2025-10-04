@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface Document {
   id: string
@@ -41,16 +42,21 @@ export default function MyDocumentsManagement() {
     try {
       let query = supabase
         .from('documents')
-        .select(`
+        .select(
+          `
           *,
           profiles!documents_created_by_fkey(id, full_name, email),
           sites(id, name)
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('location', 'personal')
 
       // 검색 필터 적용
       if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        query = query.or(
+          `title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
+        )
       }
 
       // 사용자 필터 적용
@@ -80,10 +86,7 @@ export default function MyDocumentsManagement() {
     if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return
 
     try {
-      const { error } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', documentId)
+      const { error } = await supabase.from('documents').delete().eq('id', documentId)
 
       if (error) throw error
 
@@ -136,22 +139,22 @@ export default function MyDocumentsManagement() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="문서명, 파일명으로 검색..."
+              placeholder={t('common.search')}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={searchTerm}
-              onChange={(e) => {
+              onChange={e => {
                 setSearchTerm(e.target.value)
                 setCurrentPage(1)
               }}
             />
           </div>
-          
+
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <select
               className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
               value={selectedUser}
-              onChange={(e) => {
+              onChange={e => {
                 setSelectedUser(e.target.value)
                 setCurrentPage(1)
               }}
@@ -160,13 +163,13 @@ export default function MyDocumentsManagement() {
               {/* 실제 구현에서는 사용자 목록을 동적으로 로드 */}
             </select>
           </div>
-          
+
           <button
             onClick={fetchDocuments}
             className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            새로고침
+            {t('common.refresh')}
           </button>
         </div>
       </div>
@@ -175,7 +178,8 @@ export default function MyDocumentsManagement() {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>개의 개인 문서
+            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>
+            개의 개인 문서
           </div>
           <div className="text-sm text-gray-600">
             {currentPage} / {totalPages} 페이지
@@ -218,7 +222,7 @@ export default function MyDocumentsManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {documents.map((document) => (
+                {documents.map(document => (
                   <tr key={document.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-start">
@@ -226,13 +230,9 @@ export default function MyDocumentsManagement() {
                           {getFileTypeIcon(document.mime_type)}
                         </span>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {document.title}
-                          </div>
+                          <div className="text-sm font-medium text-gray-900">{document.title}</div>
                           {document.description && (
-                            <div className="text-sm text-gray-500 mt-1">
-                              {document.description}
-                            </div>
+                            <div className="text-sm text-gray-500 mt-1">{document.description}</div>
                           )}
                         </div>
                       </div>
@@ -241,14 +241,10 @@ export default function MyDocumentsManagement() {
                       <div className="text-sm text-gray-900">
                         {document.profiles?.full_name || '알 수 없음'}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {document.profiles?.email}
-                      </div>
+                      <div className="text-sm text-gray-500">{document.profiles?.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {document.file_name}
-                      </div>
+                      <div className="text-sm text-gray-900">{document.file_name}</div>
                       <div className="text-sm text-gray-500">
                         {formatFileSize(document.file_size)}
                       </div>
@@ -259,7 +255,7 @@ export default function MyDocumentsManagement() {
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -292,7 +288,8 @@ export default function MyDocumentsManagement() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow">
           <div className="text-sm text-gray-700">
-            {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
+            {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -300,9 +297,9 @@ export default function MyDocumentsManagement() {
               disabled={currentPage === 1}
               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              이전
+              {t('common.prev')}
             </button>
-            
+
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
               return (
@@ -310,8 +307,8 @@ export default function MyDocumentsManagement() {
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
                   className={`px-3 py-1 border rounded text-sm ${
-                    currentPage === pageNum 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -319,13 +316,13 @@ export default function MyDocumentsManagement() {
                 </button>
               )
             })}
-            
+
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              다음
+              {t('common.next')}
             </button>
           </div>
         </div>

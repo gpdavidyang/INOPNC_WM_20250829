@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import MarkupDocumentVersionModal from './MarkupDocumentVersionModal'
 
 interface MarkupDocument {
@@ -80,17 +82,22 @@ export default function MarkupDocumentsManagement() {
     try {
       let query = supabase
         .from('unified_document_system')
-        .select(`
+        .select(
+          `
           *,
           profiles!unified_document_system_uploaded_by_fkey(id, full_name, email),
           sites(id, name, address)
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('category_type', 'markup')
         .eq('status', 'active')
 
       // 검색 필터 적용
       if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,original_filename.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        query = query.or(
+          `title.ilike.%${searchTerm}%,original_filename.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
+        )
       }
 
       // 현장 필터 적용
@@ -160,7 +167,6 @@ export default function MarkupDocumentsManagement() {
     window.location.href = `/dashboard/admin/documents/markup/${document.id}`
   }
 
-
   const handleVersionRestore = () => {
     // 버전 복원 후 목록 새로고침
     fetchDocuments()
@@ -185,49 +191,48 @@ export default function MarkupDocumentsManagement() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="도면명, 파일명으로 검색..."
+              placeholder={t('common.search')}
               className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
               value={searchTerm}
-              onChange={(e) => {
+              onChange={e => {
                 setSearchTerm(e.target.value)
                 setCurrentPage(1)
               }}
             />
           </div>
-          
+
           <div className="relative">
             <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <select
               className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
               value={selectedSite}
-              onChange={(e) => {
+              onChange={e => {
                 setSelectedSite(e.target.value)
                 setCurrentPage(1)
               }}
             >
               <option value="">모든 현장</option>
-              {sites.map((site) => (
+              {sites.map(site => (
                 <option key={site.id} value={site.id}>
                   {site.name}
                 </option>
               ))}
             </select>
           </div>
-          
+
           <button
             onClick={fetchDocuments}
             className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            새로고침
+            {t('common.refresh')}
           </button>
 
           <button
-            onClick={() => window.location.href = '/dashboard/markup-tool'}
+            onClick={() => (window.location.href = '/dashboard/markup-tool')}
             className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
           >
-            <PenTool className="w-4 h-4 mr-2" />
-            새 도면마킹
+            <PenTool className="w-4 h-4 mr-2" />새 도면마킹
           </button>
         </div>
       </div>
@@ -236,11 +241,10 @@ export default function MarkupDocumentsManagement() {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>개의 도면마킹 문서
+            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>
+            개의 도면마킹 문서
             {selectedSite && (
-              <span className="ml-2">
-                (현장: {sites.find(s => s.id === selectedSite)?.name})
-              </span>
+              <span className="ml-2">(현장: {sites.find(s => s.id === selectedSite)?.name})</span>
             )}
           </div>
           <div className="text-sm text-gray-600">
@@ -293,15 +297,15 @@ export default function MarkupDocumentsManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {documents.map((document) => (
+                {documents.map(document => (
                   <tr key={document.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-start">
                         <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center mr-4">
                           {document.metadata?.preview_image_url ? (
-                            <img 
-                              src={document.metadata.preview_image_url} 
-                              alt="미리보기" 
+                            <img
+                              src={document.metadata.preview_image_url}
+                              alt="미리보기"
                               className="w-full h-full object-cover rounded-lg"
                             />
                           ) : (
@@ -319,9 +323,7 @@ export default function MarkupDocumentsManagement() {
                             {document.metadata?.original_filename || document.file_name}
                           </div>
                           {document.description && (
-                            <div className="text-sm text-gray-500 mt-1">
-                              {document.description}
-                            </div>
+                            <div className="text-sm text-gray-500 mt-1">{document.description}</div>
                           )}
                         </div>
                       </div>
@@ -331,18 +333,14 @@ export default function MarkupDocumentsManagement() {
                         {document.sites?.name || '미지정'}
                       </div>
                       {document.sites?.address && (
-                        <div className="text-sm text-gray-500">
-                          {document.sites.address}
-                        </div>
+                        <div className="text-sm text-gray-500">{document.sites.address}</div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {document.profiles?.full_name || '알 수 없음'}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {document.profiles?.email}
-                      </div>
+                      <div className="text-sm text-gray-500">{document.profiles?.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -372,7 +370,7 @@ export default function MarkupDocumentsManagement() {
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -419,7 +417,8 @@ export default function MarkupDocumentsManagement() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow">
           <div className="text-sm text-gray-700">
-            {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
+            {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -427,9 +426,9 @@ export default function MarkupDocumentsManagement() {
               disabled={currentPage === 1}
               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              이전
+              {t('common.prev')}
             </button>
-            
+
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
               return (
@@ -437,8 +436,8 @@ export default function MarkupDocumentsManagement() {
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
                   className={`px-3 py-1 border rounded text-sm ${
-                    currentPage === pageNum 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -446,13 +445,13 @@ export default function MarkupDocumentsManagement() {
                 </button>
               )
             })}
-            
+
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              다음
+              {t('common.next')}
             </button>
           </div>
         </div>
@@ -470,7 +469,6 @@ export default function MarkupDocumentsManagement() {
           onVersionRestore={handleVersionRestore}
         />
       )}
-
     </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { t } from '@/lib/ui/strings'
 import { createClient } from '@/lib/supabase/client'
 
 type Worker = { id: string; full_name: string }
@@ -318,7 +319,7 @@ export default function SnapshotList() {
           onClick={fetchList}
           disabled={loading}
         >
-          새로고침
+          {t('common.refresh')}
         </button>
         <button
           className="px-3 py-2 text-sm border rounded-md bg-white text-gray-900 shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"

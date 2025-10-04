@@ -26,6 +26,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type { UserWithSites } from '@/app/actions/admin/users'
 import type { UserRole, UserStatus } from '@/types'
 import { UserDetailSheet } from './UserDetailSheet'
+import { t } from '@/lib/ui/strings'
 
 interface UsersContentProps {
   initialUsers: UserWithSites[]
@@ -109,7 +110,9 @@ export function UsersContent({
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(Math.max(initialPages, 1))
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(initialLoadErrored ? '초기 사용자 데이터를 불러오지 못했습니다.' : null)
+  const [error, setError] = useState<string | null>(
+    initialLoadErrored ? t('users.errors.fetchUsers') : null
+  )
 
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -188,29 +191,26 @@ export function UsersContent({
     fetchUsers(1, { search: '', role: 'all', status: 'all' })
   }, [fetchUsers])
 
-  const handleOpenDetail = useCallback(
-    async (userId: string) => {
-      setSelectedUserId(userId)
-      setDetailLoading(true)
-      try {
-        const response = await fetch(`/api/admin/users/${userId}`, { cache: 'no-store' })
-        const payload = await response.json()
+  const handleOpenDetail = useCallback(async (userId: string) => {
+    setSelectedUserId(userId)
+    setDetailLoading(true)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, { cache: 'no-store' })
+      const payload = await response.json()
 
-        if (!response.ok || !payload?.success) {
-          throw new Error(payload?.error || '사용자 정보를 불러오지 못했습니다.')
-        }
-
-        setSelectedUser(payload.data)
-      } catch (err) {
-        console.error('Failed to load user detail', err)
-        setSelectedUser(null)
-        setError(err instanceof Error ? err.message : '사용자 정보를 불러오지 못했습니다.')
-      } finally {
-        setDetailLoading(false)
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || '사용자 정보를 불러오지 못했습니다.')
       }
-    },
-    []
-  )
+
+      setSelectedUser(payload.data)
+    } catch (err) {
+      console.error('Failed to load user detail', err)
+      setSelectedUser(null)
+      setError(err instanceof Error ? err.message : '사용자 정보를 불러오지 못했습니다.')
+    } finally {
+      setDetailLoading(false)
+    }
+  }, [])
 
   const handleCloseDetail = useCallback(() => {
     setSelectedUserId(null)
@@ -222,20 +222,18 @@ export function UsersContent({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">사용자 관리</h1>
-          <p className="text-sm text-muted-foreground">
-            시스템에 등록된 사용자 계정과 역할을 조회할 수 있습니다.
-          </p>
+          <h1 className="text-2xl font-semibold text-foreground">{t('users.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('users.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => fetchUsers(page)} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            새로고침
+            {t('common.refresh')}
           </Button>
           {isSystemAdmin && (
             <Button variant="default" size="sm" disabled>
               <Users className="mr-2 h-4 w-4" />
-              사용자 초대 예정
+              {t('users.invitePlanned')}
             </Button>
           )}
         </div>
@@ -245,7 +243,7 @@ export function UsersContent({
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">전체 사용자</p>
+              <p className="text-sm text-muted-foreground">{t('users.stats.total')}</p>
               <p className="text-2xl font-semibold text-foreground">{total.toLocaleString()}</p>
             </div>
             <Users className="h-8 w-8 text-primary" />
@@ -254,8 +252,10 @@ export function UsersContent({
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">선택된 역할</p>
-              <p className="text-lg font-medium text-foreground">{ROLE_FILTER_LABELS[roleFilter]}</p>
+              <p className="text-sm text-muted-foreground">{t('users.filters.roleSelected')}</p>
+              <p className="text-lg font-medium text-foreground">
+                {ROLE_FILTER_LABELS[roleFilter]}
+              </p>
             </div>
             <Filter className="h-7 w-7 text-muted-foreground" />
           </CardContent>
@@ -263,7 +263,7 @@ export function UsersContent({
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">선택된 상태</p>
+              <p className="text-sm text-muted-foreground">{t('users.filters.statusSelected')}</p>
               <p className="text-lg font-medium text-foreground">{STATUS_LABELS[statusFilter]}</p>
             </div>
             <Filter className="h-7 w-7 text-muted-foreground" />
@@ -277,10 +277,10 @@ export function UsersContent({
             <div className="flex items-center gap-2">
               <div className="relative flex-1 md:w-72">
                 <Input
-                  placeholder="이름 또는 이메일 검색"
+                  placeholder={t('users.searchPlaceholder')}
                   value={searchInput}
-                  onChange={(event) => setSearchInput(event.target.value)}
-                  onKeyDown={(event) => {
+                  onChange={event => setSearchInput(event.target.value)}
+                  onKeyDown={event => {
                     if (event.key === 'Enter') {
                       handleSearch()
                     }
@@ -290,19 +290,19 @@ export function UsersContent({
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </div>
               <Button variant="secondary" onClick={handleSearch} disabled={loading}>
-                검색
+                {t('common.search')}
               </Button>
             </div>
             <div className="flex gap-2">
               <Select
                 value={roleFilter}
-                onValueChange={(value) => fetchUsers(1, { role: value as RoleFilterOption })}
+                onValueChange={value => fetchUsers(1, { role: value as RoleFilterOption })}
               >
                 <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="역할 필터" />
+                  <SelectValue placeholder={t('users.roleFilter')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLE_OPTIONS.map((option) => (
+                  {ROLE_OPTIONS.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -311,13 +311,13 @@ export function UsersContent({
               </Select>
               <Select
                 value={statusFilter}
-                onValueChange={(value) => fetchUsers(1, { status: value as StatusFilterOption })}
+                onValueChange={value => fetchUsers(1, { status: value as StatusFilterOption })}
               >
                 <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="상태 필터" />
+                  <SelectValue placeholder={t('users.statusFilter')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
+                  {STATUS_OPTIONS.map(option => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>
@@ -327,7 +327,7 @@ export function UsersContent({
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={handleResetFilters} disabled={loading}>
-            필터 초기화
+            {t('common.reset')}
           </Button>
         </div>
 
@@ -336,7 +336,7 @@ export function UsersContent({
 
           {error && (
             <Alert variant="destructive" className="mb-4">
-              <AlertTitle>목록을 불러오는 중 문제가 발생했습니다.</AlertTitle>
+              <AlertTitle>{t('users.errors.fetchList')}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -344,26 +344,32 @@ export function UsersContent({
           {!loading && users.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
               <Search className="h-8 w-8" />
-              <p>조건에 맞는 사용자가 없습니다.</p>
+              <p>{t('users.empty')}</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>사용자</TableHead>
-                    <TableHead>역할</TableHead>
-                    <TableHead>조직</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead>최근 활동</TableHead>
-                    <TableHead className="text-right">상세</TableHead>
+                    <TableHead>{t('users.table.user')}</TableHead>
+                    <TableHead>{t('users.table.role')}</TableHead>
+                    <TableHead>{t('users.table.organization')}</TableHead>
+                    <TableHead>{t('users.table.status')}</TableHead>
+                    <TableHead>{t('users.table.lastActivity')}</TableHead>
+                    <TableHead className="text-right">{t('users.table.details')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id} className="cursor-pointer" onClick={() => handleOpenDetail(user.id)}>
+                  {users.map(user => (
+                    <TableRow
+                      key={user.id}
+                      className="cursor-pointer"
+                      onClick={() => handleOpenDetail(user.id)}
+                    >
                       <TableCell>
-                        <div className="font-medium text-foreground">{user.full_name || '이름 미등록'}</div>
+                        <div className="font-medium text-foreground">
+                          {user.full_name || t('users.noName')}
+                        </div>
                         <div className="text-xs text-muted-foreground">{user.email}</div>
                       </TableCell>
                       <TableCell>
@@ -371,19 +377,27 @@ export function UsersContent({
                           {ROLE_LABELS[user.role as UserRole] || user.role}
                         </Badge>
                       </TableCell>
-                      <TableCell>{user.organization?.name || '미지정'}</TableCell>
+                      <TableCell>
+                        {user.organization?.name || t('commonExtra.unassigned')}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={user.status === 'active' ? 'default' : 'outline'}>
-                          {STATUS_LABELS[user.status as StatusFilterOption] || user.status || '미정'}
+                          {STATUS_LABELS[user.status as StatusFilterOption] ||
+                            user.status ||
+                            t('commonExtra.unknown')}
                         </Badge>
                       </TableCell>
                       <TableCell>{formatDate(user.work_log_stats?.last_report_date)}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" onClick={(event) => {
-                          event.stopPropagation()
-                          handleOpenDetail(user.id)
-                        }}>
-                          상세 보기
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={event => {
+                            event.stopPropagation()
+                            handleOpenDetail(user.id)
+                          }}
+                        >
+                          {t('common.details')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -405,7 +419,7 @@ export function UsersContent({
               onClick={() => fetchUsers(Math.max(page - 1, 1))}
               disabled={loading || page <= 1}
             >
-              이전
+              {t('common.prev')}
             </Button>
             <span>
               {page} / {pages}
@@ -416,7 +430,7 @@ export function UsersContent({
               onClick={() => fetchUsers(Math.min(page + 1, pages))}
               disabled={loading || page >= pages}
             >
-              다음
+              {t('common.next')}
             </Button>
           </div>
         </div>
@@ -424,7 +438,7 @@ export function UsersContent({
 
       <UserDetailSheet
         open={Boolean(selectedUserId)}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           if (!open) {
             handleCloseDetail()
           }

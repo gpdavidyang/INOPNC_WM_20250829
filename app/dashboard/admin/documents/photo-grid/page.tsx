@@ -1,10 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { createClient } from '@/lib/supabase/server'
 import PhotoGridReportsTable from '@/components/admin/PhotoGridReportsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/ui/strings'
 import { formatBytes } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -17,7 +17,6 @@ export default async function AdminPhotoGridDocumentsPage({
   searchParams?: Record<string, string | string[] | undefined>
 }) {
   await requireAdminProfile()
-  const supabase = createClient()
 
   const page = Math.max(1, Number((searchParams?.page as string) || '1') || 1)
   const limitRaw = Number((searchParams?.limit as string) || '20') || 20
@@ -26,47 +25,17 @@ export default async function AdminPhotoGridDocumentsPage({
   const status = ((searchParams?.status as string) || '').trim()
   const site_id = ((searchParams?.site_id as string) || '').trim()
 
-  let query = supabase
-    .from('photo_grid_reports')
-    .select(
-      `
-      id,
-      title,
-      file_url,
-      file_name,
-      file_size,
-      status,
-      created_at,
-      daily_report:daily_reports(
-        work_date,
-        site:sites(id,name)
-      ),
-      generated_by_profile:profiles!generated_by(
-        full_name,
-        email
-      )
-    `,
-      { count: 'exact' }
-    )
-    .order('created_at', { ascending: false })
-
-  if (search) {
-    query = query.ilike('title', `%${search}%`)
-  }
-  if (status) {
-    query = query.eq('status', status)
-  }
-  if (site_id) {
-    query = query.eq('daily_report.site_id', site_id)
-  }
-
-  const offset = (page - 1) * limit
-  query = query.range(offset, offset + limit - 1)
-
-  const { data, count } = await query
-  const total = count || 0
+  const qs = new URLSearchParams()
+  qs.set('page', String(page))
+  qs.set('limit', String(limit))
+  if (search) qs.set('search', search)
+  if (status) qs.set('status', status)
+  if (site_id) qs.set('site_id', site_id)
+  const res = await fetch(`/api/admin/documents/photo-grid?${qs.toString()}`, { cache: 'no-store' })
+  const json = await res.json()
+  const reports = json?.data?.documents || []
+  const total = json?.data?.total || 0
   const pages = Math.max(1, Math.ceil(total / limit))
-  const reports = Array.isArray(data) ? data : []
 
   const buildQuery = (nextPage: number) => {
     const params = new URLSearchParams()
@@ -94,7 +63,7 @@ export default async function AdminPhotoGridDocumentsPage({
           <input type="hidden" name="page" value="1" />
           <div className="lg:col-span-2">
             <label className="block text-sm text-muted-foreground mb-1">검색어</label>
-            <Input name="search" defaultValue={search} placeholder="제목 검색" />
+            <Input name="search" defaultValue={search} placeholder={t('common.search')} />
           </div>
           <div>
             <label className="block text-sm text-muted-foreground mb-1">상태</label>
@@ -127,13 +96,13 @@ export default async function AdminPhotoGridDocumentsPage({
           </div>
           <div className="lg:col-span-2 flex gap-2">
             <Button type="submit" variant="outline">
-              적용
+              {t('common.apply')}
             </Button>
             <Link
               href="/dashboard/admin/documents/photo-grid"
               className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
             >
-              초기화
+              {t('common.reset')}
             </Link>
           </div>
         </form>
@@ -151,13 +120,13 @@ export default async function AdminPhotoGridDocumentsPage({
               href={buildQuery(Math.max(1, page - 1))}
               className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
-              이전
+              {t('common.prev')}
             </Link>
             <Link
               href={buildQuery(Math.min(pages, page + 1))}
               className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page >= pages ? 'pointer-events-none opacity-50' : ''}`}
             >
-              다음
+              {t('common.next')}
             </Link>
           </div>
         </div>

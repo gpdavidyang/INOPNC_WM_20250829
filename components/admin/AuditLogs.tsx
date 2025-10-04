@@ -2,15 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { Activity, AlertCircle, RefreshCw } from 'lucide-react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { t } from '@/lib/ui/strings'
 
 interface AuditLog {
   id: string
@@ -22,7 +17,10 @@ interface AuditLog {
   created_at: string
 }
 
-const STATUS_BADGE_MAP: Record<AuditLog['status'], { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
+const STATUS_BADGE_MAP: Record<
+  AuditLog['status'],
+  { label: string; variant: 'default' | 'secondary' | 'destructive' }
+> = {
   success: { label: '성공', variant: 'secondary' },
   pending: { label: '대기', variant: 'default' },
   failed: { label: '실패', variant: 'destructive' },
@@ -90,13 +88,17 @@ export default function AuditLogSystem() {
             <Activity className="h-5 w-5 text-emerald-500" />
             감사 로그
           </CardTitle>
-          <CardDescription>
-            시스템 전반에서 발생한 주요 활동을 확인할 수 있습니다.
-          </CardDescription>
+          <CardDescription>시스템 전반에서 발생한 주요 활동을 확인할 수 있습니다.</CardDescription>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={refreshing} className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="flex items-center gap-2"
+        >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          새로고침
+          {t('common.refresh')}
         </Button>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -111,7 +113,7 @@ export default function AuditLogSystem() {
           </div>
         ) : (
           <div className="space-y-3">
-            {logs.map((log) => {
+            {logs.map(log => {
               const badge = STATUS_BADGE_MAP[log.status]
               return (
                 <div

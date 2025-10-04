@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { t } from '@/lib/ui/strings'
 import { createClient } from '@/lib/supabase/client'
 
 type Worker = { id: string; full_name: string }
@@ -84,7 +85,7 @@ export default function SalaryRecordsList() {
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="이름/현장 검색"
+          placeholder={t('common.search')}
           className="border rounded-md px-3 py-2 text-sm"
         />
         <input
@@ -113,7 +114,7 @@ export default function SalaryRecordsList() {
           onClick={fetchRecords}
           disabled={loading}
         >
-          조회
+          {t('common.search')}
         </button>
       </div>
 

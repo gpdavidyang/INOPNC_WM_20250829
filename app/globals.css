@@ -59,6 +59,8 @@
   --work-card-border: #e6ecf4;
   --work-card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --work-card-radius: 12px;
+  /* Admin header height (for AppShell layout) */
+  --admin-header-h: 64px;
 }
 
 /* Dark theme extensions */

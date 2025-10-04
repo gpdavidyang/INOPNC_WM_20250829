@@ -10,6 +10,7 @@ import { useFontSize } from '@/hooks/use-font-size'
 import { useTouchMode } from '@/hooks/use-touch-mode'
 import { signOut } from '@/app/auth/actions'
 import GlobalSearchModal from './GlobalSearchModal'
+import { t } from '@/lib/ui/strings'
 
 interface Profile {
   id: string
@@ -112,7 +113,7 @@ export default function AdminHeader({
                 </div>
                 <div>
                   <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    관리자 대시보드
+                    {t('admin.dashboard')}
                   </h1>
                 </div>
               </div>
@@ -127,7 +128,7 @@ export default function AdminHeader({
             >
               <Search className="h-4 w-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300" />
               <span className="flex-1 text-left text-sm text-gray-500 dark:text-gray-400">
-                검색하기...
+                {t('admin.searchPlaceholder')}
               </span>
               <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded text-xs text-gray-500 dark:text-gray-400">
                 <span className="text-lg leading-none">⌘</span>K
@@ -141,7 +142,7 @@ export default function AdminHeader({
             <button
               onClick={() => setIsSearchOpen(true)}
               className="md:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label="검색"
+              aria-label={t('common.search')}
             >
               <Search className="h-5 w-5 text-gray-600 dark:text-gray-400" />
             </button>
@@ -149,7 +150,7 @@ export default function AdminHeader({
             {/* Notifications */}
             <button
               className="relative p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              aria-label="알림"
+              aria-label={t('admin.notifications')}
             >
               <Bell className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -215,14 +216,14 @@ export default function AdminHeader({
                       onClick={() => setIsProfileOpen(false)}
                     >
                       <Settings className="h-4 w-4" />
-                      계정 설정
+                      {t('admin.accountSettings')}
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
                     >
                       <LogOut className="h-4 w-4" />
-                      로그아웃
+                      {t('common.logout')}
                     </button>
                   </div>
                 </>

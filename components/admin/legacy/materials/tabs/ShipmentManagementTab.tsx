@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface ShipmentManagementTabProps {
   profile: Profile
@@ -50,7 +51,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     tracking_number: '',
     carrier: '',
     shipment_method: 'parcel',
-    notes: ''
+    notes: '',
   })
 
   // Pending requests
@@ -58,7 +59,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     urgent: [] as any[],
     high_priority: [] as any[],
     normal: [] as any[],
-    total_count: 0
+    total_count: 0,
   })
 
   // Fetch data
@@ -73,7 +74,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     setLoading(true)
     try {
       const filters: unknown = {}
-      
+
       // Date range filter
       const now = new Date()
       if (selectedDateRange === 'week') {
@@ -88,8 +89,11 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
         filters.status = selectedStatus
       }
 
-      const result = await getShipmentHistory(selectedSite === 'all' ? undefined : selectedSite, filters)
-      
+      const result = await getShipmentHistory(
+        selectedSite === 'all' ? undefined : selectedSite,
+        filters
+      )
+
       if (result.success) {
         setShipments(result.data || [])
       } else {
@@ -150,7 +154,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       tracking_number: '',
       carrier: '',
       shipment_method: 'parcel',
-      notes: ''
+      notes: '',
     })
     setShowAddModal(true)
   }
@@ -165,7 +169,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       tracking_number: shipment.tracking_number || '',
       carrier: shipment.carrier || '',
       shipment_method: 'parcel',
-      notes: shipment.notes || ''
+      notes: shipment.notes || '',
     })
     setShowEditModal(true)
   }
@@ -177,16 +181,13 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
 
   const handleDelete = async (shipmentId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
-    
+
     try {
       const supabase = createClient()
-      const { error } = await supabase
-        .from('shipments')
-        .delete()
-        .eq('id', shipmentId)
-      
+      const { error } = await supabase.from('shipments').delete().eq('id', shipmentId)
+
       if (error) throw error
-      
+
       toast.success('출고 기록이 삭제되었습니다.')
       fetchShipments()
     } catch (error) {
@@ -215,7 +216,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
         planned_delivery_date: formData.planned_delivery_date || undefined,
         tracking_number: formData.tracking_number || undefined,
         carrier: formData.carrier || undefined,
-        notes: formData.notes || undefined
+        notes: formData.notes || undefined,
       }
 
       const result = await processShipment(shipmentData)
@@ -242,7 +243,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
         planned_delivery_date: formData.planned_delivery_date || undefined,
         tracking_number: formData.tracking_number || undefined,
         carrier: formData.carrier || undefined,
-        notes: formData.notes || undefined
+        notes: formData.notes || undefined,
       }
 
       const result = await updateShipmentInfo(selectedShipment.id, updates)
@@ -261,7 +262,10 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     }
   }
 
-  const handleStatusUpdate = async (shipmentId: string, newStatus: 'preparing' | 'shipped' | 'in_transit' | 'delivered' | 'cancelled') => {
+  const handleStatusUpdate = async (
+    shipmentId: string,
+    newStatus: 'preparing' | 'shipped' | 'in_transit' | 'delivered' | 'cancelled'
+  ) => {
     try {
       const result = await updateShipmentStatus(shipmentId, newStatus)
 
@@ -280,28 +284,29 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     }
   }
 
-  const filteredShipments = shipments.filter(shipment =>
-    searchTerm === '' || 
-    shipment.shipment_date.includes(searchTerm) ||
-    shipment.site_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shipment.carrier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shipment.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    shipment.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredShipments = shipments.filter(
+    shipment =>
+      searchTerm === '' ||
+      shipment.shipment_date.includes(searchTerm) ||
+      shipment.site_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      shipment.carrier?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      shipment.tracking_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      shipment.notes?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   // Sort shipments
   const sortedShipments = [...filteredShipments].sort((a, b) => {
     let aVal: unknown = a[sortField as keyof ExtendedShipmentRecord]
     let bVal: unknown = b[sortField as keyof ExtendedShipmentRecord]
-    
+
     if (aVal === null || aVal === undefined) aVal = ''
     if (bVal === null || bVal === undefined) bVal = ''
-    
+
     if (typeof aVal === 'string') {
       aVal = aVal.toLowerCase()
       bVal = bVal.toLowerCase()
     }
-    
+
     if (sortDirection === 'asc') {
       return aVal > bVal ? 1 : -1
     } else {
@@ -322,21 +327,39 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     if (sortField !== field) {
       return <div className="w-4 h-4" />
     }
-    return sortDirection === 'asc' ? 
-      <ChevronUp className="h-4 w-4" /> : 
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="h-4 w-4" />
+    ) : (
       <ChevronDown className="h-4 w-4" />
+    )
   }
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'delivered':
-        return <Badge variant="default" className="bg-green-100 text-green-800">배송완료</Badge>
+        return (
+          <Badge variant="default" className="bg-green-100 text-green-800">
+            배송완료
+          </Badge>
+        )
       case 'in_transit':
-        return <Badge variant="default" className="bg-blue-100 text-blue-800">운송중</Badge>
+        return (
+          <Badge variant="default" className="bg-blue-100 text-blue-800">
+            운송중
+          </Badge>
+        )
       case 'shipped':
-        return <Badge variant="default" className="bg-indigo-100 text-indigo-800">출고완료</Badge>
+        return (
+          <Badge variant="default" className="bg-indigo-100 text-indigo-800">
+            출고완료
+          </Badge>
+        )
       case 'cancelled':
-        return <Badge variant="secondary" className="bg-red-100 text-red-800">취소됨</Badge>
+        return (
+          <Badge variant="secondary" className="bg-red-100 text-red-800">
+            취소됨
+          </Badge>
+        )
       case 'preparing':
       default:
         return <Badge variant="secondary">준비중</Badge>
@@ -361,7 +384,9 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
 
   const totalShipments = filteredShipments.length
   const deliveredCount = filteredShipments.filter(s => s.status === 'delivered').length
-  const inTransitCount = filteredShipments.filter(s => s.status === 'in_transit' || s.status === 'shipped').length
+  const inTransitCount = filteredShipments.filter(
+    s => s.status === 'in_transit' || s.status === 'shipped'
+  ).length
   const totalQuantity = filteredShipments.reduce((sum, s) => sum + s.quantity_shipped, 0)
 
   return (
@@ -380,7 +405,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -425,9 +450,9 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="출고일, 현장명, 운송업체, 송장번호로 검색..."
+              placeholder={t('common.search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 w-80"
             />
           </div>
@@ -438,8 +463,10 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체 현장</SelectItem>
-              {sites.map((site) => (
-                <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+              {sites.map(site => (
+                <SelectItem key={site.id} value={site.id}>
+                  {site.name}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -489,7 +516,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => handleSort('shipment_date')}
                   >
@@ -498,7 +525,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                       <SortIcon field="shipment_date" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => handleSort('site_name')}
                   >
@@ -507,7 +534,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                       <SortIcon field="site_name" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => handleSort('quantity_shipped')}
                   >
@@ -516,7 +543,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                       <SortIcon field="quantity_shipped" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => handleSort('status')}
                   >
@@ -525,7 +552,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                       <SortIcon field="status" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => handleSort('planned_delivery_date')}
                   >
@@ -534,7 +561,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                       <SortIcon field="planned_delivery_date" />
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={() => handleSort('carrier')}
                   >
@@ -543,21 +570,29 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                       <SortIcon field="carrier" />
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">송장번호</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">작업</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    송장번호
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    작업
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">로딩 중...</td>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                      로딩 중...
+                    </td>
                   </tr>
                 ) : filteredShipments.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">출고 기록이 없습니다.</td>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                      출고 기록이 없습니다.
+                    </td>
                   </tr>
                 ) : (
-                  sortedShipments.map((shipment) => (
+                  sortedShipments.map(shipment => (
                     <tr key={shipment.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -593,7 +628,9 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                         <div className="flex items-center">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                           <span className="text-sm text-gray-900 dark:text-white">
-                            {shipment.planned_delivery_date ? formatDate(shipment.planned_delivery_date) : '-'}
+                            {shipment.planned_delivery_date
+                              ? formatDate(shipment.planned_delivery_date)
+                              : '-'}
                           </span>
                         </div>
                       </td>
@@ -653,20 +690,28 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
           <div className="space-y-4 px-2">
             <div>
               <Label>현장 *</Label>
-              <Select value={formData.site_id} onValueChange={(value) => setFormData({...formData, site_id: value})}>
+              <Select
+                value={formData.site_id}
+                onValueChange={value => setFormData({ ...formData, site_id: value })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="현장 선택" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sites.map((site) => (
-                    <SelectItem key={site.id} value={site.id}>{site.name}</SelectItem>
+                  {sites.map(site => (
+                    <SelectItem key={site.id} value={site.id}>
+                      {site.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
               <Label>출고방식 *</Label>
-              <CustomSelect value={formData.shipment_method} onValueChange={(value) => setFormData({...formData, shipment_method: value})}>
+              <CustomSelect
+                value={formData.shipment_method}
+                onValueChange={value => setFormData({ ...formData, shipment_method: value })}
+              >
                 <CustomSelectTrigger>
                   <CustomSelectValue placeholder="출고방식 선택" />
                 </CustomSelectTrigger>
@@ -683,7 +728,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                 type="number"
                 step="0.01"
                 value={formData.quantity_shipped}
-                onChange={(e) => setFormData({...formData, quantity_shipped: e.target.value})}
+                onChange={e => setFormData({ ...formData, quantity_shipped: e.target.value })}
                 placeholder="출고량 입력"
               />
             </div>
@@ -692,14 +737,14 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               <Input
                 type="date"
                 value={formData.planned_delivery_date}
-                onChange={(e) => setFormData({...formData, planned_delivery_date: e.target.value})}
+                onChange={e => setFormData({ ...formData, planned_delivery_date: e.target.value })}
               />
             </div>
             <div>
               <Label>운송업체</Label>
               <Input
                 value={formData.carrier}
-                onChange={(e) => setFormData({...formData, carrier: e.target.value})}
+                onChange={e => setFormData({ ...formData, carrier: e.target.value })}
                 placeholder="운송업체명"
               />
             </div>
@@ -707,7 +752,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               <Label>송장번호</Label>
               <Input
                 value={formData.tracking_number}
-                onChange={(e) => setFormData({...formData, tracking_number: e.target.value})}
+                onChange={e => setFormData({ ...formData, tracking_number: e.target.value })}
                 placeholder="송장번호"
               />
             </div>
@@ -715,14 +760,16 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               <Label>비고</Label>
               <Textarea
                 value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="추가 설명이나 비고사항"
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>취소</Button>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+              취소
+            </Button>
             <Button onClick={submitShipment}>추가</Button>
           </DialogFooter>
         </DialogContent>
@@ -740,14 +787,14 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               <Input
                 type="date"
                 value={formData.planned_delivery_date}
-                onChange={(e) => setFormData({...formData, planned_delivery_date: e.target.value})}
+                onChange={e => setFormData({ ...formData, planned_delivery_date: e.target.value })}
               />
             </div>
             <div>
               <Label>운송업체</Label>
               <Input
                 value={formData.carrier}
-                onChange={(e) => setFormData({...formData, carrier: e.target.value})}
+                onChange={e => setFormData({ ...formData, carrier: e.target.value })}
                 placeholder="운송업체명"
               />
             </div>
@@ -755,7 +802,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               <Label>송장번호</Label>
               <Input
                 value={formData.tracking_number}
-                onChange={(e) => setFormData({...formData, tracking_number: e.target.value})}
+                onChange={e => setFormData({ ...formData, tracking_number: e.target.value })}
                 placeholder="송장번호"
               />
             </div>
@@ -763,14 +810,16 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               <Label>비고</Label>
               <Textarea
                 value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="추가 설명이나 비고사항"
                 rows={3}
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>취소</Button>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>
+              취소
+            </Button>
             <Button onClick={updateShipment}>수정</Button>
           </DialogFooter>
         </DialogContent>
@@ -788,7 +837,9 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">출고일</Label>
-                    <p className="text-lg font-medium">{formatDate(selectedShipment.shipment_date)}</p>
+                    <p className="text-lg font-medium">
+                      {formatDate(selectedShipment.shipment_date)}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">현장</Label>
@@ -796,7 +847,9 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">출고량</Label>
-                    <p className="text-lg">{selectedShipment.quantity_shipped.toLocaleString()} 말</p>
+                    <p className="text-lg">
+                      {selectedShipment.quantity_shipped.toLocaleString()} 말
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">상태</Label>
@@ -809,11 +862,19 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">예정 배송일</Label>
-                    <p className="text-lg">{selectedShipment.planned_delivery_date ? formatDate(selectedShipment.planned_delivery_date) : '-'}</p>
+                    <p className="text-lg">
+                      {selectedShipment.planned_delivery_date
+                        ? formatDate(selectedShipment.planned_delivery_date)
+                        : '-'}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">실제 배송일</Label>
-                    <p className="text-lg">{selectedShipment.actual_delivery_date ? formatDate(selectedShipment.actual_delivery_date) : '-'}</p>
+                    <p className="text-lg">
+                      {selectedShipment.actual_delivery_date
+                        ? formatDate(selectedShipment.actual_delivery_date)
+                        : '-'}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">운송업체</Label>
@@ -825,7 +886,7 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
                   </div>
                 </div>
               </div>
-              
+
               {selectedShipment.notes && (
                 <div>
                   <Label className="text-sm font-medium text-gray-500">비고</Label>
@@ -836,40 +897,41 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
               )}
 
               {/* Status Actions */}
-              {selectedShipment.status !== 'delivered' && selectedShipment.status !== 'cancelled' && (
-                <div className="flex gap-2 pt-4 border-t">
-                  {selectedShipment.status === 'preparing' && (
-                    <Button 
-                      onClick={() => handleStatusUpdate(selectedShipment.id, 'shipped')}
-                      className="bg-indigo-600 hover:bg-indigo-700"
+              {selectedShipment.status !== 'delivered' &&
+                selectedShipment.status !== 'cancelled' && (
+                  <div className="flex gap-2 pt-4 border-t">
+                    {selectedShipment.status === 'preparing' && (
+                      <Button
+                        onClick={() => handleStatusUpdate(selectedShipment.id, 'shipped')}
+                        className="bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        출고 처리
+                      </Button>
+                    )}
+                    {selectedShipment.status === 'shipped' && (
+                      <Button
+                        onClick={() => handleStatusUpdate(selectedShipment.id, 'in_transit')}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        운송 시작
+                      </Button>
+                    )}
+                    {selectedShipment.status === 'in_transit' && (
+                      <Button
+                        onClick={() => handleStatusUpdate(selectedShipment.id, 'delivered')}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        배송 완료
+                      </Button>
+                    )}
+                    <Button
+                      variant="danger"
+                      onClick={() => handleStatusUpdate(selectedShipment.id, 'cancelled')}
                     >
-                      출고 처리
+                      출고 취소
                     </Button>
-                  )}
-                  {selectedShipment.status === 'shipped' && (
-                    <Button 
-                      onClick={() => handleStatusUpdate(selectedShipment.id, 'in_transit')}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      운송 시작
-                    </Button>
-                  )}
-                  {selectedShipment.status === 'in_transit' && (
-                    <Button 
-                      onClick={() => handleStatusUpdate(selectedShipment.id, 'delivered')}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      배송 완료
-                    </Button>
-                  )}
-                  <Button 
-                    variant="danger"
-                    onClick={() => handleStatusUpdate(selectedShipment.id, 'cancelled')}
-                  >
-                    출고 취소
-                  </Button>
-                </div>
-              )}
+                  </div>
+                )}
 
               <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                 <div>
@@ -884,7 +946,9 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailModal(false)}>닫기</Button>
+            <Button variant="outline" onClick={() => setShowDetailModal(false)}>
+              닫기
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

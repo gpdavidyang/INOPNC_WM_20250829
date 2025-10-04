@@ -27,6 +27,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type { Site, SiteStatus } from '@/types'
 // Detail view moved to dedicated page: /dashboard/admin/sites/[id]
+import { t } from '@/lib/ui/strings'
 
 function StatsCell({ siteId, type }: { siteId: string; type: 'reports' | 'labor' }) {
   const [value, setValue] = useState<number | null>(null)
@@ -118,7 +119,7 @@ export function SitesContent({
   const [pages, setPages] = useState(Math.max(initialPages, 1))
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(
-    initialLoadErrored ? '초기 현장 데이터를 불러오지 못했습니다.' : null
+    initialLoadErrored ? t('sites.errors.fetchSites') : null
   )
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -204,7 +205,7 @@ export function SitesContent({
     () => [
       {
         key: 'name',
-        header: '현장명',
+        header: t('sites.table.name'),
         sortable: true,
         render: s => (
           <div className="font-medium text-foreground">
@@ -220,7 +221,7 @@ export function SitesContent({
       },
       {
         key: 'status',
-        header: '상태',
+        header: t('sites.table.status'),
         sortable: true,
         render: s => (
           <Badge variant={s.status === 'active' ? 'default' : 'outline'}>
@@ -230,7 +231,7 @@ export function SitesContent({
       },
       {
         key: 'start_date',
-        header: '기간',
+        header: t('sites.table.period'),
         sortable: true,
         render: s => (
           <div>
@@ -240,36 +241,36 @@ export function SitesContent({
       },
       {
         key: 'manager_name',
-        header: '관리자',
+        header: t('sites.table.manager'),
         sortable: true,
         render: s => s.manager_name || '미지정',
       },
       {
         key: 'manager_phone',
-        header: '연락처',
+        header: t('sites.table.phone'),
         sortable: false,
         render: s => (s as any).manager_phone || (s as any).construction_manager_phone || '-',
       },
       {
         key: 'daily_reports_count',
-        header: '작업일지 수',
+        header: t('sites.table.dailyReports'),
         sortable: false,
         render: s => <StatsCell siteId={s.id} type="reports" />,
       },
       {
         key: 'total_labor_hours',
-        header: '총공수',
+        header: t('sites.table.totalLabor'),
         sortable: false,
         render: s => <StatsCell siteId={s.id} type="labor" />,
       },
       {
         key: 'actions',
-        header: '상세',
+        header: t('sites.table.details'),
         sortable: false,
         align: 'right',
         render: s => (
           <Button asChild variant="ghost" size="sm">
-            <a href={`/dashboard/admin/sites/${s.id}`}>상세 보기</a>
+            <a href={`/dashboard/admin/sites/${s.id}`}>{t('common.details')}</a>
           </Button>
         ),
       },
@@ -281,18 +282,16 @@ export function SitesContent({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-foreground">현장 관리</h1>
-          <p className="text-sm text-muted-foreground">
-            진행 중인 현장과 담당자 배정을 관리합니다.
-          </p>
+          <h1 className="text-2xl font-semibold text-foreground">{t('sites.title')}</h1>
+          <p className="text-sm text-muted-foreground">{t('sites.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild size="sm">
-            <a href="/dashboard/admin/sites/new">현장 등록</a>
+            <a href="/dashboard/admin/sites/new">{t('sites.create')}</a>
           </Button>
           <Button variant="outline" size="sm" onClick={() => fetchSites(page)} disabled={loading}>
             <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            새로고침
+            {t('common.refresh')}
           </Button>
         </div>
       </div>
@@ -301,7 +300,7 @@ export function SitesContent({
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">전체 현장</p>
+              <p className="text-sm text-muted-foreground">{t('sites.stats.total')}</p>
               <p className="text-2xl font-semibold text-foreground">{total.toLocaleString()}</p>
             </div>
             <Building2 className="h-8 w-8 text-primary" />
@@ -310,7 +309,7 @@ export function SitesContent({
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">활성 현장 (현재 페이지)</p>
+              <p className="text-sm text-muted-foreground">{t('sites.stats.activeOnPage')}</p>
               <p className="text-lg font-medium text-foreground">{activeCount}</p>
             </div>
             <Badge variant="default" className="h-fit">
@@ -321,7 +320,7 @@ export function SitesContent({
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">선택된 상태</p>
+              <p className="text-sm text-muted-foreground">{t('users.filters.statusSelected')}</p>
               <p className="text-lg font-medium text-foreground">{STATUS_LABELS[statusFilter]}</p>
             </div>
             <MapPin className="h-7 w-7 text-muted-foreground" />
@@ -334,7 +333,7 @@ export function SitesContent({
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
             <div className="relative flex-1 md:w-72">
               <Input
-                placeholder="현장명 또는 주소 검색"
+                placeholder={t('sites.searchPlaceholder')}
                 value={searchInput}
                 onChange={event => setSearchInput(event.target.value)}
                 onKeyDown={event => {
@@ -347,14 +346,14 @@ export function SitesContent({
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
             <Button variant="secondary" onClick={handleSearch} disabled={loading}>
-              검색
+              {t('common.search')}
             </Button>
             <Select
               value={statusFilter}
               onValueChange={value => fetchSites(1, { status: value as StatusFilterOption })}
             >
               <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="상태 필터" />
+                <SelectValue placeholder={t('sites.statusFilter')} />
               </SelectTrigger>
               <SelectContent>
                 {STATUS_OPTIONS.map(option => (
@@ -366,7 +365,7 @@ export function SitesContent({
             </Select>
           </div>
           <Button variant="ghost" size="sm" onClick={handleResetFilters} disabled={loading}>
-            필터 초기화
+            {t('common.reset')}
           </Button>
         </div>
 
@@ -375,7 +374,7 @@ export function SitesContent({
 
           {error && (
             <Alert variant="destructive" className="mb-4">
-              <AlertTitle>목록을 불러오는 중 문제가 발생했습니다.</AlertTitle>
+              <AlertTitle>{t('sites.errors.fetchList')}</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -383,7 +382,7 @@ export function SitesContent({
           {!loading && sites.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
               <Search className="h-8 w-8" />
-              <p>조건에 맞는 현장이 없습니다.</p>
+              <p>{t('sites.empty')}</p>
             </div>
           ) : (
             <DataTable
@@ -412,7 +411,7 @@ export function SitesContent({
               onClick={() => fetchSites(Math.max(page - 1, 1))}
               disabled={loading || page <= 1}
             >
-              이전
+              {t('common.prev')}
             </Button>
             <span>
               {page} / {pages}
@@ -423,7 +422,7 @@ export function SitesContent({
               onClick={() => fetchSites(Math.min(page + 1, pages))}
               disabled={loading || page >= pages}
             >
-              다음
+              {t('common.next')}
             </Button>
           </div>
         </div>

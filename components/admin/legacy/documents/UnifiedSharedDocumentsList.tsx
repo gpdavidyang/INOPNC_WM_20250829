@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface UnifiedSharedDocument {
   id: string
@@ -55,7 +56,7 @@ export default function UnifiedSharedDocumentsList() {
   const [filters, setFilters] = useState<DocumentFilters>({})
   const [sortOptions, setSortOptions] = useState<DocumentSortOptions>({
     field: 'created_at',
-    direction: 'desc'
+    direction: 'desc',
   })
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
@@ -86,7 +87,7 @@ export default function UnifiedSharedDocumentsList() {
       uploaded_by_email: doc.owner?.email,
       view_count: doc.view_count || 0,
       download_count: doc.download_count || 0,
-      permission_count: 0
+      permission_count: 0,
     }
   }
 
@@ -95,7 +96,7 @@ export default function UnifiedSharedDocumentsList() {
     setLoading(true)
     try {
       const result = await getSharedDocuments()
-      
+
       if (!result.success) {
         console.error('Failed to load shared documents:', result.error)
         setDocuments([])
@@ -106,10 +107,11 @@ export default function UnifiedSharedDocumentsList() {
 
       // Apply search filter
       if (searchTerm) {
-        mappedDocuments = mappedDocuments.filter(doc =>
-          doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        mappedDocuments = mappedDocuments.filter(
+          doc =>
+            doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doc.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            doc.description?.toLowerCase().includes(searchTerm.toLowerCase())
         )
       }
 
@@ -121,7 +123,9 @@ export default function UnifiedSharedDocumentsList() {
         mappedDocuments = mappedDocuments.filter(doc => doc.uploaded_by === filters.uploaded_by)
       }
       if (filters.organization_id) {
-        mappedDocuments = mappedDocuments.filter(doc => doc.organization_id === filters.organization_id)
+        mappedDocuments = mappedDocuments.filter(
+          doc => doc.organization_id === filters.organization_id
+        )
       }
       if (filters.category) {
         mappedDocuments = mappedDocuments.filter(doc => doc.category === filters.category)
@@ -130,10 +134,14 @@ export default function UnifiedSharedDocumentsList() {
         mappedDocuments = mappedDocuments.filter(doc => doc.file_type === filters.file_type)
       }
       if (filters.date_from) {
-        mappedDocuments = mappedDocuments.filter(doc => new Date(doc.created_at) >= new Date(filters.date_from!))
+        mappedDocuments = mappedDocuments.filter(
+          doc => new Date(doc.created_at) >= new Date(filters.date_from!)
+        )
       }
       if (filters.date_to) {
-        mappedDocuments = mappedDocuments.filter(doc => new Date(doc.created_at) <= new Date(filters.date_to!))
+        mappedDocuments = mappedDocuments.filter(
+          doc => new Date(doc.created_at) <= new Date(filters.date_to!)
+        )
       }
 
       // Apply sorting
@@ -141,7 +149,7 @@ export default function UnifiedSharedDocumentsList() {
         const aValue = a[sortOptions.field]
         const bValue = b[sortOptions.field]
         const direction = sortOptions.direction === 'asc' ? 1 : -1
-        
+
         if (typeof aValue === 'string' && typeof bValue === 'string') {
           return aValue.localeCompare(bValue) * direction
         }
@@ -237,9 +245,9 @@ export default function UnifiedSharedDocumentsList() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <input
               type="text"
-              placeholder="문서명 또는 설명으로 검색..."
+              placeholder={t('common.search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -248,7 +256,7 @@ export default function UnifiedSharedDocumentsList() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`inline-flex items-center px-4 py-2 border rounded-md transition-colors ${
-              showFilters 
+              showFilters
                 ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
                 : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
@@ -265,11 +273,11 @@ export default function UnifiedSharedDocumentsList() {
           {/* Sort */}
           <select
             value={`${sortOptions.field}-${sortOptions.direction}`}
-            onChange={(e) => {
+            onChange={e => {
               const [field, direction] = e.target.value.split('-')
               setSortOptions({
                 field: field as DocumentSortOptions['field'],
-                direction: direction as DocumentSortOptions['direction']
+                direction: direction as DocumentSortOptions['direction'],
               })
             }}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -295,7 +303,7 @@ export default function UnifiedSharedDocumentsList() {
                 </label>
                 <select
                   value={filters.file_type || ''}
-                  onChange={(e) => setFilters({ ...filters, file_type: e.target.value || undefined })}
+                  onChange={e => setFilters({ ...filters, file_type: e.target.value || undefined })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">모든 파일 유형</option>
@@ -306,7 +314,7 @@ export default function UnifiedSharedDocumentsList() {
                   <option value="xlsx">Excel</option>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   시작 날짜
@@ -314,11 +322,11 @@ export default function UnifiedSharedDocumentsList() {
                 <input
                   type="date"
                   value={filters.date_from || ''}
-                  onChange={(e) => setFilters({ ...filters, date_from: e.target.value || undefined })}
+                  onChange={e => setFilters({ ...filters, date_from: e.target.value || undefined })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   종료 날짜
@@ -326,12 +334,12 @@ export default function UnifiedSharedDocumentsList() {
                 <input
                   type="date"
                   value={filters.date_to || ''}
-                  onChange={(e) => setFilters({ ...filters, date_to: e.target.value || undefined })}
+                  onChange={e => setFilters({ ...filters, date_to: e.target.value || undefined })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-end mt-4">
               <button
                 onClick={() => setFilters({})}
@@ -373,8 +381,11 @@ export default function UnifiedSharedDocumentsList() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {documents.map((document) => (
-            <div key={document.id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow">
+          {documents.map(document => (
+            <div
+              key={document.id}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow"
+            >
               <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center">
@@ -382,7 +393,7 @@ export default function UnifiedSharedDocumentsList() {
                     <input
                       type="checkbox"
                       checked={selectedDocuments.has(document.id)}
-                      onChange={(e) => {
+                      onChange={e => {
                         const newSelection = new Set(selectedDocuments)
                         if (e.target.checked) {
                           newSelection.add(document.id)
@@ -449,7 +460,7 @@ export default function UnifiedSharedDocumentsList() {
                       {document.download_count}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleDownloadDocument(document)}
@@ -483,9 +494,7 @@ export default function UnifiedSharedDocumentsList() {
         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {documents.length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{documents.length}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">전체 문서</p>
             </div>
             <div>

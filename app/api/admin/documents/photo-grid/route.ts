@@ -1,22 +1,27 @@
-import { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { listPhotoGridReports } from '@/lib/api/adapters/documents'
 
-// DEPRECATED: 통합 API(/api/unified-documents)를 사용하세요
-// 이 엔드포인트는 하위 호환성을 위해 리다이렉트합니다
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  
-  // 통합 API로 리다이렉트
-  const newUrl = new URL('/api/unified-documents', request.url)
-  newUrl.searchParams.set('category_type', 'photo_grid')
-  newUrl.searchParams.set('status', searchParams.get('status') || 'active')
-  
-  // 다른 파라미터들도 전달
-  searchParams.forEach((value, key) => {
-    if (key !== 'category_type' && key !== 'status') {
-      newUrl.searchParams.set(key, value)
-    }
+  const auth = await requireApiAuth()
+  if (auth instanceof NextResponse) return auth
+  if (!['admin', 'system_admin'].includes(auth.role || '')) {
+    return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+  }
+
+  const sp = new URL(request.url).searchParams
+  const page = Math.max(1, parseInt(sp.get('page') || '1'))
+  const pageSize = Math.max(1, parseInt(sp.get('limit') || '20'))
+  const search = (sp.get('search') || '').trim() || undefined
+  const status = (sp.get('status') || '').trim() || undefined
+  const siteId = (sp.get('site_id') || '').trim() || undefined
+
+  const result = await listPhotoGridReports({ page, pageSize, search, status, siteId })
+  const pages = Math.max(1, Math.ceil(result.total / pageSize))
+  return NextResponse.json({
+    success: true,
+    data: { documents: result.items, total: result.total, pages },
   })
-  
-  return NextResponse.redirect(newUrl, 308) // Permanent Redirect
 }

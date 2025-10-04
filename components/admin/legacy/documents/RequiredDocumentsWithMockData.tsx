@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface RequiredDocument {
   id: string
@@ -28,15 +29,23 @@ interface RequiredDocument {
 
 // 필수 제출 서류 유형
 const documentTypes = [
-  { value: 'safety_certificate', label: '안전교육이수증', description: '건설현장 안전교육 이수증명서' },
+  {
+    value: 'safety_certificate',
+    label: '안전교육이수증',
+    description: '건설현장 안전교육 이수증명서',
+  },
   { value: 'health_certificate', label: '건강진단서', description: '건설업 종사자 건강진단서' },
-  { value: 'insurance_certificate', label: '보험증서', description: '산재보험 및 고용보험 가입증명서' },
+  {
+    value: 'insurance_certificate',
+    label: '보험증서',
+    description: '산재보험 및 고용보험 가입증명서',
+  },
   { value: 'id_copy', label: '신분증 사본', description: '주민등록증 또는 운전면허증 사본' },
   { value: 'license', label: '자격증', description: '해당 업무 관련 자격증' },
   { value: 'employment_contract', label: '근로계약서', description: '정식 근로계약서' },
   { value: 'bank_account', label: '통장사본', description: '급여 입금용 통장 사본' },
   { value: 'business_license', label: '사업자등록증', description: '사업자등록증 사본' },
-  { value: 'corporate_register', label: '법인등기부등본', description: '법인등기부등본' }
+  { value: 'corporate_register', label: '법인등기부등본', description: '법인등기부등본' },
 ]
 
 // Mock data generator
@@ -49,7 +58,7 @@ const generateMockData = (): RequiredDocument[] => {
     { id: '5', full_name: '최동현', email: 'manager1@inopnc.com', role: 'site_manager' },
     { id: '6', full_name: '한미영', email: 'worker4@inopnc.com', role: 'worker' },
     { id: '7', full_name: '강성호', email: 'worker5@inopnc.com', role: 'worker' },
-    { id: '8', full_name: '송지민', email: 'partner2@inopnc.com', role: 'partner' }
+    { id: '8', full_name: '송지민', email: 'partner2@inopnc.com', role: 'partner' },
   ]
 
   const sites = ['강남 A현장', '송파 C현장', '서초 B현장', '마포 D현장', '용산 E현장']
@@ -63,9 +72,19 @@ const generateMockData = (): RequiredDocument[] => {
     // Get relevant document types for this worker's role
     const relevantTypes = documentTypes.filter(type => {
       if (worker.role === 'worker') {
-        return ['safety_certificate', 'health_certificate', 'insurance_certificate', 'id_copy', 'license', 'employment_contract', 'bank_account'].includes(type.value)
+        return [
+          'safety_certificate',
+          'health_certificate',
+          'insurance_certificate',
+          'id_copy',
+          'license',
+          'employment_contract',
+          'bank_account',
+        ].includes(type.value)
       } else if (worker.role === 'partner') {
-        return ['business_license', 'corporate_register', 'insurance_certificate'].includes(type.value)
+        return ['business_license', 'corporate_register', 'insurance_certificate'].includes(
+          type.value
+        )
       } else if (worker.role === 'site_manager') {
         return ['license', 'id_copy', 'employment_contract'].includes(type.value)
       }
@@ -88,7 +107,7 @@ const generateMockData = (): RequiredDocument[] => {
         status: status,
         submission_date: submissionDate.toISOString(),
         submitted_by: worker,
-        site_name: sites[Math.floor(Math.random() * sites.length)]
+        site_name: sites[Math.floor(Math.random() * sites.length)],
       }
 
       if (status !== 'pending') {
@@ -96,9 +115,10 @@ const generateMockData = (): RequiredDocument[] => {
         reviewDate.setDate(reviewDate.getDate() + Math.floor(Math.random() * 3) + 1)
         doc.review_date = reviewDate.toISOString()
         doc.reviewed_by = reviewer
-        doc.review_notes = status === 'approved' 
-          ? '서류 확인 완료되었습니다.' 
-          : '서류가 불명확합니다. 다시 제출해주세요.'
+        doc.review_notes =
+          status === 'approved'
+            ? '서류 확인 완료되었습니다.'
+            : '서류가 불명확합니다. 다시 제출해주세요.'
       }
 
       documents.push(doc)
@@ -137,10 +157,11 @@ export default function RequiredDocumentsWithMockData() {
     let filtered = [...documents]
 
     if (searchTerm) {
-      filtered = filtered.filter(doc => 
-        doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.submitted_by.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.file_name.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        doc =>
+          doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          doc.submitted_by.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          doc.file_name.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -174,7 +195,7 @@ export default function RequiredDocumentsWithMockData() {
           status: 'approved' as const,
           review_date: new Date().toISOString(),
           reviewed_by: { id: 'admin', full_name: '관리자', email: 'admin@inopnc.com' },
-          review_notes: '서류 확인 완료되었습니다.'
+          review_notes: '서류 확인 완료되었습니다.',
         }
       }
       return d
@@ -193,7 +214,7 @@ export default function RequiredDocumentsWithMockData() {
             status: 'rejected' as const,
             review_date: new Date().toISOString(),
             reviewed_by: { id: 'admin', full_name: '관리자', email: 'admin@inopnc.com' },
-            review_notes: reason
+            review_notes: reason,
           }
         }
         return d
@@ -246,17 +267,23 @@ export default function RequiredDocumentsWithMockData() {
     return docType?.label || type
   }
 
-  const uniqueWorkers = Array.from(new Set(documents.map(d => JSON.stringify({
-    id: d.submitted_by.id,
-    name: d.submitted_by.full_name
-  })))).map(w => JSON.parse(w))
+  const uniqueWorkers = Array.from(
+    new Set(
+      documents.map(d =>
+        JSON.stringify({
+          id: d.submitted_by.id,
+          name: d.submitted_by.full_name,
+        })
+      )
+    )
+  ).map(w => JSON.parse(w))
 
   // Statistics
   const stats = {
     total: documents.length,
     pending: documents.filter(d => d.status === 'pending').length,
     approved: documents.filter(d => d.status === 'approved').length,
-    rejected: documents.filter(d => d.status === 'rejected').length
+    rejected: documents.filter(d => d.status === 'rejected').length,
   }
 
   if (loading) {
@@ -317,17 +344,17 @@ export default function RequiredDocumentsWithMockData() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <input
                 type="text"
-                placeholder="서류명, 제출자, 파일명으로 검색..."
+                placeholder={t('common.search')}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
           </div>
-          
+
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={e => setStatusFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">모든 상태</option>
@@ -338,23 +365,27 @@ export default function RequiredDocumentsWithMockData() {
 
           <select
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
+            onChange={e => setTypeFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">모든 서류 유형</option>
             {documentTypes.map(type => (
-              <option key={type.value} value={type.value}>{type.label}</option>
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
             ))}
           </select>
 
           <select
             value={workerFilter}
-            onChange={(e) => setWorkerFilter(e.target.value)}
+            onChange={e => setWorkerFilter(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
             <option value="">모든 작업자</option>
             {uniqueWorkers.map(worker => (
-              <option key={worker.id} value={worker.id}>{worker.name}</option>
+              <option key={worker.id} value={worker.id}>
+                {worker.name}
+              </option>
             ))}
           </select>
 
@@ -398,20 +429,26 @@ export default function RequiredDocumentsWithMockData() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {paginatedDocuments.map((doc) => (
+              {paginatedDocuments.map(doc => (
                 <tr key={doc.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{doc.title}</div>
-                      <div className="text-sm text-gray-500">{getDocumentTypeLabel(doc.document_type)}</div>
-                      <div className="text-xs text-gray-400">{Math.round(doc.file_size / 1024)} KB</div>
+                      <div className="text-sm text-gray-500">
+                        {getDocumentTypeLabel(doc.document_type)}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {Math.round(doc.file_size / 1024)} KB
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <User className="h-4 w-4 text-gray-400 mr-2" />
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{doc.submitted_by.full_name}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {doc.submitted_by.full_name}
+                        </div>
                         <div className="text-sm text-gray-500">{doc.submitted_by.email}</div>
                       </div>
                     </div>
@@ -425,9 +462,7 @@ export default function RequiredDocumentsWithMockData() {
                       {new Date(doc.submission_date).toLocaleDateString()}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {getStatusBadge(doc.status)}
-                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">{getStatusBadge(doc.status)}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {doc.reviewed_by ? (
                       <div>
@@ -454,7 +489,7 @@ export default function RequiredDocumentsWithMockData() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      
+
                       {doc.status === 'pending' && (
                         <>
                           <button
@@ -473,15 +508,17 @@ export default function RequiredDocumentsWithMockData() {
                           </button>
                         </>
                       )}
-                      
+
                       <button
-                        onClick={() => alert(`"${doc.file_name}" 다운로드 기능은 추가 개발이 필요합니다.`)}
+                        onClick={() =>
+                          alert(`"${doc.file_name}" 다운로드 기능은 추가 개발이 필요합니다.`)
+                        }
                         className="text-gray-600 hover:text-gray-900"
                         title="다운로드"
                       >
                         <Download className="h-4 w-4" />
                       </button>
-                      
+
                       <button
                         onClick={() => handleDelete(doc)}
                         className="text-red-600 hover:text-red-900"
@@ -502,7 +539,8 @@ export default function RequiredDocumentsWithMockData() {
           <div className="bg-white px-4 py-3 border-t border-gray-200">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-700">
-                전체 {filteredDocuments.length}개 중 {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredDocuments.length)}개 표시
+                전체 {filteredDocuments.length}개 중 {(currentPage - 1) * itemsPerPage + 1}-
+                {Math.min(currentPage * itemsPerPage, filteredDocuments.length)}개 표시
               </div>
               <div className="flex gap-2">
                 <button
@@ -510,7 +548,7 @@ export default function RequiredDocumentsWithMockData() {
                   disabled={currentPage === 1}
                   className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md disabled:opacity-50"
                 >
-                  이전
+                  {t('common.prev')}
                 </button>
                 {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
                   const pageNum = currentPage - 2 + i
@@ -534,7 +572,7 @@ export default function RequiredDocumentsWithMockData() {
                   disabled={currentPage === totalPages}
                   className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md disabled:opacity-50"
                 >
-                  다음
+                  {t('common.next')}
                 </button>
               </div>
             </div>
@@ -547,56 +585,59 @@ export default function RequiredDocumentsWithMockData() {
         <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-medium text-gray-900 mb-4">서류 상세 정보</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">서류명</label>
                 <p className="mt-1 text-sm text-gray-900">{selectedDocument.title}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">서류 유형</label>
-                <p className="mt-1 text-sm text-gray-900">{getDocumentTypeLabel(selectedDocument.document_type)}</p>
+                <p className="mt-1 text-sm text-gray-900">
+                  {getDocumentTypeLabel(selectedDocument.document_type)}
+                </p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">설명</label>
                 <p className="mt-1 text-sm text-gray-900">{selectedDocument.description || '-'}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">제출자</label>
                 <p className="mt-1 text-sm text-gray-900">
                   {selectedDocument.submitted_by.full_name} ({selectedDocument.submitted_by.email})
                 </p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">현장</label>
                 <p className="mt-1 text-sm text-gray-900">{selectedDocument.site_name || '-'}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">제출일</label>
                 <p className="mt-1 text-sm text-gray-900">
                   {new Date(selectedDocument.submission_date).toLocaleString()}
                 </p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">상태</label>
                 <div className="mt-1">{getStatusBadge(selectedDocument.status)}</div>
               </div>
-              
+
               {selectedDocument.reviewed_by && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">검토자</label>
                     <p className="mt-1 text-sm text-gray-900">
-                      {selectedDocument.reviewed_by.full_name} ({selectedDocument.reviewed_by.email})
+                      {selectedDocument.reviewed_by.full_name} ({selectedDocument.reviewed_by.email}
+                      )
                     </p>
                   </div>
-                  
+
                   {selectedDocument.review_date && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700">검토일</label>
@@ -605,7 +646,7 @@ export default function RequiredDocumentsWithMockData() {
                       </p>
                     </div>
                   )}
-                  
+
                   {selectedDocument.review_notes && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700">검토 의견</label>
@@ -614,7 +655,7 @@ export default function RequiredDocumentsWithMockData() {
                   )}
                 </>
               )}
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700">파일 정보</label>
                 <p className="mt-1 text-sm text-gray-900">
@@ -622,7 +663,7 @@ export default function RequiredDocumentsWithMockData() {
                 </p>
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end gap-3">
               {selectedDocument.status === 'pending' && (
                 <>
@@ -646,7 +687,7 @@ export default function RequiredDocumentsWithMockData() {
                   </button>
                 </>
               )}
-              
+
               <button
                 onClick={() => setIsDetailModalOpen(false)}
                 className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"

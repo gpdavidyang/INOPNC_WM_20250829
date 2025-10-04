@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface Organization {
   id: string
@@ -38,15 +39,15 @@ export default function OrganizationList() {
 
   useEffect(() => {
     let isMounted = true
-    
+
     const fetchData = async () => {
       if (isMounted) {
         await fetchOrganizations()
       }
     }
-    
+
     fetchData()
-    
+
     return () => {
       isMounted = false
     }
@@ -74,21 +75,20 @@ export default function OrganizationList() {
     if (!confirm('정말로 이 거래처를 삭제하시겠습니까?')) return
 
     try {
-      const { error } = await supabase
-        .from('organizations')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.from('organizations').delete().eq('id', id)
 
       if (error) throw error
-      
+
       setOrganizations(organizations.filter(org => org.id !== id))
       alert('거래처가 삭제되었습니다.')
     } catch (error: unknown) {
       console.error('Error deleting organization:', error)
-      
+
       // Check for foreign key constraint error
       if (error.code === '23503') {
-        alert('이 거래처는 삭제할 수 없습니다.\n\n해당 거래처에 소속된 사용자나 연결된 데이터가 있습니다.\n먼저 관련 데이터를 삭제하거나 다른 거래처로 이전한 후 다시 시도해주세요.')
+        alert(
+          '이 거래처는 삭제할 수 없습니다.\n\n해당 거래처에 소속된 사용자나 연결된 데이터가 있습니다.\n먼저 관련 데이터를 삭제하거나 다른 거래처로 이전한 후 다시 시도해주세요.'
+        )
       } else {
         alert('거래처 삭제 중 오류가 발생했습니다.')
       }
@@ -103,10 +103,10 @@ export default function OrganizationList() {
         .eq('id', org.id)
 
       if (error) throw error
-      
-      setOrganizations(organizations.map(o => 
-        o.id === org.id ? { ...o, is_active: !o.is_active } : o
-      ))
+
+      setOrganizations(
+        organizations.map(o => (o.id === org.id ? { ...o, is_active: !o.is_active } : o))
+      )
     } catch (error) {
       console.error('Error toggling organization status:', error)
       alert('상태 변경 중 오류가 발생했습니다.')
@@ -126,15 +126,17 @@ export default function OrganizationList() {
     if (sortField !== field) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
     }
-    return sortDirection === 'asc' 
-      ? <ChevronUp className="h-4 w-4 text-blue-600" />
-      : <ChevronDown className="h-4 w-4 text-blue-600" />
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="h-4 w-4 text-blue-600" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-blue-600" />
+    )
   }
 
   const sortedAndFilteredOrganizations = [...filteredOrganizations].sort((a, b) => {
     let aValue: unknown
     let bValue: unknown
-    
+
     switch (sortField) {
       case 'name':
         aValue = a.name
@@ -159,22 +161,23 @@ export default function OrganizationList() {
       default:
         return 0
     }
-    
+
     if (typeof aValue === 'string' && typeof bValue === 'string') {
       aValue = aValue.toLowerCase()
       bValue = bValue.toLowerCase()
     }
-    
+
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
     return 0
   })
 
-  const filteredOrganizations = organizations.filter(org =>
-    org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    org.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    org.address?.includes(searchTerm) ||
-    org.phone?.includes(searchTerm)
+  const filteredOrganizations = organizations.filter(
+    org =>
+      org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      org.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      org.address?.includes(searchTerm) ||
+      org.phone?.includes(searchTerm)
   )
 
   if (loading) {
@@ -237,9 +240,9 @@ export default function OrganizationList() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="회사명, 설명, 주소, 전화번호로 검색..."
+            placeholder={t('common.search')}
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
           />
         </div>
@@ -293,7 +296,7 @@ export default function OrganizationList() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {sortedAndFilteredOrganizations.map((org) => (
+                {sortedAndFilteredOrganizations.map(org => (
                   <tr key={org.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
@@ -304,9 +307,7 @@ export default function OrganizationList() {
                       </button>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
-                      <div className="max-w-xs truncate">
-                        {org.description || '-'}
-                      </div>
+                      <div className="max-w-xs truncate">{org.description || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-gray-100">
@@ -349,7 +350,9 @@ export default function OrganizationList() {
                           상세
                         </button>
                         <button
-                          onClick={() => router.push(`/dashboard/admin/organizations/${org.id}/edit`)}
+                          onClick={() =>
+                            router.push(`/dashboard/admin/organizations/${org.id}/edit`)
+                          }
                           className="px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                         >
                           수정
@@ -371,7 +374,7 @@ export default function OrganizationList() {
       ) : (
         /* Card View - Grid */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {sortedAndFilteredOrganizations.map((org) => (
+          {sortedAndFilteredOrganizations.map(org => (
             <div
               key={org.id}
               className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow hover:shadow-md transition-shadow"
@@ -411,9 +414,7 @@ export default function OrganizationList() {
               </div>
 
               {org.description && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                  {org.description}
-                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{org.description}</p>
               )}
 
               <div className="space-y-2">
@@ -478,7 +479,6 @@ export default function OrganizationList() {
           ))}
         </div>
       )}
-
     </div>
   )
 }

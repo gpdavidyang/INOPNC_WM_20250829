@@ -27,6 +27,7 @@ import type { DocumentWithApproval } from '@/app/actions/admin/documents'
 import type { ApprovalStatus } from '@/types'
 import type { DocumentType } from '@/types/documents'
 import { DocumentDetailSheet } from './DocumentDetailSheet'
+import { t } from '@/lib/ui/strings'
 
 interface DocumentsContentProps {
   initialDocuments: DocumentWithApproval[]
@@ -98,7 +99,9 @@ export function DocumentsContent({
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(Math.max(initialPages, 1))
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(initialLoadErrored ? '초기 문서 데이터를 불러오지 못했습니다.' : null)
+  const [error, setError] = useState<string | null>(
+    initialLoadErrored ? '초기 문서 데이터를 불러오지 못했습니다.' : null
+  )
 
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -115,7 +118,7 @@ export function DocumentsContent({
       rejected: 0,
       cancelled: 0,
     }
-    documents.forEach((doc) => {
+    documents.forEach(doc => {
       if (doc.approval_status && counts[doc.approval_status] !== undefined) {
         counts[doc.approval_status] += 1
       }
@@ -155,7 +158,9 @@ export function DocumentsContent({
           params.set('approval_status', effectiveApproval)
         }
 
-        const response = await fetch(`/api/admin/documents/list?${params.toString()}`, { cache: 'no-store' })
+        const response = await fetch(`/api/admin/documents/list?${params.toString()}`, {
+          cache: 'no-store',
+        })
         const payload = await response.json()
 
         if (!response.ok || !payload?.success) {
@@ -204,11 +209,13 @@ export function DocumentsContent({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">문서 관리</h1>
-          <p className="text-sm text-muted-foreground">통합 문서함의 업로드 기록과 승인 상태를 확인하세요.</p>
+          <p className="text-sm text-muted-foreground">
+            통합 문서함의 업로드 기록과 승인 상태를 확인하세요.
+          </p>
         </div>
         <Button variant="outline" size="sm" onClick={() => fetchDocuments(page)} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          새로고침
+          {t('common.refresh')}
         </Button>
       </div>
 
@@ -247,10 +254,10 @@ export function DocumentsContent({
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-4">
             <div className="relative flex-1 md:w-72">
               <Input
-                placeholder="문서 제목, 파일명, 설명 검색"
+                placeholder={t('common.search')}
                 value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                onKeyDown={(event) => {
+                onChange={event => setSearchInput(event.target.value)}
+                onKeyDown={event => {
                   if (event.key === 'Enter') {
                     handleSearch()
                   }
@@ -260,17 +267,17 @@ export function DocumentsContent({
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             </div>
             <Button variant="secondary" onClick={handleSearch} disabled={loading}>
-              검색
+              {t('common.search')}
             </Button>
             <Select
               value={typeFilter}
-              onValueChange={(value) => fetchDocuments(1, { type: value as DocumentFilterOption })}
+              onValueChange={value => fetchDocuments(1, { type: value as DocumentFilterOption })}
             >
               <SelectTrigger className="w-[170px]">
                 <SelectValue placeholder="문서 유형" />
               </SelectTrigger>
               <SelectContent>
-                {DOCUMENT_TYPE_OPTIONS.map((option) => (
+                {DOCUMENT_TYPE_OPTIONS.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -279,13 +286,15 @@ export function DocumentsContent({
             </Select>
             <Select
               value={approvalFilter}
-              onValueChange={(value) => fetchDocuments(1, { approval: value as ApprovalFilterOption })}
+              onValueChange={value =>
+                fetchDocuments(1, { approval: value as ApprovalFilterOption })
+              }
             >
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="승인 상태" />
               </SelectTrigger>
               <SelectContent>
-                {APPROVAL_OPTIONS.map((option) => (
+                {APPROVAL_OPTIONS.map(option => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -294,7 +303,7 @@ export function DocumentsContent({
             </Select>
           </div>
           <Button variant="ghost" size="sm" onClick={handleResetFilters} disabled={loading}>
-            필터 초기화
+            {t('common.reset')}
           </Button>
         </div>
 
@@ -324,24 +333,36 @@ export function DocumentsContent({
                     <TableHead>소유자</TableHead>
                     <TableHead>현장</TableHead>
                     <TableHead>업로드</TableHead>
-                    <TableHead className="text-right">상세</TableHead>
+                    <TableHead className="text-right">{t('common.details')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {documents.map((document) => (
-                    <TableRow key={document.id} className="cursor-pointer" onClick={() => handleOpenDetail(document)}>
+                  {documents.map(document => (
+                    <TableRow
+                      key={document.id}
+                      className="cursor-pointer"
+                      onClick={() => handleOpenDetail(document)}
+                    >
                       <TableCell>
-                        <div className="font-medium text-foreground">{document.title || document.file_name}</div>
+                        <div className="font-medium text-foreground">
+                          {document.title || document.file_name}
+                        </div>
                         <div className="text-xs text-muted-foreground">{document.file_name}</div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline">
-                          {TYPE_LABELS[document.document_type as DocumentType] || document.document_type || '기타'}
+                          {TYPE_LABELS[document.document_type as DocumentType] ||
+                            document.document_type ||
+                            '기타'}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant={document.approval_status === 'approved' ? 'default' : 'outline'}>
-                          {APPROVAL_LABELS[document.approval_status as ApprovalStatus] || document.approval_status || '미정'}
+                        <Badge
+                          variant={document.approval_status === 'approved' ? 'default' : 'outline'}
+                        >
+                          {APPROVAL_LABELS[document.approval_status as ApprovalStatus] ||
+                            document.approval_status ||
+                            '미정'}
                         </Badge>
                       </TableCell>
                       <TableCell>{document.owner?.full_name || '미지정'}</TableCell>
@@ -351,12 +372,12 @@ export function DocumentsContent({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={(event) => {
+                          onClick={event => {
                             event.stopPropagation()
                             handleOpenDetail(document)
                           }}
                         >
-                          상세 보기
+                          {t('common.details')}
                         </Button>
                       </TableCell>
                     </TableRow>
@@ -378,7 +399,7 @@ export function DocumentsContent({
               onClick={() => fetchDocuments(Math.max(page - 1, 1))}
               disabled={loading || page <= 1}
             >
-              이전
+              {t('common.prev')}
             </Button>
             <span>
               {page} / {pages}
@@ -389,7 +410,7 @@ export function DocumentsContent({
               onClick={() => fetchDocuments(Math.min(page + 1, pages))}
               disabled={loading || page >= pages}
             >
-              다음
+              {t('common.next')}
             </Button>
           </div>
         </div>
@@ -397,7 +418,7 @@ export function DocumentsContent({
 
       <DocumentDetailSheet
         open={Boolean(selectedDocument)}
-        onOpenChange={(open) => {
+        onOpenChange={open => {
           if (!open) {
             handleCloseDetail()
           }

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import { createClient } from '@/lib/supabase/server'
+import DownloadLinkButton from '@/components/admin/DownloadLinkButton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
@@ -21,21 +21,18 @@ export default async function AdminMarkupDocumentDetailPage({
   params: { id: string }
 }) {
   await requireAdminProfile()
-  const supabase = createClient()
+  const res = await fetch(`/api/admin/documents/markup/${params.id}`, { cache: 'no-store' })
+  const json = await res.json()
+  const doc = json?.data || null
 
-  const { data } = await supabase
-    .from('markup_documents')
-    .select(
-      `
-      *,
-      creator:profiles!markup_documents_created_by_fkey(full_name, email),
-      site:sites(name)
-    `
-    )
-    .eq('id', params.id)
-    .maybeSingle()
-
-  const doc = data || null
+  const [versionsRes, historyRes] = await Promise.all([
+    fetch(`/api/admin/documents/markup/${params.id}/versions`, { cache: 'no-store' }),
+    fetch(`/api/admin/documents/markup/${params.id}/history`, { cache: 'no-store' }),
+  ])
+  const versionsJson = await versionsRes.json().catch(() => ({}))
+  const historyJson = await historyRes.json().catch(() => ({}))
+  const versions = versionsJson?.data?.versions || []
+  const history = historyJson?.data?.history || []
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
@@ -51,20 +48,21 @@ export default async function AdminMarkupDocumentDetailPage({
           </div>
           <div>
             파일: {doc?.file_name || '-'}{' '}
-            {doc?.file_size ? `(${Math.round((doc.file_size as number) / 1024)} KB)` : ''}
+            {doc?.file_size ? `(${Math.round((Number(doc.file_size) || 0) / 1024)} KB)` : ''}
           </div>
-          {doc?.file_url && (
-            <div>
+          <div className="flex items-center gap-3">
+            {doc?.file_url && (
               <a
-                href={doc.file_url as string}
+                href={String(doc.file_url)}
                 target="_blank"
                 rel="noreferrer"
                 className="underline text-blue-600"
               >
                 파일 열기
               </a>
-            </div>
-          )}
+            )}
+            <DownloadLinkButton endpoint={`/api/admin/documents/markup/${params.id}/download`} />
+          </div>
         </CardContent>
       </Card>
 
@@ -103,6 +101,98 @@ export default async function AdminMarkupDocumentDetailPage({
                     </TableCell>
                   </TableRow>
                 ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>버전</CardTitle>
+          <CardDescription>최신순</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>버전</TableHead>
+                  <TableHead>제목</TableHead>
+                  <TableHead>작성자</TableHead>
+                  <TableHead>생성일</TableHead>
+                  <TableHead>최신</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {versions.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="text-center text-sm text-muted-foreground py-8"
+                    >
+                      버전 정보가 없습니다.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  versions.map((v: any) => (
+                    <TableRow key={v.id}>
+                      <TableCell>{v.version_number ?? v.version ?? '-'}</TableCell>
+                      <TableCell>{v.title || '-'}</TableCell>
+                      <TableCell>{v.created_by?.full_name || v.created_by?.email || '-'}</TableCell>
+                      <TableCell>
+                        {v.created_at ? new Date(v.created_at).toLocaleString('ko-KR') : '-'}
+                      </TableCell>
+                      <TableCell>{v.is_latest_version ? '예' : ''}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>변경 이력</CardTitle>
+          <CardDescription>최근 기록</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>일시</TableHead>
+                  <TableHead>변경</TableHead>
+                  <TableHead>요약</TableHead>
+                  <TableHead>사용자</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={4}
+                      className="text-center text-sm text-muted-foreground py-8"
+                    >
+                      이력이 없습니다.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  history.map((h: any) => (
+                    <TableRow key={h.id}>
+                      <TableCell>
+                        {h.changed_at ? new Date(h.changed_at).toLocaleString('ko-KR') : '-'}
+                      </TableCell>
+                      <TableCell>{h.change_type || '-'}</TableCell>
+                      <TableCell className="truncate max-w-[420px]" title={h.change_summary || ''}>
+                        {h.change_summary || '-'}
+                      </TableCell>
+                      <TableCell>{h.user?.full_name || h.user?.email || '-'}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

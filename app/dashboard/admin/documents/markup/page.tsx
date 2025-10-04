@@ -6,6 +6,7 @@ import MarkupDocumentsTable from '@/components/admin/MarkupDocumentsTable'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/ui/strings'
 
 export const metadata: Metadata = {
   title: '마크업 문서',
@@ -68,13 +69,13 @@ export default async function AdminMarkupDocumentsPage({
           </div>
           <div className="lg:col-span-2 flex gap-2">
             <Button type="submit" variant="outline">
-              적용
+              {t('common.apply')}
             </Button>
             <Link
               href="/dashboard/admin/documents/markup"
               className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
             >
-              초기화
+              {t('common.reset')}
             </Link>
           </div>
         </form>
@@ -92,13 +93,13 @@ export default async function AdminMarkupDocumentsPage({
               href={buildQuery(Math.max(1, page - 1))}
               className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
-              이전
+              {t('common.prev')}
             </Link>
             <Link
               href={buildQuery(Math.min(pages, page + 1))}
               className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page >= pages ? 'pointer-events-none opacity-50' : ''}`}
             >
-              다음
+              {t('common.next')}
             </Link>
           </div>
         </div>

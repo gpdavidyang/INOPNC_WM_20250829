@@ -4,6 +4,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import RequiredDocumentsTable from '@/components/admin/RequiredDocumentsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/ui/strings'
 
 export const metadata: Metadata = {
   title: '필수 문서 관리',
@@ -29,9 +30,9 @@ export default async function AdminRequiredDocumentsPage() {
 
       <div className="mb-6 rounded-lg border bg-card p-4 shadow-sm">
         <form method="GET" className="flex items-center gap-2">
-          <Input name="search" placeholder="문서명/유형/작성자 검색(클라이언트 필터 예정)" />
+          <Input name="search" placeholder={t('common.search')} />
           <Button type="submit" variant="outline">
-            검색
+            {t('common.search')}
           </Button>
         </form>
       </div>

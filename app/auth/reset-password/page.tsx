@@ -50,6 +50,19 @@ export default function ResetPasswordPage() {
               width={114}
               height={38}
               className="reset-logo"
+              data-stage="primary"
+              decoding="async"
+              loading="eager"
+              onError={(e: any) => {
+                const img = e.currentTarget as HTMLImageElement & { dataset: { stage?: string } }
+                if (img.dataset.stage === 'primary') {
+                  img.src = '/images/logo_g.png'
+                  img.dataset.stage = 'backup'
+                } else if (img.dataset.stage === 'backup') {
+                  img.src = inlineSvg
+                  img.dataset.stage = 'inline'
+                }
+              }}
             />
             <h1 className="reset-title">비밀번호 재설정</h1>
           </div>

@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface ShipmentRequestsTabProps {
   profile: Profile
@@ -34,18 +35,20 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
   const [selectedUrgency, setSelectedUrgency] = useState<string>('')
   const [selectedSite, setSelectedSite] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
-  const [sites, setSites] = useState<Array<{id: string, name: string}>>([])
+  const [sites, setSites] = useState<Array<{ id: string; name: string }>>([])
   const [selectedRequest, setSelectedRequest] = useState<ShipmentRequest | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
-  const [sortField, setSortField] = useState<'request_date' | 'site_name' | 'requester_name' | 'requested_amount' | 'urgency' | 'status'>('request_date')
+  const [sortField, setSortField] = useState<
+    'request_date' | 'site_name' | 'requester_name' | 'requested_amount' | 'urgency' | 'status'
+  >('request_date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-  
+
   // Response form
   const [responseForm, setResponseForm] = useState({
     status: 'approved' as 'approved' | 'rejected',
     approved_amount: 0,
     rejection_reason: '',
-    notes: ''
+    notes: '',
   })
 
   const supabase = createClient()
@@ -77,7 +80,8 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
       // Try using the existing material_requests table instead
       let query = supabase
         .from('material_requests')
-        .select(`
+        .select(
+          `
           *,
           sites(name),
           profiles:requested_by(full_name, role),
@@ -87,7 +91,8 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
             approved_quantity,
             materials(name, code)
           )
-        `)
+        `
+        )
         .order('created_at', { ascending: false })
 
       if (selectedStatus) {
@@ -106,16 +111,16 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
         const formattedData: ShipmentRequest[] = data
           .filter(item => {
             // Filter for NPC-1000 requests
-            const hasNPCItem = (item as unknown).material_request_items?.some(
-              (mri: unknown) => mri.materials?.code?.includes('NPC-1000')
+            const hasNPCItem = (item as unknown).material_request_items?.some((mri: unknown) =>
+              mri.materials?.code?.includes('NPC-1000')
             )
             return hasNPCItem
           })
           .map(item => {
-            const npcItem = (item as unknown).material_request_items?.find(
-              (mri: unknown) => mri.materials?.code?.includes('NPC-1000')
+            const npcItem = (item as unknown).material_request_items?.find((mri: unknown) =>
+              mri.materials?.code?.includes('NPC-1000')
             )
-            
+
             return {
               id: item.id,
               request_date: item.created_at.split('T')[0],
@@ -135,10 +140,10 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
               fulfillment_date: item.fulfilled_at,
               notes: item.notes,
               created_at: item.created_at,
-              updated_at: item.updated_at
+              updated_at: item.updated_at,
             }
           })
-        
+
         setRequests(formattedData)
       } else {
         console.warn('Material requests table not accessible:', error?.message)
@@ -158,22 +163,19 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
       status: 'approved',
       approved_amount: request.requested_amount,
       rejection_reason: '',
-      notes: ''
+      notes: '',
     })
     setShowDetailModal(true)
   }
 
   const handleDelete = async (requestId: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return
-    
+
     try {
-      const { error } = await supabase
-        .from('material_requests')
-        .delete()
-        .eq('id', requestId)
-      
+      const { error } = await supabase.from('material_requests').delete().eq('id', requestId)
+
       if (error) throw error
-      
+
       alert('출고 요청이 삭제되었습니다.')
       fetchRequests()
     } catch (error) {
@@ -191,7 +193,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
         approved_by: profile.id,
         approved_at: new Date().toISOString(),
         notes: responseForm.notes,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       if (responseForm.status === 'approved') {
@@ -219,14 +221,28 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
 
   const getUrgencyBadge = (urgency: string) => {
     const badges = {
-      normal: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-800 dark:text-gray-200', label: '일반' },
-      urgent: { bg: 'bg-orange-100 dark:bg-orange-900/20', text: 'text-orange-800 dark:text-orange-200', label: '긴급' },
-      critical: { bg: 'bg-red-100 dark:bg-red-900/20', text: 'text-red-800 dark:text-red-200', label: '매우긴급' }
+      normal: {
+        bg: 'bg-gray-100 dark:bg-gray-700',
+        text: 'text-gray-800 dark:text-gray-200',
+        label: '일반',
+      },
+      urgent: {
+        bg: 'bg-orange-100 dark:bg-orange-900/20',
+        text: 'text-orange-800 dark:text-orange-200',
+        label: '긴급',
+      },
+      critical: {
+        bg: 'bg-red-100 dark:bg-red-900/20',
+        text: 'text-red-800 dark:text-red-200',
+        label: '매우긴급',
+      },
     }
     const badge = badges[urgency as keyof typeof badges] || badges.normal
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}
+      >
         {badge.label}
       </span>
     )
@@ -234,16 +250,38 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      pending: { bg: 'bg-yellow-100 dark:bg-yellow-900/20', text: 'text-yellow-800 dark:text-yellow-200', label: '대기중', icon: Clock },
-      approved: { bg: 'bg-green-100 dark:bg-green-900/20', text: 'text-green-800 dark:text-green-200', label: '승인됨', icon: CheckCircle },
-      rejected: { bg: 'bg-red-100 dark:bg-red-900/20', text: 'text-red-800 dark:text-red-200', label: '거절됨', icon: XCircle },
-      fulfilled: { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-800 dark:text-blue-200', label: '완료', icon: Package }
+      pending: {
+        bg: 'bg-yellow-100 dark:bg-yellow-900/20',
+        text: 'text-yellow-800 dark:text-yellow-200',
+        label: '대기중',
+        icon: Clock,
+      },
+      approved: {
+        bg: 'bg-green-100 dark:bg-green-900/20',
+        text: 'text-green-800 dark:text-green-200',
+        label: '승인됨',
+        icon: CheckCircle,
+      },
+      rejected: {
+        bg: 'bg-red-100 dark:bg-red-900/20',
+        text: 'text-red-800 dark:text-red-200',
+        label: '거절됨',
+        icon: XCircle,
+      },
+      fulfilled: {
+        bg: 'bg-blue-100 dark:bg-blue-900/20',
+        text: 'text-blue-800 dark:text-blue-200',
+        label: '완료',
+        icon: Package,
+      },
     }
     const badge = badges[status as keyof typeof badges] || badges.pending
     const Icon = badge.icon
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}
+      >
         <Icon className="h-3 w-3 mr-1" />
         {badge.label}
       </span>
@@ -254,7 +292,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
     const roleLabels: Record<string, string> = {
       worker: '작업자',
       site_manager: '현장관리자',
-      admin: '관리자'
+      admin: '관리자',
     }
     return roleLabels[role] || role
   }
@@ -272,37 +310,40 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
     if (field !== sortField) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
     }
-    return sortDirection === 'asc' 
-      ? <ChevronUp className="h-4 w-4 text-blue-500" />
-      : <ChevronDown className="h-4 w-4 text-blue-500" />
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="h-4 w-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-blue-500" />
+    )
   }
 
   const sortedRequests = [...requests].sort((a, b) => {
     let aValue: unknown = a[sortField]
     let bValue: unknown = b[sortField]
-    
+
     if (sortField === 'urgency') {
       const urgencyOrder = { normal: 0, urgent: 1, critical: 2 }
       aValue = urgencyOrder[aValue as keyof typeof urgencyOrder]
       bValue = urgencyOrder[bValue as keyof typeof urgencyOrder]
     }
-    
+
     if (sortField === 'status') {
       const statusOrder = { pending: 0, approved: 1, rejected: 2, fulfilled: 3 }
       aValue = statusOrder[aValue as keyof typeof statusOrder]
       bValue = statusOrder[bValue as keyof typeof statusOrder]
     }
-    
+
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
     return 0
   })
 
-  const filteredRequests = sortedRequests.filter(request =>
-    searchTerm === '' ||
-    request.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.requester_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.reason.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRequests = sortedRequests.filter(
+    request =>
+      searchTerm === '' ||
+      request.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.requester_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.reason.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const stats = {
@@ -310,7 +351,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
     pending: requests.filter(r => r.status === 'pending').length,
     approved: requests.filter(r => r.status === 'approved').length,
     rejected: requests.filter(r => r.status === 'rejected').length,
-    critical: requests.filter(r => r.urgency === 'critical' && r.status === 'pending').length
+    critical: requests.filter(r => r.urgency === 'critical' && r.status === 'pending').length,
   }
 
   return (
@@ -323,7 +364,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
           </label>
           <select
             value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
+            onChange={e => setSelectedStatus(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">전체 상태</option>
@@ -340,7 +381,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
           </label>
           <select
             value={selectedUrgency}
-            onChange={(e) => setSelectedUrgency(e.target.value)}
+            onChange={e => setSelectedUrgency(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">전체 긴급도</option>
@@ -356,27 +397,29 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
           </label>
           <select
             value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
+            onChange={e => setSelectedSite(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">전체 현장</option>
             {sites.map(site => (
-              <option key={site.id} value={site.id}>{site.name}</option>
+              <option key={site.id} value={site.id}>
+                {site.name}
+              </option>
             ))}
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            검색
+            {t('common.search')}
           </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="현장, 요청자, 사유 검색..."
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder={t('common.search')}
               className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -403,7 +446,9 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
         </div>
         <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
           <p className="text-sm text-orange-600 dark:text-orange-400">긴급 대기</p>
-          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.critical}</p>
+          <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+            {stats.critical}
+          </p>
           {stats.critical > 0 && <AlertCircle className="h-4 w-4 text-orange-500 mt-1" />}
         </div>
       </div>
@@ -413,7 +458,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('request_date')}
               >
@@ -422,7 +467,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                   {getSortIcon('request_date')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('site_name')}
               >
@@ -431,7 +476,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                   {getSortIcon('site_name')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('requester_name')}
               >
@@ -440,7 +485,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                   {getSortIcon('requester_name')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('requested_amount')}
               >
@@ -449,7 +494,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                   {getSortIcon('requested_amount')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('urgency')}
               >
@@ -458,8 +503,10 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                   {getSortIcon('urgency')}
                 </div>
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">사유</th>
-              <th 
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                사유
+              </th>
+              <th
                 className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('status')}
               >
@@ -468,7 +515,9 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                   {getSortIcon('status')}
                 </div>
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">작업</th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                작업
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -488,15 +537,17 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                         출고요청 관리 데이터베이스가 준비되지 않았습니다
                       </p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 max-w-md">
-                        npc_shipment_requests 테이블이 생성되면 현장별 출고 요청 승인/거절을 관리할 수 있습니다.
-                        <br />현재는 UI 미리보기 모드입니다.
+                        npc_shipment_requests 테이블이 생성되면 현장별 출고 요청 승인/거절을 관리할
+                        수 있습니다.
+                        <br />
+                        현재는 UI 미리보기 모드입니다.
                       </p>
                     </div>
                   </div>
                 </td>
               </tr>
             ) : (
-              filteredRequests.map((request) => (
+              filteredRequests.map(request => (
                 <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     <div className="flex items-center">
@@ -516,7 +567,9 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                         <User className="h-4 w-4 mr-1 text-gray-400" />
                         {request.requester_name}
                       </div>
-                      <div className="text-xs text-gray-500">{getRoleBadge(request.requester_role)}</div>
+                      <div className="text-xs text-gray-500">
+                        {getRoleBadge(request.requester_role)}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-white">
@@ -572,16 +625,21 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">요청일</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{selectedRequest.request_date}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {selectedRequest.request_date}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">현장</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{selectedRequest.site_name}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {selectedRequest.site_name}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">요청자</p>
                     <p className="font-medium text-gray-900 dark:text-white">
-                      {selectedRequest.requester_name} ({getRoleBadge(selectedRequest.requester_role)})
+                      {selectedRequest.requester_name} (
+                      {getRoleBadge(selectedRequest.requester_role)})
                     </p>
                   </div>
                   <div>
@@ -601,12 +659,16 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                 </div>
                 <div>
                   <p className="text-sm text-gray-600 dark:text-gray-400">요청 사유</p>
-                  <p className="font-medium text-gray-900 dark:text-white">{selectedRequest.reason}</p>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {selectedRequest.reason}
+                  </p>
                 </div>
                 {selectedRequest.notes && (
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">비고</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{selectedRequest.notes}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {selectedRequest.notes}
+                    </p>
                   </div>
                 )}
               </div>
@@ -617,7 +679,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                     요청 처리
                   </h3>
-                  
+
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -625,7 +687,9 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                       </label>
                       <select
                         value={responseForm.status}
-                        onChange={(e) => setResponseForm({ ...responseForm, status: e.target.value as unknown })}
+                        onChange={e =>
+                          setResponseForm({ ...responseForm, status: e.target.value as unknown })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       >
                         <option value="approved">승인</option>
@@ -641,7 +705,12 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                         <input
                           type="number"
                           value={responseForm.approved_amount}
-                          onChange={(e) => setResponseForm({ ...responseForm, approved_amount: parseInt(e.target.value) || 0 })}
+                          onChange={e =>
+                            setResponseForm({
+                              ...responseForm,
+                              approved_amount: parseInt(e.target.value) || 0,
+                            })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         />
                       </div>
@@ -654,7 +723,9 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                         </label>
                         <textarea
                           value={responseForm.rejection_reason}
-                          onChange={(e) => setResponseForm({ ...responseForm, rejection_reason: e.target.value })}
+                          onChange={e =>
+                            setResponseForm({ ...responseForm, rejection_reason: e.target.value })
+                          }
                           rows={3}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           required
@@ -668,7 +739,7 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
                       </label>
                       <textarea
                         value={responseForm.notes}
-                        onChange={(e) => setResponseForm({ ...responseForm, notes: e.target.value })}
+                        onChange={e => setResponseForm({ ...responseForm, notes: e.target.value })}
                         rows={2}
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                       />

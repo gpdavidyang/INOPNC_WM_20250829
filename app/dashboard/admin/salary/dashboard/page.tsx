@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { t } from '@/lib/ui/strings'
 
 export default function PayrollDashboardPage() {
   const [yearMonth, setYearMonth] = useState<string>(new Date().toISOString().slice(0, 7))
@@ -18,6 +19,8 @@ export default function PayrollDashboardPage() {
     deductions: 0,
     net: 0,
   })
+  const [source, setSource] = useState<'snapshots' | 'fallback'>('snapshots')
+  const [showFallbackInfo, setShowFallbackInfo] = useState(false)
   const [trendMonths, setTrendMonths] = useState<3 | 6 | 12>(3)
   const [trend, setTrend] = useState<
     Array<{ month: string; count: number; gross: number; deductions: number; net: number }>
@@ -46,6 +49,8 @@ export default function PayrollDashboardPage() {
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '요약 조회 실패')
       setData(json.data)
+      if (json.source === 'fallback') setSource('fallback')
+      else setSource('snapshots')
     } catch (e: any) {
       setError(e?.message || '요약 조회 실패')
     } finally {
@@ -118,11 +123,53 @@ export default function PayrollDashboardPage() {
           className="px-3 py-2 bg-white text-gray-900 rounded-md text-sm border shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
           disabled={loading}
         >
-          새로고침
+          {t('common.refresh')}
         </button>
       </div>
       {loading && <p className="text-sm text-gray-600">불러오는 중...</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="flex items-center gap-3">
+        <span
+          className={`text-[11px] px-2 py-1 rounded-full border ${source === 'fallback' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-green-50 border-green-200 text-green-700'}`}
+          title={
+            source === 'fallback' ? '스냅샷 부재시 작업기록 기반 추정치' : '스냅샷 데이터 기준'
+          }
+        >
+          {source === 'fallback' ? '자료원: 추정(폴백)' : '자료원: 스냅샷'}
+        </span>
+        {source === 'fallback' && (
+          <button
+            type="button"
+            onClick={() => setShowFallbackInfo(v => !v)}
+            className="text-xs underline text-blue-600"
+          >
+            폴백 계산 기준
+          </button>
+        )}
+      </div>
+
+      {source === 'fallback' && showFallbackInfo && (
+        <div className="rounded-md border border-yellow-200 bg-yellow-50 text-yellow-900 p-3 text-xs">
+          <div className="font-medium mb-1">폴백(추정) 계산 기준</div>
+          <ul className="list-disc pl-4 space-y-1">
+            <li>선택한 연월에 대해 salary_snapshots 데이터가 없을 때 적용</li>
+            <li>해당 월의 work_records 범위에서 사용자 집합을 수집</li>
+            <li>사용자별 월 급여를 서비스 권한으로 재계산(salaryCalculationService)</li>
+            <li>개인 설정(worker_salary_settings)과 기본 세율(employment_tax_rates) 활용</li>
+            <li>근무기록이 있지만 시간값이 비어 있으면 1일 8시간(1공수)로 보정</li>
+          </ul>
+          <div className="mt-2">
+            <a href="/dashboard/admin/salary/defaults" className="underline text-blue-700">
+              기본 세율 관리
+            </a>
+            <span className="mx-2 text-yellow-700">·</span>
+            <a href="/dashboard/admin/salary/personal" className="underline text-blue-700">
+              개인 세율/일당 관리
+            </a>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-lg border p-4 bg-white">
           <div className="text-xs text-gray-500">스냅샷 수</div>

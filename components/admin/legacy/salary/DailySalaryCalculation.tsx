@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import * as XLSX from 'xlsx'
 
 interface DailySalaryData {
@@ -22,7 +24,7 @@ export default function DailySalaryCalculation() {
   const [loading, setLoading] = useState(false)
   const [calculating, setCalculating] = useState(false)
   const [data, setData] = useState<DailySalaryData[]>([])
-  
+
   // Filter states
   const [startDate, setStartDate] = useState(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
@@ -31,73 +33,77 @@ export default function DailySalaryCalculation() {
   const [selectedSites, setSelectedSites] = useState<string[]>([])
   const [selectedWorkers, setSelectedWorkers] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  
+
   // Available options
   const [availableSites, setAvailableSites] = useState<Array<{ value: string; label: string }>>([])
-  const [availableWorkers, setAvailableWorkers] = useState<Array<{ value: string; label: string }>>([])
-  
+  const [availableWorkers, setAvailableWorkers] = useState<Array<{ value: string; label: string }>>(
+    []
+  )
+
   // Summary stats
   const [summaryStats, setSummaryStats] = useState({
     totalWorkers: 0,
     totalManhours: 0,
     totalSalary: 0,
-    averageHourlyRate: 0
+    averageHourlyRate: 0,
   })
-  
+
   // Expanded rows
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set())
-  
+
   const supabase = createClient()
-  
+
   // Load available sites and workers
   useEffect(() => {
     loadOptions()
   }, [])
-  
+
   const loadOptions = async () => {
     try {
       // Load sites from Supabase
-      const { data: sitesData } = await supabase
-        .from('sites')
-        .select('id, name')
-        .order('name')
-      
+      const { data: sitesData } = await supabase.from('sites').select('id, name').order('name')
+
       if (sitesData) {
-        setAvailableSites(sitesData.map(site => ({
-          value: site.id,
-          label: site.name
-        })))
+        setAvailableSites(
+          sitesData.map(site => ({
+            value: site.id,
+            label: site.name,
+          }))
+        )
       }
-      
+
       // Load workers from profiles table (not workers table)
       const { data: workersData } = await supabase
         .from('profiles')
         .select('id, full_name, role')
         .not('role', 'is', null)
         .order('full_name')
-      
+
       if (workersData) {
-        setAvailableWorkers(workersData.map(worker => ({
-          value: worker.id,
-          label: worker.full_name,
-          role: worker.role || 'worker'
-        })))
+        setAvailableWorkers(
+          workersData.map(worker => ({
+            value: worker.id,
+            label: worker.full_name,
+            role: worker.role || 'worker',
+          }))
+        )
       }
     } catch (error) {
       console.error('Failed to load options:', error)
     }
   }
-  
+
   const loadDailySalaryData = async () => {
     setCalculating(true)
     setLoading(true)
-    
+
     try {
       // Build Supabase query for worker assignments with related data
       // First, get the worker assignments with daily reports
       let query = supabase
         .from('work_records')
-        .select(`
+        .select(
+          `
           id,
           profile_id,
           labor_hours,
@@ -110,7 +116,8 @@ export default function DailySalaryCalculation() {
             site_id,
             sites(id, name)
           )
-        `)
+        `
+        )
         .gte('daily_reports.work_date', startDate)
         .lte('daily_reports.work_date', endDate)
 
@@ -118,8 +125,8 @@ export default function DailySalaryCalculation() {
       if (selectedSites.length > 0) {
         query = query.in('daily_reports.site_id', selectedSites)
       }
-      
-      // Apply worker filter  
+
+      // Apply worker filter
       if (selectedWorkers.length > 0) {
         query = query.in('profile_id', selectedWorkers)
       }
@@ -132,7 +139,7 @@ export default function DailySalaryCalculation() {
           startDate,
           endDate,
           selectedSites,
-          selectedWorkers
+          selectedWorkers,
         })
         throw new Error(`Database query failed: ${error.message || JSON.stringify(error)}`)
       }
@@ -175,7 +182,11 @@ export default function DailySalaryCalculation() {
           return dateB - dateA
         })
         .map(assignment => {
-          const profile = profilesMap.get(assignment.profile_id) || { full_name: 'Unknown', role: 'worker', daily_wage: 0 }
+          const profile = profilesMap.get(assignment.profile_id) || {
+            full_name: 'Unknown',
+            role: 'worker',
+            daily_wage: 0,
+          }
           const report = assignment.daily_reports
           const site = report.sites
           const laborHours = Number(assignment.labor_hours) || 0
@@ -199,7 +210,7 @@ export default function DailySalaryCalculation() {
             daily_rate: regularPay,
             overtime_hours: overtimeHours,
             overtime_pay: overtimePay,
-            total_pay: totalPay
+            total_pay: totalPay,
           }
         })
 
@@ -214,21 +225,21 @@ export default function DailySalaryCalculation() {
       setCalculating(false)
     }
   }
-  
+
   const calculateSummary = (data: DailySalaryData[]) => {
     const uniqueWorkers = new Set(data.map(d => d.worker_id)).size
     const totalManhours = data.reduce((sum, d) => sum + (d.labor_hours || 0), 0)
     const totalSalary = data.reduce((sum, d) => sum + (d.total_pay || 0), 0)
     const averageHourlyRate = totalManhours > 0 ? totalSalary / totalManhours : 0
-    
+
     setSummaryStats({
       totalWorkers: uniqueWorkers,
       totalManhours,
       totalSalary,
-      averageHourlyRate
+      averageHourlyRate,
     })
   }
-  
+
   const toggleRowExpansion = (workerId: string) => {
     const newExpanded = new Set(expandedRows)
     if (newExpanded.has(workerId)) {
@@ -238,54 +249,57 @@ export default function DailySalaryCalculation() {
     }
     setExpandedRows(newExpanded)
   }
-  
+
   const exportToExcel = () => {
     if (data.length === 0) {
       alert('내보낼 데이터가 없습니다.')
       return
     }
-    
+
     const excelData = data.map(item => ({
-      '작업일': format(new Date(item.work_date), 'yyyy-MM-dd'),
-      '작업자': item.worker_name,
-      '역할': item.worker_role === 'site_manager' ? '현장관리자' : '작업자',
-      '현장': item.site_name,
-      '총공수': item.labor_hours || 0,
-      '시급': item.hourly_rate || 0,
-      '일당': item.daily_rate || 0,
-      '연장근무': item.overtime_hours || 0,
-      '연장수당': item.overtime_pay || 0,
-      '총급여': item.total_pay || 0
+      작업일: format(new Date(item.work_date), 'yyyy-MM-dd'),
+      작업자: item.worker_name,
+      역할: item.worker_role === 'site_manager' ? '현장관리자' : '작업자',
+      현장: item.site_name,
+      총공수: item.labor_hours || 0,
+      시급: item.hourly_rate || 0,
+      일당: item.daily_rate || 0,
+      연장근무: item.overtime_hours || 0,
+      연장수당: item.overtime_pay || 0,
+      총급여: item.total_pay || 0,
     }))
-    
+
     const ws = XLSX.utils.json_to_sheet(excelData)
     const wb = XLSX.utils.book_new()
     XLSX.utils.book_append_sheet(wb, ws, '일급여계산')
-    
+
     const fileName = `일급여계산_${format(new Date(), 'yyyy-MM-dd')}.xlsx`
     XLSX.writeFile(wb, fileName)
   }
-  
+
   // Group data by worker for display
-  const groupedData = data.reduce((acc, item) => {
-    if (!acc[item.worker_id]) {
-      acc[item.worker_id] = {
-        worker_id: item.worker_id,
-        worker_name: item.worker_name,
-        worker_role: item.worker_role,
-        records: [],
-        totalManhours: 0,
-        totalSalary: 0
+  const groupedData = data.reduce(
+    (acc, item) => {
+      if (!acc[item.worker_id]) {
+        acc[item.worker_id] = {
+          worker_id: item.worker_id,
+          worker_name: item.worker_name,
+          worker_role: item.worker_role,
+          records: [],
+          totalManhours: 0,
+          totalSalary: 0,
+        }
       }
-    }
-    acc[item.worker_id].records.push(item)
-    acc[item.worker_id].totalManhours += (item.labor_hours || 0)
-    acc[item.worker_id].totalSalary += (item.total_pay || 0)
-    return acc
-  }, {} as Record<string, any>)
-  
+      acc[item.worker_id].records.push(item)
+      acc[item.worker_id].totalManhours += item.labor_hours || 0
+      acc[item.worker_id].totalSalary += item.total_pay || 0
+      return acc
+    },
+    {} as Record<string, any>
+  )
+
   const workers = Object.values(groupedData)
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -306,7 +320,7 @@ export default function DailySalaryCalculation() {
           Excel 다운로드
         </button>
       </div>
-      
+
       {/* Filters */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 relative">
@@ -318,7 +332,7 @@ export default function DailySalaryCalculation() {
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={e => setStartDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
@@ -329,12 +343,12 @@ export default function DailySalaryCalculation() {
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={e => setEndDate(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
-          
+
           <MultiSelectFilter
             label="현장 선택"
             options={availableSites}
@@ -342,36 +356,36 @@ export default function DailySalaryCalculation() {
             onChange={setSelectedSites}
             placeholder="전체 현장"
           />
-          
+
           <MultiSelectFilter
             label="작업자 선택"
-            options={availableWorkers.map(w => ({ 
-              value: w.value, 
+            options={availableWorkers.map(w => ({
+              value: w.value,
               label: w.label,
-              group: w.role === 'site_manager' ? '현장관리자' : '작업자'
+              group: w.role === 'site_manager' ? '현장관리자' : '작업자',
             }))}
             selected={selectedWorkers}
             onChange={setSelectedWorkers}
             placeholder="전체 작업자"
             grouped
           />
-          
+
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              검색
+              {t('common.search')}
             </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="이름으로 검색..."
+                placeholder={t('common.search')}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
-          
+
           <div className="flex items-end">
             <button
               onClick={loadDailySalaryData}
@@ -393,38 +407,39 @@ export default function DailySalaryCalculation() {
           </div>
         </div>
       </div>
-      
+
       {/* Summary Cards */}
       <SummaryCards stats={summaryStats} />
-      
+
       {/* Charts */}
       {!loading && data.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 작업자별 급여 차트 */}
-          <WorkerSalaryChart 
-            data={Object.values(groupedData).slice(0, 10).map(worker => ({
-              name: worker.worker_name,
-              value: worker.totalSalary || 0,
-              hours: worker.totalManhours || 0
-            }))}
+          <WorkerSalaryChart
+            data={Object.values(groupedData)
+              .slice(0, 10)
+              .map(worker => ({
+                name: worker.worker_name,
+                value: worker.totalSalary || 0,
+                hours: worker.totalManhours || 0,
+              }))}
           />
-          
+
           {/* 현장별 급여 분포 차트 */}
-          <SiteSalaryChart 
+          <SiteSalaryChart
             data={Array.from(new Set(data.map(d => d.site_name)))
               .map(siteName => ({
                 name: siteName,
                 value: data
                   .filter(d => d.site_name === siteName)
                   .reduce((sum, d) => sum + (d.total_pay || 0), 0),
-                count: data.filter(d => d.site_name === siteName).length
+                count: data.filter(d => d.site_name === siteName).length,
               }))
-              .slice(0, 5)
-            }
+              .slice(0, 5)}
           />
         </div>
       )}
-      
+
       {/* Data Table */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
         {loading ? (
@@ -463,7 +478,7 @@ export default function DailySalaryCalculation() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                {workers.map((worker) => (
+                {workers.map(worker => (
                   <>
                     <tr key={worker.worker_id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                       <td className="px-6 py-4 whitespace-nowrap">
@@ -477,11 +492,13 @@ export default function DailySalaryCalculation() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          worker.worker_role === 'site_manager'
-                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                            : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        }`}>
+                        <span
+                          className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            worker.worker_role === 'site_manager'
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                              : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                          }`}
+                        >
                           {worker.worker_role === 'site_manager' ? '현장관리자' : '작업자'}
                         </span>
                       </td>
@@ -491,7 +508,10 @@ export default function DailySalaryCalculation() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900 dark:text-gray-100">
-                        ₩{Math.round((worker.totalSalary || 0) / (worker.totalManhours || 1)).toLocaleString()}
+                        ₩
+                        {Math.round(
+                          (worker.totalSalary || 0) / (worker.totalManhours || 1)
+                        ).toLocaleString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right">
                         <div className="text-sm font-bold text-green-600 dark:text-green-400">
@@ -527,7 +547,9 @@ export default function DailySalaryCalculation() {
                                   <div className="flex justify-between items-start">
                                     <div>
                                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                        {format(new Date(record.work_date), 'MM월 dd일 (EEE)', { locale: ko })}
+                                        {format(new Date(record.work_date), 'MM월 dd일 (EEE)', {
+                                          locale: ko,
+                                        })}
                                       </p>
                                       <p className="text-xs text-gray-600 dark:text-gray-400">
                                         {record.site_name}
@@ -539,7 +561,8 @@ export default function DailySalaryCalculation() {
                                       </p>
                                       <p className="text-xs text-gray-600 dark:text-gray-400">
                                         {record.labor_hours || 0}시간
-                                        {(record.overtime_hours || 0) > 0 && ` (+${record.overtime_hours || 0})`}
+                                        {(record.overtime_hours || 0) > 0 &&
+                                          ` (+${record.overtime_hours || 0})`}
                                       </p>
                                     </div>
                                   </div>

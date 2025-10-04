@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface AnnouncementsTabProps {
   profile: Profile
@@ -26,14 +27,14 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
   const [filterType, setFilterType] = useState<string>('')
   const [filterAudience, setFilterAudience] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
-  
+
   const [formData, setFormData] = useState<Partial<Announcement>>({
     title: '',
     content: '',
     priority: 'normal',
     target_roles: [],
     target_sites: [],
-    is_active: true
+    is_active: true,
   })
 
   const supabase = createClient()
@@ -72,7 +73,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
       const dataToSave = {
         ...formData,
         created_by: profile.id,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       if (editingId) {
@@ -86,9 +87,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
           setEditingId(null)
         }
       } else {
-        const { error } = await supabase
-          .from('announcements')
-          .insert([dataToSave])
+        const { error } = await supabase.from('announcements').insert([dataToSave])
 
         if (!error) {
           alert('공지사항이 등록되었습니다.')
@@ -114,10 +113,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
     if (!confirm('이 공지사항을 삭제하시겠습니까?')) return
 
     try {
-      const { error } = await supabase
-        .from('announcements')
-        .delete()
-        .eq('id', id)
+      const { error } = await supabase.from('announcements').delete().eq('id', id)
 
       if (!error) {
         alert('공지사항이 삭제되었습니다.')
@@ -144,7 +140,6 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
     }
   }
 
-
   const resetForm = () => {
     setFormData({
       title: '',
@@ -152,7 +147,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
       priority: 'normal',
       target_roles: [],
       target_sites: [],
-      is_active: true
+      is_active: true,
     })
     setEditingId(null)
     setShowAddForm(false)
@@ -164,15 +159,33 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
 
   const getPriorityBadge = (priority: string) => {
     const badges = {
-      low: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-800 dark:text-gray-200', label: '낮음' },
-      normal: { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-800 dark:text-blue-200', label: '보통' },
-      high: { bg: 'bg-orange-100 dark:bg-orange-900/20', text: 'text-orange-800 dark:text-orange-200', label: '높음' },
-      urgent: { bg: 'bg-red-100 dark:bg-red-900/20', text: 'text-red-800 dark:text-red-200', label: '긴급' }
+      low: {
+        bg: 'bg-gray-100 dark:bg-gray-700',
+        text: 'text-gray-800 dark:text-gray-200',
+        label: '낮음',
+      },
+      normal: {
+        bg: 'bg-blue-100 dark:bg-blue-900/20',
+        text: 'text-blue-800 dark:text-blue-200',
+        label: '보통',
+      },
+      high: {
+        bg: 'bg-orange-100 dark:bg-orange-900/20',
+        text: 'text-orange-800 dark:text-orange-200',
+        label: '높음',
+      },
+      urgent: {
+        bg: 'bg-red-100 dark:bg-red-900/20',
+        text: 'text-red-800 dark:text-red-200',
+        label: '긴급',
+      },
     }
     const badge = badges[priority as keyof typeof badges] || badges.normal
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}
+      >
         {badge.label}
       </span>
     )
@@ -181,16 +194,20 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
   const getRolesBadges = (roles: string[]) => {
     if (!roles || roles.length === 0) return null
     return roles.map((role, index) => (
-      <span key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 mr-1">
+      <span
+        key={index}
+        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 mr-1"
+      >
         {role}
       </span>
     ))
   }
 
-  const filteredAnnouncements = announcements.filter(announcement =>
-    searchTerm === '' ||
-    announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    announcement.content.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAnnouncements = announcements.filter(
+    announcement =>
+      searchTerm === '' ||
+      announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      announcement.content.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -201,9 +218,9 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
           <div className="relative flex-1 max-w-md">
             <input
               type="text"
-              placeholder="공지사항 검색..."
+              placeholder={t('common.search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
             <Bell className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -211,7 +228,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
 
           <select
             value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
+            onChange={e => setFilterType(e.target.value)}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">전체 우선순위</option>
@@ -248,7 +265,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 required
               />
@@ -260,7 +277,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
               </label>
               <textarea
                 value={formData.content}
-                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                onChange={e => setFormData({ ...formData, content: e.target.value })}
                 rows={5}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                 required
@@ -273,7 +290,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
               </label>
               <select
                 value={formData.priority}
-                onChange={(e) => setFormData({ ...formData, priority: e.target.value as unknown })}
+                onChange={e => setFormData({ ...formData, priority: e.target.value as unknown })}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
                 <option value="low">낮음</option>
@@ -288,7 +305,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
                 <input
                   type="checkbox"
                   checked={formData.is_active}
-                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  onChange={e => setFormData({ ...formData, is_active: e.target.checked })}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">활성화</span>
@@ -325,11 +342,8 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
             <p>등록된 공지사항이 없습니다.</p>
           </div>
         ) : (
-          filteredAnnouncements.map((announcement) => (
-            <div
-              key={announcement.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
-            >
+          filteredAnnouncements.map(announcement => (
+            <div key={announcement.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
@@ -363,7 +377,11 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
                     }`}
                     title={announcement.is_active ? '활성화됨' : '비활성화됨'}
                   >
-                    {announcement.is_active ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    {announcement.is_active ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" />
+                    )}
                   </button>
                   <button
                     onClick={() => handleEdit(announcement)}

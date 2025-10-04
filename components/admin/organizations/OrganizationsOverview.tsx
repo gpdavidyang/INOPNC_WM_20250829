@@ -1,21 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Building2,
-  Mail,
-  MapPin,
-  Phone,
-  RefreshCw,
-  Users,
-} from 'lucide-react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Building2, Mail, MapPin, Phone, RefreshCw, Users } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -27,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { t } from '@/lib/ui/strings'
 
 interface Organization {
   id: string
@@ -85,14 +73,8 @@ export function OrganizationsOverview() {
   const filtered = useMemo(() => {
     const text = keyword.trim().toLowerCase()
     if (!text) return organizations
-    return organizations.filter((org) => {
-      const haystack = [
-        org.name,
-        org.type,
-        org.address,
-        org.contact_email,
-        org.contact_phone,
-      ]
+    return organizations.filter(org => {
+      const haystack = [org.name, org.type, org.address, org.contact_email, org.contact_phone]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -120,9 +102,9 @@ export function OrganizationsOverview() {
           </div>
           <div className="flex w-full max-w-md items-center gap-2">
             <Input
-              placeholder="조직명, 주소, 연락처로 검색"
+              placeholder={t('common.search')}
               value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
+              onChange={event => setKeyword(event.target.value)}
             />
             <Button
               variant="outline"
@@ -131,7 +113,7 @@ export function OrganizationsOverview() {
               className="shrink-0"
             >
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-              <span className="sr-only">새로고침</span>
+              <span className="sr-only">{t('common.refresh')}</span>
             </Button>
           </div>
         </CardHeader>
@@ -145,9 +127,7 @@ export function OrganizationsOverview() {
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="py-16 text-center text-sm text-red-500">
-            {error}
-          </CardContent>
+          <CardContent className="py-16 text-center text-sm text-red-500">{error}</CardContent>
         </Card>
       ) : filtered.length === 0 ? (
         <Card>
@@ -169,7 +149,7 @@ export function OrganizationsOverview() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((organization) => (
+                {filtered.map(organization => (
                   <TableRow key={organization.id}>
                     <TableCell>
                       <div className="font-medium text-foreground">{organization.name}</div>

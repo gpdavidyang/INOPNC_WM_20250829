@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import RequiredDocumentUploadModal from './RequiredDocumentUploadModal'
 import RequiredDocumentDetailModal from './RequiredDocumentDetailModal'
 
@@ -70,16 +72,21 @@ export default function RequiredDocumentsManagement() {
     try {
       let query = supabase
         .from('unified_document_system')
-        .select(`
+        .select(
+          `
           *,
           profiles:uploaded_by(id, full_name, email, role),
           reviewer_profile:approved_by(id, full_name, email)
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('category_type', 'required')
 
       // 검색 필터 적용
       if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        query = query.or(
+          `title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
+        )
       }
 
       // 사용자 검색 필터 적용 (이름, 이메일, 역할로 검색)
@@ -88,8 +95,10 @@ export default function RequiredDocumentsManagement() {
         const { data: users, error: userError } = await supabase
           .from('profiles')
           .select('id')
-          .or(`full_name.ilike.%${userSearchTerm}%,email.ilike.%${userSearchTerm}%,role.ilike.%${userSearchTerm}%`)
-        
+          .or(
+            `full_name.ilike.%${userSearchTerm}%,email.ilike.%${userSearchTerm}%,role.ilike.%${userSearchTerm}%`
+          )
+
         if (!userError && users && users.length > 0) {
           const userIds = users.map(u => u.id)
           query = query.in('uploaded_by', userIds)
@@ -125,9 +134,9 @@ export default function RequiredDocumentsManagement() {
       const mappedData = (data || []).map((doc: unknown) => ({
         ...doc,
         uploader: doc.profiles,
-        approver: doc.reviewer_profile
+        approver: doc.reviewer_profile,
       }))
-      
+
       setDocuments(mappedData)
       setTotalCount(count || 0)
     } catch (error) {
@@ -137,14 +146,18 @@ export default function RequiredDocumentsManagement() {
     }
   }
 
-  const handleStatusUpdate = async (documentId: string, status: 'approved' | 'rejected', notes?: string) => {
+  const handleStatusUpdate = async (
+    documentId: string,
+    status: 'approved' | 'rejected',
+    notes?: string
+  ) => {
     try {
       const { error } = await supabase
         .from('unified_document_system')
-        .update({ 
+        .update({
           status,
           metadata: { review_date: new Date().toISOString(), review_notes: notes },
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', documentId)
 
@@ -162,10 +175,7 @@ export default function RequiredDocumentsManagement() {
     if (!confirm('정말로 이 서류를 삭제하시겠습니까?')) return
 
     try {
-      const { error } = await supabase
-        .from('unified_document_system')
-        .delete()
-        .eq('id', documentId)
+      const { error } = await supabase.from('unified_document_system').delete().eq('id', documentId)
 
       if (error) throw error
 
@@ -248,24 +258,24 @@ export default function RequiredDocumentsManagement() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="서류명, 파일명으로 검색..."
+                placeholder={t('common.search')}
                 className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
                 value={searchTerm}
-                onChange={(e) => {
+                onChange={e => {
                   setSearchTerm(e.target.value)
                   setCurrentPage(1)
                 }}
               />
             </div>
-            
+
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="제출자 이름, 이메일, 역할로 검색..."
+                placeholder={t('common.search')}
                 className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
                 value={userSearchTerm}
-                onChange={(e) => {
+                onChange={e => {
                   setUserSearchTerm(e.target.value)
                   setCurrentPage(1)
                 }}
@@ -278,7 +288,7 @@ export default function RequiredDocumentsManagement() {
             <select
               className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
               value={statusFilter}
-              onChange={(e) => {
+              onChange={e => {
                 setStatusFilter(e.target.value)
                 setCurrentPage(1)
               }}
@@ -292,19 +302,19 @@ export default function RequiredDocumentsManagement() {
             <select
               className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
               value={typeFilter}
-              onChange={(e) => {
+              onChange={e => {
                 setTypeFilter(e.target.value)
                 setCurrentPage(1)
               }}
             >
               <option value="">모든 서류 유형</option>
-              {documentTypes.map((type) => (
+              {documentTypes.map(type => (
                 <option key={type.code} value={type.code}>
                   {type.name_ko}
                 </option>
               ))}
             </select>
-            
+
             <button
               onClick={() => {
                 setSearchTerm('')
@@ -316,15 +326,15 @@ export default function RequiredDocumentsManagement() {
               className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
             >
               <X className="w-4 h-4 mr-2" />
-              초기화
+              {t('common.reset')}
             </button>
-            
+
             <button
               onClick={fetchDocuments}
               className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
-              새로고침
+              {t('common.refresh')}
             </button>
 
             <button
@@ -342,7 +352,8 @@ export default function RequiredDocumentsManagement() {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>개의 필수 제출 서류
+            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>
+            개의 필수 제출 서류
           </div>
           <div className="text-sm text-gray-600">
             {currentPage} / {totalPages} 페이지
@@ -388,7 +399,7 @@ export default function RequiredDocumentsManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {documents.map((document) => (
+                {documents.map(document => (
                   <tr key={document.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-start">
@@ -403,9 +414,7 @@ export default function RequiredDocumentsManagement() {
                           >
                             {document.title}
                           </button>
-                          <div className="text-sm text-gray-500 mt-1">
-                            {document.file_name}
-                          </div>
+                          <div className="text-sm text-gray-500 mt-1">{document.file_name}</div>
                           <div className="text-xs text-gray-400">
                             {formatFileSize(document.file_size)}
                           </div>
@@ -416,12 +425,8 @@ export default function RequiredDocumentsManagement() {
                       <div className="text-sm text-gray-900">
                         {document.profiles?.full_name || '알 수 없음'}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {document.profiles?.email}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {document.profiles?.role}
-                      </div>
+                      <div className="text-sm text-gray-500">{document.profiles?.email}</div>
+                      <div className="text-xs text-gray-400">{document.profiles?.role}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="text-sm text-gray-900">
@@ -431,9 +436,7 @@ export default function RequiredDocumentsManagement() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(document.status)}
                       {document.review_notes && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          {document.review_notes}
-                        </div>
+                        <div className="text-xs text-gray-500 mt-1">{document.review_notes}</div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -442,7 +445,7 @@ export default function RequiredDocumentsManagement() {
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                       {document.review_date && (
                         <div className="text-xs text-gray-400 mt-1">
@@ -490,7 +493,8 @@ export default function RequiredDocumentsManagement() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow">
           <div className="text-sm text-gray-700">
-            {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
+            {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -498,9 +502,9 @@ export default function RequiredDocumentsManagement() {
               disabled={currentPage === 1}
               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              이전
+              {t('common.prev')}
             </button>
-            
+
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
               return (
@@ -508,8 +512,8 @@ export default function RequiredDocumentsManagement() {
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
                   className={`px-3 py-1 border rounded text-sm ${
-                    currentPage === pageNum 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -517,13 +521,13 @@ export default function RequiredDocumentsManagement() {
                 </button>
               )
             })}
-            
+
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              다음
+              {t('common.next')}
             </button>
           </div>
         </div>
