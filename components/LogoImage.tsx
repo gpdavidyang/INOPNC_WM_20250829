@@ -31,8 +31,8 @@ export default function LogoImage({
     stage === 'primary'
       ? srcPrimary
       : stage === 'backup'
-        ? '/images/logo_g.png'
-        : INLINE_SVG_PLACEHOLDER
+        ? '/images/inopnc-logo-n.png'
+        : '/images/logo_g.png'
 
   return (
     <img
