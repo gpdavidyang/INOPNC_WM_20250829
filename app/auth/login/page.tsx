@@ -224,10 +224,11 @@ export default function LoginPage() {
           height: 35px;
           display: flex;
           align-items: center;
+          white-space: nowrap; /* 줄바꿈 방지 */
         }
-        .page-title {
-          text-align: center;
-          margin: 0 0 8px 0;
+        /* 헤더(로고+텍스트) 한 줄 유지 */
+        .login-header {
+          flex-wrap: nowrap;
         }
 
         .form-group {
@@ -597,8 +598,8 @@ export default function LoginPage() {
         <div className="login-content">
           <div className="login-header">
             <LogoImage srcPrimary={getLoginLogoSrc()} className="login-logo" />
+            <h1 className="login-title">로그인</h1>
           </div>
-          <h1 className="login-title page-title">로그인</h1>
 
           <form onSubmit={handleLogin}>
             <div className="form-group">
