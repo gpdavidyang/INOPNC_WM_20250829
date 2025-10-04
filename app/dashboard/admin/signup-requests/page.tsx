@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import SignupRequestsTable from '@/components/admin/SignupRequestsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/ui/strings'
 
 export const metadata: Metadata = {
   title: '가입 요청 관리',
@@ -70,15 +71,15 @@ export default async function AdminSignupRequestsPage({
         <CardContent>
           <div className="mb-3">
             <form method="GET" className="flex items-center gap-2">
-              <Input name="search" defaultValue={search} placeholder="이름/이메일/회사명" />
+              <Input name="search" defaultValue={search} placeholder={t('common.search')} />
               <Button type="submit" variant="outline">
-                검색
+                {t('common.search')}
               </Button>
               <Link
                 href="/dashboard/admin/signup-requests"
                 className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
               >
-                초기화
+                {t('common.reset')}
               </Link>
             </form>
           </div>

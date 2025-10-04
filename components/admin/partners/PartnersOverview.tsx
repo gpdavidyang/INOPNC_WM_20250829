@@ -1,21 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  Building,
-  Building2,
-  Mail,
-  Phone,
-  RefreshCw,
-  Users,
-} from 'lucide-react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Building, Building2, Mail, Phone, RefreshCw, Users } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -27,6 +14,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { t } from '@/lib/ui/strings'
 
 interface PartnerCompany {
   id: string
@@ -88,7 +76,7 @@ export function PartnersOverview() {
   const filteredPartners = useMemo(() => {
     const text = keyword.trim().toLowerCase()
     if (!text) return partners
-    return partners.filter((partner) => {
+    return partners.filter(partner => {
       const haystack = [
         partner.company_name,
         partner.company_type,
@@ -122,14 +110,14 @@ export function PartnersOverview() {
           </div>
           <div className="flex w-full max-w-xl flex-col gap-2 sm:flex-row sm:items-center">
             <Input
-              placeholder="파트너명, 담당자, 연락처로 검색"
+              placeholder={t('common.search')}
               value={keyword}
-              onChange={(event) => setKeyword(event.target.value)}
+              onChange={event => setKeyword(event.target.value)}
             />
             <div className="flex items-center gap-2">
               <select
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)}
+                onChange={event => setStatusFilter(event.target.value as typeof statusFilter)}
                 className="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm"
               >
                 <option value="all">전체 상태</option>
@@ -143,7 +131,7 @@ export function PartnersOverview() {
                 className="shrink-0"
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="sr-only">새로고침</span>
+                <span className="sr-only">{t('common.refresh')}</span>
               </Button>
             </div>
           </div>
@@ -158,9 +146,7 @@ export function PartnersOverview() {
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="py-16 text-center text-sm text-red-500">
-            {error}
-          </CardContent>
+          <CardContent className="py-16 text-center text-sm text-red-500">{error}</CardContent>
         </Card>
       ) : filteredPartners.length === 0 ? (
         <Card>
@@ -182,7 +168,7 @@ export function PartnersOverview() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPartners.map((partner) => (
+                {filteredPartners.map(partner => (
                   <TableRow key={partner.id}>
                     <TableCell>
                       <div className="font-medium text-foreground">{partner.company_name}</div>
@@ -245,7 +231,8 @@ export function PartnersOverview() {
             연동 안내
           </CardTitle>
           <CardDescription>
-            파트너사는 조직/현장 매핑 후 사용자 계정에 연결됩니다. Phase 2에서는 등록·승인 플로우가 이 화면에서 제공될 예정입니다.
+            파트너사는 조직/현장 매핑 후 사용자 계정에 연결됩니다. Phase 2에서는 등록·승인 플로우가
+            이 화면에서 제공될 예정입니다.
           </CardDescription>
         </CardHeader>
       </Card>

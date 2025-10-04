@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import InvoiceDocumentUploadModal from './InvoiceDocumentUploadModal'
 import InvoiceDocumentDetailModal from './InvoiceDocumentDetailModal'
 import { getSessionUser } from '@/lib/supabase/session'
@@ -57,14 +59,14 @@ const documentTypes = [
   { value: 'completion_report', label: '완료보고서' },
   { value: 'payment_request', label: '대금청구서' },
   { value: 'tax_invoice', label: '세금계산서' },
-  { value: 'other', label: '기타 서류' }
+  { value: 'other', label: '기타 서류' },
 ]
 
 // 계약 단계
 const contractPhases = [
   { value: 'pre_contract', label: '계약 전' },
   { value: 'in_progress', label: '진행 중' },
-  { value: 'completed', label: '완료' }
+  { value: 'completed', label: '완료' },
 ]
 
 export default function InvoiceDocumentsManagement() {
@@ -107,17 +109,22 @@ export default function InvoiceDocumentsManagement() {
     try {
       let query = supabase
         .from('unified_document_system')
-        .select(`
+        .select(
+          `
           *,
           profiles!unified_document_system_uploaded_by_fkey(id, full_name, email),
           sites(id, name, address)
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .eq('category_type', 'invoice')
         .eq('status', 'active')
 
       // 검색 필터 적용
       if (searchTerm) {
-        query = query.or(`title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`)
+        query = query.or(
+          `title.ilike.%${searchTerm}%,file_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`
+        )
       }
 
       // 현장 필터 적용
@@ -145,22 +152,24 @@ export default function InvoiceDocumentsManagement() {
       if (error) throw error
 
       // Process documents to extract metadata and fetch partner companies
-      const processedDocs = await Promise.all((data || []).map(async (doc) => {
-        let organizations = null;
-        if (doc.metadata?.partner_company_id) {
-          const { data: orgData } = await supabase
-            .from('organizations')
-            .select('id, name, business_registration_number')
-            .eq('id', doc.metadata.partner_company_id)
-            .single();
-          organizations = orgData;
-        }
-        return {
-          ...doc,
-          document_type: doc.metadata?.document_type || doc.document_type,
-          organizations
-        };
-      }));
+      const processedDocs = await Promise.all(
+        (data || []).map(async doc => {
+          let organizations = null
+          if (doc.metadata?.partner_company_id) {
+            const { data: orgData } = await supabase
+              .from('organizations')
+              .select('id, name, business_registration_number')
+              .eq('id', doc.metadata.partner_company_id)
+              .single()
+            organizations = orgData
+          }
+          return {
+            ...doc,
+            document_type: doc.metadata?.document_type || doc.document_type,
+            organizations,
+          }
+        })
+      )
       setDocuments(processedDocs)
       setTotalCount(count || 0)
     } catch (error) {
@@ -254,7 +263,7 @@ export default function InvoiceDocumentsManagement() {
           .select('role')
           .eq('id', currentUser.id)
           .single()
-        
+
         if (profile) {
           setUserRole(profile.role)
         }
@@ -303,28 +312,28 @@ export default function InvoiceDocumentsManagement() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
               type="text"
-              placeholder="서류명, 파일명으로 검색..."
+              placeholder={t('common.search')}
               className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
               value={searchTerm}
-              onChange={(e) => {
+              onChange={e => {
                 setSearchTerm(e.target.value)
                 setCurrentPage(1)
               }}
             />
           </div>
-          
+
           <div className="relative">
             <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <select
               className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
               value={selectedSite}
-              onChange={(e) => {
+              onChange={e => {
                 setSelectedSite(e.target.value)
                 setCurrentPage(1)
               }}
             >
               <option value="">모든 현장</option>
-              {sites.map((site) => (
+              {sites.map(site => (
                 <option key={site.id} value={site.id}>
                   {site.name}
                 </option>
@@ -335,13 +344,13 @@ export default function InvoiceDocumentsManagement() {
           <select
             className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
             value={phaseFilter}
-            onChange={(e) => {
+            onChange={e => {
               setPhaseFilter(e.target.value)
               setCurrentPage(1)
             }}
           >
             <option value="">모든 단계</option>
-            {contractPhases.map((phase) => (
+            {contractPhases.map(phase => (
               <option key={phase.value} value={phase.value}>
                 {phase.label}
               </option>
@@ -351,25 +360,25 @@ export default function InvoiceDocumentsManagement() {
           <select
             className="px-4 py-2 bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
             value={typeFilter}
-            onChange={(e) => {
+            onChange={e => {
               setTypeFilter(e.target.value)
               setCurrentPage(1)
             }}
           >
             <option value="">모든 문서 유형</option>
-            {documentTypes.map((type) => (
+            {documentTypes.map(type => (
               <option key={type.value} value={type.value}>
                 {type.label}
               </option>
             ))}
           </select>
-          
+
           <button
             onClick={fetchDocuments}
             className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
-            새로고침
+            {t('common.refresh')}
           </button>
 
           <button
@@ -386,11 +395,10 @@ export default function InvoiceDocumentsManagement() {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>개의 기성청구 서류
+            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>
+            개의 기성청구 서류
             {selectedSite && (
-              <span className="ml-2">
-                (현장: {sites.find(s => s.id === selectedSite)?.name})
-              </span>
+              <span className="ml-2">(현장: {sites.find(s => s.id === selectedSite)?.name})</span>
             )}
           </div>
           <div className="text-sm text-gray-600">
@@ -443,7 +451,7 @@ export default function InvoiceDocumentsManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {documents.map((document) => (
+                {documents.map(document => (
                   <tr key={document.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-start">
@@ -455,9 +463,7 @@ export default function InvoiceDocumentsManagement() {
                           >
                             {document.title}
                           </button>
-                          <div className="text-sm text-gray-500 mt-1">
-                            {document.file_name}
-                          </div>
+                          <div className="text-sm text-gray-500 mt-1">{document.file_name}</div>
                           <div className="text-xs text-gray-400">
                             {formatFileSize(document.file_size)}
                           </div>
@@ -474,9 +480,7 @@ export default function InvoiceDocumentsManagement() {
                         </div>
                       )}
                       {document.sites?.address && (
-                        <div className="text-xs text-gray-400">
-                          {document.sites.address}
-                        </div>
+                        <div className="text-xs text-gray-400">{document.sites.address}</div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -484,14 +488,11 @@ export default function InvoiceDocumentsManagement() {
                         {getDocumentTypeLabel(document)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getPhaseBadge(document)}
-                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{getPhaseBadge(document)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {document.metadata?.amount ? 
-                        `₩${document.metadata.amount.toLocaleString()}` : 
-                        '-'
-                      }
+                      {document.metadata?.amount
+                        ? `₩${document.metadata.amount.toLocaleString()}`
+                        : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(document.created_at).toLocaleDateString('ko-KR', {
@@ -499,7 +500,7 @@ export default function InvoiceDocumentsManagement() {
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -539,7 +540,8 @@ export default function InvoiceDocumentsManagement() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow">
           <div className="text-sm text-gray-700">
-            {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
+            {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -547,9 +549,9 @@ export default function InvoiceDocumentsManagement() {
               disabled={currentPage === 1}
               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              이전
+              {t('common.prev')}
             </button>
-            
+
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
               return (
@@ -557,8 +559,8 @@ export default function InvoiceDocumentsManagement() {
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
                   className={`px-3 py-1 border rounded text-sm ${
-                    currentPage === pageNum 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -566,13 +568,13 @@ export default function InvoiceDocumentsManagement() {
                 </button>
               )
             })}
-            
+
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
               className="px-3 py-1 border border-gray-300 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              다음
+              {t('common.next')}
             </button>
           </div>
         </div>

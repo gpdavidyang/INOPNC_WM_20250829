@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface IntegratedInventoryStatusProps {
   profile: Profile
@@ -32,10 +33,10 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
   // Fetch inventory data
   useEffect(() => {
     fetchInventoryData()
-    
+
     // Set up real-time updates
     const interval = setInterval(fetchInventoryData, 30000) // Update every 30 seconds
-    
+
     return () => clearInterval(interval)
   }, [])
 
@@ -53,19 +54,21 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
         const processedData: ExtendedInventoryStatus[] = viewData.map(item => ({
           ...item,
           site_name: item.location,
-          material_name: 'NPC-1000'
+          material_name: 'NPC-1000',
         }))
-        
+
         setInventoryData(processedData)
       } else {
         // Fallback: Query directly from material_inventory table
         const { data: inventoryData, error } = await supabase
           .from('material_inventory')
-          .select(`
+          .select(
+            `
             *,
             materials(name, code),
             sites(name)
-          `)
+          `
+          )
           .order('site_id')
 
         if (error) throw error
@@ -75,7 +78,7 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
           const reservedStock = Number(item.reserved_stock) || 0
           const availableStock = currentStock - reservedStock
           const minimumThreshold = 100 // Default threshold
-          
+
           let status = 'normal'
           if (currentStock === 0) status = 'out_of_stock'
           else if (currentStock < minimumThreshold) status = 'low'
@@ -91,13 +94,13 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             site_id: item.site_id,
             material_id: item.material_id,
             site_name: (item as unknown).sites?.name || 'Unknown',
-            material_name: (item as unknown).materials?.name || 'NPC-1000'
+            material_name: (item as unknown).materials?.name || 'NPC-1000',
           }
         })
 
         setInventoryData(processedData)
       }
-      
+
       // Generate alerts
       const newAlerts: InventoryAlert[] = []
       processedData.forEach(item => {
@@ -107,7 +110,7 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             location: item.location,
             message: `${item.location}의 재고가 소진되었습니다`,
             current_stock: item.current_stock,
-            threshold: item.minimum_threshold
+            threshold: item.minimum_threshold,
           })
         } else if (item.status === 'low') {
           newAlerts.push({
@@ -115,14 +118,13 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             location: item.location,
             message: `${item.location}의 재고가 부족합니다 (${item.current_stock}말 남음)`,
             current_stock: item.current_stock,
-            threshold: item.minimum_threshold
+            threshold: item.minimum_threshold,
           })
         }
       })
-      
+
       setAlerts(newAlerts)
       setLastUpdated(new Date())
-      
     } catch (error) {
       console.error('Error fetching inventory:', error)
       toast.error('재고 정보를 불러오는데 실패했습니다.')
@@ -133,10 +135,14 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'normal': return 'text-green-600'
-      case 'low': return 'text-yellow-600'
-      case 'out_of_stock': return 'text-red-600'
-      default: return 'text-gray-600'
+      case 'normal':
+        return 'text-green-600'
+      case 'low':
+        return 'text-yellow-600'
+      case 'out_of_stock':
+        return 'text-red-600'
+      default:
+        return 'text-gray-600'
     }
   }
 
@@ -172,13 +178,14 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
   }
 
   const filteredInventory = inventoryData.filter(item => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch =
+      searchTerm === '' ||
       item.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.material_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     const matchesLocation = selectedLocation === 'all' || item.location === selectedLocation
     const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus
-    
+
     return matchesSearch && matchesLocation && matchesStatus
   })
 
@@ -200,7 +207,9 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">총 재고</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalStock.toLocaleString()} 말</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {totalStock.toLocaleString()} 말
+                </p>
               </div>
               <Database className="h-8 w-8 text-blue-600" />
             </div>
@@ -212,7 +221,9 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">예약 재고</p>
-                <p className="text-2xl font-bold text-orange-600">{totalReserved.toLocaleString()} 말</p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {totalReserved.toLocaleString()} 말
+                </p>
               </div>
               <Target className="h-8 w-8 text-orange-600" />
             </div>
@@ -224,7 +235,9 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">가용 재고</p>
-                <p className="text-2xl font-bold text-green-600">{totalAvailable.toLocaleString()} 말</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {totalAvailable.toLocaleString()} 말
+                </p>
               </div>
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
@@ -256,7 +269,10 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
           <CardContent>
             <div className="space-y-2">
               {alerts.slice(0, 5).map((alert, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-md">
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-md"
+                >
                   <div className="flex items-center">
                     {alert.type === 'out_of_stock' ? (
                       <XCircle className="h-4 w-4 text-red-600 mr-2" />
@@ -271,9 +287,7 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
                 </div>
               ))}
               {alerts.length > 5 && (
-                <p className="text-xs text-gray-500 text-center">
-                  +{alerts.length - 5}개 더 보기
-                </p>
+                <p className="text-xs text-gray-500 text-center">+{alerts.length - 5}개 더 보기</p>
               )}
             </div>
           </CardContent>
@@ -286,9 +300,9 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="위치, 자재명으로 검색..."
+              placeholder={t('common.search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 w-80"
             />
           </div>
@@ -299,8 +313,10 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">전체 위치</SelectItem>
-              {uniqueLocations.map((location) => (
-                <SelectItem key={location} value={location}>{location}</SelectItem>
+              {uniqueLocations.map(location => (
+                <SelectItem key={location} value={location}>
+                  {location}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -324,7 +340,7 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
           </span>
           <Button variant="outline" size="sm" onClick={fetchInventoryData} disabled={loading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            새로고침
+            {t('common.refresh')}
           </Button>
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
@@ -340,29 +356,52 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">위치</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">현재재고</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">예약재고</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">가용재고</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">최소기준</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">재고수준</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">상태</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">최근업데이트</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    위치
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    현재재고
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    예약재고
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    가용재고
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    최소기준
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    재고수준
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    상태
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    최근업데이트
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">로딩 중...</td>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                      로딩 중...
+                    </td>
                   </tr>
                 ) : filteredInventory.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">재고 정보가 없습니다.</td>
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
+                      재고 정보가 없습니다.
+                    </td>
                   </tr>
                 ) : (
                   filteredInventory.map((item, index) => {
-                    const stockLevel = calculateStockLevel(item.current_stock, item.minimum_threshold)
-                    
+                    const stockLevel = calculateStockLevel(
+                      item.current_stock,
+                      item.minimum_threshold
+                    )
+
                     return (
                       <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                         <td className="px-4 py-4 whitespace-nowrap">
@@ -372,9 +411,7 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
                               <div className="text-sm font-medium text-gray-900 dark:text-white">
                                 {item.location}
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {item.material_name}
-                              </div>
+                              <div className="text-xs text-gray-500">{item.material_name}</div>
                             </div>
                           </div>
                         </td>
@@ -401,17 +438,18 @@ export default function IntegratedInventoryStatus({ profile }: IntegratedInvento
                         <td className="px-4 py-4 whitespace-nowrap">
                           <div className="flex items-center space-x-2">
                             <div className="w-16">
-                              <Progress 
-                                value={stockLevel} 
+                              <Progress
+                                value={stockLevel}
                                 className={`h-2 ${
-                                  stockLevel < 25 ? 'bg-red-200' : 
-                                  stockLevel < 50 ? 'bg-yellow-200' : 'bg-green-200'
+                                  stockLevel < 25
+                                    ? 'bg-red-200'
+                                    : stockLevel < 50
+                                      ? 'bg-yellow-200'
+                                      : 'bg-green-200'
                                 }`}
                               />
                             </div>
-                            <span className="text-xs text-gray-500">
-                              {Math.round(stockLevel)}%
-                            </span>
+                            <span className="text-xs text-gray-500">{Math.round(stockLevel)}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">

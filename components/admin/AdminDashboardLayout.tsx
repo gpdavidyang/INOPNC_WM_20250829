@@ -595,7 +595,10 @@ export default function AdminDashboardLayout({
         className={`fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'w-16' : 'w-72 lg:w-72 md:w-64 sm:w-56'
         }`}
-        style={{ top: '64px', height: 'calc(100vh - 64px)' }}
+        style={{
+          top: 'var(--admin-header-h, 64px)',
+          height: 'calc(100vh - var(--admin-header-h, 64px))',
+        }}
       >
         <Sidebar profile={profile} pathname={pathname} isCollapsed={isSidebarCollapsed} />
       </div>
@@ -605,7 +608,7 @@ export default function AdminDashboardLayout({
         className={`transition-all duration-300 ease-in-out ${
           isSidebarCollapsed ? 'pl-16' : 'pl-72 lg:pl-72 md:pl-64 sm:pl-56'
         }`}
-        style={{ paddingTop: '64px', minWidth: '1536px' }}
+        style={{ paddingTop: 'var(--admin-header-h, 64px)', minWidth: '1536px' }}
       >
         {/* Page content */}
         <main className="py-6">

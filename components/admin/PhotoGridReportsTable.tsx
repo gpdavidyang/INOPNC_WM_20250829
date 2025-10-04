@@ -6,6 +6,18 @@ import Link from 'next/link'
 import { formatBytes } from '@/lib/utils'
 
 export default function PhotoGridReportsTable({ reports }: { reports: any[] }) {
+  const handleDownload = async (id: string) => {
+    try {
+      const res = await fetch(`/api/admin/documents/photo-grid/${id}/download`, {
+        cache: 'no-store',
+      })
+      const json = await res.json()
+      const url: string | undefined = json?.data?.url || json?.data?.signedUrl || json?.url
+      if (url) window.open(url, '_blank', 'noopener')
+    } catch {
+      // ignore
+    }
+  }
   return (
     <DataTable
       data={reports}
@@ -58,23 +70,18 @@ export default function PhotoGridReportsTable({ reports }: { reports: any[] }) {
           header: '동작',
           render: (r: any) => (
             <div className="flex items-center gap-3">
-              {r?.file_url ? (
-                <a
-                  href={r.file_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline text-blue-600"
-                >
-                  다운로드
-                </a>
-              ) : (
-                <span className="text-muted-foreground">-</span>
-              )}
-              <Link
-                href={`/dashboard/admin/tools/photo-grids/preview/${r.id}`}
+              <button
+                type="button"
+                onClick={() => handleDownload(r?.id)}
                 className="underline text-blue-600"
               >
-                미리보기
+                다운로드
+              </button>
+              <Link
+                href={`/dashboard/admin/documents/photo-grid/${r.id}`}
+                className="underline text-blue-600"
+              >
+                상세보기
               </Link>
             </div>
           ),

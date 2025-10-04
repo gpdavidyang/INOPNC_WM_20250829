@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface Worker {
   id: string
@@ -30,7 +31,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
   const [workerSearchTerm, setWorkerSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
-  
+
   // Salary calculation inputs
   const [salaryData, setSalaryData] = useState({
     year: new Date().getFullYear(),
@@ -47,26 +48,26 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
     deductions: 0,
     bankName: '',
     accountNumber: '',
-    accountHolder: ''
+    accountHolder: '',
   })
-  
+
   const [calculationResult, setCalculationResult] = useState<SalaryCalculationResult | null>(null)
   const [previewMode, setPreviewMode] = useState(false)
-  
+
   const supabase = createClient()
-  
+
   useEffect(() => {
     loadInitialData()
   }, [])
-  
+
   // Filter workers when site selection or search term changes
   useEffect(() => {
     filterWorkers()
   }, [selectedSite, workerSearchTerm, allWorkers])
-  
+
   const filterWorkers = async () => {
     let filtered = [...allWorkers]
-    
+
     // Filter by site if selected
     if (selectedSite) {
       try {
@@ -76,7 +77,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
           .select('user_id')
           .eq('site_id', selectedSite.id)
           .eq('is_active', true)
-        
+
         if (error) {
           console.error('Error loading site assignments:', error)
         } else {
@@ -88,45 +89,46 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
         console.error('Failed to filter workers by site:', error)
       }
     }
-    
+
     // Filter by search term
     if (workerSearchTerm.trim()) {
       const searchLower = workerSearchTerm.toLowerCase()
-      filtered = filtered.filter(worker => 
-        worker.name.toLowerCase().includes(searchLower) ||
-        worker.email?.toLowerCase().includes(searchLower) ||
-        worker.position?.toLowerCase().includes(searchLower) ||
-        worker.worker_number?.toLowerCase().includes(searchLower)
+      filtered = filtered.filter(
+        worker =>
+          worker.name.toLowerCase().includes(searchLower) ||
+          worker.email?.toLowerCase().includes(searchLower) ||
+          worker.position?.toLowerCase().includes(searchLower) ||
+          worker.worker_number?.toLowerCase().includes(searchLower)
       )
     }
-    
+
     setFilteredWorkers(filtered)
-    
+
     // Clear selected worker if it's not in the filtered list
     if (selectedWorker && !filtered.find(w => w.id === selectedWorker.id)) {
       setSelectedWorker(null)
     }
   }
-  
+
   useEffect(() => {
     // Auto-generate date range when year/month changes
     if (salaryData.year && salaryData.month) {
       const startDate = new Date(salaryData.year, salaryData.month - 1, 1)
       const endDate = new Date(salaryData.year, salaryData.month, 0)
-      
+
       setSalaryData(prev => ({
         ...prev,
         startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0]
+        endDate: endDate.toISOString().split('T')[0],
       }))
     }
   }, [salaryData.year, salaryData.month])
-  
+
   const loadInitialData = async () => {
     setLoading(true)
     try {
       console.log('🔍 Loading real data from Supabase...')
-      
+
       // Load workers from profiles table
       const { data: workersData, error: workersError } = await supabase
         .from('profiles')
@@ -134,61 +136,65 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
         .in('role', ['worker', 'site_manager', 'customer_manager', 'admin'])
         .neq('status', 'inactive')
         .order('full_name')
-      
+
       console.log('Workers query result:', { data: workersData, error: workersError })
-      
+
       if (workersError) {
         console.error('Error loading workers:', workersError)
         throw workersError
       }
-      
+
       // Transform the data to match our Worker interface
       const transformedWorkers: Worker[] = (workersData || []).map((worker, index) => ({
         id: worker.id,
         name: worker.full_name,
         email: worker.email || undefined,
         phone: worker.phone || undefined,
-        position: worker.role === 'worker' ? '작업자' : 
-                 worker.role === 'site_manager' ? '현장관리자' : 
-                 worker.role === 'customer_manager' ? '파트너사 관리자' :
-                 worker.role === 'admin' ? '시스템관리자' :
-                 worker.role,
-        worker_number: `${worker.role === 'worker' ? 'W' : worker.role === 'site_manager' ? 'M' : worker.role === 'admin' ? 'A' : 'C'}${String(index + 1).padStart(3, '0')}`
+        position:
+          worker.role === 'worker'
+            ? '작업자'
+            : worker.role === 'site_manager'
+              ? '현장관리자'
+              : worker.role === 'customer_manager'
+                ? '파트너사 관리자'
+                : worker.role === 'admin'
+                  ? '시스템관리자'
+                  : worker.role,
+        worker_number: `${worker.role === 'worker' ? 'W' : worker.role === 'site_manager' ? 'M' : worker.role === 'admin' ? 'A' : 'C'}${String(index + 1).padStart(3, '0')}`,
       }))
-      
+
       console.log('Transformed workers:', transformedWorkers)
       setAllWorkers(transformedWorkers)
       setFilteredWorkers(transformedWorkers)
-      
+
       // Load sites from sites table
       const { data: sitesData, error: sitesError } = await supabase
         .from('sites')
         .select('id, name, address, status')
         .neq('status', 'inactive')
         .order('name')
-      
+
       console.log('Sites query result:', { data: sitesData, error: sitesError })
-      
+
       if (sitesError) {
         console.error('Error loading sites:', sitesError)
         throw sitesError
       }
-      
+
       // Transform the data to match our Site interface
       const transformedSites: Site[] = (sitesData || []).map(site => ({
         id: site.id,
         name: site.name,
-        address: site.address || undefined
+        address: site.address || undefined,
       }))
-      
+
       console.log('Transformed sites:', transformedSites)
       setSites(transformedSites)
-      
     } catch (error) {
       console.error('Failed to load initial data:', error)
       // Fallback to mock data only if there's a real error
       console.log('🧪 Using fallback mock data due to error')
-      
+
       const mockWorkers: Worker[] = [
         {
           id: 'mock-1',
@@ -196,7 +202,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
           email: 'kim@example.com',
           phone: '010-1234-5678',
           position: '작업자',
-          worker_number: 'W001'
+          worker_number: 'W001',
         },
         {
           id: 'mock-2',
@@ -204,23 +210,23 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
           email: 'lee@example.com',
           phone: '010-2345-6789',
           position: '현장관리자',
-          worker_number: 'M001'
-        }
+          worker_number: 'M001',
+        },
       ]
-      
+
       const mockSites: Site[] = [
         {
           id: 'mock-1',
           name: 'A 현장 (Mock)',
-          address: '서울특별시 강남구 테헤란로 123'
+          address: '서울특별시 강남구 테헤란로 123',
         },
         {
           id: 'mock-2',
           name: 'B 현장 (Mock)',
-          address: '경기도 성남시 분당구 정자로 456'
-        }
+          address: '경기도 성남시 분당구 정자로 456',
+        },
       ]
-      
+
       setAllWorkers(mockWorkers)
       setFilteredWorkers(mockWorkers)
       setSites(mockSites)
@@ -228,16 +234,16 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       setLoading(false)
     }
   }
-  
+
   const handleCalculate = () => {
     if (!selectedWorker || !selectedSite) {
       alert('근로자와 현장을 선택해주세요.')
       return
     }
-    
+
     // Get salary rate based on worker position (role)
     const getRoleBasedSalaryRate = (position?: string) => {
-      switch(position) {
+      switch (position) {
         case '현장관리자':
           return { dailyRate: 220000, hourlyRate: 27500 }
         case '작업자':
@@ -248,9 +254,9 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
           return { dailyRate: 180000, hourlyRate: 22500 }
       }
     }
-    
+
     const { dailyRate, hourlyRate } = getRoleBasedSalaryRate(selectedWorker.position)
-    
+
     const result = calculateSalary({
       baseAmount: hourlyRate,
       workHours: salaryData.workHours,
@@ -258,18 +264,18 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       calculationType: salaryData.calculationType,
       taxRate: salaryData.taxRate,
       bonuses: salaryData.bonuses,
-      deductions: salaryData.deductions
+      deductions: salaryData.deductions,
     })
-    
+
     // Update salary data with calculated rates for display
     setSalaryData(prev => ({
       ...prev,
-      dailyRate
+      dailyRate,
     }))
-    
+
     setCalculationResult(result)
   }
-  
+
   const handlePreview = () => {
     if (!calculationResult) {
       handleCalculate()
@@ -277,13 +283,13 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
     }
     setPreviewMode(true)
   }
-  
+
   const handleDownloadPDF = async () => {
     if (!selectedWorker || !selectedSite || !calculationResult) {
       alert('계산을 먼저 수행해주세요.')
       return
     }
-    
+
     setGenerating(true)
     try {
       const pdfData: SalaryPDFData = {
@@ -299,18 +305,20 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
         salaryMonth: salaryData.month,
         workPeriod: {
           startDate: salaryData.startDate,
-          endDate: salaryData.endDate
+          endDate: salaryData.endDate,
         },
         calculation: calculationResult,
-        bankInfo: salaryData.bankName ? {
-          bankName: salaryData.bankName,
-          accountNumber: salaryData.accountNumber,
-          accountHolder: salaryData.accountHolder || selectedWorker.name
-        } : undefined,
+        bankInfo: salaryData.bankName
+          ? {
+              bankName: salaryData.bankName,
+              accountNumber: salaryData.accountNumber,
+              accountHolder: salaryData.accountHolder || selectedWorker.name,
+            }
+          : undefined,
         issuedDate: new Date().toISOString(),
-        issuedBy: profile.name
+        issuedBy: profile.name,
       }
-      
+
       await downloadSalaryPDF(pdfData)
     } catch (error) {
       console.error('Failed to generate PDF:', error)
@@ -319,18 +327,18 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       setGenerating(false)
     }
   }
-  
+
   const handleSiteChange = (siteId: string) => {
     const site = sites.find(s => s.id === siteId)
     setSelectedSite(site || null)
     setSelectedWorker(null) // Clear worker selection when site changes
     setWorkerSearchTerm('') // Clear search term
   }
-  
+
   const handleWorkerSearch = (searchTerm: string) => {
     setWorkerSearchTerm(searchTerm)
   }
-  
+
   const resetForm = () => {
     setSelectedWorker(null)
     setSelectedSite(null)
@@ -346,10 +354,10 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       deductions: 0,
       bankName: '',
       accountNumber: '',
-      accountHolder: ''
+      accountHolder: '',
     }))
   }
-  
+
   if (previewMode && calculationResult) {
     return (
       <div className="space-y-6">
@@ -363,7 +371,9 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">급여명세서 미리보기</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                급여명세서 미리보기
+              </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">
                 {selectedWorker?.name} - {salaryData.year}년 {salaryData.month}월
               </p>
@@ -380,7 +390,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
             </button>
           </div>
         </div>
-        
+
         {/* Preview Content */}
         <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow max-w-4xl mx-auto">
           <div className="space-y-8">
@@ -389,102 +399,145 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">급여명세서</h2>
               <p className="text-lg text-gray-600 dark:text-gray-400">SALARY STATEMENT</p>
               <p className="text-sm text-gray-500 mt-2">
-                {salaryData.year}년 {salaryData.month}월분 | 발행일: {new Date().toLocaleDateString('ko-KR')}
+                {salaryData.year}년 {salaryData.month}월분 | 발행일:{' '}
+                {new Date().toLocaleDateString('ko-KR')}
               </p>
             </div>
-            
+
             {/* Worker & Site Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">직원 정보</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  직원 정보
+                </h3>
                 <div className="space-y-2">
-                  <p><span className="font-medium">성명:</span> {selectedWorker?.name}</p>
+                  <p>
+                    <span className="font-medium">성명:</span> {selectedWorker?.name}
+                  </p>
                   {selectedWorker?.worker_number && (
-                    <p><span className="font-medium">사번:</span> {selectedWorker.worker_number}</p>
+                    <p>
+                      <span className="font-medium">사번:</span> {selectedWorker.worker_number}
+                    </p>
                   )}
                   {selectedWorker?.position && (
-                    <p><span className="font-medium">직책:</span> {selectedWorker.position}</p>
+                    <p>
+                      <span className="font-medium">직책:</span> {selectedWorker.position}
+                    </p>
                   )}
-                  <p><span className="font-medium">현장:</span> {selectedSite?.name}</p>
+                  <p>
+                    <span className="font-medium">현장:</span> {selectedSite?.name}
+                  </p>
                 </div>
               </div>
-              
+
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">급여 기간</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  급여 기간
+                </h3>
                 <div className="space-y-2">
-                  <p><span className="font-medium">급여 월:</span> {salaryData.year}년 {salaryData.month}월</p>
-                  <p><span className="font-medium">근무 기간:</span> {salaryData.startDate} ~ {salaryData.endDate}</p>
-                  <p><span className="font-medium">근무 시간:</span> {calculationResult.details.workHours}시간</p>
+                  <p>
+                    <span className="font-medium">급여 월:</span> {salaryData.year}년{' '}
+                    {salaryData.month}월
+                  </p>
+                  <p>
+                    <span className="font-medium">근무 기간:</span> {salaryData.startDate} ~{' '}
+                    {salaryData.endDate}
+                  </p>
+                  <p>
+                    <span className="font-medium">근무 시간:</span>{' '}
+                    {calculationResult.details.workHours}시간
+                  </p>
                   {calculationResult.details.overtimeHours > 0 && (
-                    <p><span className="font-medium">연장 시간:</span> {calculationResult.details.overtimeHours}시간</p>
+                    <p>
+                      <span className="font-medium">연장 시간:</span>{' '}
+                      {calculationResult.details.overtimeHours}시간
+                    </p>
                   )}
                 </div>
               </div>
             </div>
-            
+
             {/* Salary Details */}
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">급여 상세</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                급여 상세
+              </h3>
               <div className="overflow-x-auto">
                 <table className="min-w-full border border-gray-200 dark:border-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-white">항목</th>
-                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-white">내용</th>
-                      <th className="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-white">금액</th>
+                      <th className="px-4 py-3 text-left text-sm font-medium text-gray-900 dark:text-white">
+                        항목
+                      </th>
+                      <th className="px-4 py-3 text-center text-sm font-medium text-gray-900 dark:text-white">
+                        내용
+                      </th>
+                      <th className="px-4 py-3 text-right text-sm font-medium text-gray-900 dark:text-white">
+                        금액
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     <tr>
                       <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">기본급</td>
                       <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">
-                        {calculationResult.details.workHours}시간 × {formatSalary(calculationResult.details.hourlyRate || 0)}
+                        {calculationResult.details.workHours}시간 ×{' '}
+                        {formatSalary(calculationResult.details.hourlyRate || 0)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                         {formatSalary(calculationResult.basePay)}
                       </td>
                     </tr>
-                    
+
                     {calculationResult.overtimePay > 0 && (
                       <tr>
-                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">연장수당</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
+                          연장수당
+                        </td>
                         <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">
-                          {calculationResult.details.overtimeHours}시간 × {formatSalary(calculationResult.details.overtimeRate || 0)}
+                          {calculationResult.details.overtimeHours}시간 ×{' '}
+                          {formatSalary(calculationResult.details.overtimeRate || 0)}
                         </td>
                         <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                           {formatSalary(calculationResult.overtimePay)}
                         </td>
                       </tr>
                     )}
-                    
+
                     {calculationResult.bonuses > 0 && (
                       <tr>
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">보너스</td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">-</td>
+                        <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">
+                          -
+                        </td>
                         <td className="px-4 py-3 text-sm text-right font-medium text-gray-900 dark:text-white">
                           {formatSalary(calculationResult.bonuses)}
                         </td>
                       </tr>
                     )}
-                    
+
                     {calculationResult.deductions > 0 && (
                       <tr>
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">공제액</td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">-</td>
+                        <td className="px-4 py-3 text-sm text-center text-gray-600 dark:text-gray-400">
+                          -
+                        </td>
                         <td className="px-4 py-3 text-sm text-right font-medium text-red-600">
                           -{formatSalary(calculationResult.deductions)}
                         </td>
                       </tr>
                     )}
-                    
+
                     <tr className="bg-gray-50 dark:bg-gray-700">
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">소계 (세전)</td>
+                      <td className="px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white">
+                        소계 (세전)
+                      </td>
                       <td className="px-4 py-3"></td>
                       <td className="px-4 py-3 text-sm text-right font-semibold text-gray-900 dark:text-white">
                         {formatSalary(calculationResult.grossPay)}
                       </td>
                     </tr>
-                    
+
                     {calculationResult.taxAmount > 0 && (
                       <tr>
                         <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">
@@ -498,9 +551,11 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                         </td>
                       </tr>
                     )}
-                    
+
                     <tr className="bg-blue-50 dark:bg-blue-900/20 border-t-2 border-blue-500">
-                      <td className="px-4 py-4 text-lg font-bold text-gray-900 dark:text-white">실수령액</td>
+                      <td className="px-4 py-4 text-lg font-bold text-gray-900 dark:text-white">
+                        실수령액
+                      </td>
                       <td className="px-4 py-4"></td>
                       <td className="px-4 py-4 text-lg text-right font-bold text-blue-600 dark:text-blue-400">
                         {formatSalary(calculationResult.netPay)}
@@ -510,20 +565,26 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 </table>
               </div>
             </div>
-            
+
             {/* Bank Info */}
             {salaryData.bankName && (
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">계좌 정보</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  계좌 정보
+                </h3>
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">은행</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{salaryData.bankName}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {salaryData.bankName}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">계좌번호</p>
-                      <p className="font-medium text-gray-900 dark:text-white">{salaryData.accountNumber}</p>
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        {salaryData.accountNumber}
+                      </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">예금주</p>
@@ -535,10 +596,12 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 </div>
               </div>
             )}
-            
+
             {/* Footer */}
             <div className="border-t pt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-              <p>발행자: {profile.name} | 발행일시: {new Date().toLocaleString('ko-KR')}</p>
+              <p>
+                발행자: {profile.name} | 발행일시: {new Date().toLocaleString('ko-KR')}
+              </p>
               <p className="mt-2">본 급여명세서는 기밀문서입니다. 무단 복제 및 배포를 금합니다.</p>
             </div>
           </div>
@@ -546,7 +609,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
       </div>
     )
   }
-  
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -571,10 +634,10 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
           onClick={resetForm}
           className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
         >
-          초기화
+          {t('common.reset')}
         </button>
       </div>
-      
+
       {loading ? (
         <div className="text-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -590,13 +653,16 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 <MapPin className="h-5 w-5 text-blue-600" />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">현장 선택</h2>
               </div>
-              <CustomSelect value={selectedSite?.id || 'none'} onValueChange={(value) => handleSiteChange(value === 'none' ? '' : value)}>
+              <CustomSelect
+                value={selectedSite?.id || 'none'}
+                onValueChange={value => handleSiteChange(value === 'none' ? '' : value)}
+              >
                 <CustomSelectTrigger className="w-full">
                   <CustomSelectValue placeholder="현장을 선택하세요" />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
                   <CustomSelectItem value="none">현장을 선택하세요</CustomSelectItem>
-                  {sites.map((site) => (
+                  {sites.map(site => (
                     <CustomSelectItem key={site.id} value={site.id}>
                       {site.name}
                     </CustomSelectItem>
@@ -609,43 +675,43 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 </p>
               )}
             </div>
-            
+
             {/* Worker Selection with Search */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
               <div className="flex items-center gap-2 mb-4">
                 <User className="h-5 w-5 text-blue-600" />
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  근로자 선택 
+                  근로자 선택
                   {selectedSite ? `(${selectedSite.name} 할당자)` : ''}
                 </h2>
               </div>
-              
+
               {/* Search Input */}
               <div className="mb-4">
                 <input
                   type="text"
-                  placeholder="근로자 이름, 이메일, 직책 또는 사번으로 검색..."
+                  placeholder={t('common.search')}
                   value={workerSearchTerm}
-                  onChange={(e) => handleWorkerSearch(e.target.value)}
+                  onChange={e => handleWorkerSearch(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
                 />
               </div>
-              
+
               {/* Worker Select */}
-              <CustomSelect 
-                value={selectedWorker?.id || 'none'} 
-                onValueChange={(value) => {
+              <CustomSelect
+                value={selectedWorker?.id || 'none'}
+                onValueChange={value => {
                   if (value === 'none') {
                     setSelectedWorker(null)
                     setSalaryData(prev => ({ ...prev, dailyRate: 0 }))
                   } else {
                     const worker = filteredWorkers.find(w => w.id === value)
                     setSelectedWorker(worker || null)
-                    
+
                     // Update salary rate based on worker role
                     if (worker) {
                       const getRoleBasedSalaryRate = (position?: string) => {
-                        switch(position) {
+                        switch (position) {
                           case '현장관리자':
                             return 220000
                           case '작업자':
@@ -656,7 +722,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                             return 180000
                         }
                       }
-                      
+
                       const dailyRate = getRoleBasedSalaryRate(worker.position)
                       setSalaryData(prev => ({ ...prev, dailyRate }))
                     }
@@ -665,35 +731,38 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 disabled={filteredWorkers.length === 0}
               >
                 <CustomSelectTrigger className="w-full">
-                  <CustomSelectValue 
+                  <CustomSelectValue
                     placeholder={
-                      filteredWorkers.length === 0 
-                        ? (selectedSite ? '해당 현장에 할당된 근로자가 없습니다' : '근로자를 검색하거나 현장을 선택하세요')
+                      filteredWorkers.length === 0
+                        ? selectedSite
+                          ? '해당 현장에 할당된 근로자가 없습니다'
+                          : '근로자를 검색하거나 현장을 선택하세요'
                         : '궼로자를 선택하세요'
-                    } 
+                    }
                   />
                 </CustomSelectTrigger>
                 <CustomSelectContent>
                   <CustomSelectItem value="none">
-                    {filteredWorkers.length === 0 
-                      ? (selectedSite ? '해당 현장에 할당된 근로자가 없습니다' : '근로자를 검색하거나 현장을 선택하세요')
-                      : '근로자를 선택하세요'
-                    }
+                    {filteredWorkers.length === 0
+                      ? selectedSite
+                        ? '해당 현장에 할당된 근로자가 없습니다'
+                        : '근로자를 검색하거나 현장을 선택하세요'
+                      : '근로자를 선택하세요'}
                   </CustomSelectItem>
-                  {filteredWorkers.map((worker) => (
+                  {filteredWorkers.map(worker => (
                     <CustomSelectItem key={worker.id} value={worker.id}>
                       {worker.name} ({worker.position}) - {worker.worker_number}
                     </CustomSelectItem>
                   ))}
                 </CustomSelectContent>
               </CustomSelect>
-              
+
               {filteredWorkers.length > 0 && (
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                   {filteredWorkers.length}명의 근로자가 검색되었습니다
                 </p>
               )}
-              
+
               {selectedWorker && (
                 <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <p className="text-sm text-blue-800 dark:text-blue-300">
@@ -704,7 +773,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 </div>
               )}
             </div>
-            
+
             {/* Salary Period */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
               <div className="flex items-center gap-2 mb-4">
@@ -719,7 +788,9 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                   <input
                     type="number"
                     value={salaryData.year}
-                    onChange={(e) => setSalaryData(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+                    onChange={e =>
+                      setSalaryData(prev => ({ ...prev, year: parseInt(e.target.value) }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
@@ -732,18 +803,22 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                     min="1"
                     max="12"
                     value={salaryData.month}
-                    onChange={(e) => setSalaryData(prev => ({ ...prev, month: parseInt(e.target.value) }))}
+                    onChange={e =>
+                      setSalaryData(prev => ({ ...prev, month: parseInt(e.target.value) }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
               </div>
             </div>
-            
+
             {/* Bank Information */}
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
               <div className="flex items-center gap-2 mb-4">
                 <CreditCard className="h-5 w-5 text-blue-600" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">계좌 정보 (선택)</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  계좌 정보 (선택)
+                </h2>
               </div>
               <div className="space-y-4">
                 <div>
@@ -753,7 +828,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                   <input
                     type="text"
                     value={salaryData.bankName}
-                    onChange={(e) => setSalaryData(prev => ({ ...prev, bankName: e.target.value }))}
+                    onChange={e => setSalaryData(prev => ({ ...prev, bankName: e.target.value }))}
                     placeholder="예: 국민은행"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
@@ -765,7 +840,9 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                   <input
                     type="text"
                     value={salaryData.accountNumber}
-                    onChange={(e) => setSalaryData(prev => ({ ...prev, accountNumber: e.target.value }))}
+                    onChange={e =>
+                      setSalaryData(prev => ({ ...prev, accountNumber: e.target.value }))
+                    }
                     placeholder="예: 123456-78-901234"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
@@ -777,15 +854,17 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                   <input
                     type="text"
                     value={salaryData.accountHolder}
-                    onChange={(e) => setSalaryData(prev => ({ ...prev, accountHolder: e.target.value }))}
-                    placeholder={selectedWorker?.name || "예금주 이름"}
+                    onChange={e =>
+                      setSalaryData(prev => ({ ...prev, accountHolder: e.target.value }))
+                    }
+                    placeholder={selectedWorker?.name || '예금주 이름'}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
               </div>
             </div>
           </div>
-          
+
           {/* Preview & Actions */}
           <div className="space-y-6">
             {/* Action Buttons */}
@@ -799,7 +878,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                   <Calculator className="h-5 w-5 mr-2" />
                   급여 계산
                 </button>
-                
+
                 <button
                   onClick={handlePreview}
                   disabled={!calculationResult}
@@ -808,7 +887,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                   <Eye className="h-5 w-5 mr-2" />
                   미리보기
                 </button>
-                
+
                 <button
                   onClick={handleDownloadPDF}
                   disabled={!calculationResult || generating}
@@ -819,7 +898,7 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                 </button>
               </div>
             </div>
-            
+
             {/* Calculation Result */}
             {calculationResult && (
               <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
@@ -827,75 +906,99 @@ export default function SalaryStatement({ profile, onBack }: SalaryStatementProp
                   <Receipt className="h-5 w-5 text-blue-600" />
                   <h2 className="text-lg font-semibold text-gray-900 dark:text-white">계산 결과</h2>
                 </div>
-                
+
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">기본급:</span>
-                    <span className="font-medium text-gray-900 dark:text-white">{formatSalary(calculationResult.basePay)}</span>
+                    <span className="font-medium text-gray-900 dark:text-white">
+                      {formatSalary(calculationResult.basePay)}
+                    </span>
                   </div>
-                  
+
                   {calculationResult.overtimePay > 0 && (
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">연장수당:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{formatSalary(calculationResult.overtimePay)}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {formatSalary(calculationResult.overtimePay)}
+                      </span>
                     </div>
                   )}
-                  
+
                   {calculationResult.bonuses > 0 && (
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">보너스:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{formatSalary(calculationResult.bonuses)}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {formatSalary(calculationResult.bonuses)}
+                      </span>
                     </div>
                   )}
-                  
+
                   {calculationResult.deductions > 0 && (
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">공제액:</span>
-                      <span className="font-medium text-red-600">-{formatSalary(calculationResult.deductions)}</span>
+                      <span className="font-medium text-red-600">
+                        -{formatSalary(calculationResult.deductions)}
+                      </span>
                     </div>
                   )}
-                  
+
                   <div className="border-t pt-3">
                     <div className="flex justify-between">
                       <span className="text-gray-600 dark:text-gray-400">소계 (세전):</span>
-                      <span className="font-semibold text-gray-900 dark:text-white">{formatSalary(calculationResult.grossPay)}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">
+                        {formatSalary(calculationResult.grossPay)}
+                      </span>
                     </div>
                   </div>
-                  
+
                   {calculationResult.taxAmount > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">세금 ({calculationResult.details.taxRate}%):</span>
-                      <span className="font-medium text-red-600">-{formatSalary(calculationResult.taxAmount)}</span>
+                      <span className="text-gray-600 dark:text-gray-400">
+                        세금 ({calculationResult.details.taxRate}%):
+                      </span>
+                      <span className="font-medium text-red-600">
+                        -{formatSalary(calculationResult.taxAmount)}
+                      </span>
                     </div>
                   )}
-                  
+
                   <div className="border-t pt-3">
                     <div className="flex justify-between">
-                      <span className="text-lg font-bold text-gray-900 dark:text-white">실수령액:</span>
-                      <span className="text-lg font-bold text-blue-600 dark:text-blue-400">{formatSalary(calculationResult.netPay)}</span>
+                      <span className="text-lg font-bold text-gray-900 dark:text-white">
+                        실수령액:
+                      </span>
+                      <span className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                        {formatSalary(calculationResult.netPay)}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
             )}
-            
+
             {/* Selected Info Summary */}
             {(selectedWorker || selectedSite) && (
               <div className="bg-gray-50 dark:bg-gray-700 p-6 rounded-lg">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">선택된 정보</h3>
+                <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                  선택된 정보
+                </h3>
                 <div className="space-y-2 text-sm">
                   {selectedWorker && (
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-gray-500" />
                       <span className="text-gray-600 dark:text-gray-400">근로자:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{selectedWorker.name}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {selectedWorker.name}
+                      </span>
                     </div>
                   )}
                   {selectedSite && (
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4 text-gray-500" />
                       <span className="text-gray-600 dark:text-gray-400">현장:</span>
-                      <span className="font-medium text-gray-900 dark:text-white">{selectedSite.name}</span>
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {selectedSite.name}
+                      </span>
                     </div>
                   )}
                   <div className="flex items-center gap-2">

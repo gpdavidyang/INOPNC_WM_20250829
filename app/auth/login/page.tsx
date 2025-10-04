@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
@@ -601,14 +600,14 @@ export default function LoginPage() {
       <div className="login-container">
         <div className="login-content">
           <div className="login-header">
-            <Image
+            <img
               src={logoSrc}
               alt="INOPNC 로고"
               width={114}
               height={38}
-              priority
               className="login-logo"
-              sizes="114px"
+              decoding="async"
+              loading="eager"
               onError={() => {
                 if (logoStage === 'primary') {
                   setLogoSrc('/images/logo_g.png')

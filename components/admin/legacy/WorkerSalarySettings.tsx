@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface WorkerSalarySettingsProps {
   profile: Profile
@@ -17,7 +18,7 @@ interface WorkerWithSettings {
 
 export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsProps) {
   const [activeTab, setActiveTab] = useState<'workers' | 'tax_rates'>('workers')
-  
+
   // Workers management state
   const [workers, setWorkers] = useState<WorkerWithSettings[]>([])
   const [filteredWorkers, setFilteredWorkers] = useState<WorkerWithSettings[]>([])
@@ -42,10 +43,10 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
     bank_account_info: {
       bank_name: '',
       account_number: '',
-      account_holder: ''
+      account_holder: '',
     },
     effective_date: new Date().toISOString().split('T')[0],
-    notes: ''
+    notes: '',
   })
 
   useEffect(() => {
@@ -91,10 +92,10 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
           bank_account_info: setting.bank_account_info || {
             bank_name: '',
             account_number: '',
-            account_holder: ''
+            account_holder: '',
           },
           effective_date: setting.effective_date,
-          notes: setting.notes || ''
+          notes: setting.notes || '',
         })
       }
     } catch (err) {
@@ -120,9 +121,10 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
     let filtered = [...workers]
 
     if (searchTerm.trim()) {
-      filtered = filtered.filter(worker => 
-        worker.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        worker.email.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        worker =>
+          worker.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          worker.email.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -186,10 +188,14 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
 
   const getEmploymentTypeColor = (type: EmploymentType | undefined) => {
     switch (type) {
-      case 'regular_employee': return 'bg-blue-100 text-blue-800'
-      case 'freelancer': return 'bg-green-100 text-green-800'
-      case 'daily_worker': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'regular_employee':
+        return 'bg-blue-100 text-blue-800'
+      case 'freelancer':
+        return 'bg-green-100 text-green-800'
+      case 'daily_worker':
+        return 'bg-orange-100 text-orange-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
@@ -202,15 +208,18 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
               type="text"
-              placeholder="직원명 또는 이메일 검색..."
+              placeholder={t('common.search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
         </div>
-        
-        <CustomSelect value={employmentFilter} onValueChange={(value) => setEmploymentFilter(value as unknown)}>
+
+        <CustomSelect
+          value={employmentFilter}
+          onValueChange={value => setEmploymentFilter(value as unknown)}
+        >
           <CustomSelectTrigger className="w-40">
             <CustomSelectValue placeholder="고용형태 선택" />
           </CustomSelectTrigger>
@@ -226,8 +235,8 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
       {/* Workers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredWorkers.map(worker => (
-          <Card 
-            key={worker.id} 
+          <Card
+            key={worker.id}
             className={`p-4 cursor-pointer transition-all hover:shadow-md ${
               selectedWorker?.id === worker.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''
             }`}
@@ -253,7 +262,7 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
                 <span className="text-gray-500">역할:</span>
                 <Badge variant="secondary">{worker.role}</Badge>
               </div>
-              
+
               {worker.has_salary_setting && (
                 <>
                   <div className="flex items-center justify-between text-sm">
@@ -264,9 +273,7 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">일급:</span>
-                    <span className="font-medium">
-                      {worker.daily_rate?.toLocaleString()}원
-                    </span>
+                    <span className="font-medium">{worker.daily_rate?.toLocaleString()}원</span>
                   </div>
                 </>
               )}
@@ -309,20 +316,13 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
                 <X className="h-4 w-4 mr-1" />
                 취소
               </Button>
-              <Button
-                size="sm"
-                onClick={handleSaveWorkerSetting}
-                disabled={loading}
-              >
+              <Button size="sm" onClick={handleSaveWorkerSetting} disabled={loading}>
                 <Save className="h-4 w-4 mr-1" />
                 저장
               </Button>
             </>
           ) : (
-            <Button
-              size="sm"
-              onClick={() => setEditingWorker(selectedWorker)}
-            >
+            <Button size="sm" onClick={() => setEditingWorker(selectedWorker)}>
               <Edit2 className="h-4 w-4 mr-1" />
               편집
             </Button>
@@ -334,18 +334,18 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
         {/* 기본 설정 */}
         <div className="space-y-4">
           <h4 className="font-medium text-gray-900">기본 설정</h4>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              고용형태
-            </label>
-            <CustomSelect 
-              value={salaryForm.employment_type} 
-              onValueChange={(value) => setSalaryForm(prev => ({
-                ...prev, 
-                employment_type: value as EmploymentType,
-                custom_tax_rates: {} // Reset custom rates when changing employment type
-              }))}
+            <label className="block text-sm font-medium text-gray-700 mb-1">고용형태</label>
+            <CustomSelect
+              value={salaryForm.employment_type}
+              onValueChange={value =>
+                setSalaryForm(prev => ({
+                  ...prev,
+                  employment_type: value as EmploymentType,
+                  custom_tax_rates: {}, // Reset custom rates when changing employment type
+                }))
+              }
               disabled={!editingWorker}
             >
               <CustomSelectTrigger>
@@ -360,16 +360,16 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              일급
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">일급</label>
             <input
               type="number"
               value={salaryForm.daily_rate}
-              onChange={(e) => setSalaryForm(prev => ({
-                ...prev,
-                daily_rate: parseFloat(e.target.value) || 0
-              }))}
+              onChange={e =>
+                setSalaryForm(prev => ({
+                  ...prev,
+                  daily_rate: parseFloat(e.target.value) || 0,
+                }))
+              }
               disabled={!editingWorker}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
               placeholder="예: 150000"
@@ -377,16 +377,16 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              적용일
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">적용일</label>
             <input
               type="date"
               value={salaryForm.effective_date}
-              onChange={(e) => setSalaryForm(prev => ({
-                ...prev,
-                effective_date: e.target.value
-              }))}
+              onChange={e =>
+                setSalaryForm(prev => ({
+                  ...prev,
+                  effective_date: e.target.value,
+                }))
+              }
               disabled={!editingWorker}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50"
             />
@@ -396,24 +396,27 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
         {/* 세율 설정 */}
         <div className="space-y-4">
           <h4 className="font-medium text-gray-900">세율 설정</h4>
-          
+
           {Object.keys(DEFAULT_TAX_RATES[salaryForm.employment_type]).map(tax_name => (
             <div key={tax_name} className="flex items-center space-x-2">
-              <label className="flex-1 text-sm text-gray-700">
-                {tax_name}
-              </label>
+              <label className="flex-1 text-sm text-gray-700">{tax_name}</label>
               <div className="flex items-center space-x-1">
                 <input
                   type="number"
                   step="0.01"
-                  value={salaryForm.custom_tax_rates[tax_name] || DEFAULT_TAX_RATES[salaryForm.employment_type][tax_name]}
-                  onChange={(e) => setSalaryForm(prev => ({
-                    ...prev,
-                    custom_tax_rates: {
-                      ...prev.custom_tax_rates,
-                      [tax_name]: parseFloat(e.target.value) || 0
-                    }
-                  }))}
+                  value={
+                    salaryForm.custom_tax_rates[tax_name] ||
+                    DEFAULT_TAX_RATES[salaryForm.employment_type][tax_name]
+                  }
+                  onChange={e =>
+                    setSalaryForm(prev => ({
+                      ...prev,
+                      custom_tax_rates: {
+                        ...prev.custom_tax_rates,
+                        [tax_name]: parseFloat(e.target.value) || 0,
+                      },
+                    }))
+                  }
                   disabled={!editingWorker}
                   className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-50"
                 />
@@ -430,55 +433,55 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
           <h4 className="font-medium text-gray-900">계좌 정보 (선택사항)</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                은행명
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">은행명</label>
               <input
                 type="text"
                 value={salaryForm.bank_account_info.bank_name}
-                onChange={(e) => setSalaryForm(prev => ({
-                  ...prev,
-                  bank_account_info: {
-                    ...prev.bank_account_info,
-                    bank_name: e.target.value
-                  }
-                }))}
+                onChange={e =>
+                  setSalaryForm(prev => ({
+                    ...prev,
+                    bank_account_info: {
+                      ...prev.bank_account_info,
+                      bank_name: e.target.value,
+                    },
+                  }))
+                }
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="예: 국민은행"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                계좌번호
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">계좌번호</label>
               <input
                 type="text"
                 value={salaryForm.bank_account_info.account_number}
-                onChange={(e) => setSalaryForm(prev => ({
-                  ...prev,
-                  bank_account_info: {
-                    ...prev.bank_account_info,
-                    account_number: e.target.value
-                  }
-                }))}
+                onChange={e =>
+                  setSalaryForm(prev => ({
+                    ...prev,
+                    bank_account_info: {
+                      ...prev.bank_account_info,
+                      account_number: e.target.value,
+                    },
+                  }))
+                }
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="계좌번호"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                예금주
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">예금주</label>
               <input
                 type="text"
                 value={salaryForm.bank_account_info.account_holder}
-                onChange={(e) => setSalaryForm(prev => ({
-                  ...prev,
-                  bank_account_info: {
-                    ...prev.bank_account_info,
-                    account_holder: e.target.value
-                  }
-                }))}
+                onChange={e =>
+                  setSalaryForm(prev => ({
+                    ...prev,
+                    bank_account_info: {
+                      ...prev.bank_account_info,
+                      account_holder: e.target.value,
+                    },
+                  }))
+                }
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="예금주명"
               />
@@ -490,12 +493,10 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
       {/* 메모 */}
       {editingWorker && (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            메모
-          </label>
+          <label className="block text-sm font-medium text-gray-700 mb-1">메모</label>
           <textarea
             value={salaryForm.notes}
-            onChange={(e) => setSalaryForm(prev => ({ ...prev, notes: e.target.value }))}
+            onChange={e => setSalaryForm(prev => ({ ...prev, notes: e.target.value }))}
             rows={3}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="추가 메모사항..."
@@ -522,12 +523,8 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
           {(['regular_employee', 'freelancer', 'daily_worker'] as EmploymentType[]).map(type => (
             <Card key={type} className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="font-medium text-gray-900">
-                  {EMPLOYMENT_TYPE_LABELS[type]}
-                </h4>
-                <Badge className={getEmploymentTypeColor(type)}>
-                  {type}
-                </Badge>
+                <h4 className="font-medium text-gray-900">{EMPLOYMENT_TYPE_LABELS[type]}</h4>
+                <Badge className={getEmploymentTypeColor(type)}>{type}</Badge>
               </div>
 
               <div className="space-y-3">
@@ -543,10 +540,12 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
                               type="number"
                               step="0.01"
                               value={editingTaxRates[rate.id]}
-                              onChange={(e) => setEditingTaxRates(prev => ({
-                                ...prev,
-                                [rate.id]: parseFloat(e.target.value) || 0
-                              }))}
+                              onChange={e =>
+                                setEditingTaxRates(prev => ({
+                                  ...prev,
+                                  [rate.id]: parseFloat(e.target.value) || 0,
+                                }))
+                              }
                               className="w-16 px-2 py-1 text-xs border rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                             />
                             <button
@@ -556,11 +555,13 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
                               <Save className="h-3 w-3" />
                             </button>
                             <button
-                              onClick={() => setEditingTaxRates(prev => {
-                                const updated = { ...prev }
-                                delete updated[rate.id]
-                                return updated
-                              })}
+                              onClick={() =>
+                                setEditingTaxRates(prev => {
+                                  const updated = { ...prev }
+                                  delete updated[rate.id]
+                                  return updated
+                                })
+                              }
                               className="p-1 text-gray-600 hover:bg-gray-50 rounded"
                             >
                               <X className="h-3 w-3" />
@@ -570,10 +571,12 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
                           <>
                             <span className="text-sm font-medium">{rate.rate}%</span>
                             <button
-                              onClick={() => setEditingTaxRates(prev => ({
-                                ...prev,
-                                [rate.id]: rate.rate
-                              }))}
+                              onClick={() =>
+                                setEditingTaxRates(prev => ({
+                                  ...prev,
+                                  [rate.id]: rate.rate,
+                                }))
+                              }
                               className="p-1 text-blue-600 hover:bg-blue-50 rounded"
                             >
                               <Edit2 className="h-3 w-3" />
@@ -654,9 +657,7 @@ export default function WorkerSalarySettings({ profile }: WorkerSalarySettingsPr
       {/* Tab Content */}
       {activeTab === 'workers' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            {renderWorkersList()}
-          </div>
+          <div>{renderWorkersList()}</div>
           <div>
             {selectedWorker ? (
               renderWorkerSettingsForm()

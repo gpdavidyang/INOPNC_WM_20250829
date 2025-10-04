@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import type { Profile } from '@/types'
 
 interface MarkupToolManagementProps {
@@ -54,7 +56,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
   const loadData = async () => {
     try {
       setLoading(true)
-      
+
       // Load all documents (admin mode)
       const response = await fetch('/api/markup-documents?admin=true&limit=100')
       if (response.ok) {
@@ -87,10 +89,11 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
 
     // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(doc => 
-        doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        doc.original_blueprint_filename?.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        doc =>
+          doc.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          doc.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          doc.original_blueprint_filename?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
@@ -118,9 +121,9 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
 
     try {
       const response = await fetch(`/api/markup-documents/${documentId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
-      
+
       if (response.ok) {
         await loadData()
       }
@@ -168,7 +171,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
             전체 {documents.length}개의 도면 마킹 문서
           </p>
         </div>
-        
+
         <div className="flex gap-3">
           <Button
             onClick={() => window.open('/dashboard/markup?view=upload', '_blank')}
@@ -177,14 +180,10 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
             <Plus className="h-4 w-4 mr-2" />
             도면 업로드 및 마킹 시작
           </Button>
-          
-          <Button
-            onClick={() => loadData()}
-            variant="outline"
-            className="flex items-center"
-          >
+
+          <Button onClick={() => loadData()} variant="outline" className="flex items-center">
             <RefreshCw className="h-4 w-4 mr-2" />
-            새로고침
+            {t('common.refresh')}
           </Button>
         </div>
       </div>
@@ -198,9 +197,9 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="문서 검색..."
+                placeholder={t('common.search')}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
             </div>
@@ -210,7 +209,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
           <div>
             <select
               value={filterLocation}
-              onChange={(e) => setFilterLocation(e.target.value as unknown)}
+              onChange={e => setFilterLocation(e.target.value as unknown)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">전체 위치</option>
@@ -223,7 +222,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
           <div>
             <select
               value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
+              onChange={e => setFilterUser(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">전체 사용자</option>
@@ -239,7 +238,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
           <div>
             <select
               value={filterSite}
-              onChange={(e) => setFilterSite(e.target.value)}
+              onChange={e => setFilterSite(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             >
               <option value="all">전체 현장</option>
@@ -264,7 +263,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
               }}
               className="text-purple-600 hover:text-purple-700"
             >
-              필터 초기화
+              {t('common.reset')}
             </button>
           )}
         </div>
@@ -276,7 +275,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
           {currentDocuments.map(document => {
             const creator = users.find(u => u.id === document.created_by)
             const site = sites.find(s => s.id === document.site_id)
-            
+
             return (
               <div
                 key={document.id}
@@ -293,13 +292,15 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
                   ) : (
                     <FileImage className="h-12 w-12 text-gray-400" />
                   )}
-                  
+
                   {/* Location Badge */}
-                  <span className={`absolute top-2 right-2 px-2 py-1 text-xs rounded ${
-                    document.location === 'shared' 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
-                  }`}>
+                  <span
+                    className={`absolute top-2 right-2 px-2 py-1 text-xs rounded ${
+                      document.location === 'shared'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                    }`}
+                  >
                     {document.location === 'shared' ? '공유' : '개인'}
                   </span>
                 </div>
@@ -309,7 +310,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
                   <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-1 truncate">
                     {document.title}
                   </h3>
-                  
+
                   <div className="space-y-1 text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex items-center">
                       <User className="h-3 w-3 mr-1" />
@@ -317,14 +318,14 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
                         {creator?.full_name || creator?.email || '알 수 없음'}
                       </span>
                     </div>
-                    
+
                     {site && (
                       <div className="flex items-center">
                         <FolderOpen className="h-3 w-3 mr-1" />
                         <span className="truncate">{site.name}</span>
                       </div>
                     )}
-                    
+
                     <div className="flex items-center justify-between">
                       <span className="flex items-center">
                         <Palette className="h-3 w-3 mr-1" />
@@ -383,7 +384,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
             {documents.length === 0 ? '도면 마킹 문서가 없습니다' : '검색 결과가 없습니다'}
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {documents.length === 0 
+            {documents.length === 0
               ? '새 마킹 생성 버튼을 클릭하여 시작하세요.'
               : '다른 검색 조건을 시도해보세요.'}
           </p>
@@ -399,9 +400,9 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
           >
-            이전
+            {t('common.prev')}
           </Button>
-          
+
           <div className="flex items-center space-x-1">
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               let pageNum
@@ -414,7 +415,7 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
               } else {
                 pageNum = currentPage - 2 + i
               }
-              
+
               return (
                 <button
                   key={i}
@@ -430,14 +431,14 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
               )
             })}
           </div>
-          
+
           <Button
             variant="outline"
             size="sm"
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
           >
-            다음
+            {t('common.next')}
           </Button>
         </div>
       )}

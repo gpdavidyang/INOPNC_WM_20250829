@@ -1,53 +1,67 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceRoleClient } from '@/lib/supabase/service-role'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+/**
+ * GET /api/admin/sites/:id/stats
+ * Returns: { daily_reports_count, total_labor_hours }
+ */
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const auth = await requireApiAuth()
     if (auth instanceof NextResponse) return auth
 
-    if (!['admin', 'system_admin', 'site_manager'].includes(auth.role || '')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
-    }
-
     const siteId = params.id
-    const supabase = createClient()
+    if (!siteId)
+      return NextResponse.json({ success: false, error: 'Missing site id' }, { status: 400 })
+
+    const service = createServiceRoleClient()
 
     // Count daily reports for this site
-    const { count: dailyReportsCount } = await supabase
+    const { count: reportsCount } = await service
       .from('daily_reports')
       .select('id', { count: 'exact', head: true })
       .eq('site_id', siteId)
 
-    // Sum labor_hours from work_records (총공수)
-    let totalLaborHours = 0
-    try {
-      const { data: records } = await supabase
+    // Sum total labor via work_records (fallback uses work_hours/8 if labor_hours is null)
+    let from = 0
+    const PAGE_SIZE = 1000
+    let totalHours = 0
+    let iterations = 0
+    while (true) {
+      const { data, error } = await service
         .from('work_records')
-        .select('labor_hours')
+        .select('labor_hours, work_hours')
         .eq('site_id', siteId)
-      totalLaborHours = (records || []).reduce(
-        (sum: number, r: any) => sum + (Number(r.labor_hours) || 0),
-        0
-      )
-    } catch (_) {
-      totalLaborHours = 0
+        .range(from, from + PAGE_SIZE - 1)
+      if (error) {
+        console.error('[admin/sites/:id/stats] work_records error:', error)
+        break
+      }
+      if (!data || data.length === 0) break
+      data.forEach(r => {
+        const labor = Number((r as any).labor_hours) || 0
+        const work = Number((r as any).work_hours) || 0
+        totalHours += labor > 0 ? labor : work
+      })
+      if (data.length < PAGE_SIZE) break
+      from += PAGE_SIZE
+      iterations += 1
+      if (iterations > 50) break
     }
+    const totalManDays = Number((totalHours / 8).toFixed(1))
 
     return NextResponse.json({
       success: true,
       data: {
-        daily_reports_count: dailyReportsCount || 0,
-        total_labor_hours: Number(totalLaborHours.toFixed(2)),
+        daily_reports_count: reportsCount || 0,
+        total_labor_hours: totalManDays, // UI expects man-days style metric
       },
     })
-  } catch (e: any) {
-    return NextResponse.json(
-      { success: false, error: e?.message || 'Internal error' },
-      { status: 500 }
-    )
+  } catch (e) {
+    console.error('[admin/sites/:id/stats] error:', e)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
 }

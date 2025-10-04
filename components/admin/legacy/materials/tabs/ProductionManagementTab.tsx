@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface ProductionManagementTabProps {
   profile: Profile
@@ -9,7 +10,7 @@ interface ExtendedProductionRecord extends ProductionRecord {
   creator_name?: string
 }
 
-export default function ProductionManagementTab({ }: ProductionManagementTabProps) {
+export default function ProductionManagementTab({}: ProductionManagementTabProps) {
   const [productions, setProductions] = useState<ExtendedProductionRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -19,14 +20,16 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDetailModal, setShowDetailModal] = useState(false)
-  const [selectedProduction, setSelectedProduction] = useState<ExtendedProductionRecord | null>(null)
+  const [selectedProduction, setSelectedProduction] = useState<ExtendedProductionRecord | null>(
+    null
+  )
 
   // Form states
   const [formData, setFormData] = useState({
     production_date: new Date().toISOString().split('T')[0],
     quantity_produced: '',
     unit_cost: '',
-    notes: ''
+    notes: '',
   })
 
   // Fetch data
@@ -38,7 +41,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
     setLoading(true)
     try {
       const filters: unknown = {}
-      
+
       // Date range filter
       const now = new Date()
       if (selectedDateRange === 'week') {
@@ -50,7 +53,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
       }
 
       const result = await getProductionHistory(filters)
-      
+
       if (result.success) {
         setProductions(result.data || [])
       } else {
@@ -64,13 +67,12 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
     }
   }
 
-
   const handleAdd = () => {
     setFormData({
       production_date: new Date().toISOString().split('T')[0],
       quantity_produced: '',
       unit_cost: '',
-      notes: ''
+      notes: '',
     })
     setShowAddModal(true)
   }
@@ -81,7 +83,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
       production_date: production.production_date,
       quantity_produced: production.quantity_produced.toString(),
       unit_cost: production.unit_cost.toString(),
-      notes: production.notes || ''
+      notes: production.notes || '',
     })
     setShowEditModal(true)
   }
@@ -132,7 +134,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
         production_date: formData.production_date,
         quantity_produced: quantity,
         unit_cost: unitCost,
-        notes: formData.notes || undefined
+        notes: formData.notes || undefined,
       }
 
       const result = await createProductionRecord(productionData)
@@ -171,7 +173,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
         production_date: formData.production_date,
         quantity_produced: quantity,
         unit_cost: unitCost,
-        notes: formData.notes || undefined
+        notes: formData.notes || undefined,
       }
 
       const result = await updateProductionRecord(selectedProduction.id, updates)
@@ -190,11 +192,12 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
     }
   }
 
-  const filteredProductions = productions.filter(production =>
-    searchTerm === '' || 
-    production.production_date.includes(searchTerm) ||
-    production.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    production.creator_name?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProductions = productions.filter(
+    production =>
+      searchTerm === '' ||
+      production.production_date.includes(searchTerm) ||
+      production.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      production.creator_name?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const totalProduction = filteredProductions.reduce((sum, prod) => sum + prod.quantity_produced, 0)
@@ -210,13 +213,15 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">총 생산량</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{totalProduction.toLocaleString()} 말</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {totalProduction.toLocaleString()} 말
+                </p>
               </div>
               <Factory className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -234,7 +239,9 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">평균 단가</p>
-                <p className="text-2xl font-bold text-yellow-600">₩{Math.round(avgCost).toLocaleString()}</p>
+                <p className="text-2xl font-bold text-yellow-600">
+                  ₩{Math.round(avgCost).toLocaleString()}
+                </p>
               </div>
               <TrendingUp className="h-8 w-8 text-yellow-600" />
             </div>
@@ -246,7 +253,9 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">생산 기록</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{filteredProductions.length}</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {filteredProductions.length}
+                </p>
               </div>
               <BarChart3 className="h-8 w-8 text-purple-600" />
             </div>
@@ -260,9 +269,9 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="생산일, 비고, 생성자로 검색..."
+              placeholder={t('common.search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 w-80"
             />
           </div>
@@ -298,26 +307,44 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">생산일</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">생산량</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">단위비용</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">총비용</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">비고</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">생성자</th>
-                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">작업</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    생산일
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    생산량
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    단위비용
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    총비용
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    비고
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    생성자
+                  </th>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    작업
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">로딩 중...</td>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      로딩 중...
+                    </td>
                   </tr>
                 ) : filteredProductions.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">생산 기록이 없습니다.</td>
+                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                      생산 기록이 없습니다.
+                    </td>
                   </tr>
                 ) : (
-                  filteredProductions.map((production) => (
+                  filteredProductions.map(production => (
                     <tr key={production.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="px-4 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -395,9 +422,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
         <DialogContent className="max-w-lg p-8">
           <DialogHeader className="mb-6">
             <DialogTitle className="text-xl">생산 기록 추가</DialogTitle>
-            <DialogDescription>
-              NPC-1000 자재의 생산 기록을 추가합니다.
-            </DialogDescription>
+            <DialogDescription>NPC-1000 자재의 생산 기록을 추가합니다.</DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
             <div>
@@ -405,7 +430,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
               <Input
                 type="date"
                 value={formData.production_date}
-                onChange={(e) => setFormData({...formData, production_date: e.target.value})}
+                onChange={e => setFormData({ ...formData, production_date: e.target.value })}
                 className="w-full"
               />
             </div>
@@ -415,7 +440,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
                 type="number"
                 step="0.01"
                 value={formData.quantity_produced}
-                onChange={(e) => setFormData({...formData, quantity_produced: e.target.value})}
+                onChange={e => setFormData({ ...formData, quantity_produced: e.target.value })}
                 placeholder="생산량 입력"
                 className="w-full"
               />
@@ -426,7 +451,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
                 type="number"
                 step="1"
                 value={formData.unit_cost}
-                onChange={(e) => setFormData({...formData, unit_cost: e.target.value})}
+                onChange={e => setFormData({ ...formData, unit_cost: e.target.value })}
                 placeholder="말당 단위비용"
                 className="w-full"
               />
@@ -435,7 +460,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
               <Label className="mb-2 block">비고</Label>
               <Textarea
                 value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="추가 설명이나 비고사항"
                 rows={4}
                 className="w-full"
@@ -443,7 +468,9 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
             </div>
           </div>
           <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => setShowAddModal(false)}>취소</Button>
+            <Button variant="outline" onClick={() => setShowAddModal(false)}>
+              취소
+            </Button>
             <Button onClick={submitProduction}>추가</Button>
           </DialogFooter>
         </DialogContent>
@@ -454,9 +481,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
         <DialogContent className="max-w-lg p-8">
           <DialogHeader className="mb-6">
             <DialogTitle className="text-xl">생산 기록 수정</DialogTitle>
-            <DialogDescription>
-              기존 생산 기록을 수정합니다.
-            </DialogDescription>
+            <DialogDescription>기존 생산 기록을 수정합니다.</DialogDescription>
           </DialogHeader>
           <div className="space-y-5">
             <div>
@@ -464,7 +489,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
               <Input
                 type="date"
                 value={formData.production_date}
-                onChange={(e) => setFormData({...formData, production_date: e.target.value})}
+                onChange={e => setFormData({ ...formData, production_date: e.target.value })}
                 className="w-full"
               />
             </div>
@@ -474,7 +499,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
                 type="number"
                 step="0.01"
                 value={formData.quantity_produced}
-                onChange={(e) => setFormData({...formData, quantity_produced: e.target.value})}
+                onChange={e => setFormData({ ...formData, quantity_produced: e.target.value })}
                 placeholder="생산량 입력"
                 className="w-full"
               />
@@ -485,7 +510,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
                 type="number"
                 step="1"
                 value={formData.unit_cost}
-                onChange={(e) => setFormData({...formData, unit_cost: e.target.value})}
+                onChange={e => setFormData({ ...formData, unit_cost: e.target.value })}
                 placeholder="말당 단위비용"
                 className="w-full"
               />
@@ -494,7 +519,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
               <Label className="mb-2 block">비고</Label>
               <Textarea
                 value={formData.notes}
-                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                onChange={e => setFormData({ ...formData, notes: e.target.value })}
                 placeholder="추가 설명이나 비고사항"
                 rows={4}
                 className="w-full"
@@ -502,7 +527,9 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
             </div>
           </div>
           <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>취소</Button>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>
+              취소
+            </Button>
             <Button onClick={updateProduction}>수정</Button>
           </DialogFooter>
         </DialogContent>
@@ -513,9 +540,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>생산 기록 상세</DialogTitle>
-            <DialogDescription>
-              생산 기록의 상세 정보를 확인합니다.
-            </DialogDescription>
+            <DialogDescription>생산 기록의 상세 정보를 확인합니다.</DialogDescription>
           </DialogHeader>
           {selectedProduction && (
             <div className="space-y-6">
@@ -523,11 +548,15 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">생산일</Label>
-                    <p className="text-lg font-medium">{formatDate(selectedProduction.production_date)}</p>
+                    <p className="text-lg font-medium">
+                      {formatDate(selectedProduction.production_date)}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">생산량</Label>
-                    <p className="text-lg">{selectedProduction.quantity_produced.toLocaleString()} 말</p>
+                    <p className="text-lg">
+                      {selectedProduction.quantity_produced.toLocaleString()} 말
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">단위비용</Label>
@@ -537,7 +566,9 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
                 <div className="space-y-4">
                   <div>
                     <Label className="text-sm font-medium text-gray-500">총비용</Label>
-                    <p className="text-lg font-medium text-green-600">₩{selectedProduction.total_cost.toLocaleString()}</p>
+                    <p className="text-lg font-medium text-green-600">
+                      ₩{selectedProduction.total_cost.toLocaleString()}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">생성자</Label>
@@ -549,7 +580,7 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
                   </div>
                 </div>
               </div>
-              
+
               {selectedProduction.notes && (
                 <div>
                   <Label className="text-sm font-medium text-gray-500">비고</Label>
@@ -572,7 +603,9 @@ export default function ProductionManagementTab({ }: ProductionManagementTabProp
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDetailModal(false)}>닫기</Button>
+            <Button variant="outline" onClick={() => setShowDetailModal(false)}>
+              닫기
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

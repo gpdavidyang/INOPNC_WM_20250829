@@ -1,53 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
-import { getSites, createSite } from '@/app/actions/admin/sites'
-import type { SiteStatus } from '@/types'
+import { listSites } from '@/lib/api/adapters/site'
+import type { ListSitesRequest } from '@/lib/api/contracts/site'
 
 export const dynamic = 'force-dynamic'
 
+// GET /api/admin/sites
+// Query: page, limit, search, status, sort, direction
 export async function GET(request: NextRequest) {
-  const authResult = await requireApiAuth()
+  try {
+    const auth = await requireApiAuth()
+    if (auth instanceof NextResponse) return auth
 
-  if (authResult instanceof NextResponse) {
-    return authResult
+    const supabase = createClient()
+
+    // Admin/system_admin only
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, role')
+      .eq('id', auth.userId)
+      .maybeSingle()
+
+    if (!profile || !['admin', 'system_admin'].includes((profile as any).role || '')) {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const req: ListSitesRequest = {
+      page: Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1),
+      pageSize: Math.max(1, Number.parseInt(searchParams.get('limit') || '20', 10) || 20),
+      q: (searchParams.get('search') || '').trim() || undefined,
+      status: (searchParams.get('status') || '').trim() || undefined,
+      sort: (searchParams.get('sort') || 'created_at').trim(),
+      direction: (searchParams.get('direction') || 'desc').trim() as 'asc' | 'desc',
+    }
+
+    const result = await listSites(req)
+    const pages = Math.max(1, Math.ceil(result.total / req.pageSize))
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        sites: result.items,
+        total: result.total,
+        pages,
+      },
+    })
+  } catch (e) {
+    console.error('[admin/sites] error:', e)
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
   }
-
-  const { role } = authResult
-
-  if (!role || !['admin', 'system_admin', 'site_manager'].includes(role)) {
-    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
-  }
-
-  const { searchParams } = new URL(request.url)
-  const page = Number.parseInt(searchParams.get('page') || '1', 10)
-  const limit = Number.parseInt(searchParams.get('limit') || '50', 10)
-  const search = searchParams.get('search') || ''
-  const statusParam = (searchParams.get('status') || '') as SiteStatus | ''
-  const sort = searchParams.get('sort') || 'created_at'
-  const direction = (searchParams.get('direction') || 'desc') as 'asc' | 'desc'
-
-  const pageNumber = Number.isFinite(page) && page > 0 ? page : 1
-  const limitNumber = Number.isFinite(limit) && limit > 0 ? limit : 10
-  const siteStatus = statusParam && statusParam !== 'all' ? (statusParam as SiteStatus) : undefined
-
-  const result = await getSites(pageNumber, limitNumber, search, siteStatus, sort, direction)
-
-  return NextResponse.json(result, { status: result.success ? 200 : 500 })
-}
-
-export async function POST(request: NextRequest) {
-  const authResult = await requireApiAuth()
-
-  if (authResult instanceof NextResponse) {
-    return authResult
-  }
-
-  const { role } = authResult
-  if (!role || !['admin', 'system_admin'].includes(role)) {
-    return NextResponse.json({ success: false, error: 'Admin access required' }, { status: 403 })
-  }
-
-  const data = await request.json().catch(() => ({}))
-  const result = await createSite(data)
-  return NextResponse.json(result, { status: result.success ? 200 : 400 })
 }

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import AnnounceTable from '@/components/admin/AnnounceTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/ui/strings'
 import AnnouncementCreateForm from '@/components/admin/communication/AnnouncementCreateForm'
 
 export const metadata: Metadata = { title: '커뮤니케이션 센터' }
@@ -72,16 +73,16 @@ export default async function CommunicationManagementPage({
         <CardContent>
           <div className="mb-3 flex items-center gap-2">
             <form method="GET" className="flex items-center gap-2">
-              <Input name="search" defaultValue={search} placeholder="제목/내용 검색" />
+              <Input name="search" defaultValue={search} placeholder={t('common.search')} />
               <Button type="submit" variant="outline">
-                검색
+                {t('common.search')}
               </Button>
             </form>
             <Link
               href="/dashboard/admin/notifications"
               className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
             >
-              알림 이력 보기
+              {t('common.details')}
             </Link>
           </div>
           <AnnounceTable announcements={announcements} />

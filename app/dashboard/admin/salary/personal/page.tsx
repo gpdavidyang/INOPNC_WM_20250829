@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { t } from '@/lib/ui/strings'
 import { createClient } from '@/lib/supabase/client'
 
 type PersonalRate = {
@@ -205,7 +206,7 @@ export default function PersonalRatesPage() {
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="search"
-          placeholder="이름/ID 검색"
+          placeholder={t('common.search')}
           value={query}
           onChange={e => setQuery(e.target.value)}
           className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
@@ -226,7 +227,7 @@ export default function PersonalRatesPage() {
           className="px-3 py-2 bg-white text-gray-900 rounded-md text-sm border shadow-sm hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
           disabled={loading}
         >
-          새로고침
+          {t('common.refresh')}
         </button>
         <div className="flex-1" />
         <button

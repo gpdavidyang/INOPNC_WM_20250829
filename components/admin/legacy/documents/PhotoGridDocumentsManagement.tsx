@@ -1,9 +1,15 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import React, { useState, useEffect } from 'react'
 
 // Helper function to get typography class
-function getTypographyClass(type: string, size: string = 'base', isLargeFont: boolean = false): string {
+function getTypographyClass(
+  type: string,
+  size: string = 'base',
+  isLargeFont: boolean = false
+): string {
   return getFullTypographyClass(type, size, isLargeFont)
 }
 
@@ -25,7 +31,7 @@ export default function PhotoGridDocumentsManagement() {
   const { isLargeFont } = useFontSize()
   const { touchMode } = useTouchMode()
   const router = useRouter()
-  
+
   const [documents, setDocuments] = useState<PhotoGridDocument[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -59,7 +65,7 @@ export default function PhotoGridDocumentsManagement() {
             status: doc.status || 'active',
             tags: ['사진대지', doc.category_type].filter(Boolean),
             fileUrl: doc.file_url,
-            metadata: doc.metadata
+            metadata: doc.metadata,
           }
         })
         setDocuments(formattedDocs)
@@ -88,7 +94,7 @@ export default function PhotoGridDocumentsManagement() {
 
   const handleDownload = async (doc: PhotoGridDocument) => {
     try {
-      // Extract photo_grid_id from the document metadata (same logic as the dashboard tab) 
+      // Extract photo_grid_id from the document metadata (same logic as the dashboard tab)
       const metadata = (doc as unknown).metadata || {}
       const photoGridId = metadata.photo_grid_id
       if (photoGridId) {
@@ -96,10 +102,10 @@ export default function PhotoGridDocumentsManagement() {
         if (response.ok) {
           const blob = await response.blob()
           const url = window.URL.createObjectURL(blob)
-          
+
           // Open in new window for printing/saving as PDF
           const printWindow = window.open(url, '_blank')
-          
+
           // Clean up after a delay
           setTimeout(() => {
             window.URL.revokeObjectURL(url)
@@ -111,9 +117,10 @@ export default function PhotoGridDocumentsManagement() {
     }
   }
 
-  const filteredDocuments = documents.filter(doc =>
-    doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredDocuments = documents.filter(
+    doc =>
+      doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.fileName.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   return (
@@ -121,20 +128,21 @@ export default function PhotoGridDocumentsManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`${getTypographyClass('heading', 'lg', isLargeFont)} font-bold text-gray-900`}>
+          <h2
+            className={`${getTypographyClass('heading', 'lg', isLargeFont)} font-bold text-gray-900`}
+          >
             사진대지문서함 관리
           </h2>
           <p className={`${getTypographyClass('body', 'sm', isLargeFont)} text-gray-500 mt-1`}>
             현장 사진 및 이미지 자료를 관리합니다.
           </p>
         </div>
-        
+
         <Button className="flex items-center gap-2">
           <Upload className="h-4 w-4" />
           사진 업로드
         </Button>
       </div>
-
 
       {/* Filters */}
       <Card className="p-4">
@@ -143,28 +151,28 @@ export default function PhotoGridDocumentsManagement() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
             <Input
               type="text"
-              placeholder="파일명, 제목으로 검색..."
+              placeholder={t('common.search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-9"
             />
           </div>
-          
+
           <div className="flex items-center gap-2">
             <select
               value={selectedSite}
-              onChange={(e) => setSelectedSite(e.target.value)}
+              onChange={e => setSelectedSite(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md bg-white text-sm"
             >
               <option value="all">모든 현장</option>
               <option value="site1">서울 아파트 건설현장</option>
             </select>
-            
+
             <Button variant="outline" size="sm">
               <Filter className="h-4 w-4 mr-2" />
               필터
             </Button>
-            
+
             <div className="flex border border-gray-200 rounded-md">
               <button
                 onClick={() => setViewMode('grid')}
@@ -198,12 +206,12 @@ export default function PhotoGridDocumentsManagement() {
         </Card>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredDocuments.map((doc) => (
+          {filteredDocuments.map(doc => (
             <Card key={doc.id} className="overflow-hidden hover:shadow-md transition-shadow">
               <div className="aspect-video bg-gray-100 flex items-center justify-center">
                 {doc.thumbnailUrl ? (
-                  <img 
-                    src={doc.thumbnailUrl} 
+                  <img
+                    src={doc.thumbnailUrl}
                     alt={doc.title}
                     className="w-full h-full object-cover"
                   />
@@ -211,20 +219,16 @@ export default function PhotoGridDocumentsManagement() {
                   <Image className="h-12 w-12 text-gray-400" />
                 )}
               </div>
-              
+
               <div className="p-4">
-                <h3 className="font-medium text-gray-900 truncate mb-1">
-                  {doc.title}
-                </h3>
-                <p className="text-sm text-gray-500 truncate mb-2">
-                  {doc.fileName}
-                </p>
-                
+                <h3 className="font-medium text-gray-900 truncate mb-1">{doc.title}</h3>
+                <p className="text-sm text-gray-500 truncate mb-2">{doc.fileName}</p>
+
                 <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
                   <span>{formatFileSize(doc.fileSize)}</span>
                   <span>{new Date(doc.uploadDate).toLocaleDateString('ko-KR')}</span>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="flex flex-wrap gap-1">
                     {doc.tags.slice(0, 2).map((tag, index) => (
@@ -233,12 +237,22 @@ export default function PhotoGridDocumentsManagement() {
                       </Badge>
                     ))}
                   </div>
-                  
+
                   <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handlePreview(doc)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handlePreview(doc)}
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleDownload(doc)}>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => handleDownload(doc)}
+                    >
                       <Download className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -277,7 +291,7 @@ export default function PhotoGridDocumentsManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredDocuments.map((doc) => (
+                {filteredDocuments.map(doc => (
                   <tr key={doc.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -285,12 +299,8 @@ export default function PhotoGridDocumentsManagement() {
                           <Image className="h-6 w-6 text-gray-400" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {doc.title}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {doc.fileName}
-                          </div>
+                          <div className="text-sm font-medium text-gray-900">{doc.title}</div>
+                          <div className="text-sm text-gray-500">{doc.fileName}</div>
                         </div>
                       </div>
                     </td>

@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
 
 interface SiteManagementProps {
@@ -600,14 +602,14 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                   disabled={currentPage === 1}
                   className="relative inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
                 >
-                  이전
+                  {t('common.prev')}
                 </button>
                 <button
                   onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
                   disabled={currentPage === totalPages}
                   className="relative ml-3 inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50"
                 >
-                  다음
+                  {t('common.next')}
                 </button>
               </div>
               <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
@@ -631,7 +633,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                       disabled={currentPage === 1}
                       className="relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                     >
-                      이전
+                      {t('common.prev')}
                     </button>
                     {[...Array(totalPages)].map((_, index) => {
                       const page = index + 1
@@ -670,7 +672,7 @@ export default function SiteManagement({ profile }: SiteManagementProps) {
                       disabled={currentPage === totalPages}
                       className="relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50"
                     >
-                      다음
+                      {t('common.next')}
                     </button>
                   </nav>
                 </div>

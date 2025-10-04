@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface WorkerAssignmentManagerProps {
   site: Site
@@ -33,11 +34,12 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
   const fetchData = async () => {
     try {
       setLoading(true)
-      
+
       // Fetch current assignments
       const { data: currentAssignments, error: assignError } = await supabase
         .from('site_assignments')
-        .select(`
+        .select(
+          `
           *,
           profiles:user_id (
             id,
@@ -48,7 +50,8 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
             organization_id,
             status
           )
-        `)
+        `
+        )
         .eq('site_id', site.id)
         .eq('is_active', true)
         .order('assigned_date', { ascending: false })
@@ -83,18 +86,16 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
 
     try {
       setLoading(true)
-      
+
       const newAssignments = Array.from(selectedWorkers).map(userId => ({
         user_id: userId,
         site_id: site.id,
         role: availableWorkers.find(w => w.id === userId)?.role || 'worker',
         assigned_date: new Date().toISOString(),
-        is_active: true
+        is_active: true,
       }))
 
-      const { error } = await supabase
-        .from('site_assignments')
-        .insert(newAssignments)
+      const { error } = await supabase.from('site_assignments').insert(newAssignments)
 
       if (error) throw error
 
@@ -102,7 +103,7 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
       setSelectedWorkers(new Set())
       await fetchData()
       onUpdate?.()
-      
+
       // Show success message
       alert(`${selectedWorkers.size}명의 작업자가 배정되었습니다.`)
     } catch (error) {
@@ -118,12 +119,12 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
 
     try {
       setLoading(true)
-      
+
       const { error } = await supabase
         .from('site_assignments')
-        .update({ 
+        .update({
           is_active: false,
-          unassigned_date: new Date().toISOString()
+          unassigned_date: new Date().toISOString(),
         })
         .eq('id', assignmentId)
 
@@ -150,9 +151,10 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
     setSelectedWorkers(newSelection)
   }
 
-  const filteredWorkers = availableWorkers.filter(worker =>
-    worker.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    worker.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredWorkers = availableWorkers.filter(
+    worker =>
+      worker.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      worker.email?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getRoleBadgeColor = (role: string) => {
@@ -239,7 +241,7 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {assignments.map((assignment) => (
+                {assignments.map(assignment => (
                   <div
                     key={assignment.id}
                     className="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
@@ -250,7 +252,9 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
                           <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {assignment.profiles.full_name || '이름 없음'}
                           </h4>
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getRoleBadgeColor(assignment.role)}`}>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getRoleBadgeColor(assignment.role)}`}
+                          >
                             {getRoleLabel(assignment.role)}
                           </span>
                         </div>
@@ -273,7 +277,12 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
                         </div>
                       </div>
                       <button
-                        onClick={() => handleUnassignWorker(assignment.id, assignment.profiles.full_name || '작업자')}
+                        onClick={() =>
+                          handleUnassignWorker(
+                            assignment.id,
+                            assignment.profiles.full_name || '작업자'
+                          )
+                        }
                         className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
                         title="현장에서 해제"
                       >
@@ -296,9 +305,9 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="이름 또는 이메일로 검색..."
+                  placeholder={t('common.search')}
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={e => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -329,7 +338,7 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredWorkers.map((worker) => (
+                {filteredWorkers.map(worker => (
                   <div
                     key={worker.id}
                     onClick={() => toggleWorkerSelection(worker.id)}
@@ -345,7 +354,9 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
                           <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             {worker.full_name || '이름 없음'}
                           </h4>
-                          <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getRoleBadgeColor(worker.role)}`}>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${getRoleBadgeColor(worker.role)}`}
+                          >
                             {getRoleLabel(worker.role)}
                           </span>
                         </div>
@@ -364,11 +375,13 @@ export default function WorkerAssignmentManager({ site, onUpdate }: WorkerAssign
                           )}
                         </div>
                       </div>
-                      <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                        selectedWorkers.has(worker.id)
-                          ? 'bg-blue-500 border-blue-500'
-                          : 'border-gray-300 dark:border-gray-600'
-                      }`}>
+                      <div
+                        className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                          selectedWorkers.has(worker.id)
+                            ? 'bg-blue-500 border-blue-500'
+                            : 'border-gray-300 dark:border-gray-600'
+                        }`}
+                      >
                         {selectedWorkers.has(worker.id) && (
                           <CheckIcon className="h-4 w-4 text-white" />
                         )}

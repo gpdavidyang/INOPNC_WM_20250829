@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface InventoryUsageTabProps {
   profile: Profile
@@ -23,14 +24,14 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
   const [inventoryData, setInventoryData] = useState<InventoryData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedSite, setSelectedSite] = useState<string>('')
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7)
-  )
-  const [sites, setSites] = useState<Array<{id: string, name: string}>>([])
+  const [selectedMonth, setSelectedMonth] = useState<string>(new Date().toISOString().slice(0, 7))
+  const [sites, setSites] = useState<Array<{ id: string; name: string }>>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [sortField, setSortField] = useState<'work_date' | 'site_name' | 'incoming' | 'used' | 'remaining' | 'efficiency_rate' | 'status'>('work_date')
+  const [sortField, setSortField] = useState<
+    'work_date' | 'site_name' | 'incoming' | 'used' | 'remaining' | 'efficiency_rate' | 'status'
+  >('work_date')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
-  
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -76,7 +77,8 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
       // Get transactions and inventory data
       let transactionQuery = supabase
         .from('material_transactions')
-        .select(`
+        .select(
+          `
           id,
           transaction_type,
           quantity,
@@ -85,7 +87,8 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
           sites!material_transactions_site_id_fkey(name),
           created_by,
           created_at
-        `)
+        `
+        )
         .eq('material_id', npcMaterial.id)
         .gte('transaction_date', `${selectedMonth}-01`)
         .lte('transaction_date', `${selectedMonth}-31`)
@@ -99,11 +102,13 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
       // Get inventory data for each site
       let inventoryQuery = supabase
         .from('material_inventory')
-        .select(`
+        .select(
+          `
           site_id,
           current_stock,
           sites(name)
-        `)
+        `
+        )
         .eq('material_id', npcMaterial.id)
 
       if (selectedSite) {
@@ -118,7 +123,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
       if (transactions) {
         transactions.forEach(trans => {
           const key = `${trans.site_id}_${trans.transaction_date}`
-          
+
           if (!aggregatedData.has(key)) {
             aggregatedData.set(key, {
               id: key,
@@ -131,7 +136,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
               efficiency_rate: 0,
               status: 'normal',
               created_by: trans.created_by || '',
-              created_at: trans.created_at
+              created_at: trans.created_at,
             })
           }
 
@@ -158,7 +163,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
       // Calculate efficiency and status
       const formattedData: InventoryData[] = Array.from(aggregatedData.values()).map(data => {
         const efficiency = data.incoming > 0 ? (data.used / data.incoming) * 100 : 0
-        
+
         let status: 'normal' | 'low' | 'critical' = 'normal'
         if (data.remaining < 100) status = 'critical'
         else if (data.remaining < 500) status = 'low'
@@ -166,7 +171,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
         return {
           ...data,
           efficiency_rate: efficiency,
-          status: status
+          status: status,
         }
       })
 
@@ -183,30 +188,48 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      normal: { bg: 'bg-green-100 dark:bg-green-900/20', text: 'text-green-800 dark:text-green-200', label: '정상' },
-      low: { bg: 'bg-yellow-100 dark:bg-yellow-900/20', text: 'text-yellow-800 dark:text-yellow-200', label: '부족' },
-      critical: { bg: 'bg-red-100 dark:bg-red-900/20', text: 'text-red-800 dark:text-red-200', label: '긴급' }
+      normal: {
+        bg: 'bg-green-100 dark:bg-green-900/20',
+        text: 'text-green-800 dark:text-green-200',
+        label: '정상',
+      },
+      low: {
+        bg: 'bg-yellow-100 dark:bg-yellow-900/20',
+        text: 'text-yellow-800 dark:text-yellow-200',
+        label: '부족',
+      },
+      critical: {
+        bg: 'bg-red-100 dark:bg-red-900/20',
+        text: 'text-red-800 dark:text-red-200',
+        label: '긴급',
+      },
     }
     const badge = badges[status as keyof typeof badges] || badges.normal
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}
+      >
         {badge.label}
       </span>
     )
   }
 
   const calculateTotals = () => {
-    return inventoryData.reduce((acc, item) => ({
-      totalIncoming: acc.totalIncoming + item.incoming,
-      totalUsed: acc.totalUsed + item.used,
-      totalRemaining: acc.totalRemaining + item.remaining,
-      avgEfficiency: 0
-    }), { totalIncoming: 0, totalUsed: 0, totalRemaining: 0, avgEfficiency: 0 })
+    return inventoryData.reduce(
+      (acc, item) => ({
+        totalIncoming: acc.totalIncoming + item.incoming,
+        totalUsed: acc.totalUsed + item.used,
+        totalRemaining: acc.totalRemaining + item.remaining,
+        avgEfficiency: 0,
+      }),
+      { totalIncoming: 0, totalUsed: 0, totalRemaining: 0, avgEfficiency: 0 }
+    )
   }
 
   const totals = calculateTotals()
-  totals.avgEfficiency = totals.totalIncoming > 0 ? (totals.totalUsed / totals.totalIncoming) * 100 : 0
+  totals.avgEfficiency =
+    totals.totalIncoming > 0 ? (totals.totalUsed / totals.totalIncoming) * 100 : 0
 
   const handleSort = (field: typeof sortField) => {
     if (field === sortField) {
@@ -221,30 +244,33 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
     if (field !== sortField) {
       return <ChevronsUpDown className="h-4 w-4 text-gray-400" />
     }
-    return sortDirection === 'asc' 
-      ? <ChevronUp className="h-4 w-4 text-blue-500" />
-      : <ChevronDown className="h-4 w-4 text-blue-500" />
+    return sortDirection === 'asc' ? (
+      <ChevronUp className="h-4 w-4 text-blue-500" />
+    ) : (
+      <ChevronDown className="h-4 w-4 text-blue-500" />
+    )
   }
 
   const sortedData = [...inventoryData].sort((a, b) => {
     let aValue: unknown = a[sortField]
     let bValue: unknown = b[sortField]
-    
+
     if (sortField === 'status') {
       const statusOrder = { critical: 0, low: 1, normal: 2 }
       aValue = statusOrder[aValue as keyof typeof statusOrder]
       bValue = statusOrder[bValue as keyof typeof statusOrder]
     }
-    
+
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
     return 0
   })
 
-  const filteredData = sortedData.filter(item => 
-    searchTerm === '' || 
-    item.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.work_date.includes(searchTerm)
+  const filteredData = sortedData.filter(
+    item =>
+      searchTerm === '' ||
+      item.site_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.work_date.includes(searchTerm)
   )
 
   const exportToCSV = () => {
@@ -256,14 +282,11 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
       item.used,
       item.remaining,
       item.efficiency_rate.toFixed(1),
-      item.status === 'normal' ? '정상' : item.status === 'low' ? '부족' : '긴급'
+      item.status === 'normal' ? '정상' : item.status === 'low' ? '부족' : '긴급',
     ])
-    
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n')
-    
+
+    const csvContent = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+
     const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     link.href = URL.createObjectURL(blob)
@@ -281,12 +304,14 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
           </label>
           <select
             value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
+            onChange={e => setSelectedSite(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">전체 현장</option>
             {sites.map(site => (
-              <option key={site.id} value={site.id}>{site.name}</option>
+              <option key={site.id} value={site.id}>
+                {site.name}
+              </option>
             ))}
           </select>
         </div>
@@ -298,22 +323,22 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
           <input
             type="month"
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            onChange={e => setSelectedMonth(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            검색
+            {t('common.search')}
           </label>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="현장명, 날짜 검색..."
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder={t('common.search')}
               className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -335,7 +360,9 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 sm:p-4 rounded-lg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">총 입고량</p>
+              <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">
+                총 입고량
+              </p>
               <p className="text-lg sm:text-2xl font-bold text-blue-900 dark:text-blue-100">
                 {totals.totalIncoming.toLocaleString()}
               </p>
@@ -347,7 +374,9 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
         <div className="bg-orange-50 dark:bg-orange-900/20 p-3 sm:p-4 rounded-lg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 truncate">총 사용량</p>
+              <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 truncate">
+                총 사용량
+              </p>
               <p className="text-lg sm:text-2xl font-bold text-orange-900 dark:text-orange-100">
                 {totals.totalUsed.toLocaleString()}
               </p>
@@ -359,7 +388,9 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
         <div className="bg-green-50 dark:bg-green-900/20 p-3 sm:p-4 rounded-lg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 truncate">총 재고량</p>
+              <p className="text-xs sm:text-sm text-green-600 dark:text-green-400 truncate">
+                총 재고량
+              </p>
               <p className="text-lg sm:text-2xl font-bold text-green-900 dark:text-green-100">
                 {totals.totalRemaining.toLocaleString()}
               </p>
@@ -371,7 +402,9 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
         <div className="bg-purple-50 dark:bg-purple-900/20 p-3 sm:p-4 rounded-lg">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 truncate">평균 효율</p>
+              <p className="text-xs sm:text-sm text-purple-600 dark:text-purple-400 truncate">
+                평균 효율
+              </p>
               <p className="text-lg sm:text-2xl font-bold text-purple-900 dark:text-purple-100">
                 {totals.avgEfficiency.toFixed(1)}%
               </p>
@@ -386,7 +419,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('work_date')}
               >
@@ -395,7 +428,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
                   {getSortIcon('work_date')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('site_name')}
               >
@@ -404,7 +437,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
                   {getSortIcon('site_name')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('incoming')}
               >
@@ -413,7 +446,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
                   {getSortIcon('incoming')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('used')}
               >
@@ -422,7 +455,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
                   {getSortIcon('used')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('remaining')}
               >
@@ -431,7 +464,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
                   {getSortIcon('remaining')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('efficiency_rate')}
               >
@@ -440,7 +473,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
                   {getSortIcon('efficiency_rate')}
                 </div>
               </th>
-              <th 
+              <th
                 className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600"
                 onClick={() => handleSort('status')}
               >
@@ -465,7 +498,7 @@ export default function InventoryUsageTab({ profile }: InventoryUsageTabProps) {
                 </td>
               </tr>
             ) : (
-              filteredData.map((item) => (
+              filteredData.map(item => (
                 <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {item.work_date}

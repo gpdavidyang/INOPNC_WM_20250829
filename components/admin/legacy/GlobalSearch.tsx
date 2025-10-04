@@ -1,5 +1,6 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
 
 interface SearchResult {
   id: string
@@ -22,7 +23,7 @@ export default function GlobalSearch() {
   const { touchMode } = useTouchMode()
   const searchInputRef = useRef<HTMLInputElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout>()
-  
+
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
@@ -30,41 +31,40 @@ export default function GlobalSearch() {
   const [recentSearches, setRecentSearches] = useState<RecentSearch[]>([])
   const [activeFilter, setActiveFilter] = useState<string>('all')
   const [showResults, setShowResults] = useState(false)
-  
+
   // Load recent searches from localStorage
   useEffect(() => {
     const stored = localStorage.getItem('admin_recent_searches')
     if (stored) {
       try {
         const parsed = JSON.parse(stored)
-        setRecentSearches(parsed.map((s: unknown) => ({
-          ...s,
-          timestamp: new Date(s.timestamp)
-        })))
+        setRecentSearches(
+          parsed.map((s: unknown) => ({
+            ...s,
+            timestamp: new Date(s.timestamp),
+          }))
+        )
       } catch (e) {
         console.error('Failed to parse recent searches:', e)
       }
     }
   }, [])
-  
+
   // Save recent search
   const saveRecentSearch = (query: string) => {
     if (!query.trim()) return
-    
+
     const newSearch: RecentSearch = {
       query: query.trim(),
-      timestamp: new Date()
+      timestamp: new Date(),
     }
-    
-    const updated = [
-      newSearch,
-      ...recentSearches.filter(s => s.query !== query).slice(0, 4)
-    ]
-    
+
+    const updated = [newSearch, ...recentSearches.filter(s => s.query !== query).slice(0, 4)]
+
     setRecentSearches(updated)
     localStorage.setItem('admin_recent_searches', JSON.stringify(updated))
   }
-  
+
   // Perform search
   const performSearch = async (query: string) => {
     if (!query.trim()) {
@@ -72,15 +72,15 @@ export default function GlobalSearch() {
       setShowResults(false)
       return
     }
-    
+
     setSearching(true)
     setShowResults(true)
-    
+
     try {
       // TODO: Replace with actual API calls
       // For now, using mock data
       const mockResults: SearchResult[] = []
-      
+
       // Search users
       if (activeFilter === 'all' || activeFilter === 'users') {
         mockResults.push(
@@ -90,7 +90,7 @@ export default function GlobalSearch() {
             title: '김철수',
             subtitle: 'worker@inopnc.com',
             description: '서울현장 작업자',
-            url: '/dashboard/admin/users?id=1'
+            url: '/dashboard/admin/users?id=1',
           },
           {
             id: '2',
@@ -98,65 +98,59 @@ export default function GlobalSearch() {
             title: '이영희',
             subtitle: 'manager@inopnc.com',
             description: '부산현장 관리자',
-            url: '/dashboard/admin/users?id=2'
+            url: '/dashboard/admin/users?id=2',
           }
         )
       }
-      
+
       // Search sites
       if (activeFilter === 'all' || activeFilter === 'sites') {
-        mockResults.push(
-          {
-            id: '3',
-            type: 'site',
-            title: '서울 강남 현장',
-            subtitle: '강남구 삼성동',
-            description: '활성 현장 - 작업자 25명',
-            url: '/dashboard/admin/sites?id=3'
-          }
-        )
+        mockResults.push({
+          id: '3',
+          type: 'site',
+          title: '서울 강남 현장',
+          subtitle: '강남구 삼성동',
+          description: '활성 현장 - 작업자 25명',
+          url: '/dashboard/admin/sites?id=3',
+        })
       }
-      
+
       // Search documents
       if (activeFilter === 'all' || activeFilter === 'documents') {
-        mockResults.push(
-          {
-            id: '4',
-            type: 'document',
-            title: '안전 관리 지침서',
-            subtitle: '2025-08-01 업로드',
-            description: 'PDF - 2.5MB',
-            url: '/dashboard/admin/shared-documents?id=4'
-          }
-        )
+        mockResults.push({
+          id: '4',
+          type: 'document',
+          title: '안전 관리 지침서',
+          subtitle: '2025-08-01 업로드',
+          description: 'PDF - 2.5MB',
+          url: '/dashboard/admin/shared-documents?id=4',
+        })
       }
-      
+
       // Search reports
       if (activeFilter === 'all' || activeFilter === 'reports') {
-        mockResults.push(
-          {
-            id: '5',
-            type: 'report',
-            title: '일일 작업 보고서',
-            subtitle: '2025-08-03',
-            description: '서울 강남 현장 - 승인됨',
-            url: '/dashboard/daily-reports?id=5'
-          }
-        )
+        mockResults.push({
+          id: '5',
+          type: 'report',
+          title: '일일 작업 보고서',
+          subtitle: '2025-08-03',
+          description: '서울 강남 현장 - 승인됨',
+          url: '/dashboard/daily-reports?id=5',
+        })
       }
-      
+
       // Filter by search query
-      const filtered = mockResults.filter(result => 
-        result.title.toLowerCase().includes(query.toLowerCase()) ||
-        result.subtitle?.toLowerCase().includes(query.toLowerCase()) ||
-        result.description?.toLowerCase().includes(query.toLowerCase())
+      const filtered = mockResults.filter(
+        result =>
+          result.title.toLowerCase().includes(query.toLowerCase()) ||
+          result.subtitle?.toLowerCase().includes(query.toLowerCase()) ||
+          result.description?.toLowerCase().includes(query.toLowerCase())
       )
-      
+
       setResults(filtered)
-      
+
       // Save to recent searches
       saveRecentSearch(query)
-      
     } catch (error) {
       console.error('Search error:', error)
       setResults([])
@@ -164,28 +158,28 @@ export default function GlobalSearch() {
       setSearching(false)
     }
   }
-  
+
   // Handle search input change with debounce
   const handleSearchChange = (value: string) => {
     setSearchQuery(value)
-    
+
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current)
     }
-    
+
     // Set new timeout
     searchTimeoutRef.current = setTimeout(() => {
       performSearch(value)
     }, 300)
   }
-  
+
   // Handle search submit
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     performSearch(searchQuery)
   }
-  
+
   // Handle result click
   const handleResultClick = (result: SearchResult) => {
     router.push(result.url)
@@ -194,13 +188,13 @@ export default function GlobalSearch() {
     setResults([])
     setShowResults(false)
   }
-  
+
   // Handle recent search click
   const handleRecentSearchClick = (query: string) => {
     setSearchQuery(query)
     performSearch(query)
   }
-  
+
   // Get icon for result type
   const getResultIcon = (type: string) => {
     switch (type) {
@@ -216,7 +210,7 @@ export default function GlobalSearch() {
         return <Search className="h-4 w-4" />
     }
   }
-  
+
   // Get badge color for result type
   const getResultBadgeClass = (type: string) => {
     switch (type) {
@@ -232,7 +226,7 @@ export default function GlobalSearch() {
         return 'bg-gray-100 text-gray-800'
     }
   }
-  
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -242,7 +236,7 @@ export default function GlobalSearch() {
         setIsOpen(true)
         setTimeout(() => searchInputRef.current?.focus(), 100)
       }
-      
+
       // Escape to close
       if (e.key === 'Escape' && isOpen) {
         setIsOpen(false)
@@ -251,11 +245,11 @@ export default function GlobalSearch() {
         setShowResults(false)
       }
     }
-    
+
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
-  
+
   return (
     <>
       {/* Search Trigger Button */}
@@ -271,12 +265,12 @@ export default function GlobalSearch() {
         } flex items-center gap-2`}
       >
         <Search className="h-4 w-4" />
-        <span className="hidden sm:inline">검색</span>
+        <span className="hidden sm:inline">{t('common.search')}</span>
         <kbd className="hidden sm:inline-flex items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
           <span>⌘</span>K
         </kbd>
       </Button>
-      
+
       {/* Search Modal */}
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-32">
@@ -290,7 +284,7 @@ export default function GlobalSearch() {
               setShowResults(false)
             }}
           />
-          
+
           {/* Search Container */}
           <div className="relative w-full max-w-2xl mx-4 z-10">
             <Card className="shadow-xl">
@@ -302,8 +296,8 @@ export default function GlobalSearch() {
                     ref={searchInputRef}
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => handleSearchChange(e.target.value)}
-                    placeholder="사용자, 현장, 문서, 보고서 검색..."
+                    onChange={e => handleSearchChange(e.target.value)}
+                    placeholder={t('common.search')}
                     className="pl-10 pr-10 h-12 text-lg"
                     autoFocus
                   />
@@ -322,7 +316,7 @@ export default function GlobalSearch() {
                     </button>
                   )}
                 </div>
-                
+
                 {/* Filters */}
                 <div className="flex gap-2 mt-3">
                   <button
@@ -382,7 +376,7 @@ export default function GlobalSearch() {
                   </button>
                 </div>
               </form>
-              
+
               {/* Results or Recent Searches */}
               <div className="max-h-96 overflow-y-auto">
                 {searching ? (
@@ -393,7 +387,7 @@ export default function GlobalSearch() {
                 ) : showResults ? (
                   results.length > 0 ? (
                     <div className="divide-y">
-                      {results.map((result) => (
+                      {results.map(result => (
                         <button
                           key={result.id}
                           onClick={() => handleResultClick(result)}
@@ -404,10 +398,14 @@ export default function GlobalSearch() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <h4 className={`${getFullTypographyClass('body', 'base', isLargeFont)} font-medium`}>
+                              <h4
+                                className={`${getFullTypographyClass('body', 'base', isLargeFont)} font-medium`}
+                              >
                                 {result.title}
                               </h4>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${getResultBadgeClass(result.type)}`}>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded-full ${getResultBadgeClass(result.type)}`}
+                              >
                                 {result.type === 'user' && '사용자'}
                                 {result.type === 'site' && '현장'}
                                 {result.type === 'document' && '문서'}
@@ -415,12 +413,16 @@ export default function GlobalSearch() {
                               </span>
                             </div>
                             {result.subtitle && (
-                              <p className={`${getFullTypographyClass('caption', 'sm', isLargeFont)} text-gray-600`}>
+                              <p
+                                className={`${getFullTypographyClass('caption', 'sm', isLargeFont)} text-gray-600`}
+                              >
                                 {result.subtitle}
                               </p>
                             )}
                             {result.description && (
-                              <p className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500 mt-1`}>
+                              <p
+                                className={`${getFullTypographyClass('caption', 'xs', isLargeFont)} text-gray-500 mt-1`}
+                              >
                                 {result.description}
                               </p>
                             )}
@@ -438,7 +440,9 @@ export default function GlobalSearch() {
                   <div className="p-4">
                     {recentSearches.length > 0 && (
                       <>
-                        <h3 className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium text-gray-700 mb-2 flex items-center gap-2`}>
+                        <h3
+                          className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium text-gray-700 mb-2 flex items-center gap-2`}
+                        >
                           <Clock className="h-4 w-4" />
                           최근 검색
                         </h3>
@@ -458,28 +462,32 @@ export default function GlobalSearch() {
                         </div>
                       </>
                     )}
-                    
+
                     <div className="mt-4">
-                      <h3 className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium text-gray-700 mb-2 flex items-center gap-2`}>
+                      <h3
+                        className={`${getFullTypographyClass('body', 'sm', isLargeFont)} font-medium text-gray-700 mb-2 flex items-center gap-2`}
+                      >
                         <TrendingUp className="h-4 w-4" />
                         인기 검색어
                       </h3>
                       <div className="flex flex-wrap gap-2">
-                        {['서울 현장', '안전 관리', '일일 보고서', '김철수', '급여 관리'].map((keyword) => (
-                          <button
-                            key={keyword}
-                            onClick={() => handleRecentSearchClick(keyword)}
-                            className="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 text-sm"
-                          >
-                            {keyword}
-                          </button>
-                        ))}
+                        {['서울 현장', '안전 관리', '일일 보고서', '김철수', '급여 관리'].map(
+                          keyword => (
+                            <button
+                              key={keyword}
+                              onClick={() => handleRecentSearchClick(keyword)}
+                              className="px-3 py-1 rounded-full bg-gray-100 hover:bg-gray-200 text-sm"
+                            >
+                              {keyword}
+                            </button>
+                          )
+                        )}
                       </div>
                     </div>
                   </div>
                 )}
               </div>
-              
+
               {/* Footer */}
               <div className="p-3 border-t bg-gray-50 text-xs text-gray-500 flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -496,9 +504,7 @@ export default function GlobalSearch() {
                     닫기
                   </span>
                 </div>
-                <span className="text-gray-400">
-                  Powered by PostgreSQL
-                </span>
+                <span className="text-gray-400">Powered by PostgreSQL</span>
               </div>
             </Card>
           </div>

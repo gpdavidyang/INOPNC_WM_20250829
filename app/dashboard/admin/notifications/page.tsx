@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import NotificationsTable from '@/components/admin/NotificationsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/ui/strings'
 
 export const metadata: Metadata = {
   title: '알림 센터',
@@ -44,6 +45,31 @@ export default async function NotificationCenterPage({
   const { data } = await dataQuery
   const logs = Array.isArray(data) ? data : []
 
+  // Compute initial star map from latest engagement (admin_starred/unstarred)
+  let initialStars: Record<string, boolean> = {}
+  try {
+    const ids = logs.map((n: any) => n.id).filter(Boolean)
+    if (ids.length > 0) {
+      const { data: engagements } = await supabase
+        .from('notification_engagement')
+        .select('notification_id, engagement_type, engaged_at')
+        .in('notification_id', ids)
+        .in('engagement_type', ['admin_starred', 'admin_unstarred'])
+        .order('engaged_at', { ascending: false })
+
+      const map = new Map<string, boolean>()
+      for (const e of engagements || []) {
+        const id = (e as any).notification_id
+        if (map.has(id)) continue
+        const type = String((e as any).engagement_type || '')
+        map.set(id, type === 'admin_starred')
+      }
+      initialStars = Object.fromEntries(Array.from(map.entries()))
+    }
+  } catch {
+    initialStars = {}
+  }
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -66,13 +92,13 @@ export default async function NotificationCenterPage({
         <CardContent>
           <div className="mb-3">
             <form method="GET" className="flex items-center gap-2">
-              <Input name="search" defaultValue={search} placeholder="제목/내용/유형 검색" />
+              <Input name="search" defaultValue={search} placeholder={t('common.search')} />
               <Button type="submit" variant="outline">
-                검색
+                {t('common.search')}
               </Button>
             </form>
           </div>
-          <NotificationsTable logs={logs} />
+          <NotificationsTable logs={logs} initialStars={initialStars} />
         </CardContent>
       </Card>
     </div>

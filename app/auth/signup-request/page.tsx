@@ -338,13 +338,14 @@ export default function SignupRequestPage() {
         }
         .footer-login {
           color: #0f1a3a !important;
-          font-weight: 900 !important;
+          font-weight: 1000 !important; /* heavier than 900 if supported */
+          font-variation-settings: 'wght' 1000;
         }
         .footer-login:visited {
           color: #0f1a3a !important;
         }
         .footer-login:hover {
-          color: #1a254f !important;
+          color: #0f1a3a !important;
           text-decoration: underline !important;
         }
         .email-wrapper {

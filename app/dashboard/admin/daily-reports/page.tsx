@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { t } from '@/lib/ui/strings'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getDailyReports } from '@/app/actions/admin/daily-reports'
@@ -95,7 +96,7 @@ export default async function AdminDailyReportsPage({
               list="site-options"
               name="site_name"
               defaultValue={siteNameQuery}
-              placeholder="현장명 검색"
+              placeholder={t('common.search')}
             />
             <datalist id="site-options">
               {siteOptions.map(opt => (
@@ -131,13 +132,13 @@ export default async function AdminDailyReportsPage({
           </div>
           <div className="flex gap-2">
             <Button type="submit" variant="outline">
-              적용
+              {t('common.apply')}
             </Button>
             <Link
               href="/dashboard/admin/daily-reports"
               className="inline-flex items-center rounded-md px-3 py-2 text-sm border"
             >
-              초기화
+              {t('common.reset')}
             </Link>
           </div>
         </form>
@@ -158,13 +159,13 @@ export default async function AdminDailyReportsPage({
               href={`?${new URLSearchParams({ page: String(Math.max(1, page - 1)), limit: String(limit) })}`}
               className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
             >
-              이전
+              {t('common.prev')}
             </Link>
             <Link
               href={`?${new URLSearchParams({ page: String(Math.min(pages, page + 1)), limit: String(limit) })}`}
               className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page >= pages ? 'pointer-events-none opacity-50' : ''}`}
             >
-              다음
+              {t('common.next')}
             </Link>
           </div>
         </div>

@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import {
   Dialog,
   DialogContent,
@@ -386,7 +388,7 @@ export default function SiteWorkersModal({ isOpen, onClose, site }: SiteWorkersM
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="이름 또는 이메일로 검색..."
+                    placeholder={t('common.search')}
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     className="pl-9"

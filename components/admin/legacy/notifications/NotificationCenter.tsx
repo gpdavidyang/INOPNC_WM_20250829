@@ -1,5 +1,7 @@
 'use client'
 
+import { t } from '@/lib/ui/strings'
+
 import NotificationCreateModal from './NotificationCreateModal'
 
 interface NotificationCenterProps {
@@ -32,14 +34,19 @@ const notificationTypes = [
   { value: 'document', label: '문서', icon: FileText },
   { value: 'material', label: '자재', icon: Package },
   { value: 'salary', label: '급여', icon: DollarSign },
-  { value: 'system', label: '시스템', icon: Settings }
+  { value: 'system', label: '시스템', icon: Settings },
 ]
 
 const priorityConfig = {
   low: { label: '낮음', color: 'text-gray-500', bg: 'bg-gray-50', border: 'border-gray-200' },
   medium: { label: '보통', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-200' },
-  high: { label: '높음', color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-200' },
-  critical: { label: '긴급', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' }
+  high: {
+    label: '높음',
+    color: 'text-orange-600',
+    bg: 'bg-orange-50',
+    border: 'border-orange-200',
+  },
+  critical: { label: '긴급', color: 'text-red-600', bg: 'bg-red-50', border: 'border-red-200' },
 }
 
 export default function NotificationCenter({ profile }: NotificationCenterProps) {
@@ -58,28 +65,40 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
   // 데이터 변환 헬퍼 함수들
   const getNotificationTypeFromString = (type: string): SystemNotification['type'] => {
     switch (type) {
-      case 'info': return 'announcement'
-      case 'warning': return 'request'
-      case 'error': return 'system'
-      default: return 'announcement'
+      case 'info':
+        return 'announcement'
+      case 'warning':
+        return 'request'
+      case 'error':
+        return 'system'
+      default:
+        return 'announcement'
     }
   }
 
   const getNotificationPriorityFromType = (type: string): SystemNotification['priority'] => {
     switch (type) {
-      case 'error': return 'critical'
-      case 'warning': return 'high'
-      case 'info': return 'medium'
-      default: return 'low'
+      case 'error':
+        return 'critical'
+      case 'warning':
+        return 'high'
+      case 'info':
+        return 'medium'
+      default:
+        return 'low'
     }
   }
 
   const getCategoryFromType = (type: string): string => {
     switch (type) {
-      case 'error': return '시스템'
-      case 'warning': return '경고'
-      case 'info': return '공지사항'
-      default: return '일반'
+      case 'error':
+        return '시스템'
+      case 'warning':
+        return '경고'
+      case 'info':
+        return '공지사항'
+      default:
+        return '일반'
     }
   }
 
@@ -89,22 +108,19 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
     unread: notifications.filter(n => !n.is_read).length,
     critical: notifications.filter(n => n.priority === 'critical' && !n.is_read).length,
     high: notifications.filter(n => n.priority === 'high' && !n.is_read).length,
-    archived: notifications.filter(n => n.is_archived).length
+    archived: notifications.filter(n => n.is_archived).length,
   }
 
   useEffect(() => {
     fetchNotifications()
-    
+
     // 실시간 구독 설정
     const channel = supabase
       .channel('notification_changes')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'notifications' },
-        (payload) => {
-          console.log('Notification change detected:', payload)
-          fetchNotifications()
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, payload => {
+        console.log('Notification change detected:', payload)
+        fetchNotifications()
+      })
       .subscribe()
 
     return () => {
@@ -119,37 +135,39 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
   const fetchNotifications = async () => {
     try {
       setLoading(true)
-      
+
       // 실제 알림 데이터 가져오기
       const response = await fetch('/api/notifications?limit=50')
       const result = await response.json()
-      
+
       if (!result.success) {
         throw new Error(result.error || 'Failed to fetch notifications')
       }
-      
+
       // 데이터 변환
-      const transformedNotifications: SystemNotification[] = result.data.map((notification: unknown) => ({
-        id: notification.id,
-        type: getNotificationTypeFromString(notification.type),
-        title: notification.title,
-        message: notification.message,
-        priority: getNotificationPriorityFromType(notification.type),
-        category: getCategoryFromType(notification.type),
-        source: notification.user_id ? 'User System' : 'System Admin',
-        target_user_id: notification.user_id,
-        is_read: notification.is_read || false,
-        is_archived: false,
-        created_at: notification.created_at,
-        read_at: notification.read_at,
-        action_url: notification.action_url,
-        metadata: notification.metadata
-      }))
-      
+      const transformedNotifications: SystemNotification[] = result.data.map(
+        (notification: unknown) => ({
+          id: notification.id,
+          type: getNotificationTypeFromString(notification.type),
+          title: notification.title,
+          message: notification.message,
+          priority: getNotificationPriorityFromType(notification.type),
+          category: getCategoryFromType(notification.type),
+          source: notification.user_id ? 'User System' : 'System Admin',
+          target_user_id: notification.user_id,
+          is_read: notification.is_read || false,
+          is_archived: false,
+          created_at: notification.created_at,
+          read_at: notification.read_at,
+          action_url: notification.action_url,
+          metadata: notification.metadata,
+        })
+      )
+
       setNotifications(transformedNotifications)
     } catch (error) {
-      console.error('Error fetching notifications:', error);
-      
+      console.error('Error fetching notifications:', error)
+
       // 에러 시 기본 목 데이터
       const mockNotifications: SystemNotification[] = [
         {
@@ -162,7 +180,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           source: 'System Admin',
           is_read: false,
           is_archived: false,
-          created_at: new Date(Date.now() - 3600000).toISOString()
+          created_at: new Date(Date.now() - 3600000).toISOString(),
         },
         {
           id: '2',
@@ -175,7 +193,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           is_read: false,
           is_archived: false,
           created_at: new Date(Date.now() - 7200000).toISOString(),
-          action_url: '/dashboard/admin/materials'
+          action_url: '/dashboard/admin/materials',
         },
         {
           id: '3',
@@ -189,7 +207,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           is_archived: false,
           created_at: new Date(Date.now() - 10800000).toISOString(),
           read_at: new Date(Date.now() - 3600000).toISOString(),
-          action_url: '/dashboard/admin/approvals'
+          action_url: '/dashboard/admin/approvals',
         },
         {
           id: '4',
@@ -202,7 +220,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           is_read: true,
           is_archived: false,
           created_at: new Date(Date.now() - 86400000).toISOString(),
-          read_at: new Date(Date.now() - 43200000).toISOString()
+          read_at: new Date(Date.now() - 43200000).toISOString(),
         },
         {
           id: '5',
@@ -215,7 +233,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           is_read: false,
           is_archived: false,
           created_at: new Date(Date.now() - 172800000).toISOString(),
-          action_url: '/dashboard/admin/salary'
+          action_url: '/dashboard/admin/salary',
         },
         {
           id: '6',
@@ -228,74 +246,75 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
           is_read: true,
           is_archived: true,
           created_at: new Date(Date.now() - 259200000).toISOString(),
-          read_at: new Date(Date.now() - 172800000).toISOString()
-        }
-      ];
-      
-      setNotifications(mockNotifications);
+          read_at: new Date(Date.now() - 172800000).toISOString(),
+        },
+      ]
+
+      setNotifications(mockNotifications)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   }
 
   const filterNotifications = () => {
     let filtered = [...notifications]
-    
+
     // 타입 필터
     if (selectedType !== 'all') {
       filtered = filtered.filter(n => n.type === selectedType)
     }
-    
+
     // 우선순위 필터
     if (selectedPriority !== 'all') {
       filtered = filtered.filter(n => n.priority === selectedPriority)
     }
-    
+
     // 읽지 않은 알림만
     if (showUnreadOnly) {
       filtered = filtered.filter(n => !n.is_read)
     }
-    
+
     // 검색어 필터
     if (searchTerm) {
-      filtered = filtered.filter(n => 
-        n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        n.category.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        n =>
+          n.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          n.message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          n.category.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
-    
+
     // 보관함 제외
     filtered = filtered.filter(n => !n.is_archived)
-    
+
     // 최신순 정렬
     filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    
+
     setFilteredNotifications(filtered)
   }
 
   const markAsRead = async (notificationId: string) => {
-    setNotifications(prev => prev.map(n => 
-      n.id === notificationId 
-        ? { ...n, is_read: true, read_at: new Date().toISOString() }
-        : n
-    ))
+    setNotifications(prev =>
+      prev.map(n =>
+        n.id === notificationId ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
+      )
+    )
   }
 
   const markAllAsRead = async () => {
-    setNotifications(prev => prev.map(n => ({
-      ...n,
-      is_read: true,
-      read_at: n.read_at || new Date().toISOString()
-    })))
+    setNotifications(prev =>
+      prev.map(n => ({
+        ...n,
+        is_read: true,
+        read_at: n.read_at || new Date().toISOString(),
+      }))
+    )
   }
 
   const archiveNotification = async (notificationId: string) => {
-    setNotifications(prev => prev.map(n => 
-      n.id === notificationId 
-        ? { ...n, is_archived: true }
-        : n
-    ))
+    setNotifications(prev =>
+      prev.map(n => (n.id === notificationId ? { ...n, is_archived: true } : n))
+    )
   }
 
   const deleteNotification = async (notificationId: string) => {
@@ -310,14 +329,22 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'announcement': return Bell
-      case 'request': return MessageSquare
-      case 'approval': return UserPlus
-      case 'document': return FileText
-      case 'material': return Package
-      case 'salary': return DollarSign
-      case 'system': return Settings
-      default: return Bell
+      case 'announcement':
+        return Bell
+      case 'request':
+        return MessageSquare
+      case 'approval':
+        return UserPlus
+      case 'document':
+        return FileText
+      case 'material':
+        return Package
+      case 'salary':
+        return DollarSign
+      case 'system':
+        return Settings
+      default:
+        return Bell
     }
   }
 
@@ -326,7 +353,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(diff / 3600000)
     const days = Math.floor(diff / 86400000)
-    
+
     if (minutes < 60) return `${minutes}분 전`
     if (hours < 24) return `${hours}시간 전`
     return `${days}일 전`
@@ -338,9 +365,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              통합 알림 센터
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">통합 알림 센터</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               모든 시스템 알림을 한 곳에서 관리하세요
             </p>
@@ -377,11 +402,13 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
               <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-gray-500 mt-1 sm:mt-0" />
             </div>
           </div>
-          
+
           <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">읽지 않음</p>
+                <p className="text-xs sm:text-sm text-blue-600 dark:text-blue-400 truncate">
+                  읽지 않음
+                </p>
                 <span className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400">
                   {stats.unread}
                 </span>
@@ -389,7 +416,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
               <Eye className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 mt-1 sm:mt-0" />
             </div>
           </div>
-          
+
           <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
@@ -401,11 +428,13 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
               <AlertCircle className="h-4 w-4 sm:h-5 sm:w-5 text-red-500 mt-1 sm:mt-0" />
             </div>
           </div>
-          
+
           <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 truncate">높음</p>
+                <p className="text-xs sm:text-sm text-orange-600 dark:text-orange-400 truncate">
+                  높음
+                </p>
                 <span className="text-lg sm:text-2xl font-bold text-orange-600 dark:text-orange-400">
                   {stats.high}
                 </span>
@@ -413,11 +442,13 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
               <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500 mt-1 sm:mt-0" />
             </div>
           </div>
-          
+
           <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-3 sm:p-4">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">보관됨</p>
+                <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">
+                  보관됨
+                </p>
                 <span className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {stats.archived}
                 </span>
@@ -436,9 +467,9 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="알림 검색..."
+              placeholder={t('common.search')}
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -449,7 +480,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
               <Filter className="h-5 w-5 text-gray-500" />
               <select
                 value={selectedType}
-                onChange={(e) => setSelectedType(e.target.value)}
+                onChange={e => setSelectedType(e.target.value)}
                 className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="all">모든 타입</option>
@@ -463,7 +494,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
 
             <select
               value={selectedPriority}
-              onChange={(e) => setSelectedPriority(e.target.value)}
+              onChange={e => setSelectedPriority(e.target.value)}
               className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
               <option value="all">모든 우선순위</option>
@@ -477,7 +508,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
               <input
                 type="checkbox"
                 checked={showUnreadOnly}
-                onChange={(e) => setShowUnreadOnly(e.target.checked)}
+                onChange={e => setShowUnreadOnly(e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span className="text-gray-700 dark:text-gray-300">읽지 않은 알림만</span>
@@ -498,19 +529,15 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
       {/* 알림 목록 */}
       <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
         {loading ? (
-          <div className="p-8 text-center text-gray-500">
-            알림을 불러오는 중...
-          </div>
+          <div className="p-8 text-center text-gray-500">알림을 불러오는 중...</div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
-            표시할 알림이 없습니다.
-          </div>
+          <div className="p-8 text-center text-gray-500">표시할 알림이 없습니다.</div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {filteredNotifications.map((notification) => {
+            {filteredNotifications.map(notification => {
               const Icon = getNotificationIcon(notification.type)
               const priority = priorityConfig[notification.priority]
-              
+
               return (
                 <div
                   key={notification.id}
@@ -528,7 +555,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
                     <div className={`p-2 rounded-lg ${priority.bg} ${priority.border} border`}>
                       <Icon className={`h-5 w-5 ${priority.color}`} />
                     </div>
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -544,9 +571,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
                             {notification.message}
                           </p>
                           <div className="flex items-center space-x-4 mt-2">
-                            <span className="text-xs text-gray-500">
-                              {notification.category}
-                            </span>
+                            <span className="text-xs text-gray-500">{notification.category}</span>
                             <span className="text-xs text-gray-500">
                               {formatTimeAgo(notification.created_at)}
                             </span>
@@ -557,7 +582,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-2 ml-4">
                           {notification.action_url && (
                             <ChevronRight className="h-5 w-5 text-gray-400" />
@@ -580,10 +605,16 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
             <div className="p-6">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start space-x-3">
-                  <div className={`p-2 rounded-lg ${priorityConfig[selectedNotification.priority].bg} ${priorityConfig[selectedNotification.priority].border} border`}>
+                  <div
+                    className={`p-2 rounded-lg ${priorityConfig[selectedNotification.priority].bg} ${priorityConfig[selectedNotification.priority].border} border`}
+                  >
                     {(() => {
                       const Icon = getNotificationIcon(selectedNotification.type)
-                      return <Icon className={`h-6 w-6 ${priorityConfig[selectedNotification.priority].color}`} />
+                      return (
+                        <Icon
+                          className={`h-6 w-6 ${priorityConfig[selectedNotification.priority].color}`}
+                        />
+                      )
                     })()}
                   </div>
                   <div>
@@ -591,12 +622,12 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
                       {selectedNotification.title}
                     </h2>
                     <div className="flex items-center space-x-3 mt-1">
-                      <span className={`text-sm ${priorityConfig[selectedNotification.priority].color}`}>
+                      <span
+                        className={`text-sm ${priorityConfig[selectedNotification.priority].color}`}
+                      >
                         {priorityConfig[selectedNotification.priority].label}
                       </span>
-                      <span className="text-sm text-gray-500">
-                        {selectedNotification.category}
-                      </span>
+                      <span className="text-sm text-gray-500">{selectedNotification.category}</span>
                       <span className="text-sm text-gray-500">
                         {new Date(selectedNotification.created_at).toLocaleString('ko-KR')}
                       </span>
@@ -616,9 +647,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                     내용
                   </h3>
-                  <p className="text-gray-900 dark:text-white">
-                    {selectedNotification.message}
-                  </p>
+                  <p className="text-gray-900 dark:text-white">{selectedNotification.message}</p>
                 </div>
 
                 {selectedNotification.source && (
@@ -626,9 +655,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       발신자
                     </h3>
-                    <p className="text-gray-900 dark:text-white">
-                      {selectedNotification.source}
-                    </p>
+                    <p className="text-gray-900 dark:text-white">{selectedNotification.source}</p>
                   </div>
                 )}
 
@@ -666,7 +693,7 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
                       <span>삭제</span>
                     </button>
                   </div>
-                  
+
                   {selectedNotification.action_url && (
                     <a
                       href={selectedNotification.action_url}
