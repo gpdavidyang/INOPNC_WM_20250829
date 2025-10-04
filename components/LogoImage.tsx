@@ -32,7 +32,7 @@ export default function LogoImage({
       ? srcPrimary
       : stage === 'backup'
         ? '/images/Inopnc_logo_horizon.png'
-        : '/images/inopnc-logo-n.png'
+        : INLINE_SVG_PLACEHOLDER
 
   return (
     <img
