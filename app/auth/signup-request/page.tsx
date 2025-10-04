@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import LogoImage from '@/components/LogoImage'
+import { getLoginLogoSrc } from '@/lib/ui/brand'
 import {
   CustomSelect,
   CustomSelectTrigger,
@@ -174,7 +175,7 @@ export default function SignupRequestPage() {
         <div className="container">
           <div className="content">
             <div className="header">
-              <LogoImage srcPrimary="/INOPNC_logo.png" className="logo" />
+              <LogoImage srcPrimary={getLoginLogoSrc()} className="logo" />
               <h1 className="title">회원가입</h1>
             </div>
             <div className="card">
@@ -401,7 +402,7 @@ export default function SignupRequestPage() {
       <div className="container">
         <div className="content">
           <div className="header">
-            <LogoImage srcPrimary="/INOPNC_logo.png" className="logo" />
+            <LogoImage srcPrimary={getLoginLogoSrc()} className="logo" />
             <h1 className="title">회원가입</h1>
           </div>
 
