@@ -11,7 +11,7 @@ type Props = {
 }
 
 export default function LogoImage({
-  srcPrimary = '/INOPNC_logo.png',
+  srcPrimary = '/images/inopnc_logo_horizon.png',
   alt = 'INOPNC 로고',
   width = 114,
   height = 38,
@@ -27,12 +27,7 @@ export default function LogoImage({
         '</svg>'
     )
 
-  const src =
-    stage === 'primary'
-      ? srcPrimary
-      : stage === 'backup'
-        ? '/INOPNC_logo.png'
-        : INLINE_SVG_PLACEHOLDER
+  const src = stage === 'primary' ? srcPrimary : INLINE_SVG_PLACEHOLDER
 
   return (
     <img

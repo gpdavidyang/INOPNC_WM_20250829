@@ -174,20 +174,9 @@ const nextConfig = {
   },
   rewrites: async () => {
     return [
-      // 호환성: 파일명 대소문자 이슈 방지
-      {
-        source: '/images/inopnc_logo_horizon.png',
-        destination: '/images/Inopnc_logo_horizon.png',
-      },
-      // 호환성: 해당 파일이 레포에 없을 때 루트 기본 로고로 대체
-      {
-        source: '/images/Inopnc_logo_horizon.png',
-        destination: '/INOPNC_logo.png',
-      },
-      {
-        source: '/images/inopnc-logo-n.png',
-        destination: '/images/Inopnc_logo_horizon.png',
-      },
+      // 호환성: 과거 경로를 소문자 표준 경로로 정규화
+      { source: '/images/Inopnc_logo_horizon.png', destination: '/images/inopnc_logo_horizon.png' },
+      { source: '/images/inopnc-logo-n.png', destination: '/images/inopnc_logo_horizon.png' },
     ]
   },
 }
