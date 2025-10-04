@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import ResetPasswordForm from './reset-password-form'
+import LogoImage from '@/components/LogoImage'
 
 export const metadata: Metadata = {
   title: '비밀번호 재설정 - INOPNC',
@@ -7,14 +8,7 @@ export const metadata: Metadata = {
 }
 
 export default function ResetPasswordPage() {
-  const inlineSvg =
-    'data:image/svg+xml;utf8,' +
-    encodeURIComponent(
-      '<svg width="114" height="38" viewBox="0 0 114 38" xmlns="http://www.w3.org/2000/svg">' +
-        '<rect width="114" height="38" fill="#1A254F"/>' +
-        '<text x="57" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FFFFFF">INOPNC</text>' +
-        '</svg>'
-    )
+  // Logo rendered by client component to ensure fallback works in production
 
   return (
     <>
@@ -44,26 +38,7 @@ export default function ResetPasswordPage() {
       <div className="reset-container">
         <div className="reset-content">
           <div className="reset-header">
-            <img
-              src="/images/inopnc-logo-n.png"
-              alt="INOPNC 로고"
-              width={114}
-              height={38}
-              className="reset-logo"
-              data-stage="primary"
-              decoding="async"
-              loading="eager"
-              onError={(e: any) => {
-                const img = e.currentTarget as HTMLImageElement & { dataset: { stage?: string } }
-                if (img.dataset.stage === 'primary') {
-                  img.src = '/images/logo_g.png'
-                  img.dataset.stage = 'backup'
-                } else if (img.dataset.stage === 'backup') {
-                  img.src = inlineSvg
-                  img.dataset.stage = 'inline'
-                }
-              }}
-            />
+            <LogoImage className="reset-logo" />
             <h1 className="reset-title">비밀번호 재설정</h1>
           </div>
 

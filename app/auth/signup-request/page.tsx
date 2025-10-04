@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import LogoImage from '@/components/LogoImage'
 import {
   CustomSelect,
   CustomSelectTrigger,
@@ -173,24 +174,7 @@ export default function SignupRequestPage() {
         <div className="container">
           <div className="content">
             <div className="header">
-              <img
-                src="/images/inopnc-logo-n.png"
-                alt="INOPNC 로고"
-                width={114}
-                height={38}
-                className="logo"
-                data-stage="primary"
-                onError={(e: any) => {
-                  const img = e.currentTarget as HTMLImageElement & { dataset: { stage?: string } }
-                  if (img.dataset.stage === 'primary') {
-                    img.src = '/images/logo_g.png'
-                    img.dataset.stage = 'backup'
-                  } else if (img.dataset.stage === 'backup') {
-                    img.src = inlineSvg
-                    img.dataset.stage = 'inline'
-                  }
-                }}
-              />
+              <LogoImage className="logo" />
               <h1 className="title">회원가입</h1>
             </div>
             <div className="card">
@@ -417,24 +401,7 @@ export default function SignupRequestPage() {
       <div className="container">
         <div className="content">
           <div className="header">
-            <img
-              src="/images/inopnc-logo-n.png"
-              alt="INOPNC 로고"
-              width={114}
-              height={38}
-              className="logo"
-              data-stage="primary"
-              onError={(e: any) => {
-                const img = e.currentTarget as HTMLImageElement & { dataset: { stage?: string } }
-                if (img.dataset.stage === 'primary') {
-                  img.src = '/images/logo_g.png'
-                  img.dataset.stage = 'backup'
-                } else if (img.dataset.stage === 'backup') {
-                  img.src = inlineSvg
-                  img.dataset.stage = 'inline'
-                }
-              }}
-            />
+            <LogoImage className="logo" />
             <h1 className="title">회원가입</h1>
           </div>
 
