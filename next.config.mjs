@@ -179,6 +179,11 @@ const nextConfig = {
         source: '/images/inopnc_logo_horizon.png',
         destination: '/images/Inopnc_logo_horizon.png',
       },
+      // 호환성: 해당 파일이 레포에 없을 때 루트 기본 로고로 대체
+      {
+        source: '/images/Inopnc_logo_horizon.png',
+        destination: '/INOPNC_logo.png',
+      },
       {
         source: '/images/inopnc-logo-n.png',
         destination: '/images/Inopnc_logo_horizon.png',
