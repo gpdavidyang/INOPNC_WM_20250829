@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import LogoImage from '@/components/LogoImage'
+import { getLoginLogoSrc } from '@/lib/ui/brand'
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -223,6 +224,10 @@ export default function LoginPage() {
           height: 35px;
           display: flex;
           align-items: center;
+        }
+        .page-title {
+          text-align: center;
+          margin: 0 0 8px 0;
         }
 
         .form-group {
@@ -591,9 +596,9 @@ export default function LoginPage() {
       <div className="login-container">
         <div className="login-content">
           <div className="login-header">
-            <LogoImage srcPrimary="/INOPNC_logo.png" className="login-logo" />
-            <h1 className="login-title">로그인</h1>
+            <LogoImage srcPrimary={getLoginLogoSrc()} className="login-logo" />
           </div>
+          <h1 className="login-title page-title">로그인</h1>
 
           <form onSubmit={handleLogin}>
             <div className="form-group">

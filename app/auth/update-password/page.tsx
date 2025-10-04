@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import UpdatePasswordForm from './update-password-form'
 import LogoImage from '@/components/LogoImage'
+import { getLoginLogoSrc } from '@/lib/ui/brand'
 
 export const metadata: Metadata = {
   title: '새 비밀번호 설정 - INOPNC',
@@ -19,7 +20,7 @@ export default function UpdatePasswordPage() {
         <div className="text-center mb-8">
           <div className="mx-auto w-20 h-20 mb-6 flex items-center justify-center bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-white/20">
             <LogoImage
-              srcPrimary="/INOPNC_logo.png"
+              srcPrimary={getLoginLogoSrc()}
               width={48}
               height={48}
               className="object-contain"
