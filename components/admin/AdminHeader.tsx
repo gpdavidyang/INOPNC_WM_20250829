@@ -11,6 +11,7 @@ import { useTouchMode } from '@/hooks/use-touch-mode'
 import { signOut } from '@/app/auth/actions'
 import GlobalSearchModal from './GlobalSearchModal'
 import { t } from '@/lib/ui/strings'
+import { getLoginLogoSrc } from '@/lib/ui/brand'
 
 interface Profile {
   id: string
@@ -92,20 +93,20 @@ export default function AdminHeader({
                 <div className="brand-logos">
                   <span className="brand-logo logo-light">
                     <Image
-                      src="/images/inopnc-logo-n.png"
+                      src={getLoginLogoSrc()}
                       alt="INOPNC 로고"
-                      width={120}
-                      height={24}
+                      width={160}
+                      height={32}
                       unoptimized
                       priority
                     />
                   </span>
                   <span className="brand-logo logo-dark">
                     <Image
-                      src="/images/inopnc-logo-w.png"
+                      src={getLoginLogoSrc()}
                       alt="INOPNC 로고"
-                      width={120}
-                      height={24}
+                      width={160}
+                      height={32}
                       unoptimized
                       priority
                     />

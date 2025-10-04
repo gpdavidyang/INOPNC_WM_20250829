@@ -11,7 +11,7 @@ type Props = {
 }
 
 export default function LogoImage({
-  srcPrimary = '/images/inopnc-logo-n.png',
+  srcPrimary = '/images/Inopnc_logo_horizon.png',
   alt = 'INOPNC 로고',
   width = 114,
   height = 38,
