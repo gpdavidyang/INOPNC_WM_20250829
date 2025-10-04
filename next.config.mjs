@@ -172,6 +172,15 @@ const nextConfig = {
       },
     ]
   },
+  rewrites: async () => {
+    return [
+      // 호환성: 파일명 대소문자 이슈 방지
+      {
+        source: '/images/inopnc_logo_horizon.png',
+        destination: '/images/Inopnc_logo_horizon.png',
+      },
+    ]
+  },
 }
 
 export default nextConfig
