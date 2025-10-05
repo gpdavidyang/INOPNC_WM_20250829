@@ -1,3 +1,4 @@
+import React from 'react'
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import DownloadLinkButton from '@/components/admin/DownloadLinkButton'
