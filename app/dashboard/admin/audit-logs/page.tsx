@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 
 export const metadata: Metadata = {
   title: '감사 로그',
@@ -113,7 +114,8 @@ export default async function AuditLogsPage({
                 </Button>
                 <Link
                   href="/dashboard/admin/audit-logs"
-                  className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+                  className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                  role="button"
                 >
                   {t('common.reset')}
                 </Link>

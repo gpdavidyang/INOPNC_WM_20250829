@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 
 export const metadata: Metadata = {
   title: '정산 문서',
@@ -115,7 +116,8 @@ export default async function AdminInvoiceDocumentsPage({
             </Button>
             <Link
               href="/dashboard/admin/documents/invoice"
-              className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+              className={buttonVariants({ variant: 'outline', size: 'standard' })}
+              role="button"
             >
               {t('common.reset')}
             </Link>

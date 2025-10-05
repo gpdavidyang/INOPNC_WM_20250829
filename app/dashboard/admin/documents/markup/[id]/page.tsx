@@ -3,14 +3,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import DownloadLinkButton from '@/components/admin/DownloadLinkButton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 
 export const metadata: Metadata = {
   title: '마크업 문서 상세',
@@ -99,38 +92,27 @@ export default async function AdminMarkupDocumentDetailPage({
           <CardDescription>기본 필드</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>키</TableHead>
-                  <TableHead>값</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {[
-                  ['id', doc?.id],
-                  [
-                    'created_at',
-                    doc?.created_at ? new Date(doc.created_at).toLocaleString('ko-KR') : '-',
-                  ],
-                  [
-                    'updated_at',
-                    doc?.updated_at ? new Date(doc.updated_at).toLocaleString('ko-KR') : '-',
-                  ],
-                  ['description', doc?.description || '-'],
-                  ['mime_type', doc?.mime_type || '-'],
-                ].map(([k, v]) => (
-                  <TableRow key={k as string}>
-                    <TableCell className="font-medium text-foreground">{k as string}</TableCell>
-                    <TableCell className="truncate max-w-[560px]" title={String(v ?? '-')}>
-                      {String(v ?? '-')}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable<{ key: string; value: string }>
+            data={([
+              { key: 'id', value: String(doc?.id ?? '-') },
+              {
+                key: 'created_at',
+                value: doc?.created_at ? new Date(doc.created_at).toLocaleString('ko-KR') : '-',
+              },
+              {
+                key: 'updated_at',
+                value: doc?.updated_at ? new Date(doc.updated_at).toLocaleString('ko-KR') : '-',
+              },
+              { key: 'description', value: String(doc?.description ?? '-') },
+              { key: 'mime_type', value: String(doc?.mime_type ?? '-') },
+            ])}
+            rowKey={r => r.key}
+            stickyHeader
+            columns={([
+              { key: 'key', header: '키', sortable: true, render: r => <span className="font-medium text-foreground">{r.key}</span> },
+              { key: 'value', header: '값', sortable: true, render: r => <span className="truncate inline-block max-w-[560px]" title={r.value}>{r.value}</span> },
+            ] as Column<{ key: string; value: string }>)}
+          />
         </CardContent>
       </Card>
 
@@ -140,43 +122,19 @@ export default async function AdminMarkupDocumentDetailPage({
           <CardDescription>최신순</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>버전</TableHead>
-                  <TableHead>제목</TableHead>
-                  <TableHead>작성자</TableHead>
-                  <TableHead>생성일</TableHead>
-                  <TableHead>최신</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {versions.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      버전 정보가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  versions.map((v: any) => (
-                    <TableRow key={v.id}>
-                      <TableCell>{v.version_number ?? v.version ?? '-'}</TableCell>
-                      <TableCell>{v.title || '-'}</TableCell>
-                      <TableCell>{v.created_by?.full_name || v.created_by?.email || '-'}</TableCell>
-                      <TableCell>
-                        {v.created_at ? new Date(v.created_at).toLocaleString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell>{v.is_latest_version ? '예' : ''}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable<any>
+            data={versions}
+            rowKey={(v: any) => v.id}
+            stickyHeader
+            emptyMessage="버전 정보가 없습니다."
+            columns={([
+              { key: 'version', header: '버전', sortable: true, render: (v: any) => v?.version_number ?? v?.version ?? '-' },
+              { key: 'title', header: '제목', sortable: true, render: (v: any) => v?.title || '-' },
+              { key: 'author', header: '작성자', sortable: true, render: (v: any) => v?.created_by?.full_name || v?.created_by?.email || '-' },
+              { key: 'created_at', header: '생성일', sortable: true, render: (v: any) => (v?.created_at ? new Date(v.created_at).toLocaleString('ko-KR') : '-') },
+              { key: 'latest', header: '최신', sortable: true, render: (v: any) => (v?.is_latest_version ? '예' : '') },
+            ] as Column<any>[])}
+          />
         </CardContent>
       </Card>
 
@@ -186,43 +144,18 @@ export default async function AdminMarkupDocumentDetailPage({
           <CardDescription>최근 기록</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>일시</TableHead>
-                  <TableHead>변경</TableHead>
-                  <TableHead>요약</TableHead>
-                  <TableHead>사용자</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      이력이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  history.map((h: any) => (
-                    <TableRow key={h.id}>
-                      <TableCell>
-                        {h.changed_at ? new Date(h.changed_at).toLocaleString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell>{h.change_type || '-'}</TableCell>
-                      <TableCell className="truncate max-w-[420px]" title={h.change_summary || ''}>
-                        {h.change_summary || '-'}
-                      </TableCell>
-                      <TableCell>{h.user?.full_name || h.user?.email || '-'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable<any>
+            data={history}
+            rowKey={(h: any) => h.id}
+            stickyHeader
+            emptyMessage="이력이 없습니다."
+            columns={([
+              { key: 'changed_at', header: '일시', sortable: true, render: (h: any) => (h?.changed_at ? new Date(h.changed_at).toLocaleString('ko-KR') : '-') },
+              { key: 'change_type', header: '변경', sortable: true, render: (h: any) => h?.change_type || '-' },
+              { key: 'summary', header: '요약', sortable: false, render: (h: any) => <span className="truncate inline-block max-w-[420px]" title={h?.change_summary || ''}>{h?.change_summary || '-'}</span> },
+              { key: 'user', header: '사용자', sortable: true, render: (h: any) => h?.user?.full_name || h?.user?.email || '-' },
+            ] as Column<any>[])}
+          />
         </CardContent>
       </Card>
       </div>

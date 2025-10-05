@@ -84,14 +84,15 @@ export default function SiteDetailActions({ siteId, currentStatus }: Props) {
   }, [router, siteId, confirm, toast])
 
   return (
-    <div className="flex items-center gap-2">
-      <Button variant="outline" size="sm" onClick={goEdit} disabled={busy}>
+    <div className="flex items-center gap-3">
+      <Button variant="outline" size="standard" onClick={goEdit} disabled={busy}>
         정보 수정
       </Button>
       <DropdownMenu
         trigger={
-          <Button variant="secondary" size="sm" disabled={busy}>
-            상태 변경{currentStatus ? ` (${currentStatus})` : ''}
+          <Button variant="secondary" size="standard" disabled={busy}>
+            상태 변경
+            {currentStatus ? ` (${STATUS_KO[String(currentStatus)] || String(currentStatus)})` : ''}
           </Button>
         }
         align="end"
@@ -100,9 +101,14 @@ export default function SiteDetailActions({ siteId, currentStatus }: Props) {
         <DropdownMenuItem onClick={() => changeStatus('inactive')}>중단</DropdownMenuItem>
         <DropdownMenuItem onClick={() => changeStatus('completed')}>완료</DropdownMenuItem>
       </DropdownMenu>
-      <Button variant="danger" size="sm" onClick={deleteSite} disabled={busy}>
+      <Button variant="danger" size="standard" onClick={deleteSite} disabled={busy}>
         삭제
       </Button>
     </div>
   )
+}
+const STATUS_KO: Record<string, string> = {
+  active: '진행 중',
+  inactive: '중단',
+  completed: '완료',
 }

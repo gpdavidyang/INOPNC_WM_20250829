@@ -8,7 +8,7 @@ import { formatBytes } from '@/lib/utils'
 export default function PhotoGridReportsTable({ reports }: { reports: any[] }) {
   const handleDownload = async (id: string) => {
     try {
-      const res = await fetch(`/api/admin/documents/photo-grid/${id}/download`, {
+      const res = await fetch(`/api/photo-grid-reports/${id}/download`, {
         cache: 'no-store',
       })
       const json = await res.json()

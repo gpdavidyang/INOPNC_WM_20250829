@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import { buttonVariants } from '@/components/ui/button'
 
 interface BreadcrumbItem {
   label: string
@@ -56,12 +57,13 @@ export function PageHeader(props: PageHeaderProps) {
             <p className="text-muted-foreground text-sm">{description}</p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="admin-page-actions flex items-center gap-3">
           {showBackButton && (
             // eslint-disable-next-line @next/next/no-html-link-for-pages
             <a
               href={backButtonHref || '#'}
-              className="rounded-md border px-3 py-2 text-sm hover:bg-gray-50"
+              className={buttonVariants({ variant: 'outline', size: 'standard' })}
+              role="button"
             >
               뒤로
             </a>

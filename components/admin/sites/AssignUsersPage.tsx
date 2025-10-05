@@ -113,7 +113,17 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
 
   // 소속 옵션 계산 제거
 
+  // Normalize each row with a stable selection key so selection works even if id is missing/number
+  const getKey = (w: Partial<AvailableWorker> & { user_id?: string | number }): string => {
+    const raw = (w.id ?? w.user_id ?? w.email ?? w.phone ?? '') as string | number
+    return String(raw)
+  }
   const filtered = useMemo(() => items, [items])
+
+  const getId = (w: Partial<AvailableWorker> & { user_id?: string | number }): string | null => {
+    const raw = (w.id ?? w.user_id) as string | number | undefined
+    return raw != null ? String(raw) : null
+  }
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil((availableTotal || 0) / pageSize)),
@@ -150,8 +160,8 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
   const toggleAll = () => {
     setSelected(prev => {
       const next = new Set(prev)
-      const all = paged.map(w => w.id)
-      const allSelected = all.every(id => next.has(id)) && all.length > 0
+      const all = paged.map(w => getKey(w))
+      const allSelected = all.length > 0 && all.every(id => next.has(id))
       if (allSelected) all.forEach(id => next.delete(id))
       else all.forEach(id => next.add(id))
       return next
@@ -163,13 +173,29 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
     setAssigning(true)
     setError(null)
     try {
+      // Map selection keys back to actual user IDs for API
+      const workerIds = items
+        .filter(w => selected.has(getKey(w)))
+        .map(w => getId(w))
+        .filter((v): v is string => !!v)
+
+      if (workerIds.length === 0) {
+        setAssigning(false)
+        toast({
+          title: '선택 오류',
+          description: '선택된 사용자 ID를 찾을 수 없습니다.',
+          variant: 'destructive' as any,
+        })
+        return
+      }
       const res = await fetch(`/api/admin/sites/${siteId}/workers/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ worker_ids: Array.from(selected) }),
+        body: JSON.stringify({ worker_ids: workerIds }),
       })
       const j = await res.json().catch(() => ({}))
-      if (!res.ok || j?.error) throw new Error(j?.error || '배정 실패')
+      if (!res.ok || j?.error)
+        throw new Error(j?.details || j?.error || res.statusText || '배정 실패')
       // 자동 이동 제거: 현재 페이지에서 소프트 리프레시
       // Soft refresh lists
       toast({
@@ -264,7 +290,7 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
                       role="checkbox"
                       aria-label="전체 선택"
                       onChange={toggleAll}
-                      checked={filtered.length > 0 && filtered.every(w => selected.has(w.id))}
+                      checked={filtered.length > 0 && filtered.every(w => selected.has(getKey(w)))}
                       className="h-4 w-4 border border-gray-400 rounded-sm accent-blue-600"
                     />
                     <span className="text-xs">선택</span>
@@ -291,14 +317,14 @@ export default function AssignUsersPage({ siteId }: { siteId: string }) {
                 </TableRow>
               ) : (
                 paged.map(w => (
-                  <TableRow key={w.id}>
+                  <TableRow key={getKey(w)}>
                     <TableCell>
                       <input
                         type="checkbox"
                         role="checkbox"
                         className="h-4 w-4 border border-gray-400 rounded-sm accent-blue-600"
-                        checked={selected.has(w.id)}
-                        onChange={() => toggle(w.id)}
+                        checked={selected.has(getKey(w))}
+                        onChange={() => toggle(getKey(w))}
                       />
                     </TableCell>
                     <TableCell className="font-medium text-foreground">

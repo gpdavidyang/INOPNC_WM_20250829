@@ -4,7 +4,8 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
 import SiteDocumentsTable from '@/components/admin/SiteDocumentsTable'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = { title: '현장 문서' }
 
@@ -38,14 +39,29 @@ export default async function AdminSiteDocumentsPage({ params }: SiteDocumentsPa
   const docs = Array.isArray(data) ? data : []
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">현장 문서</h1>
-        <p className="text-sm text-muted-foreground">{site?.name || params.id} - 최신 50개</p>
-      </div>
-
-      <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-        <SiteDocumentsTable docs={docs} />
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="현장 문서"
+        subtitle={`${site?.name || params.id} - 최신 50개`}
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '현장 관리', href: '/dashboard/admin/sites' },
+          { label: '현장 문서' },
+        ]}
+        actions={
+          <a
+            href={`/dashboard/admin/sites/${params.id}`}
+            className={buttonVariants({ variant: 'outline', size: 'standard' })}
+            role="button"
+          >
+            현장 상세로
+          </a>
+        }
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
+        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+          <SiteDocumentsTable docs={docs} />
+        </div>
       </div>
     </div>
   )

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 import ShipmentsTable from '@/components/admin/materials/ShipmentsTable'
 import EmptyState from '@/components/ui/empty-state'
 import {
@@ -190,7 +191,8 @@ export default async function AdminMaterialsPage({
               </Button>
               <Link
                 href={buildQuery({ page: '1', search: '', status: '', site_id: '' })}
-                className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+                className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                role="button"
               >
                 {t('common.reset')}
               </Link>
@@ -203,7 +205,8 @@ export default async function AdminMaterialsPage({
           <div className="space-y-4">
             <div className="mb-2 flex justify-end">
               <a
-                className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+                className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                role="button"
                 href={`/api/admin/materials/export?tab=inventory${search ? `&search=${encodeURIComponent(search)}` : ''}`}
               >
                 엑셀 다운로드
@@ -274,7 +277,8 @@ export default async function AdminMaterialsPage({
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
             <div className="mb-2 flex justify-end">
               <a
-                className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+                className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                role="button"
                 href={`/api/admin/materials/export?tab=requests${search ? `&search=${encodeURIComponent(search)}` : ''}`}
               >
                 엑셀 다운로드
@@ -369,7 +373,8 @@ export default async function AdminMaterialsPage({
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
             <div className="mb-2 flex justify-end">
               <a
-                className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+                className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                role="button"
                 href={`/api/admin/materials/export?tab=shipments${search ? `&search=${encodeURIComponent(search)}` : ''}`}
               >
                 엑셀 다운로드

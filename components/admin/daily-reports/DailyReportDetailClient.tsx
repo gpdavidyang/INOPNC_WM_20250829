@@ -2,14 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
@@ -252,44 +245,66 @@ export default function DailyReportDetailClient({
           ) : (data?.worker_assignments?.length || 0) === 0 ? (
             <div className="text-sm text-muted-foreground">작업자 내역이 없습니다.</div>
           ) : (
-            <div className="rounded-lg border bg-card p-2 shadow-sm overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>이름</TableHead>
-                    <TableHead>직종/숙련</TableHead>
-                    <TableHead className="text-right">공수</TableHead>
-                    <TableHead className="text-right">연장</TableHead>
-                    <TableHead>출결</TableHead>
-                    <TableHead>비고</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.worker_assignments?.map(a => (
-                    <TableRow key={a.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {a.profiles?.full_name || a.worker_name || '이름없음'}
-                      </TableCell>
-                      <TableCell>
-                        {(a.trade_type || '기타') + ' / ' + (a.skill_level || '견습')}
-                      </TableCell>
-                      <TableCell className="text-right">{a.labor_hours ?? 0}</TableCell>
-                      <TableCell className="text-right">{a.overtime_hours ?? 0}</TableCell>
-                      <TableCell>
-                        {a.is_present ? (
-                          <Badge variant="default">출근</Badge>
-                        ) : (
-                          <Badge variant="outline">결근</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="truncate max-w-[360px]" title={a.notes || ''}>
-                        {a.notes || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              data={data?.worker_assignments || []}
+              rowKey={(a: any) => a.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'name',
+                    header: '이름',
+                    sortable: true,
+                    render: (a: any) => (
+                      <span className="font-medium text-foreground">
+                        {a?.profiles?.full_name || a?.worker_name || '이름없음'}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'trade',
+                    header: '직종/숙련',
+                    sortable: true,
+                    render: (a: any) => `${a?.trade_type || '기타'} / ${a?.skill_level || '견습'}`,
+                  },
+                  {
+                    key: 'labor_hours',
+                    header: '공수',
+                    sortable: true,
+                    align: 'right',
+                    render: (a: any) => a?.labor_hours ?? 0,
+                  },
+                  {
+                    key: 'overtime_hours',
+                    header: '연장',
+                    sortable: true,
+                    align: 'right',
+                    render: (a: any) => a?.overtime_hours ?? 0,
+                  },
+                  {
+                    key: 'attendance',
+                    header: '출결',
+                    sortable: true,
+                    render: (a: any) =>
+                      a?.is_present ? (
+                        <Badge variant="default">출근</Badge>
+                      ) : (
+                        <Badge variant="outline">결근</Badge>
+                      ),
+                  },
+                  {
+                    key: 'notes',
+                    header: '비고',
+                    sortable: false,
+                    render: (a: any) => (
+                      <span className="truncate inline-block max-w-[360px]" title={a?.notes || ''}>
+                        {a?.notes || '-'}
+                      </span>
+                    ),
+                  },
+                ] as Column<any>[]
+              }
+            />
           )}
         </CardContent>
       </Card>
@@ -330,34 +345,43 @@ export default function DailyReportDetailClient({
           {(data?.related_reports?.length || 0) === 0 ? (
             <div className="text-sm text-muted-foreground">관련 일지가 없습니다.</div>
           ) : (
-            <div className="rounded-lg border bg-card p-2 shadow-sm overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>일자</TableHead>
-                    <TableHead>구성/공정</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead>바로가기</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data?.related_reports?.map(r => (
-                    <TableRow key={r.id}>
-                      <TableCell>{new Date(r.work_date).toLocaleDateString('ko-KR')}</TableCell>
-                      <TableCell>
-                        {(r.member_name || '-') + ' / ' + (r.process_type || '-')}
-                      </TableCell>
-                      <TableCell>{r.status || '-'}</TableCell>
-                      <TableCell>
-                        <a className="underline" href={`/dashboard/admin/daily-reports/${r.id}`}>
-                          열기
-                        </a>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              data={data?.related_reports || []}
+              rowKey={(r: any) => r.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'work_date',
+                    header: '일자',
+                    sortable: true,
+                    render: (r: any) => new Date(r.work_date).toLocaleDateString('ko-KR'),
+                  },
+                  {
+                    key: 'member_process',
+                    header: '구성/공정',
+                    sortable: true,
+                    render: (r: any) => `${r?.member_name || '-'} / ${r?.process_type || '-'}`,
+                  },
+                  {
+                    key: 'status',
+                    header: '상태',
+                    sortable: true,
+                    render: (r: any) => r?.status || '-',
+                  },
+                  {
+                    key: 'open',
+                    header: '바로가기',
+                    sortable: false,
+                    render: (r: any) => (
+                      <a className="underline" href={`/dashboard/admin/daily-reports/${r.id}`}>
+                        열기
+                      </a>
+                    ),
+                  },
+                ] as Column<any>[]
+              }
+            />
           )}
         </CardContent>
       </Card>

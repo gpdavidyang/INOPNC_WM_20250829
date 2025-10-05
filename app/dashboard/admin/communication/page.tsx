@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 import AnnouncementCreateForm from '@/components/admin/communication/AnnouncementCreateForm'
 
 export const metadata: Metadata = { title: '커뮤니케이션 센터' }
@@ -87,7 +88,8 @@ export default async function CommunicationManagementPage({
               </form>
               <Link
                 href="/dashboard/admin/notifications"
-                className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+                className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                role="button"
               >
                 {t('common.details')}
               </Link>

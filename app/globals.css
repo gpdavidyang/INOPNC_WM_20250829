@@ -63,6 +63,14 @@
   --admin-header-h: 64px;
 }
 
+/* Admin Page Header actions normalization: ensure comfortable buttons */
+.admin-page-actions > a[role='button'],
+.admin-page-actions > button {
+  min-height: 44px;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem; /* rounded-md */
+}
+
 /* Dark theme extensions */
 /* Support html.dark as well as data-theme */
 [data-theme='dark'],
@@ -193,6 +201,15 @@ textarea {
   -webkit-appearance: none;
   appearance: none;
   border-radius: 0;
+}
+
+/* Restore native UI for checkboxes/radios (was hidden by global appearance reset) */
+input[type='checkbox'],
+input[type='radio'] {
+  -webkit-appearance: auto !important;
+  -moz-appearance: auto !important;
+  appearance: auto !important;
+  accent-color: #2563eb; /* tailwind blue-600 */
 }
 
 /* iOS auto-zoom prevention for all input types */

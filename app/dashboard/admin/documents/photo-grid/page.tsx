@@ -1,12 +1,14 @@
 import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import PhotoGridReportsTable from '@/components/admin/PhotoGridReportsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 import { formatBytes } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -28,15 +30,33 @@ export default async function AdminPhotoGridDocumentsPage({
   const site_id = ((searchParams?.site_id as string) || '').trim()
 
   const qs = new URLSearchParams()
-  qs.set('page', String(page))
+  const offset = (page - 1) * limit
   qs.set('limit', String(limit))
-  if (search) qs.set('search', search)
+  qs.set('offset', String(offset))
   if (status) qs.set('status', status)
-  if (site_id) qs.set('site_id', site_id)
-  const res = await fetch(`/api/admin/documents/photo-grid?${qs.toString()}`, { cache: 'no-store' })
-  const json = await res.json()
-  const reports = json?.data?.documents || []
-  const total = json?.data?.total || 0
+  if (site_id) qs.set('siteId', site_id)
+  const getOrigin = () => {
+    const base = process.env.NEXT_PUBLIC_BASE_URL
+    if (base) return base.replace(/\/$/, '')
+    const h = headers()
+    const proto = h.get('x-forwarded-proto') ?? 'http'
+    const host = h.get('x-forwarded-host') ?? h.get('host')
+    return `${proto}://${host}`
+  }
+  let reports: any[] = []
+  let total = 0
+  try {
+    const res = await fetch(`${getOrigin()}/api/photo-grid-reports?${qs.toString()}`, {
+      cache: 'no-store',
+    })
+    if (res.ok) {
+      const json = await res.json().catch(() => ({}))
+      reports = Array.isArray(json?.data) ? json.data : []
+      total = Number(json?.total || 0)
+    }
+  } catch {
+    // silent fallback to empty list
+  }
   const pages = Math.max(1, Math.ceil(total / limit))
 
   const buildQuery = (nextPage: number) => {
@@ -106,7 +126,8 @@ export default async function AdminPhotoGridDocumentsPage({
             </Button>
             <Link
               href="/dashboard/admin/documents/photo-grid"
-              className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+              className={buttonVariants({ variant: 'outline', size: 'standard' })}
+              role="button"
             >
               {t('common.reset')}
             </Link>

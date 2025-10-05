@@ -53,9 +53,13 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, touchMode, asChild = false, ...props }, ref) => {
     const Comp = asChild ? 'span' : 'button'
+    // Backward-compat: map legacy sizes to current scale
+    const normalizedSize = (
+      size === 'sm' ? 'compact' : size === 'md' ? 'standard' : size === 'lg' ? 'field' : size
+    ) as ButtonProps['size']
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, touchMode, className }))}
+        className={cn(buttonVariants({ variant, size: normalizedSize, touchMode, className }))}
         ref={ref}
         {...props}
       />

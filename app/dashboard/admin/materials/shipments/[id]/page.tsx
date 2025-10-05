@@ -3,14 +3,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 
 export const metadata: Metadata = { title: '출고 상세' }
 
@@ -75,30 +68,44 @@ export default async function AdminShipmentDetailPage({ params }: { params: { id
             <CardDescription>총 {(shipment?.shipment_items || []).length}개</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>자재</TableHead>
-                    <TableHead>코드</TableHead>
-                    <TableHead className="text-right">수량</TableHead>
-                    <TableHead>단위</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(shipment?.shipment_items || []).map((it: any) => (
-                    <TableRow key={it.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {it.materials?.name || '-'}
-                      </TableCell>
-                      <TableCell>{it.materials?.code || '-'}</TableCell>
-                      <TableCell className="text-right">{it.quantity ?? 0}</TableCell>
-                      <TableCell>{it.materials?.unit || '-'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable<any>
+              data={shipment?.shipment_items || []}
+              rowKey={(it: any) => it.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'name',
+                    header: '자재',
+                    sortable: true,
+                    render: (it: any) => (
+                      <span className="font-medium text-foreground">
+                        {it?.materials?.name || '-'}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'code',
+                    header: '코드',
+                    sortable: true,
+                    render: (it: any) => it?.materials?.code || '-',
+                  },
+                  {
+                    key: 'quantity',
+                    header: '수량',
+                    sortable: true,
+                    align: 'right',
+                    render: (it: any) => it?.quantity ?? 0,
+                  },
+                  {
+                    key: 'unit',
+                    header: '단위',
+                    sortable: true,
+                    render: (it: any) => it?.materials?.unit || '-',
+                  },
+                ] as Column<any>[]
+              }
+            />
           </CardContent>
         </Card>
       </div>
