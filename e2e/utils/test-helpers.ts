@@ -1,4 +1,3 @@
-
 /**
  * Test user credentials
  */
@@ -30,12 +29,12 @@ export const TEST_USERS = {
  */
 export async function login(page: Page, userType: keyof typeof TEST_USERS) {
   const user = TEST_USERS[userType]
-  
+
   await page.goto('/auth/login')
   await page.fill('input[name="email"]', user.email)
   await page.fill('input[name="password"]', user.password)
   await page.click('button[type="submit"]')
-  
+
   // Wait for navigation to dashboard
   await page.waitForURL('**/dashboard', { timeout: 10000 })
 }
@@ -46,17 +45,17 @@ export async function login(page: Page, userType: keyof typeof TEST_USERS) {
 export async function logout(page: Page) {
   // Look for logout button or menu
   const logoutButton = page.locator('button:has-text("Logout"), a:has-text("Logout")')
-  if (await logoutButton.count() > 0) {
+  if ((await logoutButton.count()) > 0) {
     await logoutButton.click()
   } else {
     // Try opening user menu first
     const userMenu = page.locator('[aria-label*="user"], [aria-label*="account"]')
-    if (await userMenu.count() > 0) {
+    if ((await userMenu.count()) > 0) {
       await userMenu.click()
       await page.click('button:has-text("Logout"), a:has-text("Logout")')
     }
   }
-  
+
   // Wait for redirect to login page
   await page.waitForURL('**/login', { timeout: 5000 })
 }
@@ -70,7 +69,7 @@ export async function waitForAPIResponse(
   method: string = 'GET'
 ) {
   return page.waitForResponse(
-    (response) =>
+    response =>
       (typeof urlPattern === 'string'
         ? response.url().includes(urlPattern)
         : urlPattern.test(response.url())) &&
@@ -82,11 +81,7 @@ export async function waitForAPIResponse(
 /**
  * Upload file helper
  */
-export async function uploadFile(
-  page: Page,
-  selector: string,
-  filePath: string
-) {
+export async function uploadFile(page: Page, selector: string, filePath: string) {
   const fileInput = page.locator(selector)
   await fileInput.setInputFiles(filePath)
 }
@@ -106,10 +101,10 @@ export async function takeScreenshot(page: Page, name: string) {
  * Check if element is in viewport
  */
 export async function isInViewport(page: Page, selector: string) {
-  return page.evaluate((sel) => {
+  return page.evaluate(sel => {
     const element = document.querySelector(sel)
     if (!element) return false
-    
+
     const rect = element.getBoundingClientRect()
     return (
       rect.top >= 0 &&
@@ -125,14 +120,12 @@ export async function isInViewport(page: Page, selector: string) {
  */
 export async function waitForLoading(page: Page) {
   // Wait for any loading indicators to disappear
-  const loadingIndicators = page.locator(
-    '.loading, [aria-busy="true"], .spinner, .skeleton'
-  )
-  
-  if (await loadingIndicators.count() > 0) {
+  const loadingIndicators = page.locator('.loading, [aria-busy="true"], .spinner, .skeleton')
+
+  if ((await loadingIndicators.count()) > 0) {
     await loadingIndicators.first().waitFor({ state: 'hidden', timeout: 10000 })
   }
-  
+
   // Also wait for network to be idle
   await page.waitForLoadState('networkidle')
 }
@@ -140,16 +133,13 @@ export async function waitForLoading(page: Page) {
 /**
  * Fill form helper
  */
-export async function fillForm(
-  page: Page,
-  formData: Record<string, string | number | boolean>
-) {
+export async function fillForm(page: Page, formData: Record<string, string | number | boolean>) {
   for (const [field, value] of Object.entries(formData)) {
     const input = page.locator(`input[name="${field}"], textarea[name="${field}"]`)
-    
-    if (await input.count() > 0) {
+
+    if ((await input.count()) > 0) {
       const inputType = await input.getAttribute('type')
-      
+
       if (inputType === 'checkbox' || inputType === 'radio') {
         if (value === true || value === 'true') {
           await input.check()
@@ -162,7 +152,7 @@ export async function fillForm(
     } else {
       // Try select element
       const select = page.locator(`select[name="${field}"]`)
-      if (await select.count() > 0) {
+      if ((await select.count()) > 0) {
         await select.selectOption(String(value))
       }
     }
@@ -177,9 +167,8 @@ export async function assertToast(
   message: string,
   type: 'success' | 'error' | 'info' = 'success'
 ) {
-  const toast = page.locator(
-    `.toast-${type}, [role="alert"]:has-text("${message}")`
-  )
+  const toast = page.locator(`.toast-${type}, [role="alert"]:has-text("${message}")`)
   await toast.waitFor({ state: 'visible', timeout: 5000 })
   return toast
 }
+import type { Page } from '@playwright/test'

@@ -4,10 +4,7 @@ import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
 
-export async function POST(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: Request, { params }: { params: { id: string } }) {
   try {
     const authResult = await requireApiAuth()
     if (authResult instanceof NextResponse) {
@@ -21,7 +18,7 @@ export async function POST(
     const supabase = createClient()
 
     const siteId = params.id
-    const { worker_ids, trade, position } = await request.json()
+    const { worker_ids, trade, position, role: roleOverride, role_override } = await request.json()
 
     if (!worker_ids || !Array.isArray(worker_ids) || worker_ids.length === 0) {
       return NextResponse.json({ error: 'Invalid worker IDs' }, { status: 400 })
@@ -33,45 +30,55 @@ export async function POST(
       .from('profiles')
       .select('id, role')
       .in('id', worker_ids)
-    
-    console.log('Worker profiles query result:', { 
-      data: workerProfiles, 
+
+    console.log('Worker profiles query result:', {
+      data: workerProfiles,
       error: profileError,
-      count: workerProfiles?.length 
+      count: workerProfiles?.length,
     })
-    
+
     if (profileError) {
       console.error('Error fetching worker profiles:', profileError)
       console.error('Profile query details:', {
         worker_ids,
         error_message: profileError.message,
         error_code: profileError.code,
-        error_details: profileError.details
+        error_details: profileError.details,
       })
-      return NextResponse.json({ 
-        error: 'Failed to fetch worker profiles',
-        details: profileError.message 
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: 'Failed to fetch worker profiles',
+          details: profileError.message,
+        },
+        { status: 500 }
+      )
     }
 
     // Create assignments for each worker with their actual role
     const assignments = worker_ids.map(workerId => {
       const workerProfile = workerProfiles?.find((p: unknown) => p.id === workerId)
       // Map the user's role to a valid site assignment role
-      let assignmentRole = 'worker'
-      if (workerProfile?.role === 'site_manager') {
-        assignmentRole = 'site_manager'
-      } else if (workerProfile?.role === 'supervisor') {
-        assignmentRole = 'supervisor'
+      const desiredRole = (roleOverride || role_override) as string | undefined
+      const normalizedDesired =
+        desiredRole && ['worker', 'site_manager', 'supervisor'].includes(desiredRole)
+          ? desiredRole
+          : undefined
+      let assignmentRole = normalizedDesired || 'worker'
+      if (!normalizedDesired) {
+        if (workerProfile?.role === 'site_manager') {
+          assignmentRole = 'site_manager'
+        } else if (workerProfile?.role === 'supervisor') {
+          assignmentRole = 'supervisor'
+        }
       }
       // All other roles (admin, worker, partner, etc.) default to 'worker' role in site_assignments
-      
+
       return {
         site_id: siteId,
         user_id: workerId,
         assigned_date: new Date().toISOString().split('T')[0], // Date only format
         role: assignmentRole, // Use mapped role that's valid for site_assignments
-        is_active: true
+        is_active: true,
       }
     })
 
@@ -82,10 +89,10 @@ export async function POST(
       .insert(assignments)
       .select()
 
-    console.log('Insert result:', { 
-      data: insertedAssignments, 
+    console.log('Insert result:', {
+      data: insertedAssignments,
       error: insertError,
-      count: insertedAssignments?.length 
+      count: insertedAssignments?.length,
     })
 
     if (insertError) {
@@ -95,29 +102,30 @@ export async function POST(
         error_message: insertError.message,
         error_code: insertError.code,
         error_details: insertError.details,
-        error_hint: insertError.hint
+        error_hint: insertError.hint,
       })
-      return NextResponse.json({ 
-        error: 'Failed to assign workers',
-        details: insertError.message,
-        code: insertError.code
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          error: 'Failed to assign workers',
+          details: insertError.message,
+          code: insertError.code,
+        },
+        { status: 500 }
+      )
     }
 
     // Log the assignment activity (optional - don't fail if this errors)
     try {
-      await supabase
-        .from('activity_logs')
-        .insert({
-          user_id: authResult.userId,
-          action: 'workers_assigned',
-          entity_type: 'site',
-          entity_id: siteId,
-          details: {
-            worker_count: worker_ids.length,
-            worker_ids: worker_ids
-          }
-        })
+      await supabase.from('activity_logs').insert({
+        user_id: authResult.userId,
+        action: 'workers_assigned',
+        entity_type: 'site',
+        entity_id: siteId,
+        details: {
+          worker_count: worker_ids.length,
+          worker_ids: worker_ids,
+        },
+      })
     } catch (logError) {
       console.warn('Failed to log activity:', logError)
       // Continue even if logging fails
@@ -126,14 +134,10 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: insertedAssignments,
-      message: `${worker_ids.length}명의 작업자가 현장에 배정되었습니다.`
+      message: `${worker_ids.length}명의 작업자가 현장에 배정되었습니다.`,
     })
-
   } catch (error) {
     console.error('API error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

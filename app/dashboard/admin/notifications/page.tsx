@@ -6,6 +6,7 @@ import NotificationsTable from '@/components/admin/NotificationsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
+import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = {
   title: '알림 센터',
@@ -71,36 +72,43 @@ export default async function NotificationCenterPage({
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div className="px-0 pb-8 space-y-6">
+      <PageHeader
+        title="알림 센터"
+        description="발송된 알림 이력을 조회합니다"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '알림 센터' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>알림 총수</CardTitle>
+              <CardDescription>notification_logs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{totalLogs ?? 0}</div>
+            </CardContent>
+          </Card>
+        </div>
+
         <Card>
           <CardHeader>
-            <CardTitle>알림 총수</CardTitle>
-            <CardDescription>notification_logs</CardDescription>
+            <CardTitle>최근 알림 이력</CardTitle>
+            <CardDescription>최신 20개</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold">{totalLogs ?? 0}</div>
+            <div className="mb-3">
+              <form method="GET" className="flex items-center gap-2">
+                <Input name="search" defaultValue={search} placeholder={t('common.search')} />
+                <Button type="submit" variant="outline">
+                  {t('common.search')}
+                </Button>
+              </form>
+            </div>
+            <NotificationsTable logs={logs} initialStars={initialStars} />
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>최근 알림 이력</CardTitle>
-          <CardDescription>최신 20개</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-3">
-            <form method="GET" className="flex items-center gap-2">
-              <Input name="search" defaultValue={search} placeholder={t('common.search')} />
-              <Button type="submit" variant="outline">
-                {t('common.search')}
-              </Button>
-            </form>
-          </div>
-          <NotificationsTable logs={logs} initialStars={initialStars} />
-        </CardContent>
-      </Card>
     </div>
   )
 }

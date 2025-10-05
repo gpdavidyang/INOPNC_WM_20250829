@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
+import EmptyState from '@/components/ui/empty-state'
+import { PageHeader } from '@/components/ui/page-header'
 
 type Rule = {
   id?: string
@@ -12,6 +15,7 @@ type Rule = {
 }
 
 export default function RulesPage() {
+  const { toast } = useToast()
   const [items, setItems] = useState<Rule[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -60,13 +64,20 @@ export default function RulesPage() {
         is_active: true,
       })
       await load()
+      toast({ title: '저장 완료', description: '급여 규칙이 저장되었습니다.' })
     } catch (e: any) {
-      alert(e?.message || '저장 실패')
+      toast({ title: '저장 실패', description: e?.message || '저장 실패', variant: 'destructive' })
     }
   }
 
   return (
-    <div className="space-y-4">
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="급여 규칙 관리"
+        description="시급/일급/연장배수/보너스 규칙"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '규칙' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="grid gap-3 md:grid-cols-4">
         <input
           className="h-10 rounded-md bg-white text-gray-900 border border-gray-300 px-3 text-sm shadow-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:bg-gray-800 dark:text-gray-100 dark:border-gray-600 dark:focus:ring-blue-500/30"
@@ -120,9 +131,9 @@ export default function RulesPage() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-600">불러오는 중...</p>
+        <EmptyState description="불러오는 중..." />
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <EmptyState title="오류" description={error} />
       ) : (
         <div className="overflow-x-auto border rounded-md">
           <table className="min-w-full text-sm">
@@ -164,6 +175,7 @@ export default function RulesPage() {
           </table>
         </div>
       )}
+      </div>
     </div>
   )
 }

@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 interface ShipmentManagementTabProps {
   profile: Profile
@@ -97,11 +99,19 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       if (result.success) {
         setShipments(result.data || [])
       } else {
-        toast.error(result.error || '출고 기록을 불러오는데 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '출고 기록을 불러오는데 실패했습니다.',
+        })
       }
     } catch (error) {
       console.error('Error fetching shipments:', error)
-      toast.error('출고 기록을 불러오는데 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '출고 기록을 불러오는데 실패했습니다.',
+      })
     } finally {
       setLoading(false)
     }
@@ -180,7 +190,14 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
   }
 
   const handleDelete = async (shipmentId: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '출고 기록 삭제',
+      description: '정말 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const supabase = createClient()
@@ -188,24 +205,36 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
 
       if (error) throw error
 
-      toast.success('출고 기록이 삭제되었습니다.')
+      toast({ variant: 'success', title: '삭제 완료', description: '출고 기록이 삭제되었습니다.' })
       fetchShipments()
     } catch (error) {
       console.error('Error deleting shipment:', error)
-      toast.error('출고 기록 삭제에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '출고 기록 삭제에 실패했습니다.',
+      })
     }
   }
 
   const submitShipment = async () => {
     try {
       if (!formData.site_id || !formData.quantity_shipped) {
-        toast.error('필수 정보를 모두 입력해주세요.')
+        toast({
+          variant: 'warning',
+          title: '입력 필요',
+          description: '필수 정보를 모두 입력해주세요.',
+        })
         return
       }
 
       const quantity = parseFloat(formData.quantity_shipped)
       if (isNaN(quantity) || quantity <= 0) {
-        toast.error('올바른 수량을 입력해주세요.')
+        toast({
+          variant: 'warning',
+          title: '입력 오류',
+          description: '올바른 수량을 입력해주세요.',
+        })
         return
       }
 
@@ -222,16 +251,28 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       const result = await processShipment(shipmentData)
 
       if (result.success) {
-        toast.success('출고 기록이 추가되었습니다.')
+        toast({
+          variant: 'success',
+          title: '추가 완료',
+          description: '출고 기록이 추가되었습니다.',
+        })
         setShowAddModal(false)
         fetchShipments()
         fetchPendingRequests()
       } else {
-        toast.error(result.error || '출고 기록 추가에 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '출고 기록 추가에 실패했습니다.',
+        })
       }
     } catch (error) {
       console.error('Error adding shipment:', error)
-      toast.error('출고 기록 추가에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '출고 기록 추가에 실패했습니다.',
+      })
     }
   }
 
@@ -249,16 +290,28 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       const result = await updateShipmentInfo(selectedShipment.id, updates)
 
       if (result.success) {
-        toast.success('출고 정보가 수정되었습니다.')
+        toast({
+          variant: 'success',
+          title: '수정 완료',
+          description: '출고 정보가 수정되었습니다.',
+        })
         setShowEditModal(false)
         setSelectedShipment(null)
         fetchShipments()
       } else {
-        toast.error(result.error || '출고 정보 수정에 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '출고 정보 수정에 실패했습니다.',
+        })
       }
     } catch (error) {
       console.error('Error updating shipment:', error)
-      toast.error('출고 정보 수정에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '출고 정보 수정에 실패했습니다.',
+      })
     }
   }
 
@@ -270,17 +323,25 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
       const result = await updateShipmentStatus(shipmentId, newStatus)
 
       if (result.success) {
-        toast.success('출고 상태가 업데이트되었습니다.')
+        toast({
+          variant: 'success',
+          title: '업데이트 완료',
+          description: '출고 상태가 업데이트되었습니다.',
+        })
         fetchShipments()
         if (showDetailModal) {
           setShowDetailModal(false)
         }
       } else {
-        toast.error(result.error || '상태 업데이트에 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '상태 업데이트에 실패했습니다.',
+        })
       }
     } catch (error) {
       console.error('Error updating status:', error)
-      toast.error('상태 업데이트에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '상태 업데이트에 실패했습니다.' })
     }
   }
 
@@ -955,3 +1016,5 @@ export default function ShipmentManagementTab({ profile }: ShipmentManagementTab
     </div>
   )
 }
+const { confirm } = useConfirm()
+const { toast } = useToast()

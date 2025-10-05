@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { PageHeader } from '@/components/ui/page-header'
 import { t } from '@/lib/ui/strings'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/use-toast'
 
 type WorkerPreview = {
   worker_id: string
@@ -20,6 +22,7 @@ function ym(d = new Date()) {
 
 export default function PayrollPreviewPage() {
   const supabase = useMemo(() => createClient(), [])
+  const { toast } = useToast()
   const [yearMonth, setYearMonth] = useState<string>(ym())
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -93,7 +96,7 @@ export default function PayrollPreviewPage() {
     })
     const json = await res.json()
     if (!res.ok || json?.success === false) {
-      alert(json?.error || '발행 실패')
+      toast({ title: '발행 실패', description: json?.error || '발행 실패', variant: 'destructive' })
     } else {
       if (autoProcess) {
         const entries = ids.map(id => ({ userId: id, year: Number(y), month: Number(m) }))
@@ -114,12 +117,12 @@ export default function PayrollPreviewPage() {
           const payJson = await payRes.json()
           if (!payRes.ok || payJson?.success === false)
             throw new Error(payJson?.error || '지급 실패')
-          alert(`발행/승인/지급 완료 (${json.inserted}건)`)
+          toast({ title: '완료', description: `발행/승인/지급 완료 (${json.inserted}건)` })
         } catch (e: any) {
-          alert(e?.message || '연속 처리 중 오류')
+          toast({ title: '처리 실패', description: e?.message || '연속 처리 중 오류', variant: 'destructive' })
         }
       } else {
-        alert(`발행 완료 (${json.inserted}건)`)
+        toast({ title: '발행 완료', description: `${json.inserted}건 처리되었습니다.` })
       }
     }
   }
@@ -134,7 +137,7 @@ export default function PayrollPreviewPage() {
     })
     const json = await res.json()
     if (!res.ok || json?.success === false) {
-      alert(json?.error || '발행 실패')
+      toast({ title: '발행 실패', description: json?.error || '발행 실패', variant: 'destructive' })
     } else {
       if (autoProcess) {
         const entries = ids.map(id => ({ userId: id, year: Number(y), month: Number(m) }))
@@ -155,12 +158,12 @@ export default function PayrollPreviewPage() {
           const payJson = await payRes.json()
           if (!payRes.ok || payJson?.success === false)
             throw new Error(payJson?.error || '지급 실패')
-          alert(`발행/승인/지급 완료 (${json.inserted}건)`)
+          toast({ title: '완료', description: `발행/승인/지급 완료 (${json.inserted}건)` })
         } catch (e: any) {
-          alert(e?.message || '연속 처리 중 오류')
+          toast({ title: '처리 실패', description: e?.message || '연속 처리 중 오류', variant: 'destructive' })
         }
       } else {
-        alert(`발행 완료 (${json.inserted}건)`)
+        toast({ title: '발행 완료', description: `${json.inserted}건 처리되었습니다.` })
       }
     }
   }
@@ -177,9 +180,9 @@ export default function PayrollPreviewPage() {
       })
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '선택 승인 실패')
-      alert('선택 승인 완료')
+      toast({ title: '승인 완료', description: '선택 항목이 승인되었습니다.' })
     } catch (e: any) {
-      alert(e?.message || '선택 승인 실패')
+      toast({ title: '승인 실패', description: e?.message || '선택 승인 실패', variant: 'destructive' })
     }
   }
 
@@ -195,9 +198,9 @@ export default function PayrollPreviewPage() {
       })
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '선택 지급 실패')
-      alert('선택 지급 완료')
+      toast({ title: '지급 완료', description: '선택 항목이 지급 처리되었습니다.' })
     } catch (e: any) {
-      alert(e?.message || '선택 지급 실패')
+      toast({ title: '지급 실패', description: e?.message || '선택 지급 실패', variant: 'destructive' })
     }
   }
 
@@ -254,7 +257,7 @@ export default function PayrollPreviewPage() {
       if (!res.ok || json?.success === false) throw new Error(json?.error || '미리보기 실패')
       setDetail(json.data)
     } catch (e: any) {
-      alert(e?.message || '미리보기 실패')
+      toast({ title: '미리보기 실패', description: e?.message || '미리보기 실패', variant: 'destructive' })
     } finally {
       setDetailLoading(false)
     }
@@ -282,7 +285,13 @@ export default function PayrollPreviewPage() {
   }, [filtered])
 
   return (
-    <div className="space-y-4">
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="급여 스냅샷 미리보기"
+        description="선택 월/필터에 따라 발행 대상 및 금액 확인"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '스냅샷 미리보기' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="month"

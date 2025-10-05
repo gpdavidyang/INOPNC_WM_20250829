@@ -14,6 +14,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { TableSkeleton } from '@/components/ui/loading-skeleton'
+import { useRouter, useSearchParams } from 'next/navigation'
+// Dialog replaced with dedicated page for assignments
 
 // 한글 표시용 매핑 테이블
 const CATEGORY_LABELS: Record<string, string> = {
@@ -57,17 +60,101 @@ export default function SiteDetailTabs({
   initialAssignments,
   initialRequests,
 }: Props) {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [tab, setTab] = useState<string>(searchParams.get('tab') || 'overview')
+
+  useEffect(() => {
+    const t = searchParams.get('tab') || 'overview'
+    setTab(t)
+  }, [searchParams])
+
+  const onTabChange = (value: string) => {
+    setTab(value)
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.set('tab', value)
+      router.replace(url.pathname + url.search)
+    } catch {
+      /* noop */
+    }
+  }
   const [drawings, setDrawings] = useState<any[]>([])
   const [drawingsLoading, setDrawingsLoading] = useState(false)
   const [photos, setPhotos] = useState<any[]>([])
   const [photosLoading, setPhotosLoading] = useState(false)
+  const [photoDate, setPhotoDate] = useState<string | null>(null)
   const [stats, setStats] = useState<{ reports: number; labor: number } | null>(null)
   const [statsLoading, setStatsLoading] = useState<boolean>(true)
   const [recentDocs, setRecentDocs] = useState<any[]>(initialDocs || [])
   const [recentReports, setRecentReports] = useState<any[]>(initialReports || [])
+  // Reports tab state
+  const [reportsQuery, setReportsQuery] = useState('')
+  const [reportsSort, setReportsSort] = useState<
+    'date_desc' | 'date_asc' | 'status' | 'workers_desc' | 'workers_asc'
+  >('date_desc')
+  const [reportsPage, setReportsPage] = useState(0)
+  const [reportsPageSize, setReportsPageSize] = useState(20)
+  const [reportsHasNext, setReportsHasNext] = useState(false)
+  const [reportsTotal, setReportsTotal] = useState<number | null>(null)
   const [recentAssignments, setRecentAssignments] = useState<any[]>(initialAssignments || [])
   const [recentRequests, setRecentRequests] = useState<any[]>(initialRequests || [])
   const [laborByUser, setLaborByUser] = useState<Record<string, number>>({})
+  const [globalLaborByUser, setGlobalLaborByUser] = useState<Record<string, number>>({})
+  const [docFilter, setDocFilter] = useState<'all' | 'ptw' | 'blueprint' | 'shared'>('all')
+  const [docsLoading, setDocsLoading] = useState(false)
+  const [reportsLoading, setReportsLoading] = useState(false)
+  const [assignmentsLoading, setAssignmentsLoading] = useState(false)
+  const [requestsLoading, setRequestsLoading] = useState(false)
+  // Assignments UI state
+  // Assignments now handled on dedicated page: /dashboard/admin/sites/[id]/assign
+  const [assignmentQuery, setAssignmentQuery] = useState('')
+  const [assignmentSort, setAssignmentSort] = useState<
+    | 'name_asc'
+    | 'name_desc'
+    | 'role'
+    | 'company'
+    | 'date_desc'
+    | 'date_asc'
+    | 'labor_desc'
+    | 'labor_asc'
+  >('date_desc')
+  const [availableCount, setAvailableCount] = useState<number | null>(null)
+  const [assignmentRole, setAssignmentRole] = useState<
+    'all' | 'worker' | 'site_manager' | 'supervisor'
+  >('all')
+
+  // Materials tab state
+  const [materialsQuery, setMaterialsQuery] = useState('')
+  const [materialsSort, setMaterialsSort] = useState<
+    'date_desc' | 'date_asc' | 'status' | 'number'
+  >('date_desc')
+  const [materialsStatus, setMaterialsStatus] = useState<
+    'all' | 'pending' | 'approved' | 'rejected' | 'fulfilled' | 'cancelled'
+  >('all')
+  const [inventory, setInventory] = useState<any[]>([])
+  const [shipments, setShipments] = useState<any[]>([])
+  const [invLoading, setInvLoading] = useState(false)
+  const [shipLoading, setShipLoading] = useState(false)
+  const [invQuery, setInvQuery] = useState('')
+  const [shipQuery, setShipQuery] = useState('')
+  // Pagination states
+  const [assignPage, setAssignPage] = useState(0)
+  const [assignPageSize, setAssignPageSize] = useState(20)
+  const [assignHasNext, setAssignHasNext] = useState(false)
+  const [assignTotal, setAssignTotal] = useState<number | null>(null)
+  const [reqPage, setReqPage] = useState(0)
+  const [reqPageSize, setReqPageSize] = useState(20)
+  const [reqHasNext, setReqHasNext] = useState(false)
+  const [reqTotal, setReqTotal] = useState<number | null>(null)
+  const [reqRows, setReqRows] = useState<any[]>([])
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [txnLoading, setTxnLoading] = useState(false)
+  const [txnPage, setTxnPage] = useState(0)
+  const [txnPageSize, setTxnPageSize] = useState(20)
+  const [txnHasNext, setTxnHasNext] = useState(false)
+  const [txnQuery, setTxnQuery] = useState('')
+  const [txnTotal, setTxnTotal] = useState<number | null>(null)
 
   // Load drawings for site (uses server API with fallback to documents)
   useEffect(() => {
@@ -92,6 +179,209 @@ export default function SiteDetailTabs({
       ignore = true
     }
   }, [siteId])
+
+  // Assignments tab: server-backed search/sort (fallback to client for labor sorting)
+  useEffect(() => {
+    if (tab !== 'assignments') return
+    let active = true
+    ;(async () => {
+      try {
+        setAssignmentsLoading(true)
+        const params = new URLSearchParams()
+        if (assignmentQuery.trim()) params.set('q', assignmentQuery.trim())
+        if (assignmentRole !== 'all') params.set('role', assignmentRole)
+        // Map sort for server (labor sorts handled client-side)
+        let sort: 'name' | 'role' | 'company' | 'date' = 'date'
+        let order: 'asc' | 'desc' = 'desc'
+        switch (assignmentSort) {
+          case 'name_asc':
+            sort = 'name'
+            order = 'asc'
+            break
+          case 'name_desc':
+            sort = 'name'
+            order = 'desc'
+            break
+          case 'role':
+            sort = 'role'
+            order = 'asc'
+            break
+          case 'company':
+            sort = 'company'
+            order = 'asc'
+            break
+          case 'date_asc':
+            sort = 'date'
+            order = 'asc'
+            break
+          case 'date_desc':
+          case 'labor_desc':
+          case 'labor_asc':
+          default:
+            sort = 'date'
+            order = 'desc'
+            break
+        }
+        params.set('sort', sort)
+        params.set('order', order)
+        params.set('limit', String(assignPageSize + 1))
+        params.set('offset', String(assignPage * assignPageSize))
+        const res = await fetch(`/api/admin/sites/${siteId}/assignments?${params.toString()}`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const j = await res.json().catch(() => ({}))
+        if (!active) return
+        if (res.ok && j?.success && Array.isArray(j.data)) {
+          const arr = j.data as any[]
+          setAssignHasNext(arr.length > assignPageSize)
+          setRecentAssignments(arr.slice(0, assignPageSize))
+          if (typeof j.total === 'number') setAssignTotal(j.total)
+        }
+      } catch {
+        // noop
+      } finally {
+        if (active) setAssignmentsLoading(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [tab, assignmentQuery, assignmentSort, assignmentRole, siteId, assignPage, assignPageSize])
+
+  // Materials tab: fetch inventory + shipments summary
+  useEffect(() => {
+    if (tab !== 'materials') return
+    let active = true
+    ;(async () => {
+      try {
+        setInvLoading(true)
+        setShipLoading(true)
+        const res = await fetch(`/api/admin/sites/${siteId}/materials/summary`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const j = await res.json().catch(() => ({}))
+        if (!active) return
+        if (res.ok && j?.success) {
+          if (Array.isArray(j.data?.inventory)) setInventory(j.data.inventory)
+          if (Array.isArray(j.data?.shipments)) setShipments(j.data.shipments)
+        }
+      } catch {
+        // noop
+      } finally {
+        if (active) {
+          setInvLoading(false)
+          setShipLoading(false)
+        }
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [tab, siteId])
+
+  // Materials tab: fetch requests (paged)
+  useEffect(() => {
+    if (tab !== 'materials') return
+    let active = true
+    ;(async () => {
+      try {
+        setRequestsLoading(true)
+        const params = new URLSearchParams()
+        if (materialsQuery.trim()) params.set('q', materialsQuery.trim())
+        if (materialsStatus !== 'all') params.set('status', materialsStatus)
+        // sort mapping
+        let sort: 'date' | 'status' | 'number' = 'date'
+        let order: 'asc' | 'desc' = 'desc'
+        switch (materialsSort) {
+          case 'date_asc':
+            sort = 'date'
+            order = 'asc'
+            break
+          case 'status':
+            sort = 'status'
+            order = 'asc'
+            break
+          case 'number':
+            sort = 'number'
+            order = 'asc'
+            break
+          case 'date_desc':
+          default:
+            sort = 'date'
+            order = 'desc'
+        }
+        params.set('sort', sort)
+        params.set('order', order)
+        params.set('limit', String(reqPageSize + 1))
+        params.set('offset', String(reqPage * reqPageSize))
+        const res = await fetch(
+          `/api/admin/sites/${siteId}/materials/requests?${params.toString()}`,
+          {
+            cache: 'no-store',
+            credentials: 'include',
+          }
+        )
+        const j = await res.json().catch(() => ({}))
+        if (!active) return
+        if (res.ok && j?.success && Array.isArray(j.data)) {
+          const arr = j.data as any[]
+          setReqHasNext(arr.length > reqPageSize)
+          setReqRows(arr.slice(0, reqPageSize))
+          if (typeof j.total === 'number') setReqTotal(j.total)
+        } else {
+          setReqHasNext(false)
+          setReqRows([])
+          setReqTotal(0)
+        }
+      } finally {
+        if (active) setRequestsLoading(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [tab, siteId, materialsQuery, materialsStatus, materialsSort, reqPage, reqPageSize])
+
+  // Materials tab: fetch transactions (paged)
+  useEffect(() => {
+    if (tab !== 'materials') return
+    let active = true
+    ;(async () => {
+      try {
+        setTxnLoading(true)
+        const params = new URLSearchParams()
+        if (txnQuery.trim()) params.set('q', txnQuery.trim())
+        params.set('limit', String(txnPageSize + 1))
+        params.set('offset', String(txnPage * txnPageSize))
+        const res = await fetch(
+          `/api/admin/sites/${siteId}/materials/transactions?${params.toString()}`,
+          {
+            cache: 'no-store',
+            credentials: 'include',
+          }
+        )
+        const j = await res.json().catch(() => ({}))
+        if (!active) return
+        if (res.ok && j?.success && Array.isArray(j.data)) {
+          const arr = j.data as any[]
+          setTxnHasNext(arr.length > txnPageSize)
+          setTransactions(arr.slice(0, txnPageSize))
+          if (typeof j.total === 'number') setTxnTotal(j.total)
+        } else {
+          setTxnHasNext(false)
+          setTransactions([])
+          setTxnTotal(0)
+        }
+      } finally {
+        if (active) setTxnLoading(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [tab, siteId, txnQuery, txnPage, txnPageSize])
 
   // Load photos for site (document_type='photo')
   useEffect(() => {
@@ -152,6 +442,7 @@ export default function SiteDetailTabs({
     // Recent docs: use server API that aggregates unified + legacy + site_documents
     ;(async () => {
       try {
+        setDocsLoading(true)
         const res = await fetch(`/api/partner/sites/${siteId}/documents?type=all`, {
           cache: 'no-store',
           credentials: 'include',
@@ -168,12 +459,15 @@ export default function SiteDetailTabs({
         }
       } catch {
         void 0
+      } finally {
+        setDocsLoading(false)
       }
     })()
 
-    // Recent daily reports (admin API)
+    // Recent daily reports minimal fetch for overview section
     ;(async () => {
       try {
+        setReportsLoading(true)
         const res = await fetch(`/api/admin/sites/${siteId}/daily-reports?status=all&limit=10`, {
           cache: 'no-store',
           credentials: 'include',
@@ -182,12 +476,15 @@ export default function SiteDetailTabs({
         if (res.ok && json?.success && Array.isArray(json.data)) setRecentReports(json.data)
       } catch {
         void 0
+      } finally {
+        setReportsLoading(false)
       }
     })()
 
     // Recent assignments + per-user labor
     ;(async () => {
       try {
+        setAssignmentsLoading(true)
         const res = await fetch(`/api/admin/sites/${siteId}/assignments`, {
           cache: 'no-store',
           credentials: 'include',
@@ -211,40 +508,147 @@ export default function SiteDetailTabs({
             } catch {
               void 0
             }
+            // Global labor (across all sites)
+            try {
+              const gr = await fetch(
+                `/api/admin/users/labor-summary?users=${encodeURIComponent(ids.join(','))}`,
+                { cache: 'no-store', credentials: 'include' }
+              )
+              const gj = await gr.json().catch(() => ({}))
+              if (gr.ok && gj?.success && gj.data) setGlobalLaborByUser(gj.data)
+            } catch {
+              void 0
+            }
           }
         }
         // If request fails or returns unexpected shape, keep SSR-provided assignments
       } catch {
         // Swallow errors and preserve initial SSR data
+      } finally {
+        setAssignmentsLoading(false)
       }
     })()
 
     // Recent material requests
     ;(async () => {
       try {
+        setRequestsLoading(true)
         const { data } = await supabase
           .from('material_requests')
-          .select(
-            'id, request_number, status, requested_by, request_date, created_at, requester:profiles!material_requests_requested_by_fkey(full_name)'
-          )
+          .select('id, request_number, status, requested_by, request_date, created_at')
           .eq('site_id', siteId)
           .order('created_at', { ascending: false })
           .limit(10)
         if (Array.isArray(data)) setRecentRequests(data)
       } catch {
         void 0
+      } finally {
+        setRequestsLoading(false)
       }
     })()
   }, [siteId])
 
+  // Reports tab: server-backed search/sort/pagination
+  useEffect(() => {
+    if (tab !== 'reports') return
+    let active = true
+    ;(async () => {
+      try {
+        setReportsLoading(true)
+        const params = new URLSearchParams()
+        if (reportsQuery.trim()) params.set('q', reportsQuery.trim())
+        let sort: 'date' | 'status' | 'workers' = 'date'
+        let order: 'asc' | 'desc' = 'desc'
+        switch (reportsSort) {
+          case 'date_asc':
+            sort = 'date'
+            order = 'asc'
+            break
+          case 'status':
+            sort = 'status'
+            order = 'asc'
+            break
+          case 'workers_desc':
+            sort = 'workers'
+            order = 'desc'
+            break
+          case 'workers_asc':
+            sort = 'workers'
+            order = 'asc'
+            break
+          case 'date_desc':
+          default:
+            sort = 'date'
+            order = 'desc'
+        }
+        params.set('sort', sort)
+        params.set('order', order)
+        params.set('limit', String(reportsPageSize + 1))
+        params.set('offset', String(reportsPage * reportsPageSize))
+        params.set('status', 'all')
+        const res = await fetch(`/api/admin/sites/${siteId}/daily-reports?${params.toString()}`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const json = await res.json().catch(() => ({}))
+        if (!active) return
+        if (res.ok && json?.success && Array.isArray(json.data)) {
+          const arr = json.data as any[]
+          setReportsHasNext(arr.length > reportsPageSize)
+          setRecentReports(arr.slice(0, reportsPageSize))
+          if (typeof json.total === 'number') setReportsTotal(json.total)
+        } else {
+          setReportsHasNext(false)
+          setRecentReports([])
+          setReportsTotal(0)
+        }
+      } finally {
+        if (active) setReportsLoading(false)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [tab, reportsQuery, reportsSort, reportsPage, reportsPageSize, siteId])
+
+  // Fetch available workers count to show capacity hint in Assignments actions
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const res = await fetch(`/api/admin/sites/${siteId}/workers/available`, {
+          cache: 'no-store',
+          credentials: 'include',
+        })
+        const j = await res.json().catch(() => ({}))
+        if (!active) return
+        if (res.ok && (typeof j?.total === 'number' || Array.isArray(j?.data))) {
+          setAvailableCount(
+            typeof j.total === 'number' ? j.total : Array.isArray(j.data) ? j.data.length : 0
+          )
+        } else {
+          setAvailableCount(null)
+        }
+      } catch {
+        if (active) setAvailableCount(null)
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [siteId])
+
   return (
     <div>
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={tab} onValueChange={onTabChange} className="w-full">
         <TabsList>
           <TabsTrigger value="overview">개요</TabsTrigger>
+          <TabsTrigger value="reports">작업일지</TabsTrigger>
           <TabsTrigger value="documents">문서</TabsTrigger>
           <TabsTrigger value="drawings">도면</TabsTrigger>
           <TabsTrigger value="photos">사진</TabsTrigger>
+          <TabsTrigger value="assignments">배정</TabsTrigger>
+          <TabsTrigger value="materials">자재</TabsTrigger>
           <TabsTrigger value="edit">정보 수정</TabsTrigger>
         </TabsList>
 
@@ -292,62 +696,68 @@ export default function SiteDetailTabs({
               </Button>
             </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>등록일</TableHead>
-                    <TableHead>제목</TableHead>
-                    <TableHead>유형</TableHead>
-                    <TableHead>상태</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentDocs.length === 0 ? (
+              {docsLoading && recentDocs.length === 0 ? (
+                <TableSkeleton rows={5} />
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="text-center text-sm text-muted-foreground py-8"
-                      >
-                        표시할 문서가 없습니다.
-                      </TableCell>
+                      <TableHead>등록일</TableHead>
+                      <TableHead>제목</TableHead>
+                      <TableHead>유형</TableHead>
+                      <TableHead>상태</TableHead>
                     </TableRow>
-                  ) : (
-                    recentDocs.map((d: any) => (
-                      <TableRow key={d.id}>
-                        <TableCell>
-                          {(() => {
-                            const raw = d.created_at || d.uploadDate || d.createdAt
-                            try {
-                              return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
-                            } catch {
-                              return '-'
-                            }
-                          })()}
-                        </TableCell>
-                        <TableCell className="font-medium text-foreground">
-                          <a
-                            href={buildDocPreviewHref(d)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="underline text-blue-600"
-                          >
-                            {d.title || '-'}
-                          </a>
-                        </TableCell>
-                        <TableCell>
-                          {d?.category_type || d?.categoryType
-                            ? CATEGORY_LABELS[String(d.category_type || d.categoryType)] ||
-                              String(d.category_type || d.categoryType)
-                            : '-'}
-                        </TableCell>
-                        <TableCell>
-                          {d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-'}
+                  </TableHeader>
+                  <TableBody>
+                    {recentDocs.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="text-center text-sm text-muted-foreground py-8"
+                        >
+                          표시할 문서가 없습니다.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      recentDocs.map((d: any, idx: number) => (
+                        <TableRow
+                          key={`${d?.id ?? d?.document_id ?? d?.file_id ?? d?.url ?? 'doc'}-${idx}`}
+                        >
+                          <TableCell>
+                            {(() => {
+                              const raw = d.created_at || d.uploadDate || d.createdAt
+                              try {
+                                return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
+                              } catch {
+                                return '-'
+                              }
+                            })()}
+                          </TableCell>
+                          <TableCell className="font-medium text-foreground">
+                            <a
+                              href={buildDocPreviewHref(d)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="underline text-blue-600"
+                            >
+                              {d.title || '-'}
+                            </a>
+                          </TableCell>
+                          <TableCell>
+                            {d?.category_type || d?.categoryType
+                              ? CATEGORY_LABELS[String(d.category_type || d.categoryType)] ||
+                                String(d.category_type || d.categoryType)
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            {d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </section>
 
@@ -360,81 +770,119 @@ export default function SiteDetailTabs({
               </Button>
             </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>작업일자</TableHead>
-                    <TableHead>작성자</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead>인원</TableHead>
-                    <TableHead>문서</TableHead>
-                    <TableHead>공수</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentReports.length === 0 ? (
+              {reportsLoading && recentReports.length === 0 ? (
+                <TableSkeleton rows={5} />
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center text-sm text-muted-foreground py-8"
-                      >
-                        표시할 작업일지가 없습니다.
-                      </TableCell>
+                      <TableHead>작업일자</TableHead>
+                      <TableHead>작성자</TableHead>
+                      <TableHead>상태</TableHead>
+                      <TableHead>인원</TableHead>
+                      <TableHead>문서</TableHead>
+                      <TableHead>공수</TableHead>
+                      <TableHead>바로가기</TableHead>
                     </TableRow>
-                  ) : (
-                    recentReports.map((r: any) => (
-                      <TableRow key={r.id}>
-                        <TableCell className="font-medium text-foreground">
-                          {r.id ? (
-                            <a
-                              href={`/dashboard/admin/daily-reports/${r.id}`}
-                              className="underline text-blue-600"
-                              title="작업일지 상세 보기"
-                            >
-                              {r.work_date
-                                ? new Date(r.work_date).toLocaleDateString('ko-KR')
-                                : '-'}
-                            </a>
-                          ) : r.work_date ? (
-                            new Date(r.work_date).toLocaleDateString('ko-KR')
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                        <TableCell>{r.profiles?.full_name || '-'}</TableCell>
-                        <TableCell>
-                          {((s: string) => {
-                            const m: Record<string, string> = {
-                              draft: '임시저장',
-                              submitted: '제출됨',
-                              approved: '승인',
-                              rejected: '반려',
-                              completed: '완료',
-                            }
-                            return m[s] || s || '-'
-                          })(String(r.status || ''))}
-                        </TableCell>
-                        <TableCell>
-                          {Number.isFinite(Number(r.worker_count))
-                            ? Number(r.worker_count)
-                            : Number.isFinite(Number(r.total_workers))
-                              ? Number(r.total_workers)
-                              : 0}
-                        </TableCell>
-                        <TableCell>
-                          {Number.isFinite(Number(r.document_count)) ? Number(r.document_count) : 0}
-                        </TableCell>
-                        <TableCell>
-                          {Number.isFinite(Number(r.total_manhours))
-                            ? Number(r.total_manhours).toFixed(1)
-                            : '0.0'}{' '}
-                          공수
+                  </TableHeader>
+                  <TableBody>
+                    {recentReports.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="text-center text-sm text-muted-foreground py-8"
+                        >
+                          표시할 작업일지가 없습니다.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      recentReports.map((r: any) => (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-medium text-foreground">
+                            {r.id ? (
+                              <a
+                                href={`/dashboard/admin/daily-reports/${r.id}`}
+                                className="underline text-blue-600"
+                                title="작업일지 상세 보기"
+                              >
+                                {r.work_date
+                                  ? new Date(r.work_date).toLocaleDateString('ko-KR')
+                                  : '-'}
+                              </a>
+                            ) : r.work_date ? (
+                              new Date(r.work_date).toLocaleDateString('ko-KR')
+                            ) : (
+                              '-'
+                            )}
+                          </TableCell>
+                          <TableCell>{r.member_name || r.profiles?.full_name || '-'}</TableCell>
+                          <TableCell>
+                            {((s: string) => {
+                              const m: Record<string, string> = {
+                                draft: '임시저장',
+                                submitted: '제출됨',
+                                approved: '승인',
+                                rejected: '반려',
+                                completed: '완료',
+                              }
+                              return m[s] || s || '-'
+                            })(String(r.status || ''))}
+                          </TableCell>
+                          <TableCell>
+                            {Number.isFinite(Number(r.worker_count))
+                              ? Number(r.worker_count)
+                              : Number.isFinite(Number(r.total_workers))
+                                ? Number(r.total_workers)
+                                : 0}
+                          </TableCell>
+                          <TableCell>
+                            {Number.isFinite(Number(r.document_count))
+                              ? Number(r.document_count)
+                              : 0}
+                          </TableCell>
+                          <TableCell>
+                            {Number.isFinite(Number(r.total_manhours))
+                              ? Number(r.total_manhours).toFixed(1)
+                              : '0.0'}{' '}
+                            공수
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                className="underline text-blue-600"
+                                onClick={() => {
+                                  try {
+                                    const d = r.work_date ? new Date(r.work_date) : null
+                                    const yyyy = d ? String(d.getFullYear()).padStart(4, '0') : ''
+                                    const mm = d ? String(d.getMonth() + 1).padStart(2, '0') : ''
+                                    const dd = d ? String(d.getDate()).padStart(2, '0') : ''
+                                    const ds = d ? `${yyyy}-${mm}-${dd}` : null
+                                    setPhotoDate(ds)
+                                  } catch {
+                                    /* noop */
+                                  }
+                                  onTabChange('photos')
+                                }}
+                                title="사진 탭으로 이동"
+                              >
+                                사진보기
+                              </button>
+                              <a
+                                href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}
+                                className="underline text-blue-600"
+                                title="사진대지 리포트 보기"
+                              >
+                                사진대지
+                              </a>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </section>
 
@@ -442,60 +890,178 @@ export default function SiteDetailTabs({
           <section>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold text-muted-foreground">배정 작업자</h3>
-              <Button asChild variant="ghost" size="sm">
-                <a href={`/dashboard/admin/assignment?site_id=${siteId}`}>더 보기</a>
-              </Button>
+              <div className="flex items-center gap-2">
+                {typeof availableCount === 'number' && (
+                  <span className="text-xs text-muted-foreground">
+                    가용 인원: <span className="font-medium text-foreground">{availableCount}</span>
+                  </span>
+                )}
+                <Button asChild variant="secondary" size="sm">
+                  <a href={`/dashboard/admin/sites/${siteId}/assign`}>사용자 배정</a>
+                </Button>
+                <Button asChild variant="ghost" size="sm">
+                  <a href={`/dashboard/admin/assignment?site_id=${siteId}`}>더 보기</a>
+                </Button>
+              </div>
             </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>이름</TableHead>
-                    <TableHead>소속</TableHead>
-                    <TableHead>역할</TableHead>
-                    <TableHead>공수</TableHead>
-                    <TableHead>배정일</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentAssignments.length === 0 ? (
-                    <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center text-sm text-muted-foreground py-10"
-                      >
-                        배정된 사용자가 없습니다.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    recentAssignments.map((a: any) => (
-                      <TableRow key={a.id}>
-                        <TableCell className="font-medium text-foreground">
-                          <a
-                            href={`/dashboard/admin/users/${a.user_id}`}
-                            className="underline text-blue-600 hover:underline"
-                            title="사용자 상세 보기"
-                          >
-                            {a.profile?.full_name || a.user_id}
-                          </a>
-                        </TableCell>
-                        <TableCell>{a.profile?.organization?.name || '-'}</TableCell>
-                        <TableCell>{a.role || '-'}</TableCell>
-                        <TableCell>
-                          {Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수
-                        </TableCell>
-                        <TableCell>
-                          {a.assigned_date
-                            ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
-                            : '-'}
-                        </TableCell>
+              {/* Quick filter/sort (overview section) */}
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  value={assignmentQuery}
+                  onChange={e => setAssignmentQuery(e.target.value)}
+                  placeholder="이름/소속/역할 검색"
+                  className="w-48 rounded border px-3 py-1.5 text-sm"
+                />
+                <select
+                  value={assignmentRole}
+                  onChange={e => setAssignmentRole(e.target.value as any)}
+                  className="rounded border px-2 py-1.5 text-sm"
+                  aria-label="역할 필터"
+                >
+                  <option value="all">전체 역할</option>
+                  <option value="worker">작업자</option>
+                  <option value="site_manager">현장관리자</option>
+                  <option value="supervisor">감리/감독</option>
+                </select>
+                <select
+                  value={assignmentSort}
+                  onChange={e => setAssignmentSort(e.target.value as any)}
+                  className="rounded border px-2 py-1.5 text-sm"
+                  aria-label="정렬"
+                >
+                  <option value="date_desc">배정일 최신순</option>
+                  <option value="date_asc">배정일 오래된순</option>
+                  <option value="name_asc">이름 오름차순</option>
+                  <option value="name_desc">이름 내림차순</option>
+                  <option value="role">역할</option>
+                  <option value="company">소속</option>
+                  <option value="labor_desc">공수 많은순</option>
+                  <option value="labor_asc">공수 적은순</option>
+                </select>
+              </div>
+              {assignmentsLoading && recentAssignments.length === 0 ? (
+                <TableSkeleton rows={5} />
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>이름</TableHead>
+                        <TableHead>소속</TableHead>
+                        <TableHead>역할</TableHead>
+                        <TableHead>현장 공수</TableHead>
+                        <TableHead>전체 공수</TableHead>
+                        <TableHead>배정일</TableHead>
+                        <TableHead>작업</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredAndSortedAssignments(
+                        recentAssignments,
+                        laborByUser,
+                        assignmentQuery,
+                        assignmentSort,
+                        assignmentRole
+                      ).length === 0 ? (
+                        <TableRow>
+                          <TableCell
+                            colSpan={7}
+                            className="text-center text-sm text-muted-foreground py-10"
+                          >
+                            배정된 사용자가 없습니다.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredAndSortedAssignments(
+                          recentAssignments,
+                          laborByUser,
+                          assignmentQuery,
+                          assignmentSort,
+                          assignmentRole
+                        ).map((a: any, idx: number) => (
+                          <TableRow key={`${a?.id ?? a?.user_id ?? 'assign'}-${idx}`}>
+                            <TableCell className="font-medium text-foreground">
+                              <a
+                                href={`/dashboard/admin/users/${a.user_id}`}
+                                className="underline text-blue-600 hover:underline"
+                                title="사용자 상세 보기"
+                              >
+                                {a.profile?.full_name || a.user_id}
+                              </a>
+                            </TableCell>
+                            <TableCell>{a.profile?.organization?.name || '-'}</TableCell>
+                            <TableCell>{a.role || '-'}</TableCell>
+                            <TableCell>
+                              {Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수
+                            </TableCell>
+                            <TableCell>
+                              {Math.max(0, globalLaborByUser[a.user_id] ?? 0).toFixed(1)} 공수
+                            </TableCell>
+                            <TableCell>
+                              {a.assigned_date
+                                ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
+                                : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <button
+                                type="button"
+                                className="text-xs underline text-red-600"
+                                onClick={async () => {
+                                  try {
+                                    const res = await fetch(
+                                      `/api/admin/sites/${siteId}/workers/unassign`,
+                                      {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ worker_id: a.user_id }),
+                                      }
+                                    )
+                                    const j = await res.json().catch(() => ({}))
+                                    if (!res.ok || j?.error)
+                                      throw new Error(j?.error || '제외 실패')
+                                    if (typeof window !== 'undefined') window.location.reload()
+                                  } catch {
+                                    alert('제외 중 오류가 발생했습니다.')
+                                  }
+                                }}
+                              >
+                                제외
+                              </button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                  {(() => {
+                    const rows = filteredAndSortedAssignments(
+                      recentAssignments,
+                      laborByUser,
+                      assignmentQuery,
+                      assignmentSort,
+                      assignmentRole
+                    )
+                    if (rows.length === 0) return null
+                    const totalSite = rows.reduce(
+                      (s, a: any) => s + Math.max(0, Number(laborByUser[a.user_id] ?? 0)),
+                      0
+                    )
+                    const totalGlobal = rows.reduce(
+                      (s, a: any) => s + Math.max(0, Number(globalLaborByUser[a.user_id] ?? 0)),
+                      0
+                    )
+                    return (
+                      <div className="mt-2 text-xs text-muted-foreground text-right">
+                        합계: 현장 공수 {totalSite.toFixed(1)} / 전체 공수 {totalGlobal.toFixed(1)}
+                      </div>
+                    )
+                  })()}
+                </>
+              )}
             </div>
           </section>
+          {/* AssignUsersDialog removed in favor of dedicated page */}
 
           {/* 최근 자재 요청 */}
           <section>
@@ -506,51 +1072,175 @@ export default function SiteDetailTabs({
               </Button>
             </div>
             <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>요청번호</TableHead>
-                    <TableHead>요청자</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead>요청일</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentRequests.length === 0 ? (
+              {requestsLoading && recentRequests.length === 0 ? (
+                <TableSkeleton rows={5} />
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={4}
-                        className="text-center text-sm text-muted-foreground py-10"
-                      >
-                        요청 내역이 없습니다.
-                      </TableCell>
+                      <TableHead>요청번호</TableHead>
+                      <TableHead>요청자</TableHead>
+                      <TableHead>상태</TableHead>
+                      <TableHead>요청일</TableHead>
                     </TableRow>
-                  ) : (
-                    recentRequests.map((rq: any) => (
-                      <TableRow key={rq.id}>
-                        <TableCell className="font-medium text-foreground">
-                          {rq.request_number || rq.id}
-                        </TableCell>
-                        <TableCell>{rq.requester?.full_name || '-'}</TableCell>
-                        <TableCell>{rq.status || '-'}</TableCell>
-                        <TableCell>
-                          {rq.request_date
-                            ? new Date(rq.request_date).toLocaleDateString('ko-KR')
-                            : '-'}
+                  </TableHeader>
+                  <TableBody>
+                    {recentRequests.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="text-center text-sm text-muted-foreground py-10"
+                        >
+                          요청 내역이 없습니다.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ) : (
+                      recentRequests.map((rq: any, idx: number) => (
+                        <TableRow key={`${rq?.id ?? rq?.request_number ?? 'req'}-${idx}`}>
+                          <TableCell className="font-medium text-foreground">
+                            {rq.request_number || rq.id}
+                          </TableCell>
+                          <TableCell>{rq.requester?.full_name || rq.requested_by || '-'}</TableCell>
+                          <TableCell>{rq.status || '-'}</TableCell>
+                          <TableCell>
+                            {rq.request_date
+                              ? new Date(rq.request_date).toLocaleDateString('ko-KR')
+                              : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </section>
+        </TabsContent>
+
+        {/* Reports Tab moved above (inside Tabs) */}
+
+        {/* Reports Tab (moved inside Tabs) */}
+        <TabsContent value="reports" className="mt-4">
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>작업일자</TableHead>
+                  <TableHead>작성자</TableHead>
+                  <TableHead>상태</TableHead>
+                  <TableHead>인원</TableHead>
+                  <TableHead>문서</TableHead>
+                  <TableHead>공수</TableHead>
+                  <TableHead>바로가기</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentReports.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="text-center text-sm text-muted-foreground py-8"
+                    >
+                      표시할 작업일지가 없습니다.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  recentReports.map((r: any) => (
+                    <TableRow key={r.id}>
+                      <TableCell className="font-medium text-foreground">
+                        {r.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-'}
+                      </TableCell>
+                      <TableCell>{r.member_name || r.profiles?.full_name || '-'}</TableCell>
+                      <TableCell>
+                        {(() => {
+                          const m: Record<string, string> = {
+                            draft: '임시저장',
+                            submitted: '제출됨',
+                            approved: '승인',
+                            rejected: '반려',
+                            completed: '완료',
+                          }
+                          return m[String(r.status || '')] || String(r.status || '-')
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        {Number.isFinite(Number(r.worker_count))
+                          ? Number(r.worker_count)
+                          : Number.isFinite(Number(r.total_workers))
+                            ? Number(r.total_workers)
+                            : 0}
+                      </TableCell>
+                      <TableCell>
+                        {Number.isFinite(Number(r.document_count)) ? Number(r.document_count) : 0}
+                      </TableCell>
+                      <TableCell>
+                        {Number.isFinite(Number(r.total_manhours))
+                          ? Number(r.total_manhours).toFixed(1)
+                          : '0.0'}{' '}
+                        공수
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="underline text-blue-600"
+                            onClick={() => {
+                              try {
+                                const d = r.work_date ? new Date(r.work_date) : null
+                                const yyyy = d ? String(d.getFullYear()).padStart(4, '0') : ''
+                                const mm = d ? String(d.getMonth() + 1).padStart(2, '0') : ''
+                                const dd = d ? String(d.getDate()).padStart(2, '0') : ''
+                                const ds = d ? `${yyyy}-${mm}-${dd}` : null
+                                setPhotoDate(ds)
+                              } catch {
+                                /* noop */
+                              }
+                              onTabChange('photos')
+                            }}
+                            title="사진 탭으로 이동"
+                          >
+                            사진보기
+                          </button>
+                          <a
+                            href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}
+                            className="underline text-blue-600"
+                            title="사진대지 리포트 보기"
+                          >
+                            사진대지
+                          </a>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </TabsContent>
 
         {/* Documents Tab */}
         <TabsContent value="documents" className="mt-4">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-sm text-muted-foreground">현장 문서 최신 50개</div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">필터:</span>
+              {(
+                [
+                  { key: 'all', label: '전체' },
+                  { key: 'ptw', label: 'PTW' },
+                  { key: 'blueprint', label: '공도면' },
+                  { key: 'shared', label: '공유' },
+                ] as const
+              ).map(opt => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setDocFilter(opt.key)}
+                  className={`px-2 py-1 text-xs rounded border ${docFilter === opt.key ? 'bg-gray-100 border-gray-400' : 'border-gray-300 hover:bg-gray-50'}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
             <Button asChild variant="secondary" size="sm">
               <a href={`/dashboard/admin/sites/${siteId}/documents`}>전체 보기</a>
             </Button>
@@ -566,18 +1256,34 @@ export default function SiteDetailTabs({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {initialDocs.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-10"
+                {(() => {
+                  const docs = (initialDocs || []).filter((d: any) => {
+                    if (docFilter === 'all') return true
+                    const category = String(d?.category_type || '')
+                    const docType = String(d?.document_type || '')
+                    const sub = String(d?.sub_category || '')
+                    if (docFilter === 'ptw')
+                      return docType === 'ptw' || sub === 'safety_certificate' || category === 'ptw'
+                    if (docFilter === 'blueprint') return category === 'blueprint'
+                    if (docFilter === 'shared') return category === 'shared'
+                    return true
+                  })
+                  if (docs.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell
+                          colSpan={4}
+                          className="text-center text-sm text-muted-foreground py-10"
+                        >
+                          표시할 문서가 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    )
+                  }
+                  return docs.map((d: any, idx: number) => (
+                    <TableRow
+                      key={`${d?.id ?? d?.document_id ?? d?.file_id ?? d?.url ?? 'doc'}-${idx}`}
                     >
-                      표시할 문서가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  initialDocs.map((d: any) => (
-                    <TableRow key={d.id}>
                       <TableCell>
                         {(() => {
                           const raw = d.created_at || d.uploadDate || d.createdAt
@@ -599,9 +1305,8 @@ export default function SiteDetailTabs({
                         </a>
                       </TableCell>
                       <TableCell>
-                        {d?.category_type || d?.categoryType
-                          ? CATEGORY_LABELS[String(d.category_type || d.categoryType)] ||
-                            String(d.category_type || d.categoryType)
+                        {d?.category_type
+                          ? CATEGORY_LABELS[String(d.category_type)] || String(d.category_type)
                           : '-'}
                       </TableCell>
                       <TableCell>
@@ -609,9 +1314,834 @@ export default function SiteDetailTabs({
                       </TableCell>
                     </TableRow>
                   ))
-                )}
+                })()}
               </TableBody>
             </Table>
+          </div>
+        </TabsContent>
+
+        {/* Assignments Tab */}
+        <TabsContent value="assignments" className="mt-4">
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <input
+                  value={assignmentQuery}
+                  onChange={e => setAssignmentQuery(e.target.value)}
+                  placeholder="이름/이메일/소속/역할 검색"
+                  className="w-64 rounded border px-3 py-2 text-sm"
+                />
+                <select
+                  value={assignmentRole}
+                  onChange={e => setAssignmentRole(e.target.value as any)}
+                  className="rounded border px-2 py-2 text-sm"
+                  aria-label="역할 필터"
+                >
+                  <option value="all">전체 역할</option>
+                  <option value="worker">작업자</option>
+                  <option value="site_manager">현장관리자</option>
+                  <option value="supervisor">감리/감독</option>
+                </select>
+                <select
+                  value={assignmentSort}
+                  onChange={e => setAssignmentSort(e.target.value as any)}
+                  className="rounded border px-2 py-2 text-sm"
+                  aria-label="정렬"
+                >
+                  <option value="date_desc">배정일 최신순</option>
+                  <option value="date_asc">배정일 오래된순</option>
+                  <option value="name_asc">이름 오름차순</option>
+                  <option value="name_desc">이름 내림차순</option>
+                  <option value="role">역할</option>
+                  <option value="company">소속</option>
+                  <option value="labor_desc">공수 많은순</option>
+                  <option value="labor_asc">공수 적은순</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-3">
+                {typeof availableCount === 'number' && (
+                  <span className="text-xs text-muted-foreground">
+                    가용 인원: <span className="font-medium text-foreground">{availableCount}</span>
+                  </span>
+                )}
+                <Button asChild variant="outline" size="sm">
+                  <a
+                    href={(() => {
+                      const p = new URLSearchParams()
+                      if (assignmentQuery.trim()) p.set('q', assignmentQuery.trim())
+                      if (assignmentRole !== 'all') p.set('role', assignmentRole)
+                      let sort: 'name' | 'role' | 'company' | 'date' = 'date'
+                      let order: 'asc' | 'desc' = 'desc'
+                      switch (assignmentSort) {
+                        case 'name_asc':
+                          sort = 'name'
+                          order = 'asc'
+                          break
+                        case 'name_desc':
+                          sort = 'name'
+                          order = 'desc'
+                          break
+                        case 'role':
+                          sort = 'role'
+                          order = 'asc'
+                          break
+                        case 'company':
+                          sort = 'company'
+                          order = 'asc'
+                          break
+                        case 'date_asc':
+                          sort = 'date'
+                          order = 'asc'
+                          break
+                        default:
+                          sort = 'date'
+                          order = 'desc'
+                      }
+                      p.set('sort', sort)
+                      p.set('order', order)
+                      return `/api/admin/sites/${siteId}/assignments/export?${p.toString()}`
+                    })()}
+                  >
+                    엑셀 다운로드
+                  </a>
+                </Button>
+                <Button asChild variant="secondary" size="sm">
+                  <a href={`/dashboard/admin/sites/${siteId}/assign`}>사용자 배정</a>
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-muted-foreground">
+                {typeof assignTotal === 'number' && <span>총 {assignTotal}건</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">페이지 크기</label>
+                <select
+                  value={assignPageSize}
+                  onChange={e => {
+                    setAssignPage(0)
+                    setAssignPageSize(Number(e.target.value))
+                  }}
+                  className="rounded border px-2 py-1 text-xs"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+            {assignmentsLoading && recentAssignments.length === 0 ? (
+              <TableSkeleton rows={6} />
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>이름</TableHead>
+                      <TableHead>소속</TableHead>
+                      <TableHead>역할</TableHead>
+                      <TableHead>현장 공수</TableHead>
+                      <TableHead>전체 공수</TableHead>
+                      <TableHead>배정일</TableHead>
+                      <TableHead>작업</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const rows = filteredAndSortedAssignments(
+                        recentAssignments,
+                        laborByUser,
+                        assignmentQuery,
+                        assignmentSort,
+                        assignmentRole
+                      )
+                      if (rows.length === 0) {
+                        return (
+                          <TableRow>
+                            <TableCell
+                              colSpan={7}
+                              className="text-center text-sm text-muted-foreground py-10"
+                            >
+                              배정된 사용자가 없습니다.
+                            </TableCell>
+                          </TableRow>
+                        )
+                      }
+                      return rows.map((a: any, idx: number) => (
+                        <TableRow key={`${a?.id ?? a?.user_id ?? 'assign'}-${idx}`}>
+                          <TableCell className="font-medium text-foreground">
+                            <a
+                              href={`/dashboard/admin/users/${a.user_id}`}
+                              className="underline text-blue-600 hover:underline"
+                              title="사용자 상세 보기"
+                            >
+                              {a.profile?.full_name || a.user_id}
+                            </a>
+                          </TableCell>
+                          <TableCell>{a.profile?.organization?.name || '-'}</TableCell>
+                          <TableCell>{a.role || '-'}</TableCell>
+                          <TableCell>
+                            {Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수
+                          </TableCell>
+                          <TableCell>
+                            {Math.max(0, globalLaborByUser[a.user_id] ?? 0).toFixed(1)} 공수
+                          </TableCell>
+                          <TableCell>
+                            {a.assigned_date
+                              ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
+                              : '-'}
+                          </TableCell>
+                          <TableCell>
+                            <button
+                              type="button"
+                              className="text-xs underline text-red-600"
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(
+                                    `/api/admin/sites/${siteId}/workers/unassign`,
+                                    {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ worker_id: a.user_id }),
+                                    }
+                                  )
+                                  const j = await res.json().catch(() => ({}))
+                                  if (!res.ok || j?.error) throw new Error(j?.error || '제외 실패')
+                                  if (typeof window !== 'undefined') window.location.reload()
+                                } catch {
+                                  alert('제외 중 오류가 발생했습니다.')
+                                }
+                              }}
+                            >
+                              제외
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    })()}
+                  </TableBody>
+                </Table>
+                {(() => {
+                  const rows = filteredAndSortedAssignments(
+                    recentAssignments,
+                    laborByUser,
+                    assignmentQuery,
+                    assignmentSort,
+                    assignmentRole
+                  )
+                  if (rows.length === 0) return null
+                  const totalSite = rows.reduce(
+                    (s, a: any) => s + Math.max(0, Number(laborByUser[a.user_id] ?? 0)),
+                    0
+                  )
+                  const totalGlobal = rows.reduce(
+                    (s, a: any) => s + Math.max(0, Number(globalLaborByUser[a.user_id] ?? 0)),
+                    0
+                  )
+                  return (
+                    <div className="mt-2 text-xs text-muted-foreground text-right">
+                      합계: 현장 공수 {totalSite.toFixed(1)} / 전체 공수 {totalGlobal.toFixed(1)}
+                    </div>
+                  )
+                })()}
+              </>
+            )}
+          </div>
+          <div className="flex items-center justify-end gap-2 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAssignPage(0)}
+              disabled={assignPage === 0}
+            >
+              처음
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAssignPage(p => Math.max(0, p - 1))}
+              disabled={assignPage === 0}
+            >
+              이전
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              페이지 {assignPage + 1}
+              {typeof assignTotal === 'number' && assignPageSize > 0
+                ? ` / ${Math.max(1, Math.ceil(assignTotal / assignPageSize))}`
+                : ''}
+            </span>
+            <input
+              type="number"
+              min={1}
+              className="w-16 rounded border px-2 py-1 text-xs"
+              placeholder="이동"
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const val = Number((e.target as HTMLInputElement).value)
+                  if (Number.isFinite(val) && val >= 1) {
+                    const pageZero = val - 1
+                    if (typeof assignTotal === 'number' && assignPageSize > 0) {
+                      const last = Math.max(0, Math.ceil(assignTotal / assignPageSize) - 1)
+                      setAssignPage(Math.min(last, pageZero))
+                    } else {
+                      setAssignPage(pageZero)
+                    }
+                  }
+                }
+              }}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAssignPage(p => p + 1)}
+              disabled={!assignHasNext}
+            >
+              다음
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (typeof assignTotal === 'number' && assignPageSize > 0) {
+                  const last = Math.max(0, Math.ceil(assignTotal / assignPageSize) - 1)
+                  setAssignPage(last)
+                }
+              }}
+              disabled={
+                !(
+                  typeof assignTotal === 'number' &&
+                  assignPageSize > 0 &&
+                  assignPage + 1 < Math.ceil((assignTotal || 0) / assignPageSize)
+                )
+              }
+            >
+              끝
+            </Button>
+          </div>
+          {/* AssignUsersDialog removed in favor of dedicated page */}
+        </TabsContent>
+
+        {/* Materials Tab */}
+        <TabsContent value="materials" className="mt-4">
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <input
+                  value={materialsQuery}
+                  onChange={e => setMaterialsQuery(e.target.value)}
+                  placeholder="요청번호/요청자 검색"
+                  className="w-64 rounded border px-3 py-2 text-sm"
+                />
+                <select
+                  value={materialsStatus}
+                  onChange={e => setMaterialsStatus(e.target.value as any)}
+                  className="rounded border px-2 py-2 text-sm"
+                >
+                  <option value="all">전체 상태</option>
+                  <option value="pending">대기</option>
+                  <option value="approved">승인</option>
+                  <option value="rejected">반려</option>
+                  <option value="fulfilled">완료</option>
+                  <option value="cancelled">취소</option>
+                </select>
+                <select
+                  value={materialsSort}
+                  onChange={e => setMaterialsSort(e.target.value as any)}
+                  className="rounded border px-2 py-2 text-sm"
+                >
+                  <option value="date_desc">요청일 최신순</option>
+                  <option value="date_asc">요청일 오래된순</option>
+                  <option value="status">상태</option>
+                  <option value="number">요청번호</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button asChild variant="ghost" size="sm">
+                  <a href={`/dashboard/admin/materials?tab=requests&site_id=${siteId}`}>
+                    자재관리로 이동
+                  </a>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <a
+                    href={(() => {
+                      const p = new URLSearchParams()
+                      if (materialsQuery.trim()) p.set('q', materialsQuery.trim())
+                      if (materialsStatus !== 'all') p.set('status', materialsStatus)
+                      let sort: 'date' | 'status' | 'number' = 'date'
+                      let order: 'asc' | 'desc' = 'desc'
+                      switch (materialsSort) {
+                        case 'date_asc':
+                          sort = 'date'
+                          order = 'asc'
+                          break
+                        case 'status':
+                          sort = 'status'
+                          order = 'asc'
+                          break
+                        case 'number':
+                          sort = 'number'
+                          order = 'asc'
+                          break
+                        default:
+                          sort = 'date'
+                          order = 'desc'
+                      }
+                      p.set('sort', sort)
+                      p.set('order', order)
+                      return `/api/admin/sites/${siteId}/materials/requests/export?${p.toString()}`
+                    })()}
+                  >
+                    엑셀 다운로드
+                  </a>
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-muted-foreground">
+                {typeof reqTotal === 'number' && <span>총 {reqTotal}건</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">페이지 크기</label>
+                <select
+                  value={reqPageSize}
+                  onChange={e => {
+                    setReqPage(0)
+                    setReqPageSize(Number(e.target.value))
+                  }}
+                  className="rounded border px-2 py-1 text-xs"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+            {requestsLoading && reqRows.length === 0 ? (
+              <TableSkeleton rows={6} />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>요청번호</TableHead>
+                    <TableHead>요청자</TableHead>
+                    <TableHead>상태</TableHead>
+                    <TableHead>요청일</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    const rows = reqRows
+                    if (rows.length === 0) {
+                      return (
+                        <TableRow>
+                          <TableCell
+                            colSpan={4}
+                            className="text-center text-sm text-muted-foreground py-10"
+                          >
+                            요청 내역이 없습니다.
+                          </TableCell>
+                        </TableRow>
+                      )
+                    }
+                    return rows.map((rq: any, idx: number) => (
+                      <TableRow key={`${rq?.id ?? rq?.request_number ?? 'req'}-${idx}`}>
+                        <TableCell className="font-medium text-foreground">
+                          <a
+                            href={`/dashboard/admin/materials/requests/${rq.id}`}
+                            className="underline text-blue-600"
+                            title="요청 상세 보기"
+                          >
+                            {rq.request_number || rq.id}
+                          </a>
+                        </TableCell>
+                        <TableCell>{rq.requester?.full_name || rq.requested_by || '-'}</TableCell>
+                        <TableCell>{rq.status || '-'}</TableCell>
+                        <TableCell>
+                          {rq.request_date
+                            ? new Date(rq.request_date).toLocaleDateString('ko-KR')
+                            : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  })()}
+                </TableBody>
+              </Table>
+            )}
+            <div className="flex items-center justify-end gap-2 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReqPage(p => Math.max(0, p - 1))}
+                disabled={reqPage === 0}
+              >
+                이전
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                페이지 {reqPage + 1}
+                {typeof reqTotal === 'number' && reqPageSize > 0
+                  ? ` / ${Math.max(1, Math.ceil(reqTotal / reqPageSize))}`
+                  : ''}
+              </span>
+              <input
+                type="number"
+                min={1}
+                className="w-16 rounded border px-2 py-1 text-xs"
+                placeholder="이동"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const val = Number((e.target as HTMLInputElement).value)
+                    if (Number.isFinite(val) && val >= 1) {
+                      const pageZero = val - 1
+                      if (typeof reqTotal === 'number' && reqPageSize > 0) {
+                        const last = Math.max(0, Math.ceil(reqTotal / reqPageSize) - 1)
+                        setReqPage(Math.min(last, pageZero))
+                      } else {
+                        setReqPage(pageZero)
+                      }
+                    }
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setReqPage(p => p + 1)}
+                disabled={!reqHasNext}
+              >
+                다음
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (typeof reqTotal === 'number' && reqPageSize > 0) {
+                    const last = Math.max(0, Math.ceil(reqTotal / reqPageSize) - 1)
+                    setReqPage(last)
+                  }
+                }}
+                disabled={
+                  !(
+                    typeof reqTotal === 'number' &&
+                    reqPageSize > 0 &&
+                    reqPage + 1 < Math.ceil((reqTotal || 0) / reqPageSize)
+                  )
+                }
+              >
+                끝
+              </Button>
+            </div>
+          </div>
+
+          {/* Inventory snapshot */}
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">재고 스냅샷</h3>
+              <div className="flex items-center gap-2">
+                <input
+                  value={invQuery}
+                  onChange={e => setInvQuery(e.target.value)}
+                  placeholder="자재명/코드 검색"
+                  className="w-56 rounded border px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+            {invLoading && inventory.length === 0 ? (
+              <TableSkeleton rows={5} />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>자재</TableHead>
+                    <TableHead>코드</TableHead>
+                    <TableHead className="text-right">수량</TableHead>
+                    <TableHead>단위</TableHead>
+                    <TableHead>업데이트</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    const q = invQuery.trim().toLowerCase()
+                    const rows = (Array.isArray(inventory) ? inventory : []).filter((it: any) => {
+                      if (!q) return true
+                      const name = String(it?.materials?.name || '').toLowerCase()
+                      const code = String(it?.materials?.code || '').toLowerCase()
+                      return name.includes(q) || code.includes(q)
+                    })
+                    if (rows.length === 0) {
+                      return (
+                        <TableRow>
+                          <TableCell
+                            colSpan={5}
+                            className="text-center text-sm text-muted-foreground py-10"
+                          >
+                            재고 데이터가 없습니다.
+                          </TableCell>
+                        </TableRow>
+                      )
+                    }
+                    return rows.map((it: any) => (
+                      <TableRow key={it.id}>
+                        <TableCell className="font-medium text-foreground">
+                          {it.materials?.code ? (
+                            <a
+                              href={`/dashboard/admin/materials?tab=inventory&search=${encodeURIComponent(it.materials.code)}&site_id=${siteId}`}
+                              className="underline text-blue-600"
+                              title="자재관리 인벤토리로 이동"
+                            >
+                              {it.materials?.name || '-'}
+                            </a>
+                          ) : (
+                            it.materials?.name || '-'
+                          )}
+                        </TableCell>
+                        <TableCell>{it.materials?.code || '-'}</TableCell>
+                        <TableCell className="text-right">{Number(it.quantity ?? 0)}</TableCell>
+                        <TableCell>{it.materials?.unit || '-'}</TableCell>
+                        <TableCell>
+                          {it.last_updated
+                            ? new Date(it.last_updated).toLocaleDateString('ko-KR')
+                            : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  })()}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          {/* Recent shipments */}
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">최근 출고</h3>
+              <div className="flex items-center gap-2">
+                <input
+                  value={shipQuery}
+                  onChange={e => setShipQuery(e.target.value)}
+                  placeholder="출고번호/상태 검색"
+                  className="w-56 rounded border px-3 py-2 text-sm"
+                />
+                <Button asChild variant="ghost" size="sm">
+                  <a href={`/dashboard/admin/materials?tab=shipments&site_id=${siteId}`}>
+                    출고 전체 보기
+                  </a>
+                </Button>
+              </div>
+            </div>
+            {shipLoading && shipments.length === 0 ? (
+              <TableSkeleton rows={5} />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>출고번호</TableHead>
+                    <TableHead>상태</TableHead>
+                    <TableHead>출고일</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    const q = shipQuery.trim().toLowerCase()
+                    const rows = (Array.isArray(shipments) ? shipments : []).filter((s: any) => {
+                      if (!q) return true
+                      const num = String(s?.shipment_number || s?.id || '').toLowerCase()
+                      const st = String(s?.status || '').toLowerCase()
+                      return num.includes(q) || st.includes(q)
+                    })
+                    if (rows.length === 0) {
+                      return (
+                        <TableRow>
+                          <TableCell
+                            colSpan={3}
+                            className="text-center text-sm text-muted-foreground py-10"
+                          >
+                            최근 출고 내역이 없습니다.
+                          </TableCell>
+                        </TableRow>
+                      )
+                    }
+                    return rows.map((s: any) => (
+                      <TableRow key={s.id}>
+                        <TableCell className="font-medium text-foreground">
+                          <a
+                            href={`/dashboard/admin/materials/shipments/${s.id}`}
+                            className="underline text-blue-600"
+                          >
+                            {s.shipment_number || s.id}
+                          </a>
+                        </TableCell>
+                        <TableCell>{s.status || '-'}</TableCell>
+                        <TableCell>
+                          {s.shipment_date
+                            ? new Date(s.shipment_date).toLocaleDateString('ko-KR')
+                            : '-'}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  })()}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          {/* Recent transactions */}
+          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">최근 입출고</h3>
+              <div className="flex items-center gap-2">
+                <input
+                  value={txnQuery}
+                  onChange={e => {
+                    setTxnPage(0)
+                    setTxnQuery(e.target.value)
+                  }}
+                  placeholder="자재명/코드 검색"
+                  className="w-56 rounded border px-3 py-2 text-sm"
+                />
+                <Button asChild variant="ghost" size="sm">
+                  <a href={`/dashboard/admin/materials?tab=inventory&site_id=${siteId}`}>
+                    입출고 전체 보기
+                  </a>
+                </Button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs text-muted-foreground">
+                {typeof txnTotal === 'number' && <span>총 {txnTotal}건</span>}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted-foreground">페이지 크기</label>
+                <select
+                  value={txnPageSize}
+                  onChange={e => {
+                    setTxnPage(0)
+                    setTxnPageSize(Number(e.target.value))
+                  }}
+                  className="rounded border px-2 py-1 text-xs"
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+            {txnLoading && transactions.length === 0 ? (
+              <TableSkeleton rows={5} />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>일자</TableHead>
+                    <TableHead>유형</TableHead>
+                    <TableHead>자재</TableHead>
+                    <TableHead className="text-right">수량</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    const rows = transactions
+                    if (rows.length === 0) {
+                      return (
+                        <TableRow>
+                          <TableCell
+                            colSpan={4}
+                            className="text-center text-sm text-muted-foreground py-10"
+                          >
+                            최근 입출고 내역이 없습니다.
+                          </TableCell>
+                        </TableRow>
+                      )
+                    }
+                    return rows.map((t: any) => (
+                      <TableRow key={t.id}>
+                        <TableCell className="font-medium text-foreground">
+                          {t.transaction_date
+                            ? new Date(t.transaction_date).toLocaleDateString('ko-KR')
+                            : '-'}
+                        </TableCell>
+                        <TableCell>{t.transaction_type || '-'}</TableCell>
+                        <TableCell>
+                          {t.materials?.name || '-'}
+                          {t.materials?.code ? ` (${t.materials.code})` : ''}
+                        </TableCell>
+                        <TableCell className="text-right">{Number(t.quantity ?? 0)}</TableCell>
+                      </TableRow>
+                    ))
+                  })()}
+                </TableBody>
+              </Table>
+            )}
+            <div className="flex items-center justify-end gap-2 mt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTxnPage(0)}
+                disabled={txnPage === 0}
+              >
+                처음
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTxnPage(p => Math.max(0, p - 1))}
+                disabled={txnPage === 0}
+              >
+                이전
+              </Button>
+              <span className="text-xs text-muted-foreground">
+                페이지 {txnPage + 1}
+                {typeof txnTotal === 'number' && txnPageSize > 0
+                  ? ` / ${Math.max(1, Math.ceil(txnTotal / txnPageSize))}`
+                  : ''}
+              </span>
+              <input
+                type="number"
+                min={1}
+                className="w-16 rounded border px-2 py-1 text-xs"
+                placeholder="이동"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const val = Number((e.target as HTMLInputElement).value)
+                    if (Number.isFinite(val) && val >= 1) {
+                      const pageZero = val - 1
+                      if (typeof txnTotal === 'number' && txnPageSize > 0) {
+                        const last = Math.max(0, Math.ceil(txnTotal / txnPageSize) - 1)
+                        setTxnPage(Math.min(last, pageZero))
+                      } else {
+                        setTxnPage(pageZero)
+                      }
+                    }
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setTxnPage(p => p + 1)}
+                disabled={!txnHasNext}
+              >
+                다음
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (typeof txnTotal === 'number' && txnPageSize > 0) {
+                    const last = Math.max(0, Math.ceil(txnTotal / txnPageSize) - 1)
+                    setTxnPage(last)
+                  }
+                }}
+                disabled={
+                  !(
+                    typeof txnTotal === 'number' &&
+                    txnPageSize > 0 &&
+                    txnPage + 1 < Math.ceil((txnTotal || 0) / txnPageSize)
+                  )
+                }
+              >
+                끝
+              </Button>
+            </div>
           </div>
         </TabsContent>
 
@@ -623,8 +2153,11 @@ export default function SiteDetailTabs({
             <div className="text-sm text-muted-foreground">도면이 없습니다.</div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {drawings.map((d: any) => (
-                <div key={d.id} className="rounded border p-3">
+              {drawings.map((d: any, idx: number) => (
+                <div
+                  key={`${d?.id ?? d?.url ?? d?.title ?? 'drawing'}-${idx}`}
+                  className="rounded border p-3"
+                >
                   <div className="font-medium text-foreground truncate">{d.title || '도면'}</div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {(d.category === 'plan' && '공도면') ||
@@ -678,27 +2211,74 @@ export default function SiteDetailTabs({
           ) : photos.length === 0 ? (
             <div className="text-sm text-muted-foreground">사진이 없습니다.</div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-              {photos.map((p: any) => (
-                <a
-                  key={p.id}
-                  href={p.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block relative rounded overflow-hidden border h-28"
-                  title={p.title || 'photo'}
-                >
-                  <Image
-                    src={p.url}
-                    alt={p.title || 'photo'}
-                    fill
-                    sizes="(min-width: 1024px) 16vw, (min-width: 768px) 25vw, 50vw"
-                    className="object-cover"
-                    unoptimized
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm text-muted-foreground">현장 사진</div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="date"
+                    value={photoDate || ''}
+                    onChange={e => setPhotoDate(e.target.value || null)}
+                    className="rounded border px-2 py-1 text-xs"
                   />
-                </a>
-              ))}
-            </div>
+                  {photoDate && (
+                    <Button asChild variant="outline" size="sm">
+                      <a
+                        href={`/dashboard/admin/daily-reports?site_id=${siteId}&date=${photoDate}`}
+                      >
+                        연결된 작업일지
+                      </a>
+                    </Button>
+                  )}
+                  <Button asChild variant="ghost" size="sm">
+                    <a href={`/dashboard/admin/daily-reports?site_id=${siteId}`}>작업일지 목록</a>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm">
+                    <a href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}>
+                      사진대지 리포트
+                    </a>
+                  </Button>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                {photos
+                  .filter((p: any) => {
+                    if (!photoDate) return true
+                    const getDateStr = (v: any) => {
+                      try {
+                        const d = new Date(v || p?.created_at || p?.uploadDate)
+                        const yyyy = String(d.getFullYear()).padStart(4, '0')
+                        const mm = String(d.getMonth() + 1).padStart(2, '0')
+                        const dd = String(d.getDate()).padStart(2, '0')
+                        return `${yyyy}-${mm}-${dd}`
+                      } catch {
+                        return ''
+                      }
+                    }
+                    const ds = getDateStr(p?.created_at || p?.uploadDate)
+                    return ds === photoDate
+                  })
+                  .map((p: any, idx: number) => (
+                    <a
+                      key={`${p?.id ?? p?.url ?? 'photo'}-${idx}`}
+                      href={p.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block relative rounded overflow-hidden border h-28"
+                      title={p.title || 'photo'}
+                    >
+                      <Image
+                        src={p.url}
+                        alt={p.title || 'photo'}
+                        fill
+                        sizes="(min-width: 1024px) 16vw, (min-width: 768px) 25vw, 50vw"
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </a>
+                  ))}
+              </div>
+            </>
           )}
         </TabsContent>
 
@@ -732,21 +2312,130 @@ function buildDocPreviewHref(d: any): string {
   const docType = String(d?.document_type || d?.documentType || d?.metadata?.document_type || '')
   const url: string | undefined = d?.file_url || d?.fileUrl
   const mime: string | undefined = d?.mime_type || d?.mimeType
-  const isPreviewable =
-    !!url && (String(mime || '').startsWith('image/') || String(url).toLowerCase().endsWith('.pdf'))
-
-  // 1) 전용 뷰어 우선
+  // 1) 전용 뷰어 라우트 우선
   if (category === 'markup') return `/dashboard/admin/documents/markup/${d.id}`
   if (category === 'photo_grid') return `/dashboard/admin/documents/photo-grid/${d.id}`
 
-  // PTW 추정: 문서유형/하위유형/메타데이터로 식별
+  // PTW 추정: 문서유형/하위유형/메타데이터로 식별 → PTW 뷰어
   if (docType === 'ptw' || sub === 'safety_certificate' || category === 'ptw') {
     return `/dashboard/admin/documents/ptw/${d.id}`
   }
 
-  // 공도면(blueprint) 또는 기타: 파일 미리보기 가능하면 직접 오픈
-  if (isPreviewable) return url as string
-
-  // 폴백: 통합 문서 상세
+  // 기본: 통합 문서 뷰어 경로로 이동
   return `/dashboard/admin/documents/${d.id}`
+}
+
+// Helpers: filter/sort for assignments and requests
+function normalizeString(v: unknown): string {
+  return String(v ?? '').toLowerCase()
+}
+
+function filteredAndSortedAssignments(
+  items: any[],
+  laborMap: Record<string, number>,
+  query: string,
+  sort:
+    | 'name_asc'
+    | 'name_desc'
+    | 'role'
+    | 'company'
+    | 'date_desc'
+    | 'date_asc'
+    | 'labor_desc'
+    | 'labor_asc',
+  roleFilter: 'all' | 'worker' | 'site_manager' | 'supervisor'
+): any[] {
+  const q = query.trim().toLowerCase()
+  let rows = Array.isArray(items) ? [...items] : []
+  if (q) {
+    rows = rows.filter(a => {
+      const fields = [
+        a?.profile?.full_name,
+        a?.profile?.email,
+        a?.profile?.organization?.name,
+        a?.role,
+      ].map(normalizeString)
+      return fields.some(f => f.includes(q))
+    })
+  }
+  // Role filter
+  if (roleFilter !== 'all') {
+    rows = rows.filter(a => normalizeString(a?.role) === roleFilter)
+  }
+
+  rows.sort((a, b) => {
+    const nameA = normalizeString(a?.profile?.full_name)
+    const nameB = normalizeString(b?.profile?.full_name)
+    const roleA = normalizeString(a?.role)
+    const roleB = normalizeString(b?.role)
+    const compA = normalizeString(a?.profile?.organization?.name)
+    const compB = normalizeString(b?.profile?.organization?.name)
+    const dateA = a?.assigned_date ? new Date(a.assigned_date).getTime() : 0
+    const dateB = b?.assigned_date ? new Date(b.assigned_date).getTime() : 0
+    const laborA = Number.isFinite(Number(laborMap[a?.user_id])) ? Number(laborMap[a.user_id]) : 0
+    const laborB = Number.isFinite(Number(laborMap[b?.user_id])) ? Number(laborMap[b.user_id]) : 0
+
+    switch (sort) {
+      case 'name_asc':
+        return nameA.localeCompare(nameB)
+      case 'name_desc':
+        return nameB.localeCompare(nameA)
+      case 'role':
+        return roleA.localeCompare(roleB) || nameA.localeCompare(nameB)
+      case 'company':
+        return compA.localeCompare(compB) || nameA.localeCompare(nameB)
+      case 'date_asc':
+        return dateA - dateB
+      case 'labor_desc':
+        return laborB - laborA || nameA.localeCompare(nameB)
+      case 'labor_asc':
+        return laborA - laborB || nameA.localeCompare(nameB)
+      case 'date_desc':
+      default:
+        return dateB - dateA
+    }
+  })
+  return rows
+}
+
+function filteredAndSortedRequests(
+  items: any[],
+  query: string,
+  sort: 'date_desc' | 'date_asc' | 'status' | 'number',
+  statusFilter: 'all' | 'pending' | 'approved' | 'rejected' | 'completed'
+): any[] {
+  const q = query.trim().toLowerCase()
+  let rows = Array.isArray(items) ? [...items] : []
+  if (q) {
+    rows = rows.filter(rq => {
+      const fields = [rq?.request_number, rq?.requester?.full_name, rq?.status].map(normalizeString)
+      return fields.some(f => f.includes(q))
+    })
+  }
+  if (statusFilter !== 'all') {
+    rows = rows.filter(rq => normalizeString(rq?.status) === statusFilter)
+  }
+  rows.sort((a, b) => {
+    const dateA = a?.request_date ? new Date(a.request_date).getTime() : 0
+    const dateB = b?.request_date ? new Date(b.request_date).getTime() : 0
+    const statusA = normalizeString(a?.status)
+    const statusB = normalizeString(b?.status)
+    const numA = normalizeString(a?.request_number)
+    const numB = normalizeString(b?.request_number)
+    switch (sort) {
+      case 'date_asc':
+        return dateA - dateB
+      case 'status':
+        return statusA.localeCompare(statusB) || dateB - dateA
+      case 'number':
+        return numA.localeCompare(numB) || dateB - dateA
+      case 'date_desc':
+      default:
+        return dateB - dateA
+    }
+  })
+  return rows
+}
+{
+  /* Reports Tab removed from outside return scope */
 }

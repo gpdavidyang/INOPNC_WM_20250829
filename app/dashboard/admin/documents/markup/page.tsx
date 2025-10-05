@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
+import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = {
   title: '마크업 문서',
@@ -39,11 +40,15 @@ export default async function AdminMarkupDocumentsPage({
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">마크업 문서</h1>
-        <p className="text-sm text-muted-foreground">최근 생성된 도면 마킹 문서 목록입니다.</p>
-      </div>
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="마크업 문서"
+        description="최근 생성된 도면 마킹 문서 목록"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '마크업' }]}
+        showBackButton
+        backButtonHref="/dashboard/admin/documents"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
 
       <div className="mb-6 rounded-lg border bg-card p-4 shadow-sm">
         <form
@@ -85,7 +90,7 @@ export default async function AdminMarkupDocumentsPage({
         <MarkupDocumentsTable docs={docs} />
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {total}건 중 {(page - 1) * limit + Math.min(1, total)}–{Math.min(page * limit, total)}{' '}
+            {total}건 중 {(page - 1) * limit + Math.min(1, total)}-{Math.min(page * limit, total)}{' '}
             표시
           </div>
           <div className="flex gap-2">

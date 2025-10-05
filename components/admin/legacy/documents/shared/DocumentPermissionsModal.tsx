@@ -1,5 +1,7 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 interface DocumentPermissionsModalProps {
   document: SharedDocument
@@ -42,13 +44,13 @@ interface OrganizationOption {
 export default function DocumentPermissionsModal({
   document,
   onClose,
-  onSuccess
+  onSuccess,
 }: DocumentPermissionsModalProps) {
   const [permissions, setPermissions] = useState<DocumentPermission[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   // 폼 상태
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState<PermissionFormData>({
@@ -57,28 +59,30 @@ export default function DocumentPermissionsModal({
     can_edit: false,
     can_delete: false,
     can_share: false,
-    can_download: true
+    can_download: true,
   })
-  
+
   // 옵션 데이터
   const [users, setUsers] = useState<UserOption[]>([])
   const [sites, setSites] = useState<SiteOption[]>([])
   const [organizations, setOrganizations] = useState<OrganizationOption[]>([])
   const [loadingOptions, setLoadingOptions] = useState(false)
-  
+
   // 공유 링크 상태
   const [shareTokens, setShareTokens] = useState<any[]>([])
   const [generatingLink, setGeneratingLink] = useState(false)
   const [copiedToken, setCopiedToken] = useState<string | null>(null)
-  
+
   const supabase = createClient()
+  const { confirm } = useConfirm()
+  const { toast } = useToast()
 
   // 역할 옵션
   const roleOptions = [
     { value: 'worker', label: '작업자' },
     { value: 'site_manager', label: '현장관리자' },
     { value: 'admin', label: '관리자' },
-    { value: 'customer_manager', label: '고객사 관리자' }
+    { value: 'customer_manager', label: '고객사 관리자' },
   ]
 
   // 권한 목록 로드
@@ -87,7 +91,7 @@ export default function DocumentPermissionsModal({
     try {
       const response = await fetch(`/api/shared-documents/${document.id}/permissions`)
       if (!response.ok) throw new Error('Failed to load permissions')
-      
+
       const data = await response.json()
       setPermissions(data.permissions || [])
     } catch (error) {
@@ -102,12 +106,12 @@ export default function DocumentPermissionsModal({
   const loadOptions = async () => {
     if (loadingOptions) return
     setLoadingOptions(true)
-    
+
     try {
       const [usersRes, sitesRes, orgsRes] = await Promise.all([
         supabase.from('profiles').select('id, name, email, role').eq('status', 'active'),
         supabase.from('sites').select('id, name, address').eq('status', 'active'),
-        supabase.from('organizations').select('id, name, type').eq('status', 'active')
+        supabase.from('organizations').select('id, name, type').eq('status', 'active'),
       ])
 
       if (usersRes.data) setUsers(usersRes.data)
@@ -143,16 +147,16 @@ export default function DocumentPermissionsModal({
   const generateShareLink = async (expiresInHours: number = 24) => {
     setGeneratingLink(true)
     setError(null)
-    
+
     try {
       const response = await fetch(`/api/shared-documents/${document.id}/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           expiresInHours,
-          allowDownload: true 
+          allowDownload: true,
         }),
       })
 
@@ -163,12 +167,11 @@ export default function DocumentPermissionsModal({
 
       const data = await response.json()
       await loadShareTokens()
-      
+
       // Auto-copy to clipboard
       await navigator.clipboard.writeText(data.shareUrl)
       setCopiedToken(data.token)
       setTimeout(() => setCopiedToken(null), 3000)
-      
     } catch (error: unknown) {
       setError(error.message)
     } finally {
@@ -189,8 +192,15 @@ export default function DocumentPermissionsModal({
 
   // 모든 공유 링크 취소
   const revokeAllShareLinks = async () => {
-    if (!confirm('모든 공유 링크를 취소하시겠습니까?')) return
-    
+    const ok = await confirm({
+      title: '공유 링크 취소',
+      description: '모든 공유 링크를 취소하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '취소',
+      cancelText: '닫기',
+    })
+    if (!ok) return
+
     try {
       const response = await fetch(`/api/shared-documents/${document.id}/share`, {
         method: 'DELETE',
@@ -203,16 +213,17 @@ export default function DocumentPermissionsModal({
       await loadShareTokens()
     } catch (error: unknown) {
       setError(error.message)
+      toast({ variant: 'destructive', title: '오류', description: error.message })
     }
   }
 
   // 새 권한 추가
   const handleAddPermission = async () => {
     if (!validateFormData()) return
-    
+
     setSaving(true)
     setError(null)
-    
+
     try {
       const response = await fetch(`/api/shared-documents/${document.id}/permissions`, {
         method: 'POST',
@@ -238,18 +249,24 @@ export default function DocumentPermissionsModal({
   }
 
   // 권한 수정
-  const handleUpdatePermission = async (permissionId: string, updates: Partial<DocumentPermission>) => {
+  const handleUpdatePermission = async (
+    permissionId: string,
+    updates: Partial<DocumentPermission>
+  ) => {
     setSaving(true)
     setError(null)
-    
+
     try {
-      const response = await fetch(`/api/shared-documents/${document.id}/permissions/${permissionId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(updates),
-      })
+      const response = await fetch(
+        `/api/shared-documents/${document.id}/permissions/${permissionId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(updates),
+        }
+      )
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -266,15 +283,25 @@ export default function DocumentPermissionsModal({
 
   // 권한 삭제
   const handleDeletePermission = async (permissionId: string) => {
-    if (!confirm('이 권한을 삭제하시겠습니까?')) return
-    
+    const ok = await confirm({
+      title: '권한 삭제',
+      description: '이 권한을 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
+
     setSaving(true)
     setError(null)
-    
+
     try {
-      const response = await fetch(`/api/shared-documents/${document.id}/permissions/${permissionId}`, {
-        method: 'DELETE',
-      })
+      const response = await fetch(
+        `/api/shared-documents/${document.id}/permissions/${permissionId}`,
+        {
+          method: 'DELETE',
+        }
+      )
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -291,28 +318,29 @@ export default function DocumentPermissionsModal({
 
   // 폼 검증
   const validateFormData = () => {
-    const { permission_type, target_role, target_user_id, target_site_id, target_organization_id } = formData
-    
+    const { permission_type, target_role, target_user_id, target_site_id, target_organization_id } =
+      formData
+
     if (permission_type === 'role_based' && !target_role) {
       setError('역할을 선택해주세요.')
       return false
     }
-    
+
     if (permission_type === 'user_specific' && !target_user_id) {
       setError('사용자를 선택해주세요.')
       return false
     }
-    
+
     if (permission_type === 'site_specific' && !target_site_id) {
       setError('현장을 선택해주세요.')
       return false
     }
-    
+
     if (permission_type === 'organization_specific' && !target_organization_id) {
       setError('조직을 선택해주세요.')
       return false
     }
-    
+
     return true
   }
 
@@ -324,7 +352,7 @@ export default function DocumentPermissionsModal({
       can_edit: false,
       can_delete: false,
       can_share: false,
-      can_download: true
+      can_download: true,
     })
     setError(null)
   }
@@ -333,7 +361,9 @@ export default function DocumentPermissionsModal({
   const getPermissionDisplayName = (permission: DocumentPermission) => {
     switch (permission.permission_type) {
       case 'role_based':
-        return roleOptions.find(r => r.value === permission.target_role)?.label || permission.target_role
+        return (
+          roleOptions.find(r => r.value === permission.target_role)?.label || permission.target_role
+        )
       case 'user_specific':
         return permission.target_user?.name || permission.target_user?.email
       case 'site_specific':
@@ -372,9 +402,7 @@ export default function DocumentPermissionsModal({
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
                 문서 권한 관리
               </h2>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {document.title}
-              </p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{document.title}</p>
             </div>
           </div>
           <button
@@ -403,8 +431,7 @@ export default function DocumentPermissionsModal({
                 onClick={() => setShowAddForm(true)}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                새 권한 추가
+                <Plus className="h-4 w-4 mr-2" />새 권한 추가
               </button>
             </div>
           )}
@@ -412,8 +439,10 @@ export default function DocumentPermissionsModal({
           {/* Add Permission Form */}
           {showAddForm && (
             <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">새 권한 추가</h3>
-              
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+                새 권한 추가
+              </h3>
+
               {/* Permission Type */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
@@ -422,10 +451,12 @@ export default function DocumentPermissionsModal({
                   </label>
                   <select
                     value={formData.permission_type}
-                    onChange={(e) => setFormData(prev => ({ 
-                      ...prev, 
-                      permission_type: e.target.value as PermissionFormData['permission_type']
-                    }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        permission_type: e.target.value as PermissionFormData['permission_type'],
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   >
                     <option value="role_based">역할 기반</option>
@@ -443,11 +474,13 @@ export default function DocumentPermissionsModal({
                     {formData.permission_type === 'site_specific' && '현장'}
                     {formData.permission_type === 'organization_specific' && '조직'}
                   </label>
-                  
+
                   {formData.permission_type === 'role_based' && (
                     <select
                       value={formData.target_role || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, target_role: e.target.value }))}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, target_role: e.target.value }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="">역할 선택</option>
@@ -462,13 +495,16 @@ export default function DocumentPermissionsModal({
                   {formData.permission_type === 'user_specific' && (
                     <select
                       value={formData.target_user_id || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, target_user_id: e.target.value }))}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, target_user_id: e.target.value }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="">사용자 선택</option>
                       {users.map(user => (
                         <option key={user.id} value={user.id}>
-                          {user.name} ({user.email}) - {roleOptions.find(r => r.value === user.role)?.label}
+                          {user.name} ({user.email}) -{' '}
+                          {roleOptions.find(r => r.value === user.role)?.label}
                         </option>
                       ))}
                     </select>
@@ -477,7 +513,9 @@ export default function DocumentPermissionsModal({
                   {formData.permission_type === 'site_specific' && (
                     <select
                       value={formData.target_site_id || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, target_site_id: e.target.value }))}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, target_site_id: e.target.value }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="">현장 선택</option>
@@ -492,7 +530,9 @@ export default function DocumentPermissionsModal({
                   {formData.permission_type === 'organization_specific' && (
                     <select
                       value={formData.target_organization_id || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, target_organization_id: e.target.value }))}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, target_organization_id: e.target.value }))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                       <option value="">조직 선택</option>
@@ -517,7 +557,7 @@ export default function DocumentPermissionsModal({
                     { key: 'can_edit', label: '편집', icon: Edit, color: 'yellow' },
                     { key: 'can_delete', label: '삭제', icon: Trash2, color: 'red' },
                     { key: 'can_share', label: '공유', icon: Share2, color: 'green' },
-                    { key: 'can_download', label: '다운로드', icon: Download, color: 'purple' }
+                    { key: 'can_download', label: '다운로드', icon: Download, color: 'purple' },
                   ].map(({ key, label, icon: Icon, color }) => (
                     <label
                       key={key}
@@ -530,17 +570,21 @@ export default function DocumentPermissionsModal({
                       <input
                         type="checkbox"
                         checked={formData[key as keyof PermissionFormData] as boolean}
-                        onChange={(e) => setFormData(prev => ({ 
-                          ...prev, 
-                          [key]: e.target.checked 
-                        }))}
+                        onChange={e =>
+                          setFormData(prev => ({
+                            ...prev,
+                            [key]: e.target.checked,
+                          }))
+                        }
                         className="sr-only"
                       />
-                      <Icon className={`h-5 w-5 mr-2 ${
-                        formData[key as keyof PermissionFormData] 
-                          ? `text-${color}-600` 
-                          : 'text-gray-400'
-                      }`} />
+                      <Icon
+                        className={`h-5 w-5 mr-2 ${
+                          formData[key as keyof PermissionFormData]
+                            ? `text-${color}-600`
+                            : 'text-gray-400'
+                        }`}
+                      />
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {label}
                       </span>
@@ -562,7 +606,7 @@ export default function DocumentPermissionsModal({
                   <input
                     type="datetime-local"
                     value={formData.expires_at || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, expires_at: e.target.value }))}
+                    onChange={e => setFormData(prev => ({ ...prev, expires_at: e.target.value }))}
                     className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
@@ -603,11 +647,14 @@ export default function DocumentPermissionsModal({
           {/* Permissions List */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white">현재 권한 목록</h3>
-            
+
             {loading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="animate-pulse p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                  <div
+                    key={i}
+                    className="animate-pulse p-4 bg-gray-100 dark:bg-gray-700 rounded-lg"
+                  >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="h-8 w-8 bg-gray-200 dark:bg-gray-600 rounded"></div>
@@ -632,22 +679,19 @@ export default function DocumentPermissionsModal({
                     onClick={() => setShowAddForm(true)}
                     className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
                   >
-                    <Plus className="h-4 w-4 mr-2" />
-                    첫 권한 추가
+                    <Plus className="h-4 w-4 mr-2" />첫 권한 추가
                   </button>
                 )}
               </div>
             ) : (
               <div className="space-y-3">
-                {permissions.map((permission) => (
+                {permissions.map(permission => (
                   <div
                     key={permission.id}
                     className="flex items-center justify-between p-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
-                      <div className="flex-shrink-0">
-                        {getPermissionIcon(permission)}
-                      </div>
+                      <div className="flex-shrink-0">{getPermissionIcon(permission)}</div>
                       <div>
                         <div className="font-medium text-gray-900 dark:text-white">
                           {getPermissionDisplayName(permission)}
@@ -660,7 +704,7 @@ export default function DocumentPermissionsModal({
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-2">
                       {/* Permission Badges */}
                       <div className="flex items-center space-x-1">
@@ -695,7 +739,7 @@ export default function DocumentPermissionsModal({
                           </span>
                         )}
                       </div>
-                      
+
                       {/* Delete Button */}
                       <button
                         onClick={() => handleDeletePermission(permission.id)}

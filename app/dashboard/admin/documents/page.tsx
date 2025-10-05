@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import EmptyState from '@/components/ui/empty-state'
+import { PageHeader } from '@/components/ui/page-header'
 import TabbedDocumentsClient from '@/components/admin/documents/TabbedDocumentsClient'
 
 export const metadata: Metadata = {
@@ -158,13 +160,13 @@ export default async function AdminDocumentsPage() {
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">문서 관리</h1>
-        <p className="text-sm text-muted-foreground">
-          탭별로 문서함을 빠르게 살펴보고, 전체 보기에서 상세 관리합니다.
-        </p>
-      </div>
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="문서 관리"
+        description="탭별로 문서함을 살펴보고 상세 관리합니다"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
@@ -268,7 +270,16 @@ export default async function AdminDocumentsPage() {
         </Card>
       </div>
 
-      <TabbedDocumentsClient defaultTab="shared" />
+      {stats.total === 0 ? (
+        <Card>
+          <CardContent>
+            <EmptyState description="표시할 문서가 없습니다." />
+          </CardContent>
+        </Card>
+      ) : (
+        <TabbedDocumentsClient defaultTab="shared" />
+      )}
+      </div>
     </div>
   )
 }

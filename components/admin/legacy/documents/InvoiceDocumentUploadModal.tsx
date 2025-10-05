@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react'
 import { getSessionUser } from '@/lib/supabase/session'
+import { useToast } from '@/components/ui/use-toast'
 
 interface Site {
   id: string
@@ -31,27 +32,27 @@ const documentTypes = [
   { value: 'completion_report', label: '완료보고서' },
   { value: 'payment_request', label: '대금청구서' },
   { value: 'tax_invoice', label: '세금계산서' },
-  { value: 'other', label: '기타 서류' }
+  { value: 'other', label: '기타 서류' },
 ]
 
 // 계약 단계
 const contractPhases = [
   { value: 'pre_contract', label: '계약 전' },
   { value: 'in_progress', label: '진행 중' },
-  { value: 'completed', label: '완료' }
+  { value: 'completed', label: '완료' },
 ]
 
 export default function InvoiceDocumentUploadModal({
   isOpen,
   onClose,
   onSuccess,
-  sites
+  sites,
 }: InvoiceDocumentUploadModalProps) {
   const [loading, setLoading] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [dragActive, setDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   // Form state
   const [formData, setFormData] = useState({
     title: '',
@@ -61,12 +62,13 @@ export default function InvoiceDocumentUploadModal({
     site_id: '',
     partner_company_id: '',
     amount: '',
-    due_date: ''
+    due_date: '',
   })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [error, setError] = useState<string>('')
 
   const supabase = createClient()
+  const { toast } = useToast()
 
   // Fetch organizations when modal opens
   React.useEffect(() => {
@@ -100,7 +102,7 @@ export default function InvoiceDocumentUploadModal({
       site_id: '',
       partner_company_id: '',
       amount: '',
-      due_date: ''
+      due_date: '',
     })
     setSelectedFile(null)
     setError('')
@@ -113,11 +115,13 @@ export default function InvoiceDocumentUploadModal({
       'image/jpeg',
       'image/png',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword'
+      'application/msword',
     ]
-    
+
     if (!allowedTypes.includes(file.type)) {
-      setError('지원되지 않는 파일 형식입니다. PDF, 이미지(JPG, PNG), Word 문서만 업로드 가능합니다.')
+      setError(
+        '지원되지 않는 파일 형식입니다. PDF, 이미지(JPG, PNG), Word 문서만 업로드 가능합니다.'
+      )
       return
     }
 
@@ -129,12 +133,12 @@ export default function InvoiceDocumentUploadModal({
 
     setSelectedFile(file)
     setError('')
-    
+
     // Auto-fill title with filename if empty
     if (!formData.title) {
       setFormData(prev => ({
         ...prev,
-        title: file.name.replace(/\.[^/.]+$/, '')
+        title: file.name.replace(/\.[^/.]+$/, ''),
       }))
     }
   }
@@ -152,7 +156,7 @@ export default function InvoiceDocumentUploadModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragActive(false)
-    
+
     const files = e.dataTransfer.files
     if (files && files[0]) {
       handleFileSelect(files[0])
@@ -192,7 +196,7 @@ export default function InvoiceDocumentUploadModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
 
     setLoading(true)
@@ -211,9 +215,7 @@ export default function InvoiceDocumentUploadModal({
       if (uploadError) throw uploadError
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath)
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath)
 
       // Get current user session
       const user = await getSessionUser(supabase)
@@ -242,8 +244,8 @@ export default function InvoiceDocumentUploadModal({
           partner_company_id: formData.partner_company_id,
           amount: formData.amount ? parseFloat(formData.amount) : null,
           due_date: formData.due_date || null,
-          approval_status: 'pending'
-        }
+          approval_status: 'pending',
+        },
       }
 
       const { error: insertError } = await supabase
@@ -252,7 +254,12 @@ export default function InvoiceDocumentUploadModal({
 
       if (insertError) throw insertError
 
-      alert('기성청구 서류가 성공적으로 등록되었습니다.')
+      // Success
+      toast({
+        variant: 'success',
+        title: '등록 완료',
+        description: '기성청구 서류가 등록되었습니다.',
+      })
       onSuccess()
       onClose()
     } catch (error: unknown) {
@@ -268,8 +275,11 @@ export default function InvoiceDocumentUploadModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
-        
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        />
+
         <div className="inline-block w-full max-w-2xl px-6 py-4 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
           {/* 헤더 */}
           <div className="flex items-center justify-between pb-4 border-b border-gray-200">
@@ -277,10 +287,7 @@ export default function InvoiceDocumentUploadModal({
               <DollarSign className="w-5 h-5 mr-2 text-green-600" />
               기성청구 서류 등록
             </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
-            >
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -298,13 +305,11 @@ export default function InvoiceDocumentUploadModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* 서류명 */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  서류명 *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">서류명 *</label>
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="예: 2024년 1분기 기성청구서"
                   required
@@ -313,16 +318,14 @@ export default function InvoiceDocumentUploadModal({
 
               {/* 문서 유형 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  문서 유형 *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">문서 유형 *</label>
                 <select
                   value={formData.document_type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, document_type: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, document_type: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
-                  {documentTypes.map((type) => (
+                  {documentTypes.map(type => (
                     <option key={type.value} value={type.value}>
                       {type.label}
                     </option>
@@ -332,16 +335,14 @@ export default function InvoiceDocumentUploadModal({
 
               {/* 계약 단계 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  계약 단계 *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">계약 단계 *</label>
                 <select
                   value={formData.contract_phase}
-                  onChange={(e) => setFormData(prev => ({ ...prev, contract_phase: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, contract_phase: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
-                  {contractPhases.map((phase) => (
+                  {contractPhases.map(phase => (
                     <option key={phase.value} value={phase.value}>
                       {phase.label}
                     </option>
@@ -351,17 +352,15 @@ export default function InvoiceDocumentUploadModal({
 
               {/* 현장 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  현장 *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">현장 *</label>
                 <select
                   value={formData.site_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, site_id: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, site_id: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
                   <option value="">현장을 선택하세요</option>
-                  {sites.map((site) => (
+                  {sites.map(site => (
                     <option key={site.id} value={site.id}>
                       {site.name}
                     </option>
@@ -371,17 +370,17 @@ export default function InvoiceDocumentUploadModal({
 
               {/* 파트너사 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  파트너사 *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">파트너사 *</label>
                 <select
                   value={formData.partner_company_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, partner_company_id: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, partner_company_id: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
                   <option value="">파트너사를 선택하세요</option>
-                  {organizations.map((org) => (
+                  {organizations.map(org => (
                     <option key={org.id} value={org.id}>
                       {org.name}
                     </option>
@@ -391,13 +390,11 @@ export default function InvoiceDocumentUploadModal({
 
               {/* 금액 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  금액 (원)
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">금액 (원)</label>
                 <input
                   type="number"
                   value={formData.amount}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="0"
                 />
@@ -405,25 +402,21 @@ export default function InvoiceDocumentUploadModal({
 
               {/* 만료일 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  만료일
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">만료일</label>
                 <input
                   type="date"
                   value={formData.due_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               {/* 설명 */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  설명
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="서류에 대한 상세 설명을 입력하세요..."
@@ -453,7 +446,7 @@ export default function InvoiceDocumentUploadModal({
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                     className="hidden"
                   />
-                  
+
                   {selectedFile ? (
                     <div className="flex items-center justify-center">
                       <FileText className="w-8 h-8 text-blue-500 mr-3" />
@@ -470,9 +463,7 @@ export default function InvoiceDocumentUploadModal({
                       <p className="text-sm text-gray-600">
                         파일을 드래그하여 놓거나 클릭하여 선택하세요
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        PDF, JPG, PNG, Word (최대 10MB)
-                      </p>
+                      <p className="text-xs text-gray-500 mt-1">PDF, JPG, PNG, Word (최대 10MB)</p>
                     </div>
                   )}
                 </div>

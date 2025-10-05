@@ -1,55 +1,97 @@
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
+import DownloadLinkButton from '@/components/admin/DownloadLinkButton'
 
-export const metadata: Metadata = { title: 'PTW 작업허가서' }
+export const metadata: Metadata = { title: 'PTW 문서 상세' }
 
-export default async function AdminPTWDocumentPage({ params }: { params: { id: string } }) {
+export default async function AdminPTWDetailPage({ params }: { params: { id: string } }) {
   await requireAdminProfile()
   const supabase = createClient()
 
   const { data: doc } = await supabase
     .from('unified_document_system')
-    .select('id, title, file_url, mime_type, created_at, metadata, document_type, sub_category')
+    .select(
+      'id, title, category_type, sub_category, document_type, status, file_url, file_name, file_size, mime_type, site:sites(name), created_at'
+    )
     .eq('id', params.id)
     .maybeSingle()
 
-  const url = (doc as any)?.file_url as string | undefined
-  const mime = (doc as any)?.mime_type as string | undefined
-  const isPdf =
-    mime === 'application/pdf' || (typeof url === 'string' && url.toLowerCase().endsWith('.pdf'))
+  // Build preview URL (signed if possible)
+  let previewUrl: string | null = null
+  if (doc?.file_url) {
+    try {
+      const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(String(doc.file_url))}`, {
+        cache: 'no-store',
+      })
+      const j = await r.json().catch(() => ({}))
+      previewUrl = (j?.url as string) || String(doc.file_url)
+    } catch {
+      previewUrl = String(doc.file_url)
+    }
+  }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>{(doc as any)?.title || '작업허가서(PTW)'}</CardTitle>
-          <CardDescription>
-            {(doc as any)?.created_at
-              ? new Date((doc as any).created_at).toLocaleString('ko-KR')
-              : ''}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {url ? (
-            isPdf ? (
-              <iframe src={url} className="w-full h-[80vh] border rounded" />
-            ) : (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline text-blue-600"
-              >
-                새 창에서 열기
-              </a>
-            )
-          ) : (
-            <div className="text-sm text-muted-foreground">미리볼 파일 URL이 없습니다.</div>
-          )}
-        </CardContent>
-      </Card>
+    <div className="px-0 pb-8 space-y-6">
+      <PageHeader
+        title="PTW 문서 상세"
+        description={`ID: ${params.id}`}
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '문서 관리', href: '/dashboard/admin/documents' },
+          { label: 'PTW' },
+          { label: '상세' },
+        ]}
+        showBackButton
+        backButtonHref="/dashboard/admin/documents"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="rounded-lg border bg-card p-4 shadow-sm">
+          <div className="text-lg font-semibold text-foreground">{doc?.title || '-'}</div>
+          <div className="text-sm text-muted-foreground">{(doc as any)?.site?.name || '-'}</div>
+          <div className="mt-2 text-sm text-muted-foreground space-y-1">
+            <div>
+              유형: <span className="text-foreground font-medium">{doc?.document_type || '-'}</span>
+            </div>
+            <div>
+              상태: <span className="text-foreground font-medium">{doc?.status || '-'}</span>
+            </div>
+            <div>
+              업로드일:{' '}
+              <span className="text-foreground font-medium">
+                {doc?.created_at ? new Date(doc.created_at).toLocaleString('ko-KR') : '-'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {previewUrl && (
+                <a href={previewUrl} target="_blank" rel="noreferrer" className="underline text-blue-600">
+                  파일 열기
+                </a>
+              )}
+              <DownloadLinkButton endpoint={`/api/admin/documents/ptw/${params.id}/download`} />
+            </div>
+          </div>
+        </div>
+
+        {/* Inline preview */}
+        {previewUrl && (
+          <div className="rounded-lg border bg-card p-2 shadow-sm">
+            {String(doc?.mime_type || '').startsWith('image/') ? (
+              <div className="relative mx-auto aspect-[4/3] w-full max-w-3xl">
+                <Image
+                  src={previewUrl}
+                  alt={String(doc?.title || 'PTW')}
+                  fill
+                  className="object-contain"
+                  unoptimized
+                />
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

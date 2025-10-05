@@ -1,6 +1,7 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useToast } from '@/components/ui/use-toast'
 
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
 
@@ -9,6 +10,7 @@ interface MaterialsManagementProps {
 }
 
 export default function MaterialsManagement({ profile }: MaterialsManagementProps) {
+  const { toast } = useToast()
   const [activeTab, setActiveTab] = useState<'inventory' | 'requests' | 'npc1000'>('inventory')
 
   // Inventory tab state
@@ -193,12 +195,24 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
       if (result.success) {
         await loadRequests()
         setSelectedIds([])
-        alert(result.message)
+        toast({
+          variant: 'success',
+          title: action === 'approve' ? '승인 완료' : '거부 완료',
+          description: result.message,
+        })
       } else {
-        alert(result.error)
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '처리에 실패했습니다.',
+        })
       }
     } catch (error) {
-      alert(`요청 ${action === 'approve' ? '승인' : '거부'} 중 오류가 발생했습니다.`)
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: `요청 ${action === 'approve' ? '승인' : '거부'} 중 오류가 발생했습니다.`,
+      })
     }
   }
 
@@ -217,7 +231,11 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
 
       const quantity = parseInt(newQuantity)
       if (isNaN(quantity) || quantity < 0) {
-        alert('올바른 재고량을 입력하세요.')
+        toast({
+          variant: 'warning',
+          title: '입력 오류',
+          description: '올바른 재고량을 입력하세요.',
+        })
         return
       }
 
@@ -230,12 +248,20 @@ export default function MaterialsManagement({ profile }: MaterialsManagementProp
       if (result.success) {
         await loadMaterials()
         setSelectedIds([])
-        alert(result.message)
+        toast({ variant: 'success', title: '조정 완료', description: result.message })
       } else {
-        alert(result.error)
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '조정에 실패했습니다.',
+        })
       }
     } catch (error) {
-      alert('재고 조정 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '재고 조정 중 오류가 발생했습니다.',
+      })
     }
   }
 

@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { PageHeader } from '@/components/ui/page-header'
+import { useToast } from '@/components/ui/use-toast'
 
 // Canonical slugs used across the app (aligns with mobile/company tab)
 type CompanySlug = 'biz_reg' | 'bankbook' | 'npc1000_form' | 'completion_form'
@@ -44,6 +47,7 @@ type Row = {
 type TabKey = 'all' | CompanySlug
 
 export default function AdminCompanyDocumentsPage() {
+  const { toast } = useToast()
   const [rows, setRows] = useState<Row[]>([])
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
@@ -147,17 +151,28 @@ export default function AdminCompanyDocumentsPage() {
         throw new Error(`${res.status} ${detail}`)
       }
       setMsg(`${slug} 업로드 완료`)
+      toast({ title: '업로드 완료', description: `${slug} 업로드가 완료되었습니다.` })
       await load()
     } catch (e: any) {
       console.error('회사서류 업로드 실패:', e)
       setMsg(e?.message || '업로드 실패')
+      toast({ title: '업로드 실패', description: e?.message || '업로드 실패', variant: 'destructive' })
     } finally {
       setBusy(false)
     }
   }
 
+  const { confirm } = useConfirm()
+
   const onDelete = async (id: string) => {
-    if (!confirm('삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '삭제',
+      description: '해당 문서를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+      confirmText: '삭제',
+      cancelText: '취소',
+      variant: 'destructive',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       const res = await fetch(`/api/documents?id=${encodeURIComponent(id)}`, {
@@ -168,7 +183,7 @@ export default function AdminCompanyDocumentsPage() {
       if (!res.ok || j?.error) throw new Error(j?.error || '삭제 실패')
       await load()
     } catch (e: any) {
-      alert(e?.message || '삭제 실패')
+      toast({ title: '삭제 실패', description: e?.message || '삭제 실패', variant: 'destructive' })
     } finally {
       setBusy(false)
     }
@@ -178,7 +193,14 @@ export default function AdminCompanyDocumentsPage() {
   const onBulkDelete = async () => {
     const ids = Array.from(selected)
     if (ids.length === 0) return
-    if (!confirm(`선택한 ${ids.length}개의 문서를 삭제하시겠습니까?`)) return
+    const ok = await confirm({
+      title: '선택 삭제',
+      description: `선택한 ${ids.length}개의 문서를 삭제하시겠습니까?`,
+      confirmText: '삭제',
+      cancelText: '취소',
+      variant: 'destructive',
+    })
+    if (!ok) return
     setBusy(true)
     setMsg('')
     try {
@@ -237,7 +259,15 @@ export default function AdminCompanyDocumentsPage() {
   }, [active])
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="회사서류 관리"
+        description="사업자등록증/통장사본/NPC-1000/완료확인서 관리"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '회사서류' }]}
+        showBackButton
+        backButtonHref="/dashboard/admin/documents"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex items-end justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-semibold">회사서류 관리</h1>
@@ -349,7 +379,17 @@ export default function AdminCompanyDocumentsPage() {
                   <td className="px-3 py-2 flex items-center gap-2">
                     <button
                       className="px-2 py-1 text-xs rounded border"
-                      onClick={() => r.file_url && window.open(r.file_url, '_blank')}
+                      onClick={async () => {
+                        if (!r.file_url) return
+                        try {
+                          const res = await fetch(`/api/files/signed-url?url=${encodeURIComponent(r.file_url)}`)
+                          const j = await res.json().catch(() => ({}))
+                          const url = (j?.url as string) || r.file_url
+                          window.open(url, '_blank')
+                        } catch {
+                          window.open(r.file_url, '_blank')
+                        }
+                      }}
                     >
                       보기
                     </button>

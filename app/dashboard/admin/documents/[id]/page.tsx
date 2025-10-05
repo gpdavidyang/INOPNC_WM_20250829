@@ -1,235 +1,99 @@
 import type { Metadata } from 'next'
-import { revalidatePath } from 'next/cache'
-import { cookies } from 'next/headers'
+import Image from 'next/image'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { PageHeader } from '@/components/ui/page-header'
+import DownloadLinkButton from '@/components/admin/DownloadLinkButton'
 
 export const metadata: Metadata = { title: '문서 상세' }
 
-export default async function AdminUnifiedDocumentDetailPage({
-  params,
-}: {
-  params: { id: string }
-}) {
+export default async function AdminDocumentDetailPage({ params }: { params: { id: string } }) {
   await requireAdminProfile()
-  const id = params.id
   const supabase = createClient()
 
-  // 1) 기본: unified_document_system에서 조회
-  const { data: base } = await supabase
+  const { data: doc } = await supabase
     .from('unified_document_system')
     .select(
-      `
-      *,
-      uploader:profiles!unified_document_system_uploaded_by_fkey(full_name,email),
-      approver:profiles!unified_document_system_approved_by_fkey(full_name,email),
-      site:sites(name)
-    `
+      'id, title, category_type, sub_category, document_type, status, file_url, file_name, file_size, mime_type, site:sites(name), created_at'
     )
-    .eq('id', id)
+    .eq('id', params.id)
     .maybeSingle()
 
-  // 2) 이력: v2 API에서 history 가져오기 시도 (실패 시 무시)
-  let history: any[] = []
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
-    const res = await fetch(`${baseUrl}/api/unified-documents/v2/${id}`, { cache: 'no-store' })
-    const json = await res.json()
-    if (res.ok && json?.history) history = json.history
-  } catch (_) {
-    history = []
-  }
-
-  // 3) 접근 로그 최근 10개 (존재 시)
-  let accessLogs: any[] = []
-  try {
-    const { data: logs } = await supabase
-      .from('document_access_logs')
-      .select('created_at, action, user_id')
-      .eq('document_id', id)
-      .order('created_at', { ascending: false })
-      .limit(10)
-    accessLogs = logs || []
-  } catch (_) {
-    accessLogs = []
-  }
-
-  // Server actions for approve/reject using v2 API (keeps history logging consistent)
-  async function approve() {
-    'use server'
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
-    const cookieHeader = cookies()
-      .getAll()
-      .map(({ name, value }) => `${name}=${value}`)
-      .join('; ')
-    await fetch(`${baseUrl}/api/unified-documents/v2`, {
-      method: 'PATCH',
-      headers: {
-        'content-type': 'application/json',
-        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-      },
-      body: JSON.stringify({ action: 'approve', documentIds: [id] }),
-    })
-    revalidatePath(`/dashboard/admin/documents/${id}`)
-  }
-
-  async function reject() {
-    'use server'
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || ''
-    const cookieHeader = cookies()
-      .getAll()
-      .map(({ name, value }) => `${name}=${value}`)
-      .join('; ')
-    await fetch(`${baseUrl}/api/unified-documents/v2`, {
-      method: 'PATCH',
-      headers: {
-        'content-type': 'application/json',
-        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
-      },
-      body: JSON.stringify({ action: 'reject', documentIds: [id] }),
-    })
-    revalidatePath(`/dashboard/admin/documents/${id}`)
+  // Build preview URL (signed if possible)
+  let previewUrl: string | null = null
+  if (doc?.file_url) {
+    try {
+      const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(String(doc.file_url))}`, {
+        cache: 'no-store',
+      })
+      const j = await r.json().catch(() => ({}))
+      previewUrl = (j?.url as string) || String(doc.file_url)
+    } catch {
+      previewUrl = String(doc.file_url)
+    }
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>문서 승인/반려</CardTitle>
-          <CardDescription>관리자 권한으로 상태를 변경할 수 있습니다.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={approve} className="inline-block mr-2">
-            <Button type="submit" variant="outline" disabled={base?.status === 'approved'}>
-              승인
-            </Button>
-          </form>
-          <form action={reject} className="inline-block">
-            <Button type="submit" variant="outline" disabled={base?.status === 'rejected'}>
-              반려
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <div className="px-0 pb-8 space-y-6">
+      <PageHeader
+        title="문서 상세"
+        description={`ID: ${params.id}`}
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '문서 관리', href: '/dashboard/admin/documents' },
+          { label: '상세' },
+        ]}
+        showBackButton
+        backButtonHref="/dashboard/admin/documents"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        <div className="rounded-lg border bg-card p-4 shadow-sm">
+          <div className="text-lg font-semibold text-foreground">{doc?.title || '-'}</div>
+          <div className="text-sm text-muted-foreground">{(doc as any)?.site?.name || '-'}</div>
+          <div className="mt-2 text-sm text-muted-foreground space-y-1">
+            <div>
+              유형: <span className="text-foreground font-medium">{doc?.document_type || '-'}</span>
+            </div>
+            <div>
+              카테고리: <span className="text-foreground font-medium">{doc?.category_type || '-'}</span>
+            </div>
+            <div>
+              상태: <span className="text-foreground font-medium">{doc?.status || '-'}</span>
+            </div>
+            <div>
+              업로드일:{' '}
+              <span className="text-foreground font-medium">
+                {doc?.created_at ? new Date(doc.created_at).toLocaleString('ko-KR') : '-'}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {previewUrl && (
+                <a href={previewUrl} target="_blank" rel="noreferrer" className="underline text-blue-600">
+                  파일 열기
+                </a>
+              )}
+              <DownloadLinkButton endpoint={`/api/admin/documents/${params.id}/download`} />
+            </div>
+          </div>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{base?.title || '-'}</CardTitle>
-          <CardDescription>{base?.site?.name || '-'}</CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-1">
-          <div>
-            유형: <span className="text-foreground font-medium">{base?.category_type || '-'}</span>
+        {/* Inline preview for images/PDF */}
+        {previewUrl && (
+          <div className="rounded-lg border bg-card p-2 shadow-sm">
+            {String(doc?.mime_type || '').startsWith('image/') ? (
+              <div className="relative mx-auto aspect-[4/3] w-full max-w-3xl">
+                <Image
+                  src={previewUrl}
+                  alt={String(doc?.title || 'document')}
+                  fill
+                  className="object-contain"
+                  unoptimized
+                />
+              </div>
+            ) : null}
           </div>
-          <div>상태: {base?.status || '-'}</div>
-          <div>작성자: {base?.uploader?.full_name || base?.uploader?.email || '-'}</div>
-          <div>승인자: {base?.approver?.full_name || base?.approver?.email || '-'}</div>
-          <div>
-            등록일: {base?.created_at ? new Date(base.created_at).toLocaleString('ko-KR') : '-'}
-          </div>
-          <div>
-            수정일: {base?.updated_at ? new Date(base.updated_at).toLocaleString('ko-KR') : '-'}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>이력</CardTitle>
-          <CardDescription>최근 변경 10건</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>일시</TableHead>
-                  <TableHead>동작</TableHead>
-                  <TableHead>사용자</TableHead>
-                  <TableHead>메모</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {history.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-10"
-                    >
-                      표시할 이력이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  history.map((h: any, idx: number) => (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        {h.changed_at ? new Date(h.changed_at).toLocaleString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell>{h.action || '-'}</TableCell>
-                      <TableCell>{h.user?.full_name || h.user?.email || '-'}</TableCell>
-                      <TableCell className="truncate max-w-[420px]" title={h.comment || ''}>
-                        {h.comment || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>접근 로그</CardTitle>
-          <CardDescription>최근 10개</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>시간</TableHead>
-                  <TableHead>동작</TableHead>
-                  <TableHead>사용자</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {accessLogs.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="text-center text-sm text-muted-foreground py-10"
-                    >
-                      표시할 로그가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  accessLogs.map((l: any, idx: number) => (
-                    <TableRow key={idx}>
-                      <TableCell>
-                        {l.created_at ? new Date(l.created_at).toLocaleString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell>{l.action || '-'}</TableCell>
-                      <TableCell>{l.user_id || '-'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   )
 }

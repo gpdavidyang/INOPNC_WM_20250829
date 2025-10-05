@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import DownloadLinkButton from '@/components/admin/DownloadLinkButton'
+import { PageHeader } from '@/components/ui/page-header'
 
 export const metadata: Metadata = {
   title: '사진대지 상세',
@@ -18,12 +19,35 @@ export default async function AdminPhotoGridDetailPage({ params }: { params: { i
   const doc = detailJson?.data || null
   const versions = versionsJson?.data?.versions || []
 
+  // Signed preview URL if possible
+  let previewUrl: string | null = null
+  if (doc?.file_url) {
+    try {
+      const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(String(doc.file_url))}`, {
+        cache: 'no-store',
+      })
+      const j = await r.json().catch(() => ({}))
+      previewUrl = (j?.url as string) || String(doc.file_url)
+    } catch {
+      previewUrl = String(doc.file_url)
+    }
+  }
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">사진대지 상세</h1>
-        <p className="text-sm text-muted-foreground">ID: {params.id}</p>
-      </div>
+    <div className="px-0 pb-8 space-y-6">
+      <PageHeader
+        title="사진대지 상세"
+        description={`ID: ${params.id}`}
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '문서 관리', href: '/dashboard/admin/documents' },
+          { label: '포토 그리드', href: '/dashboard/admin/documents/photo-grid' },
+          { label: '상세' },
+        ]}
+        showBackButton
+        backButtonHref="/dashboard/admin/documents/photo-grid"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
       <div className="rounded-lg border bg-card p-4 shadow-sm">
         <div className="text-lg font-semibold text-foreground">{doc?.title || '-'}</div>
@@ -37,9 +61,9 @@ export default async function AdminPhotoGridDetailPage({ params }: { params: { i
             {doc?.file_size ? `(${Math.round((Number(doc.file_size) || 0) / 1024)} KB)` : ''}
           </div>
           <div className="flex items-center gap-3">
-            {doc?.file_url && (
+            {previewUrl && (
               <a
-                href={String(doc.file_url)}
+                href={previewUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="underline text-blue-600"

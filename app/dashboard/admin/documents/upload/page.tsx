@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
 import MinimalDocumentUpload from '@/components/admin/documents/MinimalDocumentUpload'
 
 export const metadata: Metadata = { title: '문서 업로드' }
@@ -8,7 +9,15 @@ export const metadata: Metadata = { title: '문서 업로드' }
 export default async function AdminDocumentUploadPage() {
   await requireAdminProfile()
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="문서 업로드"
+        description="통합 문서 시스템에 메타데이터 기반 문서를 생성합니다"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '문서 업로드' }]}
+        showBackButton
+        backButtonHref="/dashboard/admin/documents"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
       <Card>
         <CardHeader>
           <CardTitle>문서 업로드(최소)</CardTitle>
@@ -18,6 +27,7 @@ export default async function AdminDocumentUploadPage() {
           <MinimalDocumentUpload />
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

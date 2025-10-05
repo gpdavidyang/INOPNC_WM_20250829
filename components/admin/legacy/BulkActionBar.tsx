@@ -1,5 +1,6 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface BulkAction {
   id: string
@@ -23,9 +24,10 @@ export default function BulkActionBar({
   totalCount,
   actions,
   onClearSelection,
-  isLoading = false
+  isLoading = false,
 }: BulkActionBarProps) {
   const [processingAction, setProcessingAction] = useState<string | null>(null)
+  const { confirm } = useConfirm()
 
   if (selectedIds.length === 0) {
     return null
@@ -33,10 +35,14 @@ export default function BulkActionBar({
 
   const handleAction = async (action: BulkAction) => {
     if (action.confirmMessage) {
-      const confirmed = window.confirm(
-        `${action.confirmMessage}\n\n선택된 ${selectedIds.length}개 항목에 대해 실행됩니다.`
-      )
-      if (!confirmed) return
+      const ok = await confirm({
+        title: '확인이 필요합니다',
+        description: `${action.confirmMessage}\n\n선택된 ${selectedIds.length}개 항목에 대해 실행됩니다.`,
+        variant: action.variant === 'destructive' ? 'destructive' : 'default',
+        confirmText: '진행',
+        cancelText: '취소',
+      })
+      if (!ok) return
     }
 
     setProcessingAction(action.id)
@@ -67,15 +73,17 @@ export default function BulkActionBar({
           {/* Selection info */}
           <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
             <CheckCircle className="h-4 w-4 text-blue-600 mr-2" />
-            <span>{selectedIds.length}/{totalCount} 선택됨</span>
+            <span>
+              {selectedIds.length}/{totalCount} 선택됨
+            </span>
           </div>
 
           {/* Actions */}
           <div className="flex items-center space-x-2">
-            {actions.map((action) => {
+            {actions.map(action => {
               const Icon = action.icon
               const isProcessing = processingAction === action.id
-              
+
               return (
                 <button
                   key={action.id}
@@ -120,31 +128,31 @@ export const commonBulkActions = {
     icon: Trash2,
     variant: 'destructive' as const,
     onClick: onDelete,
-    confirmMessage: '선택된 항목들을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'
+    confirmMessage: '선택된 항목들을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
   }),
-  
+
   archive: (onArchive: (ids: string[]) => Promise<void>): BulkAction => ({
     id: 'archive',
     label: '보관',
     icon: Archive,
     variant: 'secondary' as const,
     onClick: onArchive,
-    confirmMessage: '선택된 항목들을 보관하시겠습니까?'
+    confirmMessage: '선택된 항목들을 보관하시겠습니까?',
   }),
-  
+
   activate: (onActivate: (ids: string[]) => Promise<void>): BulkAction => ({
     id: 'activate',
     label: '활성화',
     icon: CheckCircle,
-    onClick: onActivate
+    onClick: onActivate,
   }),
-  
+
   deactivate: (onDeactivate: (ids: string[]) => Promise<void>): BulkAction => ({
     id: 'deactivate',
     label: '비활성화',
     icon: XCircle,
     variant: 'secondary' as const,
     onClick: onDeactivate,
-    confirmMessage: '선택된 항목들을 비활성화하시겠습니까?'
-  })
+    confirmMessage: '선택된 항목들을 비활성화하시겠습니까?',
+  }),
 }

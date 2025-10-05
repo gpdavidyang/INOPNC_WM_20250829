@@ -1,6 +1,8 @@
 'use client'
 
 import { getSessionUserId } from '@/lib/supabase/session'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 interface InvoiceDocument {
   id: string
@@ -61,14 +63,14 @@ const documentTypes = [
   { value: 'completion_report', label: '완료보고서' },
   { value: 'payment_request', label: '대금청구서' },
   { value: 'tax_invoice', label: '세금계산서' },
-  { value: 'other', label: '기타 서류' }
+  { value: 'other', label: '기타 서류' },
 ]
 
 // 계약 단계
 const contractPhases = [
   { value: 'pre_contract', label: '계약 전' },
   { value: 'in_progress', label: '진행 중' },
-  { value: 'completed', label: '완료' }
+  { value: 'completed', label: '완료' },
 ]
 
 export default function InvoiceDocumentDetailModal({
@@ -76,12 +78,14 @@ export default function InvoiceDocumentDetailModal({
   isOpen,
   onClose,
   onUpdate,
-  userRole
+  userRole,
 }: InvoiceDocumentDetailModalProps) {
+  const { confirm } = useConfirm()
+  const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editData, setEditData] = useState<unknown>({})
-  
+
   const supabase = createClient()
   const isAdmin = userRole === 'admin' || userRole === 'system_admin'
 
@@ -91,7 +95,7 @@ export default function InvoiceDocumentDetailModal({
         title: document.title,
         description: document.description || '',
         amount: document.metadata?.amount?.toString() || '',
-        due_date: document.metadata?.due_date || ''
+        due_date: document.metadata?.due_date || '',
       })
       setEditing(false)
     }
@@ -182,7 +186,7 @@ export default function InvoiceDocumentDetailModal({
       window.open(document.file_url, '_blank')
     } catch (error) {
       console.error('Error downloading document:', error)
-      alert('파일 다운로드에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '파일 다운로드에 실패했습니다.' })
     }
   }
 
@@ -196,7 +200,7 @@ export default function InvoiceDocumentDetailModal({
       title: document?.title || '',
       description: document?.description || '',
       amount: document?.metadata?.amount?.toString() || '',
-      due_date: document?.metadata?.due_date || ''
+      due_date: document?.metadata?.due_date || '',
     })
   }
 
@@ -210,14 +214,14 @@ export default function InvoiceDocumentDetailModal({
       const updatedMetadata = {
         ...currentMetadata,
         amount: editData.amount ? parseFloat(editData.amount) : null,
-        due_date: editData.due_date || null
+        due_date: editData.due_date || null,
       }
 
       const updateData = {
         title: editData.title.trim(),
         description: editData.description.trim(),
         metadata: updatedMetadata,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       const { error } = await supabase
@@ -227,12 +231,16 @@ export default function InvoiceDocumentDetailModal({
 
       if (error) throw error
 
-      alert('서류 정보가 성공적으로 수정되었습니다.')
+      toast({ variant: 'success', title: '수정 완료', description: '서류 정보가 수정되었습니다.' })
       setEditing(false)
       onUpdate()
     } catch (error: unknown) {
       console.error('Error updating document:', error)
-      alert('서류 정보 수정에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '서류 정보 수정에 실패했습니다.',
+      })
     } finally {
       setLoading(false)
     }
@@ -240,7 +248,13 @@ export default function InvoiceDocumentDetailModal({
 
   const handleApprove = async () => {
     if (!document || !isAdmin) return
-    if (!confirm('이 서류를 승인하시겠습니까?')) return
+    const ok = await confirm({
+      title: '서류 승인',
+      description: '이 서류를 승인하시겠습니까?',
+      confirmText: '승인',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     setLoading(true)
     try {
@@ -251,24 +265,24 @@ export default function InvoiceDocumentDetailModal({
         ...currentMetadata,
         approval_status: 'approved',
         approved_by: approverId,
-        approved_at: new Date().toISOString()
+        approved_at: new Date().toISOString(),
       }
 
       const { error } = await supabase
         .from('unified_document_system')
-        .update({ 
+        .update({
           metadata: updatedMetadata,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', document.id)
 
       if (error) throw error
 
-      alert('서류가 승인되었습니다.')
+      toast({ variant: 'success', title: '승인 완료' })
       onUpdate()
     } catch (error: unknown) {
       console.error('Error approving document:', error)
-      alert('서류 승인에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '서류 승인에 실패했습니다.' })
     } finally {
       setLoading(false)
     }
@@ -276,7 +290,7 @@ export default function InvoiceDocumentDetailModal({
 
   const handleReject = async () => {
     if (!document || !isAdmin) return
-    
+
     const reason = prompt('거부 사유를 입력하세요:')
     if (!reason) return
 
@@ -290,24 +304,24 @@ export default function InvoiceDocumentDetailModal({
         approval_status: 'rejected',
         approved_by: approverId,
         approved_at: new Date().toISOString(),
-        rejection_reason: reason
+        rejection_reason: reason,
       }
 
       const { error } = await supabase
         .from('unified_document_system')
-        .update({ 
+        .update({
           metadata: updatedMetadata,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', document.id)
 
       if (error) throw error
 
-      alert('서류가 거부되었습니다.')
+      toast({ variant: 'success', title: '거부 완료' })
       onUpdate()
     } catch (error: unknown) {
       console.error('Error rejecting document:', error)
-      alert('서류 거부에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '서류 거부에 실패했습니다.' })
     } finally {
       setLoading(false)
     }
@@ -318,8 +332,11 @@ export default function InvoiceDocumentDetailModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
-        
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        />
+
         <div className="inline-block w-full max-w-4xl px-6 py-4 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
           {/* 헤더 */}
           <div className="flex items-center justify-between pb-4 border-b border-gray-200">
@@ -330,10 +347,7 @@ export default function InvoiceDocumentDetailModal({
                 <p className="text-sm text-gray-500">{getDocumentTypeLabel(document)}</p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
-            >
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -344,7 +358,7 @@ export default function InvoiceDocumentDetailModal({
               {/* 서류 기본 정보 */}
               <div className="bg-gray-50 rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">서류 정보</h4>
-                
+
                 {editing ? (
                   <div className="space-y-3">
                     <div>
@@ -352,7 +366,7 @@ export default function InvoiceDocumentDetailModal({
                       <input
                         type="text"
                         value={editData.title}
-                        onChange={(e) => setEditData(prev => ({ ...prev, title: e.target.value }))}
+                        onChange={e => setEditData(prev => ({ ...prev, title: e.target.value }))}
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
@@ -360,7 +374,9 @@ export default function InvoiceDocumentDetailModal({
                       <label className="block text-xs font-medium text-gray-700 mb-1">설명</label>
                       <textarea
                         value={editData.description}
-                        onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                        onChange={e =>
+                          setEditData(prev => ({ ...prev, description: e.target.value }))
+                        }
                         rows={3}
                         className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                       />
@@ -371,16 +387,20 @@ export default function InvoiceDocumentDetailModal({
                         <input
                           type="number"
                           value={editData.amount}
-                          onChange={(e) => setEditData(prev => ({ ...prev, amount: e.target.value }))}
+                          onChange={e => setEditData(prev => ({ ...prev, amount: e.target.value }))}
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">만료일</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          만료일
+                        </label>
                         <input
                           type="date"
                           value={editData.due_date}
-                          onChange={(e) => setEditData(prev => ({ ...prev, due_date: e.target.value }))}
+                          onChange={e =>
+                            setEditData(prev => ({ ...prev, due_date: e.target.value }))
+                          }
                           className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
                         />
                       </div>
@@ -422,15 +442,19 @@ export default function InvoiceDocumentDetailModal({
                         </button>
                       )}
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
                       <div>
                         <span className="font-medium">금액:</span>{' '}
-                        {document.metadata?.amount ? `₩${document.metadata.amount.toLocaleString()}` : '미지정'}
+                        {document.metadata?.amount
+                          ? `₩${document.metadata.amount.toLocaleString()}`
+                          : '미지정'}
                       </div>
                       <div>
                         <span className="font-medium">만료일:</span>{' '}
-                        {document.metadata?.due_date ? new Date(document.metadata.due_date).toLocaleDateString('ko-KR') : '미지정'}
+                        {document.metadata?.due_date
+                          ? new Date(document.metadata.due_date).toLocaleDateString('ko-KR')
+                          : '미지정'}
                       </div>
                     </div>
                   </div>
@@ -450,7 +474,9 @@ export default function InvoiceDocumentDetailModal({
                   </div>
                   <div>
                     <p className="text-xs font-medium text-gray-700 mb-1">파트너사</p>
-                    <p className="text-sm text-gray-900">{document.organizations?.name || '미지정'}</p>
+                    <p className="text-sm text-gray-900">
+                      {document.organizations?.name || '미지정'}
+                    </p>
                     {document.organizations?.business_registration_number && (
                       <p className="text-xs text-gray-500">
                         사업자번호: {document.organizations.business_registration_number}
@@ -488,10 +514,8 @@ export default function InvoiceDocumentDetailModal({
               <div className="bg-white border rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">승인 상태</h4>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-center">
-                    {getStatusBadge(document)}
-                  </div>
-                  
+                  <div className="flex items-center justify-center">{getStatusBadge(document)}</div>
+
                   {document.metadata?.approved_by && document.metadata?.approved_at && (
                     <div className="text-center text-xs text-gray-500">
                       <p>승인자: {document.profiles?.full_name || '알 수 없음'}</p>
@@ -525,9 +549,7 @@ export default function InvoiceDocumentDetailModal({
               {/* 계약 단계 */}
               <div className="bg-white border rounded-lg p-4">
                 <h4 className="text-sm font-medium text-gray-900 mb-3">계약 단계</h4>
-                <div className="flex justify-center">
-                  {getPhaseBadge(document)}
-                </div>
+                <div className="flex justify-center">{getPhaseBadge(document)}</div>
               </div>
 
               {/* 등록 정보 */}

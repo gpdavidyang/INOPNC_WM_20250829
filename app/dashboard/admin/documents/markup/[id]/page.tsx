@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import DownloadLinkButton from '@/components/admin/DownloadLinkButton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   Table,
   TableBody,
@@ -34,8 +35,34 @@ export default async function AdminMarkupDocumentDetailPage({
   const versions = versionsJson?.data?.versions || []
   const history = historyJson?.data?.history || []
 
+  // Signed preview URL for source file
+  let previewUrl: string | null = null
+  if (doc?.file_url) {
+    try {
+      const r = await fetch(`/api/files/signed-url?url=${encodeURIComponent(String(doc.file_url))}`, {
+        cache: 'no-store',
+      })
+      const j = await r.json().catch(() => ({}))
+      previewUrl = (j?.url as string) || String(doc.file_url)
+    } catch {
+      previewUrl = String(doc.file_url)
+    }
+  }
+
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="px-0 pb-8 space-y-6">
+      <PageHeader
+        title="마크업 문서 상세"
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '문서 관리', href: '/dashboard/admin/documents' },
+          { label: '마크업', href: '/dashboard/admin/documents/markup' },
+          { label: '상세' },
+        ]}
+        showBackButton
+        backButtonHref="/dashboard/admin/documents/markup"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>{doc?.title || '-'}</CardTitle>
@@ -51,9 +78,9 @@ export default async function AdminMarkupDocumentDetailPage({
             {doc?.file_size ? `(${Math.round((Number(doc.file_size) || 0) / 1024)} KB)` : ''}
           </div>
           <div className="flex items-center gap-3">
-            {doc?.file_url && (
+            {previewUrl && (
               <a
-                href={String(doc.file_url)}
+                href={previewUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="underline text-blue-600"
@@ -198,6 +225,7 @@ export default async function AdminMarkupDocumentDetailPage({
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

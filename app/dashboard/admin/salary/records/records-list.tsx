@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react'
 import { t } from '@/lib/ui/strings'
+import EmptyState from '@/components/ui/empty-state'
 import { createClient } from '@/lib/supabase/client'
 
 type Worker = { id: string; full_name: string }
@@ -118,8 +119,8 @@ export default function SalaryRecordsList() {
         </button>
       </div>
 
-      {loading && <p className="text-sm text-gray-600">불러오는 중...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && <EmptyState description="불러오는 중..." />}
+      {error && <EmptyState title="오류" description={error} />}
 
       <div className="overflow-x-auto border rounded-md">
         <table className="min-w-full text-sm">
@@ -157,8 +158,8 @@ export default function SalaryRecordsList() {
             ))}
             {items.length === 0 && !loading && (
               <tr>
-                <td className="px-3 py-6 text-center text-gray-500" colSpan={7}>
-                  데이터가 없습니다.
+                <td className="px-3 py-6" colSpan={7}>
+                  <EmptyState description="데이터가 없습니다." />
                 </td>
               </tr>
             )}

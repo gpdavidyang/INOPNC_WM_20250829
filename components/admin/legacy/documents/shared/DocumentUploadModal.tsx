@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
 
 interface DocumentUploadModalProps {
   document?: SharedDocument | null
@@ -18,7 +19,7 @@ interface UploadFile {
 export default function DocumentUploadModal({
   document,
   onClose,
-  onSuccess
+  onSuccess,
 }: DocumentUploadModalProps) {
   const [loading, setLoading] = useState(false)
   const [dragActive, setDragActive] = useState(false)
@@ -28,17 +29,25 @@ export default function DocumentUploadModal({
     description: document?.description || '',
     site_id: document?.site_id || '',
     organization_id: document?.organization_id || '',
-    category: (document?.category as DocumentCategory) || '' as DocumentCategory,
-    tags: document?.tags?.join(', ') || ''
+    category: (document?.category as DocumentCategory) || ('' as DocumentCategory),
+    tags: document?.tags?.join(', ') || '',
   })
   const [sites, setSites] = useState<any[]>([])
   const [organizations, setOrganizations] = useState<any[]>([])
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const supabase = createClient()
   const isEdit = !!document
+  const { toast } = useToast()
 
-  const categories: DocumentCategory[] = ['도면', '계약서', '보고서', '사진', 'PTW 작업허가서', '기타']
+  const categories: DocumentCategory[] = [
+    '도면',
+    '계약서',
+    '보고서',
+    '사진',
+    'PTW 작업허가서',
+    '기타',
+  ]
 
   // Load options
   useEffect(() => {
@@ -114,7 +123,7 @@ export default function DocumentUploadModal({
       validFiles.push({
         file,
         id: Math.random().toString(36).substring(2),
-        progress: 0
+        progress: 0,
       })
     })
 
@@ -130,7 +139,7 @@ export default function DocumentUploadModal({
     if (!formData.title && validFiles.length === 1) {
       setFormData(prev => ({
         ...prev,
-        title: validFiles[0].file.name.replace(/\.[^/.]+$/, '')
+        title: validFiles[0].file.name.replace(/\.[^/.]+$/, ''),
       }))
     }
   }
@@ -141,12 +150,16 @@ export default function DocumentUploadModal({
 
   const validateForm = () => {
     if (!formData.title.trim()) {
-      alert('문서 제목을 입력해주세요.')
+      toast({ variant: 'warning', title: '입력 필요', description: '문서 제목을 입력해주세요.' })
       return false
     }
 
     if (!isEdit && files.length === 0) {
-      alert('업로드할 파일을 선택해주세요.')
+      toast({
+        variant: 'warning',
+        title: '입력 필요',
+        description: '업로드할 파일을 선택해주세요.',
+      })
       return false
     }
 
@@ -166,7 +179,7 @@ export default function DocumentUploadModal({
 
       const response = await fetch('/api/shared-documents', {
         method: 'POST',
-        body: formDataToSend
+        body: formDataToSend,
       })
 
       if (!response.ok) {
@@ -175,22 +188,22 @@ export default function DocumentUploadModal({
       }
 
       // Update file progress
-      setFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { ...f, progress: 100, success: true }
-          : f
-      ))
+      setFiles(prev =>
+        prev.map(f => (f.id === uploadFile.id ? { ...f, progress: 100, success: true } : f))
+      )
 
       return true
     } catch (error) {
       console.error('Upload error:', error)
-      
+
       // Update file error
-      setFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { ...f, error: error instanceof Error ? error.message : 'Upload failed' }
-          : f
-      ))
+      setFiles(prev =>
+        prev.map(f =>
+          f.id === uploadFile.id
+            ? { ...f, error: error instanceof Error ? error.message : 'Upload failed' }
+            : f
+        )
+      )
 
       return false
     }
@@ -201,7 +214,7 @@ export default function DocumentUploadModal({
       const response = await fetch(`/api/shared-documents/${document!.id}`, {
         method: 'PUT',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           title: formData.title,
@@ -209,8 +222,11 @@ export default function DocumentUploadModal({
           site_id: formData.site_id || null,
           organization_id: formData.organization_id || null,
           category: formData.category || null,
-          tags: formData.tags.split(',').map(t => t.trim()).filter(Boolean)
-        })
+          tags: formData.tags
+            .split(',')
+            .map(t => t.trim())
+            .filter(Boolean),
+        }),
       })
 
       if (!response.ok) {
@@ -221,7 +237,11 @@ export default function DocumentUploadModal({
       return true
     } catch (error) {
       console.error('Update error:', error)
-      alert(error instanceof Error ? error.message : '업데이트에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: error instanceof Error ? error.message : '업데이트에 실패했습니다.',
+      })
       return false
     }
   }
@@ -244,7 +264,7 @@ export default function DocumentUploadModal({
         // Upload new documents
         const uploadPromises = files.map(uploadFile)
         const results = await Promise.all(uploadPromises)
-        
+
         if (results.some(success => success)) {
           onSuccess()
         }
@@ -283,14 +303,15 @@ export default function DocumentUploadModal({
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 파일 업로드
               </label>
-              
+
               {/* Drag & Drop Area */}
               <div
                 className={`
                   relative border-2 border-dashed rounded-lg p-8 text-center transition-colors
-                  ${dragActive 
-                    ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
-                    : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
+                  ${
+                    dragActive
+                      ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
                   }
                 `}
                 onDragEnter={handleDrag}
@@ -306,13 +327,14 @@ export default function DocumentUploadModal({
                   onChange={handleFileInput}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
-                
+
                 <Upload className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">
                   파일을 드래그하거나 클릭하여 선택
                 </h3>
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  PDF, Word, Excel, PowerPoint, 이미지 파일 지원 (최대 {formatFileSize(MAX_FILE_SIZE)})
+                  PDF, Word, Excel, PowerPoint, 이미지 파일 지원 (최대{' '}
+                  {formatFileSize(MAX_FILE_SIZE)})
                 </p>
               </div>
 
@@ -323,7 +345,10 @@ export default function DocumentUploadModal({
                     선택된 파일 ({files.length})
                   </h4>
                   {files.map(uploadFile => (
-                    <div key={uploadFile.id} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div
+                      key={uploadFile.id}
+                      className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg"
+                    >
                       <span className="text-xl">{getFileIcon(uploadFile.file)}</span>
                       <div className="flex-1">
                         <p className="text-sm font-medium text-gray-900 dark:text-white">
@@ -332,7 +357,7 @@ export default function DocumentUploadModal({
                         <p className="text-xs text-gray-600 dark:text-gray-400">
                           {formatFileSize(uploadFile.file.size)}
                         </p>
-                        
+
                         {/* Progress/Status */}
                         {uploadFile.success && (
                           <div className="flex items-center gap-1 mt-1">
@@ -340,18 +365,18 @@ export default function DocumentUploadModal({
                             <span className="text-xs text-green-600">업로드 완료</span>
                           </div>
                         )}
-                        
+
                         {uploadFile.error && (
                           <div className="flex items-center gap-1 mt-1">
                             <AlertCircle className="h-4 w-4 text-red-500" />
                             <span className="text-xs text-red-600">{uploadFile.error}</span>
                           </div>
                         )}
-                        
+
                         {uploadFile.progress > 0 && uploadFile.progress < 100 && (
                           <div className="mt-1">
                             <div className="bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                              <div 
+                              <div
                                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${uploadFile.progress}%` }}
                               />
@@ -359,7 +384,7 @@ export default function DocumentUploadModal({
                           </div>
                         )}
                       </div>
-                      
+
                       <button
                         type="button"
                         onClick={() => removeFile(uploadFile.id)}
@@ -386,7 +411,7 @@ export default function DocumentUploadModal({
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="문서 제목을 입력하세요"
                   required
@@ -399,7 +424,7 @@ export default function DocumentUploadModal({
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="문서에 대한 설명을 입력하세요"
@@ -413,7 +438,7 @@ export default function DocumentUploadModal({
                 <input
                   type="text"
                   value={formData.tags}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, tags: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   placeholder="태그를 쉼표로 구분하여 입력 (예: 도면, 1층, 설계)"
                 />
@@ -428,12 +453,14 @@ export default function DocumentUploadModal({
                 </label>
                 <select
                   value={formData.site_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, site_id: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, site_id: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">현장 선택</option>
                   {sites.map(site => (
-                    <option key={site.id} value={site.id}>{site.name}</option>
+                    <option key={site.id} value={site.id}>
+                      {site.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -444,12 +471,16 @@ export default function DocumentUploadModal({
                 </label>
                 <select
                   value={formData.organization_id}
-                  onChange={(e) => setFormData(prev => ({ ...prev, organization_id: e.target.value }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, organization_id: e.target.value }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">조직 선택</option>
                   {organizations.map(org => (
-                    <option key={org.id} value={org.id}>{org.name}</option>
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -460,12 +491,16 @@ export default function DocumentUploadModal({
                 </label>
                 <select
                   value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as DocumentCategory }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, category: e.target.value as DocumentCategory }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">카테고리 선택</option>
                   {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
                   ))}
                 </select>
               </div>

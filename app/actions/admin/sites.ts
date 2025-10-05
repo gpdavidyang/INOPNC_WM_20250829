@@ -234,6 +234,9 @@ export async function getSites(
         )
         .order(sortColumn, { ascending: sortDirection === 'asc' })
 
+      // Exclude soft-deleted sites by default
+      query = query.eq('is_deleted', false)
+
       if (auth.isRestricted) {
         query = query.eq('organization_id', requireRestrictedOrgId(auth))
       }
@@ -410,6 +413,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
           updated_at: new Date().toISOString(),
         })
         .eq('id', id)
+        .eq('is_deleted', false)
 
       if (updateError) {
         console.error('[SERVER-UPDATE] Database update error:', updateError)
@@ -421,6 +425,7 @@ export async function updateSite(data: UpdateSiteData): Promise<AdminActionResul
         .from('sites')
         .select('*')
         .eq('id', id)
+        .eq('is_deleted', false)
         .single()
 
       if (fetchUpdatedError) {
@@ -482,8 +487,12 @@ export async function deleteSites(siteIds: string[]): Promise<AdminActionResult<
 
       await ensureSitesAccessible(supabase, auth, siteIds)
 
-      // Direct delete with foreign key constraint handling
-      const { error } = await supabase.from('sites').delete().in('id', siteIds)
+      // Soft delete: mark as deleted to preserve referential integrity
+      const { error } = await supabase
+        .from('sites')
+        .update({ is_deleted: true, updated_at: new Date().toISOString() })
+        .in('id', siteIds)
+        .eq('is_deleted', false)
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
@@ -515,6 +524,58 @@ export async function deleteSites(siteIds: string[]): Promise<AdminActionResult<
 }
 
 /**
+ * Restore soft-deleted sites (bulk)
+ */
+export async function restoreSites(siteIds: string[]): Promise<AdminActionResult<void>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const auth = profile.auth
+      await ensureSitesAccessible(supabase, auth, siteIds)
+
+      const { error } = await supabase
+        .from('sites')
+        .update({ is_deleted: false, updated_at: new Date().toISOString() })
+        .in('id', siteIds)
+
+      if (error) {
+        if (process.env.NODE_ENV === 'development') console.error('Error restoring sites:', error)
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+
+      return { success: true, message: `${siteIds.length}개 현장을 복구했습니다.` }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') console.error('Sites restore error:', error)
+      return { success: false, error: resolveAdminError(error) }
+    }
+  })
+}
+
+/**
+ * Permanently delete sites (bulk purge)
+ */
+export async function purgeSites(siteIds: string[]): Promise<AdminActionResult<void>> {
+  return withAdminAuth(async (supabase, profile) => {
+    try {
+      const auth = profile.auth
+      await ensureSitesAccessible(supabase, auth, siteIds)
+
+      const { error } = await supabase.from('sites').delete().in('id', siteIds)
+      if (error) {
+        if (process.env.NODE_ENV === 'development') console.error('Error purging sites:', error)
+        if ((error as any).code === '23503') {
+          return { success: false, error: '연관 데이터가 있어 완전 삭제할 수 없습니다.' }
+        }
+        return { success: false, error: AdminErrors.DATABASE_ERROR }
+      }
+      return { success: true, message: `${siteIds.length}개 현장을 영구 삭제했습니다.` }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') console.error('Sites purge error:', error)
+      return { success: false, error: resolveAdminError(error) }
+    }
+  })
+}
+
+/**
  * Update site status (bulk operation)
  */
 export async function updateSiteStatus(
@@ -534,6 +595,7 @@ export async function updateSiteStatus(
           updated_at: new Date().toISOString(),
         })
         .in('id', siteIds)
+        .eq('is_deleted', false)
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {

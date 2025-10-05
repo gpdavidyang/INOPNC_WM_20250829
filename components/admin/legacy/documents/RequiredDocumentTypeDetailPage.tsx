@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
 
 interface RequiredDocument {
   id: string
@@ -35,12 +36,13 @@ const DOCUMENT_TYPE_LABELS = {
   vehicle_registration: '차량등록증',
   payroll_stub: '통장 사본',
   id_card: '신분증 사본',
-  senior_documents: '고령자 서류'
+  senior_documents: '고령자 서류',
 }
 
-export default function RequiredDocumentTypeDetailPage({ 
-  documentType 
+export default function RequiredDocumentTypeDetailPage({
+  documentType,
 }: RequiredDocumentTypeDetailPageProps) {
+  const { toast } = useToast()
   const router = useRouter()
   const [documents, setDocuments] = useState<RequiredDocument[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,14 +62,17 @@ export default function RequiredDocumentTypeDetailPage({
   const fetchDocuments = async () => {
     try {
       setLoading(true)
-      
-      const response = await fetch(`/api/admin/documents/required/${encodeURIComponent(documentType)}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-      
+
+      const response = await fetch(
+        `/api/admin/documents/required/${encodeURIComponent(documentType)}`,
+        {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
       if (response.ok) {
         const data = await response.json()
         setDocuments(data.documents || [])
@@ -84,48 +89,60 @@ export default function RequiredDocumentTypeDetailPage({
 
   const handleApprove = async (submissionIds: string[]) => {
     try {
-      const promises = submissionIds.map(id => 
+      const promises = submissionIds.map(id =>
         fetch('/api/user-document-submissions', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             submission_id: id,
-            status: 'approved'
-          })
+            status: 'approved',
+          }),
         })
       )
-      
+
       await Promise.all(promises)
-      alert(`${submissionIds.length}개 서류가 승인되었습니다.`)
+      toast({
+        variant: 'success',
+        title: '승인 완료',
+        description: `${submissionIds.length}개 서류 승인됨`,
+      })
       fetchDocuments()
       setSelectedDocs([])
     } catch (error) {
       console.error('Error approving documents:', error)
-      alert('승인 처리 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '승인 처리 중 오류가 발생했습니다.',
+      })
     }
   }
 
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
-      alert('반려 사유를 입력해주세요.')
+      toast({ variant: 'warning', title: '입력 필요', description: '반려 사유를 입력해주세요.' })
       return
     }
 
     try {
-      const promises = selectedForRejection.map(id => 
+      const promises = selectedForRejection.map(id =>
         fetch('/api/user-document-submissions', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             submission_id: id,
             status: 'rejected',
-            rejection_reason: rejectionReason
-          })
+            rejection_reason: rejectionReason,
+          }),
         })
       )
-      
+
       await Promise.all(promises)
-      alert(`${selectedForRejection.length}개 서류가 반려되었습니다.`)
+      toast({
+        variant: 'success',
+        title: '반려 완료',
+        description: `${selectedForRejection.length}개 서류 반려됨`,
+      })
       fetchDocuments()
       setSelectedDocs([])
       setShowRejectionModal(false)
@@ -133,7 +150,11 @@ export default function RequiredDocumentTypeDetailPage({
       setSelectedForRejection([])
     } catch (error) {
       console.error('Error rejecting documents:', error)
-      alert('반려 처리 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '반려 처리 중 오류가 발생했습니다.',
+      })
     }
   }
 
@@ -145,17 +166,23 @@ export default function RequiredDocumentTypeDetailPage({
   const handleDownload = async (document: RequiredDocument) => {
     try {
       // This would need to be implemented to get the signed URL for download
-      alert(`다운로드 기능은 추후 구현 예정입니다: ${document.file_name}`)
+      toast({
+        variant: 'info',
+        title: '준비 중',
+        description: `다운로드는 추후 구현 예정입니다: ${document.file_name}`,
+      })
     } catch (error) {
-      alert('다운로드 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '다운로드 중 오류가 발생했습니다.',
+      })
     }
   }
 
   const toggleDocSelection = (docId: string) => {
-    setSelectedDocs(prev => 
-      prev.includes(docId) 
-        ? prev.filter(id => id !== docId)
-        : [...prev, docId]
+    setSelectedDocs(prev =>
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
     )
   }
 
@@ -171,14 +198,16 @@ export default function RequiredDocumentTypeDetailPage({
     const statusConfig = {
       pending: { icon: Clock, text: '검토 대기', className: 'bg-yellow-100 text-yellow-800' },
       approved: { icon: CheckCircle, text: '승인', className: 'bg-green-100 text-green-800' },
-      rejected: { icon: XCircle, text: '반려', className: 'bg-red-100 text-red-800' }
+      rejected: { icon: XCircle, text: '반려', className: 'bg-red-100 text-red-800' },
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.pending
     const Icon = config.icon
-    
+
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${config.className}`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full ${config.className}`}
+      >
         <Icon className="w-3 h-3" />
         {config.text}
       </span>
@@ -199,21 +228,23 @@ export default function RequiredDocumentTypeDetailPage({
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
   const filteredDocuments = documents.filter(doc => {
-    const matchesSearch = doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.submitted_by.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         doc.file_name.toLowerCase().includes(searchTerm.toLowerCase())
-    
+    const matchesSearch =
+      doc.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.submitted_by.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.file_name.toLowerCase().includes(searchTerm.toLowerCase())
+
     const matchesStatus = statusFilter === 'all' || doc.status === statusFilter
-    
+
     return matchesSearch && matchesStatus
   })
 
-  const documentTypeLabel = DOCUMENT_TYPE_LABELS[documentType as keyof typeof DOCUMENT_TYPE_LABELS] || documentType
+  const documentTypeLabel =
+    DOCUMENT_TYPE_LABELS[documentType as keyof typeof DOCUMENT_TYPE_LABELS] || documentType
 
   if (loading) {
     return (
@@ -256,9 +287,7 @@ export default function RequiredDocumentTypeDetailPage({
       {/* 일괄 작업 버튼 */}
       {selectedDocs.length > 0 && (
         <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-          <span className="text-sm text-blue-700 font-medium">
-            {selectedDocs.length}개 선택됨
-          </span>
+          <span className="text-sm text-blue-700 font-medium">{selectedDocs.length}개 선택됨</span>
           <button
             onClick={() => handleApprove(selectedDocs)}
             className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -292,16 +321,16 @@ export default function RequiredDocumentTypeDetailPage({
               type="text"
               placeholder="제목, 제출자명, 파일명으로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
         </div>
-        
+
         <div className="flex gap-2">
           <select
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            onChange={e => setStatusFilter(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="all">모든 상태</option>
@@ -316,7 +345,9 @@ export default function RequiredDocumentTypeDetailPage({
       {filteredDocuments.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">제출된 {documentTypeLabel}가 없습니다</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            제출된 {documentTypeLabel}가 없습니다
+          </h3>
           <p className="text-gray-600">해당 문서 유형의 제출서류가 여기에 표시됩니다.</p>
         </div>
       ) : (
@@ -328,7 +359,10 @@ export default function RequiredDocumentTypeDetailPage({
                   <th className="w-12 px-6 py-3">
                     <input
                       type="checkbox"
-                      checked={selectedDocs.length === filteredDocuments.length && filteredDocuments.length > 0}
+                      checked={
+                        selectedDocs.length === filteredDocuments.length &&
+                        filteredDocuments.length > 0
+                      }
                       onChange={toggleAllSelection}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                     />
@@ -351,10 +385,10 @@ export default function RequiredDocumentTypeDetailPage({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredDocuments.map((document) => {
+                {filteredDocuments.map(document => {
                   const docId = document.submission_id || document.id
                   const isSelected = selectedDocs.includes(docId)
-                  
+
                   return (
                     <tr key={document.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4">
@@ -369,15 +403,23 @@ export default function RequiredDocumentTypeDetailPage({
                         <div className="flex items-center">
                           <User className="w-4 h-4 text-gray-400 mr-2" />
                           <div>
-                            <div className="text-sm font-medium text-gray-900">{document.submitted_by.full_name}</div>
-                            <div className="text-sm text-gray-500">{document.submitted_by.email}</div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {document.submitted_by.full_name}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {document.submitted_by.email}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{document.file_name}</div>
-                          <div className="text-sm text-gray-500">{formatFileSize(document.file_size)}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {document.file_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {formatFileSize(document.file_size)}
+                          </div>
                           {document.title && (
                             <div className="text-xs text-gray-400 mt-1">{document.title}</div>
                           )}
@@ -452,7 +494,7 @@ export default function RequiredDocumentTypeDetailPage({
             <h3 className="text-lg font-medium text-gray-900 mb-4">반려 사유 입력</h3>
             <textarea
               value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
+              onChange={e => setRejectionReason(e.target.value)}
               placeholder="반려 사유를 입력해주세요..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               rows={4}

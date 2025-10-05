@@ -1,15 +1,15 @@
-
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
+import { PageHeader } from '@/components/ui/page-header'
 import { getAuthForClient } from '@/lib/auth/ultra-simple'
 
-export const dynamic = "force-dynamic"
+export const dynamic = 'force-dynamic'
 
 export default async function AdminNewDailyReportPage() {
   const supabase = createClient()
-  
+
   // Check authentication and admin role
   const auth = await getAuthForClient(supabase)
   if (!auth) {
@@ -42,31 +42,23 @@ export default async function AdminNewDailyReportPage() {
     .order('full_name')
 
   // Get materials
-  const { data: materials } = await supabase
-    .from('materials')
-    .select('*')
-    .order('name')
+  const { data: materials } = await supabase.from('materials').select('*').order('name')
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/dashboard/admin/sites"
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>작업일지 관리로 돌아가기</span>
-              </Link>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">새 작업일지 작성 (관리자)</h1>
-          </div>
-        </div>
-      </div>
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="새 작업일지 작성"
+        description="관리자 권한으로 새 작업일지를 작성"
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '작업일지 관리', href: '/dashboard/admin/daily-reports' },
+          { label: '새 작업일지' },
+        ]}
+        showBackButton
+        backButtonHref="/dashboard/admin/daily-reports"
+      />
 
-      <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium mb-4">새 작업일지 작성</h2>
           <p className="text-gray-600">작업일지 작성 폼이 여기에 표시됩니다.</p>

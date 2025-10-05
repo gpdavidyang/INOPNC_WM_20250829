@@ -1,9 +1,10 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
 
 interface UploadDocumentModalProps {
   category: string
-  sites: Array<{id: string, name: string}>
+  sites: Array<{ id: string; name: string }>
   profile: Profile
   onClose: () => void
   onSuccess: () => void
@@ -14,14 +15,14 @@ export default function UploadDocumentModal({
   sites,
   profile,
   onClose,
-  onSuccess
+  onSuccess,
 }: UploadDocumentModalProps) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     site_id: '',
     folder_id: '',
-    document_type: category
+    document_type: category,
   })
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
@@ -29,6 +30,7 @@ export default function UploadDocumentModal({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const supabase = createClient()
+  const { toast } = useToast()
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault()
@@ -44,7 +46,7 @@ export default function UploadDocumentModal({
     e.preventDefault()
     e.stopPropagation()
     setDragActive(false)
-    
+
     const files = Array.from(e.dataTransfer.files)
     if (files.length > 0) {
       handleFileSelect(files[0])
@@ -56,22 +58,31 @@ export default function UploadDocumentModal({
     const allowedTypes = [
       'application/pdf',
       'image/jpeg',
-      'image/jpg', 
+      'image/jpg',
       'image/png',
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     ]
 
     if (!allowedTypes.includes(selectedFile.type)) {
-      alert('지원하지 않는 파일 형식입니다. PDF, 이미지(JPG, PNG), Word, Excel 파일만 업로드 가능합니다.')
+      toast({
+        variant: 'warning',
+        title: '형식 오류',
+        description:
+          '지원하지 않는 파일 형식입니다. PDF, 이미지(JPG, PNG), Word, Excel 파일만 업로드 가능합니다.',
+      })
       return
     }
 
     // Validate file size (10MB limit)
     if (selectedFile.size > 10 * 1024 * 1024) {
-      alert('파일 크기는 10MB를 초과할 수 없습니다.')
+      toast({
+        variant: 'warning',
+        title: '용량 초과',
+        description: '파일 크기는 10MB를 초과할 수 없습니다.',
+      })
       return
     }
 
@@ -79,21 +90,21 @@ export default function UploadDocumentModal({
     if (!formData.title) {
       setFormData({
         ...formData,
-        title: selectedFile.name.replace(/\.[^/.]+$/, '') // Remove extension
+        title: selectedFile.name.replace(/\.[^/.]+$/, ''), // Remove extension
       })
     }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!file) {
-      alert('파일을 선택해주세요.')
+      toast({ variant: 'warning', title: '입력 필요', description: '파일을 선택해주세요.' })
       return
     }
 
     if (!formData.title.trim()) {
-      alert('문서 제목을 입력해주세요.')
+      toast({ variant: 'warning', title: '입력 필요', description: '문서 제목을 입력해주세요.' })
       return
     }
 
@@ -111,9 +122,9 @@ export default function UploadDocumentModal({
       if (uploadError) throw uploadError
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath)
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from('documents').getPublicUrl(filePath)
 
       // Create document record with current schema
       const documentData = {
@@ -127,7 +138,7 @@ export default function UploadDocumentModal({
         site_id: formData.site_id || null,
         folder_path: '', // Use existing folder_path field
         owner_id: profile.id,
-        is_public: ['shared', 'required'].includes(category) // Auto-set public for shared docs
+        is_public: ['shared', 'required'].includes(category), // Auto-set public for shared docs
       }
 
       const { data, error } = await supabase
@@ -144,7 +155,7 @@ export default function UploadDocumentModal({
       onSuccess()
     } catch (error) {
       console.error('Failed to upload document:', error)
-      alert('문서 업로드에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '문서 업로드에 실패했습니다.' })
     } finally {
       setUploading(false)
     }
@@ -159,7 +170,7 @@ export default function UploadDocumentModal({
       progress_payment: '기성청구',
       report: '보고서',
       certificate: '인증서',
-      other: '기타'
+      other: '기타',
     }
     return names[categoryName] || '기타'
   }
@@ -179,9 +190,7 @@ export default function UploadDocumentModal({
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <Upload className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              문서 업로드
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">문서 업로드</h2>
           </div>
           <button
             onClick={onClose}
@@ -262,7 +271,7 @@ export default function UploadDocumentModal({
                 type="file"
                 className="hidden"
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                onChange={(e) => {
+                onChange={e => {
                   const selectedFile = e.target.files?.[0]
                   if (selectedFile) {
                     handleFileSelect(selectedFile)
@@ -279,7 +288,7 @@ export default function UploadDocumentModal({
               <input
                 type="text"
                 value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                onChange={e => setFormData({ ...formData, title: e.target.value })}
                 placeholder="문서 제목을 입력하세요"
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
@@ -293,7 +302,7 @@ export default function UploadDocumentModal({
               </label>
               <textarea
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
                 placeholder="문서에 대한 설명을 입력하세요"
                 rows={3}
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
@@ -309,11 +318,11 @@ export default function UploadDocumentModal({
                 <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <select
                   value={formData.site_id}
-                  onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
+                  onChange={e => setFormData({ ...formData, site_id: e.target.value })}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white appearance-none"
                 >
                   <option value="">현장을 선택하세요</option>
-                  {sites.map((site) => (
+                  {sites.map(site => (
                     <option key={site.id} value={site.id}>
                       {site.name}
                     </option>
@@ -327,9 +336,7 @@ export default function UploadDocumentModal({
               <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                 <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="text-amber-800 dark:text-amber-200 font-medium">
-                    자동 공유 안내
-                  </p>
+                  <p className="text-amber-800 dark:text-amber-200 font-medium">자동 공유 안내</p>
                   <p className="text-amber-700 dark:text-amber-300 mt-1">
                     이 문서는 선택된 현장의 모든 구성원에게 자동으로 공유됩니다.
                     {category === 'required' && ' (읽기 전용)'}

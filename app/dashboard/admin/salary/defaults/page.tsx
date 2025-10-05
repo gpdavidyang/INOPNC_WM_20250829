@@ -1,8 +1,12 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { useToast } from '@/components/ui/use-toast'
+import EmptyState from '@/components/ui/empty-state'
+import { PageHeader } from '@/components/ui/page-header'
 
 export default function DefaultRatesPage() {
+  const { toast } = useToast()
   const [items, setItems] = useState<any[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -37,21 +41,27 @@ export default function DefaultRatesPage() {
       })
       const json = await res.json()
       if (!res.ok || json?.success === false) throw new Error(json?.error || '저장 실패')
-      alert('저장되었습니다')
+      toast({ title: '저장 완료', description: '기본 세율이 저장되었습니다.' })
     } catch (e: any) {
-      alert(e?.message || '저장 실패')
+      toast({ title: '저장 실패', description: e?.message || '저장 실패', variant: 'destructive' })
     }
   }
 
   return (
-    <div className="space-y-3">
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="기본 세율 관리"
+        description="고용형태별 기본세율 설정"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '기본 세율' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-3">
       <p className="text-sm text-gray-600">
         고용형태별 기본세율. 개인세율이 설정되면 기본세율보다 우선합니다.
       </p>
       {loading ? (
-        <p className="text-sm text-gray-600">불러오는 중...</p>
+        <EmptyState description="불러오는 중..." />
       ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+        <EmptyState title="오류" description={error} />
       ) : (
         <>
           <div className="overflow-x-auto border rounded-md">
@@ -145,6 +155,7 @@ export default function DefaultRatesPage() {
           </div>
         </>
       )}
+      </div>
     </div>
   )
 }

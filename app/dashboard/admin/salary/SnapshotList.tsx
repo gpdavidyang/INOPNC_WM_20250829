@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { t } from '@/lib/ui/strings'
 import { createClient } from '@/lib/supabase/client'
+import { useToast } from '@/components/ui/use-toast'
 
 type Worker = { id: string; full_name: string }
 type Snapshot = {
@@ -16,6 +17,7 @@ type Snapshot = {
 
 export default function SnapshotList() {
   const supabase = useMemo(() => createClient(), [])
+  const { toast } = useToast()
   const [workers, setWorkers] = useState<Worker[]>([])
   const [selectedWorker, setSelectedWorker] = useState<string>('')
   const [items, setItems] = useState<Snapshot[]>([])
@@ -116,7 +118,7 @@ export default function SnapshotList() {
       await fetchList()
       setSelectedKeys(new Set())
     } catch (e: any) {
-      alert(e?.message || '일괄 승인 실패')
+      toast({ title: '승인 실패', description: e?.message || '일괄 승인 실패', variant: 'destructive' })
     }
   }
 
@@ -136,7 +138,7 @@ export default function SnapshotList() {
       await fetchList()
       setSelectedKeys(new Set())
     } catch (e: any) {
-      alert(e?.message || '일괄 지급 실패')
+      toast({ title: '지급 실패', description: e?.message || '일괄 지급 실패', variant: 'destructive' })
     }
   }
 
@@ -182,7 +184,7 @@ export default function SnapshotList() {
       if (!json?.success) throw new Error(json?.error || '승인 실패')
       await fetchList()
     } catch (e: any) {
-      alert(e?.message || '승인 실패')
+      toast({ title: '승인 실패', description: e?.message || '승인 실패', variant: 'destructive' })
     }
   }
 
@@ -197,7 +199,7 @@ export default function SnapshotList() {
       if (!json?.success) throw new Error(json?.error || '지급 처리 실패')
       await fetchList()
     } catch (e: any) {
-      alert(e?.message || '지급 처리 실패')
+      toast({ title: '지급 실패', description: e?.message || '지급 처리 실패', variant: 'destructive' })
     }
   }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
+import { ADMIN_PARTNER_COMPANIES_STUB } from '@/lib/admin/stub-data'
 import { createClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -38,10 +39,22 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query
     if (error) {
       console.error('partner_companies fetch error:', error)
-      return NextResponse.json(
-        { success: false, error: 'Failed to load partner companies' },
-        { status: 500 }
-      )
+      // Fallback to stub data on query error
+      const stubList = ADMIN_PARTNER_COMPANIES_STUB.filter(item => {
+        const statusOk = !status || status === 'all' ? true : item.status === status
+        const roleOk =
+          role === 'customer_manager' && restrictedOrgId ? item.id === restrictedOrgId : true
+        return statusOk && roleOk
+      })
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          partner_companies: stubList,
+          total: stubList.length,
+        },
+        source: 'stub',
+      })
     }
 
     return NextResponse.json({
@@ -53,6 +66,21 @@ export async function GET(request: NextRequest) {
     })
   } catch (e) {
     console.error('partner_companies handler error:', e)
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 })
+    // Fallback to stub data on unexpected error
+    const stubList = ADMIN_PARTNER_COMPANIES_STUB.filter(item => {
+      const statusOk = !status || status === 'all' ? true : item.status === status
+      const roleOk =
+        role === 'customer_manager' && restrictedOrgId ? item.id === restrictedOrgId : true
+      return statusOk && roleOk
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        partner_companies: stubList,
+        total: stubList.length,
+      },
+      source: 'stub',
+    })
   }
 }

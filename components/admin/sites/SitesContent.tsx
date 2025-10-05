@@ -24,8 +24,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { DropdownMenu, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type { Site, SiteStatus } from '@/types'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 // Detail view moved to dedicated page: /dashboard/admin/sites/[id]
 import { t } from '@/lib/ui/strings'
 
@@ -127,8 +130,18 @@ export function SitesContent({
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('all')
   const [sortKey, setSortKey] = useState<string>('created_at')
   const [sortDir, setSortDir] = useState<SortDirection>('desc')
+  const [includeDeleted, setIncludeDeleted] = useState(false)
+  const [onlyDeleted, setOnlyDeleted] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const activeCount = useMemo(() => sites.filter(site => site.status === 'active').length, [sites])
+  const allSelected = useMemo(
+    () => sites.length > 0 && sites.every(s => selected.has(s.id)),
+    [sites, selected]
+  )
+  const selectedCount = selected.size
+  const { confirm } = useConfirm()
+  const { toast } = useToast()
 
   const fetchSites = useCallback(
     async (
@@ -163,6 +176,8 @@ export function SitesContent({
 
         params.set('sort', effectiveSort)
         params.set('direction', effectiveDirection)
+        if (onlyDeleted) params.set('only_deleted', '1')
+        else if (includeDeleted) params.set('include_deleted', '1')
 
         const response = await fetch(`${fetchBaseUrl}?${params.toString()}`, { cache: 'no-store' })
         const payload = await response.json()
@@ -178,6 +193,7 @@ export function SitesContent({
         setSearchTerm(effectiveSearch)
         setSearchInput(effectiveSearch)
         setStatusFilter(effectiveStatus)
+        setSelected(new Set())
       } catch (err) {
         console.error('Failed to fetch sites', err)
         setError(err instanceof Error ? err.message : '현장 목록을 불러오지 못했습니다.')
@@ -185,7 +201,7 @@ export function SitesContent({
         setLoading(false)
       }
     },
-    [pageSize, searchTerm, statusFilter, sortKey, sortDir]
+    [pageSize, searchTerm, statusFilter, sortKey, sortDir, includeDeleted, onlyDeleted]
   )
 
   const handleSearch = useCallback(() => {
@@ -197,12 +213,179 @@ export function SitesContent({
     fetchSites(1, { search: '', status: 'all', sort: 'created_at', direction: 'desc' })
     setSortKey('created_at')
     setSortDir('desc')
+    setIncludeDeleted(false)
+    setOnlyDeleted(false)
   }, [fetchSites])
+
+  const toggleSelectAll = useCallback(() => {
+    setSelected(prev => {
+      const next = new Set<string>(prev)
+      if (sites.length > 0 && sites.every(s => next.has(s.id))) {
+        sites.forEach(s => next.delete(s.id))
+      } else {
+        sites.forEach(s => next.add(s.id))
+      }
+      return next
+    })
+  }, [sites])
+
+  const toggleSelectOne = useCallback((id: string) => {
+    setSelected(prev => {
+      const next = new Set<string>(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const bulkUpdateStatus = useCallback(
+    async (status: SiteStatus) => {
+      if (selected.size === 0) return
+      const ok = await confirm({
+        title: '상태 변경',
+        description: `선택한 ${selected.size}개 현장의 상태를 '${STATUS_LABELS[status as any] || status}'로 변경할까요?`,
+        confirmText: '변경',
+        cancelText: '취소',
+        variant: 'warning',
+      })
+      if (!ok) return
+      try {
+        const res = await fetch('/api/admin/sites/bulk-status', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ siteIds: Array.from(selected), status }),
+        })
+        const j = await res.json().catch(() => ({}))
+        if (!res.ok || !j?.success) throw new Error(j?.error || '상태 변경 실패')
+        toast({ title: '완료', description: '상태가 변경되었습니다.', variant: 'success' })
+        await fetchSites(page)
+      } catch (e: any) {
+        const msg = e?.message || '상태 변경 중 오류가 발생했습니다.'
+        setError(msg)
+        toast({ title: '오류', description: msg, variant: 'destructive' })
+      }
+    },
+    [selected, fetchSites, page, confirm, toast]
+  )
+
+  const bulkDelete = useCallback(async () => {
+    if (selected.size === 0) return
+    const ok = await confirm({
+      title: '현장 삭제',
+      description: `선택한 ${selected.size}개 현장을 삭제할까요? 이 작업은 되돌릴 수 없습니다.`,
+      confirmText: '삭제',
+      cancelText: '취소',
+      variant: 'destructive',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch('/api/admin/sites/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteIds: Array.from(selected) }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j?.success) throw new Error(j?.error || '삭제 실패')
+      toast({
+        title: '삭제 완료',
+        description: `${selected.size}개 현장이 삭제되었습니다.`,
+        variant: 'success',
+      })
+      await fetchSites(Math.min(page, pages))
+    } catch (e: any) {
+      const msg = e?.message || '삭제 중 오류가 발생했습니다.'
+      setError(msg)
+      toast({ title: '오류', description: msg, variant: 'destructive' })
+    }
+  }, [selected, fetchSites, page, pages, confirm, toast])
+
+  const bulkRestore = useCallback(async () => {
+    if (selected.size === 0) return
+    const ok = await confirm({
+      title: '복구',
+      description: `선택한 ${selected.size}개 현장을 복구할까요?`,
+      confirmText: '복구',
+      cancelText: '취소',
+      variant: 'info',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch('/api/admin/sites/bulk-restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteIds: Array.from(selected) }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j?.success) throw new Error(j?.error || '복구 실패')
+      toast({
+        title: '복구 완료',
+        description: `${selected.size}개 현장을 복구했습니다.`,
+        variant: 'success',
+      })
+      await fetchSites(1)
+    } catch (e: any) {
+      const msg = e?.message || '복구 중 오류가 발생했습니다.'
+      setError(msg)
+      toast({ title: '오류', description: msg, variant: 'destructive' })
+    }
+  }, [selected, confirm, toast, fetchSites])
+
+  const bulkPurge = useCallback(async () => {
+    if (selected.size === 0) return
+    const ok = await confirm({
+      title: '영구 삭제',
+      description: `선택한 ${selected.size}개 현장을 완전히 삭제합니다. 되돌릴 수 없습니다.`,
+      confirmText: '영구 삭제',
+      cancelText: '취소',
+      variant: 'destructive',
+    })
+    if (!ok) return
+    try {
+      const res = await fetch('/api/admin/sites/bulk-purge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ siteIds: Array.from(selected) }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j?.success) throw new Error(j?.error || '영구 삭제 실패')
+      toast({
+        title: '완전 삭제',
+        description: `${selected.size}개 현장을 완전히 삭제했습니다.`,
+        variant: 'success',
+      })
+      await fetchSites(1)
+    } catch (e: any) {
+      const msg = e?.message || '영구 삭제 중 오류가 발생했습니다.'
+      setError(msg)
+      toast({ title: '오류', description: msg, variant: 'destructive' })
+    }
+  }, [selected, confirm, toast, fetchSites])
 
   // Detail navigation handled via anchor links in DataTable cells
 
   const columns: Column<Site>[] = useMemo(
     () => [
+      {
+        key: 'select',
+        header: (
+          <input
+            type="checkbox"
+            aria-label="전체 선택"
+            checked={allSelected}
+            onChange={toggleSelectAll}
+          />
+        ),
+        width: 36,
+        align: 'center',
+        render: s => (
+          <input
+            type="checkbox"
+            aria-label="선택"
+            checked={selected.has(s.id)}
+            onChange={() => toggleSelectOne(s.id)}
+          />
+        ),
+      },
       {
         key: 'name',
         header: t('sites.table.name'),
@@ -265,17 +448,144 @@ export function SitesContent({
       },
       {
         key: 'actions',
-        header: t('sites.table.details'),
+        header: '작업',
         sortable: false,
         align: 'right',
         render: s => (
-          <Button asChild variant="ghost" size="sm">
-            <a href={`/dashboard/admin/sites/${s.id}`}>{t('common.details')}</a>
-          </Button>
+          <div className="flex items-center justify-end gap-1">
+            <Button asChild variant="ghost" size="sm">
+              <a href={`/dashboard/admin/sites/${s.id}`}>상세</a>
+            </Button>
+            <DropdownMenu
+              align="end"
+              trigger={
+                <Button variant="outline" size="sm">
+                  더보기
+                </Button>
+              }
+            >
+              <DropdownMenuItem asChild>
+                <a href={`/dashboard/admin/sites/${s.id}?tab=edit`}>정보 수정</a>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/admin/sites/${s.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status: 'active' }),
+                    })
+                    const j = await res.json().catch(() => ({}))
+                    if (!res.ok || !j?.success) throw new Error(j?.error || '상태 변경 실패')
+                    toast({
+                      title: '상태 변경',
+                      description: '진행 중으로 변경되었습니다.',
+                      variant: 'success',
+                    })
+                    await fetchSites(page)
+                  } catch (e: any) {
+                    toast({
+                      title: '오류',
+                      description: e?.message || '상태 변경 실패',
+                      variant: 'destructive',
+                    })
+                  }
+                }}
+              >
+                상태: 진행 중
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/admin/sites/${s.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status: 'inactive' }),
+                    })
+                    const j = await res.json().catch(() => ({}))
+                    if (!res.ok || !j?.success) throw new Error(j?.error || '상태 변경 실패')
+                    toast({
+                      title: '상태 변경',
+                      description: '중단으로 변경되었습니다.',
+                      variant: 'success',
+                    })
+                    await fetchSites(page)
+                  } catch (e: any) {
+                    toast({
+                      title: '오류',
+                      description: e?.message || '상태 변경 실패',
+                      variant: 'destructive',
+                    })
+                  }
+                }}
+              >
+                상태: 중단
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/admin/sites/${s.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status: 'completed' }),
+                    })
+                    const j = await res.json().catch(() => ({}))
+                    if (!res.ok || !j?.success) throw new Error(j?.error || '상태 변경 실패')
+                    toast({
+                      title: '상태 변경',
+                      description: '완료로 변경되었습니다.',
+                      variant: 'success',
+                    })
+                    await fetchSites(page)
+                  } catch (e: any) {
+                    toast({
+                      title: '오류',
+                      description: e?.message || '상태 변경 실패',
+                      variant: 'destructive',
+                    })
+                  }
+                }}
+              >
+                상태: 완료
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: '현장 삭제',
+                    description: `'${s.name}' 현장을 삭제할까요? 되돌릴 수 없습니다.`,
+                    confirmText: '삭제',
+                    cancelText: '취소',
+                    variant: 'destructive',
+                  })
+                  if (!ok) return
+                  try {
+                    const res = await fetch(`/api/admin/sites/${s.id}`, { method: 'DELETE' })
+                    const j = await res.json().catch(() => ({}))
+                    if (!res.ok || !j?.success) throw new Error(j?.error || '삭제 실패')
+                    toast({
+                      title: '삭제 완료',
+                      description: '현장이 삭제되었습니다.',
+                      variant: 'success',
+                    })
+                    await fetchSites(page)
+                  } catch (e: any) {
+                    toast({
+                      title: '오류',
+                      description: e?.message || '삭제 실패',
+                      variant: 'destructive',
+                    })
+                  }
+                }}
+              >
+                삭제
+              </DropdownMenuItem>
+            </DropdownMenu>
+          </div>
         ),
       },
     ],
-    []
+    [allSelected, selected, toggleSelectAll, toggleSelectOne]
   )
 
   return (
@@ -363,11 +673,72 @@ export function SitesContent({
                 ))}
               </SelectContent>
             </Select>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground select-none">
+              <input
+                type="checkbox"
+                checked={includeDeleted}
+                onChange={e => {
+                  const v = e.target.checked
+                  setIncludeDeleted(v)
+                  if (!v) setOnlyDeleted(false)
+                  // reset to page 1 with current filters
+                  fetchSites(1)
+                }}
+              />
+              삭제 포함
+            </label>
+            <label className="flex items-center gap-2 text-sm text-muted-foreground select-none">
+              <input
+                type="checkbox"
+                checked={onlyDeleted}
+                onChange={e => {
+                  const v = e.target.checked
+                  setOnlyDeleted(v)
+                  setIncludeDeleted(v || includeDeleted)
+                  fetchSites(1)
+                }}
+                disabled={!includeDeleted && !onlyDeleted}
+                title={!includeDeleted && !onlyDeleted ? '먼저 삭제 포함을 켜세요' : undefined}
+              />
+              삭제됨만 보기
+            </label>
           </div>
           <Button variant="ghost" size="sm" onClick={handleResetFilters} disabled={loading}>
             {t('common.reset')}
           </Button>
         </div>
+
+        {selectedCount > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 p-3 text-sm">
+            <div>
+              선택됨: <span className="font-medium text-foreground">{selectedCount}</span>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('active')}>
+                진행 중으로
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('inactive')}>
+                중단으로
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => bulkUpdateStatus('completed')}>
+                완료로
+              </Button>
+              <Button size="sm" variant="danger" onClick={bulkDelete}>
+                삭제
+              </Button>
+              {onlyDeleted && (
+                <>
+                  <Button size="sm" variant="secondary" onClick={bulkRestore}>
+                    복구
+                  </Button>
+                  <Button size="sm" variant="danger" onClick={bulkPurge}>
+                    영구 삭제
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="mt-6">
           {loading && <LoadingSpinner />}

@@ -1,5 +1,7 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface Document {
   id: string
@@ -54,12 +56,14 @@ export default function SharedDocumentsManagement() {
     title: '',
     description: '',
     site_id: null,
-    is_public: false
+    is_public: false,
   })
   const [saving, setSaving] = useState(false)
   const itemsPerPage = 20
 
   const supabase = createClient()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   const fetchSites = async () => {
     try {
@@ -84,7 +88,7 @@ export default function SharedDocumentsManagement() {
         category_type: 'shared',
         status: 'active',
         limit: itemsPerPage.toString(),
-        offset: ((currentPage - 1) * itemsPerPage).toString()
+        offset: ((currentPage - 1) * itemsPerPage).toString(),
       })
 
       // 검색 필터 적용
@@ -112,21 +116,25 @@ export default function SharedDocumentsManagement() {
   }
 
   const handleDeleteDocument = async (documentId: string) => {
-    if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '문서 삭제',
+      description: '정말로 이 문서를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
-      const { error } = await supabase
-        .from('unified_document_system')
-        .delete()
-        .eq('id', documentId)
+      const { error } = await supabase.from('unified_document_system').delete().eq('id', documentId)
 
       if (error) throw error
 
       await fetchDocuments()
-      alert('문서가 성공적으로 삭제되었습니다.')
+      toast({ variant: 'success', title: '삭제 완료', description: '문서가 삭제되었습니다.' })
     } catch (error) {
       console.error('Error deleting document:', error)
-      alert('문서 삭제에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '문서 삭제에 실패했습니다.' })
     }
   }
 
@@ -136,7 +144,7 @@ export default function SharedDocumentsManagement() {
       window.open(document.file_url, '_blank')
     } catch (error) {
       console.error('Error downloading document:', error)
-      alert('문서 다운로드에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '문서 다운로드에 실패했습니다.' })
     }
   }
 
@@ -170,7 +178,7 @@ export default function SharedDocumentsManagement() {
       title: '',
       description: '',
       site_id: null,
-      is_public: false
+      is_public: false,
     })
   }
 
@@ -180,7 +188,7 @@ export default function SharedDocumentsManagement() {
         title: selectedDocument.title,
         description: selectedDocument.description || '',
         site_id: selectedDocument.site_id,
-        is_public: selectedDocument.is_public
+        is_public: selectedDocument.is_public,
       })
       setIsEditMode(true)
     }
@@ -192,7 +200,7 @@ export default function SharedDocumentsManagement() {
       title: '',
       description: '',
       site_id: null,
-      is_public: false
+      is_public: false,
     })
   }
 
@@ -208,7 +216,7 @@ export default function SharedDocumentsManagement() {
           description: editFormData.description,
           site_id: editFormData.site_id,
           is_public: editFormData.is_public,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', selectedDocument.id)
 
@@ -217,18 +225,24 @@ export default function SharedDocumentsManagement() {
       // Update local state
       const updatedDoc = {
         ...selectedDocument,
-        ...editFormData
+        ...editFormData,
       }
       setSelectedDocument(updatedDoc)
-      setDocuments(documents.map(doc => 
-        doc.id === selectedDocument.id ? updatedDoc : doc
-      ))
-      
+      setDocuments(documents.map(doc => (doc.id === selectedDocument.id ? updatedDoc : doc)))
+
       setIsEditMode(false)
-      alert('문서가 성공적으로 수정되었습니다.')
+      toast({
+        variant: 'success',
+        title: '수정 완료',
+        description: '문서가 성공적으로 수정되었습니다.',
+      })
     } catch (error) {
       console.error('Error updating document:', error)
-      alert('문서 수정 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '문서 수정 중 오류가 발생했습니다.',
+      })
     } finally {
       setSaving(false)
     }
@@ -256,32 +270,32 @@ export default function SharedDocumentsManagement() {
               placeholder="문서명, 파일명으로 검색..."
               className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white"
               value={searchTerm}
-              onChange={(e) => {
+              onChange={e => {
                 setSearchTerm(e.target.value)
                 setCurrentPage(1)
               }}
             />
           </div>
-          
+
           <div className="relative">
             <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <select
               className="pl-10 pr-4 py-2 w-full bg-white border border-gray-300 rounded-md text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white appearance-none"
               value={selectedSite}
-              onChange={(e) => {
+              onChange={e => {
                 setSelectedSite(e.target.value)
                 setCurrentPage(1)
               }}
             >
               <option value="">모든 현장</option>
-              {sites.map((site) => (
+              {sites.map(site => (
                 <option key={site.id} value={site.id}>
                   {site.name}
                 </option>
               ))}
             </select>
           </div>
-          
+
           <button
             onClick={fetchDocuments}
             className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -291,7 +305,9 @@ export default function SharedDocumentsManagement() {
           </button>
 
           <button
-            onClick={() => {/* TODO: 문서 업로드 모달 열기 */}}
+            onClick={() => {
+              /* TODO: 문서 업로드 모달 열기 */
+            }}
             className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
           >
             <Upload className="w-4 h-4 mr-2" />
@@ -304,11 +320,10 @@ export default function SharedDocumentsManagement() {
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
-            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>개의 공유 문서
+            전체 <span className="font-medium text-gray-900">{totalCount.toLocaleString()}</span>
+            개의 공유 문서
             {selectedSite && (
-              <span className="ml-2">
-                (현장: {sites.find(s => s.id === selectedSite)?.name})
-              </span>
+              <span className="ml-2">(현장: {sites.find(s => s.id === selectedSite)?.name})</span>
             )}
           </div>
           <div className="text-sm text-gray-600">
@@ -328,9 +343,7 @@ export default function SharedDocumentsManagement() {
           <div className="text-center py-12 text-gray-500">
             <Share2 className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <p>공유 문서가 없습니다.</p>
-            {selectedSite && (
-              <p className="text-sm mt-2">선택한 현장에 공유된 문서가 없습니다.</p>
-            )}
+            {selectedSite && <p className="text-sm mt-2">선택한 현장에 공유된 문서가 없습니다.</p>}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -358,7 +371,7 @@ export default function SharedDocumentsManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {documents.map((document) => (
+                {documents.map(document => (
                   <tr key={document.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-start">
@@ -373,35 +386,25 @@ export default function SharedDocumentsManagement() {
                             {document.title}
                           </button>
                           {document.description && (
-                            <div className="text-sm text-gray-500 mt-1">
-                              {document.description}
-                            </div>
+                            <div className="text-sm text-gray-500 mt-1">{document.description}</div>
                           )}
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {document.site?.name || '미지정'}
-                      </div>
+                      <div className="text-sm text-gray-900">{document.site?.name || '미지정'}</div>
                       {document.site?.address && (
-                        <div className="text-sm text-gray-500">
-                          {document.site.address}
-                        </div>
+                        <div className="text-sm text-gray-500">{document.site.address}</div>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
                         {document.uploader?.full_name || '알 수 없음'}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {document.uploader?.email || '-'}
-                      </div>
+                      <div className="text-sm text-gray-500">{document.uploader?.email || '-'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
-                        {document.file_name}
-                      </div>
+                      <div className="text-sm text-gray-900">{document.file_name}</div>
                       <div className="text-sm text-gray-500">
                         {formatFileSize(document.file_size)}
                       </div>
@@ -412,7 +415,7 @@ export default function SharedDocumentsManagement() {
                         month: '2-digit',
                         day: '2-digit',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
                       })}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -425,7 +428,9 @@ export default function SharedDocumentsManagement() {
                           <Download className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => {/* TODO: 공유 설정 모달 */}}
+                          onClick={() => {
+                            /* TODO: 공유 설정 모달 */
+                          }}
                           className="text-green-600 hover:text-green-900 p-1 rounded"
                           title="공유 설정"
                         >
@@ -452,7 +457,8 @@ export default function SharedDocumentsManagement() {
       {totalPages > 1 && (
         <div className="flex items-center justify-between bg-white px-6 py-3 rounded-lg shadow">
           <div className="text-sm text-gray-700">
-            {((currentPage - 1) * itemsPerPage) + 1} - {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
+            {(currentPage - 1) * itemsPerPage + 1} -{' '}
+            {Math.min(currentPage * itemsPerPage, totalCount)} / {totalCount} 항목
           </div>
           <div className="flex items-center space-x-2">
             <button
@@ -462,7 +468,7 @@ export default function SharedDocumentsManagement() {
             >
               이전
             </button>
-            
+
             {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
               const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
               return (
@@ -470,8 +476,8 @@ export default function SharedDocumentsManagement() {
                   key={pageNum}
                   onClick={() => setCurrentPage(pageNum)}
                   className={`px-3 py-1 border rounded text-sm ${
-                    currentPage === pageNum 
-                      ? 'bg-blue-600 text-white border-blue-600' 
+                    currentPage === pageNum
+                      ? 'bg-blue-600 text-white border-blue-600'
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -479,7 +485,7 @@ export default function SharedDocumentsManagement() {
                 </button>
               )
             })}
-            
+
             <button
               onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
               disabled={currentPage === totalPages}
@@ -512,22 +518,24 @@ export default function SharedDocumentsManagement() {
             <div className="px-6 py-4 space-y-6">
               {/* Document Header */}
               <div className="flex items-start space-x-4">
-                <span className="text-5xl">
-                  {getFileTypeIcon(selectedDocument.mime_type)}
-                </span>
+                <span className="text-5xl">{getFileTypeIcon(selectedDocument.mime_type)}</span>
                 <div className="flex-1">
                   {isEditMode ? (
                     <>
                       <input
                         type="text"
                         value={editFormData.title}
-                        onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                        onChange={e =>
+                          setEditFormData(prev => ({ ...prev, title: e.target.value }))
+                        }
                         className="w-full text-2xl font-bold text-gray-900 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                         placeholder="문서 제목"
                       />
                       <textarea
                         value={editFormData.description}
-                        onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                        onChange={e =>
+                          setEditFormData(prev => ({ ...prev, description: e.target.value }))
+                        }
                         className="mt-2 w-full text-gray-600 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                         rows={2}
                         placeholder="문서 설명 (선택사항)"
@@ -535,13 +543,9 @@ export default function SharedDocumentsManagement() {
                     </>
                   ) : (
                     <>
-                      <h3 className="text-2xl font-bold text-gray-900">
-                        {selectedDocument.title}
-                      </h3>
+                      <h3 className="text-2xl font-bold text-gray-900">{selectedDocument.title}</h3>
                       {selectedDocument.description && (
-                        <p className="mt-2 text-gray-600">
-                          {selectedDocument.description}
-                        </p>
+                        <p className="mt-2 text-gray-600">{selectedDocument.description}</p>
                       )}
                     </>
                   )}
@@ -578,7 +582,9 @@ export default function SharedDocumentsManagement() {
                     <div>
                       <dt className="text-sm text-gray-500">카테고리</dt>
                       <dd className="mt-1 text-sm text-gray-900 font-medium">
-                        {selectedDocument.category_type === 'shared' ? '공유문서' : selectedDocument.category_type}
+                        {selectedDocument.category_type === 'shared'
+                          ? '공유문서'
+                          : selectedDocument.category_type}
                       </dd>
                     </div>
                     <div>
@@ -618,7 +624,7 @@ export default function SharedDocumentsManagement() {
                           day: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit',
-                          second: '2-digit'
+                          second: '2-digit',
                         })}
                       </dd>
                     </div>
@@ -631,7 +637,7 @@ export default function SharedDocumentsManagement() {
                           day: 'numeric',
                           hour: '2-digit',
                           minute: '2-digit',
-                          second: '2-digit'
+                          second: '2-digit',
                         })}
                       </dd>
                     </div>
@@ -651,39 +657,39 @@ export default function SharedDocumentsManagement() {
                       <label className="text-sm text-gray-500">현장 선택</label>
                       <select
                         value={editFormData.site_id || ''}
-                        onChange={(e) => setEditFormData(prev => ({ 
-                          ...prev, 
-                          site_id: e.target.value || null 
-                        }))}
+                        onChange={e =>
+                          setEditFormData(prev => ({
+                            ...prev,
+                            site_id: e.target.value || null,
+                          }))
+                        }
                         className="mt-1 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">현장 미지정</option>
-                        {sites.map((site) => (
+                        {sites.map(site => (
                           <option key={site.id} value={site.id}>
                             {site.name}
                           </option>
                         ))}
                       </select>
                     </div>
+                  ) : selectedDocument.site ? (
+                    <>
+                      <div>
+                        <dt className="text-sm text-gray-500">현장명</dt>
+                        <dd className="mt-1 text-sm text-gray-900 font-medium">
+                          {selectedDocument.site.name}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-sm text-gray-500">현장 주소</dt>
+                        <dd className="mt-1 text-sm text-gray-900 font-medium">
+                          {selectedDocument.site.address}
+                        </dd>
+                      </div>
+                    </>
                   ) : (
-                    selectedDocument.site ? (
-                      <>
-                        <div>
-                          <dt className="text-sm text-gray-500">현장명</dt>
-                          <dd className="mt-1 text-sm text-gray-900 font-medium">
-                            {selectedDocument.site.name}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-sm text-gray-500">현장 주소</dt>
-                          <dd className="mt-1 text-sm text-gray-900 font-medium">
-                            {selectedDocument.site.address}
-                          </dd>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-sm text-gray-500">현장 미지정</div>
-                    )
+                    <div className="text-sm text-gray-500">현장 미지정</div>
                   )}
                 </div>
               </div>
@@ -701,10 +707,12 @@ export default function SharedDocumentsManagement() {
                         type="checkbox"
                         id="is_public"
                         checked={editFormData.is_public}
-                        onChange={(e) => setEditFormData(prev => ({ 
-                          ...prev, 
-                          is_public: e.target.checked 
-                        }))}
+                        onChange={e =>
+                          setEditFormData(prev => ({
+                            ...prev,
+                            is_public: e.target.checked,
+                          }))
+                        }
                         className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
                       <label htmlFor="is_public" className="text-sm text-gray-700">
@@ -713,11 +721,13 @@ export default function SharedDocumentsManagement() {
                     </div>
                   ) : (
                     <div className="flex items-center">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        selectedDocument.is_public 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          selectedDocument.is_public
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
                         {selectedDocument.is_public ? '공개 문서' : '비공개 문서'}
                       </span>
                       {selectedDocument.is_public && (
@@ -771,7 +781,11 @@ export default function SharedDocumentsManagement() {
                     <button
                       onClick={() => {
                         // TODO: 공유 설정 기능
-                        alert('공유 설정 기능은 준비 중입니다.')
+                        toast({
+                          variant: 'info',
+                          title: '준비 중',
+                          description: '공유 설정 기능은 준비 중입니다.',
+                        })
                       }}
                       className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
                     >

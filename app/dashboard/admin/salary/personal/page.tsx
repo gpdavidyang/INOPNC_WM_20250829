@@ -1,6 +1,9 @@
 'use client'
 
 import React, { useEffect, useMemo, useState } from 'react'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { PageHeader } from '@/components/ui/page-header'
+import { useToast } from '@/components/ui/use-toast'
 import { t } from '@/lib/ui/strings'
 import { createClient } from '@/lib/supabase/client'
 
@@ -17,6 +20,7 @@ type PersonalRate = {
 }
 
 export default function PersonalRatesPage() {
+  const { toast } = useToast()
   const supabase = useMemo(() => createClient(), [])
   const [items, setItems] = useState<PersonalRate[]>([])
   const [activeRows, setActiveRows] = useState<PersonalRate[]>([])
@@ -127,8 +131,10 @@ export default function PersonalRatesPage() {
         'daily_worker'
       )
       if (!input) return
-      if (input !== 'freelancer' && input !== 'daily_worker' && input !== 'regular_employee')
-        return alert('형태가 올바르지 않습니다')
+      if (input !== 'freelancer' && input !== 'daily_worker' && input !== 'regular_employee') {
+        toast({ title: '입력 오류', description: '형태가 올바르지 않습니다', variant: 'destructive' })
+        return
+      }
       et = input
     }
     const payload = {
@@ -146,8 +152,12 @@ export default function PersonalRatesPage() {
       body: JSON.stringify(payload),
     })
     const json = await res.json()
-    if (!res.ok || json?.success === false) alert(json?.error || '저장 실패')
-    else await load()
+    if (!res.ok || json?.success === false) {
+      toast({ title: '저장 실패', description: json?.error || '저장 실패', variant: 'destructive' })
+    } else {
+      toast({ title: '저장 완료', description: '일당이 변경되었습니다.' })
+      await load()
+    }
   }
 
   const bulkChangeRate = async () => {
@@ -156,7 +166,10 @@ export default function PersonalRatesPage() {
     const input = prompt('선택 인원의 새 일당(원) 입력')
     if (!input) return
     const newRate = Number(input)
-    if (!Number.isFinite(newRate)) return alert('숫자를 입력해주세요')
+    if (!Number.isFinite(newRate)) {
+      toast({ title: '입력 오류', description: '숫자를 입력해주세요', variant: 'destructive' })
+      return
+    }
     for (const r of displayRows.filter(r => ids.includes(r.worker_id))) {
       let et = r.employment_type
       if (!et) et = 'daily_worker'
@@ -177,10 +190,19 @@ export default function PersonalRatesPage() {
     await load()
   }
 
+  const { confirm } = useConfirm()
+
   const bulkApplyDefaultRates = async () => {
     const ids = Array.from(selected)
     if (ids.length === 0) return
-    if (!confirm('선택 인원에 기본 세율을 적용하시겠습니까? (개인 커스텀 세율 해제)')) return
+    const ok = await confirm({
+      title: '기본 세율 적용',
+      description: '선택 인원에 기본 세율을 적용하시겠습니까? (개인 커스텀 세율 해제)',
+      confirmText: '적용',
+      cancelText: '취소',
+      variant: 'warning',
+    })
+    if (!ok) return
     for (const r of displayRows.filter(r => ids.includes(r.worker_id))) {
       let et = r.employment_type
       if (!et) et = 'daily_worker'
@@ -202,7 +224,13 @@ export default function PersonalRatesPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="개인 세율/일당 관리"
+        description="작업자별 일당 및 커스텀 세율 관리"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '개인 설정' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="search"
@@ -372,7 +400,15 @@ export default function PersonalRatesPage() {
                   <button
                     className="px-2 py-1 text-xs rounded-md bg-white border"
                     onClick={async () => {
-                      if (!confirm('이 사용자에 기본 세율을 적용하시겠습니까?')) return
+                      const ok = await (async () =>
+                        confirm({
+                          title: '기본 세율 적용',
+                          description: '이 사용자에 기본 세율을 적용하시겠습니까?',
+                          confirmText: '적용',
+                          cancelText: '취소',
+                          variant: 'warning',
+                        }))()
+                      if (!ok) return
                       await fetch('/api/admin/payroll/rates/personal', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },

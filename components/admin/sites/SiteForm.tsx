@@ -98,8 +98,12 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
 
     setSaving(true)
     try {
-      const payload: any = {
-        ...form,
+      // Base payload shared by create/edit
+      const basePayload: any = {
+        name: form.name,
+        address: form.address,
+        status: form.status,
+        start_date: form.start_date,
         // normalize empty strings to null where appropriate
         description: form.description.trim() || null,
         end_date: form.end_date.trim() || null,
@@ -110,10 +114,18 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
         safety_manager_phone: form.safety_manager_phone.trim() || null,
         accommodation_name: form.accommodation_name.trim() || null,
         accommodation_address: form.accommodation_address.trim() || null,
-        component_name: form.component_name.trim() || null,
-        work_process: form.work_process.trim() || null,
-        work_section: form.work_section.trim() || null,
       }
+
+      // Only include work option fields for edit mode
+      const payload: any =
+        mode === 'edit'
+          ? {
+              ...basePayload,
+              component_name: form.component_name.trim() || null,
+              work_process: form.work_process.trim() || null,
+              work_section: form.work_section.trim() || null,
+            }
+          : basePayload
 
       const res = await fetch(
         mode === 'create' ? '/api/admin/sites' : `/api/admin/sites/${siteId}`,
@@ -297,80 +309,82 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
         </div>
       </section>
 
-      {/* 작업 옵션 */}
-      <section className="grid gap-4 md:grid-cols-3">
-        <div className="space-y-2">
-          <Label>부재명</Label>
-          <CustomSelect
-            value={form.component_name?.startsWith('기타:') ? '기타' : form.component_name || ''}
-            onValueChange={v => {
-              if (v === '기타') handleChange('component_name', '기타:')
-              else handleChange('component_name', v)
-            }}
-          >
-            <CustomSelectTrigger>
-              <CustomSelectValue placeholder="선택" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              {componentOptions.map(label => (
-                <CustomSelectItem key={label} value={label}>
-                  {label}
-                </CustomSelectItem>
-              ))}
-              <CustomSelectItem value="기타">기타</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
-          {form.component_name?.startsWith('기타:') && (
-            <Input
-              className="mt-2"
-              value={form.component_name.replace('기타:', '')}
-              onChange={e => handleChange('component_name', '기타:' + e.target.value)}
-              placeholder="기타 부재명 입력"
-            />
-          )}
-        </div>
+      {/* 작업 옵션: 새 현장 등록 화면에는 표시하지 않음 */}
+      {mode === 'edit' && (
+        <section className="grid gap-4 md:grid-cols-3">
+          <div className="space-y-2">
+            <Label>부재명</Label>
+            <CustomSelect
+              value={form.component_name?.startsWith('기타:') ? '기타' : form.component_name || ''}
+              onValueChange={v => {
+                if (v === '기타') handleChange('component_name', '기타:')
+                else handleChange('component_name', v)
+              }}
+            >
+              <CustomSelectTrigger>
+                <CustomSelectValue placeholder="선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                {componentOptions.map(label => (
+                  <CustomSelectItem key={label} value={label}>
+                    {label}
+                  </CustomSelectItem>
+                ))}
+                <CustomSelectItem value="기타">기타</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+            {form.component_name?.startsWith('기타:') && (
+              <Input
+                className="mt-2"
+                value={form.component_name.replace('기타:', '')}
+                onChange={e => handleChange('component_name', '기타:' + e.target.value)}
+                placeholder="기타 부재명 입력"
+              />
+            )}
+          </div>
 
-        <div className="space-y-2">
-          <Label>작업공정</Label>
-          <CustomSelect
-            value={form.work_process?.startsWith('기타:') ? '기타' : form.work_process || ''}
-            onValueChange={v => {
-              if (v === '기타') handleChange('work_process', '기타:')
-              else handleChange('work_process', v)
-            }}
-          >
-            <CustomSelectTrigger>
-              <CustomSelectValue placeholder="선택" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              {processOptions.map(label => (
-                <CustomSelectItem key={label} value={label}>
-                  {label}
-                </CustomSelectItem>
-              ))}
-              <CustomSelectItem value="기타">기타</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
-          {form.work_process?.startsWith('기타:') && (
-            <Input
-              className="mt-2"
-              value={form.work_process.replace('기타:', '')}
-              onChange={e => handleChange('work_process', '기타:' + e.target.value)}
-              placeholder="기타 작업공정 입력"
-            />
-          )}
-        </div>
+          <div className="space-y-2">
+            <Label>작업공정</Label>
+            <CustomSelect
+              value={form.work_process?.startsWith('기타:') ? '기타' : form.work_process || ''}
+              onValueChange={v => {
+                if (v === '기타') handleChange('work_process', '기타:')
+                else handleChange('work_process', v)
+              }}
+            >
+              <CustomSelectTrigger>
+                <CustomSelectValue placeholder="선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                {processOptions.map(label => (
+                  <CustomSelectItem key={label} value={label}>
+                    {label}
+                  </CustomSelectItem>
+                ))}
+                <CustomSelectItem value="기타">기타</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+            {form.work_process?.startsWith('기타:') && (
+              <Input
+                className="mt-2"
+                value={form.work_process.replace('기타:', '')}
+                onChange={e => handleChange('work_process', '기타:' + e.target.value)}
+                placeholder="기타 작업공정 입력"
+              />
+            )}
+          </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="work-section">작업구간</Label>
-          <Input
-            id="work-section"
-            value={form.work_section}
-            onChange={e => handleChange('work_section', e.target.value)}
-            placeholder="예: A동"
-          />
-        </div>
-      </section>
+          <div className="space-y-2">
+            <Label htmlFor="work-section">작업구간</Label>
+            <Input
+              id="work-section"
+              value={form.work_section}
+              onChange={e => handleChange('work_section', e.target.value)}
+              placeholder="예: A동"
+            />
+          </div>
+        </section>
+      )}
 
       {/* PTW 업로드 */}
       <section className="space-y-2">

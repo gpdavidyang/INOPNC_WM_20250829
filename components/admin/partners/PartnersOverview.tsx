@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { t } from '@/lib/ui/strings'
+import EmptyState from '@/components/ui/empty-state'
 
 interface PartnerCompany {
   id: string
@@ -140,18 +141,20 @@ export function PartnersOverview() {
 
       {loading ? (
         <Card>
-          <CardContent className="py-16 text-center text-sm text-muted-foreground">
-            파트너 정보를 불러오는 중입니다...
+          <CardContent>
+            <EmptyState description="파트너 정보를 불러오는 중입니다..." />
           </CardContent>
         </Card>
       ) : error ? (
         <Card>
-          <CardContent className="py-16 text-center text-sm text-red-500">{error}</CardContent>
+          <CardContent>
+            <EmptyState title="오류" description={error} />
+          </CardContent>
         </Card>
       ) : filteredPartners.length === 0 ? (
         <Card>
-          <CardContent className="py-20 text-center text-sm text-muted-foreground">
-            조건에 맞는 파트너사가 없습니다.
+          <CardContent>
+            <EmptyState description="조건에 맞는 파트너사가 없습니다." />
           </CardContent>
         </Card>
       ) : (

@@ -1,6 +1,8 @@
 'use client'
 
 import type { Profile } from '@/types'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 interface PhotoGridToolManagementProps {
   profile: Profile
@@ -31,7 +33,7 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
     canvasSupport: true,
     storageAvailable: true,
     apiStatus: 'healthy',
-    lastCheck: new Date().toISOString()
+    lastCheck: new Date().toISOString(),
   })
   const [recentActivity, setRecentActivity] = useState<any[]>([])
   const [settings, setSettings] = useState({
@@ -40,21 +42,21 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
     compressionEnabled: true,
     retentionDays: 90,
     allowedFormats: ['jpg', 'png', 'pdf'],
-    canvasMode: 'auto' // 'auto', 'canvas', 'html'
+    canvasMode: 'auto', // 'auto', 'canvas', 'html'
   })
 
   useEffect(() => {
     let isActive = true
-    
+
     const init = async () => {
       if (isActive) {
         await loadData()
         checkSystemHealth()
       }
     }
-    
+
     init()
-    
+
     return () => {
       isActive = false
     }
@@ -63,7 +65,7 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
   const loadData = async () => {
     try {
       setLoading(true)
-      
+
       // Load recent activity
       const activityResponse = await fetch('/api/photo-grid-reports?limit=5&sort=created_at:desc')
       if (activityResponse.ok) {
@@ -88,63 +90,84 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
       canvasSupport,
       storageAvailable,
       apiStatus: 'healthy',
-      lastCheck: new Date().toISOString()
+      lastCheck: new Date().toISOString(),
     })
   }
 
   const handleCleanup = async () => {
-    if (!confirm('오래된 보고서를 정리하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
-      return
-    }
+    const ok = await confirm({
+      title: '오래된 보고서 정리',
+      description: '오래된 보고서를 정리하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+      variant: 'destructive',
+      confirmText: '정리',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const response = await fetch('/api/photo-grid-reports/cleanup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          olderThanDays: settings.retentionDays 
-        })
+        body: JSON.stringify({
+          olderThanDays: settings.retentionDays,
+        }),
       })
 
       if (response.ok) {
         const result = await response.json()
-        alert(`${result.deleted}개의 오래된 보고서가 정리되었습니다.`)
+        toast({
+          variant: 'success',
+          title: '정리 완료',
+          description: `${result.deleted}개 보고서 정리됨`,
+        })
         await loadData()
       }
     } catch (error) {
       console.error('Cleanup failed:', error)
-      alert('정리 작업 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '정리 작업 중 오류가 발생했습니다.',
+      })
     }
   }
 
   const handleOptimizeStorage = async () => {
     try {
       const response = await fetch('/api/photo-grid-reports/optimize', {
-        method: 'POST'
+        method: 'POST',
       })
 
       if (response.ok) {
         const result = await response.json()
-        alert(`저장소 최적화 완료: ${result.spaceSaved} 절약`)
+        toast({
+          variant: 'success',
+          title: '최적화 완료',
+          description: `저장소 최적화: ${result.spaceSaved} 절약`,
+        })
         await loadData()
       }
     } catch (error) {
       console.error('Optimization failed:', error)
-      alert('최적화 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '최적화 중 오류가 발생했습니다.',
+      })
     }
   }
 
   const handleSettingChange = (key: string, value: unknown) => {
     setSettings(prev => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }))
-    
+
     // Save settings to backend
     fetch('/api/photo-grid-reports/settings', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ [key]: value })
+      body: JSON.stringify({ [key]: value }),
     })
   }
 
@@ -237,14 +260,13 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
         </p>
       </div>
 
-
       {/* Tool Settings */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
           <Settings className="h-5 w-5 mr-2 text-gray-600" />
           도구 설정
         </h2>
-        
+
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -254,7 +276,7 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
               <input
                 type="number"
                 value={settings.autoArchiveDays}
-                onChange={(e) => handleSettingChange('autoArchiveDays', parseInt(e.target.value))}
+                onChange={e => handleSettingChange('autoArchiveDays', parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 min="7"
                 max="365"
@@ -271,7 +293,7 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
               <input
                 type="number"
                 value={settings.maxFileSize}
-                onChange={(e) => handleSettingChange('maxFileSize', parseInt(e.target.value))}
+                onChange={e => handleSettingChange('maxFileSize', parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 min="10"
                 max="200"
@@ -288,7 +310,7 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
               <input
                 type="number"
                 value={settings.retentionDays}
-                onChange={(e) => handleSettingChange('retentionDays', parseInt(e.target.value))}
+                onChange={e => handleSettingChange('retentionDays', parseInt(e.target.value))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                 min="30"
                 max="730"
@@ -304,7 +326,7 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
               </label>
               <select
                 value={settings.canvasMode}
-                onChange={(e) => handleSettingChange('canvasMode', e.target.value)}
+                onChange={e => handleSettingChange('canvasMode', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="auto">자동 선택</option>
@@ -322,12 +344,10 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
               <input
                 type="checkbox"
                 checked={settings.compressionEnabled}
-                onChange={(e) => handleSettingChange('compressionEnabled', e.target.checked)}
+                onChange={e => handleSettingChange('compressionEnabled', e.target.checked)}
                 className="rounded text-blue-600 focus:ring-blue-500"
               />
-              <span className="text-sm text-gray-700 dark:text-gray-300">
-                이미지 압축 활성화
-              </span>
+              <span className="text-sm text-gray-700 dark:text-gray-300">이미지 압축 활성화</span>
             </label>
           </div>
         </div>
@@ -339,11 +359,14 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
           <TrendingUp className="h-5 w-5 mr-2 text-blue-600" />
           최근 활동
         </h2>
-        
+
         {recentActivity.length > 0 ? (
           <div className="space-y-3">
             {recentActivity.map((activity, index) => (
-              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
+              <div
+                key={index}
+                className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded"
+              >
                 <div className="flex items-center space-x-3">
                   <FileImage className="h-5 w-5 text-gray-400" />
                   <div>
@@ -351,7 +374,8 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
                       {activity.title || activity.file_name}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {activity.generated_by_profile?.full_name} • {formatDateTime(activity.created_at)}
+                      {activity.generated_by_profile?.full_name} •{' '}
+                      {formatDateTime(activity.created_at)}
                     </p>
                   </div>
                 </div>
@@ -372,36 +396,24 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
           <Archive className="h-5 w-5 mr-2 text-orange-600" />
           유지보수 작업
         </h2>
-        
+
         <div className="flex flex-wrap gap-3">
-          <Button
-            onClick={handleCleanup}
-            variant="outline"
-            className="flex items-center"
-          >
+          <Button onClick={handleCleanup} variant="outline" className="flex items-center">
             <Trash2 className="h-4 w-4 mr-2" />
             오래된 보고서 정리
           </Button>
-          
-          <Button
-            onClick={handleOptimizeStorage}
-            variant="outline"
-            className="flex items-center"
-          >
+
+          <Button onClick={handleOptimizeStorage} variant="outline" className="flex items-center">
             <RefreshCw className="h-4 w-4 mr-2" />
             저장소 최적화
           </Button>
-          
-          <Button
-            onClick={() => loadData()}
-            variant="outline"
-            className="flex items-center"
-          >
+
+          <Button onClick={() => loadData()} variant="outline" className="flex items-center">
             <RefreshCw className="h-4 w-4 mr-2" />
             통계 새로고침
           </Button>
         </div>
-        
+
         <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
           <p className="text-sm text-yellow-800 dark:text-yellow-300">
             <AlertCircle className="h-4 w-4 inline mr-1" />
@@ -412,3 +424,5 @@ export default function PhotoGridToolManagement({ profile }: PhotoGridToolManage
     </div>
   )
 }
+const { confirm } = useConfirm()
+const { toast } = useToast()

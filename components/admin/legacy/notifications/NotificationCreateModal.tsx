@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
 
 interface NotificationCreateModalProps {
   isOpen: boolean
@@ -20,17 +21,21 @@ interface NotificationForm {
 const notificationTypes = [
   { value: 'info', label: '정보', color: 'text-blue-600', bg: 'bg-blue-50' },
   { value: 'warning', label: '경고', color: 'text-orange-600', bg: 'bg-orange-50' },
-  { value: 'error', label: '긴급', color: 'text-red-600', bg: 'bg-red-50' }
+  { value: 'error', label: '긴급', color: 'text-red-600', bg: 'bg-red-50' },
 ]
 
 const targetRoles = [
   { value: 'worker', label: '작업자' },
   { value: 'site_manager', label: '현장관리자' },
   { value: 'customer_manager', label: '파트너사' },
-  { value: 'admin', label: '시스템관리자' }
+  { value: 'admin', label: '시스템관리자' },
 ]
 
-export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: NotificationCreateModalProps) {
+export default function NotificationCreateModal({
+  isOpen,
+  onClose,
+  onSuccess,
+}: NotificationCreateModalProps) {
   const [form, setForm] = useState<NotificationForm>({
     title: '',
     message: '',
@@ -38,9 +43,10 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
     targetType: 'all',
     targetRole: 'worker',
     targetUserId: '',
-    actionUrl: ''
+    actionUrl: '',
   })
   const [loading, setLoading] = useState(false)
+  const { toast } = useToast()
 
   if (!isOpen) return null
 
@@ -54,7 +60,7 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
         title: form.title,
         message: form.message,
         type: form.type,
-        action_url: form.actionUrl || null
+        action_url: form.actionUrl || null,
       }
 
       // 대상 설정
@@ -68,9 +74,9 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
       const response = await fetch('/api/notifications', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -87,15 +93,22 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
         targetType: 'all',
         targetRole: 'worker',
         targetUserId: '',
-        actionUrl: ''
+        actionUrl: '',
       })
-      
+      toast({
+        variant: 'success',
+        title: '알림 생성됨',
+        description: '사용자에게 알림이 전송됩니다.',
+      })
       onSuccess()
       onClose()
-
     } catch (error) {
       console.error('Error creating notification:', error)
-      alert(error instanceof Error ? error.message : '알림 생성에 실패했습니다')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: error instanceof Error ? error.message : '알림 생성에 실패했습니다',
+      })
     } finally {
       setLoading(false)
     }
@@ -116,9 +129,7 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
                 <Bell className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                  새 알림 생성
-                </h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">새 알림 생성</h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   사용자들에게 알림을 전송합니다
                 </p>
@@ -142,7 +153,7 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
               <input
                 type="text"
                 value={form.title}
-                onChange={(e) => handleChange('title', e.target.value)}
+                onChange={e => handleChange('title', e.target.value)}
                 placeholder="알림 제목을 입력하세요"
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
@@ -156,7 +167,7 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
               </label>
               <textarea
                 value={form.message}
-                onChange={(e) => handleChange('message', e.target.value)}
+                onChange={e => handleChange('message', e.target.value)}
                 placeholder="알림 내용을 입력하세요"
                 rows={4}
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
@@ -203,33 +214,33 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
                       name="targetType"
                       value="all"
                       checked={form.targetType === 'all'}
-                      onChange={(e) => handleChange('targetType', e.target.value)}
+                      onChange={e => handleChange('targetType', e.target.value)}
                       className="text-blue-600 focus:ring-blue-500"
                     />
                     <Users className="h-4 w-4 text-gray-500" />
                     <span className="text-gray-700 dark:text-gray-300">모든 사용자</span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="radio"
                       name="targetType"
                       value="role"
                       checked={form.targetType === 'role'}
-                      onChange={(e) => handleChange('targetType', e.target.value)}
+                      onChange={e => handleChange('targetType', e.target.value)}
                       className="text-blue-600 focus:ring-blue-500"
                     />
                     <Users className="h-4 w-4 text-gray-500" />
                     <span className="text-gray-700 dark:text-gray-300">역할별</span>
                   </label>
-                  
+
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="radio"
                       name="targetType"
                       value="user"
                       checked={form.targetType === 'user'}
-                      onChange={(e) => handleChange('targetType', e.target.value)}
+                      onChange={e => handleChange('targetType', e.target.value)}
                       className="text-blue-600 focus:ring-blue-500"
                     />
                     <User className="h-4 w-4 text-gray-500" />
@@ -241,7 +252,7 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
                 {form.targetType === 'role' && (
                   <select
                     value={form.targetRole}
-                    onChange={(e) => handleChange('targetRole', e.target.value)}
+                    onChange={e => handleChange('targetRole', e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   >
                     {targetRoles.map(role => (
@@ -257,7 +268,7 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
                   <input
                     type="text"
                     value={form.targetUserId}
-                    onChange={(e) => handleChange('targetUserId', e.target.value)}
+                    onChange={e => handleChange('targetUserId', e.target.value)}
                     placeholder="사용자 ID를 입력하세요"
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
                   />
@@ -273,7 +284,7 @@ export default function NotificationCreateModal({ isOpen, onClose, onSuccess }: 
               <input
                 type="url"
                 value={form.actionUrl}
-                onChange={(e) => handleChange('actionUrl', e.target.value)}
+                onChange={e => handleChange('actionUrl', e.target.value)}
                 placeholder="클릭 시 이동할 URL (예: /dashboard/materials)"
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
               />

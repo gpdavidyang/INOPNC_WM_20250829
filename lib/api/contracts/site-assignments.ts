@@ -25,7 +25,10 @@ export const SiteAssignment = z.object({
 
 export type SiteAssignment = z.infer<typeof SiteAssignment>
 
-export const ListSiteAssignmentsResponse = z.array(SiteAssignment)
+export const ListSiteAssignmentsResponse = z.object({
+  rows: z.array(SiteAssignment),
+  total: z.number(),
+})
 export type ListSiteAssignmentsResponse = z.infer<typeof ListSiteAssignmentsResponse>
 
 export const SiteLaborSummaryResponse = z.record(z.string(), z.number())

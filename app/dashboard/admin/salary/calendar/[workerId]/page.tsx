@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { calculateMonthlySalary } from '@/app/actions/salary'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   Table,
   TableBody,
@@ -78,13 +79,15 @@ export default async function AdminWorkerSalaryCalendarPage({
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">근로자 급여 요약</h1>
-        <p className="text-sm text-muted-foreground">
-          {params.workerId} · {year}-{String(month).padStart(2, '0')}
-        </p>
-      </div>
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="근로자 급여 요약"
+        description={`${params.workerId} · ${year}-${String(month).padStart(2, '0')}`}
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '근로자 캘린더' }]}
+        showBackButton
+        backButtonHref="/dashboard/admin/salary/records"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
@@ -178,8 +181,10 @@ export default async function AdminWorkerSalaryCalendarPage({
           <TableBody>
             {breakdown.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
-                  표시할 데이터가 없습니다.
+                <TableCell colSpan={8} className="py-8">
+                  <div className="flex justify-center">
+                    <span className="text-sm text-muted-foreground">표시할 데이터가 없습니다.</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

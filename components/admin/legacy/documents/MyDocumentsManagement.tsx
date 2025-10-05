@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface Document {
   id: string
@@ -36,6 +38,8 @@ export default function MyDocumentsManagement() {
   const itemsPerPage = 20
 
   const supabase = createClient()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   const fetchDocuments = async () => {
     setLoading(true)
@@ -83,7 +87,14 @@ export default function MyDocumentsManagement() {
   }
 
   const handleDeleteDocument = async (documentId: string) => {
-    if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '문서 삭제',
+      description: '정말로 이 문서를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const { error } = await supabase.from('documents').delete().eq('id', documentId)
@@ -91,10 +102,10 @@ export default function MyDocumentsManagement() {
       if (error) throw error
 
       await fetchDocuments()
-      alert('문서가 성공적으로 삭제되었습니다.')
+      toast({ variant: 'success', title: '삭제 완료', description: '문서가 삭제되었습니다.' })
     } catch (error) {
       console.error('Error deleting document:', error)
-      alert('문서 삭제에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '문서 삭제에 실패했습니다.' })
     }
   }
 
@@ -104,7 +115,7 @@ export default function MyDocumentsManagement() {
       window.open(document.file_path, '_blank')
     } catch (error) {
       console.error('Error downloading document:', error)
-      alert('문서 다운로드에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '문서 다운로드에 실패했습니다.' })
     }
   }
 

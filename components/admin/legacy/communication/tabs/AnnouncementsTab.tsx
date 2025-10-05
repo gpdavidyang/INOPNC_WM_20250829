@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface AnnouncementsTabProps {
   profile: Profile
@@ -38,6 +40,8 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
   })
 
   const supabase = createClient()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   useEffect(() => {
     loadAnnouncements()
@@ -65,7 +69,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
 
   const handleSubmit = async () => {
     if (!formData.title || !formData.content) {
-      alert('제목과 내용을 입력해주세요.')
+      toast({ variant: 'warning', title: '입력 필요', description: '제목과 내용을 입력해주세요.' })
       return
     }
 
@@ -83,14 +87,22 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
           .eq('id', editingId)
 
         if (!error) {
-          alert('공지사항이 수정되었습니다.')
+          toast({
+            variant: 'success',
+            title: '수정 완료',
+            description: '공지사항이 수정되었습니다.',
+          })
           setEditingId(null)
         }
       } else {
         const { error } = await supabase.from('announcements').insert([dataToSave])
 
         if (!error) {
-          alert('공지사항이 등록되었습니다.')
+          toast({
+            variant: 'success',
+            title: '등록 완료',
+            description: '공지사항이 등록되었습니다.',
+          })
           setShowAddForm(false)
         }
       }
@@ -99,7 +111,7 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
       await loadAnnouncements()
     } catch (error) {
       console.error('Failed to save announcement:', error)
-      alert('저장에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '저장에 실패했습니다.' })
     }
   }
 
@@ -110,18 +122,25 @@ export default function AnnouncementsTab({ profile }: AnnouncementsTabProps) {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('이 공지사항을 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '공지 삭제',
+      description: '이 공지사항을 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const { error } = await supabase.from('announcements').delete().eq('id', id)
 
       if (!error) {
-        alert('공지사항이 삭제되었습니다.')
+        toast({ variant: 'success', title: '삭제 완료', description: '공지사항이 삭제되었습니다.' })
         await loadAnnouncements()
       }
     } catch (error) {
       console.error('Failed to delete announcement:', error)
-      alert('삭제에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '삭제에 실패했습니다.' })
     }
   }
 

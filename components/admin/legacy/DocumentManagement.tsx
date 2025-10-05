@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 import BulkActionBar, { commonBulkActions } from './BulkActionBar'
 
@@ -9,6 +11,8 @@ interface DocumentManagementProps {
 }
 
 export default function DocumentManagement({ profile }: DocumentManagementProps) {
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
   const [documents, setDocuments] = useState<DocumentWithApproval[]>([])
   const [integratedDocuments, setIntegratedDocuments] = useState<unknown>(null)
   const [loading, setLoading] = useState(true)
@@ -165,32 +169,53 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
       if (result.success) {
         await Promise.all([loadDocuments(), loadStats()])
         setSelectedIds([])
-        alert(result.message)
+        toast({
+          variant: 'success',
+          title: action === 'approve' ? '승인 완료' : '거부 완료',
+          description: result.message,
+        })
       } else {
-        alert(result.error)
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '처리에 실패했습니다.',
+        })
       }
     } catch (error) {
-      alert(`${action === 'approve' ? '승인' : '거부'} 처리 중 오류가 발생했습니다.`)
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: `${action === 'approve' ? '승인' : '거부'} 처리 중 오류가 발생했습니다.`,
+      })
     }
   }
 
   // Handle bulk delete
   const handleBulkDelete = async (documentIds: string[]) => {
-    if (!confirm(`${documentIds.length}개 문서를 삭제하시겠습니까?`)) {
-      return
-    }
+    const ok = await confirm({
+      title: '문서 삭제',
+      description: `${documentIds.length}개 문서를 삭제하시겠습니까?`,
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const result = await deleteDocuments(documentIds)
       if (result.success) {
         await loadDocuments()
         setSelectedIds([])
-        alert(result.message)
+        toast({ variant: 'success', title: '삭제 완료', description: result.message })
       } else {
-        alert(result.error)
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '삭제에 실패했습니다.',
+        })
       }
     } catch (error) {
-      alert('삭제 중 오류가 발생했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '삭제 중 오류가 발생했습니다.' })
     }
   }
 
@@ -199,7 +224,11 @@ export default function DocumentManagement({ profile }: DocumentManagementProps)
     if (document.file_url) {
       window.open(document.file_url, '_blank')
     } else {
-      alert('문서 파일을 찾을 수 없습니다.')
+      toast({
+        variant: 'warning',
+        title: '파일 없음',
+        description: '문서 파일을 찾을 수 없습니다.',
+      })
     }
   }
 
