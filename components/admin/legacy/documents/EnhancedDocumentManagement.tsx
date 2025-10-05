@@ -1,15 +1,17 @@
 'use client'
 
 import { getSessionUser } from '@/lib/supabase/session'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 // Define document category types based on requirements
-type DocumentCategoryType = 
-  | 'my-documents'      // 내문서함
-  | 'shared-documents'  // 공유문서함
-  | 'markup-documents'  // 도면마킹
+type DocumentCategoryType =
+  | 'my-documents' // 내문서함
+  | 'shared-documents' // 공유문서함
+  | 'markup-documents' // 도면마킹
   | 'required-documents' // 필수 제출 서류
   | 'invoice-documents' // 기성청구함
-  | 'photo-grid'        // 사진대지
+  | 'photo-grid' // 사진대지
 
 interface Document {
   id: string
@@ -40,7 +42,7 @@ interface Document {
   updated_at: string
   metadata?: {
     contract_stage?: string // For invoice documents (진행전/진행중/완료)
-    submitted_by?: string   // For required documents
+    submitted_by?: string // For required documents
     linked_report_id?: string // For photo-grid
     partner_id?: string // For invoice documents
   }
@@ -51,7 +53,7 @@ interface CategoryStats {
   recent: number
   size: string
   pending?: number // For required documents
-  active?: number  // For contracts in invoice documents
+  active?: number // For contracts in invoice documents
 }
 
 // Document category configuration based on requirements
@@ -63,7 +65,7 @@ const documentCategories = [
     description: '사용자 본인 용도의 문서함',
     color: 'blue',
     features: ['upload', 'download', 'preview', 'delete'],
-    adminFeatures: ['viewAll', 'manageAll']
+    adminFeatures: ['viewAll', 'manageAll'],
   },
   {
     id: 'shared-documents',
@@ -72,7 +74,7 @@ const documentCategories = [
     description: '현장과 맵핑된 공유 문서',
     color: 'green',
     features: ['upload', 'download', 'preview', 'share', 'siteMapping'],
-    adminFeatures: ['viewAll', 'manageAll', 'changePermissions']
+    adminFeatures: ['viewAll', 'manageAll', 'changePermissions'],
   },
   {
     id: 'markup-documents',
@@ -81,7 +83,7 @@ const documentCategories = [
     description: '현장 정보와 연동된 도면 파일',
     color: 'purple',
     features: ['upload', 'download', 'preview', 'version', 'history'],
-    adminFeatures: ['viewAll', 'manageAll', 'versionControl']
+    adminFeatures: ['viewAll', 'manageAll', 'versionControl'],
   },
   {
     id: 'required-documents',
@@ -90,7 +92,7 @@ const documentCategories = [
     description: '사용자가 본사에 제출하는 서류',
     color: 'orange',
     features: ['upload', 'download', 'preview', 'status'],
-    adminFeatures: ['viewAll', 'directUpload', 'statusManagement', 'userTracking']
+    adminFeatures: ['viewAll', 'directUpload', 'statusManagement', 'userTracking'],
   },
   {
     id: 'invoice-documents',
@@ -100,7 +102,7 @@ const documentCategories = [
     color: 'red',
     features: ['upload', 'download', 'preview', 'contractStage'],
     adminFeatures: ['viewAll', 'manageAll', 'stageControl'],
-    restrictedAccess: true // Only partner and admin can access
+    restrictedAccess: true, // Only partner and admin can access
   },
   {
     id: 'photo-grid',
@@ -109,8 +111,8 @@ const documentCategories = [
     description: '작업일지와 연동된 사진대지',
     color: 'indigo',
     features: ['upload', 'download', 'preview', 'reportLink'],
-    adminFeatures: ['viewAll', 'manageAll', 'linkReports']
-  }
+    adminFeatures: ['viewAll', 'manageAll', 'linkReports'],
+  },
 ]
 
 export default function EnhancedDocumentManagement() {
@@ -170,7 +172,7 @@ export default function EnhancedDocumentManagement() {
       .select('id, name')
       .eq('status', 'active')
       .order('name')
-    
+
     if (data) setSites(data)
   }
 
@@ -179,7 +181,7 @@ export default function EnhancedDocumentManagement() {
       .from('profiles')
       .select('id, full_name, email, role')
       .order('full_name')
-    
+
     if (data) setUsers(data)
   }
 
@@ -190,18 +192,18 @@ export default function EnhancedDocumentManagement() {
       .select('id, full_name, email, organization_id')
       .eq('role', 'partner')
       .order('full_name')
-    
+
     if (data) setPartners(data)
   }
 
   const loadAllStats = async () => {
     // Load statistics for all categories
     const categoryStats: Record<string, CategoryStats> = {}
-    
+
     for (const category of documentCategories) {
       categoryStats[category.id] = await loadCategoryStats(category.id as DocumentCategoryType)
     }
-    
+
     setStats(categoryStats)
   }
 
@@ -213,15 +215,15 @@ export default function EnhancedDocumentManagement() {
       'markup-documents': { total: 32, recent: 3, size: '450 MB' },
       'required-documents': { total: 89, recent: 8, size: '320 MB', pending: 15 },
       'invoice-documents': { total: 56, recent: 6, size: '180 MB', active: 8 },
-      'photo-grid': { total: 234, recent: 24, size: '2.8 GB' }
+      'photo-grid': { total: 234, recent: 24, size: '2.8 GB' },
     }
-    
+
     return mockStats[category] || { total: 0, recent: 0, size: '0 MB' }
   }
 
   const loadDocuments = async () => {
     setLoading(true)
-    
+
     // Mock data for demonstration
     const mockDocuments: Document[] = [
       {
@@ -236,17 +238,17 @@ export default function EnhancedDocumentManagement() {
         site_id: '1',
         site: { id: '1', name: '강남 A현장' },
         created_by: 'user1',
-        creator: { 
-          id: 'user1', 
-          full_name: '김관리', 
+        creator: {
+          id: 'user1',
+          full_name: '김관리',
           email: 'manager@inopnc.com',
-          role: 'site_manager'
+          role: 'site_manager',
         },
         shared_with: ['worker', 'site_manager'],
         version: 2,
         status: 'active',
         created_at: '2025-08-20T10:00:00Z',
-        updated_at: '2025-08-22T14:30:00Z'
+        updated_at: '2025-08-22T14:30:00Z',
       },
       {
         id: '2',
@@ -260,15 +262,15 @@ export default function EnhancedDocumentManagement() {
         site_id: '2',
         site: { id: '2', name: '서초 B현장' },
         created_by: 'user2',
-        creator: { 
-          id: 'user2', 
-          full_name: '박안전', 
+        creator: {
+          id: 'user2',
+          full_name: '박안전',
           email: 'safety@inopnc.com',
-          role: 'admin'
+          role: 'admin',
         },
         status: 'active',
         created_at: '2025-08-19T09:00:00Z',
-        updated_at: '2025-08-19T09:00:00Z'
+        updated_at: '2025-08-19T09:00:00Z',
       },
       {
         id: '3',
@@ -280,39 +282,40 @@ export default function EnhancedDocumentManagement() {
         file_size: 512000,
         file_type: 'application/pdf',
         created_by: 'user3',
-        creator: { 
-          id: 'user3', 
-          full_name: '홍길동', 
+        creator: {
+          id: 'user3',
+          full_name: '홍길동',
           email: 'hong@example.com',
-          role: 'worker'
+          role: 'worker',
         },
         status: 'active',
         created_at: '2025-08-18T11:00:00Z',
         updated_at: '2025-08-18T11:00:00Z',
         metadata: {
-          submitted_by: 'user3'
-        }
-      }
+          submitted_by: 'user3',
+        },
+      },
     ]
-    
+
     // Filter documents based on search and filters
     let filteredDocs = mockDocuments
-    
+
     if (searchQuery) {
-      filteredDocs = filteredDocs.filter(doc => 
-        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doc.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      filteredDocs = filteredDocs.filter(
+        doc =>
+          doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          doc.description?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
-    
+
     if (selectedSite !== 'all') {
       filteredDocs = filteredDocs.filter(doc => doc.site_id === selectedSite)
     }
-    
+
     if (filterUser !== 'all') {
       filteredDocs = filteredDocs.filter(doc => doc.created_by === filterUser)
     }
-    
+
     setDocuments(filteredDocs)
     setLoading(false)
   }
@@ -325,18 +328,34 @@ export default function EnhancedDocumentManagement() {
   }
 
   const handleDelete = async (docId: string) => {
-    if (confirm('정말로 이 문서를 삭제하시겠습니까?')) {
+    const ok = await confirm({
+      title: '문서 삭제',
+      description: '정말로 이 문서를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (ok) {
       console.log('Deleting document:', docId)
       loadDocuments()
+      toast({ variant: 'success', title: '삭제 완료' })
     }
   }
 
   const handleBulkDelete = async () => {
     if (selectedDocuments.length === 0) return
-    if (confirm(`선택한 ${selectedDocuments.length}개 문서를 삭제하시겠습니까?`)) {
+    const ok = await confirm({
+      title: '일괄 삭제',
+      description: `선택한 ${selectedDocuments.length}개 문서를 삭제하시겠습니까?`,
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (ok) {
       console.log('Bulk deleting:', selectedDocuments)
       setSelectedDocuments([])
       loadDocuments()
+      toast({ variant: 'success', title: '삭제 완료', description: '선택 문서가 삭제되었습니다.' })
     }
   }
 
@@ -363,10 +382,8 @@ export default function EnhancedDocumentManagement() {
   }
 
   const toggleDocumentSelection = (docId: string) => {
-    setSelectedDocuments(prev => 
-      prev.includes(docId) 
-        ? prev.filter(id => id !== docId)
-        : [...prev, docId]
+    setSelectedDocuments(prev =>
+      prev.includes(docId) ? prev.filter(id => id !== docId) : [...prev, docId]
     )
   }
 
@@ -379,9 +396,7 @@ export default function EnhancedDocumentManagement() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              문서함 관리
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">문서함 관리</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               전체 문서 관리 및 권한 설정
             </p>
@@ -457,31 +472,34 @@ export default function EnhancedDocumentManagement() {
         {/* Category Tabs */}
         <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="flex flex-wrap gap-2 md:gap-0 md:space-x-8" aria-label="Tabs">
-            {documentCategories.map((tab) => {
+            {documentCategories.map(tab => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
               const tabStats = stats[tab.id]
-              
+
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as DocumentCategoryType)}
                   className={`
                     flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors
-                    ${isActive 
-                      ? `border-${tab.color}-500 text-${tab.color}-600 dark:text-${tab.color}-400` 
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                    ${
+                      isActive
+                        ? `border-${tab.color}-500 text-${tab.color}-600 dark:text-${tab.color}-400`
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                     }
                   `}
                 >
                   <Icon className="h-4 w-4" />
                   <span>{tab.label}</span>
                   {tabStats && (
-                    <span className={`ml-1 px-2 py-0.5 text-xs rounded-full ${
-                      isActive 
-                        ? `bg-${tab.color}-100 text-${tab.color}-700 dark:bg-${tab.color}-900 dark:text-${tab.color}-300`
-                        : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
-                    }`}>
+                    <span
+                      className={`ml-1 px-2 py-0.5 text-xs rounded-full ${
+                        isActive
+                          ? `bg-${tab.color}-100 text-${tab.color}-700 dark:bg-${tab.color}-900 dark:text-${tab.color}-300`
+                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'
+                      }`}
+                    >
                       {tabStats.total}
                     </span>
                   )}
@@ -524,32 +542,36 @@ export default function EnhancedDocumentManagement() {
                 type="text"
                 placeholder="문서명, 설명, 등록자로 검색..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               />
             </div>
           </div>
-          
+
           <select
             value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
+            onChange={e => setSelectedSite(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           >
             <option value="all">모든 현장</option>
             {sites.map(site => (
-              <option key={site.id} value={site.id}>{site.name}</option>
+              <option key={site.id} value={site.id}>
+                {site.name}
+              </option>
             ))}
           </select>
 
           {activeTab === 'required-documents' && (
             <select
               value={filterUser}
-              onChange={(e) => setFilterUser(e.target.value)}
+              onChange={e => setFilterUser(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             >
               <option value="all">모든 제출자</option>
               {users.map(user => (
-                <option key={user.id} value={user.id}>{user.full_name}</option>
+                <option key={user.id} value={user.id}>
+                  {user.full_name}
+                </option>
               ))}
             </select>
           )}
@@ -557,7 +579,7 @@ export default function EnhancedDocumentManagement() {
           {activeTab === 'invoice-documents' && (
             <select
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={e => setFilterStatus(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
             >
               <option value="all">모든 상태</option>
@@ -603,14 +625,16 @@ export default function EnhancedDocumentManagement() {
                   <th className="w-12 px-6 py-3">
                     <input
                       type="checkbox"
-                      onChange={(e) => {
+                      onChange={e => {
                         if (e.target.checked) {
                           setSelectedDocuments(documents.map(d => d.id))
                         } else {
                           setSelectedDocuments([])
                         }
                       }}
-                      checked={selectedDocuments.length === documents.length && documents.length > 0}
+                      checked={
+                        selectedDocuments.length === documents.length && documents.length > 0
+                      }
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                   </th>
@@ -650,7 +674,7 @@ export default function EnhancedDocumentManagement() {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {documents.map((doc) => {
+                {documents.map(doc => {
                   const FileIcon = getFileIcon(doc.file_type)
                   return (
                     <tr key={doc.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
@@ -687,10 +711,13 @@ export default function EnhancedDocumentManagement() {
                           {doc.creator?.full_name}
                         </div>
                         <div className="text-sm text-gray-500 dark:text-gray-400">
-                          {doc.creator?.role === 'admin' ? '관리자' : 
-                           doc.creator?.role === 'site_manager' ? '현장관리자' :
-                           doc.creator?.role === 'worker' ? '작업자' : 
-                           doc.creator?.role}
+                          {doc.creator?.role === 'admin'
+                            ? '관리자'
+                            : doc.creator?.role === 'site_manager'
+                              ? '현장관리자'
+                              : doc.creator?.role === 'worker'
+                                ? '작업자'
+                                : doc.creator?.role}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
@@ -722,15 +749,20 @@ export default function EnhancedDocumentManagement() {
                       )}
                       {activeTab === 'invoice-documents' && (
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            doc.metadata?.contract_stage === 'completed' 
-                              ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              doc.metadata?.contract_stage === 'completed'
+                                ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100'
+                                : doc.metadata?.contract_stage === 'active'
+                                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
+                                  : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
+                            }`}
+                          >
+                            {doc.metadata?.contract_stage === 'completed'
+                              ? '완료'
                               : doc.metadata?.contract_stage === 'active'
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
-                          }`}>
-                            {doc.metadata?.contract_stage === 'completed' ? '완료' :
-                             doc.metadata?.contract_stage === 'active' ? '진행중' : '진행전'}
+                                ? '진행중'
+                                : '진행전'}
                           </span>
                         </td>
                       )}
@@ -797,9 +829,7 @@ export default function EnhancedDocumentManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                문서 업로드
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">문서 업로드</h3>
               <button
                 onClick={() => setShowUploadModal(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -807,23 +837,25 @@ export default function EnhancedDocumentManagement() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   문서 종류
                 </label>
-                <select 
+                <select
                   value={activeTab}
-                  onChange={(e) => setActiveTab(e.target.value as DocumentCategoryType)}
+                  onChange={e => setActiveTab(e.target.value as DocumentCategoryType)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 >
                   {documentCategories.map(tab => (
-                    <option key={tab.id} value={tab.id}>{tab.label}</option>
+                    <option key={tab.id} value={tab.id}>
+                      {tab.label}
+                    </option>
                   ))}
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   현장 선택
@@ -831,7 +863,9 @@ export default function EnhancedDocumentManagement() {
                 <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                   <option value="">현장 선택...</option>
                   {sites.map(site => (
-                    <option key={site.id} value={site.id}>{site.name}</option>
+                    <option key={site.id} value={site.id}>
+                      {site.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -844,7 +878,9 @@ export default function EnhancedDocumentManagement() {
                   <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="">파트너사 선택...</option>
                     {partners.map(partner => (
-                      <option key={partner.id} value={partner.id}>{partner.full_name}</option>
+                      <option key={partner.id} value={partner.id}>
+                        {partner.full_name}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -858,12 +894,14 @@ export default function EnhancedDocumentManagement() {
                   <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="">제출자 선택...</option>
                     {users.map(user => (
-                      <option key={user.id} value={user.id}>{user.full_name}</option>
+                      <option key={user.id} value={user.id}>
+                        {user.full_name}
+                      </option>
                     ))}
                   </select>
                 </div>
               )}
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   파일 선택
@@ -871,12 +909,12 @@ export default function EnhancedDocumentManagement() {
                 <input
                   type="file"
                   multiple
-                  onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+                  onChange={e => e.target.files && handleFileUpload(e.target.files)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setShowUploadModal(false)}
@@ -897,9 +935,7 @@ export default function EnhancedDocumentManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                문서 미리보기
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">문서 미리보기</h3>
               <button
                 onClick={() => setShowPreviewModal(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -907,7 +943,7 @@ export default function EnhancedDocumentManagement() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 dark:text-white mb-2">
@@ -917,7 +953,7 @@ export default function EnhancedDocumentManagement() {
                   {selectedDocument.description}
                 </p>
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">현장</p>
@@ -940,19 +976,19 @@ export default function EnhancedDocumentManagement() {
                 <div>
                   <p className="text-sm text-gray-500 dark:text-gray-400">수정일</p>
                   <p className="font-medium text-gray-900 dark:text-white">
-                    {format(new Date(selectedDocument.updated_at), 'yyyy-MM-dd HH:mm', { locale: ko })}
+                    {format(new Date(selectedDocument.updated_at), 'yyyy-MM-dd HH:mm', {
+                      locale: ko,
+                    })}
                   </p>
                 </div>
               </div>
-              
+
               {/* File preview area */}
               <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 h-96 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-                <p className="text-gray-500 dark:text-gray-400">
-                  파일 미리보기 영역
-                </p>
+                <p className="text-gray-500 dark:text-gray-400">파일 미리보기 영역</p>
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => window.open(selectedDocument.file_url, '_blank')}
@@ -971,9 +1007,7 @@ export default function EnhancedDocumentManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                문서 공유
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">문서 공유</h3>
               <button
                 onClick={() => setShowShareModal(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -981,13 +1015,16 @@ export default function EnhancedDocumentManagement() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   공유 대상 선택
                 </label>
-                <select multiple className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select
+                  multiple
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                >
                   <optgroup label="역할">
                     <option value="worker">작업자 전체</option>
                     <option value="site_manager">현장관리자 전체</option>
@@ -995,33 +1032,44 @@ export default function EnhancedDocumentManagement() {
                   </optgroup>
                   <optgroup label="개별 사용자">
                     {users.map(user => (
-                      <option key={user.id} value={user.id}>{user.full_name}</option>
+                      <option key={user.id} value={user.id}>
+                        {user.full_name}
+                      </option>
                     ))}
                   </optgroup>
                 </select>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   권한 설정
                 </label>
                 <div className="space-y-2">
                   <label className="flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" />
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                    />
                     <span className="text-sm text-gray-700 dark:text-gray-300">보기</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" />
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                    />
                     <span className="text-sm text-gray-700 dark:text-gray-300">다운로드</span>
                   </label>
                   <label className="flex items-center">
-                    <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2" />
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2"
+                    />
                     <span className="text-sm text-gray-700 dark:text-gray-300">수정</span>
                   </label>
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setShowShareModal(false)}
@@ -1042,9 +1090,7 @@ export default function EnhancedDocumentManagement() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                문서 이력
-              </h3>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">문서 이력</h3>
               <button
                 onClick={() => setShowHistoryModal(false)}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -1052,14 +1098,14 @@ export default function EnhancedDocumentManagement() {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
                 <h4 className="font-medium text-gray-900 dark:text-white">
                   {selectedDocument.title}
                 </h4>
               </div>
-              
+
               <div className="space-y-3">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-2 h-2 mt-2 bg-blue-500 rounded-full"></div>
@@ -1068,16 +1114,14 @@ export default function EnhancedDocumentManagement() {
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
                         버전 2.0 업로드
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        2025-08-22 14:30
-                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">2025-08-22 14:30</p>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       김관리 - 최종 도면 수정본 업로드
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-2 h-2 mt-2 bg-gray-400 rounded-full"></div>
                   <div className="flex-1">
@@ -1085,16 +1129,14 @@ export default function EnhancedDocumentManagement() {
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
                         공유 설정 변경
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        2025-08-21 10:15
-                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">2025-08-21 10:15</p>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       박안전 - 현장관리자 그룹에 공유
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 w-2 h-2 mt-2 bg-green-500 rounded-full"></div>
                   <div className="flex-1">
@@ -1102,9 +1144,7 @@ export default function EnhancedDocumentManagement() {
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
                         최초 업로드
                       </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        2025-08-20 10:00
-                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">2025-08-20 10:00</p>
                     </div>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                       김관리 - 초기 도면 업로드
@@ -1113,7 +1153,7 @@ export default function EnhancedDocumentManagement() {
                 </div>
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setShowHistoryModal(false)}
@@ -1128,3 +1168,5 @@ export default function EnhancedDocumentManagement() {
     </div>
   )
 }
+const { confirm } = useConfirm()
+const { toast } = useToast()

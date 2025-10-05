@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface ProductionManagementTabProps {
   profile: Profile
@@ -11,6 +13,8 @@ interface ExtendedProductionRecord extends ProductionRecord {
 }
 
 export default function ProductionManagementTab({}: ProductionManagementTabProps) {
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
   const [productions, setProductions] = useState<ExtendedProductionRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
@@ -94,26 +98,45 @@ export default function ProductionManagementTab({}: ProductionManagementTabProps
   }
 
   const handleDelete = async (production: ExtendedProductionRecord) => {
-    if (!confirm('이 생산 기록을 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '생산 기록 삭제',
+      description: '이 생산 기록을 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const result = await deleteProductionRecord(production.id)
       if (result.success) {
-        toast.success('생산 기록이 삭제되었습니다.')
+        toast({
+          variant: 'success',
+          title: '삭제 완료',
+          description: '생산 기록이 삭제되었습니다.',
+        })
         fetchProductions()
       } else {
-        toast.error(result.error || '삭제에 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '삭제에 실패했습니다.',
+        })
       }
     } catch (error) {
       console.error('Error deleting production:', error)
-      toast.error('삭제에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '삭제에 실패했습니다.' })
     }
   }
 
   const submitProduction = async () => {
     try {
       if (!formData.production_date || !formData.quantity_produced) {
-        toast.error('필수 정보를 모두 입력해주세요.')
+        toast({
+          variant: 'warning',
+          title: '입력 필요',
+          description: '필수 정보를 모두 입력해주세요.',
+        })
         return
       }
 
@@ -121,12 +144,20 @@ export default function ProductionManagementTab({}: ProductionManagementTabProps
       const unitCost = parseFloat(formData.unit_cost) || 0
 
       if (isNaN(quantity) || quantity <= 0) {
-        toast.error('올바른 수량을 입력해주세요.')
+        toast({
+          variant: 'warning',
+          title: '입력 오류',
+          description: '올바른 수량을 입력해주세요.',
+        })
         return
       }
 
       if (unitCost < 0) {
-        toast.error('단위비용은 0 이상이어야 합니다.')
+        toast({
+          variant: 'warning',
+          title: '입력 오류',
+          description: '단위비용은 0 이상이어야 합니다.',
+        })
         return
       }
 

@@ -1,9 +1,10 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
 
 interface CreateFolderModalProps {
   category: string
-  sites: Array<{id: string, name: string}>
+  sites: Array<{ id: string; name: string }>
   profile: Profile
   onClose: () => void
   onSuccess: () => void
@@ -14,32 +15,37 @@ export default function CreateFolderModal({
   sites,
   profile,
   onClose,
-  onSuccess
+  onSuccess,
 }: CreateFolderModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     site_id: '',
     parent_folder_id: null as string | null,
-    is_shared: false
+    is_shared: false,
   })
   const [loading, setLoading] = useState(false)
 
   const supabase = createClient()
+  const { toast } = useToast()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!formData.name.trim()) {
-      alert('폴더명을 입력해주세요.')
+      toast({ variant: 'warning', title: '입력 필요', description: '폴더명을 입력해주세요.' })
       return
     }
 
     setLoading(true)
     try {
       // For now, show placeholder since document_folders table doesn't exist yet
-      alert('폴더 생성 기능은 데이터베이스 마이그레이션 완료 후 사용 가능합니다.')
-      
+      toast({
+        variant: 'info',
+        title: '준비 중',
+        description: '폴더 생성은 마이그레이션 완료 후 사용 가능합니다.',
+      })
+
       // TODO: Implement when document_folders table is created
       // const folderData = {
       //   name: formData.name.trim(),
@@ -64,7 +70,7 @@ export default function CreateFolderModal({
       onSuccess()
     } catch (error) {
       console.error('Failed to create folder:', error)
-      alert('폴더 생성에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '폴더 생성에 실패했습니다.' })
     } finally {
       setLoading(false)
     }
@@ -79,7 +85,7 @@ export default function CreateFolderModal({
       progress_payment: '기성청구',
       report: '보고서',
       certificate: '인증서',
-      other: '기타'
+      other: '기타',
     }
     return names[categoryName] || '기타'
   }
@@ -91,9 +97,7 @@ export default function CreateFolderModal({
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center gap-3">
             <Folder className="h-6 w-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              새 폴더 생성
-            </h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">새 폴더 생성</h2>
           </div>
           <button
             onClick={onClose}
@@ -123,7 +127,7 @@ export default function CreateFolderModal({
             <input
               type="text"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={e => setFormData({ ...formData, name: e.target.value })}
               placeholder="폴더명을 입력하세요"
               className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               required
@@ -137,7 +141,7 @@ export default function CreateFolderModal({
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={e => setFormData({ ...formData, description: e.target.value })}
               placeholder="폴더 설명을 입력하세요"
               rows={3}
               className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
@@ -153,11 +157,11 @@ export default function CreateFolderModal({
               <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <select
                 value={formData.site_id}
-                onChange={(e) => setFormData({ ...formData, site_id: e.target.value })}
+                onChange={e => setFormData({ ...formData, site_id: e.target.value })}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white appearance-none"
               >
                 <option value="">현장을 선택하세요</option>
-                {sites.map((site) => (
+                {sites.map(site => (
                   <option key={site.id} value={site.id}>
                     {site.name}
                   </option>
@@ -176,11 +180,14 @@ export default function CreateFolderModal({
                 type="checkbox"
                 id="is_shared"
                 checked={formData.is_shared}
-                onChange={(e) => setFormData({ ...formData, is_shared: e.target.checked })}
+                onChange={e => setFormData({ ...formData, is_shared: e.target.checked })}
                 className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <div>
-                <label htmlFor="is_shared" className="text-sm font-medium text-gray-900 dark:text-white">
+                <label
+                  htmlFor="is_shared"
+                  className="text-sm font-medium text-gray-900 dark:text-white"
+                >
                   공유 폴더로 생성
                 </label>
                 <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">

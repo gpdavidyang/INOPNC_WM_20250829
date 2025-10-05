@@ -1,5 +1,7 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 import { t } from '@/lib/ui/strings'
 
 interface RequiredDocument {
@@ -201,7 +203,7 @@ export default function RequiredDocumentsWithMockData() {
       return d
     })
     setDocuments(updatedDocs)
-    alert('서류가 승인되었습니다.')
+    toast({ variant: 'success', title: '승인 완료', description: '서류가 승인되었습니다.' })
   }
 
   const handleReject = (doc: RequiredDocument) => {
@@ -220,20 +222,30 @@ export default function RequiredDocumentsWithMockData() {
         return d
       })
       setDocuments(updatedDocs)
-      alert('서류가 반려되었습니다.')
+      toast({ variant: 'success', title: '반려 처리', description: '서류가 반려되었습니다.' })
     }
   }
 
-  const handleDelete = (doc: RequiredDocument) => {
-    if (confirm(`정말로 "${doc.title}"을(를) 삭제하시겠습니까?`)) {
-      const updatedDocs = documents.filter(d => d.id !== doc.id)
-      setDocuments(updatedDocs)
-      alert('서류가 삭제되었습니다.')
-    }
+  const handleDelete = async (doc: RequiredDocument) => {
+    const ok = await confirm({
+      title: '서류 삭제',
+      description: `정말로 "${doc.title}"을(를) 삭제하시겠습니까?`,
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
+    const updatedDocs = documents.filter(d => d.id !== doc.id)
+    setDocuments(updatedDocs)
+    toast({ variant: 'success', title: '삭제 완료', description: '서류가 삭제되었습니다.' })
   }
 
   const handleAddDocument = () => {
-    alert('새 필수제출서류 등록 기능은 추가 개발이 필요합니다.')
+    toast({
+      variant: 'info',
+      title: '준비 중',
+      description: '새 필수제출서류 등록은 추가 개발이 필요합니다.',
+    })
   }
 
   const getStatusBadge = (status: string) => {
@@ -511,7 +523,11 @@ export default function RequiredDocumentsWithMockData() {
 
                       <button
                         onClick={() =>
-                          alert(`"${doc.file_name}" 다운로드 기능은 추가 개발이 필요합니다.`)
+                          toast({
+                            variant: 'info',
+                            title: '준비 중',
+                            description: `"${doc.file_name}" 다운로드는 추가 개발이 필요합니다.`,
+                          })
                         }
                         className="text-gray-600 hover:text-gray-900"
                         title="다운로드"
@@ -701,3 +717,5 @@ export default function RequiredDocumentsWithMockData() {
     </div>
   )
 }
+const { toast } = useToast()
+const { confirm } = useConfirm()

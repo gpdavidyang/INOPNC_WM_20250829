@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 import type { Profile } from '@/types'
 
@@ -117,7 +119,14 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
   }
 
   const handleDelete = async (documentId: string) => {
-    if (!confirm('이 문서를 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '문서 삭제',
+      description: '이 문서를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/markup-documents/${documentId}`, {
@@ -126,10 +135,11 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
 
       if (response.ok) {
         await loadData()
+        toast({ variant: 'success', title: '삭제 완료' })
       }
     } catch (error) {
       console.error('Delete failed:', error)
-      alert('삭제 중 오류가 발생했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '삭제 중 오류가 발생했습니다.' })
     }
   }
 
@@ -445,3 +455,5 @@ export default function MarkupToolManagement({ profile }: MarkupToolManagementPr
     </div>
   )
 }
+const { confirm } = useConfirm()
+const { toast } = useToast()

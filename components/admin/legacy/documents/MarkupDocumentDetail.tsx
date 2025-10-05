@@ -1,5 +1,7 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface MarkupDocument {
   id: string
@@ -56,6 +58,8 @@ export default function MarkupDocumentDetail() {
   const [isSaving, setIsSaving] = useState(false)
 
   const supabase = createClient()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   const fetchDocument = async () => {
     if (!params.id) return
@@ -64,11 +68,13 @@ export default function MarkupDocumentDetail() {
     try {
       const { data, error } = await supabase
         .from('unified_document_system')
-        .select(`
+        .select(
+          `
           *,
           profiles!unified_document_system_uploaded_by_fkey(id, full_name, email),
           sites(id, name, address)
-        `)
+        `
+        )
         .eq('id', params.id)
         .eq('category_type', 'markup')
         .eq('status', 'active')
@@ -100,7 +106,15 @@ export default function MarkupDocumentDetail() {
   }
 
   const handleDeleteDocument = async () => {
-    if (!document || !confirm('정말로 이 도면마킹 문서를 삭제하시겠습니까?')) return
+    if (!document) return
+    const ok = await confirm({
+      title: '문서 삭제',
+      description: '정말로 이 도면마킹 문서를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const { error } = await supabase
@@ -110,11 +124,19 @@ export default function MarkupDocumentDetail() {
 
       if (error) throw error
 
-      alert('도면마킹 문서가 성공적으로 삭제되었습니다.')
+      toast({
+        variant: 'success',
+        title: '삭제 완료',
+        description: '도면마킹 문서가 삭제되었습니다.',
+      })
       router.push('/dashboard/admin/documents')
     } catch (error) {
       console.error('Error deleting document:', error)
-      alert('도면마킹 문서 삭제에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '도면마킹 문서 삭제에 실패했습니다.',
+      })
     }
   }
 
@@ -135,7 +157,7 @@ export default function MarkupDocumentDetail() {
       setEditFormData({
         title: document.title,
         description: document.description || '',
-        site_id: document.site_id
+        site_id: document.site_id,
       })
       setIsEditMode(true)
     }
@@ -157,7 +179,7 @@ export default function MarkupDocumentDetail() {
           title: editFormData.title,
           description: editFormData.description,
           site_id: editFormData.site_id || null,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', document.id)
 
@@ -165,13 +187,21 @@ export default function MarkupDocumentDetail() {
 
       // 문서 다시 불러오기
       await fetchDocument()
-      
+
       setIsEditMode(false)
       setEditFormData({})
-      alert('도면마킹 문서가 성공적으로 수정되었습니다.')
+      toast({
+        variant: 'success',
+        title: '수정 완료',
+        description: '도면마킹 문서가 수정되었습니다.',
+      })
     } catch (error) {
       console.error('Error updating document:', error)
-      alert('도면마킹 문서 수정에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '도면마킹 문서 수정에 실패했습니다.',
+      })
     } finally {
       setIsSaving(false)
     }
@@ -224,7 +254,7 @@ export default function MarkupDocumentDetail() {
                   <input
                     type="text"
                     value={editFormData.title || ''}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={e => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
                     className="text-xl font-semibold text-gray-900 bg-white border-b-2 border-blue-500 focus:outline-none"
                   />
                 ) : (
@@ -315,7 +345,7 @@ export default function MarkupDocumentDetail() {
                   </div>
                 )}
               </div>
-              
+
               {/* Markup Information */}
               {document.metadata?.markup_count && document.metadata.markup_count > 0 && (
                 <div className="mt-4 p-4 bg-blue-50 rounded-lg">
@@ -347,7 +377,7 @@ export default function MarkupDocumentDetail() {
                     전체화면 편집기 열기
                   </button>
                 </div>
-                
+
                 {/* Embedded Markup Tools */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <iframe
@@ -375,7 +405,9 @@ export default function MarkupDocumentDetail() {
                     {isEditMode ? (
                       <textarea
                         value={editFormData.description || ''}
-                        onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                        onChange={e =>
+                          setEditFormData(prev => ({ ...prev, description: e.target.value }))
+                        }
                         className="w-full p-2 border border-gray-300 rounded-md resize-none"
                         rows={3}
                         placeholder="문서 설명을 입력하세요"
@@ -414,11 +446,13 @@ export default function MarkupDocumentDetail() {
               {isEditMode ? (
                 <select
                   value={editFormData.site_id || ''}
-                  onChange={(e) => setEditFormData(prev => ({ ...prev, site_id: e.target.value || null }))}
+                  onChange={e =>
+                    setEditFormData(prev => ({ ...prev, site_id: e.target.value || null }))
+                  }
                   className="w-full p-2 border border-gray-300 rounded-md"
                 >
                   <option value="">현장 선택 안함</option>
-                  {sites.map((site) => (
+                  {sites.map(site => (
                     <option key={site.id} value={site.id}>
                       {site.name}
                     </option>
@@ -449,9 +483,7 @@ export default function MarkupDocumentDetail() {
                 </div>
                 <div>
                   <dt className="text-sm font-medium text-gray-500">이메일</dt>
-                  <dd className="mt-1 text-sm text-gray-900">
-                    {document.profiles?.email || '-'}
-                  </dd>
+                  <dd className="mt-1 text-sm text-gray-900">{document.profiles?.email || '-'}</dd>
                 </div>
               </dl>
             </div>
@@ -471,7 +503,7 @@ export default function MarkupDocumentDetail() {
                       month: 'long',
                       day: 'numeric',
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
                     })}
                   </dd>
                 </div>
@@ -483,7 +515,7 @@ export default function MarkupDocumentDetail() {
                       month: 'long',
                       day: 'numeric',
                       hour: '2-digit',
-                      minute: '2-digit'
+                      minute: '2-digit',
                     })}
                   </dd>
                 </div>

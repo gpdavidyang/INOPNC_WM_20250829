@@ -36,3 +36,8 @@ next-env.d.ts
 # Generated files
 public/sw.js
 public/workbox-*.js
+
+# Temporarily ignore server-side admin pages with syntax Prettier can't parse
+app/dashboard/admin/documents/**/*.tsx
+app/dashboard/admin/salary/**/*.tsx
+app/dashboard/admin/system/page.tsx

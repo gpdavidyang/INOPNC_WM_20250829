@@ -1,5 +1,6 @@
 'use client'
 
+import EmptyState from '@/components/ui/empty-state'
 import { t } from '@/lib/ui/strings'
 
 import NotificationCreateModal from './NotificationCreateModal'
@@ -531,7 +532,9 @@ export default function NotificationCenter({ profile }: NotificationCenterProps)
         {loading ? (
           <div className="p-8 text-center text-gray-500">알림을 불러오는 중...</div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">표시할 알림이 없습니다.</div>
+          <div className="p-8">
+            <EmptyState description="표시할 알림이 없습니다." />
+          </div>
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {filteredNotifications.map(notification => {

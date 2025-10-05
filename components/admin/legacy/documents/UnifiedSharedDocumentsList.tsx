@@ -1,5 +1,7 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 import { t } from '@/lib/ui/strings'
 
 interface UnifiedSharedDocument {
@@ -187,11 +189,18 @@ export default function UnifiedSharedDocumentsList() {
   // Handle bulk delete
   const handleBulkDelete = async () => {
     if (selectedDocuments.size === 0) {
-      alert('삭제할 문서를 선택해주세요.')
+      toast({ variant: 'warning', title: '선택 필요', description: '삭제할 문서를 선택해주세요.' })
       return
     }
 
-    if (!confirm(`선택한 ${selectedDocuments.size}개의 문서를 삭제하시겠습니까?`)) return
+    const ok = await confirm({
+      title: '일괄 삭제',
+      description: `선택한 ${selectedDocuments.size}개의 문서를 삭제하시겠습니까?`,
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       // Implement bulk delete logic here
@@ -200,7 +209,7 @@ export default function UnifiedSharedDocumentsList() {
       await loadDocuments()
     } catch (error) {
       console.error('Failed to delete documents:', error)
-      alert('문서 삭제에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '문서 삭제에 실패했습니다.' })
     }
   }
 
@@ -521,3 +530,5 @@ export default function UnifiedSharedDocumentsList() {
     </div>
   )
 }
+const { toast } = useToast()
+const { confirm } = useConfirm()

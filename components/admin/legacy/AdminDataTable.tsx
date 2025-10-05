@@ -1,5 +1,6 @@
 'use client'
 
+import EmptyState from '@/components/ui/empty-state'
 
 interface Column<T> {
   key: keyof T | string
@@ -62,7 +63,7 @@ export default function AdminDataTable<T extends Record<string, any>>({
   pageSize = 10,
   totalCount = 0,
   emptyMessage = '데이터가 없습니다',
-  emptyDescription = '조건에 맞는 데이터를 찾을 수 없습니다.'
+  emptyDescription = '조건에 맞는 데이터를 찾을 수 없습니다.',
 }: AdminDataTableProps<T>) {
   const [sortColumn, setSortColumn] = useState<string>('')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
@@ -84,7 +85,7 @@ export default function AdminDataTable<T extends Record<string, any>>({
   const handleFilter = (columnKey: string, value: string) => {
     setFilters(prev => ({
       ...prev,
-      [columnKey]: value
+      [columnKey]: value,
     }))
   }
 
@@ -107,13 +108,13 @@ export default function AdminDataTable<T extends Record<string, any>>({
       result.sort((a, b) => {
         const aValue = a[sortColumn]
         const bValue = b[sortColumn]
-        
+
         if (aValue === bValue) return 0
-        
+
         let comparison = 0
         if (aValue > bValue) comparison = 1
         if (aValue < bValue) comparison = -1
-        
+
         return sortDirection === 'desc' ? -comparison : comparison
       })
     }
@@ -124,7 +125,7 @@ export default function AdminDataTable<T extends Record<string, any>>({
   // Handle selection
   const handleSelectAll = (checked: boolean) => {
     if (!onSelectionChange) return
-    
+
     if (checked) {
       const allIds = processedData.map(getRowId)
       onSelectionChange(allIds)
@@ -135,7 +136,7 @@ export default function AdminDataTable<T extends Record<string, any>>({
 
   const handleSelectRow = (rowId: string, checked: boolean) => {
     if (!onSelectionChange) return
-    
+
     if (checked) {
       onSelectionChange([...selectedIds, rowId])
     } else {
@@ -149,11 +150,19 @@ export default function AdminDataTable<T extends Record<string, any>>({
   if (error) {
     return (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-        <div className={`${
-          touchMode === 'glove' ? 'p-10' : touchMode === 'precision' ? 'p-6' : 'p-8'
-        } text-center`}>
-          <div className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-red-600 mb-2`}>오류가 발생했습니다</div>
-          <div className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>{error}</div>
+        <div
+          className={`${
+            touchMode === 'glove' ? 'p-10' : touchMode === 'precision' ? 'p-6' : 'p-8'
+          } text-center`}
+        >
+          <div
+            className={`${getFullTypographyClass('body', 'base', isLargeFont)} text-red-600 mb-2`}
+          >
+            오류가 발생했습니다
+          </div>
+          <div className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-500`}>
+            {error}
+          </div>
         </div>
       </div>
     )
@@ -167,28 +176,42 @@ export default function AdminDataTable<T extends Record<string, any>>({
           <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
               {selectable && (
-                <th className={`${
-                  touchMode === 'glove' ? 'px-7 py-4' : touchMode === 'precision' ? 'px-5 py-2' : 'px-6 py-3'
-                } text-left ${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12`}>
+                <th
+                  className={`${
+                    touchMode === 'glove'
+                      ? 'px-7 py-4'
+                      : touchMode === 'precision'
+                        ? 'px-5 py-2'
+                        : 'px-6 py-3'
+                  } text-left ${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-12`}
+                >
                   <input
                     type="checkbox"
                     checked={isAllSelected}
                     ref={input => {
                       if (input) input.indeterminate = isPartiallySelected
                     }}
-                    onChange={(e) => handleSelectAll(e.target.checked)}
+                    onChange={e => handleSelectAll(e.target.checked)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                 </th>
               )}
-              
-              {columns.map((column) => (
+
+              {columns.map(column => (
                 <th
                   key={String(column.key)}
                   className={`${
-                    touchMode === 'glove' ? 'px-7 py-4' : touchMode === 'precision' ? 'px-5 py-2' : 'px-6 py-3'
+                    touchMode === 'glove'
+                      ? 'px-7 py-4'
+                      : touchMode === 'precision'
+                        ? 'px-5 py-2'
+                        : 'px-6 py-3'
                   } ${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${
-                    column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left'
+                    column.align === 'center'
+                      ? 'text-center'
+                      : column.align === 'right'
+                        ? 'text-right'
+                        : 'text-left'
                   }`}
                   style={{ width: column.width }}
                 >
@@ -198,67 +221,104 @@ export default function AdminDataTable<T extends Record<string, any>>({
                       <button
                         onClick={() => handleSort(String(column.key))}
                         className={`text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 ${
-                          touchMode === 'glove' ? 'p-2' : touchMode === 'precision' ? 'p-0.5' : 'p-1'
+                          touchMode === 'glove'
+                            ? 'p-2'
+                            : touchMode === 'precision'
+                              ? 'p-0.5'
+                              : 'p-1'
                         }`}
                       >
                         {sortColumn === column.key ? (
-                          sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
+                          sortDirection === 'asc' ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )
                         ) : (
                           <ChevronDown className="h-4 w-4 opacity-50" />
                         )}
                       </button>
                     )}
                   </div>
-                  
+
                   {column.filterable && (
                     <div className="mt-2">
                       <input
                         type="text"
                         placeholder="필터..."
                         value={filters[String(column.key)] || ''}
-                        onChange={(e) => handleFilter(String(column.key), e.target.value)}
+                        onChange={e => handleFilter(String(column.key), e.target.value)}
                         className={`block w-full ${getFullTypographyClass('caption', 'xs', isLargeFont)} ${
-                          touchMode === 'glove' ? 'px-3 py-2' : touchMode === 'precision' ? 'px-1.5 py-0.5' : 'px-2 py-1'
+                          touchMode === 'glove'
+                            ? 'px-3 py-2'
+                            : touchMode === 'precision'
+                              ? 'px-1.5 py-0.5'
+                              : 'px-2 py-1'
                         } border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100`}
                       />
                     </div>
                   )}
                 </th>
               ))}
-              
+
               {(onView || onEdit || onDelete || customActions.length > 0) && (
-                <th className={`${
-                  touchMode === 'glove' ? 'px-7 py-4' : touchMode === 'precision' ? 'px-5 py-2' : 'px-6 py-3'
-                } text-center ${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[150px]`}>
+                <th
+                  className={`${
+                    touchMode === 'glove'
+                      ? 'px-7 py-4'
+                      : touchMode === 'precision'
+                        ? 'px-5 py-2'
+                        : 'px-6 py-3'
+                  } text-center ${getFullTypographyClass('caption', 'xs', isLargeFont)} font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[150px]`}
+                >
                   작업
                 </th>
               )}
             </tr>
           </thead>
-          
+
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {loading ? (
               // Loading skeleton
               Array.from({ length: pageSize }).map((_, index) => (
                 <tr key={index}>
                   {selectable && (
-                    <td className={`${
-                      touchMode === 'glove' ? 'px-7 py-5' : touchMode === 'precision' ? 'px-5 py-3' : 'px-6 py-4'
-                    } whitespace-nowrap`}>
+                    <td
+                      className={`${
+                        touchMode === 'glove'
+                          ? 'px-7 py-5'
+                          : touchMode === 'precision'
+                            ? 'px-5 py-3'
+                            : 'px-6 py-4'
+                      } whitespace-nowrap`}
+                    >
                       <div className="h-4 w-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
                     </td>
                   )}
-                  {columns.map((column) => (
-                    <td key={String(column.key)} className={`${
-                      touchMode === 'glove' ? 'px-7 py-5' : touchMode === 'precision' ? 'px-5 py-3' : 'px-6 py-4'
-                    } whitespace-nowrap`}>
+                  {columns.map(column => (
+                    <td
+                      key={String(column.key)}
+                      className={`${
+                        touchMode === 'glove'
+                          ? 'px-7 py-5'
+                          : touchMode === 'precision'
+                            ? 'px-5 py-3'
+                            : 'px-6 py-4'
+                      } whitespace-nowrap`}
+                    >
                       <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
                     </td>
                   ))}
                   {(onView || onEdit || onDelete || customActions.length > 0) && (
-                    <td className={`${
-                      touchMode === 'glove' ? 'px-7 py-5' : touchMode === 'precision' ? 'px-5 py-3' : 'px-6 py-4'
-                    } whitespace-nowrap text-right`}>
+                    <td
+                      className={`${
+                        touchMode === 'glove'
+                          ? 'px-7 py-5'
+                          : touchMode === 'precision'
+                            ? 'px-5 py-3'
+                            : 'px-6 py-4'
+                      } whitespace-nowrap text-right`}
+                    >
                       <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse ml-auto" />
                     </td>
                   )}
@@ -267,56 +327,91 @@ export default function AdminDataTable<T extends Record<string, any>>({
             ) : processedData.length === 0 ? (
               // Empty state
               <tr>
-                <td colSpan={columns.length + (selectable ? 1 : 0) + ((onView || onEdit || onDelete || customActions.length > 0) ? 1 : 0)} className={`${
-                  touchMode === 'glove' ? 'px-7 py-14' : touchMode === 'precision' ? 'px-5 py-10' : 'px-6 py-12'
-                } text-center`}>
-                  <div className="text-gray-500 dark:text-gray-400">
-                    <div className={`${getFullTypographyClass('heading', 'lg', isLargeFont)} font-medium mb-2`}>{emptyMessage}</div>
-                    <div className={getFullTypographyClass('body', 'sm', isLargeFont)}>{emptyDescription}</div>
-                  </div>
+                <td
+                  colSpan={
+                    columns.length +
+                    (selectable ? 1 : 0) +
+                    (onView || onEdit || onDelete || customActions.length > 0 ? 1 : 0)
+                  }
+                  className={`${
+                    touchMode === 'glove'
+                      ? 'px-7 py-14'
+                      : touchMode === 'precision'
+                        ? 'px-5 py-10'
+                        : 'px-6 py-12'
+                  } text-center`}
+                >
+                  <EmptyState title={emptyMessage} description={emptyDescription} />
                 </td>
               </tr>
             ) : (
               // Data rows
-              processedData.map((row) => {
+              processedData.map(row => {
                 const rowId = getRowId(row)
                 const isSelected = selectedIds.includes(rowId)
-                
+
                 return (
-                  <tr key={rowId} className={isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}>
+                  <tr
+                    key={rowId}
+                    className={
+                      isSelected
+                        ? 'bg-blue-50 dark:bg-blue-900/20'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                    }
+                  >
                     {selectable && (
-                      <td className={`${
-                        touchMode === 'glove' ? 'px-7 py-5' : touchMode === 'precision' ? 'px-5 py-3' : 'px-6 py-4'
-                      } whitespace-nowrap`}>
+                      <td
+                        className={`${
+                          touchMode === 'glove'
+                            ? 'px-7 py-5'
+                            : touchMode === 'precision'
+                              ? 'px-5 py-3'
+                              : 'px-6 py-4'
+                        } whitespace-nowrap`}
+                      >
                         <input
                           type="checkbox"
                           checked={isSelected}
-                          onChange={(e) => handleSelectRow(rowId, e.target.checked)}
+                          onChange={e => handleSelectRow(rowId, e.target.checked)}
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                       </td>
                     )}
-                    
-                    {columns.map((column) => {
+
+                    {columns.map(column => {
                       const value = row[column.key as keyof T]
                       return (
                         <td
                           key={String(column.key)}
                           className={`${
-                            touchMode === 'glove' ? 'px-7 py-5' : touchMode === 'precision' ? 'px-5 py-3' : 'px-6 py-4'
+                            touchMode === 'glove'
+                              ? 'px-7 py-5'
+                              : touchMode === 'precision'
+                                ? 'px-5 py-3'
+                                : 'px-6 py-4'
                           } whitespace-nowrap ${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-900 dark:text-gray-100 ${
-                            column.align === 'center' ? 'text-center' : column.align === 'right' ? 'text-right' : 'text-left'
+                            column.align === 'center'
+                              ? 'text-center'
+                              : column.align === 'right'
+                                ? 'text-right'
+                                : 'text-left'
                           }`}
                         >
                           {column.render ? column.render(value, row) : String(value || '')}
                         </td>
                       )
                     })}
-                    
+
                     {(onView || onEdit || onDelete || customActions.length > 0) && (
-                      <td className={`${
-                        touchMode === 'glove' ? 'px-7 py-5' : touchMode === 'precision' ? 'px-5 py-3' : 'px-6 py-4'
-                      } whitespace-nowrap text-center ${getFullTypographyClass('body', 'sm', isLargeFont)}`}>
+                      <td
+                        className={`${
+                          touchMode === 'glove'
+                            ? 'px-7 py-5'
+                            : touchMode === 'precision'
+                              ? 'px-5 py-3'
+                              : 'px-6 py-4'
+                        } whitespace-nowrap text-center ${getFullTypographyClass('body', 'sm', isLargeFont)}`}
+                      >
                         <div className="flex items-center justify-center gap-1">
                           {onView && (
                             <Button
@@ -324,9 +419,11 @@ export default function AdminDataTable<T extends Record<string, any>>({
                               variant="outline"
                               onClick={() => onView(row)}
                               className={`text-xs ${
-                                touchMode === 'glove' ? 'min-w-[50px] h-9 px-3 py-2' : 
-                                touchMode === 'precision' ? 'min-w-[35px] h-7 px-1.5 py-0.5' : 
-                                'min-w-[40px] h-8 px-2 py-1'
+                                touchMode === 'glove'
+                                  ? 'min-w-[50px] h-9 px-3 py-2'
+                                  : touchMode === 'precision'
+                                    ? 'min-w-[35px] h-7 px-1.5 py-0.5'
+                                    : 'min-w-[40px] h-8 px-2 py-1'
                               }`}
                             >
                               보기
@@ -338,9 +435,11 @@ export default function AdminDataTable<T extends Record<string, any>>({
                               variant="outline"
                               onClick={() => onEdit(row)}
                               className={`text-xs text-blue-600 hover:bg-blue-50 border-blue-200 dark:text-blue-400 dark:hover:bg-blue-900/20 ${
-                                touchMode === 'glove' ? 'min-w-[50px] h-9 px-3 py-2' : 
-                                touchMode === 'precision' ? 'min-w-[35px] h-7 px-1.5 py-0.5' : 
-                                'min-w-[40px] h-8 px-2 py-1'
+                                touchMode === 'glove'
+                                  ? 'min-w-[50px] h-9 px-3 py-2'
+                                  : touchMode === 'precision'
+                                    ? 'min-w-[35px] h-7 px-1.5 py-0.5'
+                                    : 'min-w-[40px] h-8 px-2 py-1'
                               }`}
                             >
                               수정
@@ -348,7 +447,7 @@ export default function AdminDataTable<T extends Record<string, any>>({
                           )}
                           {customActions.map((action, index) => {
                             if (action.show && !action.show(row)) return null
-                            
+
                             return (
                               <Button
                                 key={index}
@@ -360,9 +459,11 @@ export default function AdminDataTable<T extends Record<string, any>>({
                                     ? 'text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20'
                                     : ''
                                 } ${
-                                  touchMode === 'glove' ? 'min-w-[50px] h-9 px-3 py-2' : 
-                                  touchMode === 'precision' ? 'min-w-[35px] h-7 px-1.5 py-0.5' : 
-                                  'min-w-[40px] h-8 px-2 py-1'
+                                  touchMode === 'glove'
+                                    ? 'min-w-[50px] h-9 px-3 py-2'
+                                    : touchMode === 'precision'
+                                      ? 'min-w-[35px] h-7 px-1.5 py-0.5'
+                                      : 'min-w-[40px] h-8 px-2 py-1'
                                 }`}
                               >
                                 {action.label}
@@ -375,9 +476,11 @@ export default function AdminDataTable<T extends Record<string, any>>({
                               variant="outline"
                               onClick={() => onDelete(row)}
                               className={`text-xs text-red-600 hover:bg-red-50 border-red-200 dark:text-red-400 dark:hover:bg-red-900/20 ${
-                                touchMode === 'glove' ? 'min-w-[50px] h-9 px-3 py-2' : 
-                                touchMode === 'precision' ? 'min-w-[35px] h-7 px-1.5 py-0.5' : 
-                                'min-w-[40px] h-8 px-2 py-1'
+                                touchMode === 'glove'
+                                  ? 'min-w-[50px] h-9 px-3 py-2'
+                                  : touchMode === 'precision'
+                                    ? 'min-w-[35px] h-7 px-1.5 py-0.5'
+                                    : 'min-w-[40px] h-8 px-2 py-1'
                               }`}
                             >
                               삭제
@@ -396,33 +499,52 @@ export default function AdminDataTable<T extends Record<string, any>>({
 
       {/* Pagination */}
       {totalPages > 1 && onPageChange && (
-        <div className={`${
-          touchMode === 'glove' ? 'px-7 py-4' : touchMode === 'precision' ? 'px-5 py-2' : 'px-6 py-3'
-        } border-t border-gray-200 dark:border-gray-700 flex items-center justify-between`}>
-          <div className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-700 dark:text-gray-300`}>
-            총 {totalCount}개 중 {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)}개 표시
+        <div
+          className={`${
+            touchMode === 'glove'
+              ? 'px-7 py-4'
+              : touchMode === 'precision'
+                ? 'px-5 py-2'
+                : 'px-6 py-3'
+          } border-t border-gray-200 dark:border-gray-700 flex items-center justify-between`}
+        >
+          <div
+            className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-700 dark:text-gray-300`}
+          >
+            총 {totalCount}개 중 {(currentPage - 1) * pageSize + 1}-
+            {Math.min(currentPage * pageSize, totalCount)}개 표시
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
               className={`${
-                touchMode === 'glove' ? 'px-4 py-2' : touchMode === 'precision' ? 'px-2 py-0.5' : 'px-3 py-1'
+                touchMode === 'glove'
+                  ? 'px-4 py-2'
+                  : touchMode === 'precision'
+                    ? 'px-2 py-0.5'
+                    : 'px-3 py-1'
               } ${getFullTypographyClass('button', 'sm', isLargeFont)} border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               이전
             </button>
-            
-            <span className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-700 dark:text-gray-300`}>
+
+            <span
+              className={`${getFullTypographyClass('body', 'sm', isLargeFont)} text-gray-700 dark:text-gray-300`}
+            >
               {currentPage} / {totalPages}
             </span>
-            
+
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
               className={`${
-                touchMode === 'glove' ? 'px-4 py-2' : touchMode === 'precision' ? 'px-2 py-0.5' : 'px-3 py-1'
+                touchMode === 'glove'
+                  ? 'px-4 py-2'
+                  : touchMode === 'precision'
+                    ? 'px-2 py-0.5'
+                    : 'px-3 py-1'
               } ${getFullTypographyClass('button', 'sm', isLargeFont)} border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               다음

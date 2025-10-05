@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getUser } from '@/app/actions/admin/users'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
 import {
   Table,
   TableBody,
@@ -28,11 +29,18 @@ export default async function AdminUserDetailPage({ params }: UserDetailPageProp
   const user = result.success && result.data ? (result.data as any) : null
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">사용자 상세</h1>
-        <p className="text-sm text-muted-foreground">ID: {params.id}</p>
-      </div>
+    <div className="px-0 pb-8 space-y-6">
+      <PageHeader
+        title="사용자 상세"
+        description={`ID: ${params.id}`}
+        breadcrumbs={[
+          { label: '대시보드', href: '/dashboard/admin' },
+          { label: '사용자 관리', href: '/dashboard/admin/users' },
+          { label: '사용자 상세' },
+        ]}
+        showBackButton
+        backButtonHref="/dashboard/admin/users"
+      />
 
       <Card>
         <CardHeader>
@@ -54,7 +62,7 @@ export default async function AdminUserDetailPage({ params }: UserDetailPageProp
 
       <Card>
         <CardHeader>
-          <CardTitle>사이트 배정</CardTitle>
+          <CardTitle>현장 배정</CardTitle>
           <CardDescription>사용자에게 배정된 현장</CardDescription>
         </CardHeader>
         <CardContent>

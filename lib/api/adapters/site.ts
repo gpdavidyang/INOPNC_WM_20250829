@@ -18,6 +18,14 @@ export async function listSites(req: ListSitesRequest): Promise<ListSitesRespons
     .order(req.sort || 'created_at', { ascending: (req.direction || 'desc') === 'asc' })
     .range(from, to)
 
+  // Soft-delete filters
+  if (req.onlyDeleted) {
+    query = query.eq('is_deleted', true)
+  } else if (!req.includeDeleted) {
+    // Exclude by default unless includeDeleted explicitly set
+    query = query.eq('is_deleted', false)
+  }
+
   if (req.q) {
     const q = req.q.trim()
     if (q) query = query.or(`name.ilike.%${q}%,address.ilike.%${q}%`)

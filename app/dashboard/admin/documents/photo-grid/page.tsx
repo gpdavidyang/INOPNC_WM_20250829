@@ -5,6 +5,7 @@ import PhotoGridReportsTable from '@/components/admin/PhotoGridReportsTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
+import { PageHeader } from '@/components/ui/page-header'
 import { formatBytes } from '@/lib/utils'
 
 export const metadata: Metadata = {
@@ -49,11 +50,15 @@ export default async function AdminPhotoGridDocumentsPage({
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">포토 그리드 문서</h1>
-        <p className="text-sm text-muted-foreground">최근 생성된 사진대지 PDF 보고서입니다.</p>
-      </div>
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="포토 그리드 문서"
+        description="최근 생성된 사진대지 PDF 보고서"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '문서 관리', href: '/dashboard/admin/documents' }, { label: '포토 그리드' }]}
+        showBackButton
+        backButtonHref="/dashboard/admin/documents"
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
 
       <div className="mb-6 rounded-lg border bg-card p-4 shadow-sm">
         <form
@@ -112,7 +117,7 @@ export default async function AdminPhotoGridDocumentsPage({
         <PhotoGridReportsTable reports={reports} />
         <div className="mt-4 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {total}건 중 {(page - 1) * limit + Math.min(1, total)}–{Math.min(page * limit, total)}{' '}
+            {total}건 중 {(page - 1) * limit + Math.min(1, total)}-{Math.min(page * limit, total)}{' '}
             표시
           </div>
           <div className="flex gap-2">

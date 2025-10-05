@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
-import SiteForm from '@/components/admin/sites/SiteForm'
+import NewSiteClient from '@/components/admin/sites/NewSiteClient'
 
 export const metadata: Metadata = { title: '새 현장 등록' }
 
@@ -17,16 +17,7 @@ export default async function NewSitePage() {
       </div>
 
       <div className="rounded-lg border bg-card p-6 shadow-sm">
-        <SiteForm
-          mode="create"
-          onSuccess={(site?: any) => {
-            if (site?.id) {
-              window.location.assign(`/dashboard/admin/sites/${site.id}`)
-            } else {
-              window.location.assign('/dashboard/admin/sites')
-            }
-          }}
-        />
+        <NewSiteClient />
       </div>
     </div>
   )

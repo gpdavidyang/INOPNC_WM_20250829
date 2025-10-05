@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getSystemStats, getSystemConfigurations } from '@/app/actions/admin/system'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { PageHeader } from '@/components/ui/page-header'
 import SystemConfigsTable from '@/components/admin/SystemConfigsTable'
 import { Badge } from '@/components/ui/badge'
 import { formatBytes } from '@/lib/utils'
@@ -19,11 +20,13 @@ export default async function SystemManagementPage() {
   const configs = configsRes.success && Array.isArray(configsRes.data) ? configsRes.data : []
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">시스템 관리</h1>
-        <p className="text-sm text-muted-foreground">설정과 지표를 읽기 전용으로 표시합니다.</p>
-      </div>
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="시스템 관리"
+        description="설정과 지표를 읽기 전용으로 표시"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '시스템 관리' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 mb-8">
         <Card>

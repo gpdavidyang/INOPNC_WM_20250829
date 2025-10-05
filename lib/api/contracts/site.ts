@@ -20,6 +20,8 @@ export const ListSitesRequest = z.object({
   status: z.string().optional(),
   sort: z.string().optional(),
   direction: z.enum(['asc', 'desc']).optional(),
+  includeDeleted: z.boolean().optional(),
+  onlyDeleted: z.boolean().optional(),
 })
 export type ListSitesRequest = z.infer<typeof ListSitesRequest>
 

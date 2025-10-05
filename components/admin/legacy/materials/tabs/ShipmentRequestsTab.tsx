@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface ShipmentRequestsTabProps {
   profile: Profile
@@ -52,6 +54,8 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
   })
 
   const supabase = createClient()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   useEffect(() => {
     loadSites()
@@ -169,18 +173,29 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
   }
 
   const handleDelete = async (requestId: string) => {
-    if (!confirm('정말 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '출고 요청 삭제',
+      description: '정말 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const { error } = await supabase.from('material_requests').delete().eq('id', requestId)
 
       if (error) throw error
 
-      alert('출고 요청이 삭제되었습니다.')
+      toast({ variant: 'success', title: '삭제 완료', description: '출고 요청이 삭제되었습니다.' })
       fetchRequests()
     } catch (error) {
       console.error('Error deleting request:', error)
-      alert('출고 요청 삭제에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '출고 요청 삭제에 실패했습니다.',
+      })
     }
   }
 
@@ -208,14 +223,18 @@ export default function ShipmentRequestsTab({ profile }: ShipmentRequestsTabProp
         .eq('id', selectedRequest.id)
 
       if (!error) {
-        alert(`출고 요청이 ${responseForm.status === 'approved' ? '승인' : '거절'}되었습니다.`)
+        toast({
+          variant: 'success',
+          title: '처리 완료',
+          description: `출고 요청이 ${responseForm.status === 'approved' ? '승인' : '거절'}되었습니다.`,
+        })
         setShowDetailModal(false)
         setSelectedRequest(null)
         await loadRequests()
       }
     } catch (error) {
       console.error('Failed to process request:', error)
-      alert('요청 처리에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '요청 처리에 실패했습니다.' })
     }
   }
 

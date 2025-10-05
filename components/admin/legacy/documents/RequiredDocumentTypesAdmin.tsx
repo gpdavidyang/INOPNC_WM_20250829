@@ -1,5 +1,7 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 interface RequiredDocumentType {
   id: string
@@ -34,7 +36,6 @@ interface DocumentTypeFormData {
   sort_order: number
 }
 
-
 const DEFAULT_FILE_TYPES = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx']
 
 export default function RequiredDocumentTypesAdmin() {
@@ -49,7 +50,7 @@ export default function RequiredDocumentTypesAdmin() {
     description: '',
     file_types: ['pdf', 'jpg', 'jpeg', 'png'],
     max_file_size: 10485760,
-    sort_order: 0
+    sort_order: 0,
   })
 
   useEffect(() => {
@@ -72,18 +73,18 @@ export default function RequiredDocumentTypesAdmin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
-      const url = editingId 
+      const url = editingId
         ? `/api/admin/required-document-types/${editingId}`
         : '/api/admin/required-document-types'
-      
+
       const method = editingId ? 'PUT' : 'POST'
-      
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       })
 
       if (response.ok) {
@@ -105,24 +106,33 @@ export default function RequiredDocumentTypesAdmin() {
       description: documentType.description || '',
       file_types: documentType.file_types,
       max_file_size: documentType.max_file_size,
-      sort_order: documentType.sort_order
+      sort_order: documentType.sort_order,
     })
     setShowModal(true)
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말로 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '유형 삭제',
+      description: '정말로 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const response = await fetch(`/api/admin/required-document-types/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
 
       if (response.ok) {
         await fetchDocumentTypes()
+        toast({ variant: 'success', title: '삭제 완료' })
       }
     } catch (error) {
       console.error('Error deleting document type:', error)
+      toast({ variant: 'destructive', title: '오류', description: '삭제에 실패했습니다.' })
     }
   }
 
@@ -131,7 +141,7 @@ export default function RequiredDocumentTypesAdmin() {
       const response = await fetch(`/api/admin/required-document-types/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !currentActive })
+        body: JSON.stringify({ is_active: !currentActive }),
       })
 
       if (response.ok) {
@@ -151,10 +161,9 @@ export default function RequiredDocumentTypesAdmin() {
       description: '',
       file_types: ['pdf', 'jpg', 'jpeg', 'png'],
       max_file_size: 10485760,
-      sort_order: 0
+      sort_order: 0,
     })
   }
-
 
   const formatFileSize = (bytes: number) => {
     return `${(bytes / 1048576).toFixed(1)}MB`
@@ -172,7 +181,9 @@ export default function RequiredDocumentTypesAdmin() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">필수서류 유형 관리</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+            필수서류 유형 관리
+          </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             시스템에서 사용하는 필수서류 유형을 관리합니다
           </p>
@@ -181,8 +192,7 @@ export default function RequiredDocumentTypesAdmin() {
           onClick={() => setShowModal(true)}
           className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
         >
-          <Plus className="h-4 w-4 mr-2" />
-          새 서류 유형 추가
+          <Plus className="h-4 w-4 mr-2" />새 서류 유형 추가
         </button>
       </div>
 
@@ -193,8 +203,8 @@ export default function RequiredDocumentTypesAdmin() {
               서류 유형 목록 ({documentTypes.length}개)
             </h4>
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              활성: {documentTypes.filter(dt => dt.is_active).length}개, 
-              비활성: {documentTypes.filter(dt => !dt.is_active).length}개
+              활성: {documentTypes.filter(dt => dt.is_active).length}개, 비활성:{' '}
+              {documentTypes.filter(dt => !dt.is_active).length}개
             </div>
           </div>
         </div>
@@ -218,7 +228,7 @@ export default function RequiredDocumentTypesAdmin() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {documentTypes.map((docType) => (
+              {documentTypes.map(docType => (
                 <tr key={docType.id} className={!docType.is_active ? 'opacity-50' : ''}>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
@@ -319,7 +329,7 @@ export default function RequiredDocumentTypesAdmin() {
                     type="text"
                     required
                     value={formData.code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value }))}
+                    onChange={e => setFormData(prev => ({ ...prev, code: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     placeholder="safety_certificate"
                   />
@@ -332,7 +342,7 @@ export default function RequiredDocumentTypesAdmin() {
                     type="text"
                     required
                     value={formData.name_ko}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name_ko: e.target.value }))}
+                    onChange={e => setFormData(prev => ({ ...prev, name_ko: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                     placeholder="안전교육이수증"
                   />
@@ -346,7 +356,7 @@ export default function RequiredDocumentTypesAdmin() {
                 <input
                   type="text"
                   value={formData.name_en}
-                  onChange={(e) => setFormData(prev => ({ ...prev, name_en: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, name_en: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   placeholder="Safety Training Certificate"
                 />
@@ -358,7 +368,7 @@ export default function RequiredDocumentTypesAdmin() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   placeholder="서류에 대한 설명을 입력하세요"
@@ -371,16 +381,22 @@ export default function RequiredDocumentTypesAdmin() {
                     허용 파일 형식
                   </label>
                   <div className="flex flex-wrap gap-2">
-                    {DEFAULT_FILE_TYPES.map((type) => (
+                    {DEFAULT_FILE_TYPES.map(type => (
                       <label key={type} className="flex items-center">
                         <input
                           type="checkbox"
                           checked={formData.file_types.includes(type)}
-                          onChange={(e) => {
+                          onChange={e => {
                             if (e.target.checked) {
-                              setFormData(prev => ({ ...prev, file_types: [...prev.file_types, type] }))
+                              setFormData(prev => ({
+                                ...prev,
+                                file_types: [...prev.file_types, type],
+                              }))
                             } else {
-                              setFormData(prev => ({ ...prev, file_types: prev.file_types.filter(t => t !== type) }))
+                              setFormData(prev => ({
+                                ...prev,
+                                file_types: prev.file_types.filter(t => t !== type),
+                              }))
                             }
                           }}
                           className="mr-1"
@@ -399,12 +415,16 @@ export default function RequiredDocumentTypesAdmin() {
                     min="1"
                     max="100"
                     value={formData.max_file_size / 1048576}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_file_size: parseInt(e.target.value) * 1048576 }))}
+                    onChange={e =>
+                      setFormData(prev => ({
+                        ...prev,
+                        max_file_size: parseInt(e.target.value) * 1048576,
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                   />
                 </div>
               </div>
-
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -414,7 +434,9 @@ export default function RequiredDocumentTypesAdmin() {
                   type="number"
                   min="0"
                   value={formData.sort_order}
-                  onChange={(e) => setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))}
+                  onChange={e =>
+                    setFormData(prev => ({ ...prev, sort_order: parseInt(e.target.value) || 0 }))
+                  }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
                 />
               </div>
@@ -444,3 +466,5 @@ export default function RequiredDocumentTypesAdmin() {
     </div>
   )
 }
+const { confirm } = useConfirm()
+const { toast } = useToast()

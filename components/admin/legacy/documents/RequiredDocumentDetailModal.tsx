@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { getSessionUserId } from '@/lib/supabase/session'
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface User {
   id: string
@@ -63,7 +65,7 @@ export default function RequiredDocumentDetailModal({
   isOpen,
   onClose,
   onSuccess,
-  documentId
+  documentId,
 }: RequiredDocumentDetailModalProps) {
   const [loading, setLoading] = useState(false)
   const [document, setDocument] = useState<RequiredDocument | null>(null)
@@ -71,16 +73,18 @@ export default function RequiredDocumentDetailModal({
   const [isEditing, setIsEditing] = useState(false)
   const [error, setError] = useState<string>('')
   const [reviewNotes, setReviewNotes] = useState('')
-  
+
   // Edit functionality states
   const [isEditMode, setIsEditMode] = useState(false)
   const [editFormData, setEditFormData] = useState({
     title: '',
-    description: ''
+    description: '',
   })
   const [isSaving, setIsSaving] = useState(false)
 
   const supabase = createClient()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   useEffect(() => {
     if (isOpen && documentId) {
@@ -96,7 +100,8 @@ export default function RequiredDocumentDetailModal({
       // Fetch document details
       const { data: docData, error: docError } = await supabase
         .from('unified_document_system')
-        .select(`
+        .select(
+          `
           *,
           profiles:uploaded_by (
             id, full_name, email, role
@@ -104,7 +109,8 @@ export default function RequiredDocumentDetailModal({
           approver_profile:approved_by (
             id, full_name, email, role
           )
-        `)
+        `
+        )
         .eq('id', documentId)
         .eq('category_type', 'required')
         .single()
@@ -114,7 +120,7 @@ export default function RequiredDocumentDetailModal({
       setReviewNotes(docData.review_notes || '')
       setEditFormData({
         title: docData.title || '',
-        description: docData.description || ''
+        description: docData.description || '',
       })
 
       // Fetch submission status
@@ -153,7 +159,7 @@ export default function RequiredDocumentDetailModal({
       const updateData: Record<string, unknown> = {
         submission_status: newStatus,
         reviewed_by: reviewerId,
-        review_date: now
+        review_date: now,
       }
 
       if (newStatus === 'approved') {
@@ -180,13 +186,13 @@ export default function RequiredDocumentDetailModal({
           status: newStatus === 'approved' ? 'approved' : 'rejected',
           review_notes: reviewNotes,
           reviewed_by: reviewerId,
-          review_date: now
+          review_date: now,
         })
         .eq('id', document.id)
 
       if (docError) throw docError
 
-      alert(`서류가 성공적으로 ${newStatus === 'approved' ? '승인' : '거부'}되었습니다.`)
+      toast({ variant: 'success', title: newStatus === 'approved' ? '승인 완료' : '거부 완료' })
       onSuccess()
       onClose()
     } catch (error: unknown) {
@@ -206,7 +212,7 @@ export default function RequiredDocumentDetailModal({
     if (document) {
       setEditFormData({
         title: document.title || '',
-        description: document.description || ''
+        description: document.description || '',
       })
     }
   }
@@ -221,18 +227,22 @@ export default function RequiredDocumentDetailModal({
         .update({
           title: editFormData.title,
           description: editFormData.description,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .eq('id', document.id)
 
       if (error) throw error
 
       // Update local document state
-      setDocument(prev => prev ? {
-        ...prev,
-        title: editFormData.title,
-        description: editFormData.description
-      } : null)
+      setDocument(prev =>
+        prev
+          ? {
+              ...prev,
+              title: editFormData.title,
+              description: editFormData.description,
+            }
+          : null
+      )
 
       setIsEditMode(false)
       onSuccess() // Refresh parent component
@@ -260,7 +270,7 @@ export default function RequiredDocumentDetailModal({
       document.body.removeChild(a)
     } catch (error) {
       console.error('Download error:', error)
-      alert('파일 다운로드에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '파일 다운로드에 실패했습니다.' })
     }
   }
 
@@ -273,7 +283,7 @@ export default function RequiredDocumentDetailModal({
           text: '검토 대기',
           bgColor: 'bg-yellow-50',
           textColor: 'text-yellow-800',
-          borderColor: 'border-yellow-200'
+          borderColor: 'border-yellow-200',
         }
       case 'approved':
         return {
@@ -281,7 +291,7 @@ export default function RequiredDocumentDetailModal({
           text: '승인됨',
           bgColor: 'bg-green-50',
           textColor: 'text-green-800',
-          borderColor: 'border-green-200'
+          borderColor: 'border-green-200',
         }
       case 'rejected':
         return {
@@ -289,7 +299,7 @@ export default function RequiredDocumentDetailModal({
           text: '거부됨',
           bgColor: 'bg-red-50',
           textColor: 'text-red-800',
-          borderColor: 'border-red-200'
+          borderColor: 'border-red-200',
         }
       case 'expired':
         return {
@@ -297,7 +307,7 @@ export default function RequiredDocumentDetailModal({
           text: '만료됨',
           bgColor: 'bg-orange-50',
           textColor: 'text-orange-800',
-          borderColor: 'border-orange-200'
+          borderColor: 'border-orange-200',
         }
       default:
         return {
@@ -305,7 +315,7 @@ export default function RequiredDocumentDetailModal({
           text: '알 수 없음',
           bgColor: 'bg-gray-50',
           textColor: 'text-gray-800',
-          borderColor: 'border-gray-200'
+          borderColor: 'border-gray-200',
         }
     }
   }
@@ -331,8 +341,11 @@ export default function RequiredDocumentDetailModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
-        
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        />
+
         <div className="inline-block w-full max-w-3xl px-6 py-4 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
           {loading && (
             <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10">
@@ -371,7 +384,7 @@ export default function RequiredDocumentDetailModal({
                   <input
                     type="text"
                     value={editFormData.title}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
+                    onChange={e => setEditFormData(prev => ({ ...prev, title: e.target.value }))}
                     className="w-full text-lg font-medium text-gray-900 bg-white border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="문서 제목을 입력하세요"
                   />
@@ -379,7 +392,7 @@ export default function RequiredDocumentDetailModal({
                   <h4 className="text-lg font-medium text-gray-900">{document.title}</h4>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
                   <span className="font-medium text-gray-700">서류 유형:</span>
@@ -387,46 +400,51 @@ export default function RequiredDocumentDetailModal({
                     {document.document_requirements?.requirement_name || document.document_type}
                   </span>
                 </div>
-                
+
                 <div>
                   <span className="font-medium text-gray-700">제출자:</span>
                   <span className="ml-2 text-gray-900">
-                    {document.submitted_by_profile?.full_name} ({document.submitted_by_profile?.email})
+                    {document.submitted_by_profile?.full_name} (
+                    {document.submitted_by_profile?.email})
                   </span>
                 </div>
-                
+
                 <div>
                   <span className="font-medium text-gray-700">파일명:</span>
                   <span className="ml-2 text-gray-900">{document.file_name}</span>
                 </div>
-                
+
                 <div>
                   <span className="font-medium text-gray-700">파일 크기:</span>
                   <span className="ml-2 text-gray-900">
                     {(document.file_size / 1024 / 1024).toFixed(2)} MB
                   </span>
                 </div>
-                
+
                 <div>
                   <span className="font-medium text-gray-700">제출일:</span>
                   <span className="ml-2 text-gray-900">
                     {new Date(document.created_at).toLocaleDateString('ko-KR')}
                   </span>
                 </div>
-                
+
                 {document.expiry_date && (
                   <div>
                     <span className="font-medium text-gray-700">만료일:</span>
-                    <span className={`ml-2 ${
-                      isExpired(document.expiry_date) 
-                        ? 'text-red-600 font-medium' 
-                        : isExpiringSoon(document.expiry_date) 
-                        ? 'text-orange-600 font-medium' 
-                        : 'text-gray-900'
-                    }`}>
+                    <span
+                      className={`ml-2 ${
+                        isExpired(document.expiry_date)
+                          ? 'text-red-600 font-medium'
+                          : isExpiringSoon(document.expiry_date)
+                            ? 'text-orange-600 font-medium'
+                            : 'text-gray-900'
+                      }`}
+                    >
                       {new Date(document.expiry_date).toLocaleDateString('ko-KR')}
                       {isExpired(document.expiry_date) && ' (만료됨)'}
-                      {!isExpired(document.expiry_date) && isExpiringSoon(document.expiry_date) && ' (곧 만료)'}
+                      {!isExpired(document.expiry_date) &&
+                        isExpiringSoon(document.expiry_date) &&
+                        ' (곧 만료)'}
                     </span>
                   </div>
                 )}
@@ -438,7 +456,9 @@ export default function RequiredDocumentDetailModal({
                 {isEditMode ? (
                   <textarea
                     value={editFormData.description}
-                    onChange={(e) => setEditFormData(prev => ({ ...prev, description: e.target.value }))}
+                    onChange={e =>
+                      setEditFormData(prev => ({ ...prev, description: e.target.value }))
+                    }
                     rows={3}
                     className="w-full mt-1 px-3 py-2 bg-white border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
                     placeholder="문서 설명을 입력하세요"
@@ -450,7 +470,9 @@ export default function RequiredDocumentDetailModal({
             </div>
 
             {/* 승인 상태 */}
-            <div className={`p-4 rounded-lg border ${statusInfo.borderColor} ${statusInfo.bgColor}`}>
+            <div
+              className={`p-4 rounded-lg border ${statusInfo.borderColor} ${statusInfo.bgColor}`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   {statusInfo.icon}
@@ -458,7 +480,7 @@ export default function RequiredDocumentDetailModal({
                     {statusInfo.text}
                   </span>
                 </div>
-                
+
                 <button
                   onClick={handleDownload}
                   className="flex items-center px-3 py-1.5 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -510,7 +532,7 @@ export default function RequiredDocumentDetailModal({
                 {isEditing ? (
                   <textarea
                     value={reviewNotes}
-                    onChange={(e) => setReviewNotes(e.target.value)}
+                    onChange={e => setReviewNotes(e.target.value)}
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="검토 노트를 입력하세요..."
@@ -541,7 +563,7 @@ export default function RequiredDocumentDetailModal({
             >
               닫기
             </button>
-            
+
             {!canApprove && !isEditMode && (
               <button
                 onClick={startEditMode}
@@ -551,7 +573,7 @@ export default function RequiredDocumentDetailModal({
                 편집
               </button>
             )}
-            
+
             {isEditMode && (
               <>
                 <button
@@ -571,7 +593,7 @@ export default function RequiredDocumentDetailModal({
                 </button>
               </>
             )}
-            
+
             {canApprove && (
               <>
                 <button

@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
 import React, { useState, useRef, useEffect } from 'react'
 import { getSessionUserId } from '@/lib/supabase/session'
 
@@ -30,26 +31,27 @@ interface RequiredDocumentUploadModalProps {
 export default function RequiredDocumentUploadModal({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
 }: RequiredDocumentUploadModalProps) {
   const [loading, setLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [requirements, setRequirements] = useState<DocumentRequirement[]>([])
   const [dragActive, setDragActive] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     user_id: '',
     requirement_id: '',
-    expiry_date: ''
+    expiry_date: '',
   })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [error, setError] = useState<string>('')
 
   const supabase = createClient()
+  const { toast } = useToast()
 
   // Fetch data when modal opens
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function RequiredDocumentUploadModal({
       description: '',
       user_id: '',
       requirement_id: '',
-      expiry_date: ''
+      expiry_date: '',
     })
     setSelectedFile(null)
     setError('')
@@ -117,7 +119,9 @@ export default function RequiredDocumentUploadModal({
     // Validate file type
     const fileExtension = file.name.split('.').pop()?.toLowerCase()
     if (fileExtension && !selectedReq.file_types.includes(fileExtension)) {
-      setError(`지원되지 않는 파일 형식입니다. 허용된 형식: ${selectedReq.file_types.join(', ').toUpperCase()}`)
+      setError(
+        `지원되지 않는 파일 형식입니다. 허용된 형식: ${selectedReq.file_types.join(', ').toUpperCase()}`
+      )
       return
     }
 
@@ -131,12 +135,12 @@ export default function RequiredDocumentUploadModal({
 
     setSelectedFile(file)
     setError('')
-    
+
     // Auto-fill title if empty
     if (!formData.title) {
       setFormData(prev => ({
         ...prev,
-        title: `${selectedReq.name_ko} - ${users.find(u => u.id === formData.user_id)?.full_name || ''}`
+        title: `${selectedReq.name_ko} - ${users.find(u => u.id === formData.user_id)?.full_name || ''}`,
       }))
     }
   }
@@ -154,7 +158,7 @@ export default function RequiredDocumentUploadModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     setDragActive(false)
-    
+
     const files = e.dataTransfer.files
     if (files && files[0]) {
       handleFileSelect(files[0])
@@ -190,7 +194,7 @@ export default function RequiredDocumentUploadModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!validateForm()) return
 
     setLoading(true)
@@ -209,9 +213,7 @@ export default function RequiredDocumentUploadModal({
       if (uploadError) throw uploadError
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('documents')
-        .getPublicUrl(filePath)
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath)
 
       const ownerId = await getSessionUserId(supabase)
 
@@ -231,7 +233,7 @@ export default function RequiredDocumentUploadModal({
         requirement_id: formData.requirement_id,
         submitted_by: formData.user_id,
         expiry_date: formData.expiry_date || null,
-        status: 'pending'
+        status: 'pending',
       }
 
       const { data: newDoc, error: insertError } = await supabase
@@ -249,12 +251,16 @@ export default function RequiredDocumentUploadModal({
           document_id: newDoc.id,
           submission_status: 'submitted',
           submitted_at: new Date().toISOString(),
-          expiry_date: formData.expiry_date || null
+          expiry_date: formData.expiry_date || null,
         })
         .eq('user_id', formData.user_id)
         .eq('requirement_id', formData.requirement_id)
 
-      alert('필수 제출 서류가 성공적으로 등록되었습니다.')
+      toast({
+        variant: 'success',
+        title: '등록 완료',
+        description: '필수 제출 서류가 등록되었습니다.',
+      })
       onSuccess()
       onClose()
     } catch (error: unknown) {
@@ -273,8 +279,11 @@ export default function RequiredDocumentUploadModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
-        
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        />
+
         <div className="inline-block w-full max-w-2xl px-6 py-4 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
           {/* 헤더 */}
           <div className="flex items-center justify-between pb-4 border-b border-gray-200">
@@ -282,10 +291,7 @@ export default function RequiredDocumentUploadModal({
               <FileText className="w-5 h-5 mr-2 text-blue-600" />
               필수 서류 직접 등록
             </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
-            >
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -303,19 +309,17 @@ export default function RequiredDocumentUploadModal({
             <div className="space-y-6">
               {/* 제출자 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  제출자 *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">제출자 *</label>
                 <select
                   value={formData.user_id}
-                  onChange={(e) => {
+                  onChange={e => {
                     setFormData(prev => ({ ...prev, user_id: e.target.value }))
                     // Reset title when user changes
                     if (selectedRequirement && e.target.value) {
                       const user = users.find(u => u.id === e.target.value)
                       setFormData(prev => ({
                         ...prev,
-                        title: `${selectedRequirement.name_ko} - ${user?.full_name || ''}`
+                        title: `${selectedRequirement.name_ko} - ${user?.full_name || ''}`,
                       }))
                     }
                   }}
@@ -323,7 +327,7 @@ export default function RequiredDocumentUploadModal({
                   required
                 >
                   <option value="">제출자를 선택하세요</option>
-                  {users.map((user) => (
+                  {users.map(user => (
                     <option key={user.id} value={user.id}>
                       {user.full_name} ({user.email}) - {user.role}
                     </option>
@@ -333,12 +337,10 @@ export default function RequiredDocumentUploadModal({
 
               {/* 서류 유형 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  서류 유형 *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">서류 유형 *</label>
                 <select
                   value={formData.requirement_id}
-                  onChange={(e) => {
+                  onChange={e => {
                     setFormData(prev => ({ ...prev, requirement_id: e.target.value }))
                     // Reset file and title when requirement changes
                     setSelectedFile(null)
@@ -346,7 +348,7 @@ export default function RequiredDocumentUploadModal({
                       const req = requirements.find(r => r.id === e.target.value)
                       setFormData(prev => ({
                         ...prev,
-                        title: `${req?.name_ko} - ${selectedUser.full_name}`
+                        title: `${req?.name_ko} - ${selectedUser.full_name}`,
                       }))
                     }
                   }}
@@ -354,7 +356,7 @@ export default function RequiredDocumentUploadModal({
                   required
                 >
                   <option value="">서류 유형을 선택하세요</option>
-                  {requirements.map((req) => (
+                  {requirements.map(req => (
                     <option key={req.id} value={req.id}>
                       {req.name_ko}
                     </option>
@@ -373,7 +375,7 @@ export default function RequiredDocumentUploadModal({
                       </p>
                     )}
                     <p className="text-xs text-blue-600 mt-1">
-                      허용 파일 형식: {selectedRequirement.file_types.join(', ').toUpperCase()} | 
+                      허용 파일 형식: {selectedRequirement.file_types.join(', ').toUpperCase()} |
                       최대 크기: {(selectedRequirement.max_file_size / 1048576).toFixed(1)}MB
                     </p>
                   </div>
@@ -382,13 +384,11 @@ export default function RequiredDocumentUploadModal({
 
               {/* 서류명 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  서류명 *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">서류명 *</label>
                 <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="서류명을 입력하세요"
                   required
@@ -403,19 +403,17 @@ export default function RequiredDocumentUploadModal({
                 <input
                   type="date"
                   value={formData.expiry_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
               {/* 설명 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  설명
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">설명</label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="서류에 대한 추가 설명을 입력하세요..."
@@ -445,7 +443,7 @@ export default function RequiredDocumentUploadModal({
                     accept={selectedRequirement?.file_types.map(ext => `.${ext}`).join(',')}
                     className="hidden"
                   />
-                  
+
                   {selectedFile ? (
                     <div className="flex items-center justify-center">
                       <FileText className="w-8 h-8 text-blue-500 mr-3" />
@@ -464,7 +462,7 @@ export default function RequiredDocumentUploadModal({
                       </p>
                       {selectedRequirement && (
                         <p className="text-xs text-gray-500 mt-1">
-                          {selectedRequirement.file_types.join(', ').toUpperCase()} 
+                          {selectedRequirement.file_types.join(', ').toUpperCase()}
                           (최대 {(selectedRequirement.max_file_size / 1048576).toFixed(1)}MB)
                         </p>
                       )}

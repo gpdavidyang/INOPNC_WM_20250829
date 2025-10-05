@@ -4,6 +4,8 @@ import DocumentUploadModal from './DocumentUploadModal'
 import DocumentPermissionsModal from './DocumentPermissionsModal'
 import DocumentPreviewModal from './DocumentPreviewModal'
 import { getSessionUserId } from '@/lib/supabase/session'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 export default function SharedDocumentsList() {
   const [documents, setDocuments] = useState<SharedDocument[]>([])
@@ -11,19 +13,21 @@ export default function SharedDocumentsList() {
   const [filters, setFilters] = useState<DocumentFilters>({})
   const [sortOptions, setSortOptions] = useState<DocumentSortOptions>({
     field: 'created_at',
-    direction: 'desc'
+    direction: 'desc',
   })
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilters, setShowFilters] = useState(false)
-  
+
   // 모달 상태
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showPermissionsModal, setShowPermissionsModal] = useState(false)
   const [showPreviewModal, setShowPreviewModal] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<SharedDocument | null>(null)
-  
+
   const supabase = createClient()
+  const { confirm } = useConfirm()
+  const { toast } = useToast()
 
   // 문서 목록 로드
   const loadDocuments = async () => {
@@ -31,7 +35,8 @@ export default function SharedDocumentsList() {
     try {
       let query = supabase
         .from('documents')
-        .select(`
+        .select(
+          `
           *,
           profiles!owner_id (
             id,
@@ -42,7 +47,8 @@ export default function SharedDocumentsList() {
             id,
             name
           )
-        `)
+        `
+        )
         .eq('folder_path', '/shared')
         .or('is_public.eq.true,folder_path.eq./shared')
 
@@ -104,7 +110,7 @@ export default function SharedDocumentsList() {
         uploaded_by_email: doc.profiles?.email,
         view_count: doc.view_count || 0,
         download_count: doc.download_count || 0,
-        permission_count: 0
+        permission_count: 0,
       }))
 
       setDocuments(mappedDocuments)
@@ -121,20 +127,24 @@ export default function SharedDocumentsList() {
 
   // 문서 삭제 (Soft Delete)
   const handleDeleteDocument = async (documentId: string) => {
-    if (!confirm('정말로 이 문서를 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '문서 삭제',
+      description: '정말로 이 문서를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
-      const { error } = await supabase
-        .from('documents')
-        .delete()
-        .eq('id', documentId)
+      const { error } = await supabase.from('documents').delete().eq('id', documentId)
 
       if (error) throw error
 
       await loadDocuments()
     } catch (error) {
       console.error('Failed to delete document:', error)
-      alert('문서 삭제에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '문서 삭제에 실패했습니다.' })
     }
   }
 
@@ -148,7 +158,7 @@ export default function SharedDocumentsList() {
           await supabase.from('document_access_logs').insert({
             document_id: doc.id,
             user_id: userId,
-            action: 'download'
+            action: 'download',
           })
         } catch (error) {
           // Ignore logging errors to avoid blocking downloads
@@ -168,11 +178,18 @@ export default function SharedDocumentsList() {
   // 일괄 작업
   const handleBulkDelete = async () => {
     if (selectedDocuments.size === 0) {
-      alert('삭제할 문서를 선택해주세요.')
+      toast({ variant: 'warning', title: '선택 필요', description: '삭제할 문서를 선택해주세요.' })
       return
     }
 
-    if (!confirm(`선택한 ${selectedDocuments.size}개의 문서를 삭제하시겠습니까?`)) return
+    const ok = await confirm({
+      title: '일괄 삭제',
+      description: `선택한 ${selectedDocuments.size}개의 문서를 삭제하시겠습니까?`,
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const { error } = await supabase
@@ -186,7 +203,7 @@ export default function SharedDocumentsList() {
       await loadDocuments()
     } catch (error) {
       console.error('Failed to delete documents:', error)
-      alert('문서 삭제에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '문서 삭제에 실패했습니다.' })
     }
   }
 
@@ -240,7 +257,7 @@ export default function SharedDocumentsList() {
               type="text"
               placeholder="문서명 또는 설명으로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
@@ -249,7 +266,7 @@ export default function SharedDocumentsList() {
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`inline-flex items-center px-4 py-2 border rounded-md transition-colors ${
-              showFilters 
+              showFilters
                 ? 'bg-blue-50 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
                 : 'border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
             }`}
@@ -266,11 +283,11 @@ export default function SharedDocumentsList() {
           {/* Sort */}
           <select
             value={`${sortOptions.field}-${sortOptions.direction}`}
-            onChange={(e) => {
+            onChange={e => {
               const [field, direction] = e.target.value.split('-')
               setSortOptions({
                 field: field as DocumentSortOptions['field'],
-                direction: direction as DocumentSortOptions['direction']
+                direction: direction as DocumentSortOptions['direction'],
               })
             }}
             className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -326,18 +343,17 @@ export default function SharedDocumentsList() {
             onClick={() => setShowUploadModal(true)}
             className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors"
           >
-            <Upload className="h-4 w-4 mr-2" />
-            첫 문서 업로드
+            <Upload className="h-4 w-4 mr-2" />첫 문서 업로드
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {documents.map((document) => (
+          {documents.map(document => (
             <DocumentCard
               key={document.id}
               document={document}
               isSelected={selectedDocuments.has(document.id)}
-              onSelect={(selected) => {
+              onSelect={selected => {
                 const newSelection = new Set(selectedDocuments)
                 if (selected) {
                   newSelection.add(document.id)
@@ -370,9 +386,7 @@ export default function SharedDocumentsList() {
         <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                {documents.length}
-              </p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{documents.length}</p>
               <p className="text-sm text-gray-600 dark:text-gray-400">전체 문서</p>
             </div>
             <div>

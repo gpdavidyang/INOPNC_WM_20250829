@@ -1,5 +1,6 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
 
 interface Site {
   id: string
@@ -54,7 +55,7 @@ export default function DocumentUploadPage() {
       file,
       id: Math.random().toString(36).substring(2, 15),
       progress: 0,
-      status: 'pending'
+      status: 'pending',
     }))
 
     setFiles(prev => [...prev, ...newFiles])
@@ -66,11 +67,9 @@ export default function DocumentUploadPage() {
 
   const uploadFile = async (uploadFile: UploadFile): Promise<boolean> => {
     try {
-      setFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { ...f, status: 'uploading', progress: 10 }
-          : f
-      ))
+      setFiles(prev =>
+        prev.map(f => (f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f))
+      )
 
       const formData = new FormData()
       formData.append('file', uploadFile.file)
@@ -83,16 +82,16 @@ export default function DocumentUploadPage() {
       }
 
       const progressInterval = setInterval(() => {
-        setFiles(prev => prev.map(f => 
-          f.id === uploadFile.id 
-            ? { ...f, progress: Math.min(f.progress + 20, 90) }
-            : f
-        ))
+        setFiles(prev =>
+          prev.map(f =>
+            f.id === uploadFile.id ? { ...f, progress: Math.min(f.progress + 20, 90) } : f
+          )
+        )
       }, 200)
 
       const response = await fetch('/api/unified-documents', {
         method: 'POST',
-        body: formData
+        body: formData,
       })
 
       clearInterval(progressInterval)
@@ -102,36 +101,40 @@ export default function DocumentUploadPage() {
         throw new Error(errorData.error || 'Upload failed')
       }
 
-      setFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { ...f, status: 'success', progress: 100 }
-          : f
-      ))
+      setFiles(prev =>
+        prev.map(f => (f.id === uploadFile.id ? { ...f, status: 'success', progress: 100 } : f))
+      )
 
       return true
     } catch (error) {
       console.error('Upload error:', error)
-      setFiles(prev => prev.map(f => 
-        f.id === uploadFile.id 
-          ? { 
-              ...f, 
-              status: 'error', 
-              error: error instanceof Error ? error.message : 'Upload failed'
-            }
-          : f
-      ))
+      setFiles(prev =>
+        prev.map(f =>
+          f.id === uploadFile.id
+            ? {
+                ...f,
+                status: 'error',
+                error: error instanceof Error ? error.message : 'Upload failed',
+              }
+            : f
+        )
+      )
       return false
     }
   }
 
   const handleUpload = async () => {
     if (files.length === 0) {
-      alert('업로드할 파일을 선택해주세요.')
+      toast({
+        variant: 'warning',
+        title: '입력 필요',
+        description: '업로드할 파일을 선택해주세요.',
+      })
       return
     }
 
     if (!title.trim()) {
-      alert('문서 제목을 입력해주세요.')
+      toast({ variant: 'warning', title: '입력 필요', description: '문서 제목을 입력해주세요.' })
       return
     }
 
@@ -146,8 +149,12 @@ export default function DocumentUploadPage() {
       const successCount = results.filter(Boolean).length
 
       if (successCount > 0) {
-        alert(`${successCount}개 파일이 성공적으로 업로드되었습니다.`)
-        
+        toast({
+          variant: 'success',
+          title: '업로드 완료',
+          description: `${successCount}개 파일이 성공적으로 업로드되었습니다.`,
+        })
+
         const hasFailures = files.some(f => f.status === 'error')
         if (!hasFailures) {
           router.push('/dashboard/admin/integrated?view=documents')
@@ -155,7 +162,11 @@ export default function DocumentUploadPage() {
       }
     } catch (error) {
       console.error('Upload process error:', error)
-      alert('업로드 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '업로드 중 오류가 발생했습니다.',
+      })
     } finally {
       setUploading(false)
     }
@@ -189,7 +200,9 @@ export default function DocumentUploadPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">문서 업로드</h1>
-              <p className="mt-1 text-sm text-gray-500">새 문서를 업로드하고 공유 설정을 관리합니다.</p>
+              <p className="mt-1 text-sm text-gray-500">
+                새 문서를 업로드하고 공유 설정을 관리합니다.
+              </p>
             </div>
             <button
               onClick={() => router.back()}
@@ -199,7 +212,7 @@ export default function DocumentUploadPage() {
             </button>
           </div>
         </div>
-        
+
         <div className="px-6 py-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -207,7 +220,7 @@ export default function DocumentUploadPage() {
               <input
                 type="text"
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
+                onChange={e => setTitle(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 placeholder="문서의 제목을 입력하세요"
                 required
@@ -218,7 +231,7 @@ export default function DocumentUploadPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
               <select
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
+                onChange={e => setCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
                 <option value="shared">공유문서</option>
@@ -234,7 +247,7 @@ export default function DocumentUploadPage() {
             <label className="block text-sm font-medium text-gray-700 mb-1">설명</label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={e => setDescription(e.target.value)}
               rows={2}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               placeholder="문서 설명 (선택사항)"
@@ -246,11 +259,11 @@ export default function DocumentUploadPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">현장 선택</label>
               <select
                 value={selectedSite}
-                onChange={(e) => setSelectedSite(e.target.value)}
+                onChange={e => setSelectedSite(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">현장 미지정</option>
-                {sites.map((site) => (
+                {sites.map(site => (
                   <option key={site.id} value={site.id}>
                     {site.name}
                   </option>
@@ -263,7 +276,7 @@ export default function DocumentUploadPage() {
                 type="checkbox"
                 id="isPublic"
                 checked={isPublic}
-                onChange={(e) => setIsPublic(e.target.checked)}
+                onChange={e => setIsPublic(e.target.checked)}
                 className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
               />
               <label htmlFor="isPublic" className="ml-2 text-sm text-gray-700">
@@ -276,7 +289,9 @@ export default function DocumentUploadPage() {
             <div className="text-center">
               <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
               <p className="text-gray-600 mb-1">파일을 선택하여 업로드하세요</p>
-              <p className="text-xs text-gray-500 mb-2">PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (최대 10MB)</p>
+              <p className="text-xs text-gray-500 mb-2">
+                PDF, DOC, DOCX, XLS, XLSX, JPG, PNG (최대 10MB)
+              </p>
               <input
                 type="file"
                 multiple
@@ -298,11 +313,9 @@ export default function DocumentUploadPage() {
           {files.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-gray-900">선택된 파일 ({files.length}개)</h3>
-              {files.map((uploadFile) => (
+              {files.map(uploadFile => (
                 <div key={uploadFile.id} className="flex items-center p-2 bg-gray-50 rounded">
-                  <div className="flex-shrink-0 mr-2">
-                    {getStatusIcon(uploadFile.status)}
-                  </div>
+                  <div className="flex-shrink-0 mr-2">{getStatusIcon(uploadFile.status)}</div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {uploadFile.file.name}
@@ -310,15 +323,13 @@ export default function DocumentUploadPage() {
                     <p className="text-xs text-gray-500">{formatFileSize(uploadFile.file.size)}</p>
                     {uploadFile.status === 'uploading' && (
                       <div className="mt-1 bg-blue-200 rounded-full h-1">
-                        <div 
+                        <div
                           className="bg-blue-600 h-1 rounded-full transition-all duration-300"
                           style={{ width: `${uploadFile.progress}%` }}
                         ></div>
                       </div>
                     )}
-                    {uploadFile.error && (
-                      <p className="text-xs text-red-600">{uploadFile.error}</p>
-                    )}
+                    {uploadFile.error && <p className="text-xs text-red-600">{uploadFile.error}</p>}
                   </div>
                   <button
                     onClick={() => removeFile(uploadFile.id)}
@@ -352,3 +363,4 @@ export default function DocumentUploadPage() {
     </div>
   )
 }
+const { toast } = useToast()

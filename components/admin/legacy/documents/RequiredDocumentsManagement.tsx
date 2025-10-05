@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 import RequiredDocumentUploadModal from './RequiredDocumentUploadModal'
 import RequiredDocumentDetailModal from './RequiredDocumentDetailModal'
@@ -54,6 +56,8 @@ export default function RequiredDocumentsManagement() {
   const itemsPerPage = 20
 
   const supabase = createClient()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   const fetchDocumentTypes = async () => {
     try {
@@ -164,15 +168,26 @@ export default function RequiredDocumentsManagement() {
       if (error) throw error
 
       await fetchDocuments()
-      alert(`서류가 ${status === 'approved' ? '승인' : '반려'}되었습니다.`)
+      toast({ variant: 'success', title: status === 'approved' ? '승인 완료' : '반려 완료' })
     } catch (error) {
       console.error('Error updating document status:', error)
-      alert('서류 상태 업데이트에 실패했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '서류 상태 업데이트에 실패했습니다.',
+      })
     }
   }
 
   const handleDeleteDocument = async (documentId: string) => {
-    if (!confirm('정말로 이 서류를 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '서류 삭제',
+      description: '정말로 이 서류를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const { error } = await supabase.from('unified_document_system').delete().eq('id', documentId)
@@ -180,10 +195,10 @@ export default function RequiredDocumentsManagement() {
       if (error) throw error
 
       await fetchDocuments()
-      alert('서류가 성공적으로 삭제되었습니다.')
+      toast({ variant: 'success', title: '삭제 완료', description: '서류가 삭제되었습니다.' })
     } catch (error) {
       console.error('Error deleting document:', error)
-      alert('서류 삭제에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '서류 삭제에 실패했습니다.' })
     }
   }
 
@@ -193,7 +208,7 @@ export default function RequiredDocumentsManagement() {
       window.open(document.file_url, '_blank')
     } catch (error) {
       console.error('Error downloading document:', error)
-      alert('서류 다운로드에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '서류 다운로드에 실패했습니다.' })
     }
   }
 

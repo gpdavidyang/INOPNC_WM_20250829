@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/components/ui/use-toast'
+import StickyActionBar from '@/components/ui/sticky-action-bar'
 
 interface OrganizationEditFormProps {
   organization: {
@@ -32,9 +33,10 @@ export function OrganizationEditForm({ organization }: OrganizationEditFormProps
   const [isPending, startTransition] = useTransition()
   const { toast } = useToast()
 
-  const handleChange = (field: keyof OrganizationEditFormProps['organization']) =>
+  const handleChange =
+    (field: keyof OrganizationEditFormProps['organization']) =>
     (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setFormState((prev) => ({ ...prev, [field]: event.target.value }))
+      setFormState(prev => ({ ...prev, [field]: event.target.value }))
     }
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -74,7 +76,7 @@ export function OrganizationEditForm({ organization }: OrganizationEditFormProps
   }
 
   return (
-    <form className="space-y-6" onSubmit={handleSubmit}>
+    <form className="space-y-6 pb-20" onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -86,7 +88,12 @@ export function OrganizationEditForm({ organization }: OrganizationEditFormProps
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="org-name">조직명</Label>
-              <Input id="org-name" value={formState.name} disabled={isPending} onChange={handleChange('name')} />
+              <Input
+                id="org-name"
+                value={formState.name}
+                disabled={isPending}
+                onChange={handleChange('name')}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="org-type">구분</Label>
@@ -140,12 +147,20 @@ export function OrganizationEditForm({ organization }: OrganizationEditFormProps
           </div>
 
           <div className="flex justify-end">
-            <Button type="submit" disabled={isPending} variant="default">
+            <Button type="submit" disabled={isPending} variant="primary">
               {isPending ? '저장 중...' : '변경사항 저장'}
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      <StickyActionBar>
+        <div className="mx-auto max-w-6xl flex items-center justify-end gap-2">
+          <Button type="submit" disabled={isPending} variant="primary">
+            {isPending ? '저장 중...' : '변경사항 저장'}
+          </Button>
+        </div>
+      </StickyActionBar>
     </form>
   )
 }

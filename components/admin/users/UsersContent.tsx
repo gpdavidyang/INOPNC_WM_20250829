@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search, Users, RefreshCw, Filter } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -25,8 +26,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type { UserWithSites } from '@/app/actions/admin/users'
 import type { UserRole, UserStatus } from '@/types'
-import { UserDetailSheet } from './UserDetailSheet'
 import { t } from '@/lib/ui/strings'
+import EmptyState from '@/components/ui/empty-state'
 
 interface UsersContentProps {
   initialUsers: UserWithSites[]
@@ -118,10 +119,7 @@ export function UsersContent({
   const [searchInput, setSearchInput] = useState('')
   const [roleFilter, setRoleFilter] = useState<RoleFilterOption>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilterOption>('all')
-
-  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
-  const [selectedUser, setSelectedUser] = useState<UserWithSites | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
+  const router = useRouter()
 
   const isSystemAdmin = useMemo(() => currentAdminRole === 'system_admin', [currentAdminRole])
 
@@ -191,32 +189,12 @@ export function UsersContent({
     fetchUsers(1, { search: '', role: 'all', status: 'all' })
   }, [fetchUsers])
 
-  const handleOpenDetail = useCallback(async (userId: string) => {
-    setSelectedUserId(userId)
-    setDetailLoading(true)
-    try {
-      const response = await fetch(`/api/admin/users/${userId}`, { cache: 'no-store' })
-      const payload = await response.json()
-
-      if (!response.ok || !payload?.success) {
-        throw new Error(payload?.error || '사용자 정보를 불러오지 못했습니다.')
-      }
-
-      setSelectedUser(payload.data)
-    } catch (err) {
-      console.error('Failed to load user detail', err)
-      setSelectedUser(null)
-      setError(err instanceof Error ? err.message : '사용자 정보를 불러오지 못했습니다.')
-    } finally {
-      setDetailLoading(false)
-    }
-  }, [])
-
-  const handleCloseDetail = useCallback(() => {
-    setSelectedUserId(null)
-    setSelectedUser(null)
-    setDetailLoading(false)
-  }, [])
+  const handleOpenDetail = useCallback(
+    (userId: string) => {
+      router.push(`/dashboard/admin/users/${userId}`)
+    },
+    [router]
+  )
 
   return (
     <div className="space-y-6">
@@ -342,10 +320,7 @@ export function UsersContent({
           )}
 
           {!loading && users.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
-              <Search className="h-8 w-8" />
-              <p>{t('users.empty')}</p>
-            </div>
+            <EmptyState description={t('users.empty')} />
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -436,16 +411,7 @@ export function UsersContent({
         </div>
       </section>
 
-      <UserDetailSheet
-        open={Boolean(selectedUserId)}
-        onOpenChange={open => {
-          if (!open) {
-            handleCloseDetail()
-          }
-        }}
-        user={selectedUser}
-        loading={detailLoading}
-      />
+      {null}
     </div>
   )
 }

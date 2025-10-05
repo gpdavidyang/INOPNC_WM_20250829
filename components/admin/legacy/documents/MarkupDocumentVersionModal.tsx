@@ -1,5 +1,7 @@
 'use client'
 
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 interface MarkupDocumentVersion {
   id: string
@@ -48,26 +50,30 @@ export default function MarkupDocumentVersionModal({
   documentId,
   isOpen,
   onClose,
-  onVersionRestore
+  onVersionRestore,
 }: MarkupDocumentVersionModalProps) {
+  const { confirm } = useConfirm()
+  const { toast } = useToast()
   const [versions, setVersions] = useState<MarkupDocumentVersion[]>([])
   const [history, setHistory] = useState<MarkupDocumentHistory[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'versions' | 'history'>('versions')
-  
+
   const supabase = createClient()
 
   const fetchVersions = async () => {
     try {
       setLoading(true)
-      
+
       // 현재 문서와 연결된 모든 버전 조회
       const { data, error } = await supabase
         .from('markup_documents')
-        .select(`
+        .select(
+          `
           *,
           profiles!markup_documents_created_by_fkey(id, full_name, email)
-        `)
+        `
+        )
         .or(`id.eq.${documentId},parent_document_id.eq.${documentId}`)
         .eq('is_deleted', false)
         .order('version_number', { ascending: false })
@@ -85,10 +91,12 @@ export default function MarkupDocumentVersionModal({
     try {
       const { data, error } = await supabase
         .from('markup_document_history')
-        .select(`
+        .select(
+          `
           *,
           profiles!markup_document_history_changed_by_fkey(id, full_name, email)
-        `)
+        `
+        )
         .eq('document_id', documentId)
         .order('changed_at', { ascending: false })
 
@@ -100,22 +108,28 @@ export default function MarkupDocumentVersionModal({
   }
 
   const handleRestoreVersion = async (historyId: string) => {
-    if (!confirm('이 버전으로 복원하시겠습니까? 새로운 버전이 생성됩니다.')) return
+    const ok = await confirm({
+      title: '버전 복원',
+      description: '이 버전으로 복원하시겠습니까? 새로운 버전이 생성됩니다.',
+      confirmText: '복원',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const { data, error } = await supabase.rpc('restore_markup_document_version', {
-        history_id: historyId
+        history_id: historyId,
       })
 
       if (error) throw error
 
-      alert('버전이 성공적으로 복원되었습니다.')
+      toast({ variant: 'success', title: '복원 완료' })
       await fetchVersions()
       await fetchHistory()
       onVersionRestore?.(data)
     } catch (error) {
       console.error('Error restoring version:', error)
-      alert('버전 복원에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '버전 복원에 실패했습니다.' })
     }
   }
 
@@ -125,27 +139,37 @@ export default function MarkupDocumentVersionModal({
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     })
   }
 
   const getChangeTypeColor = (changeType: string) => {
     switch (changeType) {
-      case 'created': return 'bg-green-100 text-green-800'
-      case 'updated': return 'bg-blue-100 text-blue-800'
-      case 'restored': return 'bg-orange-100 text-orange-800'
-      case 'deleted': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'created':
+        return 'bg-green-100 text-green-800'
+      case 'updated':
+        return 'bg-blue-100 text-blue-800'
+      case 'restored':
+        return 'bg-orange-100 text-orange-800'
+      case 'deleted':
+        return 'bg-red-100 text-red-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
     }
   }
 
   const getChangeTypeText = (changeType: string) => {
     switch (changeType) {
-      case 'created': return '생성'
-      case 'updated': return '수정'
-      case 'restored': return '복원'
-      case 'deleted': return '삭제'
-      default: return changeType
+      case 'created':
+        return '생성'
+      case 'updated':
+        return '수정'
+      case 'restored':
+        return '복원'
+      case 'deleted':
+        return '삭제'
+      default:
+        return changeType
     }
   }
 
@@ -161,18 +185,16 @@ export default function MarkupDocumentVersionModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
-        
+        <div
+          className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75"
+          onClick={onClose}
+        />
+
         <div className="inline-block w-full max-w-4xl px-6 py-4 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
           {/* 헤더 */}
           <div className="flex items-center justify-between pb-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">
-              도면 버전 관리 및 이력
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
-            >
+            <h3 className="text-lg font-medium text-gray-900">도면 버전 관리 및 이력</h3>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -217,7 +239,7 @@ export default function MarkupDocumentVersionModal({
                     {versions.length === 0 ? (
                       <p className="text-center text-gray-500 py-8">버전 정보가 없습니다.</p>
                     ) : (
-                      versions.map((version) => (
+                      versions.map(version => (
                         <div
                           key={version.id}
                           className={`p-4 rounded-lg border ${
@@ -238,23 +260,21 @@ export default function MarkupDocumentVersionModal({
                                   </span>
                                 )}
                               </div>
-                              
+
                               <h4 className="text-base font-medium text-gray-900 mt-1">
                                 {version.title}
                               </h4>
-                              
+
                               {version.description && (
-                                <p className="text-sm text-gray-600 mt-1">
-                                  {version.description}
-                                </p>
+                                <p className="text-sm text-gray-600 mt-1">{version.description}</p>
                               )}
-                              
+
                               {version.change_summary && (
                                 <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
                                   <strong>변경 내용:</strong> {version.change_summary}
                                 </div>
                               )}
-                              
+
                               <div className="flex items-center space-x-4 mt-3 text-xs text-gray-500">
                                 <div className="flex items-center">
                                   <User className="w-3 h-3 mr-1" />
@@ -270,10 +290,12 @@ export default function MarkupDocumentVersionModal({
                                 </div>
                               </div>
                             </div>
-                            
+
                             <div className="flex items-center space-x-2 ml-4">
                               <button
-                                onClick={() => window.open(`/markup-editor?document=${version.id}`, '_blank')}
+                                onClick={() =>
+                                  window.open(`/markup-editor?document=${version.id}`, '_blank')
+                                }
                                 className="text-blue-600 hover:text-blue-900 p-1 rounded"
                                 title="미리보기"
                               >
@@ -301,27 +323,30 @@ export default function MarkupDocumentVersionModal({
                     {history.length === 0 ? (
                       <p className="text-center text-gray-500 py-8">변경 이력이 없습니다.</p>
                     ) : (
-                      history.map((record) => (
-                        <div key={record.id} className="flex items-start space-x-4 p-3 border border-gray-200 rounded-lg">
+                      history.map(record => (
+                        <div
+                          key={record.id}
+                          className="flex items-start space-x-4 p-3 border border-gray-200 rounded-lg"
+                        >
                           <div className="flex-shrink-0 mt-1">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getChangeTypeColor(record.change_type)}`}>
+                            <span
+                              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getChangeTypeColor(record.change_type)}`}
+                            >
                               {getChangeTypeText(record.change_type)}
                             </span>
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
                               <span className="text-sm font-medium text-gray-900">
                                 v{record.version_number} - {record.title}
                               </span>
                             </div>
-                            
+
                             {record.change_summary && (
-                              <p className="text-sm text-gray-600 mt-1">
-                                {record.change_summary}
-                              </p>
+                              <p className="text-sm text-gray-600 mt-1">{record.change_summary}</p>
                             )}
-                            
+
                             <div className="flex items-center space-x-4 mt-2 text-xs text-gray-500">
                               <div className="flex items-center">
                                 <User className="w-3 h-3 mr-1" />
@@ -337,7 +362,7 @@ export default function MarkupDocumentVersionModal({
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="flex-shrink-0">
                             <button
                               onClick={() => handleRestoreVersion(record.id)}

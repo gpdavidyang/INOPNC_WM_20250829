@@ -31,6 +31,19 @@
   --accent-cyan: #00bcd4; /* 보조 강조 */
   --warn: #ea3829; /* 주의 */
 
+  /* Admin palette tokens (from 2025-10-05 guide) */
+  --neutral-50: #f3f7fa;
+  --neutral-200: #bac6e1;
+  --brand-300: #8da0cd;
+  --brand-400: #5f7ab9;
+  --brand-600: #1b419c;
+  --brand-700: #15347c;
+  --accent-500: #ff461c;
+  --accent-600: #e62c00;
+  --success-500: #28be6e;
+  --warning-500: #ffdf00;
+  --focus: #5f7ab9;
+
   /* Tag colors */
   --tag1: #33e6f6;
   --tag1-20: rgba(51, 230, 246, 0.2);

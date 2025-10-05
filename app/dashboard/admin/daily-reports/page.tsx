@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
+import { PageHeader } from '@/components/ui/page-header'
 import { createClient } from '@/lib/supabase/server'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getDailyReports } from '@/app/actions/admin/daily-reports'
@@ -80,93 +81,95 @@ export default async function AdminDailyReportsPage({
   const pages = result.success ? Math.max(1, (result.data as any)?.totalPages ?? 1) : 1
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground">작업일지 관리</h1>
-        <p className="text-sm text-muted-foreground">최근 등록된 작업일지 목록입니다.</p>
-      </div>
-
-      {/* 필터 */}
-      <div className="mb-4 rounded-lg border bg-card p-4 shadow-sm">
-        <form method="GET" className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-          <input type="hidden" name="page" value="1" />
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">현장명</label>
-            <Input
-              list="site-options"
-              name="site_name"
-              defaultValue={siteNameQuery}
-              placeholder={t('common.search')}
-            />
-            <datalist id="site-options">
-              {siteOptions.map(opt => (
-                <option key={opt.id} value={opt.name} />
-              ))}
-            </datalist>
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">검색어</label>
-            <Input name="search" defaultValue={search} placeholder="작성자/공종/특이사항 등" />
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">상태</label>
-            <select
-              name="status"
-              defaultValue={status}
-              className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-            >
-              <option value="" disabled hidden>
-                상태 선택
-              </option>
-              <option value="draft">임시저장</option>
-              <option value="submitted">작성완료</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">시작일</label>
-            <Input type="date" name="date_from" defaultValue={dateFrom} />
-          </div>
-          <div>
-            <label className="block text-sm text-muted-foreground mb-1">종료일</label>
-            <Input type="date" name="date_to" defaultValue={dateTo} />
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" variant="outline">
-              {t('common.apply')}
-            </Button>
-            <Link
-              href="/dashboard/admin/daily-reports"
-              className="inline-flex items-center rounded-md px-3 py-2 text-sm border"
-            >
-              {t('common.reset')}
-            </Link>
-          </div>
-        </form>
-      </div>
-
-      <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-        <div className="mb-2 text-sm text-muted-foreground">
-          총 {total.toLocaleString()}건 · 페이지 {page} / {pages}
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="작업일지 관리"
+        description="최근 등록된 작업일지를 조회/검색합니다"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '작업일지 관리' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
+        {/* 필터 */}
+        <div className="mb-4 rounded-lg border bg-card p-4 shadow-sm">
+          <form method="GET" className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+            <input type="hidden" name="page" value="1" />
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">현장명</label>
+              <Input
+                list="site-options"
+                name="site_name"
+                defaultValue={siteNameQuery}
+                placeholder={t('common.search')}
+              />
+              <datalist id="site-options">
+                {siteOptions.map(opt => (
+                  <option key={opt.id} value={opt.name} />
+                ))}
+              </datalist>
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">검색어</label>
+              <Input name="search" defaultValue={search} placeholder="작성자/공종/특이사항 등" />
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">상태</label>
+              <select
+                name="status"
+                defaultValue={status}
+                className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="" disabled hidden>
+                  상태 선택
+                </option>
+                <option value="draft">임시저장</option>
+                <option value="submitted">작성완료</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">시작일</label>
+              <Input type="date" name="date_from" defaultValue={dateFrom} />
+            </div>
+            <div>
+              <label className="block text-sm text-muted-foreground mb-1">종료일</label>
+              <Input type="date" name="date_to" defaultValue={dateTo} />
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" variant="outline">
+                {t('common.apply')}
+              </Button>
+              <Link
+                href="/dashboard/admin/daily-reports"
+                className="inline-flex items-center rounded-md px-3 py-2 text-sm border"
+              >
+                {t('common.reset')}
+              </Link>
+            </div>
+          </form>
         </div>
-        <DailyReportsTable reports={reports} />
-        <div className="mt-4 flex items-center justify-between">
-          <div className="text-sm text-muted-foreground">
-            {total}건 중 {(page - 1) * limit + Math.min(1, total)}–{Math.min(page * limit, total)}{' '}
-            표시
+
+        <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+          <div className="mb-2 text-sm text-muted-foreground">
+            총 {total.toLocaleString()}건 · 페이지 {page} / {pages}
           </div>
-          <div className="flex gap-2">
-            <Link
-              href={`?${new URLSearchParams({ page: String(Math.max(1, page - 1)), limit: String(limit) })}`}
-              className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
-            >
-              {t('common.prev')}
-            </Link>
-            <Link
-              href={`?${new URLSearchParams({ page: String(Math.min(pages, page + 1)), limit: String(limit) })}`}
-              className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page >= pages ? 'pointer-events-none opacity-50' : ''}`}
-            >
-              {t('common.next')}
-            </Link>
+          <DailyReportsTable reports={reports} />
+          <div className="mt-4 flex items-center justify-between">
+            <div className="text-sm text-muted-foreground">
+              {total}건 중 {(page - 1) * limit + Math.min(1, total)}-{Math.min(page * limit, total)}{' '}
+              표시
+            </div>
+            <div className="flex gap-2">
+              <Link
+                href={`?${new URLSearchParams({ page: String(Math.max(1, page - 1)), limit: String(limit) })}`}
+                className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page <= 1 ? 'pointer-events-none opacity-50' : ''}`}
+              >
+                {t('common.prev')}
+              </Link>
+              <Link
+                href={`?${new URLSearchParams({ page: String(Math.min(pages, page + 1)), limit: String(limit) })}`}
+                className={`inline-flex items-center rounded-md border px-3 py-2 text-sm ${page >= pages ? 'pointer-events-none opacity-50' : ''}`}
+              >
+                {t('common.next')}
+              </Link>
+            </div>
           </div>
         </div>
       </div>

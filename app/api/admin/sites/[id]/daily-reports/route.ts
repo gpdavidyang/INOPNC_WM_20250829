@@ -27,8 +27,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
     const siteId = params.id
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
-    const date = searchParams.get('date') // YYYY-MM format
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const date = searchParams.get('date') // YYYY-MM or YYYY-MM-DD
+    const q = (searchParams.get('q') || '').trim()
+    const sort = (searchParams.get('sort') as 'date' | 'status' | 'workers') || 'date'
+    const order = (searchParams.get('order') as 'asc' | 'desc') || 'desc'
+    const limit = Math.min(200, Math.max(1, parseInt(searchParams.get('limit') || '50')))
+    const offset = Math.max(0, parseInt(searchParams.get('offset') || '0'))
 
     // Build query - simplified to avoid foreign key issues
     let query = supabase
@@ -55,8 +59,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
       `
       )
       .eq('site_id', siteId)
-      .order('work_date', { ascending: false })
-      .limit(limit)
 
     // Apply filters
     if (status && status !== 'all') {
@@ -64,11 +66,54 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 
     if (date) {
-      // Filter by year-month (YYYY-MM)
-      const startDate = `${date}-01`
-      const endDate = `${date}-31` // Rough end date, DB will handle
-      query = query.gte('work_date', startDate).lte('work_date', endDate)
+      // Support exact day or month prefix
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        query = query.eq('work_date', date)
+      } else {
+        const startDate = `${date}-01`
+        const endDate = `${date}-31`
+        query = query.gte('work_date', startDate).lte('work_date', endDate)
+      }
     }
+
+    if (q) {
+      // Search in several text fields
+      const pattern = `%${q}%`
+      query = query.or(
+        `member_name.ilike.${pattern},process_type.ilike.${pattern},component_name.ilike.${pattern},work_process.ilike.${pattern},work_section.ilike.${pattern}`
+      )
+    }
+
+    // Sort
+    if (sort === 'status') {
+      query = query.order('status', { ascending: order === 'asc' })
+    } else if (sort === 'workers') {
+      query = query.order('total_workers', { ascending: order === 'asc', nullsFirst: false })
+    } else {
+      // date
+      query = query.order('work_date', { ascending: order === 'asc', nullsFirst: false })
+    }
+
+    // Count total with same filters
+    let countQuery = supabase
+      .from('daily_reports')
+      .select('id', { count: 'exact', head: true })
+      .eq('site_id', siteId)
+    if (status && status !== 'all') countQuery = countQuery.eq('status', status)
+    if (date) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date)) countQuery = countQuery.eq('work_date', date)
+      else countQuery = countQuery.gte('work_date', `${date}-01`).lte('work_date', `${date}-31`)
+    }
+    if (q) {
+      const pattern = `%${q}%`
+      countQuery = countQuery.or(
+        `member_name.ilike.${pattern},process_type.ilike.${pattern},component_name.ilike.${pattern},work_process.ilike.${pattern},work_section.ilike.${pattern}`
+      )
+    }
+    const { count: totalCount } = await countQuery
+
+    // Pagination
+    query = query.range(offset, offset + limit - 1)
 
     const { data: reports, error } = await query
 
@@ -148,12 +193,17 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return NextResponse.json({
       success: true,
       data: enriched,
+      total: totalCount ?? 0,
       statistics,
       filters: {
         site_id: siteId,
         status: status || 'all',
         date: date || null,
+        q,
+        sort,
+        order,
         limit,
+        offset,
       },
     })
   } catch (error) {

@@ -1,5 +1,7 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface UserDetailModalProps {
   isOpen: boolean
@@ -9,12 +11,12 @@ interface UserDetailModalProps {
   onUserDeleted?: () => void
 }
 
-export default function UserDetailModal({ 
-  isOpen, 
-  onClose, 
-  user, 
+export default function UserDetailModal({
+  isOpen,
+  onClose,
+  user,
   onUserUpdated,
-  onUserDeleted 
+  onUserDeleted,
 }: UserDetailModalProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -34,7 +36,7 @@ export default function UserDetailModal({
         phone: user.phone,
         role: user.role,
         status: user.status || 'active',
-        organization_id: user.organization?.id || ''
+        organization_id: user.organization?.id || '',
       })
       setIsEditing(false)
       fetchOrganizations()
@@ -61,7 +63,7 @@ export default function UserDetailModal({
 
   const fetchUserDocuments = async () => {
     if (!user) return
-    
+
     setLoadingDocs(true)
     try {
       const response = await fetch(`/api/admin/users/${user.id}/documents`)
@@ -89,44 +91,71 @@ export default function UserDetailModal({
 
       const response = await fetch(`/api/admin/users/${user.id}/documents`, {
         method: 'POST',
-        body: formData
+        body: formData,
       })
 
       if (response.ok) {
         const data = await response.json()
-        alert(data.message)
+        toast({ variant: 'success', title: '업로드 완료', description: data.message })
         await fetchUserDocuments()
       } else {
         const errorData = await response.json()
-        alert(errorData.error || '파일 업로드에 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: errorData.error || '파일 업로드에 실패했습니다.',
+        })
       }
     } catch (error) {
       console.error('File upload error:', error)
-      alert('파일 업로드 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '파일 업로드 중 오류가 발생했습니다.',
+      })
     } finally {
       setUploadingDoc(null)
     }
   }
 
   const handleDocumentDelete = async (documentType: string) => {
-    if (!user || !confirm('이 문서를 삭제하시겠습니까?')) return
+    if (!user) return
+    const ok = await confirm({
+      title: '문서 삭제',
+      description: '이 문서를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
-      const response = await fetch(`/api/admin/users/${user.id}/documents?documentType=${documentType}`, {
-        method: 'DELETE'
-      })
+      const response = await fetch(
+        `/api/admin/users/${user.id}/documents?documentType=${documentType}`,
+        {
+          method: 'DELETE',
+        }
+      )
 
       if (response.ok) {
         const data = await response.json()
-        alert(data.message)
+        toast({ variant: 'success', title: '삭제 완료', description: data.message })
         await fetchUserDocuments()
       } else {
         const errorData = await response.json()
-        alert(errorData.error || '문서 삭제에 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: errorData.error || '문서 삭제에 실패했습니다.',
+        })
       }
     } catch (error) {
       console.error('Document delete error:', error)
-      alert('문서 삭제 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '문서 삭제 중 오류가 발생했습니다.',
+      })
     }
   }
 
@@ -134,8 +163,10 @@ export default function UserDetailModal({
     if (!user) return
 
     try {
-      const response = await fetch(`/api/admin/users/${user.id}/documents/download?documentType=${documentType}`)
-      
+      const response = await fetch(
+        `/api/admin/users/${user.id}/documents/download?documentType=${documentType}`
+      )
+
       if (response.ok) {
         const data = await response.json()
         const link = document.createElement('a')
@@ -146,11 +177,19 @@ export default function UserDetailModal({
         document.body.removeChild(link)
       } else {
         const errorData = await response.json()
-        alert(errorData.error || '다운로드에 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: errorData.error || '다운로드에 실패했습니다.',
+        })
       }
     } catch (error) {
       console.error('Download error:', error)
-      alert('다운로드 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '다운로드 중 오류가 발생했습니다.',
+      })
     }
   }
 
@@ -161,14 +200,18 @@ export default function UserDetailModal({
     try {
       const result = await updateUser(editData as UpdateUserData)
       if (result.success) {
-        alert(result.message)
+        toast({ variant: 'success', title: '저장 완료', description: result.message })
         setIsEditing(false)
         onUserUpdated()
       } else {
-        alert(result.error)
+        toast({ variant: 'destructive', title: '오류', description: result.error })
       }
     } catch (error) {
-      alert('업데이트 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '업데이트 중 오류가 발생했습니다.',
+      })
     } finally {
       setLoading(false)
     }
@@ -177,20 +220,37 @@ export default function UserDetailModal({
   const handlePasswordReset = async () => {
     if (!user) return
 
-    if (!confirm(`${user.full_name}님의 비밀번호를 재설정하시겠습니까?\n새로운 임시 비밀번호가 생성됩니다.`)) {
-      return
-    }
+    const ok = await confirm({
+      title: '비밀번호 재설정',
+      description: `${user.full_name}님의 비밀번호를 재설정하시겠습니까? 새로운 임시 비밀번호가 생성됩니다.`,
+      confirmText: '재설정',
+      cancelText: '취소',
+      variant: 'warning',
+    })
+    if (!ok) return
 
     setLoading(true)
     try {
       const result = await resetUserPassword(user.id)
       if (result.success && result.data) {
-        alert(`비밀번호가 재설정되었습니다.\n\n임시 비밀번호: ${result.data}\n\n이 비밀번호를 사용자에게 안전하게 전달해주세요.`)
+        toast({
+          variant: 'success',
+          title: '재설정 완료',
+          description: `임시 비밀번호: ${result.data}`,
+        })
       } else {
-        alert(result.error || '비밀번호 재설정에 실패했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: result.error || '비밀번호 재설정에 실패했습니다.',
+        })
       }
     } catch (error) {
-      alert('비밀번호 재설정 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '비밀번호 재설정 중 오류가 발생했습니다.',
+      })
     } finally {
       setLoading(false)
     }
@@ -202,12 +262,14 @@ export default function UserDetailModal({
       site_manager: { text: '현장관리자', color: 'bg-green-100 text-green-800' },
       customer_manager: { text: '파트너사', color: 'bg-purple-100 text-purple-800' },
       admin: { text: '관리자', color: 'bg-red-100 text-red-800' },
-      system_admin: { text: '시스템관리자', color: 'bg-gray-100 text-gray-800' }
+      system_admin: { text: '시스템관리자', color: 'bg-gray-100 text-gray-800' },
     }
-    
+
     const config = roleConfig[role] || roleConfig.worker
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${config.color}`}
+      >
         {config.text}
       </span>
     )
@@ -217,12 +279,14 @@ export default function UserDetailModal({
     const statusConfig = {
       active: { text: '활성', color: 'bg-green-100 text-green-800' },
       inactive: { text: '비활성', color: 'bg-gray-100 text-gray-800' },
-      suspended: { text: '정지', color: 'bg-red-100 text-red-800' }
+      suspended: { text: '정지', color: 'bg-red-100 text-red-800' },
     }
-    
+
     const config = statusConfig[status || 'active']
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${config.color}`}
+      >
         {config.text}
       </span>
     )
@@ -236,10 +300,7 @@ export default function UserDetailModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">사용자 상세 정보</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition-colors">
             <X className="h-5 w-5 text-gray-500" />
           </button>
         </div>
@@ -293,7 +354,7 @@ export default function UserDetailModal({
                         <input
                           type="text"
                           value={editData.full_name || ''}
-                          onChange={(e) => setEditData({ ...editData, full_name: e.target.value })}
+                          onChange={e => setEditData({ ...editData, full_name: e.target.value })}
                           className="w-full px-2 py-1 text-sm border rounded"
                         />
                       ) : (
@@ -305,7 +366,9 @@ export default function UserDetailModal({
                       {isEditing ? (
                         <Select
                           value={editData.role || user.role}
-                          onValueChange={(value) => setEditData({ ...editData, role: value as UserRole })}
+                          onValueChange={value =>
+                            setEditData({ ...editData, role: value as UserRole })
+                          }
                         >
                           <SelectTrigger className="h-7 text-sm">
                             <SelectValue />
@@ -328,7 +391,7 @@ export default function UserDetailModal({
                       <input
                         type="email"
                         value={editData.email || ''}
-                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                        onChange={e => setEditData({ ...editData, email: e.target.value })}
                         className="w-full px-2 py-1 text-sm border rounded"
                       />
                     ) : (
@@ -345,7 +408,7 @@ export default function UserDetailModal({
                         <input
                           type="tel"
                           value={editData.phone || ''}
-                          onChange={(e) => setEditData({ ...editData, phone: e.target.value })}
+                          onChange={e => setEditData({ ...editData, phone: e.target.value })}
                           className="w-full px-2 py-1 text-sm border rounded"
                         />
                       ) : (
@@ -360,7 +423,9 @@ export default function UserDetailModal({
                       {isEditing ? (
                         <Select
                           value={editData.status || 'active'}
-                          onValueChange={(value) => setEditData({ ...editData, status: value as UserStatus })}
+                          onValueChange={value =>
+                            setEditData({ ...editData, status: value as UserStatus })
+                          }
                         >
                           <SelectTrigger className="h-7 text-sm">
                             <SelectValue />
@@ -389,7 +454,12 @@ export default function UserDetailModal({
                   {isEditing ? (
                     <Select
                       value={editData.organization_id || 'none'}
-                      onValueChange={(value) => setEditData({ ...editData, organization_id: value === 'none' ? null : value })}
+                      onValueChange={value =>
+                        setEditData({
+                          ...editData,
+                          organization_id: value === 'none' ? null : value,
+                        })
+                      }
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="소속 선택" />
@@ -401,7 +471,7 @@ export default function UserDetailModal({
                             로딩 중...
                           </SelectItem>
                         ) : organizations.length > 0 ? (
-                          organizations.map((org) => (
+                          organizations.map(org => (
                             <SelectItem key={org.id} value={org.id}>
                               {org.name}
                             </SelectItem>
@@ -440,7 +510,9 @@ export default function UserDetailModal({
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500">마지막 로그인</p>
                   <p className="text-sm font-medium mt-1">
-                    {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString('ko-KR') : '-'}
+                    {user.last_login_at
+                      ? new Date(user.last_login_at).toLocaleDateString('ko-KR')
+                      : '-'}
                   </p>
                 </div>
                 <div className="p-3 bg-gray-50 rounded-lg">
@@ -450,10 +522,9 @@ export default function UserDetailModal({
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <p className="text-xs text-gray-500">최근 활동</p>
                   <p className="text-sm font-medium mt-1">
-                    {user.last_login_at ? 
-                      `${Math.floor((Date.now() - new Date(user.last_login_at).getTime()) / (1000 * 60 * 60 * 24))}일 전` : 
-                      '-'
-                    }
+                    {user.last_login_at
+                      ? `${Math.floor((Date.now() - new Date(user.last_login_at).getTime()) / (1000 * 60 * 60 * 24))}일 전`
+                      : '-'}
                   </p>
                 </div>
               </div>
@@ -469,23 +540,31 @@ export default function UserDetailModal({
                   </h3>
                 </div>
               </div>
-              {user.site_assignments && user.site_assignments.filter(a => a.is_active).length > 0 ? (
+              {user.site_assignments &&
+              user.site_assignments.filter(a => a.is_active).length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
-                  {user.site_assignments.filter(a => a.is_active).map((assignment, index) => (
-                    <div key={index} className="p-3 border rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="text-sm font-medium">{assignment.site_name}</p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            역할: {assignment.role === 'worker' ? '작업자' : assignment.role === 'site_manager' ? '현장담당' : assignment.role}
-                          </p>
+                  {user.site_assignments
+                    .filter(a => a.is_active)
+                    .map((assignment, index) => (
+                      <div key={index} className="p-3 border rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <p className="text-sm font-medium">{assignment.site_name}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              역할:{' '}
+                              {assignment.role === 'worker'
+                                ? '작업자'
+                                : assignment.role === 'site_manager'
+                                  ? '현장담당'
+                                  : assignment.role}
+                            </p>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {new Date(assignment.assigned_date).toLocaleDateString('ko-KR')}
+                          </span>
                         </div>
-                        <span className="text-xs text-gray-400">
-                          {new Date(assignment.assigned_date).toLocaleDateString('ko-KR')}
-                        </span>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
                 <div className="p-8 text-center bg-gray-50 rounded-lg">
@@ -553,7 +632,7 @@ export default function UserDetailModal({
                                     id={`file-${docType}`}
                                     className="hidden"
                                     accept=".pdf,.jpg,.jpeg,.png"
-                                    onChange={(e) => {
+                                    onChange={e => {
                                       const file = e.target.files?.[0]
                                       if (file) {
                                         handleFileUpload(docType, file)
@@ -562,7 +641,9 @@ export default function UserDetailModal({
                                     disabled={uploadingDoc === docType}
                                   />
                                   <button
-                                    onClick={() => document.getElementById(`file-${docType}`)?.click()}
+                                    onClick={() =>
+                                      document.getElementById(`file-${docType}`)?.click()
+                                    }
                                     disabled={uploadingDoc === docType}
                                     className="p-1 hover:bg-gray-100 rounded text-blue-600 disabled:opacity-50"
                                     title="업로드"
@@ -608,7 +689,8 @@ export default function UserDetailModal({
               {user.work_log_stats?.last_report_date && (
                 <div className="mt-2 p-2 bg-gray-50 rounded text-center">
                   <p className="text-xs text-gray-500">
-                    최근 작성일: {new Date(user.work_log_stats.last_report_date).toLocaleDateString('ko-KR')}
+                    최근 작성일:{' '}
+                    {new Date(user.work_log_stats.last_report_date).toLocaleDateString('ko-KR')}
                   </p>
                 </div>
               )}
@@ -619,3 +701,5 @@ export default function UserDetailModal({
     </div>
   )
 }
+const { toast } = useToast()
+const { confirm } = useConfirm()

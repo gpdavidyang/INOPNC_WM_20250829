@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import StickyActionBar from '@/components/ui/sticky-action-bar'
 
 export default function OrganizationCreateForm() {
   const [name, setName] = useState('')
@@ -47,7 +48,7 @@ export default function OrganizationCreateForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-3 pb-20">
       <div>
         <label className="block text-sm text-muted-foreground mb-1">조직명</label>
         <Input value={name} onChange={e => setName(e.target.value)} required />
@@ -79,11 +80,19 @@ export default function OrganizationCreateForm() {
         <Input value={address} onChange={e => setAddress(e.target.value)} />
       </div>
       <div className="flex items-center gap-2">
-        <Button type="submit" variant="outline" disabled={busy}>
+        <Button type="submit" variant="primary" disabled={busy}>
           {busy ? '처리 중…' : '등록'}
         </Button>
         {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
       </div>
+
+      <StickyActionBar>
+        <div className="mx-auto max-w-6xl flex items-center justify-end gap-2">
+          <Button type="submit" variant="primary" disabled={busy}>
+            {busy ? '처리 중…' : '등록'}
+          </Button>
+        </div>
+      </StickyActionBar>
     </form>
   )
 }

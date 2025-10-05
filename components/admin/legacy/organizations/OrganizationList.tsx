@@ -1,6 +1,8 @@
 'use client'
 
 import { t } from '@/lib/ui/strings'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { useToast } from '@/components/ui/use-toast'
 
 interface Organization {
   id: string
@@ -36,6 +38,8 @@ export default function OrganizationList() {
   const [sortField, setSortField] = useState<SortField>('name')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
   const supabase = createClient()
+  const { confirm } = useConfirm()
+  const { toast } = useToast()
 
   useEffect(() => {
     let isMounted = true
@@ -72,7 +76,14 @@ export default function OrganizationList() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('정말로 이 거래처를 삭제하시겠습니까?')) return
+    const ok = await confirm({
+      title: '거래처 삭제',
+      description: '정말로 이 거래처를 삭제하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     try {
       const { error } = await supabase.from('organizations').delete().eq('id', id)
@@ -80,17 +91,23 @@ export default function OrganizationList() {
       if (error) throw error
 
       setOrganizations(organizations.filter(org => org.id !== id))
-      alert('거래처가 삭제되었습니다.')
+      toast({ variant: 'success', title: '삭제 완료', description: '거래처가 삭제되었습니다.' })
     } catch (error: unknown) {
       console.error('Error deleting organization:', error)
 
       // Check for foreign key constraint error
-      if (error.code === '23503') {
-        alert(
-          '이 거래처는 삭제할 수 없습니다.\n\n해당 거래처에 소속된 사용자나 연결된 데이터가 있습니다.\n먼저 관련 데이터를 삭제하거나 다른 거래처로 이전한 후 다시 시도해주세요.'
-        )
+      if ((error as any).code === '23503') {
+        toast({
+          variant: 'destructive',
+          title: '삭제 불가',
+          description: '연결된 데이터가 있어 삭제할 수 없습니다.',
+        })
       } else {
-        alert('거래처 삭제 중 오류가 발생했습니다.')
+        toast({
+          variant: 'destructive',
+          title: '오류',
+          description: '거래처 삭제 중 오류가 발생했습니다.',
+        })
       }
     }
   }
@@ -109,7 +126,11 @@ export default function OrganizationList() {
       )
     } catch (error) {
       console.error('Error toggling organization status:', error)
-      alert('상태 변경 중 오류가 발생했습니다.')
+      toast({
+        variant: 'destructive',
+        title: '오류',
+        description: '상태 변경 중 오류가 발생했습니다.',
+      })
     }
   }
 

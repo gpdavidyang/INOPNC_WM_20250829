@@ -1,5 +1,7 @@
 'use client'
 
+import { useToast } from '@/components/ui/use-toast'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 interface DocumentPermissionManagerProps {
   document: DocumentWithPermissions
@@ -24,22 +26,28 @@ export default function DocumentPermissionManager({
   document,
   profile,
   onClose,
-  onSuccess
+  onSuccess,
 }: DocumentPermissionManagerProps) {
   const [permissions, setPermissions] = useState<PermissionEntry[]>([])
-  const [availableUsers, setAvailableUsers] = useState<Array<{id: string, name: string, email: string}>>([])
-  const [availableSites, setAvailableSites] = useState<Array<{id: string, name: string}>>([])
-  const [availablePartners, setAvailablePartners] = useState<Array<{id: string, name: string}>>([])
+  const [availableUsers, setAvailableUsers] = useState<
+    Array<{ id: string; name: string; email: string }>
+  >([])
+  const [availableSites, setAvailableSites] = useState<Array<{ id: string; name: string }>>([])
+  const [availablePartners, setAvailablePartners] = useState<Array<{ id: string; name: string }>>(
+    []
+  )
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  
+
   // New permission form
   const [newPermission, setNewPermission] = useState<Partial<PermissionEntry>>({
-    permission_level: 'view'
+    permission_level: 'view',
   })
   const [permissionType, setPermissionType] = useState<'user' | 'role' | 'site' | 'partner'>('user')
 
   const supabase = createClient()
+  const { toast } = useToast()
+  const { confirm } = useConfirm()
 
   useEffect(() => {
     loadPermissions()
@@ -51,24 +59,24 @@ export default function DocumentPermissionManager({
       // For now, show basic permission info since document_access_control table doesn't exist
       // Based on current document schema
       const basicPermissions: PermissionEntry[] = []
-      
+
       // Add owner permission
       if (document.owner_id && (document as unknown).profiles) {
         basicPermissions.push({
           id: 'owner',
           user_id: document.owner_id,
           permission_level: 'admin',
-          user_name: (document as unknown).profiles?.name || '문서 소유자'
+          user_name: (document as unknown).profiles?.name || '문서 소유자',
         })
       }
-      
+
       // Add site-wide permission if public
       if ((document as unknown).is_public && document.site_id && (document as unknown).sites) {
         basicPermissions.push({
           id: 'site-public',
           site_id: document.site_id,
           permission_level: 'view',
-          site_name: (document as unknown).sites?.name || '현장 전체'
+          site_name: (document as unknown).sites?.name || '현장 전체',
         })
       }
 
@@ -108,7 +116,6 @@ export default function DocumentPermissionManager({
         .limit(20)
 
       setAvailablePartners(partnersData || [])
-
     } catch (error) {
       console.error('Failed to load options:', error)
     }
@@ -120,8 +127,12 @@ export default function DocumentPermissionManager({
     setSaving(true)
     try {
       // For now, show placeholder since document_access_control table doesn't exist
-      alert('권한 추가 기능은 데이터베이스 마이그레이션 완료 후 사용 가능합니다.')
-      
+      toast({
+        variant: 'info',
+        title: '준비 중',
+        description: '권한 추가는 마이그레이션 완료 후 사용 가능합니다.',
+      })
+
       // TODO: Implement when document_access_control table is created
       // const permissionData = {
       //   document_id: document.id,
@@ -144,17 +155,23 @@ export default function DocumentPermissionManager({
       await loadPermissions()
       setNewPermission({ permission_level: 'view' })
       setPermissionType('user')
-
     } catch (error) {
       console.error('Failed to add permission:', error)
-      alert('권한 추가에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '권한 추가에 실패했습니다.' })
     } finally {
       setSaving(false)
     }
   }
 
   const removePermission = async (permissionId: string) => {
-    if (!confirm('이 권한을 제거하시겠습니까?')) return
+    const ok = await confirm({
+      title: '권한 제거',
+      description: '이 권한을 제거하시겠습니까?',
+      variant: 'destructive',
+      confirmText: '삭제',
+      cancelText: '취소',
+    })
+    if (!ok) return
 
     setSaving(true)
     try {
@@ -168,7 +185,7 @@ export default function DocumentPermissionManager({
       await loadPermissions()
     } catch (error) {
       console.error('Failed to remove permission:', error)
-      alert('권한 제거에 실패했습니다.')
+      toast({ variant: 'destructive', title: '오류', description: '권한 제거에 실패했습니다.' })
     } finally {
       setSaving(false)
     }
@@ -176,11 +193,16 @@ export default function DocumentPermissionManager({
 
   const getPermissionIcon = (level: string) => {
     switch (level) {
-      case 'view': return <Lock className="h-4 w-4 text-gray-500" />
-      case 'download': return <Unlock className="h-4 w-4 text-blue-500" />
-      case 'edit': return <Share2 className="h-4 w-4 text-orange-500" />
-      case 'admin': return <Check className="h-4 w-4 text-green-500" />
-      default: return <AlertCircle className="h-4 w-4 text-gray-400" />
+      case 'view':
+        return <Lock className="h-4 w-4 text-gray-500" />
+      case 'download':
+        return <Unlock className="h-4 w-4 text-blue-500" />
+      case 'edit':
+        return <Share2 className="h-4 w-4 text-orange-500" />
+      case 'admin':
+        return <Check className="h-4 w-4 text-green-500" />
+      default:
+        return <AlertCircle className="h-4 w-4 text-gray-400" />
     }
   }
 
@@ -189,7 +211,7 @@ export default function DocumentPermissionManager({
       view: '보기',
       download: '다운로드',
       edit: '편집',
-      admin: '관리'
+      admin: '관리',
     }
     return labels[level] || level
   }
@@ -204,7 +226,7 @@ export default function DocumentPermissionManager({
         site_manager: '현장관리자',
         customer_manager: '고객관리자',
         admin: '관리자',
-        system_admin: '시스템관리자'
+        system_admin: '시스템관리자',
       }
       return `${roleLabels[permission.role] || permission.role} (역할)`
     }
@@ -223,12 +245,8 @@ export default function DocumentPermissionManager({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              문서 권한 관리
-            </h2>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              {document.title}
-            </p>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">문서 권한 관리</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{document.title}</p>
           </div>
           <button
             onClick={onClose}
@@ -244,11 +262,14 @@ export default function DocumentPermissionManager({
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
               현재 권한 설정
             </h3>
-            
+
             {loading ? (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="animate-pulse bg-gray-100 dark:bg-gray-700 h-12 rounded-lg"></div>
+                  <div
+                    key={i}
+                    className="animate-pulse bg-gray-100 dark:bg-gray-700 h-12 rounded-lg"
+                  ></div>
                 ))}
               </div>
             ) : permissions.length === 0 ? (
@@ -257,7 +278,7 @@ export default function DocumentPermissionManager({
               </div>
             ) : (
               <div className="space-y-3">
-                {permissions.map((permission) => (
+                {permissions.map(permission => (
                   <div
                     key={permission.id}
                     className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
@@ -273,7 +294,7 @@ export default function DocumentPermissionManager({
                         </div>
                       </div>
                     </div>
-                    
+
                     <button
                       onClick={() => removePermission(permission.id!)}
                       disabled={saving}
@@ -289,17 +310,15 @@ export default function DocumentPermissionManager({
 
           {/* Add New Permission */}
           <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-              새 권한 추가
-            </h3>
-            
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">새 권한 추가</h3>
+
             {/* Permission Type Selection */}
             <div className="grid grid-cols-4 gap-2 mb-4">
               {[
                 { key: 'user', label: '개인', icon: User },
                 { key: 'role', label: '역할', icon: Users },
                 { key: 'site', label: '현장', icon: Building2 },
-                { key: 'partner', label: '파트너', icon: Share2 }
+                { key: 'partner', label: '파트너', icon: Share2 },
               ].map(({ key, label, icon: Icon }) => (
                 <button
                   key={key}
@@ -321,11 +340,11 @@ export default function DocumentPermissionManager({
               {permissionType === 'user' && (
                 <select
                   value={newPermission.user_id || ''}
-                  onChange={(e) => setNewPermission({ ...newPermission, user_id: e.target.value })}
+                  onChange={e => setNewPermission({ ...newPermission, user_id: e.target.value })}
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">사용자 선택</option>
-                  {availableUsers.map((user) => (
+                  {availableUsers.map(user => (
                     <option key={user.id} value={user.id}>
                       {user.name} ({user.email})
                     </option>
@@ -336,7 +355,7 @@ export default function DocumentPermissionManager({
               {permissionType === 'role' && (
                 <select
                   value={newPermission.role || ''}
-                  onChange={(e) => setNewPermission({ ...newPermission, role: e.target.value })}
+                  onChange={e => setNewPermission({ ...newPermission, role: e.target.value })}
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">역할 선택</option>
@@ -350,11 +369,11 @@ export default function DocumentPermissionManager({
               {permissionType === 'site' && (
                 <select
                   value={newPermission.site_id || ''}
-                  onChange={(e) => setNewPermission({ ...newPermission, site_id: e.target.value })}
+                  onChange={e => setNewPermission({ ...newPermission, site_id: e.target.value })}
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">현장 선택</option>
-                  {availableSites.map((site) => (
+                  {availableSites.map(site => (
                     <option key={site.id} value={site.id}>
                       {site.name}
                     </option>
@@ -365,11 +384,13 @@ export default function DocumentPermissionManager({
               {permissionType === 'partner' && (
                 <select
                   value={newPermission.partner_company_id || ''}
-                  onChange={(e) => setNewPermission({ ...newPermission, partner_company_id: e.target.value })}
+                  onChange={e =>
+                    setNewPermission({ ...newPermission, partner_company_id: e.target.value })
+                  }
                   className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">파트너 선택</option>
-                  {availablePartners.map((partner) => (
+                  {availablePartners.map(partner => (
                     <option key={partner.id} value={partner.id}>
                       {partner.name}
                     </option>
@@ -385,7 +406,12 @@ export default function DocumentPermissionManager({
               </label>
               <select
                 value={newPermission.permission_level}
-                onChange={(e) => setNewPermission({ ...newPermission, permission_level: e.target.value as unknown })}
+                onChange={e =>
+                  setNewPermission({
+                    ...newPermission,
+                    permission_level: e.target.value as unknown,
+                  })
+                }
                 className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="view">보기만</option>
@@ -410,13 +436,18 @@ export default function DocumentPermissionManager({
 
   function canAddPermission(): boolean {
     if (!newPermission.permission_level) return false
-    
+
     switch (permissionType) {
-      case 'user': return !!newPermission.user_id
-      case 'role': return !!newPermission.role
-      case 'site': return !!newPermission.site_id
-      case 'partner': return !!newPermission.partner_company_id
-      default: return false
+      case 'user':
+        return !!newPermission.user_id
+      case 'role':
+        return !!newPermission.role
+      case 'site':
+        return !!newPermission.site_id
+      case 'partner':
+        return !!newPermission.partner_company_id
+      default:
+        return false
     }
   }
 }

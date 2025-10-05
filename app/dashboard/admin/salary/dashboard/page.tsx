@@ -1,6 +1,8 @@
 'use client'
 
 import React, { useEffect, useState } from 'react'
+import { PageHeader } from '@/components/ui/page-header'
+import EmptyState from '@/components/ui/empty-state'
 import { t } from '@/lib/ui/strings'
 
 export default function PayrollDashboardPage() {
@@ -97,7 +99,13 @@ export default function PayrollDashboardPage() {
   }, [yearMonth])
 
   return (
-    <div className="space-y-4">
+    <div className="px-0 pb-8">
+      <PageHeader
+        title="급여 대시보드"
+        description="월별 요약/추이/인력별 상세"
+        breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '급여 관리', href: '/dashboard/admin/salary' }, { label: '대시보드' }]}
+      />
+      <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="month"
@@ -126,8 +134,8 @@ export default function PayrollDashboardPage() {
           {t('common.refresh')}
         </button>
       </div>
-      {loading && <p className="text-sm text-gray-600">불러오는 중...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && <EmptyState description="불러오는 중..." />}
+      {error && <EmptyState title="오류" description={error} />}
       <div className="flex items-center gap-3">
         <span
           className={`text-[11px] px-2 py-1 rounded-full border ${source === 'fallback' ? 'bg-yellow-50 border-yellow-200 text-yellow-800' : 'bg-green-50 border-green-200 text-green-700'}`}

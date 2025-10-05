@@ -41,7 +41,7 @@ export default async function AdminSiteDocumentsPage({ params }: SiteDocumentsPa
     <div className="px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-foreground">현장 문서</h1>
-        <p className="text-sm text-muted-foreground">{site?.name || params.id} – 최신 50개</p>
+        <p className="text-sm text-muted-foreground">{site?.name || params.id} - 최신 50개</p>
       </div>
 
       <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
