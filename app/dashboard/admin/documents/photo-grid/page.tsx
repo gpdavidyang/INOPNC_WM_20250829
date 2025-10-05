@@ -1,3 +1,4 @@
+import React from 'react'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
@@ -47,7 +48,7 @@ export default async function AdminPhotoGridDocumentsPage({
     params.set('page', String(nextPage))
     const qs = params.toString()
     return qs ? `?${qs}` : ''
-  }
+  };
 
   return (
     <div className="px-0 pb-8">
