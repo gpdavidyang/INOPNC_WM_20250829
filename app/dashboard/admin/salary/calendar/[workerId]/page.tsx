@@ -205,6 +205,7 @@ export default async function AdminWorkerSalaryCalendarPage({
         </Table>
       </div>
     </div>
+    </div>
   )
 }
 

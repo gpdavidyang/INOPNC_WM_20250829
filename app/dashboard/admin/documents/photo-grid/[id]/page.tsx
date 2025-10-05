@@ -115,5 +115,6 @@ export default async function AdminPhotoGridDetailPage({ params }: { params: { i
         </table>
       </div>
     </div>
+    </div>
   )
 }

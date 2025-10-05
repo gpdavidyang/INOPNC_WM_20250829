@@ -302,6 +302,7 @@ export default function PayrollDashboardPage() {
         </div>
       </div>
     </div>
+    </div>
   )
 }
 

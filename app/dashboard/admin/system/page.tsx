@@ -158,5 +158,6 @@ export default async function SystemManagementPage() {
         <SystemConfigsTable configs={configs.slice(0, 20)} />
       </div>
     </div>
+    </div>
   )
 }
