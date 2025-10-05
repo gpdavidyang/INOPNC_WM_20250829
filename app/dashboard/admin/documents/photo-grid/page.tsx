@@ -138,5 +138,6 @@ export default async function AdminPhotoGridDocumentsPage({
         </div>
       </div>
     </div>
+    </div>
   )
 }

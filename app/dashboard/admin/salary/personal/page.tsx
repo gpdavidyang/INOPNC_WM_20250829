@@ -441,5 +441,6 @@ export default function PersonalRatesPage() {
         </table>
       </div>
     </div>
+    </div>
   )
 }

@@ -154,5 +154,6 @@ export default async function AdminSharedDocumentsPage({
         </div>
       </div>
     </div>
+    </div>
   )
 }

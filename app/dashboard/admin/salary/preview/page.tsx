@@ -512,6 +512,7 @@ export default function PayrollPreviewPage() {
         </div>
       )}
     </div>
+    </div>
   )
 }
 

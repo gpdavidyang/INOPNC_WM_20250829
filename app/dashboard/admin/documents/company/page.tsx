@@ -415,6 +415,7 @@ export default function AdminCompanyDocumentsPage() {
         </div>
       </div>
     </div>
+    </div>
   )
 }
 

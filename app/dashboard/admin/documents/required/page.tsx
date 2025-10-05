@@ -47,5 +47,6 @@ export default async function AdminRequiredDocumentsPage() {
         <RequiredDocumentsTable docs={docs} />
       </div>
     </div>
+    </div>
   )
 }

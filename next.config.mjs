@@ -10,7 +10,7 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Enable SWC for better performance
+  // Enable SWC minifier when stable
   swcMinify: true,
   
   // Enable compression for better performance
@@ -19,40 +19,7 @@ const nextConfig = {
   generateEtags: true,
   
   // 실험적 기능으로 빌드 성능 향상
-  experimental: {
-    // Enable instrumentation hook for build-time setup
-    instrumentationHook: true,
-    
-    // 메모리 캐시 최적화 - lucide-react 제거하여 tree-shaking 문제 해결
-    optimizePackageImports: [
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-select',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-progress',
-      '@supabase/supabase-js',
-      '@supabase/ssr',
-      'date-fns',
-      'clsx',
-      'tailwind-merge',
-      'class-variance-authority',
-      'recharts',
-      'xlsx',
-      'jspdf',
-      'html2canvas'
-    ],
-    
-    // Enable font fallback optimization for better UX
-    adjustFontFallbacks: true,
-    
-    // 빌드 속도 향상을 위한 추가 설정
-    serverComponentsExternalPackages: ['sharp', 'canvas'],
-    
-    // Parallel builds for faster compilation
-    parallelServerCompiles: true,
-    parallelServerBuildTraces: true,
-  },
+  experimental: {},
   
   // Production 빌드 최적화
   productionBrowserSourceMaps: false,
@@ -67,19 +34,8 @@ const nextConfig = {
     buildActivityPosition: 'bottom-right',
   },
   
-  // 컴파일 성능 향상
-  compiler: {
-    // Remove console in production AND development (controlled by env)
-    removeConsole: process.env.NEXT_PUBLIC_DISABLE_CONSOLE_LOGS === 'true' 
-      ? { exclude: ['error', 'warn'] }
-      : process.env.NODE_ENV === 'production' 
-      ? { exclude: ['error', 'warn'] }
-      : process.env.NEXT_BUILD_MODE === 'true'
-      ? { exclude: ['error', 'warn'] }
-      : false,
-    // KEEP React properties for debugging in dev
-    reactRemoveProperties: process.env.NODE_ENV === 'production',
-  },
+  // Use default compiler settings to avoid TSX parsing regressions
+  compiler: {},
   
   // Image configuration - optimize for production
   images: {
