@@ -11,14 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Separator } from '@/components/ui/separator'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type { UserWithSites } from '@/app/actions/admin/users'
 import type { UserRole } from '@/types'
@@ -91,11 +84,15 @@ export const UserDetailSheet = memo(function UserDetailSheet({
               <div>
                 <h3 className="text-sm font-semibold text-muted-foreground">기본 정보</h3>
                 <div className="mt-2 space-y-1 text-sm">
-                  <div className="font-medium text-lg text-foreground">{user.full_name || user.email}</div>
+                  <div className="font-medium text-lg text-foreground">
+                    {user.full_name || user.email}
+                  </div>
                   <div className="text-muted-foreground">{user.email}</div>
                   {user.phone && <div className="text-muted-foreground">{user.phone}</div>}
                   <div className="flex flex-wrap items-center gap-2 pt-2">
-                    <Badge variant="secondary">{ROLE_LABELS[user.role as UserRole] || user.role}</Badge>
+                    <Badge variant="secondary">
+                      {ROLE_LABELS[user.role as UserRole] || user.role}
+                    </Badge>
                     {user.status && (
                       <Badge variant={user.status === 'active' ? 'default' : 'outline'}>
                         {STATUS_LABELS[user.status] || user.status}
@@ -142,30 +139,44 @@ export const UserDetailSheet = memo(function UserDetailSheet({
             <section>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">배정 현황</h3>
               {user.site_assignments && user.site_assignments.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>현장</TableHead>
-                      <TableHead>역할</TableHead>
-                      <TableHead>배정일</TableHead>
-                      <TableHead className="text-right">상태</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {user.site_assignments.map((assignment) => (
-                      <TableRow key={`${assignment.site_id}-${assignment.assigned_at}`}>
-                        <TableCell>{assignment.site_name || '미지정'}</TableCell>
-                        <TableCell>{ROLE_LABELS[assignment.role as UserRole] || assignment.role}</TableCell>
-                        <TableCell>{formatDate(assignment.assigned_at)}</TableCell>
-                        <TableCell className="text-right">
-                          <Badge variant={assignment.is_active ? 'default' : 'outline'}>
-                            {assignment.is_active ? '활성' : '비활성'}
+                <DataTable<any>
+                  data={user.site_assignments}
+                  rowKey={(a: any) => `${a.site_id}-${a.assigned_at || ''}`}
+                  stickyHeader
+                  columns={
+                    [
+                      {
+                        key: 'site',
+                        header: '현장',
+                        sortable: true,
+                        render: (a: any) => a?.site_name || '미지정',
+                      },
+                      {
+                        key: 'role',
+                        header: '역할',
+                        sortable: true,
+                        render: (a: any) => ROLE_LABELS[a.role as UserRole] || a.role,
+                      },
+                      {
+                        key: 'assigned_at',
+                        header: '배정일',
+                        sortable: true,
+                        render: (a: any) => formatDate(a.assigned_at),
+                      },
+                      {
+                        key: 'active',
+                        header: '상태',
+                        sortable: true,
+                        align: 'right',
+                        render: (a: any) => (
+                          <Badge variant={a.is_active ? 'default' : 'outline'}>
+                            {a.is_active ? '활성' : '비활성'}
                           </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        ),
+                      },
+                    ] as Column<any>[]
+                  }
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">배정된 현장이 없습니다.</p>
               )}
@@ -176,28 +187,37 @@ export const UserDetailSheet = memo(function UserDetailSheet({
             <section>
               <h3 className="text-sm font-semibold text-muted-foreground mb-3">필수 서류 상태</h3>
               {user.required_documents && user.required_documents.length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>서류</TableHead>
-                      <TableHead>상태</TableHead>
-                      <TableHead>제출일</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {user.required_documents.map((doc) => (
-                      <TableRow key={doc.document_type}>
-                        <TableCell>{DOCUMENT_LABELS[doc.document_type] || doc.document_type}</TableCell>
-                        <TableCell>
-                          <Badge variant={doc.status === 'submitted' ? 'default' : 'outline'}>
-                            {doc.status === 'submitted' ? '제출 완료' : '미제출'}
+                <DataTable<any>
+                  data={user.required_documents}
+                  rowKey={(d: any) => d.document_type}
+                  stickyHeader
+                  columns={
+                    [
+                      {
+                        key: 'type',
+                        header: '서류',
+                        sortable: true,
+                        render: (d: any) => DOCUMENT_LABELS[d.document_type] || d.document_type,
+                      },
+                      {
+                        key: 'status',
+                        header: '상태',
+                        sortable: true,
+                        render: (d: any) => (
+                          <Badge variant={d.status === 'submitted' ? 'default' : 'outline'}>
+                            {d.status === 'submitted' ? '제출 완료' : '미제출'}
                           </Badge>
-                        </TableCell>
-                        <TableCell>{formatDate(doc.submitted_at || undefined)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        ),
+                      },
+                      {
+                        key: 'submitted_at',
+                        header: '제출일',
+                        sortable: true,
+                        render: (d: any) => formatDate(d.submitted_at || undefined),
+                      },
+                    ] as Column<any>[]
+                  }
+                />
               ) : (
                 <p className="text-sm text-muted-foreground">필수 서류 정보가 없습니다.</p>
               )}

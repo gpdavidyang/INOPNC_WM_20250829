@@ -3,14 +3,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 
 export const metadata: Metadata = {
   title: '필수 문서 유형 상세',
@@ -88,33 +81,28 @@ export default async function RequiredDocTypeDetailPage({ params }: { params: { 
             <CardDescription>role → required 매핑</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>역할</TableHead>
-                  <TableHead>필수 여부</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!docType?.role_mappings || docType.role_mappings.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={2}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      설정된 역할 매핑이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  docType.role_mappings.map((m: any, idx: number) => (
-                    <TableRow key={idx}>
-                      <TableCell>{m.role_type}</TableCell>
-                      <TableCell>{m.is_required ? '필수' : '선택'}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <DataTable<any>
+              data={docType?.role_mappings || []}
+              rowKey={(m: any, idx?: number) => `${m.role_type}-${idx ?? 0}`}
+              stickyHeader
+              emptyMessage="설정된 역할 매핑이 없습니다."
+              columns={
+                [
+                  {
+                    key: 'role_type',
+                    header: '역할',
+                    sortable: true,
+                    render: (m: any) => m?.role_type || '-',
+                  },
+                  {
+                    key: 'is_required',
+                    header: '필수 여부',
+                    sortable: true,
+                    render: (m: any) => (m?.is_required ? '필수' : '선택'),
+                  },
+                ] as Column<any>[]
+              }
+            />
           </CardContent>
         </Card>
 
@@ -124,39 +112,45 @@ export default async function RequiredDocTypeDetailPage({ params }: { params: { 
             <CardDescription>site → required/due_days/notes</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>현장</TableHead>
-                  <TableHead>필수 여부</TableHead>
-                  <TableHead>마감일(일)</TableHead>
-                  <TableHead>메모</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {!docType?.site_customizations || docType.site_customizations.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={4}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      설정된 현장 매핑이 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  docType.site_customizations.map((s: any, idx: number) => (
-                    <TableRow key={idx}>
-                      <TableCell>{s.sites?.name || s.site_id}</TableCell>
-                      <TableCell>{s.is_required ? '필수' : '선택'}</TableCell>
-                      <TableCell>{s.due_days ?? '-'}</TableCell>
-                      <TableCell className="truncate max-w-[360px]" title={s.notes || ''}>
-                        {s.notes || '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <DataTable<any>
+              data={docType?.site_customizations || []}
+              rowKey={(s: any, idx?: number) => `${s.site_id}-${idx ?? 0}`}
+              stickyHeader
+              emptyMessage="설정된 현장 매핑이 없습니다."
+              columns={
+                [
+                  {
+                    key: 'site',
+                    header: '현장',
+                    sortable: true,
+                    render: (s: any) => s?.sites?.name || s?.site_id,
+                  },
+                  {
+                    key: 'is_required',
+                    header: '필수 여부',
+                    sortable: true,
+                    render: (s: any) => (s?.is_required ? '필수' : '선택'),
+                  },
+                  {
+                    key: 'due_days',
+                    header: '마감일(일)',
+                    sortable: true,
+                    align: 'right',
+                    render: (s: any) => s?.due_days ?? '-',
+                  },
+                  {
+                    key: 'notes',
+                    header: '메모',
+                    sortable: false,
+                    render: (s: any) => (
+                      <span className="truncate inline-block max-w-[360px]" title={s?.notes || ''}>
+                        {s?.notes || '-'}
+                      </span>
+                    ),
+                  },
+                ] as Column<any>[]
+              }
+            />
           </CardContent>
         </Card>
       </div>

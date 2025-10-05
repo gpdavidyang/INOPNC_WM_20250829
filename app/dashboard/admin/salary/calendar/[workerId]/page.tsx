@@ -3,14 +3,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { calculateMonthlySalary } from '@/app/actions/salary'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 import { createClient } from '@/lib/supabase/server'
 import { salaryCalculationService } from '@/lib/services/salary-calculation.service'
 
@@ -163,46 +156,24 @@ export default async function AdminWorkerSalaryCalendarPage({
         </CardContent>
       </Card>
 
-      <div className="mt-6 rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+      <div className="mt-6">
         <div className="mb-3 text-sm text-muted-foreground">일자별 근태/금액 브레이크다운</div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>날짜</TableHead>
-              <TableHead className="text-right">근로시간</TableHead>
-              <TableHead className="text-right">공수</TableHead>
-              <TableHead className="text-right">기본급</TableHead>
-              <TableHead className="text-right">추가수당</TableHead>
-              <TableHead className="text-right">보너스</TableHead>
-              <TableHead className="text-right">총급여</TableHead>
-              <TableHead className="text-right">실수령</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {breakdown.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="py-8">
-                  <div className="flex justify-center">
-                    <span className="text-sm text-muted-foreground">표시할 데이터가 없습니다.</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              breakdown.map(d => (
-                <TableRow key={d.date}>
-                  <TableCell>{new Date(d.date).toLocaleDateString('ko-KR')}</TableCell>
-                  <TableCell className="text-right">{d.hours}</TableCell>
-                  <TableCell className="text-right">{formatManhours(d.labor)}</TableCell>
-                  <TableCell className="text-right">₩{d.base_pay.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">₩{d.overtime_pay.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">₩{d.bonus_pay.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">₩{d.gross.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">₩{d.net.toLocaleString()}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <DataTable<typeof breakdown[number]>
+          data={breakdown}
+          rowKey={d => d.date}
+          stickyHeader
+          emptyMessage="표시할 데이터가 없습니다."
+          columns={([
+            { key: 'date', header: '날짜', sortable: true, render: d => new Date(d.date).toLocaleDateString('ko-KR') },
+            { key: 'hours', header: '근로시간', sortable: true, align: 'right', render: d => d.hours },
+            { key: 'labor', header: '공수', sortable: true, align: 'right', render: d => formatManhours(d.labor) },
+            { key: 'base_pay', header: '기본급', sortable: true, align: 'right', render: d => `₩${d.base_pay.toLocaleString()}` },
+            { key: 'overtime_pay', header: '추가수당', sortable: true, align: 'right', render: d => `₩${d.overtime_pay.toLocaleString()}` },
+            { key: 'bonus_pay', header: '보너스', sortable: true, align: 'right', render: d => `₩${d.bonus_pay.toLocaleString()}` },
+            { key: 'gross', header: '총급여', sortable: true, align: 'right', render: d => `₩${d.gross.toLocaleString()}` },
+            { key: 'net', header: '실수령', sortable: true, align: 'right', render: d => `₩${d.net.toLocaleString()}` },
+          ] as Column<typeof breakdown[number]>)}
+        />
       </div>
     </div>
     </div>

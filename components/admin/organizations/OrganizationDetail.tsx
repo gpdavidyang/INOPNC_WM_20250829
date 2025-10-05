@@ -1,7 +1,7 @@
 import { Building2, Mail, MapPin, Phone, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 
 const TYPE_LABEL: Record<string, string> = {
   general_contractor: '원청',
@@ -34,7 +34,11 @@ interface OrganizationDetailProps {
   }>
 }
 
-export function OrganizationDetail({ organization, members = [], sites = [] }: OrganizationDetailProps) {
+export function OrganizationDetail({
+  organization,
+  members = [],
+  sites = [],
+}: OrganizationDetailProps) {
   return (
     <div className="space-y-6">
       <Card>
@@ -43,9 +47,7 @@ export function OrganizationDetail({ organization, members = [], sites = [] }: O
             <Building2 className="h-5 w-5" />
             {organization.name}
           </CardTitle>
-          <CardDescription>
-            시스템에 등록된 조직 정보를 확인할 수 있습니다.
-          </CardDescription>
+          <CardDescription>시스템에 등록된 조직 정보를 확인할 수 있습니다.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-3">
@@ -53,7 +55,9 @@ export function OrganizationDetail({ organization, members = [], sites = [] }: O
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2">
                 <Badge variant="secondary">
-                  {organization.type ? TYPE_LABEL[organization.type] || organization.type : '분류 미지정'}
+                  {organization.type
+                    ? TYPE_LABEL[organization.type] || organization.type
+                    : '분류 미지정'}
                 </Badge>
               </div>
               {organization.description ? (
@@ -122,26 +126,30 @@ export function OrganizationDetail({ organization, members = [], sites = [] }: O
           {members.length === 0 ? (
             <p className="px-6 py-8 text-sm text-muted-foreground">연동된 구성원이 없습니다.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[35%]">이름</TableHead>
-                  <TableHead className="w-[25%]">역할</TableHead>
-                  <TableHead>이메일</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {members.map((member) => (
-                  <TableRow key={member.id}>
-                    <TableCell className="font-medium text-foreground">{member.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{member.role}</Badge>
-                    </TableCell>
-                    <TableCell>{member.email ?? '-'}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <DataTable<{ id: string; name: string; role: string; email?: string }>
+              data={members}
+              rowKey={m => m.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'name',
+                    header: '이름',
+                    sortable: true,
+                    width: '35%',
+                    render: m => <span className="font-medium text-foreground">{m.name}</span>,
+                  },
+                  {
+                    key: 'role',
+                    header: '역할',
+                    sortable: true,
+                    width: '25%',
+                    render: m => <Badge variant="outline">{m.role}</Badge>,
+                  },
+                  { key: 'email', header: '이메일', sortable: true, render: m => m.email ?? '-' },
+                ] as Column<{ id: string; name: string; role: string; email?: string }>[]
+              }
+            />
           )}
         </CardContent>
       </Card>
@@ -157,30 +165,41 @@ export function OrganizationDetail({ organization, members = [], sites = [] }: O
           {sites.length === 0 ? (
             <p className="px-6 py-8 text-sm text-muted-foreground">연동된 현장이 없습니다.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>현장명</TableHead>
-                  <TableHead className="w-[20%] text-right">상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sites.map((site) => (
-                  <TableRow key={site.id}>
-                    <TableCell className="font-medium text-foreground">{site.name}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={site.status === 'active' ? 'secondary' : 'outline'}>
-                        {site.status === 'active'
+            <DataTable<{ id: string; name: string; status: 'active' | 'inactive' | 'planning' }>
+              data={sites}
+              rowKey={s => s.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'name',
+                    header: '현장명',
+                    sortable: true,
+                    render: s => <span className="font-medium text-foreground">{s.name}</span>,
+                  },
+                  {
+                    key: 'status',
+                    header: '상태',
+                    sortable: true,
+                    align: 'right',
+                    width: '20%',
+                    render: s => (
+                      <Badge variant={s.status === 'active' ? 'secondary' : 'outline'}>
+                        {s.status === 'active'
                           ? '활성'
-                          : site.status === 'inactive'
+                          : s.status === 'inactive'
                             ? '비활성'
                             : '준비중'}
                       </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    ),
+                  },
+                ] as Column<{
+                  id: string
+                  name: string
+                  status: 'active' | 'inactive' | 'planning'
+                }>[]
+              }
+            />
           )}
         </CardContent>
       </Card>

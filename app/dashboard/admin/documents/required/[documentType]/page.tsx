@@ -1,15 +1,7 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import EmptyState from '@/components/ui/empty-state'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 
 export const metadata: Metadata = {
   title: '필수 문서 상세',
@@ -45,36 +37,46 @@ export default async function RequiredDocumentTypePage({ params }: DocumentTypeP
         <p className="text-sm text-muted-foreground">유형별 제출 문서 목록</p>
       </div>
 
-      <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>제출일</TableHead>
-              <TableHead>문서명</TableHead>
-              <TableHead>제출자</TableHead>
-              <TableHead>상태</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {docs.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={4} className="py-10">
-                  <EmptyState description="표시할 문서가 없습니다." />
-                </TableCell>
-              </TableRow>
-            ) : (
-              docs.map((d: any) => (
-                <TableRow key={d.id}>
-                  <TableCell>{new Date(d.created_at).toLocaleDateString('ko-KR')}</TableCell>
-                  <TableCell className="font-medium text-foreground">{d.title || '-'}</TableCell>
-                  <TableCell>{d.profiles?.full_name || d.profiles?.email || '-'}</TableCell>
-                  <TableCell>{d.status || '-'}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable<any>
+        data={docs}
+        rowKey={(d: any) => d.id}
+        stickyHeader
+        className="p-0"
+        columns={([
+          {
+            key: 'created_at',
+            header: '제출일',
+            sortable: true,
+            render: (d: any) => (d?.created_at ? new Date(d.created_at).toLocaleDateString('ko-KR') : '-'),
+            accessor: (d: any) => d?.created_at || '',
+            width: '16%'
+          },
+          {
+            key: 'title',
+            header: '문서명',
+            sortable: true,
+            render: (d: any) => <span className="font-medium text-foreground">{d?.title || '-'}</span>,
+            accessor: (d: any) => d?.title || '',
+          },
+          {
+            key: 'uploader',
+            header: '제출자',
+            sortable: true,
+            render: (d: any) => d?.profiles?.full_name || d?.profiles?.email || '-',
+            accessor: (d: any) => d?.profiles?.full_name || d?.profiles?.email || '',
+            width: '22%'
+          },
+          {
+            key: 'status',
+            header: '상태',
+            sortable: true,
+            render: (d: any) => d?.status || '-',
+            accessor: (d: any) => d?.status || '',
+            width: '14%'
+          },
+        ] as Column<any>[])}
+        emptyMessage="표시할 문서가 없습니다."
+      />
     </div>
   )
 }

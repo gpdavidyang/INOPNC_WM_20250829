@@ -3,14 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Building2, Mail, MapPin, Phone, RefreshCw, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -138,76 +131,96 @@ export function OrganizationsOverview() {
       ) : (
         <Card>
           <CardContent className="px-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[28%]">조직명</TableHead>
-                  <TableHead className="w-[14%]">유형</TableHead>
-                  <TableHead>주소</TableHead>
-                  <TableHead className="w-[18%]">연락처</TableHead>
-                  <TableHead className="w-[12%] text-right">연동 인원</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(organization => (
-                  <TableRow key={organization.id}>
-                    <TableCell>
-                      <div className="font-medium text-foreground">{organization.name}</div>
-                      {organization.contact_email ? (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {organization.contact_email}
-                        </div>
-                      ) : null}
-                    </TableCell>
-                    <TableCell className="align-middle">
-                      {organization.type ? (
-                        <Badge variant="secondary">
-                          {TYPE_LABEL[organization.type] || organization.type}
-                        </Badge>
+            <DataTable<Organization>
+              data={filtered}
+              rowKey={o => o.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'name',
+                    header: '조직명',
+                    sortable: true,
+                    width: '28%',
+                    render: (o: Organization) => (
+                      <div className="font-medium text-foreground">
+                        {o.name}
+                        {o.contact_email ? (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            {o.contact_email}
+                          </div>
+                        ) : null}
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'type',
+                    header: '유형',
+                    sortable: true,
+                    width: '14%',
+                    render: (o: Organization) =>
+                      o.type ? (
+                        <Badge variant="secondary">{TYPE_LABEL[o.type] || o.type}</Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {organization.address ? (
+                      ),
+                  },
+                  {
+                    key: 'address',
+                    header: '주소',
+                    sortable: true,
+                    render: (o: Organization) =>
+                      o.address ? (
                         <div className="flex items-center gap-1 text-sm">
                           <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span>{organization.address}</span>
+                          <span>{o.address}</span>
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
+                      ),
+                  },
+                  {
+                    key: 'contact',
+                    header: '연락처',
+                    sortable: false,
+                    width: '18%',
+                    render: (o: Organization) => (
                       <div className="space-y-1 text-sm">
-                        {organization.contact_phone ? (
+                        {o.contact_phone ? (
                           <div className="flex items-center gap-1">
                             <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                            {organization.contact_phone}
+                            {o.contact_phone}
                           </div>
                         ) : null}
-                        {organization.contact_email ? (
+                        {o.contact_email ? (
                           <div className="flex items-center gap-1">
                             <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                            {organization.contact_email}
+                            {o.contact_email}
                           </div>
                         ) : null}
-                        {!organization.contact_phone && !organization.contact_email ? (
+                        {!o.contact_phone && !o.contact_email ? (
                           <span className="text-xs text-muted-foreground">등록된 연락처 없음</span>
                         ) : null}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right">
+                    ),
+                  },
+                  {
+                    key: 'member_count',
+                    header: '연동 인원',
+                    sortable: true,
+                    width: '12%',
+                    align: 'right',
+                    render: (o: Organization) => (
                       <div className="flex items-center justify-end gap-1 text-sm font-medium">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        {organization.member_count ?? 0}명
+                        {o.member_count ?? 0}명
                       </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    ),
+                  },
+                ] as Column<Organization>[]
+              }
+            />
           </CardContent>
         </Card>
       )}

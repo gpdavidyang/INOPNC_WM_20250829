@@ -3,6 +3,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getDailyReportById } from '@/app/actions/admin/daily-reports'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 import EmptyState from '@/components/ui/empty-state'
 import DailyReportDetailClient from '@/components/admin/daily-reports/DailyReportDetailClient'
 
@@ -28,7 +29,8 @@ export default async function AdminDailyReportDetailPage({ params }: { params: {
         actions={
           <a
             href={`/dashboard/admin/daily-reports/${params.id}/edit`}
-            className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+            className={buttonVariants({ variant: 'outline', size: 'standard' })}
+            role="button"
           >
             수정
           </a>

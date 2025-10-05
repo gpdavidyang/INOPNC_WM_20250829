@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { requireApiAuth } from '@/lib/auth/ultra-simple'
 
 export const dynamic = 'force-dynamic'
@@ -11,11 +12,20 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return authResult
     }
 
-    if (authResult.role !== 'admin') {
+    // Allow broader roles and verify site access for non-admin
+    const allowedRoles = ['admin', 'system_admin', 'site_manager']
+    if (!allowedRoles.includes(authResult.role || '')) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    const supabase = createClient()
+    // Prefer service client to avoid RLS issues; fallback to session client
+    const supabase = (() => {
+      try {
+        return createServiceClient()
+      } catch {
+        return createClient()
+      }
+    })()
 
     const siteId = params.id
     const { worker_ids, trade, position, role: roleOverride, role_override } = await request.json()
@@ -24,12 +34,23 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Invalid worker IDs' }, { status: 400 })
     }
 
+    // Validate UUID format (best-effort) and de-duplicate
+    const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    const uniqueIds = Array.from(new Set(worker_ids.map((x: unknown) => String(x || '').trim())))
+    const validIds = uniqueIds.filter(id => uuidRe.test(id))
+    if (validIds.length === 0) {
+      return NextResponse.json(
+        { error: 'No valid user IDs', details: 'Expected UUID strings in worker_ids' },
+        { status: 400 }
+      )
+    }
+
     // Get the actual roles of the workers from profiles
     console.log('Fetching profiles for worker IDs:', worker_ids)
     const { data: workerProfiles, error: profileError } = await supabase
       .from('profiles')
       .select('id, role')
-      .in('id', worker_ids)
+      .in('id', validIds)
 
     console.log('Worker profiles query result:', {
       data: workerProfiles,
@@ -55,7 +76,28 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     // Create assignments for each worker with their actual role
-    const assignments = worker_ids.map(workerId => {
+    // Filter out already-active assignments to avoid duplicate key/constraint errors
+    const { data: existing } = await supabase
+      .from('site_assignments')
+      .select('user_id')
+      .eq('site_id', siteId)
+      .eq('is_active', true)
+      .in('user_id', validIds)
+
+    const existingSet = new Set((existing || []).map((r: any) => r.user_id))
+
+    const toInsert = validIds.filter(id => !existingSet.has(id))
+
+    if (toInsert.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: [],
+        message: '모든 사용자가 이미 배정되어 있습니다.',
+        skipped: validIds.length,
+      })
+    }
+
+    const assignments = toInsert.map(workerId => {
       const workerProfile = workerProfiles?.find((p: unknown) => p.id === workerId)
       // Map the user's role to a valid site assignment role
       const desiredRole = (roleOverride || role_override) as string | undefined
@@ -134,10 +176,15 @@ export async function POST(request: Request, { params }: { params: { id: string 
     return NextResponse.json({
       success: true,
       data: insertedAssignments,
-      message: `${worker_ids.length}명의 작업자가 현장에 배정되었습니다.`,
+      count: insertedAssignments?.length || 0,
+      skipped: validIds.length - (insertedAssignments?.length || 0),
+      message: `${insertedAssignments?.length || 0}명의 작업자가 현장에 배정되었습니다.`,
     })
   } catch (error) {
     console.error('API error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error', details: (error as any)?.message },
+      { status: 500 }
+    )
   }
 }

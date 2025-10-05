@@ -1,3 +1,5 @@
+import path from 'node:path'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: false, // Disable strict mode to prevent double rendering
@@ -36,6 +38,20 @@ const nextConfig = {
   
   // Use default compiler settings to avoid TSX parsing regressions
   compiler: {},
+
+  // Reduce SSR bundle conflicts with Sentry/OpenTelemetry in dev by
+  // aliasing @sentry/nextjs to a no-op shim on the server only.
+  webpack: (config, { isServer, dev }) => {
+    if (isServer && dev) {
+      config.resolve = config.resolve || {}
+      config.resolve.alias = config.resolve.alias || {}
+      config.resolve.alias['@sentry/nextjs'] = path.resolve(
+        process.cwd(),
+        'lib/shims/sentry-server-shim.ts'
+      )
+    }
+    return config
+  },
   
   // Image configuration - optimize for production
   images: {

@@ -2,14 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 import {
   CustomSelect,
   CustomSelectContent,
@@ -55,58 +48,60 @@ export default function ShipmentsTable({ shipments }: { shipments: Shipment[] })
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>출고번호</TableHead>
-          <TableHead>현장</TableHead>
-          <TableHead>상태</TableHead>
-          <TableHead>출고일</TableHead>
-          <TableHead>배송방식</TableHead>
-          <TableHead>항목수</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {shipments.length === 0 ? (
-          <TableRow>
-            <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-10">
-              표시할 출고가 없습니다.
-            </TableCell>
-          </TableRow>
-        ) : (
-          shipments.map(sp => (
-            <TableRow key={sp.id}>
-              <TableCell className="font-medium text-foreground">
-                <a className="underline" href={`/dashboard/admin/materials/shipments/${sp.id}`}>
-                  {sp.shipment_number || sp.id}
-                </a>
-              </TableCell>
-              <TableCell>{sp.sites?.name || '-'}</TableCell>
-              <TableCell>{sp.status || '-'}</TableCell>
-              <TableCell>
-                {sp.shipment_date ? new Date(sp.shipment_date).toLocaleDateString('ko-KR') : '-'}
-              </TableCell>
-              <TableCell>
-                <CustomSelect
-                  defaultValue={labelFromCarrier(sp.carrier)}
-                  onValueChange={value => save(sp.id, value)}
-                  disabled={savingId === sp.id}
-                >
-                  <CustomSelectTrigger className="w-[120px]">
-                    <CustomSelectValue placeholder="선택" />
-                  </CustomSelectTrigger>
-                  <CustomSelectContent>
-                    <CustomSelectItem value="택배">택배</CustomSelectItem>
-                    <CustomSelectItem value="화물">화물</CustomSelectItem>
-                    <CustomSelectItem value="기타">기타</CustomSelectItem>
-                  </CustomSelectContent>
-                </CustomSelect>
-              </TableCell>
-              <TableCell>{(sp.shipment_items || []).length}</TableCell>
-            </TableRow>
-          ))
-        )}
-      </TableBody>
-    </Table>
+    <DataTable<Shipment>
+      data={shipments}
+      rowKey={s => s.id}
+      stickyHeader
+      columns={
+        [
+          {
+            key: 'shipment_number',
+            header: '출고번호',
+            sortable: true,
+            render: sp => (
+              <a className="underline" href={`/dashboard/admin/materials/shipments/${sp.id}`}>
+                {sp.shipment_number || sp.id}
+              </a>
+            ),
+          },
+          { key: 'site', header: '현장', sortable: true, render: sp => sp.sites?.name || '-' },
+          { key: 'status', header: '상태', sortable: true, render: sp => sp.status || '-' },
+          {
+            key: 'shipment_date',
+            header: '출고일',
+            sortable: true,
+            render: sp =>
+              sp.shipment_date ? new Date(sp.shipment_date).toLocaleDateString('ko-KR') : '-',
+          },
+          {
+            key: 'carrier',
+            header: '배송방식',
+            sortable: true,
+            render: sp => (
+              <CustomSelect
+                defaultValue={labelFromCarrier(sp.carrier)}
+                onValueChange={value => save(sp.id, value)}
+                disabled={savingId === sp.id}
+              >
+                <CustomSelectTrigger className="w-[120px]">
+                  <CustomSelectValue placeholder="선택" />
+                </CustomSelectTrigger>
+                <CustomSelectContent>
+                  <CustomSelectItem value="택배">택배</CustomSelectItem>
+                  <CustomSelectItem value="화물">화물</CustomSelectItem>
+                  <CustomSelectItem value="기타">기타</CustomSelectItem>
+                </CustomSelectContent>
+              </CustomSelect>
+            ),
+          },
+          {
+            key: 'items',
+            header: '항목수',
+            sortable: true,
+            render: sp => (sp.shipment_items || []).length,
+          },
+        ] as Column<Shipment>[]
+      }
+    />
   )
 }

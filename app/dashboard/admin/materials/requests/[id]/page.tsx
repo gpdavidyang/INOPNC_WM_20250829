@@ -3,14 +3,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 
 export const metadata: Metadata = { title: '입고요청 상세' }
 
@@ -77,32 +70,48 @@ export default async function AdminMaterialRequestDetailPage({
             <CardDescription>총 {(rq?.material_request_items || []).length}개</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>자재</TableHead>
-                    <TableHead>코드</TableHead>
-                    <TableHead>규격</TableHead>
-                    <TableHead>단위</TableHead>
-                    <TableHead className="text-right">요청수량</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(rq?.material_request_items || []).map((it: any) => (
-                    <TableRow key={it.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {it.material_name || '-'}
-                      </TableCell>
-                      <TableCell>{it.material_code || '-'}</TableCell>
-                      <TableCell>{it.specification || '-'}</TableCell>
-                      <TableCell>{it.unit || '-'}</TableCell>
-                      <TableCell className="text-right">{it.requested_quantity ?? 0}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable<any>
+              data={rq?.material_request_items || []}
+              rowKey={(it: any) => it.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'material_name',
+                    header: '자재',
+                    sortable: true,
+                    render: (it: any) => (
+                      <span className="font-medium text-foreground">{it.material_name || '-'}</span>
+                    ),
+                  },
+                  {
+                    key: 'material_code',
+                    header: '코드',
+                    sortable: true,
+                    render: (it: any) => it.material_code || '-',
+                  },
+                  {
+                    key: 'spec',
+                    header: '규격',
+                    sortable: true,
+                    render: (it: any) => it.specification || '-',
+                  },
+                  {
+                    key: 'unit',
+                    header: '단위',
+                    sortable: true,
+                    render: (it: any) => it.unit || '-',
+                  },
+                  {
+                    key: 'qty',
+                    header: '요청수량',
+                    sortable: true,
+                    align: 'right',
+                    render: (it: any) => it.requested_quantity ?? 0,
+                  },
+                ] as Column<any>[]
+              }
+            />
           </CardContent>
         </Card>
       </div>

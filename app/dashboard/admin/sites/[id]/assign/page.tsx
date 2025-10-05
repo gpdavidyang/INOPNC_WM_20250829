@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 import AssignUsersPage from '@/components/admin/sites/AssignUsersPage'
 import { createClient } from '@/lib/supabase/server'
 
@@ -26,7 +27,8 @@ export default async function AssignUsersPageRoute({ params }: { params: { id: s
         actions={
           <a
             href={`/dashboard/admin/sites/${params.id}?tab=assignments`}
-            className="text-sm underline"
+            className={buttonVariants({ variant: 'outline', size: 'standard' })}
+            role="button"
           >
             현장으로 돌아가기
           </a>

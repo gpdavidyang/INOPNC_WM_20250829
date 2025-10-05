@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { t } from '@/lib/ui/strings'
 import Link from 'next/link'
+import { buttonVariants } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -277,7 +278,8 @@ export default function TabbedDocumentsClient({
                 </Button>
                 <Link
                   href={`/dashboard/admin/documents/${active === 'photo_grid' ? 'photo-grid' : active === 'required' ? 'required' : active}`}
-                  className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+                  className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                  role="button"
                 >
                   전체 보기
                 </Link>

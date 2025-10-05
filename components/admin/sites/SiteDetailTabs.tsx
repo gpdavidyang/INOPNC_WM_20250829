@@ -5,14 +5,7 @@ import Image from 'next/image'
 import SiteForm from '@/components/admin/sites/SiteForm'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -641,15 +634,55 @@ export default function SiteDetailTabs({
   return (
     <div>
       <Tabs value={tab} onValueChange={onTabChange} className="w-full">
-        <TabsList>
-          <TabsTrigger value="overview">개요</TabsTrigger>
-          <TabsTrigger value="reports">작업일지</TabsTrigger>
-          <TabsTrigger value="documents">문서</TabsTrigger>
-          <TabsTrigger value="drawings">도면</TabsTrigger>
-          <TabsTrigger value="photos">사진</TabsTrigger>
-          <TabsTrigger value="assignments">배정</TabsTrigger>
-          <TabsTrigger value="materials">자재</TabsTrigger>
-          <TabsTrigger value="edit">정보 수정</TabsTrigger>
+        <TabsList className="sticky top-0 z-10 bg-gradient-to-r from-[--brand-600] to-[--brand-700] border-0 shadow">
+          <TabsTrigger
+            value="overview"
+            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
+          >
+            개요
+          </TabsTrigger>
+          <TabsTrigger
+            value="reports"
+            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
+          >
+            작업일지
+          </TabsTrigger>
+          <TabsTrigger
+            value="documents"
+            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
+          >
+            문서
+          </TabsTrigger>
+          <TabsTrigger
+            value="drawings"
+            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
+          >
+            도면
+          </TabsTrigger>
+          <TabsTrigger
+            value="photos"
+            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
+          >
+            사진
+          </TabsTrigger>
+          <TabsTrigger
+            value="assignments"
+            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
+          >
+            배정
+          </TabsTrigger>
+          <TabsTrigger
+            value="materials"
+            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
+          >
+            자재
+          </TabsTrigger>
+          <TabsTrigger
+            value="edit"
+            className="text-white/90 hover:text-white data-[state=active]:bg-white data-[state=active]:text-[--brand-700] data-[state=active]:shadow-md"
+          >
+            정보 수정
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-6">
@@ -699,64 +732,70 @@ export default function SiteDetailTabs({
               {docsLoading && recentDocs.length === 0 ? (
                 <TableSkeleton rows={5} />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>등록일</TableHead>
-                      <TableHead>제목</TableHead>
-                      <TableHead>유형</TableHead>
-                      <TableHead>상태</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentDocs.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-center text-sm text-muted-foreground py-8"
-                        >
-                          표시할 문서가 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      recentDocs.map((d: any, idx: number) => (
-                        <TableRow
-                          key={`${d?.id ?? d?.document_id ?? d?.file_id ?? d?.url ?? 'doc'}-${idx}`}
-                        >
-                          <TableCell>
-                            {(() => {
-                              const raw = d.created_at || d.uploadDate || d.createdAt
-                              try {
-                                return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
-                              } catch {
-                                return '-'
-                              }
-                            })()}
-                          </TableCell>
-                          <TableCell className="font-medium text-foreground">
-                            <a
-                              href={buildDocPreviewHref(d)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="underline text-blue-600"
-                            >
-                              {d.title || '-'}
-                            </a>
-                          </TableCell>
-                          <TableCell>
-                            {d?.category_type || d?.categoryType
-                              ? CATEGORY_LABELS[String(d.category_type || d.categoryType)] ||
-                                String(d.category_type || d.categoryType)
-                              : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <DataTable<any>
+                  data={recentDocs}
+                  rowKey={(d: any, idx?: number) =>
+                    d.id || d.document_id || d.file_id || d.url || idx || 'doc'
+                  }
+                  stickyHeader
+                  emptyMessage="표시할 문서가 없습니다."
+                  columns={
+                    [
+                      {
+                        key: 'created_at',
+                        header: '등록일',
+                        sortable: true,
+                        accessor: (d: any) => d?.created_at || d?.uploadDate || d?.createdAt || '',
+                        render: (d: any) => {
+                          const raw = d?.created_at || d?.uploadDate || d?.createdAt
+                          try {
+                            return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
+                          } catch {
+                            return '-'
+                          }
+                        },
+                        width: '18%',
+                      },
+                      {
+                        key: 'title',
+                        header: '제목',
+                        sortable: true,
+                        accessor: (d: any) => d?.title || '',
+                        render: (d: any) => (
+                          <a
+                            href={buildDocPreviewHref(d)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline text-blue-600 font-medium text-foreground"
+                          >
+                            {d?.title || '-'}
+                          </a>
+                        ),
+                      },
+                      {
+                        key: 'category',
+                        header: '유형',
+                        sortable: true,
+                        accessor: (d: any) => d?.category_type || d?.categoryType || '',
+                        render: (d: any) =>
+                          d?.category_type || d?.categoryType
+                            ? CATEGORY_LABELS[String(d.category_type || d.categoryType)] ||
+                              String(d.category_type || d.categoryType)
+                            : '-',
+                        width: '18%',
+                      },
+                      {
+                        key: 'status',
+                        header: '상태',
+                        sortable: true,
+                        accessor: (d: any) => d?.status || '',
+                        render: (d: any) =>
+                          d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-',
+                        width: '14%',
+                      },
+                    ] as Column<any>[]
+                  }
+                />
               )}
             </div>
           </section>
@@ -773,115 +812,133 @@ export default function SiteDetailTabs({
               {reportsLoading && recentReports.length === 0 ? (
                 <TableSkeleton rows={5} />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>작업일자</TableHead>
-                      <TableHead>작성자</TableHead>
-                      <TableHead>상태</TableHead>
-                      <TableHead>인원</TableHead>
-                      <TableHead>문서</TableHead>
-                      <TableHead>공수</TableHead>
-                      <TableHead>바로가기</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentReports.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={7}
-                          className="text-center text-sm text-muted-foreground py-8"
-                        >
-                          표시할 작업일지가 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      recentReports.map((r: any) => (
-                        <TableRow key={r.id}>
-                          <TableCell className="font-medium text-foreground">
-                            {r.id ? (
-                              <a
-                                href={`/dashboard/admin/daily-reports/${r.id}`}
-                                className="underline text-blue-600"
-                                title="작업일지 상세 보기"
-                              >
-                                {r.work_date
-                                  ? new Date(r.work_date).toLocaleDateString('ko-KR')
-                                  : '-'}
-                              </a>
-                            ) : r.work_date ? (
-                              new Date(r.work_date).toLocaleDateString('ko-KR')
-                            ) : (
-                              '-'
-                            )}
-                          </TableCell>
-                          <TableCell>{r.member_name || r.profiles?.full_name || '-'}</TableCell>
-                          <TableCell>
-                            {((s: string) => {
-                              const m: Record<string, string> = {
-                                draft: '임시저장',
-                                submitted: '제출됨',
-                                approved: '승인',
-                                rejected: '반려',
-                                completed: '완료',
-                              }
-                              return m[s] || s || '-'
-                            })(String(r.status || ''))}
-                          </TableCell>
-                          <TableCell>
-                            {Number.isFinite(Number(r.worker_count))
-                              ? Number(r.worker_count)
-                              : Number.isFinite(Number(r.total_workers))
-                                ? Number(r.total_workers)
-                                : 0}
-                          </TableCell>
-                          <TableCell>
-                            {Number.isFinite(Number(r.document_count))
-                              ? Number(r.document_count)
-                              : 0}
-                          </TableCell>
-                          <TableCell>
-                            {Number.isFinite(Number(r.total_manhours))
-                              ? Number(r.total_manhours).toFixed(1)
-                              : '0.0'}{' '}
-                            공수
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                className="underline text-blue-600"
-                                onClick={() => {
-                                  try {
-                                    const d = r.work_date ? new Date(r.work_date) : null
-                                    const yyyy = d ? String(d.getFullYear()).padStart(4, '0') : ''
-                                    const mm = d ? String(d.getMonth() + 1).padStart(2, '0') : ''
-                                    const dd = d ? String(d.getDate()).padStart(2, '0') : ''
-                                    const ds = d ? `${yyyy}-${mm}-${dd}` : null
-                                    setPhotoDate(ds)
-                                  } catch {
-                                    /* noop */
-                                  }
-                                  onTabChange('photos')
-                                }}
-                                title="사진 탭으로 이동"
-                              >
-                                사진보기
-                              </button>
-                              <a
-                                href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}
-                                className="underline text-blue-600"
-                                title="사진대지 리포트 보기"
-                              >
-                                사진대지
-                              </a>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <DataTable<any>
+                  data={recentReports}
+                  rowKey={(r: any) => r.id || `${r.work_date}-${r.member_name || ''}`}
+                  stickyHeader
+                  emptyMessage="표시할 작업일지가 없습니다."
+                  columns={
+                    [
+                      {
+                        key: 'work_date',
+                        header: '작업일자',
+                        sortable: true,
+                        accessor: (r: any) => r?.work_date || '',
+                        render: (r: any) =>
+                          r?.id ? (
+                            <a
+                              href={`/dashboard/admin/daily-reports/${r.id}`}
+                              className="underline text-blue-600 font-medium text-foreground"
+                              title="작업일지 상세 보기"
+                            >
+                              {r?.work_date
+                                ? new Date(r.work_date).toLocaleDateString('ko-KR')
+                                : '-'}
+                            </a>
+                          ) : r?.work_date ? (
+                            new Date(r.work_date).toLocaleDateString('ko-KR')
+                          ) : (
+                            '-'
+                          ),
+                      },
+                      {
+                        key: 'member',
+                        header: '작성자',
+                        sortable: true,
+                        accessor: (r: any) => r?.member_name || r?.profiles?.full_name || '',
+                        render: (r: any) => r?.member_name || r?.profiles?.full_name || '-',
+                      },
+                      {
+                        key: 'status',
+                        header: '상태',
+                        sortable: true,
+                        accessor: (r: any) => r?.status || '',
+                        render: (r: any) => {
+                          const m: Record<string, string> = {
+                            draft: '임시저장',
+                            submitted: '제출됨',
+                            approved: '승인',
+                            rejected: '반려',
+                            completed: '완료',
+                          }
+                          const s = String(r?.status || '')
+                          return m[s] || s || '-'
+                        },
+                      },
+                      {
+                        key: 'workers',
+                        header: '인원',
+                        sortable: true,
+                        accessor: (r: any) => Number(r?.worker_count ?? r?.total_workers ?? 0),
+                        render: (r: any) =>
+                          Number.isFinite(Number(r?.worker_count))
+                            ? Number(r.worker_count)
+                            : Number.isFinite(Number(r?.total_workers))
+                              ? Number(r.total_workers)
+                              : 0,
+                        align: 'right',
+                        width: '10%',
+                      },
+                      {
+                        key: 'docs',
+                        header: '문서',
+                        sortable: true,
+                        accessor: (r: any) => Number(r?.document_count ?? 0),
+                        render: (r: any) =>
+                          Number.isFinite(Number(r?.document_count)) ? Number(r.document_count) : 0,
+                        align: 'right',
+                        width: '10%',
+                      },
+                      {
+                        key: 'manhours',
+                        header: '공수',
+                        sortable: true,
+                        accessor: (r: any) => Number(r?.total_manhours ?? 0),
+                        render: (r: any) =>
+                          `${Number.isFinite(Number(r?.total_manhours)) ? Number(r.total_manhours).toFixed(1) : '0.0'} 공수`,
+                        align: 'right',
+                        width: '12%',
+                      },
+                      {
+                        key: 'actions',
+                        header: '바로가기',
+                        sortable: false,
+                        render: (r: any) => (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              className="underline text-blue-600"
+                              onClick={() => {
+                                try {
+                                  const d = r?.work_date ? new Date(r.work_date) : null
+                                  const yyyy = d ? String(d.getFullYear()).padStart(4, '0') : ''
+                                  const mm = d ? String(d.getMonth() + 1).padStart(2, '0') : ''
+                                  const dd = d ? String(d.getDate()).padStart(2, '0') : ''
+                                  const ds = d ? `${yyyy}-${mm}-${dd}` : null
+                                  setPhotoDate(ds)
+                                } catch {
+                                  /* noop */
+                                }
+                                onTabChange('photos')
+                              }}
+                              title="사진 탭으로 이동"
+                            >
+                              사진보기
+                            </button>
+                            <a
+                              href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}
+                              className="underline text-blue-600"
+                              title="사진대지 리포트 보기"
+                            >
+                              사진대지
+                            </a>
+                          </div>
+                        ),
+                        width: '18%',
+                      },
+                    ] as Column<any>[]
+                  }
+                />
               )}
             </div>
           </section>
@@ -944,96 +1001,112 @@ export default function SiteDetailTabs({
                 <TableSkeleton rows={5} />
               ) : (
                 <>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>이름</TableHead>
-                        <TableHead>소속</TableHead>
-                        <TableHead>역할</TableHead>
-                        <TableHead>현장 공수</TableHead>
-                        <TableHead>전체 공수</TableHead>
-                        <TableHead>배정일</TableHead>
-                        <TableHead>작업</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredAndSortedAssignments(
-                        recentAssignments,
-                        laborByUser,
-                        assignmentQuery,
-                        assignmentSort,
-                        assignmentRole
-                      ).length === 0 ? (
-                        <TableRow>
-                          <TableCell
-                            colSpan={7}
-                            className="text-center text-sm text-muted-foreground py-10"
-                          >
-                            배정된 사용자가 없습니다.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        filteredAndSortedAssignments(
-                          recentAssignments,
-                          laborByUser,
-                          assignmentQuery,
-                          assignmentSort,
-                          assignmentRole
-                        ).map((a: any, idx: number) => (
-                          <TableRow key={`${a?.id ?? a?.user_id ?? 'assign'}-${idx}`}>
-                            <TableCell className="font-medium text-foreground">
-                              <a
-                                href={`/dashboard/admin/users/${a.user_id}`}
-                                className="underline text-blue-600 hover:underline"
-                                title="사용자 상세 보기"
-                              >
-                                {a.profile?.full_name || a.user_id}
-                              </a>
-                            </TableCell>
-                            <TableCell>{a.profile?.organization?.name || '-'}</TableCell>
-                            <TableCell>{a.role || '-'}</TableCell>
-                            <TableCell>
-                              {Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수
-                            </TableCell>
-                            <TableCell>
-                              {Math.max(0, globalLaborByUser[a.user_id] ?? 0).toFixed(1)} 공수
-                            </TableCell>
-                            <TableCell>
-                              {a.assigned_date
-                                ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
-                                : '-'}
-                            </TableCell>
-                            <TableCell>
-                              <button
-                                type="button"
-                                className="text-xs underline text-red-600"
-                                onClick={async () => {
-                                  try {
-                                    const res = await fetch(
-                                      `/api/admin/sites/${siteId}/workers/unassign`,
-                                      {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ worker_id: a.user_id }),
-                                      }
-                                    )
-                                    const j = await res.json().catch(() => ({}))
-                                    if (!res.ok || j?.error)
-                                      throw new Error(j?.error || '제외 실패')
-                                    if (typeof window !== 'undefined') window.location.reload()
-                                  } catch {
-                                    alert('제외 중 오류가 발생했습니다.')
-                                  }
-                                }}
-                              >
-                                제외
-                              </button>
-                            </TableCell>
-                          </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
+                  <DataTable<any>
+                    data={filteredAndSortedAssignments(
+                      recentAssignments,
+                      laborByUser,
+                      assignmentQuery,
+                      assignmentSort,
+                      assignmentRole
+                    )}
+                    rowKey={(a: any, idx?: number) => a.id || a.user_id || idx || 'assign'}
+                    stickyHeader
+                    emptyMessage="배정된 사용자가 없습니다."
+                    columns={
+                      [
+                        {
+                          key: 'name',
+                          header: '이름',
+                          sortable: true,
+                          accessor: (a: any) => a?.profile?.full_name || a?.user_id || '',
+                          render: (a: any) => (
+                            <a
+                              href={`/dashboard/admin/users/${a.user_id}`}
+                              className="underline text-blue-600 font-medium text-foreground"
+                              title="사용자 상세 보기"
+                            >
+                              {a?.profile?.full_name || a?.user_id}
+                            </a>
+                          ),
+                        },
+                        {
+                          key: 'company',
+                          header: '소속',
+                          sortable: true,
+                          accessor: (a: any) => a?.profile?.organization?.name || '',
+                          render: (a: any) => a?.profile?.organization?.name || '-',
+                        },
+                        {
+                          key: 'role',
+                          header: '역할',
+                          sortable: true,
+                          accessor: (a: any) => a?.role || '',
+                          render: (a: any) => a?.role || '-',
+                        },
+                        {
+                          key: 'site_labor',
+                          header: '현장 공수',
+                          sortable: true,
+                          accessor: (a: any) => Number(laborByUser[a?.user_id] ?? 0),
+                          render: (a: any) =>
+                            `${Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수`,
+                          align: 'right',
+                          width: '14%',
+                        },
+                        {
+                          key: 'global_labor',
+                          header: '전체 공수',
+                          sortable: true,
+                          accessor: (a: any) => Number(globalLaborByUser[a?.user_id] ?? 0),
+                          render: (a: any) =>
+                            `${Math.max(0, globalLaborByUser[a.user_id] ?? 0).toFixed(1)} 공수`,
+                          align: 'right',
+                          width: '14%',
+                        },
+                        {
+                          key: 'assigned_at',
+                          header: '배정일',
+                          sortable: true,
+                          accessor: (a: any) => a?.assigned_date || '',
+                          render: (a: any) =>
+                            a?.assigned_date
+                              ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
+                              : '-',
+                        },
+                        {
+                          key: 'actions',
+                          header: '작업',
+                          sortable: false,
+                          render: (a: any) => (
+                            <button
+                              type="button"
+                              className="text-xs underline text-red-600"
+                              onClick={async () => {
+                                try {
+                                  const res = await fetch(
+                                    `/api/admin/sites/${siteId}/workers/unassign`,
+                                    {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ worker_id: a.user_id }),
+                                    }
+                                  )
+                                  const j = await res.json().catch(() => ({}))
+                                  if (!res.ok || j?.error) throw new Error(j?.error || '제외 실패')
+                                  if (typeof window !== 'undefined') window.location.reload()
+                                } catch {
+                                  alert('제외 중 오류가 발생했습니다.')
+                                }
+                              }}
+                            >
+                              제외
+                            </button>
+                          ),
+                          width: '12%',
+                        },
+                      ] as Column<any>[]
+                    }
+                  />
                   {(() => {
                     const rows = filteredAndSortedAssignments(
                       recentAssignments,
@@ -1075,43 +1148,47 @@ export default function SiteDetailTabs({
               {requestsLoading && recentRequests.length === 0 ? (
                 <TableSkeleton rows={5} />
               ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>요청번호</TableHead>
-                      <TableHead>요청자</TableHead>
-                      <TableHead>상태</TableHead>
-                      <TableHead>요청일</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentRequests.length === 0 ? (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-center text-sm text-muted-foreground py-10"
-                        >
-                          요청 내역이 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      recentRequests.map((rq: any, idx: number) => (
-                        <TableRow key={`${rq?.id ?? rq?.request_number ?? 'req'}-${idx}`}>
-                          <TableCell className="font-medium text-foreground">
-                            {rq.request_number || rq.id}
-                          </TableCell>
-                          <TableCell>{rq.requester?.full_name || rq.requested_by || '-'}</TableCell>
-                          <TableCell>{rq.status || '-'}</TableCell>
-                          <TableCell>
-                            {rq.request_date
-                              ? new Date(rq.request_date).toLocaleDateString('ko-KR')
-                              : '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
+                <DataTable<any>
+                  data={recentRequests}
+                  rowKey={(rq: any, idx?: number) => rq.id || rq.request_number || idx || 'req'}
+                  stickyHeader
+                  emptyMessage="요청 내역이 없습니다."
+                  columns={
+                    [
+                      {
+                        key: 'number',
+                        header: '요청번호',
+                        sortable: true,
+                        accessor: (rq: any) => rq?.request_number || rq?.id || '',
+                        render: (rq: any) => rq?.request_number || rq?.id,
+                      },
+                      {
+                        key: 'requester',
+                        header: '요청자',
+                        sortable: true,
+                        accessor: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '',
+                        render: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '-',
+                      },
+                      {
+                        key: 'status',
+                        header: '상태',
+                        sortable: true,
+                        accessor: (rq: any) => rq?.status || '',
+                        render: (rq: any) => rq?.status || '-',
+                      },
+                      {
+                        key: 'date',
+                        header: '요청일',
+                        sortable: true,
+                        accessor: (rq: any) => rq?.request_date || '',
+                        render: (rq: any) =>
+                          rq?.request_date
+                            ? new Date(rq.request_date).toLocaleDateString('ko-KR')
+                            : '-',
+                      },
+                    ] as Column<any>[]
+                  }
+                />
               )}
             </div>
           </section>
@@ -1122,99 +1199,119 @@ export default function SiteDetailTabs({
         {/* Reports Tab (moved inside Tabs) */}
         <TabsContent value="reports" className="mt-4">
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>작업일자</TableHead>
-                  <TableHead>작성자</TableHead>
-                  <TableHead>상태</TableHead>
-                  <TableHead>인원</TableHead>
-                  <TableHead>문서</TableHead>
-                  <TableHead>공수</TableHead>
-                  <TableHead>바로가기</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentReports.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={7}
-                      className="text-center text-sm text-muted-foreground py-8"
-                    >
-                      표시할 작업일지가 없습니다.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  recentReports.map((r: any) => (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium text-foreground">
-                        {r.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-'}
-                      </TableCell>
-                      <TableCell>{r.member_name || r.profiles?.full_name || '-'}</TableCell>
-                      <TableCell>
-                        {(() => {
-                          const m: Record<string, string> = {
-                            draft: '임시저장',
-                            submitted: '제출됨',
-                            approved: '승인',
-                            rejected: '반려',
-                            completed: '완료',
-                          }
-                          return m[String(r.status || '')] || String(r.status || '-')
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        {Number.isFinite(Number(r.worker_count))
-                          ? Number(r.worker_count)
-                          : Number.isFinite(Number(r.total_workers))
-                            ? Number(r.total_workers)
-                            : 0}
-                      </TableCell>
-                      <TableCell>
-                        {Number.isFinite(Number(r.document_count)) ? Number(r.document_count) : 0}
-                      </TableCell>
-                      <TableCell>
-                        {Number.isFinite(Number(r.total_manhours))
-                          ? Number(r.total_manhours).toFixed(1)
-                          : '0.0'}{' '}
-                        공수
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            className="underline text-blue-600"
-                            onClick={() => {
-                              try {
-                                const d = r.work_date ? new Date(r.work_date) : null
-                                const yyyy = d ? String(d.getFullYear()).padStart(4, '0') : ''
-                                const mm = d ? String(d.getMonth() + 1).padStart(2, '0') : ''
-                                const dd = d ? String(d.getDate()).padStart(2, '0') : ''
-                                const ds = d ? `${yyyy}-${mm}-${dd}` : null
-                                setPhotoDate(ds)
-                              } catch {
-                                /* noop */
-                              }
-                              onTabChange('photos')
-                            }}
-                            title="사진 탭으로 이동"
-                          >
-                            사진보기
-                          </button>
-                          <a
-                            href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}
-                            className="underline text-blue-600"
-                            title="사진대지 리포트 보기"
-                          >
-                            사진대지
-                          </a>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
+            <DataTable<any>
+              data={recentReports}
+              rowKey={(r: any) => r.id || `${r.work_date}-${r.member_name || ''}`}
+              stickyHeader
+              emptyMessage="표시할 작업일지가 없습니다."
+              columns={
+                [
+                  {
+                    key: 'work_date',
+                    header: '작업일자',
+                    sortable: true,
+                    accessor: (r: any) => r?.work_date || '',
+                    render: (r: any) =>
+                      r?.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-',
+                  },
+                  {
+                    key: 'member',
+                    header: '작성자',
+                    sortable: true,
+                    accessor: (r: any) => r?.member_name || r?.profiles?.full_name || '',
+                    render: (r: any) => r?.member_name || r?.profiles?.full_name || '-',
+                  },
+                  {
+                    key: 'status',
+                    header: '상태',
+                    sortable: true,
+                    accessor: (r: any) => r?.status || '',
+                    render: (r: any) => {
+                      const m: Record<string, string> = {
+                        draft: '임시저장',
+                        submitted: '제출됨',
+                        approved: '승인',
+                        rejected: '반려',
+                        completed: '완료',
+                      }
+                      const s = String(r?.status || '')
+                      return m[s] || s || '-'
+                    },
+                  },
+                  {
+                    key: 'workers',
+                    header: '인원',
+                    sortable: true,
+                    accessor: (r: any) => Number(r?.worker_count ?? r?.total_workers ?? 0),
+                    render: (r: any) =>
+                      Number.isFinite(Number(r?.worker_count))
+                        ? Number(r.worker_count)
+                        : Number.isFinite(Number(r?.total_workers))
+                          ? Number(r.total_workers)
+                          : 0,
+                    align: 'right',
+                    width: '10%',
+                  },
+                  {
+                    key: 'docs',
+                    header: '문서',
+                    sortable: true,
+                    accessor: (r: any) => Number(r?.document_count ?? 0),
+                    render: (r: any) =>
+                      Number.isFinite(Number(r?.document_count)) ? Number(r.document_count) : 0,
+                    align: 'right',
+                    width: '10%',
+                  },
+                  {
+                    key: 'manhours',
+                    header: '공수',
+                    sortable: true,
+                    accessor: (r: any) => Number(r?.total_manhours ?? 0),
+                    render: (r: any) =>
+                      `${Number.isFinite(Number(r?.total_manhours)) ? Number(r.total_manhours).toFixed(1) : '0.0'} 공수`,
+                    align: 'right',
+                    width: '12%',
+                  },
+                  {
+                    key: 'actions',
+                    header: '바로가기',
+                    sortable: false,
+                    render: (r: any) => (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="underline text-blue-600"
+                          onClick={() => {
+                            try {
+                              const d = r?.work_date ? new Date(r.work_date) : null
+                              const yyyy = d ? String(d.getFullYear()).padStart(4, '0') : ''
+                              const mm = d ? String(d.getMonth() + 1).padStart(2, '0') : ''
+                              const dd = d ? String(d.getDate()).padStart(2, '0') : ''
+                              const ds = d ? `${yyyy}-${mm}-${dd}` : null
+                              setPhotoDate(ds)
+                            } catch {
+                              /* noop */
+                            }
+                            onTabChange('photos')
+                          }}
+                          title="사진 탭으로 이동"
+                        >
+                          사진보기
+                        </button>
+                        <a
+                          href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}
+                          className="underline text-blue-600"
+                          title="사진대지 리포트 보기"
+                        >
+                          사진대지
+                        </a>
+                      </div>
+                    ),
+                    width: '18%',
+                  },
+                ] as Column<any>[]
+              }
+            />
           </div>
         </TabsContent>
 
@@ -1246,77 +1343,77 @@ export default function SiteDetailTabs({
             </Button>
           </div>
           <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>등록일</TableHead>
-                  <TableHead>문서명</TableHead>
-                  <TableHead>유형</TableHead>
-                  <TableHead>상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(() => {
-                  const docs = (initialDocs || []).filter((d: any) => {
-                    if (docFilter === 'all') return true
-                    const category = String(d?.category_type || '')
-                    const docType = String(d?.document_type || '')
-                    const sub = String(d?.sub_category || '')
-                    if (docFilter === 'ptw')
-                      return docType === 'ptw' || sub === 'safety_certificate' || category === 'ptw'
-                    if (docFilter === 'blueprint') return category === 'blueprint'
-                    if (docFilter === 'shared') return category === 'shared'
-                    return true
-                  })
-                  if (docs.length === 0) {
-                    return (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="text-center text-sm text-muted-foreground py-10"
-                        >
-                          표시할 문서가 없습니다.
-                        </TableCell>
-                      </TableRow>
-                    )
-                  }
-                  return docs.map((d: any, idx: number) => (
-                    <TableRow
-                      key={`${d?.id ?? d?.document_id ?? d?.file_id ?? d?.url ?? 'doc'}-${idx}`}
-                    >
-                      <TableCell>
-                        {(() => {
-                          const raw = d.created_at || d.uploadDate || d.createdAt
-                          try {
-                            return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
-                          } catch {
-                            return '-'
-                          }
-                        })()}
-                      </TableCell>
-                      <TableCell className="font-medium text-foreground">
-                        <a
-                          href={buildDocPreviewHref(d)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline text-blue-600"
-                        >
-                          {d.title || '-'}
-                        </a>
-                      </TableCell>
-                      <TableCell>
-                        {d?.category_type
-                          ? CATEGORY_LABELS[String(d.category_type)] || String(d.category_type)
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                })()}
-              </TableBody>
-            </Table>
+            <DataTable<any>
+              data={(initialDocs || []).filter((d: any) => {
+                if (docFilter === 'all') return true
+                const category = String(d?.category_type || '')
+                const docType = String(d?.document_type || '')
+                const sub = String(d?.sub_category || '')
+                if (docFilter === 'ptw')
+                  return docType === 'ptw' || sub === 'safety_certificate' || category === 'ptw'
+                if (docFilter === 'blueprint') return category === 'blueprint'
+                if (docFilter === 'shared') return category === 'shared'
+                return true
+              })}
+              rowKey={(d: any, idx?: number) =>
+                d.id || d.document_id || d.file_id || d.url || idx || 'doc'
+              }
+              stickyHeader
+              emptyMessage="표시할 문서가 없습니다."
+              columns={
+                [
+                  {
+                    key: 'created_at',
+                    header: '등록일',
+                    sortable: true,
+                    accessor: (d: any) => d?.created_at || d?.uploadDate || d?.createdAt || '',
+                    render: (d: any) => {
+                      const raw = d?.created_at || d?.uploadDate || d?.createdAt
+                      try {
+                        return raw ? new Date(raw).toLocaleDateString('ko-KR') : '-'
+                      } catch {
+                        return '-'
+                      }
+                    },
+                    width: '18%',
+                  },
+                  {
+                    key: 'title',
+                    header: '문서명',
+                    sortable: true,
+                    accessor: (d: any) => d?.title || '',
+                    render: (d: any) => (
+                      <a
+                        href={buildDocPreviewHref(d)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline text-blue-600 font-medium text-foreground"
+                      >
+                        {d?.title || '-'}
+                      </a>
+                    ),
+                  },
+                  {
+                    key: 'category',
+                    header: '유형',
+                    sortable: true,
+                    accessor: (d: any) => d?.category_type || '',
+                    render: (d: any) =>
+                      d?.category_type
+                        ? CATEGORY_LABELS[String(d.category_type)] || String(d.category_type)
+                        : '-',
+                  },
+                  {
+                    key: 'status',
+                    header: '상태',
+                    sortable: true,
+                    accessor: (d: any) => d?.status || '',
+                    render: (d: any) =>
+                      d?.status ? STATUS_LABELS[String(d.status)] || String(d.status) : '-',
+                  },
+                ] as Column<any>[]
+              }
+            />
           </div>
         </TabsContent>
 
@@ -1434,93 +1531,112 @@ export default function SiteDetailTabs({
               <TableSkeleton rows={6} />
             ) : (
               <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>이름</TableHead>
-                      <TableHead>소속</TableHead>
-                      <TableHead>역할</TableHead>
-                      <TableHead>현장 공수</TableHead>
-                      <TableHead>전체 공수</TableHead>
-                      <TableHead>배정일</TableHead>
-                      <TableHead>작업</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(() => {
-                      const rows = filteredAndSortedAssignments(
-                        recentAssignments,
-                        laborByUser,
-                        assignmentQuery,
-                        assignmentSort,
-                        assignmentRole
-                      )
-                      if (rows.length === 0) {
-                        return (
-                          <TableRow>
-                            <TableCell
-                              colSpan={7}
-                              className="text-center text-sm text-muted-foreground py-10"
-                            >
-                              배정된 사용자가 없습니다.
-                            </TableCell>
-                          </TableRow>
-                        )
-                      }
-                      return rows.map((a: any, idx: number) => (
-                        <TableRow key={`${a?.id ?? a?.user_id ?? 'assign'}-${idx}`}>
-                          <TableCell className="font-medium text-foreground">
-                            <a
-                              href={`/dashboard/admin/users/${a.user_id}`}
-                              className="underline text-blue-600 hover:underline"
-                              title="사용자 상세 보기"
-                            >
-                              {a.profile?.full_name || a.user_id}
-                            </a>
-                          </TableCell>
-                          <TableCell>{a.profile?.organization?.name || '-'}</TableCell>
-                          <TableCell>{a.role || '-'}</TableCell>
-                          <TableCell>
-                            {Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수
-                          </TableCell>
-                          <TableCell>
-                            {Math.max(0, globalLaborByUser[a.user_id] ?? 0).toFixed(1)} 공수
-                          </TableCell>
-                          <TableCell>
-                            {a.assigned_date
-                              ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
-                              : '-'}
-                          </TableCell>
-                          <TableCell>
-                            <button
-                              type="button"
-                              className="text-xs underline text-red-600"
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch(
-                                    `/api/admin/sites/${siteId}/workers/unassign`,
-                                    {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ worker_id: a.user_id }),
-                                    }
-                                  )
-                                  const j = await res.json().catch(() => ({}))
-                                  if (!res.ok || j?.error) throw new Error(j?.error || '제외 실패')
-                                  if (typeof window !== 'undefined') window.location.reload()
-                                } catch {
-                                  alert('제외 중 오류가 발생했습니다.')
-                                }
-                              }}
-                            >
-                              제외
-                            </button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    })()}
-                  </TableBody>
-                </Table>
+                <DataTable<any>
+                  data={filteredAndSortedAssignments(
+                    recentAssignments,
+                    laborByUser,
+                    assignmentQuery,
+                    assignmentSort,
+                    assignmentRole
+                  )}
+                  rowKey={(a: any, idx?: number) => a.id || a.user_id || idx || 'assign'}
+                  stickyHeader
+                  emptyMessage="배정된 사용자가 없습니다."
+                  columns={
+                    [
+                      {
+                        key: 'name',
+                        header: '이름',
+                        sortable: true,
+                        accessor: (a: any) => a?.profile?.full_name || a?.user_id || '',
+                        render: (a: any) => (
+                          <a
+                            href={`/dashboard/admin/users/${a.user_id}`}
+                            className="underline text-blue-600 font-medium text-foreground"
+                            title="사용자 상세 보기"
+                          >
+                            {a?.profile?.full_name || a?.user_id}
+                          </a>
+                        ),
+                      },
+                      {
+                        key: 'company',
+                        header: '소속',
+                        sortable: true,
+                        accessor: (a: any) => a?.profile?.organization?.name || '',
+                        render: (a: any) => a?.profile?.organization?.name || '-',
+                      },
+                      {
+                        key: 'role',
+                        header: '역할',
+                        sortable: true,
+                        accessor: (a: any) => a?.role || '',
+                        render: (a: any) => a?.role || '-',
+                      },
+                      {
+                        key: 'site_labor',
+                        header: '현장 공수',
+                        sortable: true,
+                        accessor: (a: any) => Number(laborByUser[a?.user_id] ?? 0),
+                        render: (a: any) =>
+                          `${Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수`,
+                        align: 'right',
+                        width: '14%',
+                      },
+                      {
+                        key: 'global_labor',
+                        header: '전체 공수',
+                        sortable: true,
+                        accessor: (a: any) => Number(globalLaborByUser[a?.user_id] ?? 0),
+                        render: (a: any) =>
+                          `${Math.max(0, globalLaborByUser[a.user_id] ?? 0).toFixed(1)} 공수`,
+                        align: 'right',
+                        width: '14%',
+                      },
+                      {
+                        key: 'assigned_at',
+                        header: '배정일',
+                        sortable: true,
+                        accessor: (a: any) => a?.assigned_date || '',
+                        render: (a: any) =>
+                          a?.assigned_date
+                            ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
+                            : '-',
+                      },
+                      {
+                        key: 'actions',
+                        header: '작업',
+                        sortable: false,
+                        render: (a: any) => (
+                          <button
+                            type="button"
+                            className="text-xs underline text-red-600"
+                            onClick={async () => {
+                              try {
+                                const res = await fetch(
+                                  `/api/admin/sites/${siteId}/workers/unassign`,
+                                  {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ worker_id: a.user_id }),
+                                  }
+                                )
+                                const j = await res.json().catch(() => ({}))
+                                if (!res.ok || j?.error) throw new Error(j?.error || '제외 실패')
+                                if (typeof window !== 'undefined') window.location.reload()
+                              } catch {
+                                alert('제외 중 오류가 발생했습니다.')
+                              }
+                            }}
+                          >
+                            제외
+                          </button>
+                        ),
+                        width: '12%',
+                      },
+                    ] as Column<any>[]
+                  }
+                />
                 {(() => {
                   const rows = filteredAndSortedAssignments(
                     recentAssignments,
@@ -1719,53 +1835,55 @@ export default function SiteDetailTabs({
             {requestsLoading && reqRows.length === 0 ? (
               <TableSkeleton rows={6} />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>요청번호</TableHead>
-                    <TableHead>요청자</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead>요청일</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const rows = reqRows
-                    if (rows.length === 0) {
-                      return (
-                        <TableRow>
-                          <TableCell
-                            colSpan={4}
-                            className="text-center text-sm text-muted-foreground py-10"
-                          >
-                            요청 내역이 없습니다.
-                          </TableCell>
-                        </TableRow>
-                      )
-                    }
-                    return rows.map((rq: any, idx: number) => (
-                      <TableRow key={`${rq?.id ?? rq?.request_number ?? 'req'}-${idx}`}>
-                        <TableCell className="font-medium text-foreground">
-                          <a
-                            href={`/dashboard/admin/materials/requests/${rq.id}`}
-                            className="underline text-blue-600"
-                            title="요청 상세 보기"
-                          >
-                            {rq.request_number || rq.id}
-                          </a>
-                        </TableCell>
-                        <TableCell>{rq.requester?.full_name || rq.requested_by || '-'}</TableCell>
-                        <TableCell>{rq.status || '-'}</TableCell>
-                        <TableCell>
-                          {rq.request_date
-                            ? new Date(rq.request_date).toLocaleDateString('ko-KR')
-                            : '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  })()}
-                </TableBody>
-              </Table>
+              <DataTable<any>
+                data={reqRows}
+                rowKey={(rq: any, idx?: number) => rq.id || rq.request_number || idx || 'req'}
+                stickyHeader
+                emptyMessage="요청 내역이 없습니다."
+                columns={
+                  [
+                    {
+                      key: 'number',
+                      header: '요청번호',
+                      sortable: true,
+                      accessor: (rq: any) => rq?.request_number || rq?.id || '',
+                      render: (rq: any) => (
+                        <a
+                          href={`/dashboard/admin/materials/requests/${rq.id}`}
+                          className="underline text-blue-600"
+                          title="요청 상세 보기"
+                        >
+                          {rq?.request_number || rq?.id}
+                        </a>
+                      ),
+                    },
+                    {
+                      key: 'requester',
+                      header: '요청자',
+                      sortable: true,
+                      accessor: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '',
+                      render: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '-',
+                    },
+                    {
+                      key: 'status',
+                      header: '상태',
+                      sortable: true,
+                      accessor: (rq: any) => rq?.status || '',
+                      render: (rq: any) => rq?.status || '-',
+                    },
+                    {
+                      key: 'date',
+                      header: '요청일',
+                      sortable: true,
+                      accessor: (rq: any) => rq?.request_date || '',
+                      render: (rq: any) =>
+                        rq?.request_date
+                          ? new Date(rq.request_date).toLocaleDateString('ko-KR')
+                          : '-',
+                    },
+                  ] as Column<any>[]
+                }
+              />
             )}
             <div className="flex items-center justify-end gap-2 mt-2">
               <Button
@@ -1848,65 +1966,73 @@ export default function SiteDetailTabs({
             {invLoading && inventory.length === 0 ? (
               <TableSkeleton rows={5} />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>자재</TableHead>
-                    <TableHead>코드</TableHead>
-                    <TableHead className="text-right">수량</TableHead>
-                    <TableHead>단위</TableHead>
-                    <TableHead>업데이트</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const q = invQuery.trim().toLowerCase()
-                    const rows = (Array.isArray(inventory) ? inventory : []).filter((it: any) => {
-                      if (!q) return true
-                      const name = String(it?.materials?.name || '').toLowerCase()
-                      const code = String(it?.materials?.code || '').toLowerCase()
-                      return name.includes(q) || code.includes(q)
-                    })
-                    if (rows.length === 0) {
-                      return (
-                        <TableRow>
-                          <TableCell
-                            colSpan={5}
-                            className="text-center text-sm text-muted-foreground py-10"
+              <DataTable<any>
+                data={(Array.isArray(inventory) ? inventory : []).filter((it: any) => {
+                  const q = invQuery.trim().toLowerCase()
+                  if (!q) return true
+                  const name = String(it?.materials?.name || '').toLowerCase()
+                  const code = String(it?.materials?.code || '').toLowerCase()
+                  return name.includes(q) || code.includes(q)
+                })}
+                rowKey={(it: any) => it.id}
+                stickyHeader
+                emptyMessage="재고 데이터가 없습니다."
+                columns={
+                  [
+                    {
+                      key: 'name',
+                      header: '자재',
+                      sortable: true,
+                      accessor: (it: any) => it?.materials?.name || '',
+                      render: (it: any) =>
+                        it?.materials?.code ? (
+                          <a
+                            href={`/dashboard/admin/materials?tab=inventory&search=${encodeURIComponent(it.materials.code)}&site_id=${siteId}`}
+                            className="underline text-blue-600"
+                            title="자재관리 인벤토리로 이동"
                           >
-                            재고 데이터가 없습니다.
-                          </TableCell>
-                        </TableRow>
-                      )
-                    }
-                    return rows.map((it: any) => (
-                      <TableRow key={it.id}>
-                        <TableCell className="font-medium text-foreground">
-                          {it.materials?.code ? (
-                            <a
-                              href={`/dashboard/admin/materials?tab=inventory&search=${encodeURIComponent(it.materials.code)}&site_id=${siteId}`}
-                              className="underline text-blue-600"
-                              title="자재관리 인벤토리로 이동"
-                            >
-                              {it.materials?.name || '-'}
-                            </a>
-                          ) : (
-                            it.materials?.name || '-'
-                          )}
-                        </TableCell>
-                        <TableCell>{it.materials?.code || '-'}</TableCell>
-                        <TableCell className="text-right">{Number(it.quantity ?? 0)}</TableCell>
-                        <TableCell>{it.materials?.unit || '-'}</TableCell>
-                        <TableCell>
-                          {it.last_updated
-                            ? new Date(it.last_updated).toLocaleDateString('ko-KR')
-                            : '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  })()}
-                </TableBody>
-              </Table>
+                            {it?.materials?.name || '-'}
+                          </a>
+                        ) : (
+                          it?.materials?.name || '-'
+                        ),
+                    },
+                    {
+                      key: 'code',
+                      header: '코드',
+                      sortable: true,
+                      accessor: (it: any) => it?.materials?.code || '',
+                      render: (it: any) => it?.materials?.code || '-',
+                    },
+                    {
+                      key: 'qty',
+                      header: '수량',
+                      sortable: true,
+                      accessor: (it: any) => Number(it?.quantity ?? 0),
+                      render: (it: any) => Number(it?.quantity ?? 0),
+                      align: 'right',
+                      width: '12%',
+                    },
+                    {
+                      key: 'unit',
+                      header: '단위',
+                      sortable: true,
+                      accessor: (it: any) => it?.materials?.unit || '',
+                      render: (it: any) => it?.materials?.unit || '-',
+                    },
+                    {
+                      key: 'updated',
+                      header: '업데이트',
+                      sortable: true,
+                      accessor: (it: any) => it?.last_updated || '',
+                      render: (it: any) =>
+                        it?.last_updated
+                          ? new Date(it.last_updated).toLocaleDateString('ko-KR')
+                          : '-',
+                    },
+                  ] as Column<any>[]
+                }
+              />
             )}
           </div>
 
@@ -1931,56 +2057,53 @@ export default function SiteDetailTabs({
             {shipLoading && shipments.length === 0 ? (
               <TableSkeleton rows={5} />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>출고번호</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead>출고일</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const q = shipQuery.trim().toLowerCase()
-                    const rows = (Array.isArray(shipments) ? shipments : []).filter((s: any) => {
-                      if (!q) return true
-                      const num = String(s?.shipment_number || s?.id || '').toLowerCase()
-                      const st = String(s?.status || '').toLowerCase()
-                      return num.includes(q) || st.includes(q)
-                    })
-                    if (rows.length === 0) {
-                      return (
-                        <TableRow>
-                          <TableCell
-                            colSpan={3}
-                            className="text-center text-sm text-muted-foreground py-10"
-                          >
-                            최근 출고 내역이 없습니다.
-                          </TableCell>
-                        </TableRow>
-                      )
-                    }
-                    return rows.map((s: any) => (
-                      <TableRow key={s.id}>
-                        <TableCell className="font-medium text-foreground">
-                          <a
-                            href={`/dashboard/admin/materials/shipments/${s.id}`}
-                            className="underline text-blue-600"
-                          >
-                            {s.shipment_number || s.id}
-                          </a>
-                        </TableCell>
-                        <TableCell>{s.status || '-'}</TableCell>
-                        <TableCell>
-                          {s.shipment_date
-                            ? new Date(s.shipment_date).toLocaleDateString('ko-KR')
-                            : '-'}
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  })()}
-                </TableBody>
-              </Table>
+              <DataTable<any>
+                data={(Array.isArray(shipments) ? shipments : []).filter((s: any) => {
+                  const q = shipQuery.trim().toLowerCase()
+                  if (!q) return true
+                  const num = String(s?.shipment_number || s?.id || '').toLowerCase()
+                  const st = String(s?.status || '').toLowerCase()
+                  return num.includes(q) || st.includes(q)
+                })}
+                rowKey={(s: any) => s.id}
+                stickyHeader
+                emptyMessage="최근 출고 내역이 없습니다."
+                columns={
+                  [
+                    {
+                      key: 'number',
+                      header: '출고번호',
+                      sortable: true,
+                      accessor: (s: any) => s?.shipment_number || s?.id || '',
+                      render: (s: any) => (
+                        <a
+                          href={`/dashboard/admin/materials/shipments/${s.id}`}
+                          className="underline text-blue-600"
+                        >
+                          {s?.shipment_number || s?.id}
+                        </a>
+                      ),
+                    },
+                    {
+                      key: 'status',
+                      header: '상태',
+                      sortable: true,
+                      accessor: (s: any) => s?.status || '',
+                      render: (s: any) => s?.status || '-',
+                    },
+                    {
+                      key: 'date',
+                      header: '출고일',
+                      sortable: true,
+                      accessor: (s: any) => s?.shipment_date || '',
+                      render: (s: any) =>
+                        s?.shipment_date
+                          ? new Date(s.shipment_date).toLocaleDateString('ko-KR')
+                          : '-',
+                    },
+                  ] as Column<any>[]
+                }
+              />
             )}
           </div>
 
@@ -2028,48 +2151,55 @@ export default function SiteDetailTabs({
             {txnLoading && transactions.length === 0 ? (
               <TableSkeleton rows={5} />
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>일자</TableHead>
-                    <TableHead>유형</TableHead>
-                    <TableHead>자재</TableHead>
-                    <TableHead className="text-right">수량</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {(() => {
-                    const rows = transactions
-                    if (rows.length === 0) {
-                      return (
-                        <TableRow>
-                          <TableCell
-                            colSpan={4}
-                            className="text-center text-sm text-muted-foreground py-10"
-                          >
-                            최근 입출고 내역이 없습니다.
-                          </TableCell>
-                        </TableRow>
-                      )
-                    }
-                    return rows.map((t: any) => (
-                      <TableRow key={t.id}>
-                        <TableCell className="font-medium text-foreground">
-                          {t.transaction_date
-                            ? new Date(t.transaction_date).toLocaleDateString('ko-KR')
-                            : '-'}
-                        </TableCell>
-                        <TableCell>{t.transaction_type || '-'}</TableCell>
-                        <TableCell>
-                          {t.materials?.name || '-'}
-                          {t.materials?.code ? ` (${t.materials.code})` : ''}
-                        </TableCell>
-                        <TableCell className="text-right">{Number(t.quantity ?? 0)}</TableCell>
-                      </TableRow>
-                    ))
-                  })()}
-                </TableBody>
-              </Table>
+              <DataTable<any>
+                data={transactions}
+                rowKey={(t: any) => t.id}
+                stickyHeader
+                emptyMessage="최근 입출고 내역이 없습니다."
+                columns={
+                  [
+                    {
+                      key: 'date',
+                      header: '일자',
+                      sortable: true,
+                      accessor: (t: any) => t?.transaction_date || '',
+                      render: (t: any) =>
+                        t?.transaction_date
+                          ? new Date(t.transaction_date).toLocaleDateString('ko-KR')
+                          : '-',
+                    },
+                    {
+                      key: 'type',
+                      header: '유형',
+                      sortable: true,
+                      accessor: (t: any) => t?.transaction_type || '',
+                      render: (t: any) => t?.transaction_type || '-',
+                    },
+                    {
+                      key: 'material',
+                      header: '자재',
+                      sortable: true,
+                      accessor: (t: any) =>
+                        `${t?.materials?.name || ''} ${t?.materials?.code || ''}`.trim(),
+                      render: (t: any) => (
+                        <span>
+                          {t?.materials?.name || '-'}
+                          {t?.materials?.code ? ` (${t.materials.code})` : ''}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'qty',
+                      header: '수량',
+                      sortable: true,
+                      accessor: (t: any) => Number(t?.quantity ?? 0),
+                      render: (t: any) => Number(t?.quantity ?? 0),
+                      align: 'right',
+                      width: '12%',
+                    },
+                  ] as Column<any>[]
+                }
+              />
             )}
             <div className="flex items-center justify-end gap-2 mt-2">
               <Button

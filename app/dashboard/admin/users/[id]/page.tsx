@@ -3,14 +3,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getUser } from '@/app/actions/admin/users'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 
 export const metadata: Metadata = {
   title: '사용자 상세',
@@ -20,6 +13,15 @@ interface UserDetailPageProps {
   params: {
     id: string
   }
+}
+
+const STATUS_KO: Record<string, string> = {
+  active: '활성',
+  inactive: '비활성',
+  pending: '대기',
+  approved: '승인',
+  rejected: '반려',
+  uploaded: '업로드됨',
 }
 
 export default async function AdminUserDetailPage({ params }: UserDetailPageProps) {
@@ -51,7 +53,9 @@ export default async function AdminUserDetailPage({ params }: UserDetailPageProp
           <div>
             역할: <span className="text-foreground font-medium">{user?.role || '-'}</span>
           </div>
-          <div>상태: {user?.status || '-'}</div>
+          <div>
+            상태: {user?.status ? STATUS_KO[String(user.status)] || String(user.status) : '-'}
+          </div>
           <div>조직: {user?.organization?.name || '-'}</div>
           <div>
             최근 로그인:{' '}
@@ -66,38 +70,50 @@ export default async function AdminUserDetailPage({ params }: UserDetailPageProp
           <CardDescription>사용자에게 배정된 현장</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>현장</TableHead>
-                <TableHead>역할</TableHead>
-                <TableHead>배정일</TableHead>
-                <TableHead>상태</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {!Array.isArray(user?.site_assignments) || user.site_assignments.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
-                    배정된 현장이 없습니다.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                user.site_assignments.map((a: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell className="font-medium text-foreground">
-                      {a.site_name || a.site_id}
-                    </TableCell>
-                    <TableCell>{a.role || '-'}</TableCell>
-                    <TableCell>
-                      {a.assigned_at ? new Date(a.assigned_at).toLocaleDateString('ko-KR') : '-'}
-                    </TableCell>
-                    <TableCell>{a.is_active ? '활성' : '비활성'}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          {!Array.isArray(user?.site_assignments) || user.site_assignments.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              배정된 현장이 없습니다.
+            </div>
+          ) : (
+            <DataTable
+              data={user.site_assignments}
+              rowKey={(a: any) => `${a.site_id}-${a.assigned_at || ''}`}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'site',
+                    header: '현장',
+                    sortable: true,
+                    render: (a: any) => (
+                      <span className="font-medium text-foreground">
+                        {a?.site_name || a?.site_id}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'role',
+                    header: '역할',
+                    sortable: true,
+                    render: (a: any) => a?.role || '-',
+                  },
+                  {
+                    key: 'assigned_at',
+                    header: '배정일',
+                    sortable: true,
+                    render: (a: any) =>
+                      a?.assigned_at ? new Date(a.assigned_at).toLocaleDateString('ko-KR') : '-',
+                  },
+                  {
+                    key: 'active',
+                    header: '상태',
+                    sortable: true,
+                    render: (a: any) => (a?.is_active ? '활성' : '비활성'),
+                  },
+                ] as Column<any>[]
+              }
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -107,38 +123,56 @@ export default async function AdminUserDetailPage({ params }: UserDetailPageProp
           <CardDescription>유형별 제출 상태</CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>유형</TableHead>
-                <TableHead>파일명</TableHead>
-                <TableHead>상태</TableHead>
-                <TableHead>제출일</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {!Array.isArray(user?.required_documents) || user.required_documents.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={4} className="text-center text-sm text-muted-foreground py-8">
-                    제출된 서류가 없습니다.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                user.required_documents.map((d: any, idx: number) => (
-                  <TableRow key={idx}>
-                    <TableCell className="font-medium text-foreground">{d.document_type}</TableCell>
-                    <TableCell className="truncate max-w-[320px]" title={d.document_name || ''}>
-                      {d.document_name || '-'}
-                    </TableCell>
-                    <TableCell>{d.status}</TableCell>
-                    <TableCell>
-                      {d.submitted_at ? new Date(d.submitted_at).toLocaleDateString('ko-KR') : '-'}
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+          {!Array.isArray(user?.required_documents) || user.required_documents.length === 0 ? (
+            <div className="text-sm text-muted-foreground py-8 text-center">
+              제출된 서류가 없습니다.
+            </div>
+          ) : (
+            <DataTable
+              data={user.required_documents}
+              rowKey={(d: any) => d.id || `${d.document_type}-${d.document_name}`}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'type',
+                    header: '유형',
+                    sortable: true,
+                    render: (d: any) => (
+                      <span className="font-medium text-foreground">{d.document_type}</span>
+                    ),
+                  },
+                  {
+                    key: 'name',
+                    header: '파일명',
+                    sortable: true,
+                    render: (d: any) => (
+                      <span
+                        className="truncate inline-block max-w-[320px]"
+                        title={d.document_name || ''}
+                      >
+                        {d.document_name || '-'}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: '상태',
+                    sortable: true,
+                    render: (d: any) =>
+                      d.status ? STATUS_KO[String(d.status)] || String(d.status) : '-',
+                  },
+                  {
+                    key: 'submitted_at',
+                    header: '제출일',
+                    sortable: true,
+                    render: (d: any) =>
+                      d.submitted_at ? new Date(d.submitted_at).toLocaleDateString('ko-KR') : '-',
+                  },
+                ] as Column<any>[]
+              }
+            />
+          )}
         </CardContent>
       </Card>
 

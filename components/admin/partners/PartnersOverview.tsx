@@ -3,14 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Building, Building2, Mail, Phone, RefreshCw, Users } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -160,69 +153,89 @@ export function PartnersOverview() {
       ) : (
         <Card>
           <CardContent className="px-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[30%]">파트너사</TableHead>
-                  <TableHead className="w-[14%]">유형</TableHead>
-                  <TableHead className="w-[20%]">담당자</TableHead>
-                  <TableHead>연락처</TableHead>
-                  <TableHead className="w-[10%] text-right">상태</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPartners.map(partner => (
-                  <TableRow key={partner.id}>
-                    <TableCell>
-                      <div className="font-medium text-foreground">{partner.company_name}</div>
-                    </TableCell>
-                    <TableCell>
-                      {partner.company_type ? (
+            <DataTable<PartnerCompany>
+              data={filteredPartners}
+              rowKey={p => p.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'company_name',
+                    header: '파트너사',
+                    sortable: true,
+                    width: '30%',
+                    render: (p: PartnerCompany) => (
+                      <div className="font-medium text-foreground">{p.company_name}</div>
+                    ),
+                  },
+                  {
+                    key: 'company_type',
+                    header: '유형',
+                    sortable: true,
+                    width: '14%',
+                    render: (p: PartnerCompany) =>
+                      p.company_type ? (
                         <Badge variant="outline">
-                          {COMPANY_TYPE_LABEL[partner.company_type] || partner.company_type}
+                          {COMPANY_TYPE_LABEL[p.company_type] || p.company_type}
                         </Badge>
                       ) : (
                         <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {partner.contact_name ? (
+                      ),
+                  },
+                  {
+                    key: 'contact_name',
+                    header: '담당자',
+                    sortable: true,
+                    width: '20%',
+                    render: (p: PartnerCompany) =>
+                      p.contact_name ? (
                         <div className="flex items-center gap-2 text-sm">
                           <Users className="h-4 w-4 text-muted-foreground" />
-                          {partner.contact_name}
+                          {p.contact_name}
                         </div>
                       ) : (
                         <span className="text-xs text-muted-foreground">미등록</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
+                      ),
+                  },
+                  {
+                    key: 'contact',
+                    header: '연락처',
+                    sortable: false,
+                    render: (p: PartnerCompany) => (
                       <div className="space-y-1 text-sm">
-                        {partner.contact_phone ? (
+                        {p.contact_phone ? (
                           <div className="flex items-center gap-1">
                             <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                            {partner.contact_phone}
+                            {p.contact_phone}
                           </div>
                         ) : null}
-                        {partner.contact_name ? (
+                        {p.contact_name ? (
                           <div className="flex items-center gap-1">
                             <Mail className="h-3.5 w-3.5 text-muted-foreground" />
-                            담당: {partner.contact_name}
+                            담당: {p.contact_name}
                           </div>
                         ) : null}
-                        {!partner.contact_phone && !partner.contact_name ? (
+                        {!p.contact_phone && !p.contact_name ? (
                           <span className="text-xs text-muted-foreground">등록된 연락처 없음</span>
                         ) : null}
                       </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={partner.status === 'active' ? 'secondary' : 'outline'}>
-                        {partner.status === 'active' ? '활성' : '비활성'}
+                    ),
+                  },
+                  {
+                    key: 'status',
+                    header: '상태',
+                    sortable: true,
+                    width: '10%',
+                    align: 'right',
+                    render: (p: PartnerCompany) => (
+                      <Badge variant={p.status === 'active' ? 'secondary' : 'outline'}>
+                        {p.status === 'active' ? '활성' : '비활성'}
                       </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                    ),
+                  },
+                ] as Column<PartnerCompany>[]
+              }
+            />
           </CardContent>
         </Card>
       )}

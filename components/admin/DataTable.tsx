@@ -97,7 +97,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   return (
     <div className={cn('rounded-lg border bg-card p-0 shadow-sm overflow-x-auto', className)}>
       <Table>
-        <TableHeader className={cn(stickyHeader && 'sticky top-0 z-10 bg-card')}>
+        <TableHeader className={cn('bg-[--brand-300]', stickyHeader && 'sticky top-0 z-10')}>
           <TableRow>
             {columns.map(col => {
               const isSorted = sort?.key === col.key
@@ -121,7 +121,10 @@ export function DataTable<T>(props: DataTableProps<T>) {
                   key={col.key}
                   style={{ width: col.width }}
                   aria-sort={ariaSort as any}
-                  className={cn('font-semibold text-foreground select-none', col.headerClassName)}
+                  className={cn(
+                    'font-semibold text-[--neutral-50] select-none',
+                    col.headerClassName
+                  )}
                 >
                   {col.sortable ? (
                     <button
@@ -129,7 +132,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
                       onClick={() => handleSort(col.key, col.sortable)}
                       className={cn(
                         'inline-flex items-center gap-1 hover:underline',
-                        align.className
+                        align.className,
+                        'text-[--neutral-50]'
                       )}
                     >
                       <span>{col.header}</span>
@@ -140,11 +144,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
                           <ArrowDown className="w-3.5 h-3.5" aria-hidden />
                         )
                       ) : (
-                        <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" aria-hidden />
+                        <ArrowUpDown className="w-3.5 h-3.5 opacity-90" aria-hidden />
                       )}
                     </button>
                   ) : (
-                    <div className={cn('inline-flex items-center', align.className)}>
+                    <div
+                      className={cn(
+                        'inline-flex items-center text-[--neutral-50]',
+                        align.className
+                      )}
+                    >
                       {col.header}
                     </div>
                   )}

@@ -6,14 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import DataTable, { type Column } from '@/components/admin/DataTable'
 import {
   Select,
   SelectContent,
@@ -323,68 +316,84 @@ export function DocumentsContent({
               <p>조건에 맞는 문서가 없습니다.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>제목</TableHead>
-                    <TableHead>유형</TableHead>
-                    <TableHead>승인 상태</TableHead>
-                    <TableHead>소유자</TableHead>
-                    <TableHead>현장</TableHead>
-                    <TableHead>업로드</TableHead>
-                    <TableHead className="text-right">{t('common.details')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {documents.map(document => (
-                    <TableRow
-                      key={document.id}
-                      className="cursor-pointer"
-                      onClick={() => handleOpenDetail(document)}
-                    >
-                      <TableCell>
-                        <div className="font-medium text-foreground">
-                          {document.title || document.file_name}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{document.file_name}</div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {TYPE_LABELS[document.document_type as DocumentType] ||
-                            document.document_type ||
-                            '기타'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={document.approval_status === 'approved' ? 'default' : 'outline'}
-                        >
-                          {APPROVAL_LABELS[document.approval_status as ApprovalStatus] ||
-                            document.approval_status ||
-                            '미정'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{document.owner?.full_name || '미지정'}</TableCell>
-                      <TableCell>{document.site?.name || '미연결'}</TableCell>
-                      <TableCell>{formatDate(document.created_at)}</TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={event => {
-                            event.stopPropagation()
-                            handleOpenDetail(document)
-                          }}
-                        >
-                          {t('common.details')}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable<DocumentWithApproval>
+              data={documents}
+              rowKey={d => d.id}
+              stickyHeader
+              columns={
+                [
+                  {
+                    key: 'title',
+                    header: '제목',
+                    sortable: true,
+                    render: (d: DocumentWithApproval) => (
+                      <div className="cursor-pointer" onClick={() => handleOpenDetail(d)}>
+                        <div className="font-medium text-foreground">{d.title || d.file_name}</div>
+                        <div className="text-xs text-muted-foreground">{d.file_name}</div>
+                      </div>
+                    ),
+                  },
+                  {
+                    key: 'document_type',
+                    header: '유형',
+                    sortable: true,
+                    render: (d: DocumentWithApproval) => (
+                      <Badge variant="outline">
+                        {TYPE_LABELS[d.document_type as DocumentType] || d.document_type || '기타'}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: 'approval_status',
+                    header: '승인 상태',
+                    sortable: true,
+                    render: (d: DocumentWithApproval) => (
+                      <Badge variant={d.approval_status === 'approved' ? 'default' : 'outline'}>
+                        {APPROVAL_LABELS[d.approval_status as ApprovalStatus] ||
+                          d.approval_status ||
+                          '미정'}
+                      </Badge>
+                    ),
+                  },
+                  {
+                    key: 'owner',
+                    header: '소유자',
+                    sortable: true,
+                    render: (d: DocumentWithApproval) => d.owner?.full_name || '미지정',
+                  },
+                  {
+                    key: 'site',
+                    header: '현장',
+                    sortable: true,
+                    render: (d: DocumentWithApproval) => d.site?.name || '미연결',
+                  },
+                  {
+                    key: 'created_at',
+                    header: '업로드',
+                    sortable: true,
+                    render: (d: DocumentWithApproval) => formatDate(d.created_at),
+                  },
+                  {
+                    key: 'details',
+                    header: t('common.details'),
+                    sortable: false,
+                    align: 'right',
+                    render: (d: DocumentWithApproval) => (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={e => {
+                          e.stopPropagation()
+                          handleOpenDetail(d)
+                        }}
+                      >
+                        {t('common.details')}
+                      </Button>
+                    ),
+                  },
+                ] as Column<DocumentWithApproval>[]
+              }
+            />
           )}
         </div>
 

@@ -5,6 +5,7 @@ import { requireAdminProfile } from '@/app/dashboard/admin/utils'
 import { getDailyReportById, updateDailyReport, getSites } from '@/app/actions/admin/daily-reports'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
+import { buttonVariants } from '@/components/ui/button'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = { title: '일일보고 수정' }
@@ -195,7 +196,8 @@ export default async function AdminDailyReportEditPage({ params }: DailyReportEd
                 </Button>
                 <a
                   href={`/dashboard/admin/daily-reports/${params.id}`}
-                  className="inline-flex items-center rounded-md border px-3 py-2 text-sm"
+                  className={buttonVariants({ variant: 'outline', size: 'standard' })}
+                  role="button"
                 >
                   취소
                 </a>

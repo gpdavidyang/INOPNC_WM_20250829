@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import DataTable, { type Column, type SortDirection } from '@/components/admin/DataTable'
 import { Building2, MapPin, RefreshCw, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -80,6 +80,7 @@ interface SitesContentProps {
   initialLoadErrored?: boolean
   fetchBaseUrl?: string // default: /api/admin/sites
   assignmentsBaseUrl?: string // default: /api/admin/sites
+  hideHeader?: boolean
 }
 
 type StatusFilterOption = 'all' | SiteStatus
@@ -115,6 +116,7 @@ export function SitesContent({
   initialLoadErrored = false,
   fetchBaseUrl = '/api/admin/sites',
   assignmentsBaseUrl = '/api/admin/sites',
+  hideHeader = false,
 }: SitesContentProps) {
   const [sites, setSites] = useState<Site[]>(initialSites)
   const [total, setTotal] = useState(initialTotal)
@@ -590,21 +592,32 @@ export function SitesContent({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{t('sites.title')}</h1>
-          <p className="text-sm text-muted-foreground">{t('sites.subtitle')}</p>
+      {!hideHeader && (
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">{t('sites.title')}</h1>
+            <p className="text-sm text-muted-foreground">{t('sites.subtitle')}</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <a
+              href="/dashboard/admin/sites/new"
+              className={buttonVariants({ variant: 'primary', size: 'standard' })}
+              role="button"
+            >
+              {t('sites.create')}
+            </a>
+            <Button
+              variant="outline"
+              size="standard"
+              onClick={() => fetchSites(page)}
+              disabled={loading}
+            >
+              <RefreshCw className={`mr-2 h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
+              {t('common.refresh')}
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild size="sm">
-            <a href="/dashboard/admin/sites/new">{t('sites.create')}</a>
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => fetchSites(page)} disabled={loading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {t('common.refresh')}
-          </Button>
-        </div>
-      </div>
+      )}
 
       <section className="grid gap-4 md:grid-cols-3">
         <Card>
