@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { WorkLog, MemberType, WorkProcess, WorkType, WorkerHours } from '../../types/work-log.types'
 import { FileUploadSection } from './FileUploadSection'
 import type {
@@ -9,6 +9,7 @@ import type {
   WorkType as WType,
 } from '../../types/work-log.types'
 import { cn } from '@/lib/utils'
+import { useWorkOptions } from '@/hooks/use-work-options'
 
 interface WorkLogModalProps {
   isOpen: boolean
@@ -18,8 +19,10 @@ interface WorkLogModalProps {
   mode: 'create' | 'edit' | 'view'
 }
 
-const memberTypeOptions: MemberType[] = ['슬라브', '거더', '기둥', '기타']
-const workProcessOptions: WorkProcess[] = ['균열', '면', '마감', '기타']
+// Dynamic options from admin settings; fallback to defaults when unavailable
+const DEFAULT_MEMBER_TYPES: string[] = ['슬라브', '거더', '기둥']
+const DEFAULT_WORK_PROCESSES: string[] = ['균열', '면', '마감']
+const ensureOther = (arr: string[]) => (arr.includes('기타') ? arr : [...arr, '기타'])
 const workTypeOptions: WorkType[] = ['지하', '지상', '지붕', '기타']
 
 const createInitialFormData = (source?: WorkLog): Partial<WorkLog> => ({
@@ -48,6 +51,15 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
   workLog,
   mode,
 }) => {
+  const { componentTypes, processTypes } = useWorkOptions()
+  const memberTypeOptions = useMemo(
+    () => ensureOther((componentTypes?.map(o => o.option_label) || DEFAULT_MEMBER_TYPES).slice()),
+    [componentTypes]
+  )
+  const workProcessOptions = useMemo(
+    () => ensureOther((processTypes?.map(o => o.option_label) || DEFAULT_WORK_PROCESSES).slice()),
+    [processTypes]
+  )
   const [formData, setFormData] = useState<Partial<WorkLog>>(createInitialFormData(workLog))
   const [newWorker, setNewWorker] = useState<WorkerHours>({ id: '', name: '', hours: 0 })
   const [tasks, setTasks] = useState<
@@ -306,13 +318,13 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                 <label className="block text-xs font-medium text-[#475467]">부재명 *</label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {memberTypeOptions.map(type => {
-                    const active = formData.memberTypes?.includes(type)
+                    const active = (formData.memberTypes as any)?.includes(type)
                     return (
                       <button
                         key={type}
                         type="button"
                         disabled={isViewMode}
-                        onClick={() => handleToggleArrayValue('memberTypes', type)}
+                        onClick={() => handleToggleArrayValue('memberTypes', type as any)}
                         className={cn(
                           'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                           active
@@ -334,13 +346,13 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                 <label className="block text-xs font-medium text-[#475467]">작업공정 *</label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {workProcessOptions.map(type => {
-                    const active = formData.workProcesses?.includes(type)
+                    const active = (formData.workProcesses as any)?.includes(type)
                     return (
                       <button
                         key={type}
                         type="button"
                         disabled={isViewMode}
-                        onClick={() => handleToggleArrayValue('workProcesses', type)}
+                        onClick={() => handleToggleArrayValue('workProcesses', type as any)}
                         className={cn(
                           'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                           active
@@ -452,13 +464,15 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                             </label>
                             <div className="mt-2 flex flex-wrap gap-2">
                               {memberTypeOptions.map(type => {
-                                const active = t.memberTypes?.includes(type)
+                                const active = (t.memberTypes as any)?.includes(type)
                                 return (
                                   <button
                                     key={type}
                                     type="button"
                                     disabled={isViewMode}
-                                    onClick={() => toggleTaskArrayValue(i, 'memberTypes', type)}
+                                    onClick={() =>
+                                      toggleTaskArrayValue(i, 'memberTypes', type as any)
+                                    }
                                     className={cn(
                                       'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                                       active
@@ -478,13 +492,15 @@ export const WorkLogModal: React.FC<WorkLogModalProps> = ({
                             </label>
                             <div className="mt-2 flex flex-wrap gap-2">
                               {workProcessOptions.map(type => {
-                                const active = t.workProcesses?.includes(type)
+                                const active = (t.workProcesses as any)?.includes(type)
                                 return (
                                   <button
                                     key={type}
                                     type="button"
                                     disabled={isViewMode}
-                                    onClick={() => toggleTaskArrayValue(i, 'workProcesses', type)}
+                                    onClick={() =>
+                                      toggleTaskArrayValue(i, 'workProcesses', type as any)
+                                    }
                                     className={cn(
                                       'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
                                       active

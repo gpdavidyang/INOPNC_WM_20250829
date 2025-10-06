@@ -174,6 +174,7 @@ export interface CreateSiteData {
   construction_manager_email?: string
   manager_email?: string
   safety_manager_phone?: string
+  safety_manager_email?: string
   accommodation_name?: string
   accommodation_address?: string
   accommodation_phone?: string

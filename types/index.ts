@@ -143,8 +143,10 @@ export interface Site {
   construction_manager_phone?: string | null // [legacy] 호환용
   construction_manager_email?: string | null // [legacy] 호환용
   safety_manager_phone?: string | null
+  safety_manager_email?: string | null
   accommodation_name?: string | null
   accommodation_address?: string | null
+  accommodation_phone?: string | null
   // 확장된 현장 정보
   work_process?: string | null // 작업공정 (예: 슬라브 타설, 철근 배근 등)
   work_section?: string | null // 작업구간 (예: 지하 1층, B동 3층 등)

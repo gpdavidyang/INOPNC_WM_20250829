@@ -7,6 +7,8 @@ import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import DataTable, { type Column } from '@/components/admin/DataTable'
 import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/use-confirm'
+import { Badge } from '@/components/ui/badge'
 import { TableSkeleton } from '@/components/ui/loading-skeleton'
 import { useRouter, useSearchParams } from 'next/navigation'
 // Dialog replaced with dedicated page for assignments
@@ -22,18 +24,27 @@ const CATEGORY_LABELS: Record<string, string> = {
   personal: '개인문서',
   certificate: '증명서류',
   blueprint: '도면류',
+  drawing: '도면',
   report: '보고서',
   other: '기타',
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  active: '활성',
+  active: '진행 중',
+  inactive: '중단',
+  completed: '완료',
   archived: '보관',
   deleted: '삭제됨',
   uploaded: '업로드됨',
   approved: '승인',
   pending: '대기',
   rejected: '반려',
+}
+// 현장 상태 전용 라벨 (개요 탭)
+const SITE_STATUS_LABELS: Record<string, string> = {
+  active: '진행 중',
+  inactive: '중단',
+  completed: '완료',
 }
 
 type Props = {
@@ -53,6 +64,12 @@ export default function SiteDetailTabs({
   initialAssignments,
   initialRequests,
 }: Props) {
+  const { confirm } = useConfirm()
+  const ROLE_KO: Record<string, string> = {
+    worker: '작업자',
+    site_manager: '현장관리자',
+    supervisor: '감리/감독',
+  }
   const searchParams = useSearchParams()
   const router = useRouter()
   const [tab, setTab] = useState<string>(searchParams.get('tab') || 'overview')
@@ -689,7 +706,11 @@ export default function SiteDetailTabs({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm text-muted-foreground">
             <div>
               <div className="text-xs">상태</div>
-              <div className="text-foreground font-medium">{site?.status || '-'}</div>
+              <div className="text-foreground font-medium">
+                {site?.status
+                  ? SITE_STATUS_LABELS[String(site.status)] || String(site.status)
+                  : '-'}
+              </div>
             </div>
             <div>
               <div className="text-xs">기간</div>
@@ -707,6 +728,14 @@ export default function SiteDetailTabs({
               <div>{site?.safety_manager_name || '-'}</div>
             </div>
             <div>
+              <div className="text-xs">안전관리자 이메일</div>
+              <div>{(site as any)?.safety_manager_email || '-'}</div>
+            </div>
+            <div>
+              <div className="text-xs">숙소 전화번호</div>
+              <div>{(site as any)?.accommodation_phone || '-'}</div>
+            </div>
+            <div>
               <div className="text-xs">작업일지 수</div>
               <div className="text-foreground font-medium">
                 {statsLoading ? '…' : (stats?.reports ?? 0)}
@@ -719,6 +748,207 @@ export default function SiteDetailTabs({
               </div>
             </div>
           </div>
+
+          {/* 최근 작업일지 (moved before documents) */}
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-semibold text-muted-foreground">최근 작업일지</h3>
+              <Button asChild variant="ghost" size="sm">
+                <a href={`/dashboard/admin/daily-reports?site_id=${siteId}`}>더 보기</a>
+              </Button>
+            </div>
+            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
+              {reportsLoading && recentReports.length === 0 ? (
+                <TableSkeleton rows={5} />
+              ) : (
+                <DataTable<any>
+                  data={recentReports}
+                  rowKey={(r: any) => r.id || `${r.work_date}-${r.member_name || ''}`}
+                  stickyHeader
+                  emptyMessage="표시할 작업일지가 없습니다."
+                  columns={
+                    [
+                      {
+                        key: 'work_date',
+                        header: '작업일자',
+                        sortable: true,
+                        accessor: (r: any) => (r?.work_date ? new Date(r.work_date).getTime() : 0),
+                        render: (r: any) => (
+                          <a
+                            href={`/dashboard/admin/daily-reports/${r.id}`}
+                            className="underline text-blue-600 font-medium text-foreground"
+                            title="작업일지 상세 보기"
+                          >
+                            {r?.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-'}
+                          </a>
+                        ),
+                        width: 110,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'site_name',
+                        header: '현장',
+                        sortable: true,
+                        accessor: (_r: any) => site?.name || '',
+                        render: (r: any) => (
+                          <div className="font-medium text-foreground">
+                            <a
+                              href={`/dashboard/admin/sites/${r?.site_id || siteId}`}
+                              className="underline-offset-2 hover:underline"
+                              title="현장 상세 보기"
+                            >
+                              {site?.name || '-'}
+                            </a>
+                            <div className="text-xs text-muted-foreground">
+                              {site?.address || '-'}
+                            </div>
+                          </div>
+                        ),
+                        width: 220,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'component_name',
+                        header: '부재명',
+                        sortable: true,
+                        accessor: (r: any) => r?.component_name || r?.member_name || '',
+                        render: (r: any) => r?.component_name || r?.member_name || '-',
+                        width: 180,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'work_process',
+                        header: '작업공정',
+                        sortable: true,
+                        accessor: (r: any) => r?.work_process || r?.process_type || '',
+                        render: (r: any) => r?.work_process || r?.process_type || '-',
+                        width: 160,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'work_section',
+                        header: '작업구간',
+                        sortable: true,
+                        accessor: (r: any) => r?.work_section || '',
+                        render: (r: any) => r?.work_section || '-',
+                        width: 160,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'author',
+                        header: '작성자',
+                        sortable: false,
+                        accessor: (r: any) => r?.profiles?.full_name || r?.member_name || '',
+                        render: (r: any) => r?.profiles?.full_name || r?.member_name || '-',
+                        width: 140,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'status',
+                        header: '상태',
+                        sortable: true,
+                        accessor: (r: any) => r?.status || '',
+                        render: (r: any) => (
+                          <Badge variant={r?.status === 'submitted' ? 'default' : 'outline'}>
+                            {r?.status === 'submitted'
+                              ? '제출됨'
+                              : r?.status === 'draft'
+                                ? '임시저장'
+                                : r?.status || '미정'}
+                          </Badge>
+                        ),
+                        width: 90,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'workers',
+                        header: '인원',
+                        sortable: false,
+                        accessor: (r: any) => r?.worker_details_count ?? r?.total_workers ?? 0,
+                        render: (r: any) =>
+                          String(r?.worker_details_count ?? r?.total_workers ?? 0),
+                        width: 70,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'docs',
+                        header: '문서',
+                        sortable: false,
+                        accessor: (r: any) => r?.daily_documents_count ?? 0,
+                        render: (r: any) => String(r?.daily_documents_count ?? 0),
+                        width: 70,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'total_manhours',
+                        header: '총공수',
+                        sortable: true,
+                        accessor: (r: any) => r?.total_manhours ?? 0,
+                        render: (r: any) => formatLabor(Number(r?.total_manhours ?? 0)),
+                        width: 90,
+                        headerClassName: 'whitespace-nowrap',
+                      },
+                      {
+                        key: 'actions',
+                        header: '작업',
+                        sortable: false,
+                        align: 'right',
+                        width: 210,
+                        className: 'whitespace-nowrap',
+                        render: (r: any) => (
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="px-2 py-1 text-xs"
+                            >
+                              <a href={`/dashboard/admin/daily-reports/${r.id}`}>상세</a>
+                            </Button>
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="px-2 py-1 text-xs"
+                            >
+                              <a href={`/dashboard/admin/daily-reports/${r.id}/edit`}>수정</a>
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="px-2 py-1 text-xs"
+                              onClick={async () => {
+                                const ok = await confirm({
+                                  title: '작업일지 삭제',
+                                  description:
+                                    '이 작업일지를 삭제하시겠습니까? 되돌릴 수 없습니다.',
+                                  confirmText: '삭제',
+                                  cancelText: '취소',
+                                  variant: 'destructive',
+                                })
+                                if (!ok) return
+                                try {
+                                  const res = await fetch(`/api/admin/daily-reports/${r.id}`, {
+                                    method: 'DELETE',
+                                  })
+                                  if (!res.ok) throw new Error('삭제 실패')
+                                  if (typeof window !== 'undefined') window.location.reload()
+                                } catch (e) {
+                                  alert((e as Error)?.message || '삭제 중 오류가 발생했습니다.')
+                                }
+                              }}
+                            >
+                              삭제
+                            </Button>
+                          </div>
+                        ),
+                      },
+                    ] as Column<any>[]
+                  }
+                />
+              )}
+            </div>
+          </section>
 
           {/* 최근 문서 */}
           <section>
@@ -800,148 +1030,7 @@ export default function SiteDetailTabs({
             </div>
           </section>
 
-          {/* 최근 작업일지 */}
-          <section>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold text-muted-foreground">최근 작업일지</h3>
-              <Button asChild variant="ghost" size="sm">
-                <a href={`/dashboard/admin/daily-reports?site_id=${siteId}`}>더 보기</a>
-              </Button>
-            </div>
-            <div className="rounded-lg border bg-card p-4 shadow-sm overflow-x-auto">
-              {reportsLoading && recentReports.length === 0 ? (
-                <TableSkeleton rows={5} />
-              ) : (
-                <DataTable<any>
-                  data={recentReports}
-                  rowKey={(r: any) => r.id || `${r.work_date}-${r.member_name || ''}`}
-                  stickyHeader
-                  emptyMessage="표시할 작업일지가 없습니다."
-                  columns={
-                    [
-                      {
-                        key: 'work_date',
-                        header: '작업일자',
-                        sortable: true,
-                        accessor: (r: any) => r?.work_date || '',
-                        render: (r: any) =>
-                          r?.id ? (
-                            <a
-                              href={`/dashboard/admin/daily-reports/${r.id}`}
-                              className="underline text-blue-600 font-medium text-foreground"
-                              title="작업일지 상세 보기"
-                            >
-                              {r?.work_date
-                                ? new Date(r.work_date).toLocaleDateString('ko-KR')
-                                : '-'}
-                            </a>
-                          ) : r?.work_date ? (
-                            new Date(r.work_date).toLocaleDateString('ko-KR')
-                          ) : (
-                            '-'
-                          ),
-                      },
-                      {
-                        key: 'member',
-                        header: '작성자',
-                        sortable: true,
-                        accessor: (r: any) => r?.member_name || r?.profiles?.full_name || '',
-                        render: (r: any) => r?.member_name || r?.profiles?.full_name || '-',
-                      },
-                      {
-                        key: 'status',
-                        header: '상태',
-                        sortable: true,
-                        accessor: (r: any) => r?.status || '',
-                        render: (r: any) => {
-                          const m: Record<string, string> = {
-                            draft: '임시저장',
-                            submitted: '제출됨',
-                            approved: '승인',
-                            rejected: '반려',
-                            completed: '완료',
-                          }
-                          const s = String(r?.status || '')
-                          return m[s] || s || '-'
-                        },
-                      },
-                      {
-                        key: 'workers',
-                        header: '인원',
-                        sortable: true,
-                        accessor: (r: any) => Number(r?.worker_count ?? r?.total_workers ?? 0),
-                        render: (r: any) =>
-                          Number.isFinite(Number(r?.worker_count))
-                            ? Number(r.worker_count)
-                            : Number.isFinite(Number(r?.total_workers))
-                              ? Number(r.total_workers)
-                              : 0,
-                        align: 'right',
-                        width: '10%',
-                      },
-                      {
-                        key: 'docs',
-                        header: '문서',
-                        sortable: true,
-                        accessor: (r: any) => Number(r?.document_count ?? 0),
-                        render: (r: any) =>
-                          Number.isFinite(Number(r?.document_count)) ? Number(r.document_count) : 0,
-                        align: 'right',
-                        width: '10%',
-                      },
-                      {
-                        key: 'manhours',
-                        header: '공수',
-                        sortable: true,
-                        accessor: (r: any) => Number(r?.total_manhours ?? 0),
-                        render: (r: any) =>
-                          `${Number.isFinite(Number(r?.total_manhours)) ? Number(r.total_manhours).toFixed(1) : '0.0'} 공수`,
-                        align: 'right',
-                        width: '12%',
-                      },
-                      {
-                        key: 'actions',
-                        header: '바로가기',
-                        sortable: false,
-                        render: (r: any) => (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              className="underline text-blue-600"
-                              onClick={() => {
-                                try {
-                                  const d = r?.work_date ? new Date(r.work_date) : null
-                                  const yyyy = d ? String(d.getFullYear()).padStart(4, '0') : ''
-                                  const mm = d ? String(d.getMonth() + 1).padStart(2, '0') : ''
-                                  const dd = d ? String(d.getDate()).padStart(2, '0') : ''
-                                  const ds = d ? `${yyyy}-${mm}-${dd}` : null
-                                  setPhotoDate(ds)
-                                } catch {
-                                  /* noop */
-                                }
-                                onTabChange('photos')
-                              }}
-                              title="사진 탭으로 이동"
-                            >
-                              사진보기
-                            </button>
-                            <a
-                              href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}
-                              className="underline text-blue-600"
-                              title="사진대지 리포트 보기"
-                            >
-                              사진대지
-                            </a>
-                          </div>
-                        ),
-                        width: '18%',
-                      },
-                    ] as Column<any>[]
-                  }
-                />
-              )}
-            </div>
-          </section>
+          {/* (moved above) 최근 작업일지 */}
 
           {/* 배정 작업자 */}
           <section>
@@ -1028,6 +1117,7 @@ export default function SiteDetailTabs({
                               {a?.profile?.full_name || a?.user_id}
                             </a>
                           ),
+                          width: '16%',
                         },
                         {
                           key: 'company',
@@ -1035,13 +1125,40 @@ export default function SiteDetailTabs({
                           sortable: true,
                           accessor: (a: any) => a?.profile?.organization?.name || '',
                           render: (a: any) => a?.profile?.organization?.name || '-',
+                          width: '12%',
+                        },
+                        {
+                          key: 'email',
+                          header: '이메일',
+                          sortable: true,
+                          accessor: (a: any) => a?.profile?.email || '',
+                          render: (a: any) => (
+                            <span
+                              className="truncate inline-block max-w-[240px]"
+                              title={a?.profile?.email || ''}
+                            >
+                              {a?.profile?.email || '-'}
+                            </span>
+                          ),
+                          width: '16%',
+                        },
+                        {
+                          key: 'phone',
+                          header: '전화',
+                          sortable: true,
+                          accessor: (a: any) => a?.profile?.phone || '',
+                          render: (a: any) => a?.profile?.phone || '-',
+                          align: 'center',
+                          width: '12%',
                         },
                         {
                           key: 'role',
                           header: '역할',
                           sortable: true,
                           accessor: (a: any) => a?.role || '',
-                          render: (a: any) => a?.role || '-',
+                          render: (a: any) => ROLE_KO[String(a?.role || '')] || a?.role || '-',
+                          align: 'center',
+                          width: '9%',
                         },
                         {
                           key: 'site_labor',
@@ -1051,7 +1168,7 @@ export default function SiteDetailTabs({
                           render: (a: any) =>
                             `${Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수`,
                           align: 'right',
-                          width: '14%',
+                          width: '8%',
                         },
                         {
                           key: 'global_labor',
@@ -1061,7 +1178,7 @@ export default function SiteDetailTabs({
                           render: (a: any) =>
                             `${Math.max(0, globalLaborByUser[a.user_id] ?? 0).toFixed(1)} 공수`,
                           align: 'right',
-                          width: '14%',
+                          width: '8%',
                         },
                         {
                           key: 'assigned_at',
@@ -1072,15 +1189,17 @@ export default function SiteDetailTabs({
                             a?.assigned_date
                               ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
                               : '-',
+                          align: 'center',
+                          width: '9%',
                         },
                         {
                           key: 'actions',
                           header: '작업',
                           sortable: false,
                           render: (a: any) => (
-                            <button
-                              type="button"
-                              className="text-xs underline text-red-600"
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={async () => {
                                 try {
                                   const res = await fetch(
@@ -1100,9 +1219,11 @@ export default function SiteDetailTabs({
                               }}
                             >
                               제외
-                            </button>
+                            </Button>
                           ),
-                          width: '12%',
+                          align: 'center',
+                          width: '8%',
+                          headerClassName: 'whitespace-nowrap',
                         },
                       ] as Column<any>[]
                     }
@@ -1210,104 +1331,164 @@ export default function SiteDetailTabs({
                     key: 'work_date',
                     header: '작업일자',
                     sortable: true,
-                    accessor: (r: any) => r?.work_date || '',
-                    render: (r: any) =>
-                      r?.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-',
+                    accessor: (r: any) => (r?.work_date ? new Date(r.work_date).getTime() : 0),
+                    render: (r: any) => (
+                      <a
+                        href={`/dashboard/admin/daily-reports/${r.id}`}
+                        className="underline text-blue-600 font-medium text-foreground"
+                        title="작업일지 상세 보기"
+                      >
+                        {r?.work_date ? new Date(r.work_date).toLocaleDateString('ko-KR') : '-'}
+                      </a>
+                    ),
+                    width: 110,
+                    headerClassName: 'whitespace-nowrap',
                   },
                   {
-                    key: 'member',
-                    header: '작성자',
+                    key: 'site_name',
+                    header: '현장',
                     sortable: true,
-                    accessor: (r: any) => r?.member_name || r?.profiles?.full_name || '',
-                    render: (r: any) => r?.member_name || r?.profiles?.full_name || '-',
+                    accessor: (_r: any) => site?.name || '',
+                    render: (r: any) => (
+                      <div className="font-medium text-foreground">
+                        <a
+                          href={`/dashboard/admin/sites/${r?.site_id || siteId}`}
+                          className="underline-offset-2 hover:underline"
+                          title="현장 상세 보기"
+                        >
+                          {site?.name || '-'}
+                        </a>
+                        <div className="text-xs text-muted-foreground">{site?.address || '-'}</div>
+                      </div>
+                    ),
+                    width: 220,
+                    headerClassName: 'whitespace-nowrap',
+                  },
+                  {
+                    key: 'component_name',
+                    header: '부재명',
+                    sortable: true,
+                    accessor: (r: any) => r?.component_name || r?.member_name || '',
+                    render: (r: any) => r?.component_name || r?.member_name || '-',
+                    width: 180,
+                    headerClassName: 'whitespace-nowrap',
+                  },
+                  {
+                    key: 'work_process',
+                    header: '작업공정',
+                    sortable: true,
+                    accessor: (r: any) => r?.work_process || r?.process_type || '',
+                    render: (r: any) => r?.work_process || r?.process_type || '-',
+                    width: 160,
+                    headerClassName: 'whitespace-nowrap',
+                  },
+                  {
+                    key: 'work_section',
+                    header: '작업구간',
+                    sortable: true,
+                    accessor: (r: any) => r?.work_section || '',
+                    render: (r: any) => r?.work_section || '-',
+                    width: 160,
+                    headerClassName: 'whitespace-nowrap',
+                  },
+                  {
+                    key: 'author',
+                    header: '작성자',
+                    sortable: false,
+                    accessor: (r: any) => r?.profiles?.full_name || r?.member_name || '',
+                    render: (r: any) => r?.profiles?.full_name || r?.member_name || '-',
+                    width: 140,
+                    headerClassName: 'whitespace-nowrap',
                   },
                   {
                     key: 'status',
                     header: '상태',
                     sortable: true,
                     accessor: (r: any) => r?.status || '',
-                    render: (r: any) => {
-                      const m: Record<string, string> = {
-                        draft: '임시저장',
-                        submitted: '제출됨',
-                        approved: '승인',
-                        rejected: '반려',
-                        completed: '완료',
-                      }
-                      const s = String(r?.status || '')
-                      return m[s] || s || '-'
-                    },
+                    render: (r: any) => (
+                      <Badge variant={r?.status === 'submitted' ? 'default' : 'outline'}>
+                        {r?.status === 'submitted'
+                          ? '제출됨'
+                          : r?.status === 'draft'
+                            ? '임시저장'
+                            : r?.status || '미정'}
+                      </Badge>
+                    ),
+                    width: 90,
+                    headerClassName: 'whitespace-nowrap',
                   },
                   {
                     key: 'workers',
                     header: '인원',
-                    sortable: true,
-                    accessor: (r: any) => Number(r?.worker_count ?? r?.total_workers ?? 0),
+                    sortable: false,
+                    accessor: (r: any) =>
+                      r?.worker_count ?? r?.worker_details_count ?? r?.total_workers ?? 0,
                     render: (r: any) =>
-                      Number.isFinite(Number(r?.worker_count))
-                        ? Number(r.worker_count)
-                        : Number.isFinite(Number(r?.total_workers))
-                          ? Number(r.total_workers)
-                          : 0,
-                    align: 'right',
-                    width: '10%',
+                      String(r?.worker_count ?? r?.worker_details_count ?? r?.total_workers ?? 0),
+                    width: 70,
+                    headerClassName: 'whitespace-nowrap',
                   },
                   {
                     key: 'docs',
                     header: '문서',
-                    sortable: true,
-                    accessor: (r: any) => Number(r?.document_count ?? 0),
-                    render: (r: any) =>
-                      Number.isFinite(Number(r?.document_count)) ? Number(r.document_count) : 0,
-                    align: 'right',
-                    width: '10%',
+                    sortable: false,
+                    accessor: (r: any) => r?.document_count ?? r?.daily_documents_count ?? 0,
+                    render: (r: any) => String(r?.document_count ?? r?.daily_documents_count ?? 0),
+                    width: 70,
+                    headerClassName: 'whitespace-nowrap',
                   },
                   {
-                    key: 'manhours',
-                    header: '공수',
+                    key: 'total_manhours',
+                    header: '총공수',
                     sortable: true,
-                    accessor: (r: any) => Number(r?.total_manhours ?? 0),
-                    render: (r: any) =>
-                      `${Number.isFinite(Number(r?.total_manhours)) ? Number(r.total_manhours).toFixed(1) : '0.0'} 공수`,
-                    align: 'right',
-                    width: '12%',
+                    accessor: (r: any) => r?.total_manhours ?? 0,
+                    render: (r: any) => formatLabor(Number(r?.total_manhours ?? 0)),
+                    width: 90,
+                    headerClassName: 'whitespace-nowrap',
                   },
                   {
                     key: 'actions',
-                    header: '바로가기',
+                    header: '작업',
                     sortable: false,
+                    align: 'right',
+                    width: 210,
+                    className: 'whitespace-nowrap',
                     render: (r: any) => (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          className="underline text-blue-600"
-                          onClick={() => {
+                      <div className="flex justify-end gap-1">
+                        <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
+                          <a href={`/dashboard/admin/daily-reports/${r.id}`}>상세</a>
+                        </Button>
+                        <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
+                          <a href={`/dashboard/admin/daily-reports/${r.id}/edit`}>수정</a>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="px-2 py-1 text-xs"
+                          onClick={async () => {
+                            const ok = await confirm({
+                              title: '작업일지 삭제',
+                              description: '이 작업일지를 삭제하시겠습니까? 되돌릴 수 없습니다.',
+                              confirmText: '삭제',
+                              cancelText: '취소',
+                              variant: 'destructive',
+                            })
+                            if (!ok) return
                             try {
-                              const d = r?.work_date ? new Date(r.work_date) : null
-                              const yyyy = d ? String(d.getFullYear()).padStart(4, '0') : ''
-                              const mm = d ? String(d.getMonth() + 1).padStart(2, '0') : ''
-                              const dd = d ? String(d.getDate()).padStart(2, '0') : ''
-                              const ds = d ? `${yyyy}-${mm}-${dd}` : null
-                              setPhotoDate(ds)
-                            } catch {
-                              /* noop */
+                              const res = await fetch(`/api/admin/daily-reports/${r.id}`, {
+                                method: 'DELETE',
+                              })
+                              if (!res.ok) throw new Error('삭제 실패')
+                              if (typeof window !== 'undefined') window.location.reload()
+                            } catch (e) {
+                              alert((e as Error)?.message || '삭제 중 오류가 발생했습니다.')
                             }
-                            onTabChange('photos')
                           }}
-                          title="사진 탭으로 이동"
                         >
-                          사진보기
-                        </button>
-                        <a
-                          href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}
-                          className="underline text-blue-600"
-                          title="사진대지 리포트 보기"
-                        >
-                          사진대지
-                        </a>
+                          삭제
+                        </Button>
                       </div>
                     ),
-                    width: '18%',
                   },
                 ] as Column<any>[]
               }
@@ -1558,6 +1739,7 @@ export default function SiteDetailTabs({
                             {a?.profile?.full_name || a?.user_id}
                           </a>
                         ),
+                        width: '16%',
                       },
                       {
                         key: 'company',
@@ -1565,13 +1747,40 @@ export default function SiteDetailTabs({
                         sortable: true,
                         accessor: (a: any) => a?.profile?.organization?.name || '',
                         render: (a: any) => a?.profile?.organization?.name || '-',
+                        width: '12%',
+                      },
+                      {
+                        key: 'email',
+                        header: '이메일',
+                        sortable: true,
+                        accessor: (a: any) => a?.profile?.email || '',
+                        render: (a: any) => (
+                          <span
+                            className="truncate inline-block max-w-[240px]"
+                            title={a?.profile?.email || ''}
+                          >
+                            {a?.profile?.email || '-'}
+                          </span>
+                        ),
+                        width: '16%',
+                      },
+                      {
+                        key: 'phone',
+                        header: '전화',
+                        sortable: true,
+                        accessor: (a: any) => a?.profile?.phone || '',
+                        render: (a: any) => a?.profile?.phone || '-',
+                        align: 'center',
+                        width: '12%',
                       },
                       {
                         key: 'role',
                         header: '역할',
                         sortable: true,
                         accessor: (a: any) => a?.role || '',
-                        render: (a: any) => a?.role || '-',
+                        render: (a: any) => ROLE_KO[String(a?.role || '')] || a?.role || '-',
+                        align: 'center',
+                        width: '9%',
                       },
                       {
                         key: 'site_labor',
@@ -1581,7 +1790,7 @@ export default function SiteDetailTabs({
                         render: (a: any) =>
                           `${Math.max(0, laborByUser[a.user_id] ?? 0).toFixed(1)} 공수`,
                         align: 'right',
-                        width: '14%',
+                        width: '8%',
                       },
                       {
                         key: 'global_labor',
@@ -1591,7 +1800,7 @@ export default function SiteDetailTabs({
                         render: (a: any) =>
                           `${Math.max(0, globalLaborByUser[a.user_id] ?? 0).toFixed(1)} 공수`,
                         align: 'right',
-                        width: '14%',
+                        width: '8%',
                       },
                       {
                         key: 'assigned_at',
@@ -1602,15 +1811,17 @@ export default function SiteDetailTabs({
                           a?.assigned_date
                             ? new Date(a.assigned_date).toLocaleDateString('ko-KR')
                             : '-',
+                        align: 'center',
+                        width: '9%',
                       },
                       {
                         key: 'actions',
                         header: '작업',
                         sortable: false,
                         render: (a: any) => (
-                          <button
-                            type="button"
-                            className="text-xs underline text-red-600"
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={async () => {
                               try {
                                 const res = await fetch(
@@ -1630,9 +1841,11 @@ export default function SiteDetailTabs({
                             }}
                           >
                             제외
-                          </button>
+                          </Button>
                         ),
-                        width: '12%',
+                        align: 'center',
+                        width: '8%',
+                        headerClassName: 'whitespace-nowrap',
                       },
                     ] as Column<any>[]
                   }

@@ -86,6 +86,15 @@ export default async function AdminDailyReportsPage({
         title="작업일지 관리"
         description="최근 등록된 작업일지를 조회/검색합니다"
         breadcrumbs={[{ label: '대시보드', href: '/dashboard/admin' }, { label: '작업일지 관리' }]}
+        actions={
+          // eslint-disable-next-line @next/next/no-html-link-for-pages
+          <a
+            href="/dashboard/admin/daily-reports/new"
+            className="inline-flex items-center rounded-md bg-[--brand-600] hover:bg-[--brand-700] text-white px-4 py-2 text-sm shadow-button"
+          >
+            작업일지 작성
+          </a>
+        }
       />
       <div className="px-4 sm:px-6 lg:px-8 py-8">
         {/* 필터 */}

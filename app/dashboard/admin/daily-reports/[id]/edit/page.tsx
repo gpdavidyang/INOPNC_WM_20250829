@@ -6,6 +6,7 @@ import { getDailyReportById, updateDailyReport, getSites } from '@/app/actions/a
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { PageHeader } from '@/components/ui/page-header'
 import { buttonVariants } from '@/components/ui/button'
+import dynamic from 'next/dynamic'
 import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = { title: '일일보고 수정' }
@@ -53,6 +54,10 @@ export default async function AdminDailyReportEditPage({ params }: DailyReportEd
   }
 
   const currentIssues = report?.issues || report?.notes || ''
+  const WorkOptionFields = dynamic(
+    () => import('@/components/admin/daily-reports/WorkOptionFields'),
+    { ssr: false }
+  )
 
   return (
     <div className="px-0 pb-8">
@@ -101,38 +106,12 @@ export default async function AdminDailyReportEditPage({ params }: DailyReportEd
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">부재명</label>
-                  <input
-                    type="text"
-                    name="component_name"
-                    defaultValue={report?.component_name || ''}
-                    placeholder="예: 벽체"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">작업공정</label>
-                  <input
-                    type="text"
-                    name="work_process"
-                    defaultValue={report?.work_process || ''}
-                    placeholder="예: 콘크리트 타설"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-muted-foreground mb-1">세부 구간</label>
-                  <input
-                    type="text"
-                    name="work_section"
-                    defaultValue={report?.work_section || ''}
-                    placeholder="예: 3층 동측"
-                    className="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  />
-                </div>
-              </div>
+              {/* Client-side work options (CustomSelect) */}
+              <WorkOptionFields
+                defaultComponentName={report?.component_name || ''}
+                defaultWorkProcess={report?.work_process || ''}
+                defaultWorkSection={report?.work_section || ''}
+              />
 
               <div className="grid md:grid-cols-3 gap-3">
                 <div>

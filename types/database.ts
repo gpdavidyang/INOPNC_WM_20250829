@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
   public: {
@@ -45,12 +39,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "activity_logs_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'activity_logs_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       announcements: {
@@ -92,12 +86,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "announcements_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: 'announcements_created_by_fkey'
+            columns: ['created_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       approval_requests: {
@@ -139,19 +133,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "approval_requests_approved_by_fkey"
-            columns: ["approved_by"]
+            foreignKeyName: 'approval_requests_approved_by_fkey'
+            columns: ['approved_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "approval_requests_requested_by_fkey"
-            columns: ["requested_by"]
+            foreignKeyName: 'approval_requests_requested_by_fkey'
+            columns: ['requested_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       daily_report_workers: {
@@ -178,12 +172,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "daily_report_workers_daily_report_id_fkey"
-            columns: ["daily_report_id"]
+            foreignKeyName: 'daily_report_workers_daily_report_id_fkey'
+            columns: ['daily_report_id']
             isOneToOne: false
-            referencedRelation: "daily_reports"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'daily_reports'
+            referencedColumns: ['id']
+          },
         ]
       }
       daily_reports: {
@@ -243,26 +237,26 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "daily_reports_approved_by_fkey"
-            columns: ["approved_by"]
+            foreignKeyName: 'daily_reports_approved_by_fkey'
+            columns: ['approved_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "daily_reports_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: 'daily_reports_created_by_fkey'
+            columns: ['created_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "daily_reports_site_id_fkey"
-            columns: ["site_id"]
+            foreignKeyName: 'daily_reports_site_id_fkey'
+            columns: ['site_id']
             isOneToOne: false
-            referencedRelation: "sites"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'sites'
+            referencedColumns: ['id']
+          },
         ]
       }
       document_shares: {
@@ -289,19 +283,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "document_shares_document_id_fkey"
-            columns: ["document_id"]
+            foreignKeyName: 'document_shares_document_id_fkey'
+            columns: ['document_id']
             isOneToOne: false
-            referencedRelation: "documents"
-            referencedColumns: ["id"]
+            referencedRelation: 'documents'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "document_shares_shared_with_id_fkey"
-            columns: ["shared_with_id"]
+            foreignKeyName: 'document_shares_shared_with_id_fkey'
+            columns: ['shared_with_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       documents: {
@@ -355,19 +349,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "documents_owner_id_fkey"
-            columns: ["owner_id"]
+            foreignKeyName: 'documents_owner_id_fkey'
+            columns: ['owner_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "documents_site_id_fkey"
-            columns: ["site_id"]
+            foreignKeyName: 'documents_site_id_fkey'
+            columns: ['site_id']
             isOneToOne: false
-            referencedRelation: "sites"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'sites'
+            referencedColumns: ['id']
+          },
         ]
       }
       notifications: {
@@ -406,12 +400,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "notifications_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'notifications_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       organizations: {
@@ -453,12 +447,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "organizations_parent_id_fkey"
-            columns: ["parent_id"]
+            foreignKeyName: 'organizations_parent_id_fkey'
+            columns: ['parent_id']
             isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
+          },
         ]
       }
       profiles: {
@@ -503,12 +497,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "profiles_id_fkey"
-            columns: ["id"]
+            foreignKeyName: 'profiles_id_fkey'
+            columns: ['id']
             isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'users'
+            referencedColumns: ['id']
+          },
         ]
       }
       salary_info: {
@@ -547,12 +541,12 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "salary_info_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'salary_info_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       site_assignments: {
@@ -588,26 +582,28 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "site_assignments_site_id_fkey"
-            columns: ["site_id"]
+            foreignKeyName: 'site_assignments_site_id_fkey'
+            columns: ['site_id']
             isOneToOne: false
-            referencedRelation: "sites"
-            referencedColumns: ["id"]
+            referencedRelation: 'sites'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "site_assignments_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'site_assignments_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       sites: {
         Row: {
           accommodation_address: string | null
           accommodation_name: string | null
+          accommodation_phone: string | null
           address: string
+          organization_id: string | null
           construction_manager_phone: string | null
           created_at: string
           created_by: string | null
@@ -615,15 +611,23 @@ export type Database = {
           end_date: string | null
           id: string
           name: string
+          manager_name: string | null
+          manager_phone: string | null
+          manager_email: string | null
+          safety_manager_name: string | null
           safety_manager_phone: string | null
+          safety_manager_email: string | null
           start_date: string
           status: string | null
+          is_deleted: boolean | null
           updated_at: string
         }
         Insert: {
           accommodation_address?: string | null
           accommodation_name?: string | null
+          accommodation_phone?: string | null
           address: string
+          organization_id?: string | null
           construction_manager_phone?: string | null
           created_at?: string
           created_by?: string | null
@@ -631,15 +635,23 @@ export type Database = {
           end_date?: string | null
           id?: string
           name: string
+          manager_name?: string | null
+          manager_phone?: string | null
+          manager_email?: string | null
+          safety_manager_name?: string | null
           safety_manager_phone?: string | null
+          safety_manager_email?: string | null
           start_date: string
           status?: string | null
+          is_deleted?: boolean | null
           updated_at?: string
         }
         Update: {
           accommodation_address?: string | null
           accommodation_name?: string | null
+          accommodation_phone?: string | null
           address?: string
+          organization_id?: string | null
           construction_manager_phone?: string | null
           created_at?: string
           created_by?: string | null
@@ -647,19 +659,25 @@ export type Database = {
           end_date?: string | null
           id?: string
           name?: string
+          manager_name?: string | null
+          manager_phone?: string | null
+          manager_email?: string | null
+          safety_manager_name?: string | null
           safety_manager_phone?: string | null
+          safety_manager_email?: string | null
           start_date?: string
           status?: string | null
+          is_deleted?: boolean | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sites_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: 'sites_created_by_fkey'
+            columns: ['created_by']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
       user_organizations: {
@@ -686,19 +704,19 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "user_organizations_organization_id_fkey"
-            columns: ["organization_id"]
+            foreignKeyName: 'user_organizations_organization_id_fkey'
+            columns: ['organization_id']
             isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
+            referencedRelation: 'organizations'
+            referencedColumns: ['id']
           },
           {
-            foreignKeyName: "user_organizations_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: 'user_organizations_user_id_fkey'
+            columns: ['user_id']
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
         ]
       }
     }

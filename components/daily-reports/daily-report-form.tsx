@@ -1,5 +1,46 @@
 'use client'
 
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
+import {
+  CustomSelect,
+  CustomSelectContent,
+  CustomSelectItem,
+  CustomSelectTrigger,
+  CustomSelectValue,
+} from '@/components/ui/custom-select'
+import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
+import {
+  ArrowLeft,
+  AlertCircle,
+  MapPin,
+  Users,
+  Settings,
+  Shield,
+  Plus,
+  Camera,
+  MessageSquare,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Package,
+  Receipt,
+  Image as ImageIcon,
+  Trash2,
+  Save,
+  Send,
+} from 'lucide-react'
+import type { Profile, Site, Material, DailyReport } from '@/types'
+import type { AdditionalPhotoData } from '@/types/daily-reports'
+import { useWorkOptions } from '@/hooks/use-work-options'
+import AdditionalPhotoUploadSection from '@/components/daily-reports/additional-photo-upload-section'
+// Use REST endpoints to avoid importing server actions in client
 
 // 통합된 Props 인터페이스
 interface DailyReportFormProps {
@@ -67,7 +108,7 @@ const useRolePermissions = (currentUser: Profile) => {
   const isAdmin = ['admin', 'system_admin'].includes(currentUser.role)
   const isSiteManager = currentUser.role === 'site_manager'
   const isWorker = currentUser.role === 'worker'
-  
+
   return {
     isAdmin,
     isSiteManager,
@@ -78,22 +119,22 @@ const useRolePermissions = (currentUser: Profile) => {
     canManageWorkers: isAdmin || isSiteManager,
     canApproveReports: isAdmin || isSiteManager,
     canAccessSystemSettings: isAdmin,
-    roleDisplayName: isAdmin ? '관리자' : isSiteManager ? '현장관리자' : '작업자'
+    roleDisplayName: isAdmin ? '관리자' : isSiteManager ? '현장관리자' : '작업자',
   }
 }
 
 // Compact collapsible section component
-const CollapsibleSection = ({ 
-  title, 
-  icon: Icon, 
-  children, 
-  isExpanded, 
+const CollapsibleSection = ({
+  title,
+  icon: Icon,
+  children,
+  isExpanded,
   onToggle,
   badge,
   required = false,
   adminOnly = false,
   managerOnly = false,
-  permissions
+  permissions,
 }: {
   title: string
   icon: React.ElementType
@@ -111,37 +152,53 @@ const CollapsibleSection = ({
   if (managerOnly && !permissions?.canViewAdvancedFeatures) return null
 
   const getBorderColor = () => {
-    if (adminOnly) return "border-purple-200 dark:border-purple-700 shadow-sm"
-    if (managerOnly) return "border-orange-200 dark:border-orange-700 shadow-sm"
-    return "border-gray-200 dark:border-gray-700"
+    if (adminOnly) return 'border-purple-200 dark:border-purple-700 shadow-sm'
+    if (managerOnly) return 'border-orange-200 dark:border-orange-700 shadow-sm'
+    return 'border-gray-200 dark:border-gray-700'
   }
 
   const getHeaderBg = () => {
-    if (adminOnly) return "hover:bg-purple-50 dark:hover:bg-purple-900/20"
-    if (managerOnly) return "hover:bg-orange-50 dark:hover:bg-orange-900/20"
-    return "hover:bg-gray-50 dark:hover:bg-gray-700"
+    if (adminOnly) return 'hover:bg-purple-50 dark:hover:bg-purple-900/20'
+    if (managerOnly) return 'hover:bg-orange-50 dark:hover:bg-orange-900/20'
+    return 'hover:bg-gray-50 dark:hover:bg-gray-700'
   }
 
   return (
-    <div className={cn("bg-white dark:bg-gray-800 rounded-lg border overflow-hidden", getBorderColor())}>
+    <div
+      className={cn(
+        'bg-white dark:bg-gray-800 rounded-lg border overflow-hidden',
+        getBorderColor()
+      )}
+    >
       <button
         type="button"
         onClick={onToggle}
-        className={cn("w-full px-3 py-2.5 flex items-center justify-between transition-all duration-200", getHeaderBg())}
+        className={cn(
+          'w-full px-3 py-2.5 flex items-center justify-between transition-all duration-200',
+          getHeaderBg()
+        )}
       >
         <div className="flex items-center gap-2">
-          <div className={cn(
-            "p-1.5 rounded",
-            adminOnly ? "bg-purple-100 dark:bg-purple-900/30" : 
-            managerOnly ? "bg-orange-100 dark:bg-orange-900/30" : 
-            "bg-blue-50 dark:bg-blue-900/20"
-          )}>
-            <Icon className={cn(
-              "h-4 w-4",
-              adminOnly ? "text-purple-600 dark:text-purple-400" :
-              managerOnly ? "text-orange-600 dark:text-orange-400" :
-              "text-blue-600 dark:text-blue-400"
-            )} />
+          <div
+            className={cn(
+              'p-1.5 rounded',
+              adminOnly
+                ? 'bg-purple-100 dark:bg-purple-900/30'
+                : managerOnly
+                  ? 'bg-orange-100 dark:bg-orange-900/30'
+                  : 'bg-blue-50 dark:bg-blue-900/20'
+            )}
+          >
+            <Icon
+              className={cn(
+                'h-4 w-4',
+                adminOnly
+                  ? 'text-purple-600 dark:text-purple-400'
+                  : managerOnly
+                    ? 'text-orange-600 dark:text-orange-400'
+                    : 'text-blue-600 dark:text-blue-400'
+              )}
+            />
           </div>
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -180,20 +237,20 @@ const CollapsibleSection = ({
   )
 }
 
-export default function DailyReportForm({ 
+export default function DailyReportForm({
   mode,
-  sites, 
-  currentUser, 
-  materials = [], 
+  sites,
+  currentUser,
+  materials = [],
   workers = [],
-  reportData
+  reportData,
 }: DailyReportFormProps) {
   const router = useRouter()
   const permissions = useRolePermissions(currentUser)
   const [loading, setLoading] = useState(false)
   const [loadingType, setLoadingType] = useState<'draft' | 'submit' | null>(null)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Section expansion states - 역할별 초기 확장 상태
   const [expandedSections, setExpandedSections] = useState({
     siteInfo: true,
@@ -206,7 +263,7 @@ export default function DailyReportForm({
     requests: false,
     materials: permissions.canViewAdvancedFeatures, // 고급 기능
     specialNotes: false,
-    adminFeatures: false // 관리자 전용 기능
+    adminFeatures: false, // 관리자 전용 기능
   })
 
   // Global toggle state
@@ -230,7 +287,7 @@ export default function DailyReportForm({
         work_process: reportData.work_process || '',
         work_section: reportData.work_section || '',
         hq_request: reportData.hq_request || '',
-        created_by: reportData.created_by || currentUser.full_name
+        created_by: reportData.created_by || currentUser.full_name,
       }
     }
     return {
@@ -248,7 +305,7 @@ export default function DailyReportForm({
       work_process: '',
       work_section: '',
       hq_request: '',
-      created_by: currentUser.full_name
+      created_by: currentUser.full_name,
     }
   })
 
@@ -292,7 +349,9 @@ export default function DailyReportForm({
       }
 
       try {
-        const response = await fetch(`/api/sites/by-partner?partner_company_id=${formData.partner_company_id}`)
+        const response = await fetch(
+          `/api/sites/by-partner?partner_company_id=${formData.partner_company_id}`
+        )
         if (response.ok) {
           const partnerSites = await response.json()
           setFilteredSites(partnerSites)
@@ -322,21 +381,23 @@ export default function DailyReportForm({
         beforePhotos: [],
         afterPhotos: [],
         beforePhotoPreviews: [],
-        afterPhotoPreviews: []
+        afterPhotoPreviews: [],
       }))
     }
-    return [{
-      id: `work-${Date.now()}`,
-      memberName: '',
-      memberNameOther: '',
-      processType: '',
-      processTypeOther: '',
-      workSection: '',
-      beforePhotos: [],
-      afterPhotos: [],
-      beforePhotoPreviews: [],
-      afterPhotoPreviews: []
-    }]
+    return [
+      {
+        id: `work-${Date.now()}`,
+        memberName: '',
+        memberNameOther: '',
+        processType: '',
+        processTypeOther: '',
+        workSection: '',
+        beforePhotos: [],
+        afterPhotos: [],
+        beforePhotoPreviews: [],
+        afterPhotoPreviews: [],
+      },
+    ]
   })
 
   // Worker entries
@@ -347,16 +408,20 @@ export default function DailyReportForm({
         worker_id: entry.worker_id || '',
         labor_hours: entry.labor_hours || 0,
         worker_name: entry.worker_name || '',
-        is_direct_input: entry.is_direct_input || false
+        is_direct_input: entry.is_direct_input || false,
       }))
     }
-    return permissions.canManageWorkers ? [{
-      id: `worker-${Date.now()}`,
-      worker_id: '',
-      labor_hours: 0,
-      worker_name: '',
-      is_direct_input: false
-    }] : []
+    return permissions.canManageWorkers
+      ? [
+          {
+            id: `worker-${Date.now()}`,
+            worker_id: '',
+            labor_hours: 0,
+            worker_name: '',
+            is_direct_input: false,
+          },
+        ]
+      : []
   })
 
   // Receipt entries
@@ -368,17 +433,19 @@ export default function DailyReportForm({
         amount: receipt.amount || '',
         date: receipt.receipt_date || new Date().toISOString().split('T')[0],
         file: null,
-        preview: null
+        preview: null,
       }))
     }
-    return [{
-      id: `receipt-${Date.now()}`,
-      category: '',
-      amount: '',
-      date: new Date().toISOString().split('T')[0],
-      file: null,
-      preview: null
-    }]
+    return [
+      {
+        id: `receipt-${Date.now()}`,
+        category: '',
+        amount: '',
+        date: new Date().toISOString().split('T')[0],
+        file: null,
+        preview: null,
+      },
+    ]
   })
 
   // NPC1000 Material tracking
@@ -387,13 +454,13 @@ export default function DailyReportForm({
       return {
         incoming: String(reportData.npc1000_incoming || ''),
         used: String(reportData.npc1000_used || ''),
-        remaining: String(reportData.npc1000_remaining || '')
+        remaining: String(reportData.npc1000_remaining || ''),
       }
     }
     return {
       incoming: '',
       used: '',
-      remaining: ''
+      remaining: '',
     }
   })
 
@@ -407,7 +474,7 @@ export default function DailyReportForm({
         description: photo.description,
         file: null,
         preview: photo.url || null,
-        isExisting: true
+        isExisting: true,
       }))
     }
     return []
@@ -427,16 +494,14 @@ export default function DailyReportForm({
   }
 
   const getRoleBadgeColor = () => {
-    if (permissions.isAdmin) return "bg-purple-100 text-purple-800 border-purple-200"
-    if (permissions.isSiteManager) return "bg-orange-100 text-orange-800 border-orange-200"
-    return "bg-blue-100 text-blue-800 border-blue-200"
+    if (permissions.isAdmin) return 'bg-purple-100 text-purple-800 border-purple-200'
+    if (permissions.isSiteManager) return 'bg-orange-100 text-orange-800 border-orange-200'
+    return 'bg-blue-100 text-blue-800 border-blue-200'
   }
 
   const getBreadcrumb = () => {
     if (permissions.isAdmin) {
-      return mode === 'create' 
-        ? '/dashboard/admin/daily-reports' 
-        : '/dashboard/admin/daily-reports'
+      return mode === 'create' ? '/dashboard/admin/daily-reports' : '/dashboard/admin/daily-reports'
     }
     return '/dashboard/daily-reports'
   }
@@ -445,17 +510,22 @@ export default function DailyReportForm({
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: !prev[section],
     }))
   }
 
   const toggleAllSections = () => {
     const newState = !allExpanded
     setAllExpanded(newState)
-    setExpandedSections(prev => Object.keys(prev).reduce((acc, key) => {
-      acc[key as keyof typeof expandedSections] = newState
-      return acc
-    }, {} as typeof expandedSections))
+    setExpandedSections(prev =>
+      Object.keys(prev).reduce(
+        (acc, key) => {
+          acc[key as keyof typeof expandedSections] = newState
+          return acc
+        },
+        {} as typeof expandedSections
+      )
+    )
   }
 
   // Form submission
@@ -473,23 +543,33 @@ export default function DailyReportForm({
         npc1000_remaining: Number(npc1000Materials.remaining) || 0,
         work_entries: workEntries,
         worker_entries: permissions.canManageWorkers ? workerEntries : [],
-        receipt_entries: receiptEntries.filter(r => r.file || (mode === 'edit')),
-        additional_photos: additionalPhotos
+        receipt_entries: receiptEntries.filter(r => r.file || mode === 'edit'),
+        additional_photos: additionalPhotos,
       }
 
-      let result
+      let ok = false
       if (mode === 'edit' && reportData) {
-        result = await updateDailyReport(reportData.id, submitData)
+        const res = await fetch(`/api/admin/daily-reports/${reportData.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(submitData),
+        })
+        ok = res.ok
       } else {
-        result = await createDailyReport(submitData)
+        const res = await fetch('/api/admin/daily-reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(submitData),
+        })
+        ok = res.ok
       }
 
-      if (result.success) {
+      if (ok) {
         toast.success(`작업일지가 ${isDraft ? '임시저장' : '제출'}되었습니다.`)
         router.push(getBreadcrumb())
       } else {
-        setError(result.error || '작업일지 저장에 실패했습니다.')
-        toast.error(result.error || '작업일지 저장에 실패했습니다.')
+        setError('작업일지 저장에 실패했습니다.')
+        toast.error('작업일지 저장에 실패했습니다.')
       }
     } catch (error) {
       console.error('Form submission error:', error)
@@ -523,28 +603,33 @@ export default function DailyReportForm({
                 <h1 className="text-2xl font-bold text-gray-900">{getPageTitle()}</h1>
               </div>
               <div className="flex items-center justify-center gap-2 flex-wrap">
-                <Badge className={cn("text-xs font-medium border shadow-sm", getRoleBadgeColor())}>
+                <Badge className={cn('text-xs font-medium border shadow-sm', getRoleBadgeColor())}>
                   {permissions.roleDisplayName}
                 </Badge>
                 {mode === 'edit' && (
-                  <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">
+                  <Badge
+                    variant="outline"
+                    className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200"
+                  >
                     편집 모드
                   </Badge>
                 )}
-                <Badge variant="outline" className="text-xs text-green-700 bg-green-50 border-green-200 shadow-sm">
+                <Badge
+                  variant="outline"
+                  className="text-xs text-green-700 bg-green-50 border-green-200 shadow-sm"
+                >
                   ✨ 통합 시스템 v2.0
                 </Badge>
-                <Badge variant="outline" className="text-xs text-blue-600 bg-blue-50 border-blue-200">
+                <Badge
+                  variant="outline"
+                  className="text-xs text-blue-600 bg-blue-50 border-blue-200"
+                >
                   동적 옵션 활성화
                 </Badge>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={toggleAllSections}
-                className="text-sm"
-              >
+              <Button variant="outline" onClick={toggleAllSections} className="text-sm">
                 {allExpanded ? '모두 접기' : '모두 펼치기'}
               </Button>
             </div>
@@ -577,42 +662,44 @@ export default function DailyReportForm({
               {/* Partner Company Selection - Available for all users */}
               <div>
                 <Label htmlFor="partner_company_id">소속 파트너사</Label>
-                  <CustomSelect 
-                    value={formData.partner_company_id} 
-                    onValueChange={(value) => setFormData(prev => ({
-                      ...prev, 
+                <CustomSelect
+                  value={formData.partner_company_id}
+                  onValueChange={value =>
+                    setFormData(prev => ({
+                      ...prev,
                       partner_company_id: value === 'none' ? '' : value,
-                      site_id: '' // Reset site selection when partner changes
-                    }))}
-                  >
-                    <CustomSelectTrigger>
-                      <CustomSelectValue placeholder="파트너사를 선택하세요" />
-                    </CustomSelectTrigger>
-                    <CustomSelectContent>
-                      <CustomSelectItem value="none">선택 안함</CustomSelectItem>
-                      {partnerCompanies.map((company) => (
-                        <CustomSelectItem key={company.id} value={company.id}>
-                          {company.company_name}
-                        </CustomSelectItem>
-                      ))}
-                    </CustomSelectContent>
-                  </CustomSelect>
-                  {loadingPartners && (
-                    <p className="text-xs text-gray-500 mt-1">파트너사 목록을 불러오는 중...</p>
-                  )}
-                </div>
-              
+                      site_id: '', // Reset site selection when partner changes
+                    }))
+                  }
+                >
+                  <CustomSelectTrigger>
+                    <CustomSelectValue placeholder="파트너사를 선택하세요" />
+                  </CustomSelectTrigger>
+                  <CustomSelectContent>
+                    <CustomSelectItem value="none">선택 안함</CustomSelectItem>
+                    {partnerCompanies.map(company => (
+                      <CustomSelectItem key={company.id} value={company.id}>
+                        {company.company_name}
+                      </CustomSelectItem>
+                    ))}
+                  </CustomSelectContent>
+                </CustomSelect>
+                {loadingPartners && (
+                  <p className="text-xs text-gray-500 mt-1">파트너사 목록을 불러오는 중...</p>
+                )}
+              </div>
+
               <div>
                 <Label htmlFor="site_id">현장 선택 *</Label>
-                <CustomSelect 
-                  value={formData.site_id} 
-                  onValueChange={(value) => setFormData(prev => ({...prev, site_id: value}))}
+                <CustomSelect
+                  value={formData.site_id}
+                  onValueChange={value => setFormData(prev => ({ ...prev, site_id: value }))}
                 >
                   <CustomSelectTrigger>
                     <CustomSelectValue placeholder="현장을 선택하세요" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
-                    {filteredSites.map((site) => (
+                    {filteredSites.map(site => (
                       <CustomSelectItem key={site.id} value={site.id}>
                         {site.name}
                       </CustomSelectItem>
@@ -620,14 +707,14 @@ export default function DailyReportForm({
                   </CustomSelectContent>
                 </CustomSelect>
               </div>
-              
+
               <div>
                 <Label htmlFor="work_date">작업일자 *</Label>
                 <Input
                   id="work_date"
                   type="date"
                   value={formData.work_date}
-                  onChange={(e) => setFormData(prev => ({...prev, work_date: e.target.value}))}
+                  onChange={e => setFormData(prev => ({ ...prev, work_date: e.target.value }))}
                   required
                 />
               </div>
@@ -667,9 +754,14 @@ export default function DailyReportForm({
                       <Label>부재명</Label>
                       <CustomSelect
                         value={entry.memberName}
-                        onValueChange={(value) => {
+                        onValueChange={value => {
                           const newEntries = [...workEntries]
-                          newEntries[index] = { ...newEntries[index], memberName: value }
+                          newEntries[index] = {
+                            ...newEntries[index],
+                            memberName: value,
+                            memberNameOther:
+                              value === '기타' ? newEntries[index].memberNameOther || '' : '',
+                          }
                           setWorkEntries(newEntries)
                         }}
                       >
@@ -677,21 +769,44 @@ export default function DailyReportForm({
                           <CustomSelectValue placeholder="부재명 선택" />
                         </CustomSelectTrigger>
                         <CustomSelectContent>
-                          {componentTypes.map((type) => (
+                          {componentTypes.map(type => (
                             <CustomSelectItem key={type.id} value={type.option_label}>
                               {type.option_label}
                             </CustomSelectItem>
                           ))}
+                          {!componentTypes.some(t => t.option_label === '기타') && (
+                            <CustomSelectItem value="기타">기타</CustomSelectItem>
+                          )}
                         </CustomSelectContent>
                       </CustomSelect>
+                      {entry.memberName === '기타' && (
+                        <Input
+                          className="mt-2"
+                          placeholder="부재명을 직접 입력하세요"
+                          value={entry.memberNameOther || ''}
+                          onChange={e => {
+                            const newEntries = [...workEntries]
+                            newEntries[index] = {
+                              ...newEntries[index],
+                              memberNameOther: e.target.value,
+                            }
+                            setWorkEntries(newEntries)
+                          }}
+                        />
+                      )}
                     </div>
                     <div>
                       <Label>작업공정</Label>
                       <CustomSelect
                         value={entry.processType}
-                        onValueChange={(value) => {
+                        onValueChange={value => {
                           const newEntries = [...workEntries]
-                          newEntries[index] = { ...newEntries[index], processType: value }
+                          newEntries[index] = {
+                            ...newEntries[index],
+                            processType: value,
+                            processTypeOther:
+                              value === '기타' ? newEntries[index].processTypeOther || '' : '',
+                          }
                           setWorkEntries(newEntries)
                         }}
                       >
@@ -699,20 +814,38 @@ export default function DailyReportForm({
                           <CustomSelectValue placeholder="작업공정 선택" />
                         </CustomSelectTrigger>
                         <CustomSelectContent>
-                          {processTypes.map((type) => (
+                          {processTypes.map(type => (
                             <CustomSelectItem key={type.id} value={type.option_label}>
                               {type.option_label}
                             </CustomSelectItem>
                           ))}
+                          {!processTypes.some(t => t.option_label === '기타') && (
+                            <CustomSelectItem value="기타">기타</CustomSelectItem>
+                          )}
                         </CustomSelectContent>
                       </CustomSelect>
+                      {entry.processType === '기타' && (
+                        <Input
+                          className="mt-2"
+                          placeholder="작업공정을 직접 입력하세요"
+                          value={entry.processTypeOther || ''}
+                          onChange={e => {
+                            const newEntries = [...workEntries]
+                            newEntries[index] = {
+                              ...newEntries[index],
+                              processTypeOther: e.target.value,
+                            }
+                            setWorkEntries(newEntries)
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                   <div className="mt-4">
                     <Label>작업 구간</Label>
                     <Input
                       value={entry.workSection}
-                      onChange={(e) => {
+                      onChange={e => {
                         const newEntries = [...workEntries]
                         newEntries[index] = { ...newEntries[index], workSection: e.target.value }
                         setWorkEntries(newEntries)
@@ -726,18 +859,21 @@ export default function DailyReportForm({
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setWorkEntries(prev => [...prev, {
-                    id: `work-${Date.now()}`,
-                    memberName: '',
-                    memberNameOther: '',
-                    processType: '',
-                    processTypeOther: '',
-                    workSection: '',
-                    beforePhotos: [],
-                    afterPhotos: [],
-                    beforePhotoPreviews: [],
-                    afterPhotoPreviews: []
-                  }])
+                  setWorkEntries(prev => [
+                    ...prev,
+                    {
+                      id: `work-${Date.now()}`,
+                      memberName: '',
+                      memberNameOther: '',
+                      processType: '',
+                      processTypeOther: '',
+                      workSection: '',
+                      beforePhotos: [],
+                      afterPhotos: [],
+                      beforePhotoPreviews: [],
+                      afterPhotoPreviews: [],
+                    },
+                  ])
                 }}
                 className="w-full"
               >
@@ -779,12 +915,12 @@ export default function DailyReportForm({
                         <Label>작업자 선택</Label>
                         <CustomSelect
                           value={entry.worker_id}
-                          onValueChange={(value) => {
+                          onValueChange={value => {
                             const newEntries = [...workerEntries]
-                            newEntries[index] = { 
-                              ...newEntries[index], 
+                            newEntries[index] = {
+                              ...newEntries[index],
                               worker_id: value,
-                              is_direct_input: false 
+                              is_direct_input: false,
                             }
                             setWorkerEntries(newEntries)
                           }}
@@ -794,7 +930,7 @@ export default function DailyReportForm({
                           </CustomSelectTrigger>
                           <CustomSelectContent>
                             <CustomSelectItem value="direct">직접 입력</CustomSelectItem>
-                            {workers.map((worker) => (
+                            {workers.map(worker => (
                               <CustomSelectItem key={worker.id} value={worker.id}>
                                 {worker.full_name}
                               </CustomSelectItem>
@@ -807,12 +943,12 @@ export default function DailyReportForm({
                           <Label>작업자 이름</Label>
                           <Input
                             value={entry.worker_name || ''}
-                            onChange={(e) => {
+                            onChange={e => {
                               const newEntries = [...workerEntries]
-                              newEntries[index] = { 
-                                ...newEntries[index], 
+                              newEntries[index] = {
+                                ...newEntries[index],
                                 worker_name: e.target.value,
-                                is_direct_input: true 
+                                is_direct_input: true,
                               }
                               setWorkerEntries(newEntries)
                             }}
@@ -825,11 +961,11 @@ export default function DailyReportForm({
                         <Input
                           type="number"
                           value={entry.labor_hours}
-                          onChange={(e) => {
+                          onChange={e => {
                             const newEntries = [...workerEntries]
-                            newEntries[index] = { 
-                              ...newEntries[index], 
-                              labor_hours: Number(e.target.value) 
+                            newEntries[index] = {
+                              ...newEntries[index],
+                              labor_hours: Number(e.target.value),
                             }
                             setWorkerEntries(newEntries)
                           }}
@@ -843,13 +979,16 @@ export default function DailyReportForm({
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    setWorkerEntries(prev => [...prev, {
-                      id: `worker-${Date.now()}`,
-                      worker_id: '',
-                      labor_hours: 0,
-                      worker_name: '',
-                      is_direct_input: false
-                    }])
+                    setWorkerEntries(prev => [
+                      ...prev,
+                      {
+                        id: `worker-${Date.now()}`,
+                        worker_id: '',
+                        labor_hours: 0,
+                        worker_name: '',
+                        is_direct_input: false,
+                      },
+                    ])
                   }}
                   className="w-full"
                 >
@@ -876,14 +1015,15 @@ export default function DailyReportForm({
                   <Input
                     type="number"
                     value={npc1000Materials.incoming}
-                    onChange={(e) => {
+                    onChange={e => {
                       const incoming = e.target.value
                       const used = npc1000Materials.used || '0'
-                      const remaining = incoming && used ? String(Number(incoming) - Number(used)) : ''
+                      const remaining =
+                        incoming && used ? String(Number(incoming) - Number(used)) : ''
                       setNpc1000Materials({
                         incoming,
                         used,
-                        remaining
+                        remaining,
                       })
                     }}
                     placeholder="반입량"
@@ -894,14 +1034,15 @@ export default function DailyReportForm({
                   <Input
                     type="number"
                     value={npc1000Materials.used}
-                    onChange={(e) => {
+                    onChange={e => {
                       const used = e.target.value
                       const incoming = npc1000Materials.incoming || '0'
-                      const remaining = incoming && used ? String(Number(incoming) - Number(used)) : ''
+                      const remaining =
+                        incoming && used ? String(Number(incoming) - Number(used)) : ''
                       setNpc1000Materials({
                         incoming: npc1000Materials.incoming,
                         used,
-                        remaining
+                        remaining,
                       })
                     }}
                     placeholder="사용량"
@@ -912,12 +1053,16 @@ export default function DailyReportForm({
                   <Input
                     type="number"
                     value={npc1000Materials.remaining}
-                    onChange={(e) => setNpc1000Materials(prev => ({...prev, remaining: e.target.value}))}
+                    onChange={e =>
+                      setNpc1000Materials(prev => ({ ...prev, remaining: e.target.value }))
+                    }
                     placeholder="잔량 (반입량 - 사용량)"
                     className="bg-gray-50"
                     title="반입량과 사용량을 입력하면 자동으로 계산됩니다. 필요시 수동 입력도 가능합니다."
                   />
-                  <p className="text-xs text-gray-500 mt-1">반입량 - 사용량 = 잔량 (자동계산, 수동입력 가능)</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    반입량 - 사용량 = 잔량 (자동계산, 수동입력 가능)
+                  </p>
                 </div>
               </div>
             </CollapsibleSection>
@@ -930,7 +1075,11 @@ export default function DailyReportForm({
             isExpanded={expandedSections.receipts}
             onToggle={() => toggleSection('receipts')}
             permissions={permissions}
-            badge={<Badge variant="outline">{receiptEntries.filter(r => r.file || r.category).length}개</Badge>}
+            badge={
+              <Badge variant="outline">
+                {receiptEntries.filter(r => r.file || r.category).length}개
+              </Badge>
+            }
           >
             <div className="space-y-4">
               {receiptEntries.map((entry, index) => (
@@ -953,7 +1102,7 @@ export default function DailyReportForm({
                       <Label>구분</Label>
                       <Input
                         value={entry.category}
-                        onChange={(e) => {
+                        onChange={e => {
                           const newEntries = [...receiptEntries]
                           newEntries[index] = { ...newEntries[index], category: e.target.value }
                           setReceiptEntries(newEntries)
@@ -965,7 +1114,7 @@ export default function DailyReportForm({
                       <Label>금액</Label>
                       <Input
                         value={entry.amount}
-                        onChange={(e) => {
+                        onChange={e => {
                           const newEntries = [...receiptEntries]
                           newEntries[index] = { ...newEntries[index], amount: e.target.value }
                           setReceiptEntries(newEntries)
@@ -978,7 +1127,7 @@ export default function DailyReportForm({
                       <Input
                         type="date"
                         value={entry.date}
-                        onChange={(e) => {
+                        onChange={e => {
                           const newEntries = [...receiptEntries]
                           newEntries[index] = { ...newEntries[index], date: e.target.value }
                           setReceiptEntries(newEntries)
@@ -991,7 +1140,7 @@ export default function DailyReportForm({
                     <Input
                       type="file"
                       accept="image/*,application/pdf"
-                      onChange={(e) => {
+                      onChange={e => {
                         const file = e.target.files?.[0]
                         if (file) {
                           const newEntries = [...receiptEntries]
@@ -1007,14 +1156,17 @@ export default function DailyReportForm({
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setReceiptEntries(prev => [...prev, {
-                    id: `receipt-${Date.now()}`,
-                    category: '',
-                    amount: '',
-                    date: new Date().toISOString().split('T')[0],
-                    file: null,
-                    preview: null
-                  }])
+                  setReceiptEntries(prev => [
+                    ...prev,
+                    {
+                      id: `receipt-${Date.now()}`,
+                      category: '',
+                      amount: '',
+                      date: new Date().toISOString().split('T')[0],
+                      file: null,
+                      preview: null,
+                    },
+                  ])
                 }}
                 className="w-full"
               >
@@ -1051,7 +1203,7 @@ export default function DailyReportForm({
               <Label>요청사항</Label>
               <Textarea
                 value={formData.hq_request || ''}
-                onChange={(e) => setFormData(prev => ({...prev, hq_request: e.target.value}))}
+                onChange={e => setFormData(prev => ({ ...prev, hq_request: e.target.value }))}
                 placeholder="본사에 전달할 요청사항이 있으면 입력하세요"
                 rows={4}
               />
@@ -1070,7 +1222,7 @@ export default function DailyReportForm({
               <Label>특이사항</Label>
               <Textarea
                 value={formData.issues || ''}
-                onChange={(e) => setFormData(prev => ({...prev, issues: e.target.value}))}
+                onChange={e => setFormData(prev => ({ ...prev, issues: e.target.value }))}
                 placeholder="특이사항이나 이슈사항을 입력하세요"
                 rows={4}
               />
@@ -1091,16 +1243,23 @@ export default function DailyReportForm({
                 <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
                   <h4 className="font-medium text-purple-800 mb-3">관리자 권한 기능</h4>
                   <div className="space-y-2 text-sm text-purple-600">
-                    <p className="font-medium">이 섹션은 관리자(admin/system_admin)만 사용 가능합니다.</p>
-                    
+                    <p className="font-medium">
+                      이 섹션은 관리자(admin/system_admin)만 사용 가능합니다.
+                    </p>
+
                     <div className="mt-2 space-y-1">
                       <p className="font-medium text-purple-700">📋 주요 기능:</p>
                       <ul className="ml-4 space-y-1 list-disc">
-                        <li><strong>작성자 이름 수정:</strong> 다른 사람을 대신하여 작업일지 작성 가능</li>
-                        <li><strong>총 작업자 수:</strong> 전체 현장 인원 수를 수동으로 조정 (급여 계산에 반영)</li>
+                        <li>
+                          <strong>작성자 이름 수정:</strong> 다른 사람을 대신하여 작업일지 작성 가능
+                        </li>
+                        <li>
+                          <strong>총 작업자 수:</strong> 전체 현장 인원 수를 수동으로 조정 (급여
+                          계산에 반영)
+                        </li>
                       </ul>
                     </div>
-                    
+
                     <div className="mt-2 space-y-1">
                       <p className="font-medium text-purple-700">🎯 사용 목적:</p>
                       <ul className="ml-4 space-y-1 list-disc">
@@ -1109,30 +1268,34 @@ export default function DailyReportForm({
                         <li>특수 상황에서의 유연한 대처</li>
                       </ul>
                     </div>
-                    
+
                     <p className="mt-2 text-xs text-purple-500 italic">
                       ※ 추후 승인 프로세스, 일괄 처리 등 추가 기능이 확장될 예정입니다.
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>작성자 (수정 가능)</Label>
                     <Input
                       value={formData.created_by || ''}
-                      onChange={(e) => setFormData(prev => ({...prev, created_by: e.target.value}))}
+                      onChange={e => setFormData(prev => ({ ...prev, created_by: e.target.value }))}
                       placeholder="작성자 이름"
                       className="border-purple-200 focus:border-purple-400"
                     />
-                    <p className="text-xs text-gray-500 mt-1">다른 작업자를 대신하여 작성 시 사용</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      다른 작업자를 대신하여 작성 시 사용
+                    </p>
                   </div>
                   <div>
                     <Label>총 작업자 수</Label>
                     <Input
                       type="number"
                       value={formData.total_workers || 0}
-                      onChange={(e) => setFormData(prev => ({...prev, total_workers: Number(e.target.value)}))}
+                      onChange={e =>
+                        setFormData(prev => ({ ...prev, total_workers: Number(e.target.value) }))
+                      }
                       placeholder="총 작업자 수"
                       className="border-purple-200 focus:border-purple-400"
                     />
@@ -1150,14 +1313,19 @@ export default function DailyReportForm({
           <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                <div className={cn(
-                  "w-2 h-2 rounded-full",
-                  permissions.isAdmin ? "bg-purple-500" :
-                  permissions.isSiteManager ? "bg-orange-500" :
-                  "bg-blue-500"
-                )} />
+                <div
+                  className={cn(
+                    'w-2 h-2 rounded-full',
+                    permissions.isAdmin
+                      ? 'bg-purple-500'
+                      : permissions.isSiteManager
+                        ? 'bg-orange-500'
+                        : 'bg-blue-500'
+                  )}
+                />
                 <span className="font-medium text-gray-700 dark:text-gray-300">
-                  {mode === 'create' ? '새 작업일지 작성' : '작업일지 편집'} - {permissions.roleDisplayName}
+                  {mode === 'create' ? '새 작업일지 작성' : '작업일지 편집'} -{' '}
+                  {permissions.roleDisplayName}
                 </span>
               </div>
               <Badge variant="outline" className="text-xs">
@@ -1200,18 +1368,20 @@ export default function DailyReportForm({
               onClick={() => handleSubmit(false)}
               disabled={loading}
               className={cn(
-                "min-w-[160px] font-semibold text-white",
-                permissions.isAdmin ? "bg-purple-600 hover:bg-purple-700" :
-                permissions.isSiteManager ? "bg-orange-600 hover:bg-orange-700" :
-                "bg-blue-600 hover:bg-blue-700"
+                'min-w-[160px] font-semibold text-white',
+                permissions.isAdmin
+                  ? 'bg-purple-600 hover:bg-purple-700'
+                  : permissions.isSiteManager
+                    ? 'bg-orange-600 hover:bg-orange-700'
+                    : 'bg-blue-600 hover:bg-blue-700'
               )}
             >
               <Send className="h-4 w-4 mr-2" />
-              {loading && loadingType === 'submit' ? '처리 중...' : 
-                mode === 'create' ? 
-                  '작업일지 제출' : 
-                  '수정사항 저장'
-              }
+              {loading && loadingType === 'submit'
+                ? '처리 중...'
+                : mode === 'create'
+                  ? '작업일지 제출'
+                  : '수정사항 저장'}
             </Button>
           </div>
         </div>
