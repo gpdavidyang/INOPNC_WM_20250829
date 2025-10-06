@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -13,7 +13,6 @@ import {
   CustomSelectContent,
   CustomSelectItem,
 } from '@/components/ui/custom-select'
-import { useWorkOptions } from '@/hooks/use-work-options'
 import type { Site } from '@/types'
 
 type Mode = 'create' | 'edit'
@@ -37,8 +36,10 @@ type FormState = {
   manager_email: string
   safety_manager_name: string
   safety_manager_phone: string
+  safety_manager_email: string
   accommodation_name: string
   accommodation_address: string
+  accommodation_phone: string
   component_name: string
   work_process: string
   work_section: string
@@ -55,11 +56,11 @@ const toDateInput = (value?: string | null) => {
 }
 
 export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
-  const { componentTypes, processTypes } = useWorkOptions()
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [ptwFile, setPtwFile] = useState<File | null>(null)
   const [ptwUploading, setPtwUploading] = useState(false)
+  const [blueprintFile, setBlueprintFile] = useState<File | null>(null)
 
   const [form, setForm] = useState<FormState>(() => ({
     name: initial?.name || '',
@@ -77,8 +78,10 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     ),
     safety_manager_name: String(initial?.safety_manager_name || ''),
     safety_manager_phone: String(initial?.safety_manager_phone || ''),
+    safety_manager_email: String((initial as any)?.safety_manager_email || ''),
     accommodation_name: String(initial?.accommodation_name || ''),
     accommodation_address: String(initial?.accommodation_address || ''),
+    accommodation_phone: String((initial as any)?.accommodation_phone || ''),
     component_name: String(initial?.component_name || ''),
     work_process: String(initial?.work_process || ''),
     work_section: String(initial?.work_section || ''),
@@ -112,20 +115,14 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
         manager_email: form.manager_email.trim() || null,
         safety_manager_name: form.safety_manager_name.trim() || null,
         safety_manager_phone: form.safety_manager_phone.trim() || null,
+        safety_manager_email: form.safety_manager_email.trim() || null,
         accommodation_name: form.accommodation_name.trim() || null,
         accommodation_address: form.accommodation_address.trim() || null,
+        accommodation_phone: form.accommodation_phone.trim() || null,
       }
 
-      // Only include work option fields for edit mode
-      const payload: any =
-        mode === 'edit'
-          ? {
-              ...basePayload,
-              component_name: form.component_name.trim() || null,
-              work_process: form.work_process.trim() || null,
-              work_section: form.work_section.trim() || null,
-            }
-          : basePayload
+      // 작업 옵션 필드 저장 제외 (편집/생성 공통)
+      const payload: any = basePayload
 
       const res = await fetch(
         mode === 'create' ? '/api/admin/sites' : `/api/admin/sites/${siteId}`,
@@ -168,8 +165,7 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
     }
   }, [canUploadPTW, ptwFile, siteId])
 
-  const componentOptions = useMemo(() => componentTypes.map(c => c.option_label), [componentTypes])
-  const processOptions = useMemo(() => processTypes.map(p => p.option_label), [processTypes])
+  // 작업 옵션 UI 제거: 관련 옵션 계산 제거
 
   return (
     <div className="space-y-6">
@@ -180,229 +176,223 @@ export default function SiteForm({ mode, siteId, initial, onSuccess }: Props) {
       )}
 
       {/* 기본 정보 */}
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="site-name">현장명 *</Label>
-          <Input
-            id="site-name"
-            value={form.name}
-            onChange={e => handleChange('name', e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="site-status">상태</Label>
-          <CustomSelect value={form.status} onValueChange={v => handleChange('status', v)}>
-            <CustomSelectTrigger>
-              <CustomSelectValue placeholder="상태 선택" />
-            </CustomSelectTrigger>
-            <CustomSelectContent>
-              <CustomSelectItem value="active">진행 중</CustomSelectItem>
-              <CustomSelectItem value="inactive">중단</CustomSelectItem>
-              <CustomSelectItem value="completed">완료</CustomSelectItem>
-            </CustomSelectContent>
-          </CustomSelect>
-        </div>
-        <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="site-address">주소 *</Label>
-          <Input
-            id="site-address"
-            value={form.address}
-            onChange={e => handleChange('address', e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="site-start">시작일 *</Label>
-          <Input
-            id="site-start"
-            type="date"
-            value={form.start_date}
-            onChange={e => handleChange('start_date', e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="site-end">종료일</Label>
-          <Input
-            id="site-end"
-            type="date"
-            value={form.end_date}
-            onChange={e => handleChange('end_date', e.target.value)}
-          />
-        </div>
-        <div className="md:col-span-2 space-y-2">
-          <Label htmlFor="site-desc">설명</Label>
-          <Textarea
-            id="site-desc"
-            value={form.description}
-            onChange={e => handleChange('description', e.target.value)}
-            rows={3}
-          />
+      <section className="rounded-xl border border-[#BAC6E1] bg-[#F3F7FA] p-4 shadow-sm">
+        <h3 className="mb-3 text-sm font-semibold text-muted-foreground">기본 정보</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="site-name">현장명 *</Label>
+            <Input
+              id="site-name"
+              value={form.name}
+              onChange={e => handleChange('name', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-status">상태</Label>
+            <CustomSelect value={form.status} onValueChange={v => handleChange('status', v)}>
+              <CustomSelectTrigger>
+                <CustomSelectValue placeholder="상태 선택" />
+              </CustomSelectTrigger>
+              <CustomSelectContent>
+                <CustomSelectItem value="active">진행 중</CustomSelectItem>
+                <CustomSelectItem value="inactive">중단</CustomSelectItem>
+                <CustomSelectItem value="completed">완료</CustomSelectItem>
+              </CustomSelectContent>
+            </CustomSelect>
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="site-address">주소 *</Label>
+            <Input
+              id="site-address"
+              value={form.address}
+              onChange={e => handleChange('address', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-start">시작일 *</Label>
+            <Input
+              id="site-start"
+              type="date"
+              value={form.start_date}
+              onChange={e => handleChange('start_date', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-end">종료일</Label>
+            <Input
+              id="site-end"
+              type="date"
+              value={form.end_date}
+              onChange={e => handleChange('end_date', e.target.value)}
+            />
+          </div>
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="site-desc">설명</Label>
+            <Textarea
+              id="site-desc"
+              value={form.description}
+              onChange={e => handleChange('description', e.target.value)}
+              rows={3}
+            />
+          </div>
         </div>
       </section>
 
       {/* 담당자 */}
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="site-manager">현장관리자</Label>
-          <Input
-            id="site-manager"
-            value={form.manager_name}
-            onChange={e => handleChange('manager_name', e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="site-manager-phone">현장관리자 연락처</Label>
-          <Input
-            id="site-manager-phone"
-            inputMode="tel"
-            value={form.manager_phone}
-            onChange={e => handleChange('manager_phone', e.target.value)}
-            placeholder="010-0000-0000"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="site-manager-email">현장관리자 이메일</Label>
-          <Input
-            id="site-manager-email"
-            type="email"
-            value={form.manager_email}
-            onChange={e => handleChange('manager_email', e.target.value)}
-            placeholder="manager@example.com"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="site-safety">안전관리자</Label>
-          <Input
-            id="site-safety"
-            value={form.safety_manager_name}
-            onChange={e => handleChange('safety_manager_name', e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="site-safety-phone">안전관리자 연락처</Label>
-          <Input
-            id="site-safety-phone"
-            inputMode="tel"
-            value={form.safety_manager_phone}
-            onChange={e => handleChange('safety_manager_phone', e.target.value)}
-            placeholder="010-0000-0000"
-          />
+      <section className="rounded-xl border border-[#BAC6E1] bg-[#F3F7FA] p-4 shadow-sm">
+        <h3 className="mb-3 text-sm font-semibold text-muted-foreground">담당자</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="site-manager">현장관리자</Label>
+            <Input
+              id="site-manager"
+              value={form.manager_name}
+              onChange={e => handleChange('manager_name', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-manager-phone">현장관리자 연락처</Label>
+            <Input
+              id="site-manager-phone"
+              inputMode="tel"
+              value={form.manager_phone}
+              onChange={e => handleChange('manager_phone', e.target.value)}
+              placeholder="010-0000-0000"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-manager-email">현장관리자 이메일</Label>
+            <Input
+              id="site-manager-email"
+              type="email"
+              value={form.manager_email}
+              onChange={e => handleChange('manager_email', e.target.value)}
+              placeholder="manager@example.com"
+            />
+          </div>
+          <div className="md:col-span-2 border-t border-[#BAC6E1]" />
+          <div className="space-y-2">
+            <Label htmlFor="site-safety">안전관리자</Label>
+            <Input
+              id="site-safety"
+              value={form.safety_manager_name}
+              onChange={e => handleChange('safety_manager_name', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-safety-phone">안전관리자 연락처</Label>
+            <Input
+              id="site-safety-phone"
+              inputMode="tel"
+              value={form.safety_manager_phone}
+              onChange={e => handleChange('safety_manager_phone', e.target.value)}
+              placeholder="010-0000-0000"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-safety-email">안전관리자 이메일</Label>
+            <Input
+              id="site-safety-email"
+              type="email"
+              value={form.safety_manager_email}
+              onChange={e => handleChange('safety_manager_email', e.target.value)}
+              placeholder="safety@example.com"
+            />
+          </div>
         </div>
       </section>
 
       {/* 숙소 */}
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="site-acc-name">숙소명</Label>
-          <Input
-            id="site-acc-name"
-            value={form.accommodation_name}
-            onChange={e => handleChange('accommodation_name', e.target.value)}
-          />
-        </div>
-        <div className="space-y-2 md:col-span-1">
-          <Label htmlFor="site-acc-addr">숙소 주소</Label>
-          <Input
-            id="site-acc-addr"
-            value={form.accommodation_address}
-            onChange={e => handleChange('accommodation_address', e.target.value)}
-          />
+      <section className="rounded-xl border border-[#BAC6E1] bg-[#F3F7FA] p-4 shadow-sm">
+        <h3 className="mb-3 text-sm font-semibold text-muted-foreground">숙소</h3>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="site-acc-name">숙소명</Label>
+            <Input
+              id="site-acc-name"
+              value={form.accommodation_name}
+              onChange={e => handleChange('accommodation_name', e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="site-acc-phone">숙소 전화번호</Label>
+            <Input
+              id="site-acc-phone"
+              inputMode="tel"
+              value={form.accommodation_phone}
+              onChange={e => handleChange('accommodation_phone', e.target.value)}
+              placeholder="02-000-0000 / 010-0000-0000"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="site-acc-addr">숙소 주소</Label>
+            <Input
+              id="site-acc-addr"
+              value={form.accommodation_address}
+              onChange={e => handleChange('accommodation_address', e.target.value)}
+            />
+          </div>
         </div>
       </section>
 
-      {/* 작업 옵션: 새 현장 등록 화면에는 표시하지 않음 */}
-      {mode === 'edit' && (
-        <section className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label>부재명</Label>
-            <CustomSelect
-              value={form.component_name?.startsWith('기타:') ? '기타' : form.component_name || ''}
-              onValueChange={v => {
-                if (v === '기타') handleChange('component_name', '기타:')
-                else handleChange('component_name', v)
-              }}
-            >
-              <CustomSelectTrigger>
-                <CustomSelectValue placeholder="선택" />
-              </CustomSelectTrigger>
-              <CustomSelectContent>
-                {componentOptions.map(label => (
-                  <CustomSelectItem key={label} value={label}>
-                    {label}
-                  </CustomSelectItem>
-                ))}
-                <CustomSelectItem value="기타">기타</CustomSelectItem>
-              </CustomSelectContent>
-            </CustomSelect>
-            {form.component_name?.startsWith('기타:') && (
-              <Input
-                className="mt-2"
-                value={form.component_name.replace('기타:', '')}
-                onChange={e => handleChange('component_name', '기타:' + e.target.value)}
-                placeholder="기타 부재명 입력"
-              />
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label>작업공정</Label>
-            <CustomSelect
-              value={form.work_process?.startsWith('기타:') ? '기타' : form.work_process || ''}
-              onValueChange={v => {
-                if (v === '기타') handleChange('work_process', '기타:')
-                else handleChange('work_process', v)
-              }}
-            >
-              <CustomSelectTrigger>
-                <CustomSelectValue placeholder="선택" />
-              </CustomSelectTrigger>
-              <CustomSelectContent>
-                {processOptions.map(label => (
-                  <CustomSelectItem key={label} value={label}>
-                    {label}
-                  </CustomSelectItem>
-                ))}
-                <CustomSelectItem value="기타">기타</CustomSelectItem>
-              </CustomSelectContent>
-            </CustomSelect>
-            {form.work_process?.startsWith('기타:') && (
-              <Input
-                className="mt-2"
-                value={form.work_process.replace('기타:', '')}
-                onChange={e => handleChange('work_process', '기타:' + e.target.value)}
-                placeholder="기타 작업공정 입력"
-              />
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="work-section">작업구간</Label>
-            <Input
-              id="work-section"
-              value={form.work_section}
-              onChange={e => handleChange('work_section', e.target.value)}
-              placeholder="예: A동"
-            />
-          </div>
-        </section>
-      )}
+      {/* 작업 옵션 섹션 제거됨 */}
 
       {/* PTW 업로드 */}
-      <section className="space-y-2">
-        <Label>PTW(작업허가서)</Label>
-        {canUploadPTW ? (
-          <div className="flex items-center gap-3">
-            <Input
-              type="file"
-              accept="application/pdf,image/*"
-              onChange={e => setPtwFile(e.target.files?.[0] || null)}
-            />
-            <Button type="button" onClick={uploadPTW} disabled={!ptwFile || ptwUploading}>
-              {ptwUploading ? '업로드 중…' : 'PTW 업로드'}
+      <section className="rounded-xl border border-[#BAC6E1] bg-[#F3F7FA] p-4 shadow-sm">
+        <h3 className="mb-3 text-sm font-semibold text-muted-foreground">문서 업로드/링크</h3>
+        <div className="space-y-4">
+          {/* PTW */}
+          <div className="space-y-2">
+            <Label>PTW(작업허가서)</Label>
+            {canUploadPTW ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <Input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={e => setPtwFile(e.target.files?.[0] || null)}
+                />
+                <Button type="button" onClick={uploadPTW} disabled={!ptwFile || ptwUploading}>
+                  {ptwUploading ? '업로드 중…' : 'PTW 업로드'}
+                </Button>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                현장 생성 후 업로드할 수 있습니다.
+              </div>
+            )}
+          </div>
+
+          {/* 공도면 */}
+          <div className="space-y-2">
+            <Label>공도면</Label>
+            {canUploadPTW ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <Input
+                  type="file"
+                  accept="application/pdf,image/*"
+                  onChange={e => setBlueprintFile(e.target.files?.[0] || null)}
+                />
+                <Button asChild variant="outline">
+                  <a href={`/dashboard/admin/sites/${siteId}/documents`}>공도면 링크</a>
+                </Button>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                현장 생성 후 링크를 사용할 수 있습니다.
+              </div>
+            )}
+          </div>
+
+          {/* Quick links */}
+          <div className="flex flex-wrap gap-2 pt-1">
+            <Button asChild variant="secondary">
+              <a href={`/dashboard/admin/sites/${siteId}/documents`}>도면문서함 가기</a>
+            </Button>
+            <Button asChild variant="secondary">
+              <a href={`/dashboard/admin/documents/photo-grid?site_id=${siteId}`}>사진함 가기</a>
             </Button>
           </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">현장 생성 후 업로드할 수 있습니다.</div>
-        )}
+        </div>
       </section>
 
       <div className="flex items-center justify-end gap-2 pt-2">

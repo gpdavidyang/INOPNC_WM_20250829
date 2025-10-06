@@ -4,10 +4,13 @@ import React from 'react'
 import DataTable from '@/components/admin/DataTable'
 import { Badge } from '@/components/ui/badge'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { useConfirm } from '@/components/ui/use-confirm'
 
 export default function DailyReportsTable({ reports }: { reports: any[] }) {
   const router = useRouter()
   const sp = useSearchParams()
+  const { confirm } = useConfirm()
   const sortKey = (sp?.get('sort') || 'work_date') as string
   const sortDir = (sp?.get('dir') || 'desc') as 'asc' | 'desc'
 
@@ -41,13 +44,61 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
                 : '-'}
             </a>
           ),
+          width: 110,
+          headerClassName: 'whitespace-nowrap',
         },
         {
           key: 'site_name',
           header: '현장',
           sortable: true,
           accessor: (r: any) => r?.sites?.name || r?.site?.name || '',
-          render: (r: any) => r?.sites?.name || r?.site?.name || '-',
+          render: (r: any) => (
+            <div className="font-medium text-foreground">
+              {r?.site_id ? (
+                <a
+                  href={`/dashboard/admin/sites/${r.site_id}`}
+                  className="underline-offset-2 hover:underline"
+                  title="현장 상세 보기"
+                >
+                  {r?.sites?.name || r?.site?.name || '-'}
+                </a>
+              ) : (
+                <span>{r?.sites?.name || r?.site?.name || '-'}</span>
+              )}
+              <div className="text-xs text-muted-foreground">
+                {r?.sites?.address || r?.site?.address || '-'}
+              </div>
+            </div>
+          ),
+          width: 220,
+          headerClassName: 'whitespace-nowrap',
+        },
+        {
+          key: 'component_name',
+          header: '부재명',
+          sortable: true,
+          accessor: (r: any) => r?.component_name || r?.member_name || '',
+          render: (r: any) => r?.component_name || r?.member_name || '-',
+          width: 180,
+          headerClassName: 'whitespace-nowrap',
+        },
+        {
+          key: 'work_process',
+          header: '작업공정',
+          sortable: true,
+          accessor: (r: any) => r?.work_process || r?.process_type || '',
+          render: (r: any) => r?.work_process || r?.process_type || '-',
+          width: 160,
+          headerClassName: 'whitespace-nowrap',
+        },
+        {
+          key: 'work_section',
+          header: '작업구간',
+          sortable: true,
+          accessor: (r: any) => r?.work_section || '',
+          render: (r: any) => r?.work_section || '-',
+          width: 160,
+          headerClassName: 'whitespace-nowrap',
         },
         {
           key: 'author',
@@ -55,6 +106,8 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
           sortable: false,
           accessor: (r: any) => r?.profiles?.full_name || r?.submitted_by_profile?.full_name || '',
           render: (r: any) => r?.profiles?.full_name || r?.submitted_by_profile?.full_name || '-',
+          width: 140,
+          headerClassName: 'whitespace-nowrap',
         },
         {
           key: 'status',
@@ -70,6 +123,8 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
                   : r?.status || '미정'}
             </Badge>
           ),
+          width: 90,
+          headerClassName: 'whitespace-nowrap',
         },
         {
           key: 'workers',
@@ -77,6 +132,8 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
           sortable: false,
           accessor: (r: any) => r?.worker_details_count ?? r?.total_workers ?? 0,
           render: (r: any) => String(r?.worker_details_count ?? r?.total_workers ?? 0),
+          width: 70,
+          headerClassName: 'whitespace-nowrap',
         },
         {
           key: 'docs',
@@ -84,21 +141,59 @@ export default function DailyReportsTable({ reports }: { reports: any[] }) {
           sortable: false,
           accessor: (r: any) => r?.daily_documents_count ?? 0,
           render: (r: any) => String(r?.daily_documents_count ?? 0),
+          width: 70,
+          headerClassName: 'whitespace-nowrap',
         },
         {
           key: 'total_manhours',
           header: '총공수',
           sortable: true,
           accessor: (r: any) => r?.total_manhours ?? 0,
+          render: (r: any) => <span>{formatManhours(r?.total_manhours)}</span>,
+          width: 90,
+          headerClassName: 'whitespace-nowrap',
+        },
+        {
+          key: 'actions',
+          header: '작업',
+          sortable: false,
+          align: 'right',
+          width: 210,
+          className: 'whitespace-nowrap',
           render: (r: any) => (
-            <div className="flex items-center gap-3">
-              <span>{formatManhours(r?.total_manhours)}</span>
-              <a
-                href={`/dashboard/admin/daily-reports/${r.id}/edit`}
-                className="underline text-blue-600 text-xs"
+            <div className="flex justify-end gap-1">
+              <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
+                <a href={`/dashboard/admin/daily-reports/${r.id}`}>상세</a>
+              </Button>
+              <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
+                <a href={`/dashboard/admin/daily-reports/${r.id}/edit`}>수정</a>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="px-2 py-1 text-xs"
+                onClick={async () => {
+                  const ok = await confirm({
+                    title: '작업일지 삭제',
+                    description: '이 작업일지를 삭제하시겠습니까? 되돌릴 수 없습니다.',
+                    confirmText: '삭제',
+                    cancelText: '취소',
+                    variant: 'destructive',
+                  })
+                  if (!ok) return
+                  try {
+                    const res = await fetch(`/api/admin/daily-reports/${r.id}`, {
+                      method: 'DELETE',
+                    })
+                    if (!res.ok) throw new Error('삭제 실패')
+                    router.refresh()
+                  } catch (e) {
+                    alert((e as Error)?.message || '삭제 중 오류가 발생했습니다.')
+                  }
+                }}
               >
-                수정
-              </a>
+                삭제
+              </Button>
             </div>
           ),
         },

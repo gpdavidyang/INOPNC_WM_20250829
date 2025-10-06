@@ -34,7 +34,7 @@ export async function listSiteAssignments(
   if (userIds.length > 0) {
     const { data: profs } = await supabase
       .from('profiles')
-      .select('id, full_name, email, role, organization_id')
+      .select('id, full_name, email, phone, role, organization_id')
       .in('id', userIds)
     profiles = profs || []
   }
@@ -68,6 +68,7 @@ export async function listSiteAssignments(
             id: p.id,
             full_name: p.full_name ?? null,
             email: p.email ?? null,
+            phone: p.phone ?? null,
             role: p.role ?? null,
             organization: org ?? null,
           }

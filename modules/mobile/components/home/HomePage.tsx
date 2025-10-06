@@ -31,20 +31,7 @@ import '@/modules/mobile/styles/upload.css'
 import '@/modules/mobile/styles/summary.css'
 import '@/modules/mobile/styles/summary-section.css'
 import '@/modules/mobile/styles/drawing-quick.css'
-
-const MEMBER_TYPE_OPTIONS = [
-  { value: '슬라브', label: '슬라브' },
-  { value: '거더', label: '거더' },
-  { value: '기둥', label: '기둥' },
-  { value: 'other', label: '기타' },
-] as const
-
-const WORK_PROCESS_OPTIONS = [
-  { value: '균열', label: '균열' },
-  { value: '면', label: '면' },
-  { value: '마감', label: '마감' },
-  { value: 'other', label: '기타' },
-] as const
+import { useWorkOptions } from '@/hooks/use-work-options'
 
 const WORK_TYPE_OPTIONS = [
   { value: '지하', label: '지하' },
@@ -53,12 +40,6 @@ const WORK_TYPE_OPTIONS = [
   { value: 'other', label: '기타' },
 ] as const
 
-const MEMBER_TYPE_VALUES = MEMBER_TYPE_OPTIONS.filter(option => option.value !== 'other').map(
-  option => option.value
-)
-const WORK_PROCESS_VALUES = WORK_PROCESS_OPTIONS.filter(option => option.value !== 'other').map(
-  option => option.value
-)
 const WORK_TYPE_VALUES = WORK_TYPE_OPTIONS.filter(option => option.value !== 'other').map(
   option => option.value
 )
@@ -146,13 +127,38 @@ export const HomePage: React.FC<HomePageProps> = ({ initialProfile, initialUser 
     message: string
   } | null>(null)
 
+  // 작업 옵션 (부재명/작업공정) - 관리자 화면에서 설정한 값 사용
+  const { componentTypes, processTypes } = useWorkOptions()
+  const MEMBER_TYPE_OPTIONS = useMemo(
+    () => [
+      ...componentTypes.map(opt => ({ value: opt.option_label, label: opt.option_label })),
+      { value: 'other', label: '기타' },
+    ],
+    [componentTypes]
+  )
+  const WORK_PROCESS_OPTIONS = useMemo(
+    () => [
+      ...processTypes.map(opt => ({ value: opt.option_label, label: opt.option_label })),
+      { value: 'other', label: '기타' },
+    ],
+    [processTypes]
+  )
+  const MEMBER_TYPE_VALUES = useMemo(
+    () => MEMBER_TYPE_OPTIONS.filter(o => o.value !== 'other').map(o => o.value),
+    [MEMBER_TYPE_OPTIONS]
+  )
+  const WORK_PROCESS_VALUES = useMemo(
+    () => WORK_PROCESS_OPTIONS.filter(o => o.value !== 'other').map(o => o.value),
+    [WORK_PROCESS_OPTIONS]
+  )
+
   const normalizedMemberTypes = useMemo(
     () => normalizeSelections(memberTypes, MEMBER_TYPE_VALUES),
-    [memberTypes]
+    [memberTypes, MEMBER_TYPE_VALUES]
   )
   const normalizedWorkProcesses = useMemo(
     () => normalizeSelections(workContents, WORK_PROCESS_VALUES),
-    [workContents]
+    [workContents, WORK_PROCESS_VALUES]
   )
   const normalizedWorkTypes = useMemo(
     () => normalizeSelections(workTypes, WORK_TYPE_VALUES),

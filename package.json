@@ -28,6 +28,8 @@
     "migrate:documents": "tsx scripts/migrate-documents.ts",
     "migrate:documents:dry": "tsx scripts/migrate-documents.ts --dry-run --verbose",
     "migrate:documents:prod": "tsx scripts/migrate-documents.ts --env=production --backup",
+    "cleanup:work-options:inactive": "tsx scripts/cleanup-inactive-work-options.ts",
+    "cleanup:work-options:inactive:dry": "tsx scripts/cleanup-inactive-work-options.ts --dry-run",
     "prepare": "husky || true"
   },
   "dependencies": {

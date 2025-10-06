@@ -27,7 +27,9 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         .limit(10),
       svc
         .from('daily_reports')
-        .select('id, work_date, status')
+        .select(
+          'id, work_date, status, member_name, process_type, component_name, work_process, work_section, total_workers, created_by, site_id'
+        )
         .eq('site_id', siteId)
         .order('work_date', { ascending: false })
         .limit(10),
@@ -46,11 +48,52 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
         .limit(10),
     ])
 
+    // Enrich recent reports with counts and totals
+    const reports = Array.isArray(reportsRes.data) ? reportsRes.data : []
+    const enrichedReports = await Promise.all(
+      reports.map(async (r: any) => {
+        try {
+          const [workerCountRes, manhoursRes, docsCountRes] = await Promise.all([
+            svc
+              .from('daily_report_workers')
+              .select('id', { count: 'exact', head: true })
+              .eq('daily_report_id', r.id),
+            svc.from('work_records').select('labor_hours').eq('daily_report_id', r.id),
+            svc
+              .from('documents')
+              .select('id', { count: 'exact', head: true })
+              .eq('site_id', siteId)
+              .gte('created_at', `${r.work_date}T00:00:00`)
+              .lt('created_at', `${r.work_date}T23:59:59`),
+          ])
+
+          const totalManhours = (manhoursRes.data || []).reduce(
+            (sum: number, w: any) => sum + (Number(w.labor_hours) || 0),
+            0
+          )
+
+          return {
+            ...r,
+            worker_details_count: workerCountRes.count || 0,
+            daily_documents_count: docsCountRes.count || 0,
+            total_manhours: totalManhours,
+          }
+        } catch {
+          return {
+            ...r,
+            worker_details_count: 0,
+            daily_documents_count: 0,
+            total_manhours: 0,
+          }
+        }
+      })
+    )
+
     return NextResponse.json({
       success: true,
       data: {
         docs: docsRes.data || [],
-        reports: reportsRes.data || [],
+        reports: enrichedReports,
         assignments: assignsRes.data || [],
         requests: reqsRes.data || [],
       },
