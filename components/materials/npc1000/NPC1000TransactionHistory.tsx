@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Transaction {
   id: string
   transaction_type: 'in' | 'out' | 'return' | 'waste' | 'adjustment'
@@ -30,7 +29,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
   const [filterType, setFilterType] = useState<string>('all')
   const [dateRange, setDateRange] = useState({
     from: format(new Date(new Date().setMonth(new Date().getMonth() - 1)), 'yyyy-MM-dd'),
-    to: format(new Date(), 'yyyy-MM-dd')
+    to: format(new Date(), 'yyyy-MM-dd'),
   })
 
   useEffect(() => {
@@ -57,7 +56,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
           created_by: 'user1',
           created_by_name: '김현장',
           site_name: '서울 강남 현장',
-          running_balance: 7000
+          running_balance: 7000,
         },
         {
           id: '2',
@@ -70,7 +69,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
           created_by: 'user2',
           created_by_name: '이작업',
           site_name: '서울 강남 현장',
-          running_balance: 5000
+          running_balance: 5000,
         },
         {
           id: '3',
@@ -81,7 +80,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
           created_by: 'user2',
           created_by_name: '이작업',
           site_name: '서울 강남 현장',
-          running_balance: 4950
+          running_balance: 4950,
         },
         {
           id: '4',
@@ -93,7 +92,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
           created_by: 'user1',
           created_by_name: '김현장',
           site_name: '서울 강남 현장',
-          running_balance: 5050
+          running_balance: 5050,
         },
         {
           id: '5',
@@ -104,8 +103,8 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
           created_by: 'user1',
           created_by_name: '김현장',
           site_name: '서울 강남 현장',
-          running_balance: 5150
-        }
+          running_balance: 5150,
+        },
       ]
       setTransactions(mockData)
     } catch (error) {
@@ -116,14 +115,14 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
   }
 
   const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = 
+    const matchesSearch =
       transaction.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.supplier_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.delivery_note_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       transaction.created_by_name?.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     const matchesFilter = filterType === 'all' || transaction.transaction_type === filterType
-    
+
     return matchesSearch && matchesFilter
   })
 
@@ -146,23 +145,35 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
 
   const getTransactionLabel = (type: string) => {
     switch (type) {
-      case 'in': return '입고'
-      case 'out': return '출고'
-      case 'return': return '반품'
-      case 'waste': return '손실'
-      case 'adjustment': return '조정'
-      default: return type
+      case 'in':
+        return '입고'
+      case 'out':
+        return '출고'
+      case 'return':
+        return '반품'
+      case 'waste':
+        return '손실'
+      case 'adjustment':
+        return '조정'
+      default:
+        return type
     }
   }
 
   const getTransactionColor = (type: string) => {
     switch (type) {
-      case 'in': return 'text-green-600 bg-green-50'
-      case 'out': return 'text-red-600 bg-red-50'
-      case 'return': return 'text-orange-600 bg-orange-50'
-      case 'waste': return 'text-red-600 bg-red-50'
-      case 'adjustment': return 'text-blue-600 bg-blue-50'
-      default: return 'text-gray-600 bg-gray-50'
+      case 'in':
+        return 'text-green-600 bg-green-50'
+      case 'out':
+        return 'text-red-600 bg-red-50'
+      case 'return':
+        return 'text-orange-600 bg-orange-50'
+      case 'waste':
+        return 'text-red-600 bg-red-50'
+      case 'adjustment':
+        return 'text-blue-600 bg-blue-50'
+      default:
+        return 'text-gray-600 bg-gray-50'
     }
   }
 
@@ -175,16 +186,16 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               type="text"
-              placeholder="메모, 공급업체, 전표번호, 담당자로 검색..."
+              placeholder="메모, 시공업체, 전표번호, 담당자로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10"
             />
           </div>
           <div className="flex gap-2">
             <select
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={e => setFilterType(e.target.value)}
               className="w-full px-3 py-1.5 text-sm font-medium border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-gray-300 dark:hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             >
               <option value="all">전체 유형</option>
@@ -197,14 +208,14 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
             <Input
               type="date"
               value={dateRange.from}
-              onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+              onChange={e => setDateRange({ ...dateRange, from: e.target.value })}
               className="w-40"
             />
             <span className="flex items-center px-2">~</span>
             <Input
               type="date"
               value={dateRange.to}
-              onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+              onChange={e => setDateRange({ ...dateRange, to: e.target.value })}
               className="w-40"
             />
             <Button variant="outline" onClick={loadTransactions}>
@@ -277,18 +288,28 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         {getTransactionIcon(transaction.transaction_type)}
-                        <Badge className={cn('text-xs', getTransactionColor(transaction.transaction_type))}>
+                        <Badge
+                          className={cn(
+                            'text-xs',
+                            getTransactionColor(transaction.transaction_type)
+                          )}
+                        >
                           {getTransactionLabel(transaction.transaction_type)}
                         </Badge>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <p className={cn(
-                        'font-semibold',
-                        transaction.transaction_type === 'in' ? 'text-green-600' : 
-                        transaction.transaction_type === 'out' || transaction.transaction_type === 'waste' ? 'text-red-600' : 
-                        'text-gray-900'
-                      )}>
+                      <p
+                        className={cn(
+                          'font-semibold',
+                          transaction.transaction_type === 'in'
+                            ? 'text-green-600'
+                            : transaction.transaction_type === 'out' ||
+                                transaction.transaction_type === 'waste'
+                              ? 'text-red-600'
+                              : 'text-gray-900'
+                        )}
+                      >
                         {transaction.transaction_type === 'in' ? '+' : '-'}
                         {transaction.quantity.toLocaleString()} 말
                       </p>
@@ -296,9 +317,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       {transaction.total_price ? (
                         <div>
-                          <p className="font-medium">
-                            ₩{transaction.total_price.toLocaleString()}
-                          </p>
+                          <p className="font-medium">₩{transaction.total_price.toLocaleString()}</p>
                           {transaction.unit_price && (
                             <p className="text-gray-500 text-xs">
                               @{transaction.unit_price.toLocaleString()}/말
@@ -339,9 +358,7 @@ export function NPC1000TransactionHistory({ siteId }: NPC1000TransactionHistoryP
                       </p>
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <p className="text-gray-600 max-w-xs truncate">
-                        {transaction.notes || '-'}
-                      </p>
+                      <p className="text-gray-600 max-w-xs truncate">{transaction.notes || '-'}</p>
                     </td>
                   </tr>
                 ))}

@@ -42,14 +42,14 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
   const [searchTerm, setSearchTerm] = useState('')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editingMapping, setEditingMapping] = useState<PartnerSiteMapping | null>(null)
-  
+
   // Form state
   const [formData, setFormData] = useState({
     partner_company_id: '',
     site_id: '',
     start_date: new Date().toISOString().split('T')[0],
     end_date: '',
-    notes: ''
+    notes: '',
   })
 
   useEffect(() => {
@@ -62,7 +62,7 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
     try {
       const response = await fetch('/api/admin/assignment/partner-site-mappings')
       const result = await response.json()
-      
+
       if (result.success) {
         setMappings(result.data)
       } else {
@@ -78,13 +78,13 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
 
   const loadPartners = async () => {
     try {
-    const response = await fetch('/api/admin/partner-companies')
-    const result = await response.json()
+      const response = await fetch('/api/admin/partner-companies')
+      const result = await response.json()
 
-    if (result.success) {
-      const partnerList = result.data?.partner_companies || result.data || []
-      setPartners(partnerList)
-    }
+      if (result.success) {
+        const partnerList = result.data?.partner_companies || result.data || []
+        setPartners(partnerList)
+      }
     } catch (error) {
       console.error('Failed to load partners:', error)
     }
@@ -92,13 +92,13 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
 
   const loadSites = async () => {
     try {
-    const response = await fetch('/api/admin/sites?status=active')
-    const result = await response.json()
+      const response = await fetch('/api/admin/sites?status=active')
+      const result = await response.json()
 
-    if (result.success) {
-      const siteList = result.data?.sites || result.data || []
-      setSites(siteList)
-    }
+      if (result.success) {
+        const siteList = result.data?.sites || result.data || []
+        setSites(siteList)
+      }
     } catch (error) {
       console.error('Failed to load sites:', error)
     }
@@ -109,11 +109,11 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
       const response = await fetch('/api/admin/assignment/partner-site-mappings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       })
-      
+
       const result = await response.json()
-      
+
       if (result.success) {
         await loadMappings()
         setShowCreateModal(false)
@@ -133,14 +133,17 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
     if (!editingMapping) return
 
     try {
-      const response = await fetch(`/api/admin/assignment/partner-site-mappings/${editingMapping.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      })
-      
+      const response = await fetch(
+        `/api/admin/assignment/partner-site-mappings/${editingMapping.id}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        }
+      )
+
       const result = await response.json()
-      
+
       if (result.success) {
         await loadMappings()
         setEditingMapping(null)
@@ -161,11 +164,11 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
 
     try {
       const response = await fetch(`/api/admin/assignment/partner-site-mappings/${mappingId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
       })
-      
+
       const result = await response.json()
-      
+
       if (result.success) {
         await loadMappings()
         toast.success('파트너사-현장 매핑이 삭제되었습니다')
@@ -181,14 +184,17 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
 
   const handleToggleMapping = async (mappingId: string, isActive: boolean) => {
     try {
-      const response = await fetch(`/api/admin/assignment/partner-site-mappings/${mappingId}/toggle`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ is_active: !isActive })
-      })
-      
+      const response = await fetch(
+        `/api/admin/assignment/partner-site-mappings/${mappingId}/toggle`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_active: !isActive }),
+        }
+      )
+
       const result = await response.json()
-      
+
       if (result.success) {
         await loadMappings()
         toast.success(isActive ? '매핑이 비활성화되었습니다' : '매핑이 활성화되었습니다')
@@ -208,7 +214,7 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
       site_id: '',
       start_date: new Date().toISOString().split('T')[0],
       end_date: '',
-      notes: ''
+      notes: '',
     })
   }
 
@@ -219,7 +225,7 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
       site_id: mapping.site_id,
       start_date: mapping.start_date,
       end_date: mapping.end_date || '',
-      notes: mapping.notes || ''
+      notes: mapping.notes || '',
     })
   }
 
@@ -232,14 +238,17 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
     )
   })
 
-  const groupedMappings = filteredMappings.reduce((acc, mapping) => {
-    const partnerName = mapping.partner_company.company_name
-    if (!acc[partnerName]) {
-      acc[partnerName] = []
-    }
-    acc[partnerName].push(mapping)
-    return acc
-  }, {} as Record<string, PartnerSiteMapping[]>)
+  const groupedMappings = filteredMappings.reduce(
+    (acc, mapping) => {
+      const partnerName = mapping.partner_company.company_name
+      if (!acc[partnerName]) {
+        acc[partnerName] = []
+      }
+      acc[partnerName].push(mapping)
+      return acc
+    },
+    {} as Record<string, PartnerSiteMapping[]>
+  )
 
   return (
     <div className="space-y-6">
@@ -255,8 +264,7 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
           </p>
         </div>
         <Button onClick={() => setShowCreateModal(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          새 매핑 추가
+          <Plus className="h-4 w-4" />새 매핑 추가
         </Button>
       </div>
 
@@ -266,7 +274,7 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
         <Input
           placeholder="파트너사명 또는 현장명으로 검색..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={e => setSearchTerm(e.target.value)}
           className="pl-10"
         />
       </div>
@@ -294,9 +302,7 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               파트너사와 현장을 매핑하여 체계적인 배정 관리를 시작하세요
             </p>
-            <Button onClick={() => setShowCreateModal(true)}>
-              첫 매핑 추가하기
-            </Button>
+            <Button onClick={() => setShowCreateModal(true)}>첫 매핑 추가하기</Button>
           </CardContent>
         </Card>
       ) : (
@@ -307,23 +313,21 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
                 <CardTitle className="flex items-center gap-2">
                   <Building2 className="h-5 w-5" />
                   {partnerName}
-                  <Badge variant="secondary">
-                    {partnerMappings.length}개 현장
-                  </Badge>
+                  <Badge variant="secondary">{partnerMappings.length}개 현장</Badge>
                 </CardTitle>
                 <CardDescription>
-                  {partnerMappings[0].partner_company.representative_name} 대표 | 
-                  사업자번호: {partnerMappings[0].partner_company.business_number}
+                  {partnerMappings[0].partner_company.representative_name} 대표 | 사업자번호:{' '}
+                  {partnerMappings[0].partner_company.business_number}
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {partnerMappings.map((mapping) => (
-                    <div 
+                  {partnerMappings.map(mapping => (
+                    <div
                       key={mapping.id}
                       className={`p-4 border rounded-lg transition-all ${
-                        mapping.is_active 
-                          ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800' 
+                        mapping.is_active
+                          ? 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800'
                           : 'border-gray-200 bg-gray-50 dark:bg-gray-800/50 dark:border-gray-700'
                       }`}
                     >
@@ -334,7 +338,7 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
                             <span className="font-medium text-gray-900 dark:text-gray-100">
                               {mapping.site.name}
                             </span>
-                            <Badge variant={mapping.is_active ? "default" : "secondary"}>
+                            <Badge variant={mapping.is_active ? 'default' : 'secondary'}>
                               {mapping.is_active ? '활성' : '비활성'}
                             </Badge>
                           </div>
@@ -345,7 +349,8 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
                             <div className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(mapping.start_date).toLocaleDateString('ko-KR')}
-                              {mapping.end_date && ` ~ ${new Date(mapping.end_date).toLocaleDateString('ko-KR')}`}
+                              {mapping.end_date &&
+                                ` ~ ${new Date(mapping.end_date).toLocaleDateString('ko-KR')}`}
                             </div>
                             {mapping.assigned_users_count > 0 && (
                               <div className="flex items-center gap-1">
@@ -367,7 +372,11 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
                             onClick={() => handleToggleMapping(mapping.id, mapping.is_active)}
                             title={mapping.is_active ? '비활성화' : '활성화'}
                           >
-                            {mapping.is_active ? <Unlink className="h-4 w-4" /> : <Link className="h-4 w-4" />}
+                            {mapping.is_active ? (
+                              <Unlink className="h-4 w-4" />
+                            ) : (
+                              <Link className="h-4 w-4" />
+                            )}
                           </Button>
                           <Button
                             variant="ghost"
@@ -398,35 +407,38 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
       )}
 
       {/* Create/Edit Modal */}
-      <Dialog open={showCreateModal || editingMapping !== null} onOpenChange={(open) => {
-        if (!open) {
-          setShowCreateModal(false)
-          setEditingMapping(null)
-          resetForm()
-        }
-      }}>
+      <Dialog
+        open={showCreateModal || editingMapping !== null}
+        onOpenChange={open => {
+          if (!open) {
+            setShowCreateModal(false)
+            setEditingMapping(null)
+            resetForm()
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {editingMapping ? '매핑 수정' : '새 파트너사-현장 매핑'}
-            </DialogTitle>
+            <DialogTitle>{editingMapping ? '매핑 수정' : '새 파트너사-현장 매핑'}</DialogTitle>
             <DialogDescription>
               파트너사와 현장을 연결하여 체계적인 배정 관리를 할 수 있습니다
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="partner_company_id">파트너사</Label>
               <Select
                 value={formData.partner_company_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, partner_company_id: value }))}
+                onValueChange={value =>
+                  setFormData(prev => ({ ...prev, partner_company_id: value }))
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="파트너사를 선택하세요" />
+                  <SelectValue placeholder="업체를 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
-                  {partners.map((partner) => (
+                  {partners.map(partner => (
                     <SelectItem key={partner.id} value={partner.id}>
                       {partner.company_name}
                     </SelectItem>
@@ -439,13 +451,13 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
               <Label htmlFor="site_id">현장</Label>
               <Select
                 value={formData.site_id}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, site_id: value }))}
+                onValueChange={value => setFormData(prev => ({ ...prev, site_id: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="현장을 선택하세요" />
                 </SelectTrigger>
                 <SelectContent>
-                  {sites.map((site) => (
+                  {sites.map(site => (
                     <SelectItem key={site.id} value={site.id}>
                       {site.name} - {site.address}
                     </SelectItem>
@@ -460,16 +472,16 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
                 <Input
                   type="date"
                   value={formData.start_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, start_date: e.target.value }))}
                 />
               </div>
-              
+
               <div>
                 <Label htmlFor="end_date">종료일 (선택)</Label>
                 <Input
                   type="date"
                   value={formData.end_date}
-                  onChange={(e) => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
+                  onChange={e => setFormData(prev => ({ ...prev, end_date: e.target.value }))}
                 />
               </div>
             </div>
@@ -479,17 +491,20 @@ export default function PartnerSiteMapping({ onUpdate }: PartnerSiteMappingProps
               <Input
                 placeholder="매핑 관련 메모"
                 value={formData.notes}
-                onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               />
             </div>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowCreateModal(false)
-              setEditingMapping(null)
-              resetForm()
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowCreateModal(false)
+                setEditingMapping(null)
+                resetForm()
+              }}
+            >
               취소
             </Button>
             <Button onClick={editingMapping ? handleUpdateMapping : handleCreateMapping}>

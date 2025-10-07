@@ -184,7 +184,7 @@ export default function InvoiceDocumentUploadModal({
       return false
     }
     if (!formData.partner_company_id) {
-      setError('파트너사를 선택해주세요.')
+      setError('업체를 선택해주세요.')
       return false
     }
     if (!selectedFile) {
@@ -370,7 +370,7 @@ export default function InvoiceDocumentUploadModal({
 
               {/* 파트너사 선택 */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">파트너사 *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">업체 *</label>
                 <select
                   value={formData.partner_company_id}
                   onChange={e =>
@@ -379,7 +379,7 @@ export default function InvoiceDocumentUploadModal({
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 >
-                  <option value="">파트너사를 선택하세요</option>
+                  <option value="">업체를 선택하세요</option>
                   {organizations.map(org => (
                     <option key={org.id} value={org.id}>
                       {org.name}

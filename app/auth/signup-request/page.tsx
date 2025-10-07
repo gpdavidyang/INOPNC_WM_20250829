@@ -49,13 +49,13 @@ export default function SignupRequestPage() {
     const loadPartners = async () => {
       setLoadingCompanies(true)
       try {
-        const res = await fetch('/api/partner-companies', { cache: 'no-store' })
+        const res = await fetch(`/api/partner-companies?scope=construction`, { cache: 'no-store' })
         const json = await res.json().catch(() => ({}))
-        if (!res.ok || !json?.success) throw new Error(json?.error || '파트너사 목록 로드 실패')
+        if (!res.ok || !json?.success) throw new Error(json?.error || '업체 목록 로드 실패')
         setPartnerCompanies(json.data || [])
       } catch (e) {
-        console.error('파트너사 조회 실패:', e)
-        setError('파트너사 목록을 불러오지 못했습니다.')
+        console.error('업체 목록 조회 실패:', e)
+        setError('업체(시공/공급) 목록을 불러오지 못했습니다.')
       } finally {
         setLoadingCompanies(false)
       }
@@ -468,7 +468,7 @@ export default function SignupRequestPage() {
                 />
               </div>
 
-              {/* 소속(파트너사) */}
+              {/* 소속(시공업체) */}
               <div className="form-group">
                 <CustomSelect
                   value={selectedCompanyId}
@@ -478,14 +478,19 @@ export default function SignupRequestPage() {
                   <CustomSelectTrigger className="h-[45px] rounded-[8px] bg-white border border-[#D1D5DB] px-4 text-[16px] font-medium text-[#6B7280]">
                     <CustomSelectValue
                       placeholder={
-                        loadingCompanies ? '불러오는 중...' : '소속(회사명)을 선택하세요'
+                        loadingCompanies ? '불러오는 중...' : '시공업체(소속사)를 선택하세요'
                       }
                     />
                   </CustomSelectTrigger>
                   <CustomSelectContent sideOffset={6}>
+                    {/* 미지정 옵션 */}
+                    <CustomSelectItem value="">
+                      <span>미지정</span>
+                      <span className={`status-badge status-pending`}>unassigned</span>
+                    </CustomSelectItem>
                     {partnerCompanies.length === 0 ? (
                       <CustomSelectItem value="__no_options__" disabled>
-                        등록된 파트너사가 없습니다
+                        등록된 업체가 없습니다
                       </CustomSelectItem>
                     ) : (
                       partnerCompanies.map(p => (
@@ -511,6 +516,11 @@ export default function SignupRequestPage() {
                     )}
                   </CustomSelectContent>
                 </CustomSelect>
+                {/* 안내문 */}
+                <div style={{ marginTop: 8, fontSize: 12, color: '#6B7280' }}>
+                  - 소속사가 아직 확정되지 않았다면 ‘미지정’을 선택해 주세요. 관리자 승인 시 반드시
+                  ‘시공업체(소속사)’가 지정되어야 하며, ‘미지정’ 상태로는 승인되지 않습니다.
+                </div>
               </div>
 
               {/* 직함 */}

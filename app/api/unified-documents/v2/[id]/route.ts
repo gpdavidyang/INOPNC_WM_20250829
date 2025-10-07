@@ -70,7 +70,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: 'Document not found' }, { status: 404 })
     }
 
-    // 파트너사 접근 권한 확인
+    // 제한 계정(시공업체 담당) 접근 권한 확인
     if (role === 'customer_manager') {
       if (document.customer_company_id !== profile.customer_company_id) {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
@@ -168,7 +168,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const isGeneralUser = ['worker', 'site_manager'].includes(role)
     const isPartner = role === 'customer_manager'
 
-    // 파트너사는 자사 문서만 수정 가능
+    // 제한 계정(시공업체 담당)은 자사 문서만 수정 가능
     if (isPartner && existingDoc.customer_company_id !== profile.customer_company_id) {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 })
     }

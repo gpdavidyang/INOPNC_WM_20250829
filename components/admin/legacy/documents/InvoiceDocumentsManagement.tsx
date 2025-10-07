@@ -446,7 +446,7 @@ export default function InvoiceDocumentsManagement() {
                     서류 정보
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    현장 / 파트너사
+                    현장 / 업체
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     문서 유형

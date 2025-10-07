@@ -342,13 +342,15 @@ export default async function PartnerSiteDetailPage({ params, searchParams }: Si
               <div className="rounded border px-3 py-2">
                 <div className="text-xs text-muted-foreground">입고 합계</div>
                 <div className="text-foreground font-medium">
-                  {Number(summary?.inbound?.total ?? 0)}
+                  {Number(summary?.inbound?.total ?? 0)}{' '}
+                  {process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'}
                 </div>
               </div>
               <div className="rounded border px-3 py-2">
                 <div className="text-xs text-muted-foreground">사용 합계</div>
                 <div className="text-foreground font-medium">
-                  {Number(summary?.usage?.total ?? 0)}
+                  {Number(summary?.usage?.total ?? 0)}{' '}
+                  {process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'}
                 </div>
               </div>
             </div>
@@ -378,7 +380,9 @@ export default async function PartnerSiteDetailPage({ params, searchParams }: Si
                     summary.inbound.items.map((it: any, idx: number) => (
                       <TableRow key={idx}>
                         <TableCell>{it.material_name || it.material_code || '-'}</TableCell>
-                        <TableCell className="text-right">{Number(it.quantity ?? 0)}</TableCell>
+                        <TableCell className="text-right">
+                          {Number(it.quantity ?? 0)} {process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'}
+                        </TableCell>
                         <TableCell>
                           {it.date ? new Date(it.date).toLocaleDateString('ko-KR') : '-'}
                         </TableCell>
@@ -414,7 +418,9 @@ export default async function PartnerSiteDetailPage({ params, searchParams }: Si
                     summary.usage.items.map((it: any, idx: number) => (
                       <TableRow key={idx}>
                         <TableCell>{it.material_name || it.material_code || '-'}</TableCell>
-                        <TableCell className="text-right">{Number(it.quantity ?? 0)}</TableCell>
+                        <TableCell className="text-right">
+                          {Number(it.quantity ?? 0)} {process.env.NEXT_PUBLIC_MATERIAL_UNIT || '말'}
+                        </TableCell>
                         <TableCell>
                           {it.date ? new Date(it.date).toLocaleDateString('ko-KR') : '-'}
                         </TableCell>
@@ -425,42 +431,44 @@ export default async function PartnerSiteDetailPage({ params, searchParams }: Si
               </Table>
             </div>
 
-            {/* Inventory */}
-            <div>
-              <div className="text-sm font-semibold mb-2">재고 스냅샷</div>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>자재</TableHead>
-                    <TableHead>단위</TableHead>
-                    <TableHead className="text-right">재고</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {!Array.isArray(summary?.inventory?.items) ||
-                  summary.inventory.items.length === 0 ? (
+            {/* Inventory - hidden by default unless explicitly enabled */}
+            {process.env.NEXT_PUBLIC_SHOW_INVENTORY_SNAPSHOT === 'true' && (
+              <div>
+                <div className="text-sm font-semibold mb-2">재고 스냅샷</div>
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell
-                        colSpan={3}
-                        className="text-center text-sm text-muted-foreground py-6"
-                      >
-                        재고 데이터가 없습니다.
-                      </TableCell>
+                      <TableHead>자재</TableHead>
+                      <TableHead>단위</TableHead>
+                      <TableHead className="text-right">재고</TableHead>
                     </TableRow>
-                  ) : (
-                    summary.inventory.items.map((it: any, idx: number) => (
-                      <TableRow key={idx}>
-                        <TableCell>{it.material_name || it.material_code || '-'}</TableCell>
-                        <TableCell>{it.unit || '-'}</TableCell>
-                        <TableCell className="text-right">
-                          {Number(it.current_stock ?? 0)}
+                  </TableHeader>
+                  <TableBody>
+                    {!Array.isArray(summary?.inventory?.items) ||
+                    summary.inventory.items.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={3}
+                          className="text-center text-sm text-muted-foreground py-6"
+                        >
+                          재고 데이터가 없습니다.
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
+                    ) : (
+                      summary.inventory.items.map((it: any, idx: number) => (
+                        <TableRow key={idx}>
+                          <TableCell>{it.material_name || it.material_code || '-'}</TableCell>
+                          <TableCell>{it.unit || '-'}</TableCell>
+                          <TableCell className="text-right">
+                            {Number(it.current_stock ?? 0)}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

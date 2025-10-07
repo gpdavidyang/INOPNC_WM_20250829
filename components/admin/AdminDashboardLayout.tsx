@@ -111,16 +111,11 @@ const menuCategories = [
       },
       {
         id: 'organizations',
-        label: '거래처 관리',
+        label: '소속(시공사) 관리',
         icon: Shield,
         href: '/dashboard/admin/organizations',
       },
-      {
-        id: 'partners',
-        label: '파트너사 관리',
-        icon: UserPlus,
-        href: '/dashboard/admin/partners',
-      },
+      // 공급업체 관리는 UI에서 노출하지 않음 (혼선 방지)
     ],
   },
   {

@@ -1,6 +1,5 @@
 'use client'
 
-
 interface RequestsTabProps {
   profile: Profile
 }
@@ -38,10 +37,10 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
   const [filterCategory, setFilterCategory] = useState<string>('')
   const [filterUrgency, setFilterUrgency] = useState<string>('')
   const [searchTerm, setSearchTerm] = useState('')
-  
+
   const [responseForm, setResponseForm] = useState({
     response: '',
-    status: 'in_progress' as 'in_progress' | 'resolved' | 'closed'
+    status: 'in_progress' as 'in_progress' | 'resolved' | 'closed',
   })
 
   const supabase = createClient()
@@ -55,12 +54,14 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
     try {
       let query = supabase
         .from('headquarters_requests')
-        .select(`
+        .select(
+          `
           *,
           profiles!requester_id(full_name, email, role),
           sites!site_id(name),
           assigned_profile:profiles!assigned_to(full_name)
-        `)
+        `
+        )
         .order('created_at', { ascending: false })
 
       if (filterStatus) {
@@ -84,7 +85,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
           requester_email: (item as unknown).profiles?.email || '',
           requester_role: (item as unknown).profiles?.role || 'worker',
           site_name: (item as unknown).sites?.name || '',
-          assigned_to_name: (item as unknown).assigned_profile?.full_name || ''
+          assigned_to_name: (item as unknown).assigned_profile?.full_name || '',
         }))
         setRequests(formattedData)
       }
@@ -99,7 +100,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
     setSelectedRequest(request)
     setResponseForm({
       response: request.response || '',
-      status: request.status === 'pending' ? 'in_progress' : request.status
+      status: request.status === 'pending' ? 'in_progress' : request.status,
     })
     setShowDetailModal(true)
   }
@@ -113,7 +114,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
         response: responseForm.response,
         response_date: new Date().toISOString(),
         assigned_to: profile.id,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       }
 
       if (responseForm.status === 'resolved' || responseForm.status === 'closed') {
@@ -144,7 +145,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
       administrative: '행정',
       complaint: '불만사항',
       suggestion: '제안',
-      other: '기타'
+      other: '기타',
     }
     return labels[category] || category
   }
@@ -156,22 +157,40 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
       administrative: 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200',
       complaint: 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200',
       suggestion: 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200',
-      other: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
+      other: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200',
     }
     return colors[category] || colors.other
   }
 
   const getUrgencyBadge = (urgency: string) => {
     const badges = {
-      low: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-800 dark:text-gray-200', label: '낮음' },
-      medium: { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-800 dark:text-blue-200', label: '보통' },
-      high: { bg: 'bg-orange-100 dark:bg-orange-900/20', text: 'text-orange-800 dark:text-orange-200', label: '높음' },
-      critical: { bg: 'bg-red-100 dark:bg-red-900/20', text: 'text-red-800 dark:text-red-200', label: '긴급' }
+      low: {
+        bg: 'bg-gray-100 dark:bg-gray-700',
+        text: 'text-gray-800 dark:text-gray-200',
+        label: '낮음',
+      },
+      medium: {
+        bg: 'bg-blue-100 dark:bg-blue-900/20',
+        text: 'text-blue-800 dark:text-blue-200',
+        label: '보통',
+      },
+      high: {
+        bg: 'bg-orange-100 dark:bg-orange-900/20',
+        text: 'text-orange-800 dark:text-orange-200',
+        label: '높음',
+      },
+      critical: {
+        bg: 'bg-red-100 dark:bg-red-900/20',
+        text: 'text-red-800 dark:text-red-200',
+        label: '긴급',
+      },
     }
     const badge = badges[urgency as keyof typeof badges] || badges.medium
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}
+      >
         {badge.label}
       </span>
     )
@@ -179,16 +198,38 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
 
   const getStatusBadge = (status: string) => {
     const badges = {
-      pending: { bg: 'bg-yellow-100 dark:bg-yellow-900/20', text: 'text-yellow-800 dark:text-yellow-200', label: '대기중', icon: Clock },
-      in_progress: { bg: 'bg-blue-100 dark:bg-blue-900/20', text: 'text-blue-800 dark:text-blue-200', label: '처리중', icon: TrendingUp },
-      resolved: { bg: 'bg-green-100 dark:bg-green-900/20', text: 'text-green-800 dark:text-green-200', label: '해결됨', icon: CheckCircle },
-      closed: { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-800 dark:text-gray-200', label: '종료', icon: XCircle }
+      pending: {
+        bg: 'bg-yellow-100 dark:bg-yellow-900/20',
+        text: 'text-yellow-800 dark:text-yellow-200',
+        label: '대기중',
+        icon: Clock,
+      },
+      in_progress: {
+        bg: 'bg-blue-100 dark:bg-blue-900/20',
+        text: 'text-blue-800 dark:text-blue-200',
+        label: '처리중',
+        icon: TrendingUp,
+      },
+      resolved: {
+        bg: 'bg-green-100 dark:bg-green-900/20',
+        text: 'text-green-800 dark:text-green-200',
+        label: '해결됨',
+        icon: CheckCircle,
+      },
+      closed: {
+        bg: 'bg-gray-100 dark:bg-gray-700',
+        text: 'text-gray-800 dark:text-gray-200',
+        label: '종료',
+        icon: XCircle,
+      },
     }
     const badge = badges[status as keyof typeof badges] || badges.pending
     const Icon = badge.icon
-    
+
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${badge.bg} ${badge.text}`}
+      >
         <Icon className="h-3 w-3 mr-1" />
         {badge.label}
       </span>
@@ -199,18 +240,19 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
     const labels: Record<string, string> = {
       worker: '작업자',
       site_manager: '현장관리자',
-      partner: '파트너사',
+      partner: '시공업체',
       customer_manager: '고객관리자',
-      admin: '관리자'
+      admin: '관리자',
     }
     return labels[role] || role
   }
 
-  const filteredRequests = requests.filter(request =>
-    searchTerm === '' ||
-    request.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    request.requester_name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredRequests = requests.filter(
+    request =>
+      searchTerm === '' ||
+      request.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.requester_name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const stats = {
@@ -218,7 +260,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
     pending: requests.filter(r => r.status === 'pending').length,
     inProgress: requests.filter(r => r.status === 'in_progress').length,
     resolved: requests.filter(r => r.status === 'resolved').length,
-    critical: requests.filter(r => r.urgency === 'critical' && r.status !== 'closed').length
+    critical: requests.filter(r => r.urgency === 'critical' && r.status !== 'closed').length,
   }
 
   return (
@@ -256,7 +298,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               placeholder="제목, 내용, 요청자 검색..."
               className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
@@ -266,7 +308,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
         <div>
           <select
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={e => setFilterStatus(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">전체 상태</option>
@@ -280,7 +322,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
         <div>
           <select
             value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
+            onChange={e => setFilterCategory(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">전체 카테고리</option>
@@ -296,7 +338,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
         <div>
           <select
             value={filterUrgency}
-            onChange={(e) => setFilterUrgency(e.target.value)}
+            onChange={e => setFilterUrgency(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="">전체 긴급도</option>
@@ -313,14 +355,30 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
         <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead className="bg-gray-50 dark:bg-gray-700">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">요청일</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">요청자</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">카테고리</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">제목</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">긴급도</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">상태</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">담당자</th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">작업</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                요청일
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                요청자
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                카테고리
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                제목
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                긴급도
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                상태
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                담당자
+              </th>
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-300 uppercase">
+                작업
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
@@ -337,7 +395,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
                 </td>
               </tr>
             ) : (
-              filteredRequests.map((request) => (
+              filteredRequests.map(request => (
                 <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     <div className="flex items-center">
@@ -358,7 +416,9 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(request.category)}`}>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(request.category)}`}
+                    >
                       {getCategoryLabel(request.category)}
                     </span>
                   </td>
@@ -419,18 +479,23 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">요청일</p>
-                    <p className="font-medium text-gray-900 dark:text-white">{selectedRequest.request_date}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {selectedRequest.request_date}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">카테고리</p>
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(selectedRequest.category)}`}>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(selectedRequest.category)}`}
+                    >
                       {getCategoryLabel(selectedRequest.category)}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">요청자</p>
                     <p className="font-medium text-gray-900 dark:text-white">
-                      {selectedRequest.requester_name} ({getRoleLabel(selectedRequest.requester_role)})
+                      {selectedRequest.requester_name} (
+                      {getRoleLabel(selectedRequest.requester_role)})
                     </p>
                     <p className="text-sm text-gray-500">{selectedRequest.requester_email}</p>
                   </div>
@@ -489,7 +554,7 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
                       응답 작성
                     </h3>
-                    
+
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -497,7 +562,9 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
                         </label>
                         <select
                           value={responseForm.status}
-                          onChange={(e) => setResponseForm({ ...responseForm, status: e.target.value as unknown })}
+                          onChange={e =>
+                            setResponseForm({ ...responseForm, status: e.target.value as unknown })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                         >
                           <option value="in_progress">처리중</option>
@@ -512,7 +579,9 @@ export default function RequestsTab({ profile }: RequestsTabProps) {
                         </label>
                         <textarea
                           value={responseForm.response}
-                          onChange={(e) => setResponseForm({ ...responseForm, response: e.target.value })}
+                          onChange={e =>
+                            setResponseForm({ ...responseForm, response: e.target.value })
+                          }
                           rows={5}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                           placeholder="응답 내용을 입력하세요..."

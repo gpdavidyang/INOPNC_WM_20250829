@@ -46,9 +46,10 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
   const supabase = createClient()
 
   // Filter sites based on search term
-  const filteredSites = sites.filter(site => 
-    site.name.toLowerCase().includes(siteSearchTerm.toLowerCase()) ||
-    site.address?.toLowerCase().includes(siteSearchTerm.toLowerCase())
+  const filteredSites = sites.filter(
+    site =>
+      site.name.toLowerCase().includes(siteSearchTerm.toLowerCase()) ||
+      site.address?.toLowerCase().includes(siteSearchTerm.toLowerCase())
   )
 
   useEffect(() => {
@@ -64,12 +65,12 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
 
   const fetchOrganizations = async () => {
     // console.log('🔍 파트너사 데이터 가져오기 시작...')
-    
+
     try {
       // Check if user is authenticated
       const user = await getSessionUser(supabase)
       // console.log('현재 세션 상태:', user ? '인증됨' : '미인증')
-      
+
       // Fetch partner companies instead of organizations
       const { data, error } = await supabase
         .from('partner_companies')
@@ -80,7 +81,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
       // console.log('📊 조회 결과:')
       // console.log('- 데이터 개수:', data?.length || 0)
       // console.log('- 에러:', error)
-      
+
       if (data && data.length > 0) {
         // console.log('- 첫 3개 조직:', data.slice(0, 3).map(org => org.name))
       }
@@ -89,32 +90,54 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
         console.error('❌ 파트너사 조회 오류:', error)
         // console.log('🔧 Mock 데이터로 대체...')
         const mockData = [
-          { id: 'mock-1', name: 'ABC 건설', company_name: 'ABC 건설', type: 'construction', business_number: '123-45-67890', status: 'active' },
-          { id: 'mock-2', name: 'XYZ 파트너사', company_name: 'XYZ 파트너사', type: 'supplier', business_number: '987-65-43210', status: 'active' },
-          { id: 'mock-3', name: '테스트 업체', company_name: '테스트 업체', type: 'subcontractor', business_number: '456-78-90123', status: 'active' }
+          {
+            id: 'mock-1',
+            name: 'ABC 건설',
+            company_name: 'ABC 건설',
+            type: 'construction',
+            business_number: '123-45-67890',
+            status: 'active',
+          },
+          {
+            id: 'mock-2',
+            name: 'XYZ 파트너사',
+            company_name: 'XYZ 파트너사',
+            type: 'supplier',
+            business_number: '987-65-43210',
+            status: 'active',
+          },
+          {
+            id: 'mock-3',
+            name: '테스트 업체',
+            company_name: '테스트 업체',
+            type: 'subcontractor',
+            business_number: '456-78-90123',
+            status: 'active',
+          },
         ]
         setOrganizations(mockData)
         // console.log('✅ Mock 데이터 설정 완료:', mockData.length, '개')
       } else {
         // Map partner_companies data to organization format
-        const mappedOrgs = data?.map(partner => ({
-          id: partner.id,
-          name: partner.company_name,
-          company_name: partner.company_name,
-          type: partner.company_type,
-          business_number: partner.business_number,
-          business_registration_number: partner.business_number,
-          status: partner.status,
-          is_active: partner.status === 'active'
-        })) || []
-        
+        const mappedOrgs =
+          data?.map(partner => ({
+            id: partner.id,
+            name: partner.company_name,
+            company_name: partner.company_name,
+            type: partner.company_type,
+            business_number: partner.business_number,
+            business_registration_number: partner.business_number,
+            status: partner.status,
+            is_active: partner.status === 'active',
+          })) || []
+
         // console.log('🔍 파트너사 데이터 매핑:')
         // console.log('- 전체:', data?.length || 0)
         // console.log('- 매핑 완료:', mappedOrgs.length)
-        
+
         setOrganizations(mappedOrgs)
         // console.log('✅ 파트너사 데이터 설정 완료:', mappedOrgs.length, '개')
-        
+
         if (mappedOrgs.length > 0) {
           // console.log('- 설정된 파트너사들:', mappedOrgs.map(org => org.name))
         }
@@ -122,12 +145,33 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
     } catch (error) {
       console.error('❌ 파트너사 조회 예외:', error)
       // console.log('🔧 예외 처리로 Mock 데이터 설정...')
-      
+
       // Set mock data as fallback
       const mockData = [
-        { id: 'catch-1', name: 'ABC 건설 (예외처리)', company_name: 'ABC 건설 (예외처리)', type: 'construction', business_number: '123-45-67890', status: 'active' },
-        { id: 'catch-2', name: 'XYZ 파트너사 (예외처리)', company_name: 'XYZ 파트너사 (예외처리)', type: 'supplier', business_number: '987-65-43210', status: 'active' },
-        { id: 'catch-3', name: '테스트 업체 (예외처리)', company_name: '테스트 업체 (예외처리)', type: 'subcontractor', business_number: '456-78-90123', status: 'active' }
+        {
+          id: 'catch-1',
+          name: 'ABC 건설 (예외처리)',
+          company_name: 'ABC 건설 (예외처리)',
+          type: 'construction',
+          business_number: '123-45-67890',
+          status: 'active',
+        },
+        {
+          id: 'catch-2',
+          name: 'XYZ 파트너사 (예외처리)',
+          company_name: 'XYZ 파트너사 (예외처리)',
+          type: 'supplier',
+          business_number: '987-65-43210',
+          status: 'active',
+        },
+        {
+          id: 'catch-3',
+          name: '테스트 업체 (예외처리)',
+          company_name: '테스트 업체 (예외처리)',
+          type: 'subcontractor',
+          business_number: '456-78-90123',
+          status: 'active',
+        },
       ]
       setOrganizations(mockData)
       // console.log('✅ 예외처리 Mock 데이터 설정:', mockData.length, '개')
@@ -161,9 +205,12 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
   const handleApprove = async () => {
     if (!request) return
 
-    // 작업자와 현장관리자는 파트너사 필수
-    if ((request.requested_role === 'worker' || request.requested_role === 'site_manager') && !selectedOrganization) {
-      alert('작업자와 현장관리자는 파트너사를 선택해야 합니다.')
+    // 작업자와 현장관리자는 시공업체(소속사) 필수
+    if (
+      (request.requested_role === 'worker' || request.requested_role === 'site_manager') &&
+      !selectedOrganization
+    ) {
+      alert('작업자와 현장관리자는 시공업체(소속사)를 선택해야 합니다.')
       return
     }
 
@@ -178,7 +225,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
       await onApprove({
         requestId: request.id,
         organizationId: selectedOrganization || undefined,
-        siteIds: selectedSites.length > 0 ? selectedSites : undefined
+        siteIds: selectedSites.length > 0 ? selectedSites : undefined,
       })
       onClose()
     } catch (error) {
@@ -193,7 +240,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
       worker: '작업자',
       site_manager: '현장관리자',
       customer_manager: '파트너사',
-      admin: '관리자'
+      admin: '관리자',
     }
     return roleLabels[role] || role
   }
@@ -203,16 +250,14 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
       worker: 'from-blue-500 to-blue-600',
       site_manager: 'from-green-500 to-green-600',
       customer_manager: 'from-purple-500 to-purple-600',
-      admin: 'from-red-500 to-red-600'
+      admin: 'from-red-500 to-red-600',
     }
     return roleColors[role] || 'from-gray-500 to-gray-600'
   }
 
   const toggleSiteSelection = (siteId: string) => {
-    setSelectedSites(prev => 
-      prev.includes(siteId) 
-        ? prev.filter(id => id !== siteId)
-        : [...prev, siteId]
+    setSelectedSites(prev =>
+      prev.includes(siteId) ? prev.filter(id => id !== siteId) : [...prev, siteId]
     )
   }
 
@@ -228,13 +273,12 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
 
   // customer_manager must have partner_company_id
   const needsPartnerCompany = request.requested_role === 'customer_manager'
-  
+
   // Optional organization for workers and site_managers (backward compatibility)
-  const needsOrganization = request.requested_role === 'worker' || 
-                           request.requested_role === 'site_manager'
-  
-  const needsSite = request.requested_role === 'worker' || 
-                    request.requested_role === 'site_manager'
+  const needsOrganization =
+    request.requested_role === 'worker' || request.requested_role === 'site_manager'
+
+  const needsSite = request.requested_role === 'worker' || request.requested_role === 'site_manager'
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -267,7 +311,9 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                 <h3 className="font-semibold text-gray-900 text-lg">{request.full_name}</h3>
                 <p className="text-gray-600">{request.email}</p>
               </div>
-              <div className={`px-4 py-2 bg-gradient-to-r ${getRoleColor(request.requested_role)} text-white rounded-lg shadow-md`}>
+              <div
+                className={`px-4 py-2 bg-gradient-to-r ${getRoleColor(request.requested_role)} text-white rounded-lg shadow-md`}
+              >
                 <Shield className="h-4 w-4 inline mr-2" />
                 {getRoleLabel(request.requested_role)}
               </div>
@@ -307,26 +353,29 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                 </div>
                 <select
                   value={selectedOrganization}
-                  onChange={(e) => setSelectedOrganization(e.target.value)}
+                  onChange={e => setSelectedOrganization(e.target.value)}
                   className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                    selectedOrganization 
-                      ? 'border-green-300 bg-green-50 focus:border-green-500' 
+                    selectedOrganization
+                      ? 'border-green-300 bg-green-50 focus:border-green-500'
                       : 'border-gray-300 bg-white focus:border-blue-500'
                   } focus:ring-2 focus:ring-blue-200 focus:outline-none`}
                 >
-                  <option value="">-- 파트너사를 선택하세요 --</option>
+                  <option value="">-- 시공업체(소속사)를 선택하세요 --</option>
                   {organizations.length > 0 ? (
-                    organizations.map((org) => (
+                    organizations.map(org => (
                       <option key={org.id} value={org.id}>
                         {org.name} {org.business_number && `(사업자번호: ${org.business_number})`}
                       </option>
                     ))
                   ) : (
-                    <option value="" disabled>파트너사 데이터를 불러오는 중...</option>
+                    <option value="" disabled>
+                      파트너사 데이터를 불러오는 중...
+                    </option>
                   )}
                 </select>
                 <p className="mt-2 text-xs text-gray-500">
-                  파트너사 관리자가 소속될 파트너사를 선택해주세요. 이 사용자는 선택된 파트너사의 데이터만 접근할 수 있습니다.
+                  파트너사 관리자가 소속될 업체를 선택해주세요. 이 사용자는 선택된 업체의 데이터만
+                  접근할 수 있습니다.
                 </p>
               </div>
             )}
@@ -349,26 +398,29 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                 </div>
                 <select
                   value={selectedOrganization}
-                  onChange={(e) => setSelectedOrganization(e.target.value)}
+                  onChange={e => setSelectedOrganization(e.target.value)}
                   className={`w-full px-4 py-3 border-2 rounded-lg transition-all ${
-                    selectedOrganization 
-                      ? 'border-green-300 bg-green-50 focus:border-green-500' 
+                    selectedOrganization
+                      ? 'border-green-300 bg-green-50 focus:border-green-500'
                       : 'border-gray-300 bg-white focus:border-blue-500'
                   } focus:ring-2 focus:ring-blue-200 focus:outline-none`}
                 >
-                  <option value="">-- 파트너사를 선택하세요 --</option>
+                  <option value="">-- 시공업체(소속사)를 선택하세요 --</option>
                   {organizations.length > 0 ? (
-                    organizations.map((org) => (
+                    organizations.map(org => (
                       <option key={org.id} value={org.id}>
                         {org.name} {org.business_number && `(사업자번호: ${org.business_number})`}
                       </option>
                     ))
                   ) : (
-                    <option value="" disabled>파트너사 데이터를 불러오는 중...</option>
+                    <option value="" disabled>
+                      파트너사 데이터를 불러오는 중...
+                    </option>
                   )}
                 </select>
                 <p className="mt-2 text-xs text-gray-500">
-                  작업자가 소속될 파트너사를 선택해주세요. 파트너사 등록이 필요한 경우 먼저 파트너사 관리에서 등록해주세요.
+                  작업자가 소속될 시공업체(소속사)를 선택해주세요. 등록이 필요한 경우 먼저 업체
+                  관리에서 등록해주세요.
                 </p>
               </div>
             )}
@@ -380,7 +432,9 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                   <label className="text-sm font-semibold text-gray-700 flex items-center gap-1">
                     <MapPin className="h-4 w-4 text-gray-500" />
                     배정 현장 선택
-                    {request.requested_role === 'worker' && <span className="text-red-500 ml-1">*필수</span>}
+                    {request.requested_role === 'worker' && (
+                      <span className="text-red-500 ml-1">*필수</span>
+                    )}
                   </label>
                   {selectedSites.length > 0 && (
                     <span className="text-xs text-green-600 font-medium">
@@ -388,7 +442,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                     </span>
                   )}
                 </div>
-                
+
                 {/* Search bar */}
                 <div className="relative mb-3">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -396,7 +450,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                     type="text"
                     placeholder="현장명 또는 주소로 검색..."
                     value={siteSearchTerm}
-                    onChange={(e) => setSiteSearchTerm(e.target.value)}
+                    onChange={e => setSiteSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none"
                   />
                 </div>
@@ -420,7 +474,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                 {/* Site list */}
                 <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
                   {filteredSites.length > 0 ? (
-                    filteredSites.map((site) => (
+                    filteredSites.map(site => (
                       <label
                         key={site.id}
                         className={`flex items-center p-3 hover:bg-gray-50 cursor-pointer transition-colors ${
@@ -435,9 +489,7 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                         />
                         <div className="ml-3 flex-1">
                           <p className="text-sm font-medium text-gray-900">{site.name}</p>
-                          {site.address && (
-                            <p className="text-xs text-gray-500">{site.address}</p>
-                          )}
+                          {site.address && <p className="text-xs text-gray-500">{site.address}</p>}
                         </div>
                       </label>
                     ))
@@ -447,9 +499,10 @@ export default function ApprovalModal({ isOpen, onClose, request, onApprove }: A
                     </p>
                   )}
                 </div>
-                
+
                 <p className="mt-2 text-xs text-gray-500">
-                  작업자는 최소 1개 이상의 현장을 선택해야 합니다. 여러 현장에서 근무하는 경우 복수 선택이 가능합니다.
+                  작업자는 최소 1개 이상의 현장을 선택해야 합니다. 여러 현장에서 근무하는 경우 복수
+                  선택이 가능합니다.
                 </p>
               </div>
             )}

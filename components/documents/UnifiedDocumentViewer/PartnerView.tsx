@@ -37,16 +37,13 @@ export default function PartnerView({
   onDocumentClick,
   pagination,
   onPageChange,
-  companyId
+  companyId,
 }: PartnerViewProps) {
-  
   // 기성청구 문서 필터링
   const invoiceDocuments = documents.filter(doc => doc.category_type === 'invoice')
   const sharedDocuments = documents.filter(doc => doc.category_type === 'shared')
-  const otherDocuments = documents.filter(doc => 
-    !['invoice', 'shared'].includes(doc.category_type)
-  )
-  
+  const otherDocuments = documents.filter(doc => !['invoice', 'shared'].includes(doc.category_type))
+
   // 문서 선택 토글
   const toggleSelection = (documentId: string) => {
     if (selectedDocuments.includes(documentId)) {
@@ -55,7 +52,7 @@ export default function PartnerView({
       onSelectionChange([...selectedDocuments, documentId])
     }
   }
-  
+
   // 상태 배지
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -89,13 +86,16 @@ export default function PartnerView({
         )
     }
   }
-  
+
   // 문서 카드 렌더링
   const renderDocumentCard = (document: UnifiedDocument, isInvoice: boolean = false) => {
     const Icon = isInvoice ? Package : FileText
-    
+
     return (
-      <Card key={document.id} className={`hover:shadow-lg transition-shadow ${isInvoice ? 'border-yellow-200' : ''}`}>
+      <Card
+        key={document.id}
+        className={`hover:shadow-lg transition-shadow ${isInvoice ? 'border-yellow-200' : ''}`}
+      >
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <Checkbox
@@ -125,7 +125,7 @@ export default function PartnerView({
                       수정
                     </DropdownMenuItem>
                     {document.workflow_status !== 'approved' && (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => onDocumentAction('delete', [document.id])}
                         className="text-red-600"
                       >
@@ -138,46 +138,40 @@ export default function PartnerView({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-          
-          <button
-            onClick={() => onDocumentClick(document)}
-            className="w-full text-left"
-          >
+
+          <button onClick={() => onDocumentClick(document)} className="w-full text-left">
             <div className="flex items-center gap-3 mb-3">
               <div className={`p-2 rounded ${isInvoice ? 'bg-yellow-100' : 'bg-gray-100'}`}>
                 <Icon className={`h-6 w-6 ${isInvoice ? 'text-yellow-600' : 'text-gray-600'}`} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium truncate">
-                  {document.title || document.file_name}
-                </p>
+                <p className="font-medium truncate">{document.title || document.file_name}</p>
                 {document.description && (
-                  <p className="text-sm text-gray-500 truncate">
-                    {document.description}
-                  </p>
+                  <p className="text-sm text-gray-500 truncate">{document.description}</p>
                 )}
               </div>
             </div>
-            
+
             <div className="space-y-2">
               {getStatusBadge(document.workflow_status || document.status)}
-              
+
               {document.site && (
                 <p className="text-sm text-gray-500">
                   <Building2 className="h-3 w-3 inline mr-1" />
                   {document.site.name}
                 </p>
               )}
-              
+
               {isInvoice && document.metadata?.amount && (
                 <p className="text-sm font-medium text-yellow-600">
-                  청구금액: {new Intl.NumberFormat('ko-KR', { 
-                    style: 'currency', 
-                    currency: 'KRW' 
+                  청구금액:{' '}
+                  {new Intl.NumberFormat('ko-KR', {
+                    style: 'currency',
+                    currency: 'KRW',
                   }).format(document.metadata.amount)}
                 </p>
               )}
-              
+
               <div className="text-xs text-gray-400">
                 {format(new Date(document.created_at), 'yyyy-MM-dd', { locale: ko })}
               </div>
@@ -187,7 +181,7 @@ export default function PartnerView({
       </Card>
     )
   }
-  
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -195,24 +189,22 @@ export default function PartnerView({
       </div>
     )
   }
-  
+
   return (
     <div className="space-y-6">
-      {/* 파트너사 정보 알림 */}
+      {/* 시공업체 정보 알림 */}
       <Alert>
         <Building2 className="h-4 w-4" />
         <AlertDescription>
-          귀사의 문서만 표시됩니다. 기성청구 문서는 자유롭게 관리하실 수 있으며, 
-          공유문서는 열람만 가능합니다.
+          귀사의 문서만 표시됩니다. 기성청구 문서는 자유롭게 관리하실 수 있으며, 공유문서는 열람만
+          가능합니다.
         </AlertDescription>
       </Alert>
-      
+
       {/* 선택 도구바 */}
       {selectedDocuments.length > 0 && (
         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-lg flex items-center justify-between">
-          <span className="text-sm font-medium">
-            {selectedDocuments.length}개 문서 선택됨
-          </span>
+          <span className="text-sm font-medium">{selectedDocuments.length}개 문서 선택됨</span>
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -233,7 +225,7 @@ export default function PartnerView({
           </div>
         </div>
       )}
-      
+
       {/* 기성청구 문서 섹션 */}
       {invoiceDocuments.length > 0 && (
         <div>
@@ -251,7 +243,7 @@ export default function PartnerView({
               새 청구서 작성
             </Button>
           </div>
-          
+
           {viewMode === 'grid' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {invoiceDocuments.map(doc => renderDocumentCard(doc, true))}
@@ -275,7 +267,10 @@ export default function PartnerView({
                   </thead>
                   <tbody>
                     {invoiceDocuments.map(document => (
-                      <tr key={document.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-900">
+                      <tr
+                        key={document.id}
+                        className="border-b hover:bg-gray-50 dark:hover:bg-gray-900"
+                      >
                         <td className="p-4">
                           <Checkbox
                             checked={selectedDocuments.includes(document.id)}
@@ -295,13 +290,12 @@ export default function PartnerView({
                         </td>
                         <td className="p-4">
                           <p className="font-medium">
-                            {document.metadata?.amount ? 
-                              new Intl.NumberFormat('ko-KR', { 
-                                style: 'currency', 
-                                currency: 'KRW' 
-                              }).format(document.metadata.amount) : 
-                              '-'
-                            }
+                            {document.metadata?.amount
+                              ? new Intl.NumberFormat('ko-KR', {
+                                  style: 'currency',
+                                  currency: 'KRW',
+                                }).format(document.metadata.amount)
+                              : '-'}
                           </p>
                         </td>
                         <td className="p-4">
@@ -324,12 +318,16 @@ export default function PartnerView({
                                 <Eye className="h-4 w-4 mr-2" />
                                 보기
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => onDocumentAction('download', [document.id])}>
+                              <DropdownMenuItem
+                                onClick={() => onDocumentAction('download', [document.id])}
+                              >
                                 <Download className="h-4 w-4 mr-2" />
                                 다운로드
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => onDocumentAction('edit', [document.id])}>
+                              <DropdownMenuItem
+                                onClick={() => onDocumentAction('edit', [document.id])}
+                              >
                                 <Edit3 className="h-4 w-4 mr-2" />
                                 수정
                               </DropdownMenuItem>
@@ -345,7 +343,7 @@ export default function PartnerView({
           )}
         </div>
       )}
-      
+
       {/* 공유문서 섹션 */}
       {sharedDocuments.length > 0 && (
         <div>
@@ -354,13 +352,13 @@ export default function PartnerView({
             공유문서
             <Badge variant="secondary">{sharedDocuments.length}</Badge>
           </h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {sharedDocuments.map(doc => renderDocumentCard(doc, false))}
           </div>
         </div>
       )}
-      
+
       {/* 문서가 없을 때 */}
       {documents.length === 0 && (
         <Card>
@@ -376,7 +374,7 @@ export default function PartnerView({
           </CardContent>
         </Card>
       )}
-      
+
       {/* 페이지네이션 */}
       {pagination.totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-6">
@@ -388,11 +386,11 @@ export default function PartnerView({
           >
             이전
           </Button>
-          
+
           <span className="flex items-center px-3 text-sm">
             {pagination.page} / {pagination.totalPages}
           </span>
-          
+
           <Button
             variant="outline"
             size="sm"

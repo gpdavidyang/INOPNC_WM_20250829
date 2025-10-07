@@ -691,7 +691,7 @@ export default function DailyReportForm({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Partner Company Selection - Available for all users */}
               <div>
-                <Label htmlFor="partner_company_id">소속 파트너사</Label>
+                <Label htmlFor="partner_company_id">소속 시공업체</Label>
                 <CustomSelect
                   value={formData.partner_company_id}
                   onValueChange={value =>
@@ -703,7 +703,7 @@ export default function DailyReportForm({
                   }
                 >
                   <CustomSelectTrigger>
-                    <CustomSelectValue placeholder="파트너사를 선택하세요" />
+                    <CustomSelectValue placeholder="시공업체를 선택하세요" />
                   </CustomSelectTrigger>
                   <CustomSelectContent>
                     <CustomSelectItem value="none">선택 안함</CustomSelectItem>
@@ -715,7 +715,7 @@ export default function DailyReportForm({
                   </CustomSelectContent>
                 </CustomSelect>
                 {loadingPartners && (
-                  <p className="text-xs text-gray-500 mt-1">파트너사 목록을 불러오는 중...</p>
+                  <p className="text-xs text-gray-500 mt-1">시공업체 목록을 불러오는 중...</p>
                 )}
               </div>
 

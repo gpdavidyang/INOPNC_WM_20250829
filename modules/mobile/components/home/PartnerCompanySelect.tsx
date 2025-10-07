@@ -36,16 +36,16 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
     setError(null)
 
     try {
-      const response = await fetch('/api/partner-companies')
+      const response = await fetch('/api/partner-companies?scope=construction')
       if (!response.ok) {
-        throw new Error('파트너사 목록을 불러오는데 실패했습니다')
+        throw new Error('시공업체 목록을 불러오는데 실패했습니다')
       }
 
       const result = await response.json()
       if (result.success) {
         setPartnerCompanies(result.data)
       } else {
-        throw new Error(result.error || '파트너사 목록을 불러오는데 실패했습니다')
+        throw new Error(result.error || '시공업체 목록을 불러오는데 실패했습니다')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다')
@@ -58,10 +58,10 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
 
   const getCompanyTypeDisplay = (type: string) => {
     const typeMap: { [key: string]: string } = {
-      subcontractor: '하청업체',
-      supplier: '공급업체',
+      subcontractor: '시공업체',
+      supplier: '시공업체',
       consultant: '컨설턴트',
-      partner: '파트너사',
+      partner: '시공업체',
     }
     return typeMap[type] || type
   }
@@ -69,7 +69,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
   return (
     <div className="form-group">
       <label className="form-label">
-        파트너사 {required && <span className="required">*</span>}
+        시공업체(소속사) {required && <span className="required">*</span>}
       </label>
 
       <div className="partner-select-container">
@@ -90,7 +90,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
                 </span>
               </>
             ) : (
-              '파트너사를 선택하세요'
+              '업체를 선택하세요'
             )}
           </span>
           <ChevronDown className={`partner-select-icon ${isOpen ? 'rotate' : ''}`} />
@@ -106,7 +106,7 @@ export const PartnerCompanySelect: React.FC<PartnerCompanySelectProps> = ({
                 </button>
               </div>
             ) : partnerCompanies.length === 0 ? (
-              <div className="partner-select-empty">등록된 파트너사가 없습니다</div>
+              <div className="partner-select-empty">등록된 업체가 없습니다</div>
             ) : (
               <div className="partner-select-options">
                 {partnerCompanies.map(company => (

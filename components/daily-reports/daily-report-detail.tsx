@@ -75,7 +75,7 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header - 파트너사 스타일과 동일한 구조 */}
+      {/* Header - 시공업체 스타일과 동일한 구조 */}
       <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -124,7 +124,7 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-3">
-          {/* Basic Information - 파트너사 스타일과 동일한 카드 기반 레이아웃 */}
+          {/* Basic Information - 시공업체 스타일과 동일한 카드 기반 레이아웃 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">

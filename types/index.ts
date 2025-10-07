@@ -229,7 +229,7 @@ export interface UserSiteHistory {
   is_active: boolean
 }
 
-// 파트너사 (협력업체)
+// 시공업체 (협력업체)
 export interface PartnerCompany {
   id: string
   company_name: string
@@ -255,7 +255,7 @@ export interface PartnerCompany {
   updated_at: string
 }
 
-// 현장-파트너사 연결
+// 현장-시공업체 연결
 export interface SitePartner {
   id: string
   site_id: string
@@ -279,7 +279,7 @@ export type DailyReportStatus = 'draft' | 'submitted' | 'completed'
 export interface DailyReport {
   id: string
   site_id?: string | null
-  partner_company_id?: string | null // 파트너사 ID 추가
+  partner_company_id?: string | null // 시공업체 ID
   work_date: string
   member_name: string // 부재명 (슬라브, 거더, 기둥, 기타)
   process_type: string // 공정 (균열, 면, 마감, 기타)

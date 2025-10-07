@@ -72,68 +72,63 @@ const nextConfig = {
   // Headers
   headers: async () => {
     return [
+      // API responses should never be cached
       {
         source: '/api/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          },
-          {
-            key: 'Pragma',
-            value: 'no-cache',
-          },
-          {
-            key: 'Expires',
-            value: '0',
-          },
+          { key: 'Cache-Control', value: 'no-store, no-cache, must-revalidate, proxy-revalidate' },
+          { key: 'Pragma', value: 'no-cache' },
+          { key: 'Expires', value: '0' },
+        ],
+      },
+
+      // Next.js build assets: long-term immutable cache
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
       {
-        source: '/:path*',
+        source: '/_next/image/:path*',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'no-transform',
-          },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
+
+      // HTML/pages: prevent caching to avoid stale markup referencing old chunk names
+      {
+        source: '/((?!_next/|icons/|images/|fonts/|manifest.json|robots.txt|sw.js).*)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, max-age=0' },
+        ],
+      },
+
+      // Service worker
       {
         source: '/sw.js',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
-          },
-          {
-            key: 'Service-Worker-Allowed',
-            value: '/',
-          },
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+          { key: 'Content-Type', value: 'application/javascript' },
         ],
       },
+
+      // Manifest and icons
       {
         source: '/manifest.json',
         headers: [
-          {
-            key: 'Content-Type',
-            value: 'application/manifest+json',
-          },
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=86400',
-          },
+          { key: 'Content-Type', value: 'application/manifest+json' },
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
         ],
       },
       {
         source: '/icons/(.*)',
         headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
         ],
       },
-    ];
+    ]
   },
   redirects: async () => {
     return [

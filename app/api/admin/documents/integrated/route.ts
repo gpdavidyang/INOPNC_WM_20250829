@@ -30,11 +30,11 @@ export async function GET(request: Request) {
 
     // 카테고리별 접근 권한 체크
     if (categoryType) {
-      // 필수서류함: 파트너사 접근 불가
+      // 필수서류함: 제한 계정(시공업체 담당) 접근 불가
       if (categoryType === 'required' && role === 'customer_manager') {
         return NextResponse.json({ error: '필수서류함에 접근할 권한이 없습니다' }, { status: 403 })
       }
-      
+
       // 기성청구함: 작업자/현장관리자 접근 불가
       if (categoryType === 'invoice' && ['worker', 'site_manager'].includes(role)) {
         return NextResponse.json({ error: '기성청구함에 접근할 권한이 없습니다' }, { status: 403 })
@@ -44,7 +44,8 @@ export async function GET(request: Request) {
     // Build query for unified document system - RLS will automatically filter data based on role
     let query = supabase
       .from('unified_document_system')
-      .select(`
+      .select(
+        `
         *,
         uploader:profiles!unified_document_system_uploaded_by_fkey(
           id,
@@ -61,7 +62,8 @@ export async function GET(request: Request) {
           full_name,
           role
         )
-      `)
+      `
+      )
       .eq('is_archived', false)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1)
@@ -70,7 +72,7 @@ export async function GET(request: Request) {
     if (siteId && siteId !== 'all') {
       query = query.eq('site_id', siteId)
     }
-    
+
     if (categoryType && categoryType !== 'all') {
       query = query.eq('category_type', categoryType)
     }
@@ -80,7 +82,9 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%,file_name.ilike.%${search}%`)
+      query = query.or(
+        `title.ilike.%${search}%,description.ilike.%${search}%,file_name.ilike.%${search}%`
+      )
     }
 
     const { data: documents, error: documentsError } = await query
@@ -99,7 +103,7 @@ export async function GET(request: Request) {
     if (siteId && siteId !== 'all') {
       countQuery = countQuery.eq('site_id', siteId)
     }
-    
+
     if (categoryType && categoryType !== 'all') {
       countQuery = countQuery.eq('category_type', categoryType)
     }
@@ -109,7 +113,9 @@ export async function GET(request: Request) {
     }
 
     if (search) {
-      countQuery = countQuery.or(`title.ilike.%${search}%,description.ilike.%${search}%,file_name.ilike.%${search}%`)
+      countQuery = countQuery.or(
+        `title.ilike.%${search}%,description.ilike.%${search}%,file_name.ilike.%${search}%`
+      )
     }
 
     const { count: totalCount } = await countQuery
@@ -120,11 +126,15 @@ export async function GET(request: Request) {
       .select('category_type')
       .eq('is_archived', false)
 
-    const statisticsByCategory = categoryStats?.reduce((acc: unknown, doc: unknown) => {
-      const category = doc.category_type
-      acc[category] = (acc[category] || 0) + 1
-      return acc
-    }, {} as Record<string, number>) || {}
+    const statisticsByCategory =
+      categoryStats?.reduce(
+        (acc: unknown, doc: unknown) => {
+          const category = doc.category_type
+          acc[category] = (acc[category] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>
+      ) || {}
 
     // Get status statistics
     const { data: statusStats } = await supabase
@@ -132,19 +142,27 @@ export async function GET(request: Request) {
       .select('status')
       .eq('is_archived', false)
 
-    const statisticsByStatus = statusStats?.reduce((acc: unknown, doc: unknown) => {
-      const docStatus = doc.status
-      acc[docStatus] = (acc[docStatus] || 0) + 1
-      return acc
-    }, {} as Record<string, number>) || {}
+    const statisticsByStatus =
+      statusStats?.reduce(
+        (acc: unknown, doc: unknown) => {
+          const docStatus = doc.status
+          acc[docStatus] = (acc[docStatus] || 0) + 1
+          return acc
+        },
+        {} as Record<string, number>
+      ) || {}
 
     // Group documents by category
-    const documentsByCategory = documents?.reduce((acc: unknown, doc: unknown) => {
-      const category = doc.category_type
-      if (!acc[category]) acc[category] = []
-      acc[category].push(doc)
-      return acc
-    }, {} as Record<string, any[]>) || {}
+    const documentsByCategory =
+      documents?.reduce(
+        (acc: unknown, doc: unknown) => {
+          const category = doc.category_type
+          if (!acc[category]) acc[category] = []
+          acc[category].push(doc)
+          return acc
+        },
+        {} as Record<string, any[]>
+      ) || {}
 
     // Set permissions based on user role
     const isAdmin = ['admin', 'system_admin'].includes(role)
@@ -162,13 +180,13 @@ export async function GET(request: Request) {
         markup_documents: statisticsByCategory.markup || 0,
         required_documents: statisticsByCategory.required || 0,
         invoice_documents: statisticsByCategory.invoice || 0,
-        photo_grid_documents: statisticsByCategory.photo_grid || 0
+        photo_grid_documents: statisticsByCategory.photo_grid || 0,
       },
       pagination: {
         total: totalCount || 0,
         limit,
         offset,
-        has_more: (totalCount || 0) > (offset + limit)
+        has_more: (totalCount || 0) > offset + limit,
       },
       permissions: {
         can_view_all: isAdmin,
@@ -178,23 +196,19 @@ export async function GET(request: Request) {
         global_access: isAdmin,
         role: profile.role,
         // 역할별 접근 가능한 카테고리
-        accessible_categories: isAdmin 
+        accessible_categories: isAdmin
           ? ['shared', 'markup', 'required', 'invoice', 'photo_grid']
           : isWorker
-          ? ['shared', 'markup', 'required', 'photo_grid']
-          : isPartner
-          ? ['shared', 'markup', 'invoice', 'photo_grid']
-          : []
-      }
+            ? ['shared', 'markup', 'required', 'photo_grid']
+            : isPartner
+              ? ['shared', 'markup', 'invoice', 'photo_grid']
+              : [],
+      },
     }
 
     return NextResponse.json(response)
-
   } catch (error) {
     console.error('Error fetching integrated documents:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch integrated documents' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch integrated documents' }, { status: 500 })
   }
 }

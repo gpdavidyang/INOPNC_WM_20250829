@@ -45,7 +45,7 @@ graph TB
 
 | 계층            | 현재 역할            | UI 접근    | 데이터 접근        | 제한사항          |
 | --------------- | -------------------- | ---------- | ------------------ | ----------------- |
-| **Field**       | worker, site_manager | Mobile UI  | 모든 현장/파트너사 | ❌ 없음           |
+| **Field**       | worker, site_manager | Mobile UI  | 모든 현장/시공업체 | ❌ 없음           |
 | **Partner**     | customer_manager     | Mobile UI  | 자신의 조직만      | ✅ 조직 기반 제한 |
 | **Head Office** | admin, system_admin  | Desktop UI | 모든 데이터        | ❌ 없음           |
 

@@ -7,7 +7,7 @@ const supabase = createClient(
 )
 
 async function addSitesAndMappings() {
-  console.log('🚀 새로운 현장 생성 및 파트너사 매핑 시작...\n')
+  console.log('🚀 새로운 현장 생성 및 시공업체 매핑 시작...\n')
 
   try {
     // 1. 기본 organization_id 가져오기
@@ -93,7 +93,7 @@ async function addSitesAndMappings() {
       console.log(`   - ${site.name} (ID: ${site.id})`)
     })
 
-    // 3. 현장이 없는 파트너사 ID 목록
+    // 3. 현장이 없는 시공업체 ID 목록
     const partnersWithoutSites = {
       그린환경엔지니어링: 'b56763bf-636d-484e-85cc-01962fd312b5',
       미래건설기계: '124c81cb-7ea3-4539-92f5-b8f4557e9da1',
@@ -103,14 +103,14 @@ async function addSitesAndMappings() {
       현대건축설계사무소: '1919d054-3dd8-4c72-849c-c677256446ce',
     }
 
-    // 기존 파트너사 ID
+    // 기존 시공업체 ID
     const existingPartners = {
       '인옵앤씨 파트너': '11111111-1111-1111-1111-111111111111',
       서울전기공사: '35fe04c4-49e9-4ebb-854a-530d805b5165',
       '대한건설(주)': '236c7746-56ac-4fbc-8387-40ffebed329d',
     }
 
-    // 4. 파트너사-현장 매핑 생성
+    // 4. 시공업체-현장 매핑 생성
     const mappings = []
 
     if (createdSites && createdSites.length === 6) {
@@ -203,8 +203,8 @@ async function addSitesAndMappings() {
         }
       )
 
-      // 기존 파트너사도 일부 신규 현장에 추가 배정
-      // 인옵앤씨 파트너 - SK하이닉스, 인천공항
+      // 기존 시공업체도 일부 신규 현장에 추가 배정
+      // 인옵앤씨 - SK하이닉스, 인천공항
       mappings.push(
         {
           partner_company_id: existingPartners['인옵앤씨 파트너'],
@@ -247,7 +247,7 @@ async function addSitesAndMappings() {
       )
     }
 
-    console.log('\n🔗 파트너사-현장 매핑 생성...')
+    console.log('\n🔗 시공업체-현장 매핑 생성...')
     const { data: createdMappings, error: mappingError } = await supabase
       .from('partner_site_mappings')
       .insert(mappings)
@@ -277,17 +277,17 @@ async function addSitesAndMappings() {
       .eq('status', 'active')
       .eq('partner_site_mappings.is_active', true)
 
-    // 파트너사별 현장 수 집계
+    // 시공업체별 현장 수 집계
     const partnerSiteCount = new Map()
     finalCheck?.forEach(partner => {
       const siteCount = partner.partner_site_mappings?.length || 0
       partnerSiteCount.set(partner.company_name, siteCount)
     })
 
-    console.log('\n✨ 모든 파트너사 현장 배정 현황:')
+    console.log('\n✨ 모든 시공업체 현장 배정 현황:')
     console.log('='.repeat(50))
 
-    // 전체 파트너사 목록과 비교
+    // 전체 시공업체 목록과 비교
     const allPartners = [...Object.keys(partnersWithoutSites), ...Object.keys(existingPartners)]
 
     allPartners.forEach(partnerName => {
@@ -296,7 +296,7 @@ async function addSitesAndMappings() {
     })
 
     console.log('='.repeat(50))
-    console.log('🎉 모든 파트너사에 최소 1개 이상의 현장이 배정되었습니다!')
+    console.log('🎉 모든 시공업체에 최소 1개 이상의 현장이 배정되었습니다!')
   } catch (error) {
     console.error('❌ 실행 중 오류 발생:', error)
   }

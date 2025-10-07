@@ -1,6 +1,5 @@
 'use client'
 
-
 interface UserBasicInfoTabProps {
   user: unknown
   statistics: {
@@ -15,17 +14,34 @@ interface UserBasicInfoTabProps {
 export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasicInfoTabProps) {
   const getRoleBadge = (role: string) => {
     const roleConfig = {
-      worker: { text: '작업자', color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300' },
-      site_manager: { text: '현장관리자', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
-      customer_manager: { text: '파트너사', color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300' },
-      admin: { text: '관리자', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' },
-      system_admin: { text: '시스템관리자', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300' }
+      worker: {
+        text: '작업자',
+        color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-300',
+      },
+      site_manager: {
+        text: '현장관리자',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+      },
+      customer_manager: {
+        text: '시공업체',
+        color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-300',
+      },
+      admin: {
+        text: '관리자',
+        color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+      },
+      system_admin: {
+        text: '시스템관리자',
+        color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+      },
     }
-    
+
     const config = roleConfig[role as keyof typeof roleConfig] || roleConfig.worker
-    
+
     return (
-      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+      >
         {config.text}
       </span>
     )
@@ -33,15 +49,26 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      active: { text: '활성', color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' },
-      inactive: { text: '비활성', color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300' },
-      suspended: { text: '정지', color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300' }
+      active: {
+        text: '활성',
+        color: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
+      },
+      inactive: {
+        text: '비활성',
+        color: 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300',
+      },
+      suspended: {
+        text: '정지',
+        color: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+      },
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active
-    
+
     return (
-      <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}>
+      <span
+        className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${config.color}`}
+      >
         {config.text}
       </span>
     )
@@ -68,9 +95,7 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
               <Mail className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">이메일</p>
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {user.email}
-                </p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.email}</p>
               </div>
             </div>
 
@@ -88,9 +113,7 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
               <Shield className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">역할</p>
-                <div className="mt-1">
-                  {getRoleBadge(user.role)}
-                </div>
+                <div className="mt-1">{getRoleBadge(user.role)}</div>
               </div>
             </div>
 
@@ -98,9 +121,7 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
               <CheckCircle className="h-5 w-5 text-gray-400 mt-0.5" />
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">상태</p>
-                <div className="mt-1">
-                  {getStatusBadge(user.status || 'active')}
-                </div>
+                <div className="mt-1">{getStatusBadge(user.status || 'active')}</div>
               </div>
             </div>
 
@@ -116,10 +137,10 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
                     {(() => {
                       const type = user.organization?.type || user.organizations?.type
                       const typeLabels: Record<string, string> = {
-                        'head_office': '본사',
-                        'branch_office': '지사',
-                        'partner': '파트너사',
-                        'contractor': '협력업체'
+                        head_office: '본사',
+                        branch_office: '지사',
+                        partner: '시공업체',
+                        contractor: '협력업체',
                       }
                       return typeLabels[type] || type
                     })()}
@@ -133,7 +154,9 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">가입일</p>
                 <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {user.created_at ? format(new Date(user.created_at), 'yyyy.MM.dd', { locale: ko }) : '-'}
+                  {user.created_at
+                    ? format(new Date(user.created_at), 'yyyy.MM.dd', { locale: ko })
+                    : '-'}
                 </p>
               </div>
             </div>
@@ -170,7 +193,9 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
 
             {user.work_log_stats && (
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">작업일지 통계</h4>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  작업일지 통계
+                </h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <span className="text-sm text-gray-500 dark:text-gray-400">총 작성</span>
@@ -188,7 +213,9 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
                     <div className="flex justify-between">
                       <span className="text-sm text-gray-500 dark:text-gray-400">최근 작성</span>
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {format(new Date(user.work_log_stats.last_report_date), 'yyyy.MM.dd', { locale: ko })}
+                        {format(new Date(user.work_log_stats.last_report_date), 'yyyy.MM.dd', {
+                          locale: ko,
+                        })}
                       </span>
                     </div>
                   )}
@@ -244,11 +271,12 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
         </div>
       </div>
 
-
       {/* 현장 배정 현황 */}
       {user.site_assignments && user.site_assignments.length > 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 mt-6">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">현장 배정 현황</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+            현장 배정 현황
+          </h3>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -280,11 +308,13 @@ export default function UserBasicInfoTab({ user, statistics, onEdit }: UserBasic
                       {format(new Date(assignment.assigned_at), 'yyyy.MM.dd', { locale: ko })}
                     </td>
                     <td className="py-2 px-4">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        assignment.is_active 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300' 
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
-                      }`}>
+                      <span
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          assignment.is_active
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-300'
+                        }`}
+                      >
                         {assignment.is_active ? '활성' : '비활성'}
                       </span>
                     </td>

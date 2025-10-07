@@ -96,11 +96,9 @@ export function PartnersOverview() {
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Building2 className="h-5 w-5" />
-              파트너 관리
+              공급업체 관리
             </CardTitle>
-            <CardDescription>
-              협력사 및 공급업체 상태를 확인하고 연락처를 관리합니다.
-            </CardDescription>
+            <CardDescription>공급업체 상태를 확인하고 연락처를 관리합니다.</CardDescription>
           </div>
           <div className="flex w-full max-w-xl flex-col gap-2 sm:flex-row sm:items-center">
             <Input
@@ -135,7 +133,7 @@ export function PartnersOverview() {
       {loading ? (
         <Card>
           <CardContent>
-            <EmptyState description="파트너 정보를 불러오는 중입니다..." />
+            <EmptyState description="업체 정보를 불러오는 중입니다..." />
           </CardContent>
         </Card>
       ) : error ? (
@@ -147,7 +145,7 @@ export function PartnersOverview() {
       ) : filteredPartners.length === 0 ? (
         <Card>
           <CardContent>
-            <EmptyState description="조건에 맞는 파트너사가 없습니다." />
+            <EmptyState description="조건에 맞는 업체가 없습니다." />
           </CardContent>
         </Card>
       ) : (
@@ -161,7 +159,7 @@ export function PartnersOverview() {
                 [
                   {
                     key: 'company_name',
-                    header: '파트너사',
+                    header: '업체명',
                     sortable: true,
                     width: '30%',
                     render: (p: PartnerCompany) => (
@@ -247,8 +245,8 @@ export function PartnersOverview() {
             연동 안내
           </CardTitle>
           <CardDescription>
-            파트너사는 조직/현장 매핑 후 사용자 계정에 연결됩니다. Phase 2에서는 등록·승인 플로우가
-            이 화면에서 제공될 예정입니다.
+            시공업체는 조직/현장 매핑 후 사용자 계정과 연동됩니다. 이 화면에서는 운영용 조회만
+            제공됩니다.
           </CardDescription>
         </CardHeader>
       </Card>

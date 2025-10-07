@@ -461,9 +461,9 @@ export default function InvoiceDocumentDetailModal({
                 )}
               </div>
 
-              {/* 현장 및 파트너사 정보 */}
+              {/* 현장 및 업체 정보 */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">현장 및 파트너사</h4>
+                <h4 className="text-sm font-medium text-gray-900 mb-3">현장 및 업체</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs font-medium text-gray-700 mb-1">현장</p>
@@ -473,7 +473,7 @@ export default function InvoiceDocumentDetailModal({
                     )}
                   </div>
                   <div>
-                    <p className="text-xs font-medium text-gray-700 mb-1">파트너사</p>
+                    <p className="text-xs font-medium text-gray-700 mb-1">업체</p>
                     <p className="text-sm text-gray-900">
                       {document.organizations?.name || '미지정'}
                     </p>

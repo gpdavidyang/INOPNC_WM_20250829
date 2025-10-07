@@ -1,6 +1,5 @@
 'use client'
 
-
 interface Partner {
   id: string
   company_name: string
@@ -56,7 +55,8 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
     try {
       const { data, error } = await supabase
         .from('site_partners')
-        .select(`
+        .select(
+          `
           contract_amount,
           work_scope,
           start_date,
@@ -67,22 +67,24 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
             name,
             address
           )
-        `)
+        `
+        )
         .eq('partner_company_id', partner.id)
         .order('start_date', { ascending: false })
 
       if (error) throw error
 
-      const formattedSites = data?.map(item => ({
-        id: item.sites.id,
-        name: item.sites.name,
-        address: item.sites.address,
-        contract_amount: item.contract_amount,
-        work_scope: item.work_scope,
-        start_date: item.start_date,
-        end_date: item.end_date,
-        status: item.status
-      })) || []
+      const formattedSites =
+        data?.map(item => ({
+          id: item.sites.id,
+          name: item.sites.name,
+          address: item.sites.address,
+          contract_amount: item.contract_amount,
+          work_scope: item.work_scope,
+          start_date: item.start_date,
+          end_date: item.end_date,
+          status: item.status,
+        })) || []
 
       setSites(formattedSites)
     } catch (error) {
@@ -96,8 +98,8 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
     const typeLabels = {
       general_contractor: '종합건설업',
       subcontractor: '전문건설업',
-      supplier: '자재공급업체',
-      consultant: '설계/감리'
+      supplier: '시공업체',
+      consultant: '설계/감리',
     }
     return typeLabels[type as keyof typeof typeLabels] || type
   }
@@ -106,12 +108,14 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
     const statusConfig = {
       active: { label: '활성', className: 'bg-green-100 text-green-800' },
       suspended: { label: '중단', className: 'bg-yellow-100 text-yellow-800' },
-      terminated: { label: '종료', className: 'bg-red-100 text-red-800' }
+      terminated: { label: '종료', className: 'bg-red-100 text-red-800' },
     }
-    
+
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.active
     return (
-      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.className}`}>
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.className}`}
+      >
         {config.label}
       </span>
     )
@@ -122,7 +126,7 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
     return new Intl.NumberFormat('ko-KR', {
       style: 'currency',
       currency: 'KRW',
-      minimumFractionDigits: 0
+      minimumFractionDigits: 0,
     }).format(amount)
   }
 
@@ -134,7 +138,7 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
   const tabs = [
     { id: 'info', label: '기본 정보', icon: Building2 },
     { id: 'sites', label: '배정 현장', icon: MapPin },
-    { id: 'contracts', label: '계약 정보', icon: FileText }
+    { id: 'contracts', label: '계약 정보', icon: FileText },
   ]
 
   return (
@@ -188,9 +192,10 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
             <div>
               <p className="text-2xl font-bold text-gray-900 dark:text-white">
                 {sites.reduce((sum, site) => sum + (site.contract_amount || 0), 0) > 0
-                  ? formatCurrency(sites.reduce((sum, site) => sum + (site.contract_amount || 0), 0))
-                  : '-'
-                }
+                  ? formatCurrency(
+                      sites.reduce((sum, site) => sum + (site.contract_amount || 0), 0)
+                    )
+                  : '-'}
               </p>
               <p className="text-sm text-gray-600 dark:text-gray-400">총 계약금액</p>
             </div>
@@ -224,7 +229,7 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="border-b border-gray-200 dark:border-gray-700">
           <nav className="flex space-x-8">
-            {tabs.map((tab) => {
+            {tabs.map(tab => {
               const Icon = tab.icon
               return (
                 <button
@@ -249,7 +254,9 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
             <div className="space-y-6">
               {/* 기본 정보 */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">기본 정보</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  기본 정보
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -269,7 +276,9 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       회사 구분
                     </label>
-                    <p className="text-gray-900 dark:text-white">{getCompanyTypeLabel(partner.company_type)}</p>
+                    <p className="text-gray-900 dark:text-white">
+                      {getCompanyTypeLabel(partner.company_type)}
+                    </p>
                   </div>
                   {partner.representative_name && (
                     <div>
@@ -284,7 +293,9 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
 
               {/* 연락처 정보 */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">연락처 정보</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  연락처 정보
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {partner.contact_person && (
                     <div>
@@ -324,7 +335,9 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
               {/* 전문 분야 */}
               {partner.trade_type && partner.trade_type.length > 0 && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">전문 분야</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    전문 분야
+                  </h3>
                   <div className="flex flex-wrap gap-2">
                     {partner.trade_type.map((trade, index) => (
                       <span
@@ -342,7 +355,9 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
               {partner.notes && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">메모</h3>
-                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{partner.notes}</p>
+                  <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                    {partner.notes}
+                  </p>
                 </div>
               )}
             </div>
@@ -351,7 +366,9 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
           {activeTab === 'sites' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">배정 현장 ({sites.length})</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  배정 현장 ({sites.length})
+                </h3>
                 <button className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 text-sm">
                   <Plus className="h-4 w-4 mr-2" />
                   현장 배정
@@ -361,7 +378,10 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
               {loading ? (
                 <div className="space-y-3">
                   {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                    <div
+                      key={i}
+                      className="animate-pulse bg-gray-100 dark:bg-gray-700 p-4 rounded-lg"
+                    >
                       <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded mb-2"></div>
                       <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-3/4"></div>
                     </div>
@@ -379,12 +399,19 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {sites.map((site) => (
-                    <div key={site.id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                  {sites.map(site => (
+                    <div
+                      key={site.id}
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                    >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 dark:text-white">{site.name}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{site.address}</p>
+                          <h4 className="font-semibold text-gray-900 dark:text-white">
+                            {site.name}
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {site.address}
+                          </p>
                           {site.work_scope && (
                             <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                               작업 범위: {site.work_scope}
@@ -402,9 +429,7 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
                       </div>
                       <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
                         <span>시작일: {formatDate(site.start_date)}</span>
-                        {site.end_date && (
-                          <span>종료일: {formatDate(site.end_date)}</span>
-                        )}
+                        {site.end_date && <span>종료일: {formatDate(site.end_date)}</span>}
                       </div>
                     </div>
                   ))}
@@ -417,7 +442,9 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
             <div className="space-y-6">
               {/* 금융 정보 */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">금융 정보</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  금융 정보
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {partner.bank_name && (
                     <div>
@@ -448,26 +475,34 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
 
               {/* 계약 기간 */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">계약 기간</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  계약 기간
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       계약 시작일
                     </label>
-                    <p className="text-gray-900 dark:text-white">{formatDate(partner.contract_start_date)}</p>
+                    <p className="text-gray-900 dark:text-white">
+                      {formatDate(partner.contract_start_date)}
+                    </p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       계약 종료일
                     </label>
-                    <p className="text-gray-900 dark:text-white">{formatDate(partner.contract_end_date)}</p>
+                    <p className="text-gray-900 dark:text-white">
+                      {formatDate(partner.contract_end_date)}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* 현장별 계약 정보 */}
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">현장별 계약 정보</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                  현장별 계약 정보
+                </h3>
                 {sites.length === 0 ? (
                   <p className="text-gray-600 dark:text-gray-400">계약 정보가 없습니다.</p>
                 ) : (
@@ -493,7 +528,7 @@ export default function PartnerDetail({ partner, profile, onEdit, onClose }: Par
                         </tr>
                       </thead>
                       <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                        {sites.map((site) => (
+                        {sites.map(site => (
                           <tr key={site.id}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                               {site.name}
