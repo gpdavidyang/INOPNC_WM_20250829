@@ -78,7 +78,7 @@ async function ensureSingleUserAccessible(
 }
 
 function mapAssignmentOrganizationFilter<
-  T extends { sites?: { organization_id?: string | null } | null }
+  T extends { sites?: { organization_id?: string | null } | null },
 >(assignments: T[] | null | undefined, auth: SimpleAuth) {
   if (!auth.isRestricted) {
     return assignments || []
@@ -147,13 +147,16 @@ export async function getUsers(
       // First get the profiles with organization info
       let query = supabase
         .from('profiles')
-        .select(`
+        .select(
+          `
           *,
           organizations!profiles_organization_id_fkey(
             id,
             name
           )
-        `, { count: 'exact' })
+        `,
+          { count: 'exact' }
+        )
         .order('created_at', { ascending: false })
 
       if (auth.isRestricted) {
@@ -186,7 +189,7 @@ export async function getUsers(
         console.error('Error fetching users:', error)
         return {
           success: false,
-          error: AdminErrors.DATABASE_ERROR
+          error: AdminErrors.DATABASE_ERROR,
         }
       }
 
@@ -195,13 +198,15 @@ export async function getUsers(
         (users || []).map(async (user: unknown) => {
           const assignmentsQuery = supabase
             .from('site_assignments')
-            .select(`
+            .select(
+              `
               site_id,
               role,
               assigned_date,
               is_active,
               sites!inner(name, organization_id)
-            `)
+            `
+            )
             .eq('user_id', user.id)
             .eq('is_active', true)
 
@@ -213,12 +218,12 @@ export async function getUsers(
           try {
             const REQUIRED_DOCUMENT_TYPES = [
               'medical_checkup',
-              'safety_education', 
+              'safety_education',
               'vehicle_insurance',
               'vehicle_registration',
               'payroll_stub',
               'id_card',
-              'senior_documents'
+              'senior_documents',
             ]
 
             const { data: userDocs } = await supabase
@@ -233,7 +238,7 @@ export async function getUsers(
                 document_type: docType,
                 status: doc ? 'submitted' : 'pending',
                 submitted_at: doc?.upload_date || null,
-                expires_at: null
+                expires_at: null,
               }
             })
           } catch (error) {
@@ -244,7 +249,7 @@ export async function getUsers(
           let workLogStats = { total_reports: 0, this_month: 0, last_report_date: null }
           try {
             const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM format
-            
+
             const { data: totalReports, count: totalCount } = await supabase
               .from('daily_reports')
               .select('id', { count: 'exact' })
@@ -266,7 +271,7 @@ export async function getUsers(
             workLogStats = {
               total_reports: totalCount || 0,
               this_month: monthCount || 0,
-              last_report_date: lastReport?.[0]?.work_date || null
+              last_report_date: lastReport?.[0]?.work_date || null,
             }
           } catch (error) {
             // Continue with default stats if query fails
@@ -274,19 +279,23 @@ export async function getUsers(
 
           return {
             ...user,
-            site_assignments: mapAssignmentOrganizationFilter(assignments, auth).map((assignment: any) => ({
-              site_id: assignment.site_id,
-              site_name: assignment.sites?.name || '',
-              role: assignment.role || user.role,
-              assigned_at: assignment.assigned_date,
-              is_active: assignment.is_active
-            })),
+            site_assignments: mapAssignmentOrganizationFilter(assignments, auth).map(
+              (assignment: any) => ({
+                site_id: assignment.site_id,
+                site_name: assignment.sites?.name || '',
+                role: assignment.role || user.role,
+                assigned_at: assignment.assigned_date,
+                is_active: assignment.is_active,
+              })
+            ),
             required_documents: requiredDocuments,
             work_log_stats: workLogStats,
-            organization: user.organizations ? {
-              id: user.organizations.id,
-              name: user.organizations.name
-            } : null
+            organization: user.organizations
+              ? {
+                  id: user.organizations.id,
+                  name: user.organizations.name,
+                }
+              : null,
           }
         })
       )
@@ -298,14 +307,14 @@ export async function getUsers(
         data: {
           users: transformedUsers,
           total: count || 0,
-          pages: totalPages
-        }
+          pages: totalPages,
+        },
       }
     } catch (error) {
       console.error('Users fetch error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -322,13 +331,15 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
       // Get the profile with organization info
       const { data: user, error } = await supabase
         .from('profiles')
-        .select(`
+        .select(
+          `
           *,
           organizations!profiles_organization_id_fkey(
             id,
             name
           )
-        `)
+        `
+        )
         .eq('id', userId)
         .single()
 
@@ -336,23 +347,24 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
         console.error('Error fetching user:', error)
         return {
           success: false,
-          error: AdminErrors.DATABASE_ERROR
+          error: AdminErrors.DATABASE_ERROR,
         }
       }
 
       if (!user) {
         return {
           success: false,
-          error: '사용자를 찾을 수 없습니다.'
+          error: '사용자를 찾을 수 없습니다.',
         }
-        }
+      }
 
       await ensureSingleUserAccessible(supabase, auth, userId)
 
       // Fetch site assignments
       const { data: assignments } = await supabase
         .from('user_site_assignments')
-        .select(`
+        .select(
+          `
           site_id,
           role,
           assigned_at,
@@ -361,19 +373,20 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
             name,
             organization_id
           )
-        `)
+        `
+        )
         .eq('user_id', user.id)
         .order('assigned_at', { ascending: false })
 
       // Fetch required documents
       const REQUIRED_DOCUMENT_TYPES = [
         'medical_checkup',
-        'safety_education', 
+        'safety_education',
         'vehicle_insurance',
         'vehicle_registration',
         'payroll_stub',
         'id_card',
-        'senior_documents'
+        'senior_documents',
       ]
 
       const { data: userDocs } = await supabase
@@ -389,58 +402,78 @@ export async function getUser(userId: string): Promise<AdminActionResult<UserWit
           document_name: doc?.original_filename || null,
           status: doc ? 'submitted' : 'pending',
           submitted_at: doc?.upload_date || null,
-          expires_at: null
+          expires_at: null,
         }
       })
 
       // Fetch work log stats
       const currentDate = new Date()
       const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-      
+
       const { data: workLogs } = await supabase
         .from('daily_reports')
         .select('report_date')
         .eq('user_id', user.id)
         .order('report_date', { ascending: false })
 
-      const thisMonthReports = workLogs?.filter((log: unknown) => 
-        new Date(log.report_date) >= startOfMonth
-      ).length || 0
+      const thisMonthReports =
+        workLogs?.filter((log: unknown) => new Date(log.report_date) >= startOfMonth).length || 0
 
-      const transformedUser: UserWithSites = {
+      // Try to link signup request source (created_user_id preferred, fallback by email)
+      let signupRequest: { id: string; status?: string } | null = null
+      try {
+        const { data: sr } = await supabase
+          .from('signup_requests')
+          .select('id, status, requested_at, created_user_id, email')
+          .or(`created_user_id.eq.${userId},email.eq.${(user as any).email || ''}`)
+          .order('requested_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (sr?.id) signupRequest = { id: (sr as any).id, status: (sr as any).status }
+      } catch (e) {
+        // ignore
+      }
+
+      const transformedUser: UserWithSites & {
+        signup_request?: { id: string; status?: string } | null
+      } = {
         ...user,
         organization: user.organizations || null,
-        site_assignments: mapAssignmentOrganizationFilter(assignments, auth).map((assignment: any) => ({
-          site_id: assignment.site_id,
-          site_name: assignment.sites?.name || 'Unknown',
-          role: assignment.role,
-          assigned_at: assignment.assigned_at,
-          is_active: assignment.is_active
-        })),
-        required_documents: documents?.map((d: unknown) => ({
-          document_type: d.document_type,
-          document_name: d.document_name,
-          status: d.status,
-          submitted_at: d.submitted_at,
-          expires_at: d.expires_at
-        })) || [],
+        site_assignments: mapAssignmentOrganizationFilter(assignments, auth).map(
+          (assignment: any) => ({
+            site_id: assignment.site_id,
+            site_name: assignment.sites?.name || 'Unknown',
+            role: assignment.role,
+            assigned_at: assignment.assigned_at,
+            is_active: assignment.is_active,
+          })
+        ),
+        required_documents:
+          documents?.map((d: unknown) => ({
+            document_type: d.document_type,
+            document_name: d.document_name,
+            status: d.status,
+            submitted_at: d.submitted_at,
+            expires_at: d.expires_at,
+          })) || [],
         work_log_stats: {
           total_reports: workLogs?.length || 0,
           this_month: thisMonthReports,
-          last_report_date: workLogs?.[0]?.report_date || null
-        }
+          last_report_date: workLogs?.[0]?.report_date || null,
+        },
+        signup_request: signupRequest,
       }
 
       return {
         success: true,
         data: transformedUser,
-        message: '사용자 정보를 가져왔습니다.'
+        message: '사용자 정보를 가져왔습니다.',
       }
     } catch (error) {
       console.error('Unexpected error fetching user:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -454,9 +487,7 @@ export async function createUser(data: CreateUserData): Promise<AdminActionResul
     try {
       const auth = profile.auth
 
-      const organizationId = auth.isRestricted
-        ? requireRestrictedOrgId(auth)
-        : data.organization_id
+      const organizationId = auth.isRestricted ? requireRestrictedOrgId(auth) : data.organization_id
 
       // Validate required fields
       const emailError = validateEmail(data.email)
@@ -484,7 +515,7 @@ export async function createUser(data: CreateUserData): Promise<AdminActionResul
       if (existingUser) {
         return {
           success: false,
-          error: '이미 존재하는 이메일입니다.'
+          error: '이미 존재하는 이메일입니다.',
         }
       }
 
@@ -497,8 +528,8 @@ export async function createUser(data: CreateUserData): Promise<AdminActionResul
         password: tempPassword,
         email_confirm: true,
         user_metadata: {
-          full_name: data.full_name
-        }
+          full_name: data.full_name,
+        },
       })
 
       if (authError) {
@@ -520,7 +551,7 @@ export async function createUser(data: CreateUserData): Promise<AdminActionResul
           phone: data.phone,
           role: data.role,
           status: data.status || 'active',
-          organization_id: organizationId || null
+          organization_id: organizationId || null,
         })
         .select()
         .single()
@@ -543,13 +574,13 @@ export async function createUser(data: CreateUserData): Promise<AdminActionResul
       return {
         success: true,
         data: newProfile,
-        message: `사용자가 성공적으로 생성되었습니다. 환영 이메일이 발송되었습니다. 임시 비밀번호: ${tempPassword}`
+        message: `사용자가 성공적으로 생성되었습니다. 환영 이메일이 발송되었습니다. 임시 비밀번호: ${tempPassword}`,
       }
     } catch (error) {
       console.error('User creation error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -602,13 +633,13 @@ export async function updateUser(data: UpdateUserData): Promise<AdminActionResul
       return {
         success: true,
         data: user,
-        message: '사용자 정보가 성공적으로 업데이트되었습니다.'
+        message: '사용자 정보가 성공적으로 업데이트되었습니다.',
       }
     } catch (error) {
       console.error('User update error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -637,26 +668,24 @@ export async function deleteUsers(userIds: string[]): Promise<AdminActionResult<
       }
 
       // Filter out test accounts from protection
-      const protectedAdmins = adminUsers?.filter((user: unknown) => {
-        const isTestAccount = 
-          user.full_name?.toLowerCase().includes('테스트') ||
-          user.full_name?.toLowerCase().includes('test') ||
-          user.email?.includes('@test.com')
-        return !isTestAccount
-      }) || []
+      const protectedAdmins =
+        adminUsers?.filter((user: unknown) => {
+          const isTestAccount =
+            user.full_name?.toLowerCase().includes('테스트') ||
+            user.full_name?.toLowerCase().includes('test') ||
+            user.email?.includes('@test.com')
+          return !isTestAccount
+        }) || []
 
       if (protectedAdmins.length > 0) {
         return {
           success: false,
-          error: '관리자 계정은 삭제할 수 없습니다.'
+          error: '관리자 계정은 삭제할 수 없습니다.',
         }
       }
 
       // First delete from profiles table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .in('id', userIds)
+      const { error: profileError } = await supabase.from('profiles').delete().in('id', userIds)
 
       if (profileError) {
         console.error('Error deleting profiles:', profileError)
@@ -679,13 +708,13 @@ export async function deleteUsers(userIds: string[]): Promise<AdminActionResult<
 
       return {
         success: true,
-        message: `${userIds.length}개 사용자가 성공적으로 삭제되었습니다.`
+        message: `${userIds.length}개 사용자가 성공적으로 삭제되었습니다.`,
       }
     } catch (error) {
       console.error('Users deletion error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -708,7 +737,7 @@ export async function updateUserRole(
         .from('profiles')
         .update({
           role,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .in('id', userIds)
 
@@ -722,18 +751,18 @@ export async function updateUserRole(
         site_manager: '현장관리자',
         customer_manager: '파트너사',
         admin: '관리자',
-        system_admin: '시스템관리자'
+        system_admin: '시스템관리자',
       }[role]
 
       return {
         success: true,
-        message: `${userIds.length}개 사용자의 역할이 ${roleText}로 변경되었습니다.`
+        message: `${userIds.length}개 사용자의 역할이 ${roleText}로 변경되었습니다.`,
       }
     } catch (error) {
       console.error('User role update error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -756,7 +785,7 @@ export async function updateUserStatus(
         .from('profiles')
         .update({
           status,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
         .in('id', userIds)
 
@@ -768,18 +797,18 @@ export async function updateUserStatus(
       const statusText = {
         active: '활성화',
         inactive: '비활성화',
-        suspended: '정지'
+        suspended: '정지',
       }[status]
 
       return {
         success: true,
-        message: `${userIds.length}개 사용자가 ${statusText}되었습니다.`
+        message: `${userIds.length}개 사용자가 ${statusText}되었습니다.`,
       }
     } catch (error) {
       console.error('User status update error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -800,7 +829,7 @@ export async function resetUserPassword(userId: string): Promise<AdminActionResu
 
       // Update user password
       const { error } = await supabase.auth.admin.updateUserById(userId, {
-        password: tempPassword
+        password: tempPassword,
       })
 
       if (error) {
@@ -828,15 +857,15 @@ export async function resetUserPassword(userId: string): Promise<AdminActionResu
       return {
         success: true,
         data: tempPassword,
-        message: user ? 
-          '비밀번호가 성공적으로 재설정되었습니다. 알림 이메일이 발송되었습니다.' :
-          '비밀번호가 성공적으로 재설정되었습니다.'
+        message: user
+          ? '비밀번호가 성공적으로 재설정되었습니다. 알림 이메일이 발송되었습니다.'
+          : '비밀번호가 성공적으로 재설정되었습니다.',
       }
     } catch (error) {
       console.error('Password reset error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })
@@ -845,16 +874,14 @@ export async function resetUserPassword(userId: string): Promise<AdminActionResu
 /**
  * Get available sites for user assignment
  */
-export async function getAvailableSites(): Promise<AdminActionResult<Array<{ id: string; name: string }>>> {
+export async function getAvailableSites(): Promise<
+  AdminActionResult<Array<{ id: string; name: string }>>
+> {
   return withAdminAuth(async (supabase, profile) => {
     try {
       const auth = profile.auth
 
-      let query = supabase
-        .from('sites')
-        .select('id, name')
-        .eq('status', 'active')
-        .order('name')
+      let query = supabase.from('sites').select('id, name').eq('status', 'active').order('name')
 
       if (auth.isRestricted) {
         query = query.eq('organization_id', requireRestrictedOrgId(auth))
@@ -869,13 +896,13 @@ export async function getAvailableSites(): Promise<AdminActionResult<Array<{ id:
 
       return {
         success: true,
-        data: sites || []
+        data: sites || [],
       }
     } catch (error) {
       console.error('Available sites fetch error:', error)
       return {
         success: false,
-        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR
+        error: error instanceof AppError ? error.message : AdminErrors.UNKNOWN_ERROR,
       }
     }
   })

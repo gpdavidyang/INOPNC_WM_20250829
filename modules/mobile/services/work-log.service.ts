@@ -195,6 +195,16 @@ export class WorkLogService {
         if (materialError) {
           console.error('자재 사용량 기록 오류:', materialError)
         }
+
+        // Apply usage to inventory/transactions (idempotent server-side)
+        try {
+          await fetch(`/api/mobile/daily-reports/${reportId}/materials/apply-usage`, {
+            method: 'POST',
+            credentials: 'include',
+          })
+        } catch (e) {
+          console.warn('자재 사용량 반영 호출 실패(무시):', e)
+        }
       }
 
       // 4. 첨부파일 업로드 및 기록
@@ -273,6 +283,16 @@ export class WorkLogService {
           quantity: data.npcUsage.amount,
           unit: data.npcUsage.unit,
         })
+
+        // Apply updated usage to inventory/transactions
+        try {
+          await fetch(`/api/mobile/daily-reports/${id}/materials/apply-usage`, {
+            method: 'POST',
+            credentials: 'include',
+          })
+        } catch (e) {
+          console.warn('자재 사용량 반영 호출 실패(무시):', e)
+        }
       }
 
       // 첨부파일 업데이트

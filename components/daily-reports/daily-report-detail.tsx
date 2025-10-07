@@ -39,28 +39,31 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
   //   })
   // })
 
-  const canEdit = 
-    report.created_by === currentUser.id &&
-    report.status === 'draft'
+  const canEdit = report.created_by === currentUser.id && report.status === 'draft'
 
   const getStatusBadge = (status: string) => {
     const statusConfig: unknown = {
       draft: { label: '작성중', variant: 'secondary', icon: Clock },
       submitted: { label: '제출됨', variant: 'default', icon: FileText },
       approved: { label: '승인됨', variant: 'success', icon: CheckCircle },
-      rejected: { label: '반려됨', variant: 'error', icon: XCircle }
+      rejected: { label: '반려됨', variant: 'error', icon: XCircle },
     }
 
     const config = statusConfig[status] || statusConfig.draft
     const Icon = config.icon
 
     return (
-      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-        status === 'approved' ? 'bg-green-100 text-green-800' :
-        status === 'rejected' ? 'bg-red-100 text-red-800' :
-        status === 'submitted' ? 'bg-blue-100 text-blue-800' :
-        'bg-gray-100 text-gray-800'
-      }`}>
+      <span
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+          status === 'approved'
+            ? 'bg-green-100 text-green-800'
+            : status === 'rejected'
+              ? 'bg-red-100 text-red-800'
+              : status === 'submitted'
+                ? 'bg-blue-100 text-blue-800'
+                : 'bg-gray-100 text-gray-800'
+        }`}
+      >
         <Icon className="h-3 w-3" />
         {config.label}
       </span>
@@ -88,16 +91,19 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                   작업일지 상세
                 </h1>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {new Date((report as unknown).report_date || report.work_date).toLocaleDateString('ko-KR', {
-                    year: 'numeric',
-                    month: 'long', 
-                    day: 'numeric',
-                    weekday: 'short'
-                  })}
+                  {new Date((report as unknown).report_date || report.work_date).toLocaleDateString(
+                    'ko-KR',
+                    {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      weekday: 'short',
+                    }
+                  )}
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-2">
               {getStatusBadge(report.status || 'draft')}
               {canEdit && (
@@ -118,7 +124,6 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
       {/* Content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="space-y-3">
-
           {/* Basic Information - 파트너사 스타일과 동일한 카드 기반 레이아웃 */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
@@ -136,15 +141,19 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                     </label>
                     <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <Calendar className="h-4 w-4" />
-                      <span>{new Date((report as unknown).report_date || report.work_date).toLocaleDateString('ko-KR', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        weekday: 'short'
-                      })}</span>
+                      <span>
+                        {new Date(
+                          (report as unknown).report_date || report.work_date
+                        ).toLocaleDateString('ko-KR', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                          weekday: 'short',
+                        })}
+                      </span>
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
                       현장명
@@ -161,13 +170,22 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                     </label>
                     <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <Users className="h-4 w-4" />
-                      <span>{report.created_by_profile?.full_name || '-'}</span>
+                      {report.created_by ? (
+                        // eslint-disable-next-line @next/next/no-html-link-for-pages
+                        <a
+                          href={`/dashboard/admin/users/${report.created_by}`}
+                          className="underline-offset-2 hover:underline"
+                        >
+                          {report.created_by_profile?.full_name || report.created_by}
+                        </a>
+                      ) : (
+                        <span>{report.created_by_profile?.full_name || '-'}</span>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-
                   <div>
                     <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
                       총 투입 인원
@@ -199,7 +217,17 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                       </label>
                       <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                         <CheckCircle className="h-4 w-4" />
-                        <span>{report.approved_by_profile?.full_name || '-'}</span>
+                        {report.approved_by ? (
+                          // eslint-disable-next-line @next/next/no-html-link-for-pages
+                          <a
+                            href={`/dashboard/admin/users/${report.approved_by}`}
+                            className="underline-offset-2 hover:underline"
+                          >
+                            {report.approved_by_profile?.full_name || report.approved_by}
+                          </a>
+                        ) : (
+                          <span>{report.approved_by_profile?.full_name || '-'}</span>
+                        )}
                       </div>
                     </div>
                     <div>
@@ -208,7 +236,11 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
                       </label>
                       <div className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                         <Clock className="h-4 w-4" />
-                        <span>{report.approved_at ? new Date(report.approved_at).toLocaleString('ko-KR') : '-'}</span>
+                        <span>
+                          {report.approved_at
+                            ? new Date(report.approved_at).toLocaleString('ko-KR')
+                            : '-'}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -228,19 +260,29 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
             <div className="px-3 py-3">
               <div className="grid grid-cols-1 gap-3">
                 <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">부재명</label>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                    부재명
+                  </label>
                   <p className="text-gray-900 dark:text-gray-100">
-                    {(report as unknown).component_name || (report as unknown).member_name || '해당 데이터 없음'}
+                    {(report as unknown).component_name ||
+                      (report as unknown).member_name ||
+                      '해당 데이터 없음'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">작업공정</label>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                    작업공정
+                  </label>
                   <p className="text-gray-900 dark:text-gray-100">
-                    {(report as unknown).work_process || (report as unknown).process_type || '해당 데이터 없음'}
+                    {(report as unknown).work_process ||
+                      (report as unknown).process_type ||
+                      '해당 데이터 없음'}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">작업구간</label>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                    작업구간
+                  </label>
                   <p className="text-gray-900 dark:text-gray-100">
                     {(report as unknown).work_section || '해당 데이터 없음'}
                   </p>
@@ -249,226 +291,248 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
             </div>
           </div>
 
-
-        {/* Worker Information - 작업자 정보 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              작업자 정보
-            </h2>
-          </div>
-          <div className="px-3 py-3">
-            {report.work_records && report.work_records.length > 0 ? (
-              <div className="space-y-2">
-                {report.work_records.map((record: unknown) => (
-                  <div key={record.id} className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700 last:border-0">
-                    <span className="text-sm text-gray-900 dark:text-gray-100">{record.worker?.full_name || '이름 없음'}</span>
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                      {record.work_hours ? `${record.work_hours.toFixed(1)}시간` : '0시간'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
-            )}
-          </div>
-        </div>
-
-        {/* Additional Photos - 추가 사진 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              추가 사진
-            </h2>
-          </div>
-          <div className="px-3 py-3">
-            {(report as unknown).additional_photos && (report as unknown).additional_photos.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {(report as unknown).additional_photos.map((photo: unknown, index: number) => (
-                  <img 
-                    key={index} 
-                    src={photo.url || photo} 
-                    alt={`추가 사진 ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
-                    onClick={() => window.open(photo.url || photo, '_blank')}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
-            )}
-          </div>
-        </div>
-
-        {/* Before Work Photos - 작업 전 사진 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              작업 전 사진
-            </h2>
-          </div>
-          <div className="px-3 py-3">
-            {(report as unknown).before_photos && (report as unknown).before_photos.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {(report as unknown).before_photos.map((photo: unknown, index: number) => (
-                  <img 
-                    key={index} 
-                    src={photo.url || photo} 
-                    alt={`작업 전 사진 ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
-                    onClick={() => window.open(photo.url || photo, '_blank')}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
-            )}
-          </div>
-        </div>
-
-        {/* After Work Photos - 작업 후 사진 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Camera className="h-5 w-5" />
-              작업 후 사진
-            </h2>
-          </div>
-          <div className="px-3 py-3">
-            {(report as unknown).after_photos && (report as unknown).after_photos.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                {(report as unknown).after_photos.map((photo: unknown, index: number) => (
-                  <img 
-                    key={index} 
-                    src={photo.url || photo} 
-                    alt={`작업 후 사진 ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
-                    onClick={() => window.open(photo.url || photo, '_blank')}
-                  />
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
-            )}
-          </div>
-        </div>
-
-        {/* Receipt Information - 영수증 정보 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              영수증 정보
-            </h2>
-          </div>
-          <div className="px-3 py-3">
-            {(report as unknown).receipts && (report as unknown).receipts.length > 0 ? (
-              <div className="space-y-2">
-                {(report as unknown).receipts.map((receipt: unknown, index: number) => (
-                  <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{receipt.store_name || '상호명 없음'}</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-400">{receipt.amount ? `${receipt.amount.toLocaleString()}원` : '금액 정보 없음'}</p>
-                      </div>
-                      {receipt.image_url && (
-                        <button 
-                          onClick={() => window.open(receipt.image_url, '_blank')}
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          보기
-                        </button>
-                      )}
+          {/* Worker Information - 작업자 정보 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                작업자 정보
+              </h2>
+            </div>
+            <div className="px-3 py-3">
+              {report.work_records && report.work_records.length > 0 ? (
+                <div className="space-y-2">
+                  {report.work_records.map((record: unknown) => (
+                    <div
+                      key={record.id}
+                      className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700 last:border-0"
+                    >
+                      <span className="text-sm text-gray-900 dark:text-gray-100">
+                        {record.worker?.full_name || '이름 없음'}
+                      </span>
+                      <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        {record.work_hours ? `${record.work_hours.toFixed(1)}시간` : '0시간'}
+                      </span>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
-            )}
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Request to Headquarters - 본사에게 요청 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              본사에게 요청
-            </h2>
+          {/* Additional Photos - 추가 사진 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                추가 사진
+              </h2>
+            </div>
+            <div className="px-3 py-3">
+              {(report as unknown).additional_photos &&
+              (report as unknown).additional_photos.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {(report as unknown).additional_photos.map((photo: unknown, index: number) => (
+                    <img
+                      key={index}
+                      src={photo.url || photo}
+                      alt={`추가 사진 ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                      onClick={() => window.open(photo.url || photo, '_blank')}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+              )}
+            </div>
           </div>
-          <div className="px-3 py-3">
-            {(report as unknown).headquarters_request ? (
-              <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-                {(report as unknown).headquarters_request}
-              </p>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
-            )}
-          </div>
-        </div>
 
-        {/* NPC-1000 Material Management - NPC-1000 자재관리 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              NPC-1000 자재관리
-            </h2>
+          {/* Before Work Photos - 작업 전 사진 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                작업 전 사진
+              </h2>
+            </div>
+            <div className="px-3 py-3">
+              {(report as unknown).before_photos && (report as unknown).before_photos.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {(report as unknown).before_photos.map((photo: unknown, index: number) => (
+                    <img
+                      key={index}
+                      src={photo.url || photo}
+                      alt={`작업 전 사진 ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                      onClick={() => window.open(photo.url || photo, '_blank')}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+              )}
+            </div>
           </div>
-          <div className="px-3 py-3">
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">입고</label>
-                <p className="text-gray-900 dark:text-gray-100">
-                  {(report as unknown).npc1000_incoming !== null && (report as unknown).npc1000_incoming !== undefined 
-                    ? `${(report as unknown).npc1000_incoming}개` 
-                    : '해당 데이터 없음'}
+
+          {/* After Work Photos - 작업 후 사진 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Camera className="h-5 w-5" />
+                작업 후 사진
+              </h2>
+            </div>
+            <div className="px-3 py-3">
+              {(report as unknown).after_photos && (report as unknown).after_photos.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {(report as unknown).after_photos.map((photo: unknown, index: number) => (
+                    <img
+                      key={index}
+                      src={photo.url || photo}
+                      alt={`작업 후 사진 ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90"
+                      onClick={() => window.open(photo.url || photo, '_blank')}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+              )}
+            </div>
+          </div>
+
+          {/* Receipt Information - 영수증 정보 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                영수증 정보
+              </h2>
+            </div>
+            <div className="px-3 py-3">
+              {(report as unknown).receipts && (report as unknown).receipts.length > 0 ? (
+                <div className="space-y-2">
+                  {(report as unknown).receipts.map((receipt: unknown, index: number) => (
+                    <div
+                      key={index}
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-2"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {receipt.store_name || '상호명 없음'}
+                          </p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                            {receipt.amount
+                              ? `${receipt.amount.toLocaleString()}원`
+                              : '금액 정보 없음'}
+                          </p>
+                        </div>
+                        {receipt.image_url && (
+                          <button
+                            onClick={() => window.open(receipt.image_url, '_blank')}
+                            className="text-xs text-blue-600 hover:text-blue-700"
+                          >
+                            보기
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+              )}
+            </div>
+          </div>
+
+          {/* Request to Headquarters - 본사에게 요청 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                본사에게 요청
+              </h2>
+            </div>
+            <div className="px-3 py-3">
+              {(report as unknown).headquarters_request ? (
+                <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                  {(report as unknown).headquarters_request}
                 </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">사용</label>
-                <p className="text-gray-900 dark:text-gray-100">
-                  {(report as unknown).npc1000_used !== null && (report as unknown).npc1000_used !== undefined 
-                    ? `${(report as unknown).npc1000_used}개` 
-                    : '해당 데이터 없음'}
-                </p>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">잔량</label>
-                <p className="text-gray-900 dark:text-gray-100">
-                  {(report as unknown).npc1000_remaining !== null && (report as unknown).npc1000_remaining !== undefined 
-                    ? `${(report as unknown).npc1000_remaining}개` 
-                    : '해당 데이터 없음'}
-                </p>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+              )}
+            </div>
+          </div>
+
+          {/* NPC-1000 Material Management - NPC-1000 자재관리 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                NPC-1000 자재관리
+              </h2>
+            </div>
+            <div className="px-3 py-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                    입고
+                  </label>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {(report as unknown).npc1000_incoming !== null &&
+                    (report as unknown).npc1000_incoming !== undefined
+                      ? `${(report as unknown).npc1000_incoming}개`
+                      : '해당 데이터 없음'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                    사용
+                  </label>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {(report as unknown).npc1000_used !== null &&
+                    (report as unknown).npc1000_used !== undefined
+                      ? `${(report as unknown).npc1000_used}개`
+                      : '해당 데이터 없음'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500 dark:text-gray-400 block mb-1">
+                    잔량
+                  </label>
+                  <p className="text-gray-900 dark:text-gray-100">
+                    {(report as unknown).npc1000_remaining !== null &&
+                    (report as unknown).npc1000_remaining !== undefined
+                      ? `${(report as unknown).npc1000_remaining}개`
+                      : '해당 데이터 없음'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Special Notes - 특이 사항 */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              특이 사항
-            </h2>
+          {/* Special Notes - 특이 사항 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                특이 사항
+              </h2>
+            </div>
+            <div className="px-3 py-3">
+              {(report as unknown).issues || (report as unknown).notes ? (
+                <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
+                  {(report as unknown).issues || (report as unknown).notes}
+                </p>
+              ) : (
+                <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
+              )}
+            </div>
           </div>
-          <div className="px-3 py-3">
-            {(report as unknown).issues || (report as unknown).notes ? (
-              <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">
-                {(report as unknown).issues || (report as unknown).notes}
-              </p>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400">해당 데이터 없음</p>
-            )}
-          </div>
-        </div>
-
         </div>
       </div>
 
@@ -481,7 +545,7 @@ export default function DailyReportDetail({ report, currentUser }: DailyReportDe
               <label className="block text-sm font-medium mb-2">반려 사유</label>
               <Textarea
                 value={approvalComments}
-                onChange={(e) => setApprovalComments(e.target.value)}
+                onChange={e => setApprovalComments(e.target.value)}
                 placeholder="반려 사유를 입력하세요"
                 rows={4}
               />

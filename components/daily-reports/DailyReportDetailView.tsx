@@ -23,7 +23,7 @@ export function DailyReportDetailView({
   onEdit,
   onDelete,
   onApprove,
-  onReject
+  onReject,
 }: DailyReportDetailViewProps) {
   const [activeTab, setActiveTab] = useState('overview')
   const [showActions, setShowActions] = useState(false)
@@ -46,7 +46,6 @@ export function DailyReportDetailView({
     }
   }
 
-
   const formData = report.formData || {}
 
   return (
@@ -62,7 +61,9 @@ export function DailyReportDetailView({
             <div className="flex flex-wrap gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
-                <span>{format(new Date(report.work_date), 'yyyy년 MM월 dd일 (EEEE)', { locale: ko })}</span>
+                <span>
+                  {format(new Date(report.work_date), 'yyyy년 MM월 dd일 (EEEE)', { locale: ko })}
+                </span>
               </div>
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
@@ -70,7 +71,17 @@ export function DailyReportDetailView({
               </div>
               <div className="flex items-center gap-1">
                 <User className="w-4 h-4" />
-                <span>{report.created_by_profile?.full_name}</span>
+                {report.created_by ? (
+                  // eslint-disable-next-line @next/next/no-html-link-for-pages
+                  <a
+                    href={`/dashboard/admin/users/${report.created_by}`}
+                    className="underline-offset-2 hover:underline"
+                  >
+                    {report.created_by_profile?.full_name || report.created_by}
+                  </a>
+                ) : (
+                  <span>{report.created_by_profile?.full_name}</span>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
@@ -101,7 +112,12 @@ export function DailyReportDetailView({
                 >
                   <span className="sr-only">작업</span>
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+                    />
                   </svg>
                 </Button>
                 {showActions && (
@@ -138,7 +154,19 @@ export function DailyReportDetailView({
               <CheckCircle className="w-5 h-5" />
               <span className="font-medium">승인됨</span>
               <span className="text-sm">
-                - {report.approved_by_profile.full_name} ({format(new Date(report.approved_at!), 'yyyy.MM.dd HH:mm')})
+                -{' '}
+                {report.approved_by ? (
+                  // eslint-disable-next-line @next/next/no-html-link-for-pages
+                  <a
+                    href={`/dashboard/admin/users/${report.approved_by}`}
+                    className="underline-offset-2 hover:underline"
+                  >
+                    {report.approved_by_profile.full_name}
+                  </a>
+                ) : (
+                  report.approved_by_profile.full_name
+                )}{' '}
+                ({format(new Date(report.approved_at!), 'yyyy.MM.dd HH:mm')})
               </span>
             </div>
           </div>
@@ -149,9 +177,7 @@ export function DailyReportDetailView({
             <div className="flex items-center gap-2 text-red-800">
               <XCircle className="w-5 h-5" />
               <span className="font-medium">반려됨</span>
-              <span className="text-sm">
-                - 반려 사유를 확인하고 수정 후 다시 제출해주세요
-              </span>
+              <span className="text-sm">- 반려 사유를 확인하고 수정 후 다시 제출해주세요</span>
             </div>
           </div>
         )}
@@ -254,7 +280,10 @@ export function DailyReportDetailView({
                 {(formData as unknown).workers && (formData as unknown).workers.length > 0 ? (
                   <div className="space-y-3">
                     {(formData as unknown).workers.map((worker: unknown, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
+                      >
                         <div className="flex items-center gap-3">
                           <User className="w-5 h-5 text-gray-500" />
                           <div>
@@ -270,9 +299,16 @@ export function DailyReportDetailView({
                     ))}
                     <div className="border-t pt-3 mt-3">
                       <div className="flex justify-between items-center">
-                        <span className="font-semibold">총 작업인원: {(formData as unknown).workers.length}명</span>
+                        <span className="font-semibold">
+                          총 작업인원: {(formData as unknown).workers.length}명
+                        </span>
                         <span className="font-semibold text-lg">
-                          총 {(formData as unknown).workers.reduce((sum: number, worker: unknown) => sum + (worker.hours || 8), 0)}시간
+                          총{' '}
+                          {(formData as unknown).workers.reduce(
+                            (sum: number, worker: unknown) => sum + (worker.hours || 8),
+                            0
+                          )}
+                          시간
                         </span>
                       </div>
                     </div>
@@ -284,8 +320,6 @@ export function DailyReportDetailView({
                   </div>
                 )}
               </Card>
-
-
 
               {/* Issues */}
               {report.issues && (
@@ -311,10 +345,18 @@ export function DailyReportDetailView({
                     <table className="w-full">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">작업 유형</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">위치</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">상세 내용</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">인원</th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                            작업 유형
+                          </th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                            위치
+                          </th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                            상세 내용
+                          </th>
+                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                            인원
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -333,27 +375,35 @@ export function DailyReportDetailView({
               )}
 
               {/* Subcontractor Workers */}
-              {(formData as unknown).subcontractor_workers && (formData as unknown).subcontractor_workers.length > 0 && (
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-gray-600" />
-                    협력업체 작업인원
-                  </h3>
-                  <div className="space-y-2">
-                    {(formData as unknown).subcontractor_workers.map((sub: unknown, index: number) => (
-                      <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                        <div>
-                          <p className="font-medium">{sub.subcontractor_name}</p>
-                          {sub.work_type && <p className="text-sm text-gray-600">{sub.work_type}</p>}
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">{sub.worker_count}명</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
+              {(formData as unknown).subcontractor_workers &&
+                (formData as unknown).subcontractor_workers.length > 0 && (
+                  <Card className="p-4">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-gray-600" />
+                      협력업체 작업인원
+                    </h3>
+                    <div className="space-y-2">
+                      {(formData as unknown).subcontractor_workers.map(
+                        (sub: unknown, index: number) => (
+                          <div
+                            key={index}
+                            className="flex justify-between items-center p-3 bg-gray-50 rounded"
+                          >
+                            <div>
+                              <p className="font-medium">{sub.subcontractor_name}</p>
+                              {sub.work_type && (
+                                <p className="text-sm text-gray-600">{sub.work_type}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{sub.worker_count}명</p>
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </Card>
+                )}
             </div>
           )}
 
@@ -361,68 +411,92 @@ export function DailyReportDetailView({
           {activeTab === 'materials' && (
             <div className="space-y-6">
               {/* Material Usage */}
-              {(formData as unknown).material_usage && (formData as unknown).material_usage.length > 0 && (
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Package className="w-5 h-5 text-gray-600" />
-                    자재 사용 내역
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">자재명</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">수량</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">단위</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">비고</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {(formData as unknown).material_usage.map((material: unknown, index: number) => (
-                          <tr key={index}>
-                            <td className="px-4 py-2">{material.material_name}</td>
-                            <td className="px-4 py-2">{material.quantity}</td>
-                            <td className="px-4 py-2">{material.unit || 'EA'}</td>
-                            <td className="px-4 py-2">{material.notes || '-'}</td>
+              {(formData as unknown).material_usage &&
+                (formData as unknown).material_usage.length > 0 && (
+                  <Card className="p-4">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Package className="w-5 h-5 text-gray-600" />
+                      자재 사용 내역
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                              자재명
+                            </th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                              수량
+                            </th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                              단위
+                            </th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                              비고
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              )}
+                        </thead>
+                        <tbody className="divide-y">
+                          {(formData as unknown).material_usage.map(
+                            (material: unknown, index: number) => (
+                              <tr key={index}>
+                                <td className="px-4 py-2">{material.material_name}</td>
+                                <td className="px-4 py-2">{material.quantity}</td>
+                                <td className="px-4 py-2">{material.unit || 'EA'}</td>
+                                <td className="px-4 py-2">{material.notes || '-'}</td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
 
               {/* Equipment Usage */}
-              {(formData as unknown).equipment_usage && (formData as unknown).equipment_usage.length > 0 && (
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Wrench className="w-5 h-5 text-gray-600" />
-                    장비 사용 내역
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">장비명</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">사용시간</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">운전자</th>
-                          <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">연료</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y">
-                        {(formData as unknown).equipment_usage.map((equipment: unknown, index: number) => (
-                          <tr key={index}>
-                            <td className="px-4 py-2">{equipment.equipment_name}</td>
-                            <td className="px-4 py-2">{equipment.hours_used}시간</td>
-                            <td className="px-4 py-2">{equipment.operator_name || '-'}</td>
-                            <td className="px-4 py-2">{equipment.fuel_consumed ? `${equipment.fuel_consumed}L` : '-'}</td>
+              {(formData as unknown).equipment_usage &&
+                (formData as unknown).equipment_usage.length > 0 && (
+                  <Card className="p-4">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Wrench className="w-5 h-5 text-gray-600" />
+                      장비 사용 내역
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                              장비명
+                            </th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                              사용시간
+                            </th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                              운전자
+                            </th>
+                            <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">
+                              연료
+                            </th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </Card>
-              )}
+                        </thead>
+                        <tbody className="divide-y">
+                          {(formData as unknown).equipment_usage.map(
+                            (equipment: unknown, index: number) => (
+                              <tr key={index}>
+                                <td className="px-4 py-2">{equipment.equipment_name}</td>
+                                <td className="px-4 py-2">{equipment.hours_used}시간</td>
+                                <td className="px-4 py-2">{equipment.operator_name || '-'}</td>
+                                <td className="px-4 py-2">
+                                  {equipment.fuel_consumed ? `${equipment.fuel_consumed}L` : '-'}
+                                </td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </Card>
+                )}
             </div>
           )}
 
@@ -430,70 +504,90 @@ export function DailyReportDetailView({
           {activeTab === 'safety' && (
             <div className="space-y-6">
               {/* Safety Incidents */}
-              {(formData as unknown).safety_incidents && (formData as unknown).safety_incidents.length > 0 && (
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <Shield className="w-5 h-5 text-red-600" />
-                    안전 사고
-                  </h3>
-                  <div className="space-y-3">
-                    {(formData as unknown).safety_incidents.map((incident: unknown, index: number) => (
-                      <div key={index} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <Badge className={cn(
-                            incident.severity === 'critical' && 'bg-red-100 text-red-800',
-                            incident.severity === 'major' && 'bg-orange-100 text-orange-800',
-                            incident.severity === 'moderate' && 'bg-yellow-100 text-yellow-800',
-                            incident.severity === 'minor' && 'bg-green-100 text-green-800'
-                          )}>
-                            {incident.severity}
-                          </Badge>
-                          <span className="text-sm text-gray-600">{incident.incident_time}</span>
-                        </div>
-                        <p className="font-medium mb-1">{incident.description}</p>
-                        {incident.location && (
-                          <p className="text-sm text-gray-600 mb-1">위치: {incident.location}</p>
-                        )}
-                        {incident.actions_taken && (
-                          <p className="text-sm text-gray-700">조치사항: {incident.actions_taken}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
+              {(formData as unknown).safety_incidents &&
+                (formData as unknown).safety_incidents.length > 0 && (
+                  <Card className="p-4">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-red-600" />
+                      안전 사고
+                    </h3>
+                    <div className="space-y-3">
+                      {(formData as unknown).safety_incidents.map(
+                        (incident: unknown, index: number) => (
+                          <div key={index} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-2">
+                              <Badge
+                                className={cn(
+                                  incident.severity === 'critical' && 'bg-red-100 text-red-800',
+                                  incident.severity === 'major' && 'bg-orange-100 text-orange-800',
+                                  incident.severity === 'moderate' &&
+                                    'bg-yellow-100 text-yellow-800',
+                                  incident.severity === 'minor' && 'bg-green-100 text-green-800'
+                                )}
+                              >
+                                {incident.severity}
+                              </Badge>
+                              <span className="text-sm text-gray-600">
+                                {incident.incident_time}
+                              </span>
+                            </div>
+                            <p className="font-medium mb-1">{incident.description}</p>
+                            {incident.location && (
+                              <p className="text-sm text-gray-600 mb-1">
+                                위치: {incident.location}
+                              </p>
+                            )}
+                            {incident.actions_taken && (
+                              <p className="text-sm text-gray-700">
+                                조치사항: {incident.actions_taken}
+                              </p>
+                            )}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </Card>
+                )}
 
               {/* Quality Inspections */}
-              {(formData as unknown).quality_inspections && (formData as unknown).quality_inspections.length > 0 && (
-                <Card className="p-4">
-                  <h3 className="font-semibold mb-3 flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
-                    품질 검사
-                  </h3>
-                  <div className="space-y-3">
-                    {(formData as unknown).quality_inspections.map((inspection: unknown, index: number) => (
-                      <div key={index} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-medium">{inspection.inspection_type}</span>
-                          <Badge className={cn(
-                            inspection.result === 'pass' && 'bg-green-100 text-green-800',
-                            inspection.result === 'fail' && 'bg-red-100 text-red-800',
-                            inspection.result === 'conditional_pass' && 'bg-yellow-100 text-yellow-800'
-                          )}>
-                            {inspection.result === 'pass' && '합격'}
-                            {inspection.result === 'fail' && '불합격'}
-                            {inspection.result === 'conditional_pass' && '조건부 합격'}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">검사자: {inspection.inspector_name}</p>
-                        {inspection.notes && (
-                          <p className="text-sm text-gray-700 mt-2">{inspection.notes}</p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              )}
+              {(formData as unknown).quality_inspections &&
+                (formData as unknown).quality_inspections.length > 0 && (
+                  <Card className="p-4">
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="w-5 h-5 text-blue-600" />
+                      품질 검사
+                    </h3>
+                    <div className="space-y-3">
+                      {(formData as unknown).quality_inspections.map(
+                        (inspection: unknown, index: number) => (
+                          <div key={index} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-medium">{inspection.inspection_type}</span>
+                              <Badge
+                                className={cn(
+                                  inspection.result === 'pass' && 'bg-green-100 text-green-800',
+                                  inspection.result === 'fail' && 'bg-red-100 text-red-800',
+                                  inspection.result === 'conditional_pass' &&
+                                    'bg-yellow-100 text-yellow-800'
+                                )}
+                              >
+                                {inspection.result === 'pass' && '합격'}
+                                {inspection.result === 'fail' && '불합격'}
+                                {inspection.result === 'conditional_pass' && '조건부 합격'}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              검사자: {inspection.inspector_name}
+                            </p>
+                            {inspection.notes && (
+                              <p className="text-sm text-gray-700 mt-2">{inspection.notes}</p>
+                            )}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </Card>
+                )}
             </div>
           )}
 
@@ -506,7 +600,8 @@ export function DailyReportDetailView({
                   <Camera className="w-5 h-5 text-blue-600" />
                   작업전 사진
                 </h3>
-                {(formData as unknown).before_photos && (formData as unknown).before_photos.length > 0 ? (
+                {(formData as unknown).before_photos &&
+                (formData as unknown).before_photos.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {(formData as unknown).before_photos.map((photo: unknown, index: number) => (
                       <div key={index} className="relative group">
@@ -539,7 +634,8 @@ export function DailyReportDetailView({
                   <Camera className="w-5 h-5 text-green-600" />
                   작업후 사진
                 </h3>
-                {(formData as unknown).after_photos && (formData as unknown).after_photos.length > 0 ? (
+                {(formData as unknown).after_photos &&
+                (formData as unknown).after_photos.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {(formData as unknown).after_photos.map((photo: unknown, index: number) => (
                       <div key={index} className="relative group">
@@ -575,11 +671,16 @@ export function DailyReportDetailView({
                 {(formData as unknown).receipts && (formData as unknown).receipts.length > 0 ? (
                   <div className="space-y-3">
                     {(formData as unknown).receipts.map((receipt: unknown, index: number) => (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
                         <div className="flex items-center gap-3">
                           <FileText className="w-8 h-8 text-gray-500" />
                           <div>
-                            <p className="font-medium">{receipt.filename || `영수증_${index + 1}`}</p>
+                            <p className="font-medium">
+                              {receipt.filename || `영수증_${index + 1}`}
+                            </p>
                             <p className="text-sm text-gray-600">
                               {receipt.amount && `₩${receipt.amount.toLocaleString()}`}
                               {receipt.vendor && ` • ${receipt.vendor}`}

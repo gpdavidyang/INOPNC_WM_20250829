@@ -52,9 +52,7 @@ export default async function AdminSiteDetailPage({ params }: SitePageProps) {
           { label: '현장 관리', href: '/dashboard/admin/sites' },
           { label: '현장 상세' },
         ]}
-        actions={
-          <SiteDetailActions siteId={params.id} currentStatus={(site as any)?.status ?? null} />
-        }
+        actions={<SiteDetailActions siteId={params.id} />}
       />
 
       <Card>

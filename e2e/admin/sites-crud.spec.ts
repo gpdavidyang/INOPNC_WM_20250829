@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { login, waitForAPIResponse } from '../utils/test-helpers'
 
 test.describe('Admin Sites CRUD', () => {
-  test('Create → Edit status → Delete flow', async ({ page }) => {
+  test('Create → Delete flow', async ({ page }) => {
     // Login as admin
     await login(page as any, 'admin' as any)
 
@@ -26,18 +26,7 @@ test.describe('Admin Sites CRUD', () => {
     await page.waitForURL('**/dashboard/admin/sites/**', { timeout: 15000 })
     await expect(page.getByRole('heading', { name: '현장 상세' })).toBeVisible()
 
-    // Change status to inactive (중단)
-    const patchResp = page.waitForResponse(
-      res =>
-        res.url().includes('/api/admin/sites/') &&
-        res.request().method() === 'PATCH' &&
-        res.status() === 200
-    )
-    await page.getByRole('button', { name: /상태 변경/ }).click()
-    await page.getByRole('menuitem', { name: '중단' }).click()
-    await patchResp
-    // Verify status text updated (detail shows raw status value)
-    await expect(page.getByText('inactive')).toBeVisible()
+    // 상태 변경 UI 제거됨: 상태 변경 단계는 생략
 
     // Delete site (opens confirm dialog)
     const deleteResp = page.waitForResponse(

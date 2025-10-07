@@ -838,8 +838,8 @@ export default function SiteDetailTabs({
                         key: 'author',
                         header: '작성자',
                         sortable: false,
-                        accessor: (r: any) => r?.profiles?.full_name || r?.member_name || '',
-                        render: (r: any) => r?.profiles?.full_name || r?.member_name || '-',
+                        accessor: (r: any) => r?.created_by_profile?.full_name || '',
+                        render: (r: any) => r?.created_by_profile?.full_name || '-',
                         width: 140,
                         headerClassName: 'whitespace-nowrap',
                       },
@@ -892,11 +892,11 @@ export default function SiteDetailTabs({
                         key: 'actions',
                         header: '작업',
                         sortable: false,
-                        align: 'right',
+                        align: 'left',
                         width: 210,
                         className: 'whitespace-nowrap',
                         render: (r: any) => (
-                          <div className="flex justify-end gap-1">
+                          <div className="flex justify-start gap-1">
                             <Button
                               asChild
                               variant="outline"
@@ -1288,7 +1288,18 @@ export default function SiteDetailTabs({
                         header: '요청자',
                         sortable: true,
                         accessor: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '',
-                        render: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '-',
+                        render: (rq: any) =>
+                          rq?.requested_by ? (
+                            <a
+                              href={`/dashboard/admin/users/${rq.requested_by}`}
+                              className="underline-offset-2 hover:underline"
+                              title="사용자 상세 보기"
+                            >
+                              {rq?.requester?.full_name || rq?.requested_by}
+                            </a>
+                          ) : (
+                            <span>{rq?.requester?.full_name || '-'}</span>
+                          ),
                       },
                       {
                         key: 'status',
@@ -1395,8 +1406,19 @@ export default function SiteDetailTabs({
                     key: 'author',
                     header: '작성자',
                     sortable: false,
-                    accessor: (r: any) => r?.profiles?.full_name || r?.member_name || '',
-                    render: (r: any) => r?.profiles?.full_name || r?.member_name || '-',
+                    accessor: (r: any) => r?.created_by_profile?.full_name || r?.created_by || '',
+                    render: (r: any) =>
+                      r?.created_by ? (
+                        <a
+                          href={`/dashboard/admin/users/${r.created_by}`}
+                          className="underline-offset-2 hover:underline"
+                          title="사용자 상세 보기"
+                        >
+                          {r?.created_by_profile?.full_name || r.created_by}
+                        </a>
+                      ) : (
+                        <span>{r?.created_by_profile?.full_name || '-'}</span>
+                      ),
                     width: 140,
                     headerClassName: 'whitespace-nowrap',
                   },
@@ -1450,11 +1472,11 @@ export default function SiteDetailTabs({
                     key: 'actions',
                     header: '작업',
                     sortable: false,
-                    align: 'right',
+                    align: 'left',
                     width: 210,
                     className: 'whitespace-nowrap',
                     render: (r: any) => (
-                      <div className="flex justify-end gap-1">
+                      <div className="flex justify-start gap-1">
                         <Button asChild variant="outline" size="sm" className="px-2 py-1 text-xs">
                           <a href={`/dashboard/admin/daily-reports/${r.id}`}>상세</a>
                         </Button>
@@ -2075,7 +2097,18 @@ export default function SiteDetailTabs({
                       header: '요청자',
                       sortable: true,
                       accessor: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '',
-                      render: (rq: any) => rq?.requester?.full_name || rq?.requested_by || '-',
+                      render: (rq: any) =>
+                        rq?.requested_by ? (
+                          <a
+                            href={`/dashboard/admin/users/${rq.requested_by}`}
+                            className="underline-offset-2 hover:underline"
+                            title="사용자 상세 보기"
+                          >
+                            {rq?.requester?.full_name || rq?.requested_by}
+                          </a>
+                        ) : (
+                          <span>{rq?.requester?.full_name || '-'}</span>
+                        ),
                     },
                     {
                       key: 'status',

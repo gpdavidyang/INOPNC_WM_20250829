@@ -268,6 +268,24 @@ function Sidebar({
     }
   }
 
+  // Pending signup requests badge
+  const [pendingSignupCount, setPendingSignupCount] = useState<number>(0)
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      try {
+        const res = await fetch('/api/admin/signup-requests/pending-count', { cache: 'no-store' })
+        const j = await res.json().catch(() => ({}))
+        if (active && res.ok && j?.success) setPendingSignupCount(Number(j.count || 0))
+      } catch {
+        /* ignore */
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [])
+
   // Toggle category collapse state
   const toggleCategory = (categoryId: string) => {
     setCollapsedCategories(prev => {
@@ -442,7 +460,12 @@ function Sidebar({
                             }`}
                           >
                             <Icon className="mr-3 h-5 w-5" />
-                            {item.label}
+                            <span className="mr-2">{item.label}</span>
+                            {item.id === 'signup-requests' && pendingSignupCount > 0 && (
+                              <span className="inline-flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full text-xs font-semibold text-white bg-red-600">
+                                {pendingSignupCount > 99 ? '99+' : pendingSignupCount}
+                              </span>
+                            )}
                           </Link>
                         )
                       })}

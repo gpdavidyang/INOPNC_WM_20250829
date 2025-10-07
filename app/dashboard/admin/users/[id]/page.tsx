@@ -50,6 +50,19 @@ export default async function AdminUserDetailPage({ params }: UserDetailPageProp
           <CardDescription>{user?.email || '-'}</CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-1">
+          {user?.signup_request?.id && (
+            <div className="mb-2">
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-[rgba(141,160,205,0.15)] text-[#1B419C] border border-[#8DA0CD]">
+                가입요청에서 생성됨
+              </span>
+              <a
+                href={`/dashboard/admin/signup-requests?search=${encodeURIComponent(user?.email || '')}`}
+                className="ml-2 underline underline-offset-2"
+              >
+                가입요청 목록 보기
+              </a>
+            </div>
+          )}
           <div>
             역할: <span className="text-foreground font-medium">{user?.role || '-'}</span>
           </div>

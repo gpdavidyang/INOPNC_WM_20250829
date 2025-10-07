@@ -622,7 +622,26 @@ export async function approveSignupRequest(
       return { error: '승인 처리 업데이트에 실패했습니다.' }
     }
 
+    // Try to set created_user_id if the column exists (non-blocking)
+    try {
+      await supabase
+        .from('signup_requests')
+        .update({ created_user_id: authData.user.id })
+        .eq('id', requestId)
+    } catch (ignore) {
+      // Non-blocking: column may not exist in some deployments; ignore
+      void ignore
+    }
+
     // console.log('Approval completed successfully')
+
+    // Send welcome email (best-effort)
+    try {
+      const { sendWelcomeEmail } = await import('@/app/actions/admin/email-notifications')
+      await sendWelcomeEmail(request.email, request.full_name, tempPassword, role)
+    } catch (emailErr) {
+      console.error('Welcome email failed (non-blocking):', emailErr)
+    }
 
     // Build success message
     let message = `승인 완료: ${request.full_name} (${request.email})\n임시 비밀번호: ${tempPassword}`
@@ -637,6 +656,7 @@ export async function approveSignupRequest(
       success: true,
       temporaryPassword: tempPassword,
       userEmail: request.email,
+      created_user_id: authData.user.id,
       message,
     }
   } catch (error) {
